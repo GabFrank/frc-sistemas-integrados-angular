@@ -23,6 +23,8 @@ import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBanca
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
+import { ImprimirReporteMovimientosCajaVirtualGQL } from './graphql/imprimirReporteMovimientosCajaVirtual';
+import { ImprimirReporteMovimientosBancariosGQL } from './graphql/imprimirReporteMovimientosBancarios';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +53,8 @@ export class CajaVirtualService {
     private otorgarAccesoGQL: OtorgarAccesoCajaGQL,
     private revocarAccesoGQL: RevocarAccesoCajaGQL,
     private transferirPropiedadGQL: TransferirPropiedadCajaGQL,
+    private imprimirReporteMovimientosGQL: ImprimirReporteMovimientosCajaVirtualGQL,
+    private imprimirReporteMovimientosBancariosGQL: ImprimirReporteMovimientosBancariosGQL,
   ) { }
 
   // ── Acceso por caja (ACL) ──
@@ -61,18 +65,19 @@ export class CajaVirtualService {
     return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId });
   }
 
-  onOtorgarAcceso(cajaVirtualId: number, usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean): Observable<any> {
+  onOtorgarAcceso(cajaVirtualId: number, usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean,
+                  opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom(this.otorgarAccesoGQL, {
       cajaVirtualId, usuarioId, puedeLeer, puedeEscribir,
-    });
+    }, true, opciones);
   }
 
-  onRevocarAcceso(cajaVirtualId: number, usuarioId: number): Observable<any> {
-    return this.genericService.onSaveCustom(this.revocarAccesoGQL, { cajaVirtualId, usuarioId });
+  onRevocarAcceso(cajaVirtualId: number, usuarioId: number, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom(this.revocarAccesoGQL, { cajaVirtualId, usuarioId }, true, opciones);
   }
 
-  onTransferirPropiedad(cajaVirtualId: number, nuevoPropietarioId: number): Observable<any> {
-    return this.genericService.onSaveCustom(this.transferirPropiedadGQL, { cajaVirtualId, nuevoPropietarioId });
+  onTransferirPropiedad(cajaVirtualId: number, nuevoPropietarioId: number, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom(this.transferirPropiedadGQL, { cajaVirtualId, nuevoPropietarioId }, true, opciones);
   }
 
   onGetAll(page = 0, size = 10): Observable<PageInfo<CajaVirtual>> {
@@ -98,17 +103,17 @@ export class CajaVirtualService {
     return this.genericService.onCustomQuery(this.cajaVirtualesActivasGQL, {});
   }
 
-  onSave(cajaVirtual: CajaVirtual): Observable<CajaVirtual> {
+  onSave(cajaVirtual: CajaVirtual, opciones?: { avisarExito?: boolean }): Observable<CajaVirtual> {
     let aux = cajaVirtual;
     if (!(cajaVirtual instanceof CajaVirtual)) {
       aux = new CajaVirtual();
       Object.assign(aux, cajaVirtual);
     }
-    return this.genericService.onSaveCustom(this.saveCajaVirtualGQL, { input: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveCajaVirtualGQL, { input: aux.toInput() }, true, opciones);
   }
 
-  onDelete(id: number): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.deleteCajaVirtualGQL, { id });
+  onDelete(id: number, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteCajaVirtualGQL, { id }, true, opciones);
   }
 
   onGetMovimientos(cajaVirtualId: number, page = 0, size = 20): Observable<PageInfo<MovimientoCajaVirtual>> {
@@ -119,17 +124,17 @@ export class CajaVirtualService {
     return this.genericService.onCustomQuery(this.movimientosPorFechaGQL, { cajaVirtualId, inicio, fin, page, size });
   }
 
-  onSaveMovimiento(movimiento: MovimientoCajaVirtual): Observable<MovimientoCajaVirtual> {
+  onSaveMovimiento(movimiento: MovimientoCajaVirtual, opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {
     let aux = movimiento;
     if (!(movimiento instanceof MovimientoCajaVirtual)) {
       aux = new MovimientoCajaVirtual();
       Object.assign(aux, movimiento);
     }
-    return this.genericService.onSaveCustom(this.saveMovimientoGQL, { input: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveMovimientoGQL, { input: aux.toInput() }, true, opciones);
   }
 
-  onAnularMovimiento(id: number, motivo?: string): Observable<MovimientoCajaVirtual> {
-    return this.genericService.onSaveCustom(this.anularMovimientoGQL, { id, motivo });
+  onAnularMovimiento(id: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {
+    return this.genericService.onSaveCustom(this.anularMovimientoGQL, { id, motivo }, true, opciones);
   }
 
   onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
@@ -154,17 +159,44 @@ export class CajaVirtualService {
     });
   }
 
+  /** PDF (base64) de los movimientos de caja mayor, con los mismos filtros que onGetMovimientosFilter. */
+  onImprimirReporteMovimientos(cajaVirtualId: number,
+                               filtros: { desde?: string; fin?: string; tipo?: CajaVirtualTipoMovimiento; monedaId?: number; soloActivos?: boolean }): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirReporteMovimientosGQL, {
+      cajaVirtualId,
+      desde: filtros.desde ?? null,
+      fin: filtros.fin ?? null,
+      tipo: filtros.tipo ?? null,
+      monedaId: filtros.monedaId ?? null,
+      soloActivos: filtros.soloActivos ?? false,
+    });
+  }
+
+  /** PDF (base64) de los movimientos de una cuenta bancaria vista desde esta caja. */
+  onImprimirReporteMovimientosBancarios(cajaVirtualId: number, cuentaBancariaId: number,
+                                        filtros: { desde?: string; fin?: string; tipo?: string; soloActivos?: boolean }): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirReporteMovimientosBancariosGQL, {
+      cajaVirtualId,
+      cuentaBancariaId,
+      desde: filtros.desde ?? null,
+      fin: filtros.fin ?? null,
+      tipo: filtros.tipo ?? null,
+      soloActivos: filtros.soloActivos ?? false,
+    });
+  }
+
   onGetConfiguracion(cajaVirtualId: number): Observable<CajaVirtualConfiguracion> {
     return this.genericService.onCustomQuery(this.configuracionGQL, { cajaVirtualId });
   }
 
-  onSaveConfiguracion(input: CajaVirtualConfiguracionInput): Observable<CajaVirtualConfiguracion> {
-    return this.genericService.onSaveCustom(this.saveConfiguracionGQL, { input });
+  onSaveConfiguracion(input: CajaVirtualConfiguracionInput, opciones?: { avisarExito?: boolean }): Observable<CajaVirtualConfiguracion> {
+    return this.genericService.onSaveCustom(this.saveConfiguracionGQL, { input }, true, opciones);
   }
 
-  onRealizarTransferencia(origenId: number, destinoId: number, cantidad: number, monedaId: number, descripcion?: string, usuarioId?: number): Observable<boolean> {
+  onRealizarTransferencia(origenId: number, destinoId: number, cantidad: number, monedaId: number, descripcion?: string, usuarioId?: number,
+                          opciones?: { avisarExito?: boolean }): Observable<boolean> {
     return this.genericService.onSaveCustom(this.realizarTransferenciaGQL, {
       origenId, destinoId, cantidad, monedaId, descripcion, usuarioId
-    });
+    }, true, opciones);
   }
 }

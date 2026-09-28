@@ -167,15 +167,19 @@ export class ListCajaVirtualComponent implements OnInit {
       null, null, true, 'Sí, eliminar', 'No'
     ).subscribe(confirmed => {
       if (confirmed === true) {
-        this.cajaVirtualService.onDelete(item.id)
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.cajaVirtualService.onDelete(item.id, { avisarExito: false })
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) {
-              this.notificacion.openSucess('Caja virtual eliminada correctamente');
-              this.onFiltrar();
-            } else {
-              this.notificacion.openAlgoSalioMal('No se pudo eliminar la caja virtual');
-            }
+          .subscribe({
+            next: res => {
+              if (res) {
+                this.notificacion.openSucess('Caja virtual eliminada correctamente');
+                this.onFiltrar();
+              } else {
+                this.notificacion.openAlgoSalioMal('No se pudo eliminar la caja virtual');
+              }
+            },
+            error: () => {}
           });
       }
     });

@@ -247,6 +247,21 @@ export const productoStock = gql`
     data: productoPorSucursalStock(proId: $proId, sucId: $sucId)
   }
 `;
+
+// Existencia del producto en todas las sucursales de una vez.
+//
+// Preferir esta sobre productoStock cuando se necesita más de una sucursal del
+// mismo producto: es un GROUP BY en el central en vez de un request por
+// sucursal. Las sucursales sin movimientos no vienen en la lista —no hay filas
+// que sumar—, así que el llamador las muestra en cero.
+export const stockPorSucursales = gql`
+  query ($proId: ID!) {
+    data: stockPorSucursales(proId: $proId) {
+      sucursalId
+      cantidad
+    }
+  }
+`;
 export const productoStockCostoPorProducto = gql`
   query ($proId: ID!, $sucId: ID!) {
     data: costoPorProductolLastPorProductoId(proId: $proId) {

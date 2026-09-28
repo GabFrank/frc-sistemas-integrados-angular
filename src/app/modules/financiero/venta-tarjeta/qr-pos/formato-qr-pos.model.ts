@@ -1,0 +1,127 @@
+/**
+ * Formato del QR que imprime la maquinita de un proveedor.
+ *
+ * La fila se administra en el central (tabla `financiero.formato_qr_pos`) y baja a cada filial
+ * por replicacion MAIN_TO_ALL. El PDV la lee del filial para poder escanear sin internet.
+ */
+export interface FormatoQrPos {
+  id?: number;
+  nombre?: string;
+  /**
+   * En el filial (que es de donde lo lee el PDV) viaja como id pelado; en el central, donde vive
+   * el ABM, como objeto para poder mostrar el nombre. Se aceptan los dos.
+   */
+  proveedorServicioId?: number;
+  proveedorServicio?: { id?: number; persona?: { nombre?: string } };
+  /**
+   * MAQUINA | WEB | API.
+   *
+   * Desde el 2026-09-16 estos objetos vienen de `formato_terminal_pos` --el del ABM-- y no de la
+   * tabla legacy, así que el tipo viaja. Es lo que permite quedarse sólo con los WEB al reconocer
+   * un cupón escaneado: los patrones MAQUINA son de texto OCR y están llenos de `[\s\S]*`, así que
+   * en la misma bolsa podrían matchear una cadena de QR y devolver campos de otro aparato.
+   */
+  tipo?: string;
+  /** Regex con grupos nombrados, anclado con ^ y $. */
+  patron?: string;
+  /** JSON serializado; ver {@link MapeoQrPos}. */
+  mapeo?: string;
+  ejemplo?: string;
+  activo?: boolean;
+}
+
+/**
+ * Como se transforma un grupo capturado en un campo nuestro.
+ *
+ * El vocabulario es cerrado a proposito. En cuanto se admiten expresiones, el ABM se convierte
+ * en un lenguaje de programacion dentro de un formulario y cualquiera puede colgar una caja.
+ */
+export interface ReglaCampo {
+  /** Nombre del grupo del patron: `(?<auth>...)` -> `"auth"`. */
+  de: string;
+  /** Valor literal -> id nuestro. Se usa para la moneda. */
+  mapa?: { [valor: string]: number };
+  /** Divisor fijo. */
+  escala?: number;
+  /** Divide por 10^decimales de la moneda resuelta. Para importes en la menor unidad. */
+  escalaSegunMoneda?: boolean;
+  /**
+   * Formato de fecha: `yyyyMMddHHmm`, `dd/MM/yyyy` o `yyyy-MM-dd`.
+   *
+   * Los mismos tres que acepta `ExtractorCupon.fechaIso()` del central, y no por casualidad: un
+   * cupón leído por el lector y uno fotografiado producen los mismos campos, así que no pueden
+   * necesitar vocabularios distintos.
+   */
+  formato?: string;
+  /**
+   * Grupo del patrón que trae la HORA, cuando viene separada de la fecha.
+   *
+   * Va aparte porque los proveedores meten texto en el medio --INFONET imprime
+   * `F:02/09/2026H:22:51:34`-- y un solo grupo obligaría a capturar esa basura adentro del valor.
+   * Sin hora se asume medianoche.
+   */
+  deHora?: string;
+  /** Zona horaria en que esta expresada la fecha del cupon. */
+  zona?: string;
+  mayusculas?: boolean;
+}
+
+export interface MapeoQrPos {
+  codigoAutorizacion?: ReglaCampo;
+  numeroBoleta?: ReglaCampo;
+  moneda?: ReglaCampo;
+  monto?: ReglaCampo;
+  identificadorTransaccion?: ReglaCampo;
+  fecha?: ReglaCampo;
+  /**
+   * El identificador del aparato, tal como el cupón lo imprime (`Terminal:52287864` en Dinelco,
+   * `STONEID:` en Stone).
+   *
+   * Con esto mapeado y la `serie` cargada en el ABM, **el cupón dice solo de qué máquina salió** y
+   * el cajero no tiene que escanear el aparato. Es configuración, no release: alcanza con agregarlo
+   * al mapeo del formato.
+   */
+  terminal?: ReglaCampo;
+}
+
+/** Resultado de leer un cupon. */
+export interface DatosCupon {
+  codigoAutorizacion?: string;
+  numeroBoleta?: string;
+  monedaId?: number;
+  monto?: number;
+  identificadorTransaccion?: string;
+  /** El identificador del aparato que imprimió el cupón. Se coteja contra `terminal_pos.serie`. */
+  terminal?: string;
+  fecha?: Date;
+  /** La cadena tal cual entro por el lector, sin normalizar. */
+  qrCrudo: string;
+  /**
+   * Token de la captura por foto que produjo estos datos.
+   *
+   * Solo viene por el camino de camara. Viaja hasta `completar` para que la foto quede atada a la
+   * venta: sin eso la purga de imagenes no puede distinguir la evidencia de un cobro de una
+   * captura que quedo por el camino.
+   */
+  capturaToken?: string;
+  /** QR | OCR | MANUAL. De donde salieron los datos, para `venta_tarjeta.origen`. */
+  origen?: string;
+  /**
+   * Ya se preguntó si este cupón se puede usar, y se pudo.
+   *
+   * Lo pone el diálogo que hizo la consulta, para que el paso siguiente no la repita. No es una
+   * garantía: el backend valida igual al guardar, y ésa es la que manda.
+   */
+  verificado?: boolean;
+  /** Los campos sin columna propia, como JSON. Van a `venta_tarjeta.datos_extra`. */
+  datosExtra?: string;
+  /** Formato que la reconocio. */
+  formato: FormatoQrPos;
+}
+
+export interface ResultadoParseo {
+  ok: boolean;
+  datos?: DatosCupon;
+  /** Mensaje para mostrarle al cajero cuando `ok` es false. */
+  error?: string;
+}

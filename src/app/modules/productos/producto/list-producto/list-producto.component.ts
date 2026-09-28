@@ -15,6 +15,7 @@ import {
   ViewChild,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
+import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
@@ -274,17 +275,18 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       });
       }
 
-      this.selectedProducto.sucursales.forEach((existenciaSucursal) => {
-        this.service
-          .onGetStockPorProductoAndSucursal(
-            this.selectedProducto.id,
-            existenciaSucursal.sucursal.id,
-            true
-          )
-          .subscribe((stock) => {
-            existenciaSucursal.existencia = stock;
+      // Un request por producto y no uno por sucursal: al expandir una fila sin filtro de sucursal
+      // esto eran 31 consultas para llenar la misma tabla. Las sucursales sin movimientos no
+      // vuelven en la respuesta —no hay filas que sumar— y se muestran en cero.
+      const sucursalesDeLaFila = this.selectedProducto.sucursales;
+      this.service
+        .onGetStockPorSucursales(this.selectedProducto.id)
+        .subscribe((stockPorSucursal: PorSucursal<number>) => {
+          sucursalesDeLaFila.forEach((existenciaSucursal) => {
+            existenciaSucursal.existencia =
+              stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;
           });
-      });
+        });
     }
   }
 

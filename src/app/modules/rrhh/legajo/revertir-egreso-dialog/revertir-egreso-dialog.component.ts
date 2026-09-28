@@ -74,8 +74,10 @@ export class RevertirEgresoDialogComponent {
       return;
     }
     const motivo = this.motivoControl.value ? this.motivoControl.value.toUpperCase() : null;
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.legajoService.onRevertirEgreso(this.data.funcionarioId, this.creditoControl.value, motivo)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.dialogRef.close(res); } });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) { this.dialogRef.close(res); } }, error: () => {} });
   }
 
   onCancelar() { this.dialogRef.close(); }

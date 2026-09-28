@@ -31,26 +31,27 @@ export class CuentaBancariaService {
     return this.genericService.onCustomQuery(this.cuentasBancariasOperablesGQL, {});
   }
 
-  onSave(cuentaBancaria: CuentaBancaria): Observable<CuentaBancaria> {
+  onSave(cuentaBancaria: CuentaBancaria, opciones?: { avisarExito?: boolean }): Observable<CuentaBancaria> {
     let aux = cuentaBancaria;
     if (!(cuentaBancaria instanceof CuentaBancaria)) {
       aux = new CuentaBancaria();
       Object.assign(aux, cuentaBancaria);
     }
-    return this.genericService.onSaveCustom(this.saveCuentaBancariaGQL, { cuentaBancaria: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveCuentaBancariaGQL, { cuentaBancaria: aux.toInput() }, true, opciones);
   }
 
-  onDelete(id: number): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.deleteCuentaBancariaGQL, { id });
+  onDelete(id: number, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteCuentaBancariaGQL, { id }, true, opciones);
   }
 
   /**
    * Ajusta el saldo de la cuenta contra el extracto real. El motivo es obligatorio: un ajuste
    * no tiene contrapartida, y ese texto es toda la trazabilidad que le queda al movimiento.
    */
-  onAjustarSaldo(cuentaBancariaId: number, monto: number, positivo: boolean, motivo: string): Observable<any> {
+  onAjustarSaldo(cuentaBancariaId: number, monto: number, positivo: boolean, motivo: string,
+                 opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom(this.ajustarSaldoGQL, {
       cuentaBancariaId, monto, positivo, motivo,
-    });
+    }, true, opciones);
   }
 }

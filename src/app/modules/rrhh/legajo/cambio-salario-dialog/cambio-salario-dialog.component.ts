@@ -85,8 +85,9 @@ export class CambioSalarioDialogComponent implements OnInit {
       motivo: this.motivoControl.value ? this.motivoControl.value.toUpperCase() : null,
       autorizadoPorId: this.mainService.usuarioActual?.id
     };
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.legajoService.onCambiarSalario(input).pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 
   onPonerMinimo() {

@@ -522,3 +522,74 @@ export const saveFacturaLegalToFilialQuery = gql`
 `;
 
 
+
+// Politica de facturacion automatica del filial (issue filial #127). Se administra en el central.
+export const configuracionesFacturacionQuery = gql`
+  query configuracionesFacturacion {
+    data: configuracionesFacturacion {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      modo
+      ventasSinFactura
+      ventaTicketRespetaPolitica
+      activo
+      usuarioNickname
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const saveConfiguracionFacturacion = gql`
+  mutation saveConfiguracionFacturacion($entity: ConfiguracionFacturacionInput!) {
+    data: saveConfiguracionFacturacion(input: $entity) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      modo
+      ventasSinFactura
+      ventaTicketRespetaPolitica
+      activo
+      usuarioNickname
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const deleteConfiguracionFacturacion = gql`
+  mutation deleteConfiguracionFacturacion($id: ID!) {
+    data: deleteConfiguracionFacturacion(id: $id)
+  }
+`;
+
+export const setActivoConfiguracionesFacturacion = gql`
+  mutation setActivoConfiguracionesFacturacion($activo: Boolean!) {
+    data: setActivoConfiguracionesFacturacion(activo: $activo)
+  }
+`;
+
+export const historialConfiguracionFacturacionQuery = gql`
+  query historialConfiguracionFacturacion($sucursalId: ID, $limite: Int) {
+    data: historialConfiguracionFacturacion(sucursalId: $sucursalId, limite: $limite) {
+      id
+      configuracionId
+      sucursal {
+        id
+        nombre
+      }
+      accion
+      modo
+      ventasSinFactura
+      ventaTicketRespetaPolitica
+      activo
+      usuarioNickname
+      creadoEn
+    }
+  }
+`;

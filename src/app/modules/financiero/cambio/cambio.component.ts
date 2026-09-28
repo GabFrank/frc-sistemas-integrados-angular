@@ -87,7 +87,10 @@ export class CambioComponent implements OnInit {
           if (ok) {
             this.notificacionSnackbar.openSucess('Cotizaciones de mercado actualizadas');
           } else {
-            this.notificacionSnackbar.openWarn('No se encontraron cambios para actualizar');
+            // `false` cubre tanto "nortecambios no respondió" como "la integración está
+            // apagada por configuración". El mensaje viejo ("no se encontraron cambios")
+            // sugería un problema de datos, que no es ninguno de los dos casos.
+            this.notificacionSnackbar.openWarn('No se pudo actualizar la cotización de mercado');
           }
           this.onGetMonedas();
         },

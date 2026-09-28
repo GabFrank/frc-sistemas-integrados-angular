@@ -102,3 +102,15 @@ input {
   color: rgb(176, 176, 176);
 }
 
+
+// El solicitante es obligatorio para salir de la etapa de creacion: mientras falte se marca,
+// porque el error recien aparece cuando se intenta avanzar y ahi ya es tarde para entenderlo.
+.solicitante-obligatorio {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.solicitante-vacio {
+  color: rgb(176, 176, 176);
+  font-style: italic;
+}

@@ -24,6 +24,8 @@ import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
+import { ListNotaRemisionComponent } from '../../../modules/financiero/nota-remision/list-nota-remision/list-nota-remision.component';
+import { ListNotaCreditoComponent } from '../../../modules/financiero/nota-credito/list-nota-credito/list-nota-credito.component';
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
@@ -64,6 +66,7 @@ import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
+import { ListLiquidacionConceptoComponent } from '../../../modules/rrhh/liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
@@ -74,7 +77,10 @@ import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
-import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
+import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
+import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component';
+import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
+import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
@@ -336,6 +342,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
             },
             {
+              name: 'Conceptos de liquidación',
+              icon: 'playlist_add_check',
+              action: 'list-liquidacion-concepto',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            },
+            {
               name: 'Configuración RRHH',
               icon: 'tune',
               action: 'list-configuracion-rrhh',
@@ -436,7 +448,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'account_balance',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
+      // VENTA_TARJETA_COMPLETAR entra aca porque el subgrupo 'Venta con tarjeta' cuelga de este
+      // grupo. checkItemVisibility exige el rol en CADA nivel --solo ADMIN hace bypass--, asi que
+      // sin esto la mudanza desde 'Reportes y Analisis' le escondia Terminales POS justo al rol
+      // que la usa todos los dias.
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.VENTA_TARJETA_COMPLETAR],
       items: [
         {
           name: 'Dashboard',
@@ -509,6 +525,62 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           ]
         },
         {
+          // Las pantallas colgaban de 'Reportes y Análisis' y ninguna es un reporte: son el ABM del
+          // aparato con el que se cobra, más la conciliación de cada cobro contra su cupón.
+          //
+          // Se llamaba 'Venta con tarjeta'. El nombre fue cierto cuando esto era una lista de
+          // cobros y dejó de serlo: hoy adentro hay terminales, sus proveedores, el formato con el
+          // que se lee cada cupón y la configuración del flujo. 'Gestión de POS' nombra lo que
+          // efectivamente hay --los dos tipos de formato vivos ya se llaman «maquinita» y «POS
+          // web», y los proveedores son el soporte del POS-- y sigue valiendo si mañana la misma
+          // maquinita cobra un QR de billetera.
+          name: 'Gestión de POS',
+          icon: 'credit_card',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR],
+          items: [
+            // Primera por uso, no por jerarquía: es la única del grupo que abre un rol no-admin, y
+            // adonde entra el que concilia todos los días. Las otras cuatro son de configuración.
+            {
+              name: 'Conciliación de cupones',
+              icon: 'fact_check',
+              action: 'conciliacion-cupones',
+              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
+            },
+            {
+              name: 'Terminales POS',
+              icon: 'contactless',
+              action: 'list-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Formatos de terminal POS',
+              icon: 'point_of_sale',
+              action: 'formato-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Proveedores de servicios',
+              icon: 'support_agent',
+              action: 'list-proveedor-servicio',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Configuración',
+              icon: 'tune',
+              action: 'configuracion-venta-tarjeta',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+            // 'Formatos de QR de POS' (tabla legacy `formato_qr_pos`) se retiró del menú el
+            // 2026-09-16. Desde ese día NADA del flujo la lee --el parseo del cupón pasó a
+            // `formato_terminal_pos`, el del ABM de arriba-- y dejarla accesible sólo ofrecía dos
+            // pantallas para el mismo concepto, con la de abajo sin efecto sobre nada.
+            //
+            // El componente y la tabla siguen existiendo a propósito: borrarlos es otro PR, y
+            // mientras tanto las filas son el respaldo de cómo estaba configurado cada formato.
+          ]
+        },
+        {
           name: 'Configuración',
           icon: 'settings',
           isExpanded: false,
@@ -544,6 +616,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Reportes y Análisis',
           icon: 'analytics',
           isExpanded: false,
+          // Sin VENTA_TARJETA_COMPLETAR: estaba solo por 'Terminales POS', que se mudo a 'Venta
+          // con tarjeta'. Dejarlo le abriria a ese rol un grupo en el que no puede entrar a nada.
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
@@ -565,16 +639,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ADMIN]
             },
             {
-              name: 'Terminales POS',
-              icon: 'contactless',
-              action: 'terminal-pos-dashboard',
-              visibilityRoles: [ROLES.ADMIN]
-            },
-            {
               name: 'Facturas',
               icon: 'receipt',
               action: 'factura-dashboard',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Notas de remisión',
+              icon: 'local_shipping',
+              action: 'list-nota-remision',
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
+            },
+            {
+              name: 'Notas de crédito',
+              icon: 'request_quote',
+              action: 'list-nota-credito',
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
             }
           ]
         },
@@ -1029,8 +1109,32 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
-      case "terminal-pos-dashboard":
-        this.openTabIfAuthorized(ROLES.ADMIN, TerminalPosDashboard, "Terminal Dashboard");
+      // Las cinco entradas de 'Gestión de POS'. Antes eran una sola --'Terminales POS'-- que
+      // abría un dashboard de cuatro botones; el dashboard se eliminó y sus destinos subieron acá.
+      // Un índice de cuatro botones entre el menú y la pantalla es un click que no decide nada.
+      case "conciliacion-cupones":
+        this.openTabIfAuthorized(ROLES.VENTA_TARJETA_COMPLETAR, ListVentaTarjetaComponent, "Conciliación de cupones");
+        break;
+      case "list-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTerminalPosComponent, "Terminales POS");
+        break;
+      case "formato-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, FormatoTerminalPosComponent, "Formatos de terminal");
+        break;
+      case "list-proveedor-servicio":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListProveedorServicioComponent, "Proveedores de servicios");
+        break;
+      // Diálogo y no pestaña, como estaba en el dashboard: es una perilla, no una pantalla.
+      case "configuracion-venta-tarjeta":
+        if (this.hasAnyRole([ROLES.ADMIN])) {
+          this.matDialog.open(ConfiguracionVentaTarjetaDialogComponent, {
+            width: '560px',
+            disableClose: false,
+            panelClass: 'custom-dialog-container'
+          });
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
@@ -1074,6 +1178,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-cargo":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");
         break;
+      case "list-liquidacion-concepto":
+        // El backend acepta RRHH CONFIG o RRHH GESTIONAR (LiquidacionConceptoGraphQL), y
+        // openTabIfAuthorized solo compara contra un rol: si abriera solo por CONFIG, el
+        // item quedaria visible para GESTIONAR y le negaria la pantalla al abrirla.
+        if (this.hasAnyRole([ROLES.RRHH_CONFIG, ROLES.RRHH_GESTIONAR])) {
+          this.tabService.addTab(new Tab(ListLiquidacionConceptoComponent, "Conceptos de liquidación", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
       case "list-prestamo":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");
         break;
@@ -1113,6 +1227,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
+        break;
+      case "list-nota-credito":
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaCreditoComponent, "Notas de crédito");
+        break;
+      case "list-nota-remision":
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaRemisionComponent, "Notas de remisión");
         break;
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
@@ -1218,8 +1338,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
     }
   }
-  private openTabIfAuthorized(role: string, component: any, title: string): void {
-    if (this.mainService.usuarioActual?.roles.includes(role) || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+  /** `role` acepta una lista cuando la pantalla la habilita más de un rol (ej. ver o emitir). */
+  private openTabIfAuthorized(role: string | string[], component: any, title: string): void {
+    const roles = Array.isArray(role) ? role : [role];
+    if (roles.some(r => this.mainService.usuarioActual?.roles.includes(r))
+        || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
       this.tabService.addTab(new Tab(component, title, null, null));
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
@@ -1240,8 +1363,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
-          .subscribe((res) => {
-            resolve(res);
+          .subscribe({
+            next: (res) => resolve(res),
+            // Un cierre rechazado (ej. sesion con sucursal invalida) no debe
+            // colgar el logout: onSave ya mostro el error.
+            error: () => resolve(null),
           });
       });
     }

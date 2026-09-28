@@ -1,7 +1,9 @@
 import gql from "graphql-tag";
 
 export const reporteNominaMesQuery = gql`
-  query ($periodo: String!) { data: reporteNominaMes(periodo: $periodo) }
+  query ($periodo: String!, $ciudadId: ID, $sinCiudad: Boolean) {
+    data: reporteNominaMes(periodo: $periodo, ciudadId: $ciudadId, sinCiudad: $sinCiudad)
+  }
 `;
 export const reporteResumenIpsQuery = gql`
   query ($periodo: String!) { data: reporteResumenIps(periodo: $periodo) }

@@ -239,7 +239,7 @@
 
           <!-- Tabla de ítems -->
           <div *ngIf="totalItemsComputed > 0" class="items-table-container">
-            <table mat-table [dataSource]="computedItemsData" class="items-table">
+            <table mat-table [dataSource]="itemsTableDataSource" class="items-table">
               <!-- Columna Producto -->
               <ng-container matColumnDef="producto">
                 <th mat-header-cell *matHeaderCellDef>Producto</th>
@@ -343,7 +343,7 @@
                 </td>
               </ng-container>
 
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
             </table>
           </div>

@@ -146,14 +146,15 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
       // Egreso: moneda + monto manuales (no hay valor de cierre para despachar).
       if (this.monedaControl.invalid) return this.err('Seleccione la moneda');
       if (!this.montoControl.value || this.montoControl.value <= 0) return this.err('Ingrese un monto válido');
-      obs = this.maletinService.onEgresar(cajaId, maletinId, this.monedaControl.value?.id, this.montoControl.value, desc);
+      obs = this.maletinService.onEgresar(cajaId, maletinId, this.monedaControl.value?.id, this.montoControl.value, desc, true, { avisarExito: false });
     } else {
       // Ingreso: se ingresan todas las monedas tildadas del cierre, en una sola operación.
       const monedaIds = this.valorItems.filter(v => v.sel && (v.total || 0) > 0).map(v => v.moneda.id);
       if (monedaIds.length === 0) return this.err('Seleccione al menos una moneda para ingresar');
-      obs = this.maletinService.onIngresarCierre(cajaId, maletinId, monedaIds, desc);
+      obs = this.maletinService.onIngresarCierre(cajaId, maletinId, monedaIds, desc, true, { avisarExito: false });
     }
 
+    // Las dos ramas van sin «Guardado con éxito» (el éxito lo avisa este diálogo); el error lo da onSaveCustom.
     this.isSaving = true;
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
@@ -163,10 +164,8 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
           this.dialogRef.close(res);
         }
       },
-      error: err => {
+      error: () => {
         this.isSaving = false;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al registrar el movimiento de maletín';
-        this.notificacion.openWarn(msg, 6);
       }
     });
   }

@@ -10,7 +10,8 @@ p {
 [mat-dialog-actions] {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 0;
+  // Mismo margen lateral que el titulo y el contenido del dialogo (MDC: 24px).
+  padding: 8px 24px 20px;
   
   button:not(:last-child) {
     margin-right: 8px;

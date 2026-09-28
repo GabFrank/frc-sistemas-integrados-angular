@@ -77,11 +77,11 @@ export class ListSectorComponent implements OnInit {
   onFilter() {
     if (this.sucursalControl.value != null) {
       this.selectedSucursal = this.sucursalControl.value;
-      this.cargandoService.openDialog()
+      const { requestId } = this.cargandoService.openDialog()
       this.sectorService.onGetSectores(this.selectedSucursal.id)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
-          this.cargandoService.closeDialog()
+          this.cargandoService.closeDialog(requestId)
           this.dataSource.data = res;
         })
     }

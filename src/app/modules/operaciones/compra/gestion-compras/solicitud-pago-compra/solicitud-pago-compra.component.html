@@ -99,9 +99,10 @@
             <ng-container matColumnDef="estado">
               <th mat-header-cell *matHeaderCellDef>Estado</th>
               <td mat-cell *matCellDef="let solicitud">
-                <mat-chip [color]="solicitud.estadoChipColorComputed">
+                <!-- Mismo badge que la lista de solicitudes: el color de mat-chip (MDC) no pinta sin selección. -->
+                <span class="estado-solicitud" [ngClass]="'estado-' + solicitud.estado">
                   {{ solicitud.estadoDisplayNameComputed }}
-                </mat-chip>
+                </span>
               </td>
             </ng-container>
             
@@ -146,32 +147,18 @@
                     <button
                       mat-menu-item
                       (click)="onChangeEstado(solicitud, SolicitudPagoEstado.SOLICITADO)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.DEVUELTO">
                       <mat-icon>send</mat-icon>
                       Solicitar (enviar a tesorería)
                     </button>
 
-                    <!-- Cambios de Estado -->
-                    <button
-                      mat-menu-item
-                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.PARCIAL)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
-                      <mat-icon>payments</mat-icon>
-                      Marcar como Pago Parcial
-                    </button>
+                    <!-- Los pagos (parcial o total) se registran solo desde la caja mayor, que mueve la plata. -->
                     <button 
                       mat-menu-item 
-                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.CONCLUIDO)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.PARCIAL">
-                      <mat-icon>check_circle</mat-icon>
-                      Marcar como Pagada
-                    </button>
-                    <button 
-                      mat-menu-item 
-                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.CANCELADO)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.PARCIAL">
+                      (click)="onCancelarSolicitud(solicitud)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.SOLICITADO || solicitud.estado === SolicitudPagoEstado.DEVUELTO">
                       <mat-icon>cancel</mat-icon>
-                      Cancelar
+                      Cancelar solicitud
                     </button>
                     
                     <!-- Eliminar -->

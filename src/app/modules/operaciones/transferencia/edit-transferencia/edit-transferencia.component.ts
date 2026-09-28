@@ -17,7 +17,16 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MainService } from "../../../../main.service";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { SeleccionarSucursalDialogComponent } from "../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
+import { UsuarioHelperService } from "../../../administrativo/marcacion/service/usuario-helper.service";
+import { CajaService } from "../../../financiero/pdv/caja/caja.service";
+import { Usuario } from "../../../personas/usuarios/usuario.model";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import {
   Component,
@@ -182,6 +191,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   isOrigen = false;
   isDestino = false;
+  // Conectado al central la sucursal actual es la "SERVIDOR" (id 0), que nunca es el origen.
+  puedePrepararEnvio = false;
   isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
@@ -238,7 +249,9 @@ export class EditTransferenciaComponent implements OnInit {
     private presentacionService: PresentacionService,
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
-    private configuracionTransferenciaService: ConfiguracionTransferenciaService
+    private configuracionTransferenciaService: ConfiguracionTransferenciaService,
+    private usuarioHelperService: UsuarioHelperService,
+    private cajaService: CajaService
   ) { }
 
   ngOnInit(): void {
@@ -373,6 +386,12 @@ export class EditTransferenciaComponent implements OnInit {
               this.selectedTransferencia.sucursalDestino =
                 saveTransferenciaRes.sucursalDestino;
               this.selectedTransferencia.id = saveTransferenciaRes.id;
+              // mat-tab recrea el componente al volver a la pestaña: con el id en tabData carga
+              // esta transferencia en vez de arrancar otra nueva.
+              if (this.data != null) {
+                this.data.tabData = { ...this.data.tabData, id: saveTransferenciaRes.id };
+              }
+              this.actualizarPermisosPorSucursal();
               this.tabService.changeCurrentTabName(
                 "Transferencia " + this.selectedTransferencia.id
               );
@@ -400,9 +419,8 @@ export class EditTransferenciaComponent implements OnInit {
       });
   }
 
-  cargarDatos() {
+  cargarDatos(id = this.data?.tabData?.["id"]) {
     // this.cargandoService.openDialog(false, "Cargando datos");
-    let id = this.data.tabData["id"];
     if (id != null) {
       this.transferenciaService
         .onGetTransferencia(id)
@@ -417,17 +435,29 @@ export class EditTransferenciaComponent implements OnInit {
               this.pageSize = this.paginator.pageSizeOptions[1];
             }, 0);
             this.getTransferenciaItemList();
-            this.isOrigen =
-              this.selectedTransferencia?.sucursalOrigen?.id ==
-              this.mainService?.sucursalActual?.id;
-            this.isDestino =
-              this.selectedTransferencia?.sucursalDestino?.id ==
-              this.mainService?.sucursalActual?.id;
+            this.actualizarPermisosPorSucursal();
             this.onVerificarConfirmados();
             this.verificarEtapa();
           }
         });
     }
+  }
+
+  /**
+   * Lo que depende de la sucursal actual. Una transferencia recien creada no pasa por cargarDatos,
+   * asi que tambien se recalcula al guardar las sucursales y al avanzar de etapa.
+   */
+  private actualizarPermisosPorSucursal(): void {
+    this.isOrigen =
+      this.selectedTransferencia?.sucursalOrigen?.id ==
+      this.mainService?.sucursalActual?.id;
+    this.isDestino =
+      this.selectedTransferencia?.sucursalDestino?.id ==
+      this.mainService?.sucursalActual?.id;
+    this.puedePrepararEnvio =
+      this.isOrigen ||
+      this.mainService?.isServidor ||
+      this.mainService?.sucursalActual?.id == 0;
   }
 
   getTransferenciaItemList() {
@@ -507,7 +537,12 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onRefresh() {
-    this.ngOnInit();
+    // Recien creada, la pestaña no trae id en tabData: ngOnInit la reiniciaria como transferencia nueva.
+    if (this.selectedTransferencia?.id != null) {
+      this.cargarDatos(this.selectedTransferencia.id);
+    } else {
+      this.ngOnInit();
+    }
   }
 
   verificarEtapa() {
@@ -773,13 +808,13 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onSaveTransferencia(): Promise<any> {
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     return new Promise((resolve, reject) => {
       this.transferenciaService
         .onSaveTransferencia(this.selectedTransferencia.toInput())
         .pipe(untilDestroyed(this))
+        .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
           if (res != null) {
             this.selectedTransferencia = res;
             resolve(res);
@@ -807,32 +842,37 @@ export class EditTransferenciaComponent implements OnInit {
       this.presentacionDeLotesPendientes = null;
     }
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.transferenciaService
       .onSaveTransferenciaItem(input, precioCosto)
       .pipe(untilDestroyed(this))
       // El openDialog de arriba es el overlay bloqueante de TODA la app: si el backend
       // rechaza el item y nadie lo cierra, la pantalla queda tapada y hay que recargar.
-      .pipe(finalize(() => this.cargandoService.closeDialog()))
-      .subscribe((res) => {
-        if (res != null) {
-          if (!isNew) {
-            this.dataSource.data = updateDataSourceWithId(
-              this.dataSource.data,
-              res,
-              res?.id
-            );
-          } else {
-            this.dataSource.data = updateDataSourceInsertFirst(
-              this.dataSource.data,
-              res
-            );
-            if (this.pageSize == this.dataSource.data?.length)
-              this.dataSource.data.pop();
-            this.paginator.length = this.paginator.length + 1;
+      .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            if (!isNew) {
+              this.dataSource.data = updateDataSourceWithId(
+                this.dataSource.data,
+                res,
+                res?.id
+              );
+            } else {
+              this.dataSource.data = updateDataSourceInsertFirst(
+                this.dataSource.data,
+                res
+              );
+              if (this.pageSize == this.dataSource.data?.length)
+                this.dataSource.data.pop();
+              this.paginator.length = this.paginator.length + 1;
+            }
+            this.actualizarAlertasPaginaActual();
           }
-          this.actualizarAlertasPaginaActual();
-        }
+        },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom, y el
+        // overlay lo cierra el finalize: el error solo evita la excepción no capturada.
+        error: () => {}
       });
   }
 
@@ -1004,23 +1044,27 @@ export class EditTransferenciaComponent implements OnInit {
     input.lotesAsignados = seleccion.lotes;
     input.etapaAsignacionLote = seleccion.etapa;
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.transferenciaService
-      .onSaveTransferenciaItem(input)
+      // Sin «Guardado con éxito»: el aviso es «Lotes asignados»; el error lo da onSaveCustom.
+      .onSaveTransferenciaItem(input, undefined, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       // Idem: el overlay se cierra pase lo que pase, no solo cuando el guardado sale bien.
-      .pipe(finalize(() => this.cargandoService.closeDialog()))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            res,
-            res?.id
-          );
-          // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
-          this.actualizarAlertasPaginaActual();
-          this.notificacionService.openSucess("Lotes asignados");
-        }
+      .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              res,
+              res?.id
+            );
+            // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
+            this.actualizarAlertasPaginaActual();
+            this.notificacionService.openSucess("Lotes asignados");
+          }
+        },
+        error: () => {}
       });
   }
 
@@ -1043,19 +1087,23 @@ export class EditTransferenciaComponent implements OnInit {
     item.usuario = item.usuario ?? this.mainService.usuarioActual;
     aplicarConfirmacion(item, etapa);
 
+    // `item` es una copia de la fila (Object.assign de arriba): si falla, la grilla no cambió.
     this.transferenciaService
       .onSaveTransferenciaItem(item.toInput())
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            item,
-            item.id
-          );
-        }
-        this.actualizarAlertasPaginaActual();
-        this.onVerificarConfirmados();
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              item,
+              item.id
+            );
+          }
+          this.actualizarAlertasPaginaActual();
+          this.onVerificarConfirmados();
+        },
+        error: () => {}
       });
   }
 
@@ -1156,16 +1204,19 @@ export class EditTransferenciaComponent implements OnInit {
           this.transferenciaService
             .onSaveTransferenciaItem(res["item"].toInput())
             .pipe(untilDestroyed(this))
-            .subscribe((res2) => {
-              if (res2 != null) {
-                this.dataSource.data = updateDataSourceWithId(
-                  this.dataSource.data,
-                  res2,
-                  res2.id
-                );
-              }
-              this.actualizarAlertasPaginaActual();
-              this.onVerificarConfirmados();
+            .subscribe({
+              next: (res2) => {
+                if (res2 != null) {
+                  this.dataSource.data = updateDataSourceWithId(
+                    this.dataSource.data,
+                    res2,
+                    res2.id
+                  );
+                }
+                this.actualizarAlertasPaginaActual();
+                this.onVerificarConfirmados();
+              },
+              error: () => {}
             });
         }
       });
@@ -1173,12 +1224,24 @@ export class EditTransferenciaComponent implements OnInit {
 
   onAvanzarEtapa(etapa) {
     console.log('etapa', etapa);
+    // El central rechaza el avance sin solicitante; se corta antes para no mostrar el error crudo.
+    if (
+      this.isPreTransferenciaCreacion &&
+      etapa != EtapaTransferencia.PRE_TRANSFERENCIA_CREACION &&
+      this.selectedTransferencia?.solicitante == null
+    ) {
+      this.notificacionService.openWarn(
+        "Hay que indicar el solicitante antes de avanzar: quien pidio los productos en la sucursal destino."
+      );
+      return;
+    }
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
           this.selectedTransferencia.etapa = etapa;
+          this.actualizarPermisosPorSucursal();
           this.verificarEtapa();
           if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
@@ -1194,6 +1257,102 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
 
+
+  /**
+   * El solicitante solo se puede tocar mientras la transferencia esta en creacion: despues de esa
+   * etapa el dato ya viajo con el pedido y cambiarlo seria reescribir quien lo pidio.
+   */
+  onSeleccionarSolicitante() {
+    if (!this.isPreTransferenciaCreacion) return;
+    if (this.selectedTransferencia?.id == null) {
+      this.notificacionService.openWarn(
+        "Primero hay que seleccionar las sucursales de origen y destino."
+      );
+      return;
+    }
+    const sucursalDestinoId = this.selectedTransferencia?.sucursalDestino?.id;
+    if (sucursalDestinoId == null) {
+      this.abrirBuscadorDeSolicitante(null);
+      return;
+    }
+
+    // Los cajeros con caja abierta en el destino son los candidatos naturales, pero es solo una
+    // ayuda: si no hay ninguno se busca entre todos los usuarios para no trabar la transferencia.
+    const { requestId } = this.cargandoService.openDialog();
+    this.cajaService
+      .onGetCajerosConCajaAbierta(sucursalDestinoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (cajeros) => {
+          this.cargandoService.closeDialog(requestId);
+          if (cajeros == null || cajeros.length == 0) {
+            this.notificacionService.openWarn(
+              "No hay cajas abiertas en " +
+                this.selectedTransferencia?.sucursalDestino?.nombre +
+                ": se muestran todos los usuarios."
+            );
+            this.abrirBuscadorDeSolicitante(null);
+          } else {
+            this.abrirBuscadorDeSolicitante(cajeros);
+          }
+        },
+        error: () => {
+          this.cargandoService.closeDialog(requestId);
+          this.abrirBuscadorDeSolicitante(null);
+        },
+      });
+  }
+
+  /**
+   * Con `cajeros` abre el buscador sobre esa lista, que el dialogo filtra localmente. Con null cae
+   * al buscador de usuarios contra el servidor, que es el comportamiento de siempre.
+   *
+   * En los dos casos no se preselecciona nada: la lista llega acotada, elegir sigue siendo manual.
+   */
+  private abrirBuscadorDeSolicitante(cajeros: Usuario[] | null) {
+    const seleccion =
+      cajeros != null
+        ? this.matDialog
+            .open(SearchListDialogComponent, {
+              data: {
+                titulo: "Buscar solicitante (con caja abierta)",
+                tableData: [
+                  { id: "id", nombre: "Id", width: "20%" },
+                  { id: "persona.nombre", nombre: "Nombre", width: "80%" },
+                ],
+                query: null,
+                inicialData: cajeros,
+              } as SearchListtDialogData,
+              height: "80vh",
+              width: "70vw",
+              panelClass: "search-dialog-dark",
+            })
+            .afterClosed()
+        : this.usuarioHelperService.abrirBuscador(
+            this.matDialog,
+            "Buscar solicitante"
+          );
+
+    seleccion.pipe(untilDestroyed(this)).subscribe((usuario) => {
+      if (usuario == null) return;
+      // Se guarda sobre una copia y se copia de vuelta solo el solicitante, igual que en
+      // selectSucursales: onSaveTransferencia() pisa selectedTransferencia con el objeto plano
+      // de la respuesta y ahi se pierde toInput().
+      let auxTransf = new Transferencia();
+      Object.assign(auxTransf, this.selectedTransferencia);
+      auxTransf.solicitante = usuario;
+      const { requestId } = this.cargandoService.openDialog();
+      this.transferenciaService
+        .onSaveTransferencia(auxTransf.toInput())
+        .pipe(untilDestroyed(this))
+        .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedTransferencia.solicitante = res.solicitante;
+          }
+        });
+    });
+  }
 
   onSelectEstado(etapa: EtapaTransferencia) { }
 
@@ -1211,24 +1370,41 @@ export class EditTransferenciaComponent implements OnInit {
       componentToOpen: "EditTransferenciaComponent",
     };
     this.isDialogOpen = true;
-    this.matDialog
-      .open(QrCodeComponent, {
-        data: {
-          codigo: codigo,
-          nombre: "Transferencia",
-          imprimir: true,
-        },
-      })
-      .afterClosed()
+    let transferenciaId = this.selectedTransferencia.id;
+    let qrDialogRef = this.matDialog.open(QrCodeComponent, {
+      data: {
+        codigo: codigo,
+        nombre: "Transferencia",
+        imprimir: true,
+      },
+    });
+
+    // Cierra el diálogo solo cuando el móvil escanea este QR. El aviso llega
+    // por subscription desde el central; se filtra por transferencia y
+    // sucursal porque el canal es único para todos los desktops conectados.
+    let escaneoSub = this.transferenciaService
+      .qrEscaneadoSub()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.isDialogOpen = false;
-        if (res == "imprimir") {
-          this.transferenciaService.onImprimirTransferencia(
-            this.selectedTransferencia.id,
-            true
-          );
+        if (
+          res != null &&
+          +res.transferenciaId == +transferenciaId &&
+          +res.sucursalId == +this.mainService.sucursalActual.id
+        ) {
+          qrDialogRef.close();
         }
       });
+
+    qrDialogRef.afterClosed().subscribe((res) => {
+      escaneoSub.unsubscribe();
+      this.isDialogOpen = false;
+      if (res == "imprimir") {
+        this.transferenciaService.onImprimirTransferencia(
+          transferenciaId,
+          true
+        );
+      }
+    });
   }
 
   onOpenTimeLine() {
@@ -1641,17 +1817,26 @@ export class EditTransferenciaComponent implements OnInit {
     const productoId = this.selectedProducto?.id;
 
     if (productoId != null && sucursalOrigenId != null) {
-      this.cargandoService.openDialog(false, "Verificando stock...");
+      // Origen COMPRAS sin VER_STOCK_COMPRAS: el aviso no dice el número. La regla de bloqueo
+      // sigue mirando el stock real.
+      const ocultarStock =
+        esSucursalCompras(this.selectedTransferencia?.sucursalOrigen) &&
+        !this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+      const avisoNegativo = (stock: number) =>
+        ocultarStock
+          ? "El producto tiene stock negativo y no puede ser transferido."
+          : `El producto tiene stock negativo (${stock}) y no puede ser transferido.`;
+      const { requestId } = this.cargandoService.openDialog(false, "Verificando stock...");
       this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
         .subscribe({
           next: (stock) => {
             if (stock != null && stock < 0) {
               this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
                 next: (config) => {
-                  this.cargandoService.closeDialog();
+                  this.cargandoService.closeDialog(requestId);
                   if (!config?.permitirStockNegativo) {
                     this.notificacionService.openWarn(
-                      `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                      avisoNegativo(stock)
                     );
                     this.onClear();
                     return;
@@ -1659,20 +1844,20 @@ export class EditTransferenciaComponent implements OnInit {
                   this.procederConGuardadoItem();
                 },
                 error: () => {
-                  this.cargandoService.closeDialog();
+                  this.cargandoService.closeDialog(requestId);
                   this.notificacionService.openWarn(
-                    `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                    avisoNegativo(stock)
                   );
                   this.onClear();
                 }
               });
             } else {
-              this.cargandoService.closeDialog();
+              this.cargandoService.closeDialog(requestId);
               this.procederConGuardadoItem();
             }
           },
           error: (err) => {
-            this.cargandoService.closeDialog();
+            this.cargandoService.closeDialog(requestId);
             this.notificacionService.openAlgoSalioMal("Error al verificar el stock del producto");
           }
         });

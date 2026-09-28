@@ -60,10 +60,13 @@ import { NotaRecepcion, NotaRecepcionEstado } from "./nota-recepcion.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { Producto } from "../../../productos/producto/producto.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { PedidoResumen } from "./graphql/getPedidoResumen";
@@ -440,6 +443,8 @@ export class GestionComprasComponent
   sucursalesEntregaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
   sucursalesInfluenciaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
   sucursalTodos: Sucursal; // Objeto especial "Todos" con id -1
+  /** Sin este rol no se muestra el stock de la sucursal COMPRAS, igual que en la lista de productos. */
+  puedeVerStockCompras = false;
   sucursalEntregaSearchControl = new FormControl("");
   sucursalInfluenciaSearchControl = new FormControl("");
 
@@ -500,6 +505,8 @@ export class GestionComprasComponent
   private devolucionAlertaBloqueante = true;
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+
     this.devolucionConfigService
       .onGet()
       .pipe(takeUntil(this.destroy$))
@@ -2213,10 +2220,21 @@ export class GestionComprasComponent
     this.cambioService.onActualizarCotizacionesMercado()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        // `ok` en false significa que el backend no pudo traer la cotización de mercado
+        // (nortecambios sin responder, o la integración apagada por configuración). Se
+        // prefillea igual con la última cotización conocida, pero NO se avisa éxito: decir
+        // "actualizada" sobre un valor viejo lleva a pricear una compra con una cotización
+        // stale creyendo que se acaba de refrescar.
+        next: (ok) => {
           this.prefillCotizacionFromMercado(moneda).subscribe(() => {
             this.cotizacionRefreshing = false;
-            this.notificacionService.openSucess("Cotización de mercado actualizada");
+            if (ok) {
+              this.notificacionService.openSucess("Cotización de mercado actualizada");
+            } else {
+              this.notificacionService.openWarn(
+                "No se pudo actualizar la cotización de mercado. Se mantiene la última conocida"
+              );
+            }
           });
         },
         error: () => {
@@ -4053,60 +4071,52 @@ export class GestionComprasComponent
    * Maneja el evento cuando se finaliza la recepción física
    */
   onRecepcionFinalizada(): void {
-    
-    // 1. Recargar datos del pedido para obtener el estado actualizado
-    this.loadPedidoResumen();
-    
-    // 2. Actualizar header con nuevos datos
-    this.updateHeaderData();
-    
-    // 3. Actualizar propiedades computadas
-    this.updateComputedProperties();
-    
-    // 4. Verificar si la etapa RECEPCION_MERCADERIA está completada
-    // Solo navegar automáticamente si todas las recepciones están finalizadas
-    setTimeout(() => {
-      // Verificar estado de la etapa después de recargar datos
-      if (this.pedidoResumen?.etapaActual) {
-        const etapaActual = this.pedidoResumen.etapaActual;
-        const tipoEtapa = typeof etapaActual === 'string' ? etapaActual : etapaActual?.tipoEtapa;
-        const estadoEtapa = typeof etapaActual === 'object' ? etapaActual?.estadoEtapa : null;
-        
-        // Si la etapa RECEPCION_MERCADERIA está completada, navegar a Solicitud de Pago
-        if (tipoEtapa === ProcesoEtapaTipo.SOLICITUD_PAGO || 
-            (tipoEtapa === ProcesoEtapaTipo.RECEPCION_MERCADERIA && estadoEtapa === ProcesoEtapaEstado.COMPLETADA)) {
-          // Actualizar estados de tabs
-          this.updateTabStates(ProcesoEtapaTipo.SOLICITUD_PAGO);
-          
-          // Navegar automáticamente al tab de Solicitud de Pago
-          this.selectedTabIndex = 4; // Tab de Solicitud de Pago
-          this.loadTabDataIfNeeded(4);
-          
-          // Mostrar notificación de éxito
-          this.notificacionService.openSucess('Recepción física completada. Navegando a Solicitud de Pago.');
-        } else {
-          // Aún hay recepciones pendientes, solo actualizar estados de tabs
-          // Obtener etapa actual del pedido para actualizar tabs correctamente
-          const etapaActual = this.pedidoResumen?.etapaActual 
-            ? (typeof this.pedidoResumen.etapaActual === 'string' 
-                ? this.pedidoResumen.etapaActual 
-                : this.pedidoResumen.etapaActual?.tipoEtapa)
+    if (!this.pedidoId) return;
+
+    // Recargar el pedido completo Y el resumen antes de recalcular los tabs.
+    // Hace falta el pedido y no solo el resumen: syncTabStatesWithCurrentEtapa()
+    // (que dispara el cambio de tab de más abajo) lee currentPedido.procesoEtapas,
+    // y con las etapas viejas volvía a dejar el tab de Solicitud de Pago deshabilitado.
+    forkJoin({
+      pedido: this.pedidoService.onGetPedidoById(this.pedidoId),
+      resumen: this.pedidoService.onGetPedidoResumen(this.pedidoId)
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.currentPedido = result.pedido;
+          this.pedidoResumen = result.resumen;
+
+          this.updateHeaderData();
+          this.updateComputedProperties();
+
+          const etapaActual = typeof result.resumen?.etapaActual === 'string'
+            ? result.resumen.etapaActual
+            : result.resumen?.etapaActual?.tipoEtapa;
+          const estadoEtapa = typeof result.resumen?.etapaActual === 'object'
+            ? result.resumen?.etapaActual?.estadoEtapa
             : null;
-          this.updateTabStates(etapaActual as ProcesoEtapaTipo | null);
-          this.notificacionService.openSucess('Recepción física parcial completada. Puede continuar verificando otras sucursales.');
+
+          const recepcionCompletada = etapaActual === ProcesoEtapaTipo.SOLICITUD_PAGO ||
+            (etapaActual === ProcesoEtapaTipo.RECEPCION_MERCADERIA && estadoEtapa === ProcesoEtapaEstado.COMPLETADA);
+
+          if (recepcionCompletada) {
+            // Navegar a Solicitud de Pago. updateTabStates con preserveTabIndex=true
+            // deja los estados listos sin programar el salto de tab por timer.
+            this.updateTabStates(ProcesoEtapaTipo.SOLICITUD_PAGO, true);
+            this.selectedTabIndex = 4;
+            this.loadTabDataIfNeeded(4);
+            this.notificacionService.openSucess('Recepción física completada. Navegando a Solicitud de Pago.');
+          } else {
+            this.updateTabStates((etapaActual as ProcesoEtapaTipo) ?? null, true);
+            this.notificacionService.openSucess('Recepción física parcial completada. Puede continuar verificando otras sucursales.');
+          }
+        },
+        error: (error) => {
+          console.error('Error recargando el pedido tras finalizar la recepción física:', error);
+          this.notificacionService.openAlgoSalioMal('Error al actualizar el pedido tras finalizar la recepción física');
         }
-      } else {
-        // Fallback: actualizar estados de tabs sin navegar
-        // Obtener etapa actual del pedido para actualizar tabs correctamente
-        const etapaActual = this.pedidoResumen?.etapaActual 
-          ? (typeof this.pedidoResumen.etapaActual === 'string' 
-              ? this.pedidoResumen.etapaActual 
-              : this.pedidoResumen.etapaActual?.tipoEtapa)
-          : null;
-        this.updateTabStates(etapaActual as ProcesoEtapaTipo | null);
-      }
-    }, 500); // Delay para asegurar que los datos se hayan recargado
-    
+      });
   }
 
   /**
@@ -4275,10 +4285,20 @@ export class GestionComprasComponent
 
   /**
    * Inicia la carga asíncrona de stock para todos los productos del proveedor en la tabla actual.
-   * Usa staggered setTimeout para no saturar el servidor (mismo patrón que add-edit-item-dialog).
+   *
+   * Un request por producto, no uno por (producto × sucursal). Antes cada celda de stock era su
+   * propia consulta y se las espaciaba con setTimeout para no saturar el servidor: con la página
+   * de 10 productos y "Todos" en sucursales de influencia eran 310 requests, que el navegador
+   * mandaba igual en tandas de 6 y que mientras duraban ocupaban todo el pool de conexiones del
+   * origen —cualquier otra cosa que la app quisiera hacer en ese rato quedaba esperando detrás—.
+   * El stagger repartía el costo en el tiempo, no lo bajaba.
    */
   private loadStockForProductosProveedor(): void {
-    const sucursales = this.getSucursalesDeInfluenciaEfectivas();
+    // COMPRAS sigue siendo influencia elegible; lo que no se muestra sin el rol es su stock. Al
+    // sacarla de acá no entra ni en el total ni en el detalle, que se arman de estas entradas.
+    const sucursales = this.getSucursalesDeInfluenciaEfectivas().filter(
+      (s) => this.puedeVerStockCompras || !esSucursalCompras(s)
+    );
     const productos = this.productosProveedorDataSource.data;
 
     if (sucursales.length === 0) {
@@ -4290,7 +4310,7 @@ export class GestionComprasComponent
       return;
     }
 
-    productos.forEach((producto, productoIndex) => {
+    productos.forEach((producto) => {
       producto.stockTotalLoading = true;
       producto.stockTotal = null;
       producto.stockPorSucursal = sucursales.map(suc => ({
@@ -4299,48 +4319,40 @@ export class GestionComprasComponent
         loading: true
       }));
 
-      sucursales.forEach((sucursal, sucIndex) => {
-        const delayMs = (productoIndex * sucursales.length + sucIndex) * 10;
-        setTimeout(() => {
-          this.loadStockForProductoSucursal(producto, sucursal);
-        }, delayMs);
-      });
+      this.loadStockPorSucursalesDeProducto(producto);
     });
   }
 
   /**
-   * Carga el stock de un producto en una sucursal específica y actualiza la entrada correspondiente
+   * Carga el stock de un producto en todas sus sucursales y actualiza las entradas de una vez.
+   *
+   * Las sucursales sin movimientos no vienen en la respuesta del central —no hay filas que sumar—
+   * y quedan en cero, que es lo mismo que devolvía la consulta por sucursal.
    */
-  private loadStockForProductoSucursal(
-    producto: ProductoProveedorItem,
-    sucursal: Sucursal
-  ): void {
+  private loadStockPorSucursalesDeProducto(producto: ProductoProveedorItem): void {
     const productoId = producto.producto?.id;
     if (!productoId) {
-      const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-      if (entry) { entry.loading = false; }
+      producto.stockPorSucursal.forEach(entry => { entry.loading = false; });
       this.recalcularStockTotal(producto);
       return;
     }
 
     this.productoService
-      .onGetStockPorProductoAndSucursal(productoId, sucursal.id, true)
+      .onGetStockPorSucursales(productoId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (stock: number) => {
-          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-          if (entry) {
-            entry.stock = stock ?? 0;
+        next: (stockPorSucursal: PorSucursal<number>) => {
+          producto.stockPorSucursal.forEach(entry => {
+            entry.stock = stockPorSucursal.get(entry.sucursal.id) ?? 0;
             entry.loading = false;
-          }
+          });
           this.recalcularStockTotal(producto);
         },
         error: () => {
-          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-          if (entry) {
+          producto.stockPorSucursal.forEach(entry => {
             entry.stock = 0;
             entry.loading = false;
-          }
+          });
           this.recalcularStockTotal(producto);
         }
       });

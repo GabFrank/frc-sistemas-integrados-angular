@@ -54,9 +54,10 @@ export class PenalizacionService {
   }
 
   /** Genera de un tiron todo un rango. Idempotente por jornada: re-correr no duplica. */
-  onGenerarAutoRango(desde: string, hasta: string, servidor = true): Observable<number> {
+  onGenerarAutoRango(desde: string, hasta: string, servidor = true,
+                     opciones?: { avisarExito?: boolean }): Observable<number> {
     return this.genericService.onSaveCustom<number>(
-      this.generarPenalizacionesAutoRangoGQL, { desde, hasta }, servidor);
+      this.generarPenalizacionesAutoRangoGQL, { desde, hasta }, servidor, opciones);
   }
 
   /** Amonestaciones no anuladas del funcionario. Alimenta el chip del legajo. */

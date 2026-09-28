@@ -142,7 +142,7 @@
             style="padding-bottom: 5px; padding-top: 5px; text-align: center"
           ></td>
           <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-            {{ totalFinal / cambioRs | number : "1.2-2" }}
+            {{ cambioRs ? (totalFinal / cambioRs | number : "1.2-2") : "—" }}
           </td>
         </tr>
         <tr style="font-weight: bold">
@@ -163,7 +163,7 @@
             style="padding-bottom: 5px; padding-top: 5px; text-align: center"
           ></td>
           <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-            {{ totalFinal / cambioDs | number : "1.2-2" }}
+            {{ cambioDs ? (totalFinal / cambioDs | number : "1.2-2") : "—" }}
           </td>
         </tr>
         <ng-container *ngIf="vueltoParaGs > 0"

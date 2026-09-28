@@ -102,7 +102,8 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
     }
     const ids = todos ? null : this.elegidos.map(x => x.id);
     this.generando = true;
-    this.liquidacionService.onGenerarLote(ids, this.periodoControl.value, this.monedaControl.value)
+    // El éxito lo avisa este diálogo (con la cantidad): sin «Guardado con éxito».
+    this.liquidacionService.onGenerarLote(ids, this.periodoControl.value, this.monedaControl.value, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (cant: number) => {

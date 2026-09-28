@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { version } from '../../../../environments/conectionConfig';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
@@ -53,12 +54,14 @@ export class ActualizacionService {
   }
 
   onGetUltimaActualizacion(tipo: TipoActualizacion): Observable<Actualizacion> {
-    this.cargandoService.openDialog(false, 'Buscando...')
+    const { requestId } = this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       this.getUltimaActualizacion
-        .fetch({ tipo }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ tipo }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        // Si el fetch falla no llega al next: el spinner se cierra igual (#319).
+        .pipe(untilDestroyed(this), finalize(() => this.cargandoService.closeDialog(requestId)))
         .subscribe((res) => {
-          this.cargandoService.closeDialog()
+          this.cargandoService.closeDialog(requestId)
           if (res.errors == null) {
             obs.next(res.data["data"]);
             if (res.data["data"] == null) {

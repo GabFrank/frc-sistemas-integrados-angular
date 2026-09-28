@@ -1,4 +1,4 @@
-<div fxLayout="row wrap" style="width: 100%; padding: 20px !important;" fxLayoutGap="20px">
+<div class="utilitarios" fxLayout="row wrap" fxLayoutAlign="center center" style="width: 100%; padding: 20px !important;" fxLayoutGap="20px">
   <mat-card
     appearance="outlined"
     fxFlex="15"
@@ -112,4 +112,40 @@
   >
     <p fxFlex style="width: 100%; text-align: center">Garantía y Devolución</p>
   </mat-card>
+
+  <mat-card
+    appearance="outlined"
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="puedeRegistrarCupones"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="ventasTarjeta()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Conciliación de cupones</p>
+  </mat-card>
+
+  <!-- Sin caja abierta NINGUNA tarjeta se muestra: las seis primeras cuelgan de
+       `selectedCaja != null` y la séptima de `puedeRegistrarCupones`, que también la exige. El
+       diálogo quedaba como un rectángulo vacío de 40px, sin una palabra.
+
+       Medido el 2026-09-21 probando el gate de caja cerrada (E5a): la guía pide que cada camino
+       cerrado diga POR QUÉ, «no con una pantalla muda», y esto era exactamente la pantalla muda.
+       Se dice qué falta y qué hacer, no sólo que no se puede. -->
+  <div class="sin-caja" *ngIf="selectedCaja == null">
+    <mat-icon>point_of_sale</mat-icon>
+    <p class="sin-caja-titulo">No hay una caja abierta en este PDV</p>
+    <p class="sin-caja-detalle">
+      Todo lo de esta pantalla —cerrar caja, retiro, gasto, cancelación de venta, reimpresión de
+      ticket, garantía y la conciliación de cupones— trabaja sobre la caja del turno. Cerrá este
+      diálogo y abrí o elegí una caja para continuar.
+    </p>
+  </div>
 </div>

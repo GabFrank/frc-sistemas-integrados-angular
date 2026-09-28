@@ -1,0 +1,213 @@
+.dialog-header {
+  padding: 4px 0 0;
+
+  h2 {
+    margin-bottom: 2px;
+  }
+}
+
+.subtitulo {
+  font-size: 14px;
+  color: #9e9e9e;
+  padding: 0 24px 8px;
+}
+
+.vistas {
+  margin-bottom: 16px;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #ffb74d;
+  border: 1px solid rgba(255, 183, 77, 0.4);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+
+  &.aviso-info {
+    color: #90caf9;
+    border-color: rgba(144, 202, 249, 0.4);
+  }
+}
+
+.acciones-masivas {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.filtro-historial {
+  width: 420px;
+  max-width: 100%;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.tabla-config {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #e0e0e0;
+  margin-bottom: 24px;
+
+  th,
+  td {
+    text-align: center;
+    padding: 14px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  th {
+    color: #9e9e9e;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+
+  tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  tr.editando td {
+    background-color: rgba(144, 202, 249, 0.12);
+  }
+
+  // Inactiva: se conserva, pero se ve que no rige.
+  tr.inactiva td:not(:first-child) {
+    opacity: 0.45;
+  }
+
+  .sucursal {
+    font-weight: 500;
+  }
+
+  .modificado {
+    font-size: 13px;
+
+    .fecha {
+      color: #9e9e9e;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+  }
+
+  .acciones {
+    white-space: nowrap;
+  }
+
+  .vacio {
+    color: #9e9e9e;
+    padding: 28px 16px;
+
+    mat-icon {
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  }
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.chip-todas {
+  color: #81c784;
+  background-color: rgba(129, 199, 132, 0.12);
+  border-color: rgba(129, 199, 132, 0.35);
+}
+
+.chip-intervalo {
+  color: #90caf9;
+  background-color: rgba(144, 202, 249, 0.12);
+  border-color: rgba(144, 202, 249, 0.35);
+}
+
+.chip-pedido {
+  color: #ffb74d;
+  background-color: rgba(255, 183, 77, 0.12);
+  border-color: rgba(255, 183, 77, 0.35);
+}
+
+.chip-respeta {
+  color: #ce93d8;
+  background-color: rgba(206, 147, 216, 0.12);
+  border-color: rgba(206, 147, 216, 0.35);
+}
+
+.chip-eliminada {
+  color: #e57373;
+  background-color: rgba(229, 115, 115, 0.12);
+  border-color: rgba(229, 115, 115, 0.35);
+}
+
+.chip-siempre {
+  color: #bdbdbd;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.form-config {
+  padding: 20px 20px 12px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-titulo {
+  font-size: 16px;
+  font-weight: 500;
+  color: #e0e0e0;
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  // Sucursal ancha (entra "SUC. NUEVA ESPERANZA SAN ANTONIO" en una línea); modo y N más angostos.
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 8px 20px;
+  margin-bottom: 20px;
+
+  .campo {
+    display: flex;
+    flex-direction: column;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .pista {
+    font-size: 12px;
+    color: #9e9e9e;
+    line-height: 1.35;
+    margin: 6px 4px 0;
+  }
+}
+
+.toggle-respeta {
+  padding: 12px 0 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  .toggle-hint {
+    font-size: 13px;
+    color: #9e9e9e;
+    margin: 6px 0 0 50px;
+  }
+
+  &.irrelevante mat-slide-toggle {
+    opacity: 0.5;
+  }
+}

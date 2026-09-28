@@ -5,6 +5,7 @@ import { editarConteoCajaDesdeServidor } from './graphql-query';
 export interface CajaFilialOperacionResult {
   exito: boolean;
   cajaId: number;
+  conteoId?: number;
 }
 
 export interface Response {

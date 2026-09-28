@@ -68,7 +68,9 @@
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{
-            formGroup.controls.valorTotal.value / cambioRs | number : "1.2-2"
+            cambioRs
+              ? (formGroup.controls.valorTotal.value / cambioRs | number : "1.2-2")
+              : "—"
           }}
         </div>
       </div>
@@ -92,7 +94,9 @@
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{
-            formGroup.controls.valorTotal.value / cambioDs | number : "1.2-2"
+            cambioDs
+              ? (formGroup.controls.valorTotal.value / cambioDs | number : "1.2-2")
+              : "—"
           }}
         </div>
       </div>
@@ -172,6 +176,14 @@
                     "
                   >
                     {{ item.formaPago?.descripcion }}
+                    <!-- Solo en líneas TARJETA: si ya se leyó el cupón, ya no hace falta pasar
+                         por el celular ni bloquea el cierre de caja. Si no, avisa que falta. -->
+                    <mat-icon
+                      *ngIf="item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento"
+                      [style.color]="item.datosCupon || item.identificadorTransaccion ? '#4caf50' : '#ff9800'"
+                      style="font-size: 1.1em; vertical-align: middle; width: auto; height: auto;"
+                      [matTooltip]="item.datosCupon || item.identificadorTransaccion ? 'Cupón registrado' : 'Falta escanear el cupón'"
+                    >{{ item.datosCupon || item.identificadorTransaccion ? 'check_circle' : 'schedule' }}</mat-icon>
                   </td>
                   <td
                     *ngIf="item.moneda?.id == 1"
@@ -240,7 +252,16 @@
                       text-align: center;
                     "
                   >
-                    <mat-icon style="color: red" (click)="onDeleteItem(item, i)"
+                    <!-- Reabre el escaneo de esta línea: elegir/cambiar terminal y volver a leer
+                         el cupón, o completarlo si se había pospuesto. -->
+                    <mat-icon
+                      *ngIf="item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento"
+                      style="color: #37474f; cursor: pointer;"
+                      matTooltip="Escanear cupón de tarjeta"
+                      (click)="escanearTarjeta(item)"
+                      >qr_code_scanner</mat-icon
+                    >
+                    <mat-icon style="color: red; cursor: pointer;" (click)="onDeleteItem(item, i)"
                       >clear</mat-icon
                     >
                   </td>
@@ -587,7 +608,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value / cambioRs | number : "1.2-2" }}
+          {{ cambioRs ? (formGroup.controls.saldo.value / cambioRs | number : "1.2-2") : "—" }}
         </div>
       </div>
       <div
@@ -609,7 +630,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value / cambioDs | number : "1.2-2" }}
+          {{ cambioDs ? (formGroup.controls.saldo.value / cambioDs | number : "1.2-2") : "—" }}
         </div>
       </div>
     </div>

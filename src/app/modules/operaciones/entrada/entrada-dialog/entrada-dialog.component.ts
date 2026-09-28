@@ -18,6 +18,7 @@ import {
 } from "@angular/material/dialog";
 import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
+import { finalize } from "rxjs/operators";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -123,7 +124,7 @@ export class EntradaDialogComponent implements OnInit {
 
   ngOnInit(): void {
     //inicializar arrays
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.usuarioList = [];
     this.tipoEntradasList = [];
     this.sucursalList = [];
@@ -158,7 +159,7 @@ export class EntradaDialogComponent implements OnInit {
     if (this.data?.entrada != null) this.cargarDatos();
     if (this.data?.id != null) this.buscarEntrada(this.data.id)
 
-    this.cargandoService.closeDialog()
+    this.cargandoService.closeDialog(requestId)
 
   }
 
@@ -267,28 +268,31 @@ export class EntradaDialogComponent implements OnInit {
   onEdit(e: EntradaItem) { }
 
   onDelete() {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedEntradaItem.producto?.descripcion.toUpperCase()}`, `Presentación: ${this.selectedEntradaItem.presentacion?.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedEntradaItem.cantidad}`]).subscribe(res => {
       if (res) {
-        this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).pipe(untilDestroyed(this)).subscribe(res2 => {
-          if (res2) {
-            let auxArray = this.itemDataSource.data;
-            let index = auxArray.findIndex(i => i.id == this.selectedEntradaItem.id)
-            if (index > -1) {
-              auxArray.splice(index, 1);
-              this.itemDataSource.data = auxArray;
+        this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).pipe(untilDestroyed(this))
+          .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
+          .subscribe(res2 => {
+            if (res2) {
+              let auxArray = this.itemDataSource.data;
+              let index = auxArray.findIndex(i => i.id == this.selectedEntradaItem.id)
+              if (index > -1) {
+                auxArray.splice(index, 1);
+                this.itemDataSource.data = auxArray;
+              }
+              this.onEditItem()
+              this.itemFormGroup.reset()
             }
-            this.onEditItem()
-            this.itemFormGroup.reset()
-            this.cargandoService.closeDialog()
-          }
-        })
+          })
+      } else {
+        this.cargandoService.closeDialog(requestId)
       }
     })
   }
 
   onSaveEntrada() {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     let entrada = new EntradaInput();
     entrada.id = this.selectedEntrada?.id;
     entrada.responsableCargaId = this.selectedResponsable?.id;
@@ -303,7 +307,7 @@ export class EntradaDialogComponent implements OnInit {
       this.usuarioInputControl.disable();
       this.tipoEntradaControl.disable();
       this.sucursalControl.disable();
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
     });
   }
 
@@ -372,7 +376,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onItemSave() {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     let auxArray: EntradaItem[] = []
     if (this.itemFormGroup.valid) {
       let isNew = this.selectedEntradaItem?.id == null;
@@ -384,24 +388,27 @@ export class EntradaDialogComponent implements OnInit {
       item.cantidad = this.cantidadControl.value;
       item.usuario = this.selectedEntradaItem?.usuario;
       item.creadoEn = this.selectedEntradaItem?.creadoEn;
-      this.entradaItemService.onSaveEntradaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.selectedEntradaItem = res['data'];
-          if (!isNew) {
-            let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedEntradaItem.id)
-            auxArray = this.itemDataSource.data;
-            auxArray[index] = this.selectedEntradaItem;
-            this.itemDataSource.data = auxArray;
-          } else {
-            auxArray = this.itemDataSource.data;
-            auxArray.push(this.selectedEntradaItem);
-            this.itemDataSource.data = auxArray;
+      this.entradaItemService.onSaveEntradaItem(item.toInput()).pipe(untilDestroyed(this))
+        .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
+        .subscribe(res => {
+          if (res != null) {
+            this.selectedEntradaItem = res['data'];
+            if (!isNew) {
+              let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedEntradaItem.id)
+              auxArray = this.itemDataSource.data;
+              auxArray[index] = this.selectedEntradaItem;
+              this.itemDataSource.data = auxArray;
+            } else {
+              auxArray = this.itemDataSource.data;
+              auxArray.push(this.selectedEntradaItem);
+              this.itemDataSource.data = auxArray;
+            }
+            this.onItemCancelar()
           }
-          this.onItemCancelar()
-          this.cargandoService.closeDialog()
-        }
 
-      })
+        })
+    } else {
+      this.cargandoService.closeDialog(requestId)
     }
   }
 
@@ -422,11 +429,11 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onFinalizarEntrada() {
-    this.cargandoService.openDialog()
     if (this.selectedEntrada?.id != null) {
+      const { requestId } = this.cargandoService.openDialog()
       this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).pipe(untilDestroyed(this)).subscribe(res => {
         this.selectedEntrada.activo = res as boolean;
-        this.cargandoService.closeDialog()
+        this.cargandoService.closeDialog(requestId)
       })
     }
   }

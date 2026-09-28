@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { limpiarMensajeGraphQL } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { SolicitudesPagoPendientesGQL } from './graphql/solicitudesPagoPendientes';
 import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote';
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
 import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
+import { DevolverSolicitudPagoGQL } from './graphql/devolverSolicitudPago';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 import { GastosPendientesGQL } from './graphql/gastosPendientes';
 import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
@@ -82,6 +84,7 @@ export class PagarComprasService {
     private pagarLoteGQL: PagarSolicitudesLoteCajaMayorGQL,
     private pagarMixtoGQL: PagarSolicitudesMixtoGQL,
     private anularGQL: AnularPagoCppGQL,
+    private devolverGQL: DevolverSolicitudPagoGQL,
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
     private gastosPendientesGQL: GastosPendientesGQL,
     private crearGastoGQL: CrearGastoParaPagoGQL,
@@ -166,8 +169,8 @@ export class PagarComprasService {
 
   /**
    * Pago mixto: varias solicitudes, cada una con su subset de líneas (caja/banco, multi-moneda).
-   * Llama la mutation directo (no onSaveCustom) para propagar el error correctamente: onSaveCustom
-   * deja el observable colgado ante un error de GraphQL, lo que traba el botón Confirmar.
+   * Llama la mutation directo (no onSaveCustom) para que el diálogo muestre un único aviso con el
+   * mensaje de negocio, sin el cargando "Guardando..." ni el snackbar genérico de onSaveCustom.
    */
   onPagarMixto(pagos: SolicitudConLineas[], servidor = true): Observable<any> {
     return this.mutar(this.pagarMixtoGQL, { pagos }, servidor);
@@ -176,6 +179,11 @@ export class PagarComprasService {
   /** Anula un evento de pago completo (todas sus notas y movimientos consolidados). */
   onAnularPago(pagoId: number, motivo?: string, servidor = true): Observable<any> {
     return this.mutar(this.anularGQL, { pagoId, motivo: motivo || null }, servidor);
+  }
+
+  /** Devuelve a compras una solicitud que tesorería no va a pagar: vuelve a borrador, con motivo. */
+  onDevolverSolicitud(id: number, motivo: string, servidor = true): Observable<any> {
+    return this.mutar(this.devolverGQL, { id, motivo }, servidor);
   }
 
   /** Ejecuta una mutation y emite `next` con el dato o `error` con un mensaje saneado. */
@@ -191,7 +199,6 @@ export class PagarComprasService {
   }
 
   private limpiarError(msg: string): string {
-    if (!msg) return 'Error al registrar el pago';
-    return msg.replace(/^Exception while fetching data.*?:\s*/i, '').trim();
+    return limpiarMensajeGraphQL(msg) || 'Error al registrar el pago';
   }
 }

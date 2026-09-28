@@ -1,0 +1,33 @@
+<h2 mat-dialog-title>Nota de crédito electrónica</h2>
+
+<mat-dialog-content>
+  <div class="factura">
+    <div *ngIf="data.sucursal"><strong>Sucursal:</strong> {{ data.sucursal }}</div>
+    <div><strong>Factura:</strong> {{ data.numeroFactura }}</div>
+    <div><strong>Cliente:</strong> {{ data.cliente }}</div>
+    <div><strong>Total:</strong> {{ data.totalFactura | number }} {{ data.moneda || 'Gs' }}</div>
+  </div>
+
+  <p class="aviso">
+    Se acredita la factura completa: los ítems, los totales y la moneda los copia el servidor desde
+    la factura.
+  </p>
+
+  <mat-form-field appearance="outline" class="campo-ancho">
+    <mat-label>Motivo</mat-label>
+    <mat-select [(ngModel)]="motivo">
+      <mat-option *ngFor="let m of motivos" [value]="m.valor">{{ m.texto }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="campo-ancho">
+    <mat-label>Descripción (opcional)</mat-label>
+    <input matInput [(ngModel)]="descripcionMotivo" />
+    <mat-hint>Sale en el KuDE, no en el XML</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="emitiendo" (click)="emitir()">Emitir</button>
+</mat-dialog-actions>

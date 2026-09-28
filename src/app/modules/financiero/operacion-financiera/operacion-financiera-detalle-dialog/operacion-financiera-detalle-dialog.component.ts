@@ -75,7 +75,8 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
       this.isAnulando = true;
-      this.service.onAnular(this.op!.id).pipe(untilDestroyed(this)).subscribe({
+      // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+      this.service.onAnular(this.op!.id, undefined, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
         next: r => {
           this.isAnulando = false;
           if (r != null) {
@@ -83,10 +84,8 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
             this.dialogRef.close(true);
           }
         },
-        error: err => {
+        error: () => {
           this.isAnulando = false;
-          const m = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
-          this.notificacion.notification$.next({ texto: m, color: NotificacionColor.warn, duracion: 5 });
         }
       });
     });

@@ -3,7 +3,8 @@ import { FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { CajaVirtual } from '../caja-virtual.model';
 import { Retiro } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
@@ -55,6 +56,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
 
   // Selección multi por clave `${id}_${sucursalId}`.
   seleccionados = new Map<string, RetiroRow>();
+  /** Algún retiro del lote ya entró a la caja mayor (aunque otros fallaran). */
+  private huboIngresos = false;
 
   pageIndex = 0;
   pageSize = 10;
@@ -245,22 +248,38 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     const items = Array.from(this.seleccionados.values());
 
     this.isSaving = true;
+    // Resultado por retiro: forkJoin cortaría en el primer error mientras las demás llamadas siguen
+    // y pueden impactar la caja mayor. Sin saber cuáles entraron, reintentar podría ingresarlos dos
+    // veces. Los motivos de cada error ya los muestra onSaveCustom.
     forkJoin(
-      items.map(r => this.retiroService.onIngresarACajaMayor(r.id, r.sucursalId, caja.id))
-    ).pipe(untilDestroyed(this)).subscribe({
-      next: () => {
-        this.isSaving = false;
+      items.map(r => this.retiroService.onIngresarACajaMayor(r.id, r.sucursalId, caja.id, true, { avisarExito: false }).pipe(
+        map(() => ({ ok: true, r })),
+        catchError(() => of({ ok: false, r }))
+      ))
+    ).pipe(untilDestroyed(this)).subscribe(resultados => {
+      this.isSaving = false;
+      const ingresados = resultados.filter(x => x.ok);
+      if (ingresados.length === items.length) {
         this.notificacion.openSucess(`${items.length} retiro(s) ingresado(s) a ${caja.nombre}`);
         this.dialogRef.close(true);
-      },
-      error: err => {
-        this.isSaving = false;
-        this.notificacion.openAlgoSalioMal(err?.message || 'Error al ingresar los retiros');
+        return;
+      }
+      if (ingresados.length === 0) return;
+      this.huboIngresos = true;
+      ingresados.forEach(x => this.seleccionados.delete(`${x.r.id}_${x.r.sucursalId}`));
+      this.notificacion.openWarn(
+        `${ingresados.length} de ${items.length} retiros ingresados; ${items.length - ingresados.length} con error. Los que entraron ya no están seleccionados.`, 8);
+      if (this.modoEscaneo) {
+        this.mostrarEscaneados();
+      } else {
+        this.recomputarTotales();
+        this.cargar();
       }
     });
   }
 
   onCancel() {
-    this.dialogRef.close(null);
+    // Si algún retiro ya entró, la caja mayor cambió aunque el lote no terminara: que se recargue.
+    this.dialogRef.close(this.huboIngresos ? true : null);
   }
 }

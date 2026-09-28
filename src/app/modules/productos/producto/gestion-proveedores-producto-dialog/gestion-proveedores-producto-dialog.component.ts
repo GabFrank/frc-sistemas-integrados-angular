@@ -148,11 +148,8 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
           this.onRemoverProveedor();
           this.loadList();
         },
-        error: (err) => {
-          if (err?.message) {
-            this.notificacionService.openWarn(err.message);
-          }
-        },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        error: () => {},
       });
   }
 

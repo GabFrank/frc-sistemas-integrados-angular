@@ -79,8 +79,10 @@ export class EgresarFuncionarioDialogComponent {
       return;
     }
     const motivo = this.motivoControl.value ? this.motivoControl.value.toUpperCase() : null;
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.legajoService.onEgresar(this.data.funcionarioId, dateToString(this.fechaControl.value), motivo)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.dialogRef.close(res); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 
   onCancelar() { this.dialogRef.close(); }

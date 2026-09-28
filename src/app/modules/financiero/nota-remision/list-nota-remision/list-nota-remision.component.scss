@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+// Columna de alto completo: filtros arriba, la tabla ocupa el resto y scrollea sola, y el
+// paginador queda fijo al pie de la ventana en vez de pegado a la última fila.
+.contenedor {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.paginador {
+  flex: 0 0 auto;
+}
+
+.filtros {
+  margin-bottom: 8px;
+}
+
+.filtro {
+  width: 200px;
+}
+
+.tabla {
+  width: 100%;
+
+  td,
+  th {
+    text-align: center;
+  }
+}
+
+.vacio {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.chip {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+
+  &.APROBADO {
+    background-color: #2e7d32;
+  }
+
+  &.RECHAZADO {
+    background-color: #c62828;
+  }
+
+  &.EN_LOTE,
+  &.PENDIENTE {
+    background-color: #ef6c00;
+  }
+}

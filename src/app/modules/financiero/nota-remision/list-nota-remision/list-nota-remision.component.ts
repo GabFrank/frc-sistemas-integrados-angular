@@ -1,0 +1,215 @@
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { FormControl } from '@angular/forms';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatDialog } from '@angular/material/dialog';
+import { PageInfo } from '../../../../app.component';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { NotaRemision, OrigenNotaRemision } from '../nota-remision.model';
+import { NotaRemisionService } from '../nota-remision.service';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { AddNotaRemisionDialogComponent } from '../add-nota-remision-dialog/add-nota-remision-dialog.component';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { LocalesDeSalidaGQL } from '../graphql/localesDeSalida';
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData
+} from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+
+/**
+ * Lista de notas de remisión electrónicas. Todo va contra el central.
+ *
+ * Los permisos se calculan una vez en ngOnInit y quedan en flags: llamar funciones desde el HTML
+ * las re-evalúa en cada ciclo de detección de cambios (regla del repo).
+ */
+@UntilDestroy()
+@Component({
+  selector: 'app-list-nota-remision',
+  templateUrl: './list-nota-remision.component.html',
+  styleUrls: ['./list-nota-remision.component.scss']
+})
+export class ListNotaRemisionComponent implements OnInit {
+
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  dataSource = new MatTableDataSource<NotaRemision>([]);
+  displayedColumns = ['numero', 'fecha', 'origen', 'receptor', 'vehiculo', 'chofer', 'estadoDe', 'acciones'];
+
+  sucursalIdControl = new FormControl(null);
+  fechaDesdeControl = new FormControl(null);
+  fechaHastaControl = new FormControl(null);
+
+  sucursales: Sucursal[] = [];
+  selectedPageInfo: PageInfo<NotaRemision>;
+  pageIndex = 0;
+  pageSize = 15;
+
+  /** Estado del documento electrónico por nota, para el chip y los botones. */
+  estadoDePorNota: { [notaId: number]: string } = {};
+  cdcPorNota: { [notaId: number]: string } = {};
+
+  puedeEmitir = false;
+  puedeAnular = false;
+
+  constructor(
+    private service: NotaRemisionService,
+    private sucursalService: SucursalService,
+    private mainService: MainService,
+    private dialogosService: DialogosService,
+    private notificacionService: NotificacionSnackbarService,
+    private impresionService: ImpresionService,
+    private dialog: MatDialog,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL
+  ) {}
+
+  ngOnInit(): void {
+    this.puedeEmitir = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+    // Mismo rol que emitir: quien emite puede anular lo que emitió. Se deja el flag aparte porque
+    // son botones distintos y la separación puede volver si algún día se parten los roles.
+    this.puedeAnular = this.puedeEmitir;
+
+    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
+      this.sucursales = res ?? [];
+    });
+
+    // Sucursal en «Todos» (null) y rango de ayer a hoy: es lo que se mira al abrir la pantalla.
+    this.sucursalIdControl.setValue(null);
+    const hoy = new Date();
+    const ayer = new Date();
+    ayer.setDate(hoy.getDate() - 1);
+    this.fechaDesdeControl.setValue(ayer);
+    this.fechaHastaControl.setValue(hoy);
+    this.buscar();
+  }
+
+  buscar(): void {
+    this.service.onGetPorFiltro(
+      this.sucursalIdControl.value,
+      this.fechaDesdeControl.value ? dateToString(this.fechaDesdeControl.value) : null,
+      this.fechaHastaControl.value ? dateToString(this.fechaHastaControl.value) : null,
+      this.pageIndex,
+      this.pageSize
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      this.selectedPageInfo = res;
+      this.dataSource.data = res?.getContent ?? [];
+      this.cargarEstados();
+    });
+  }
+
+  onPage(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.buscar();
+  }
+
+  /**
+   * Alta manual. La nota la emite una sucursal con timbrado electrónico: desde una sucursal es
+   * la propia; desde el central (SERVIDOR, sucursal 0), que no emite, se elige para cuál es.
+   * Sin esto el diálogo prellenaba con la sucursal 0 y fallaba por falta de timbrado.
+   */
+  onNueva(): void {
+    const actual = this.mainService.sucursalActual;
+    // El id llega como texto ("0"): se compara el número, un "0" es verdadero en un if.
+    if (Number(actual?.id) > 0) {
+      this.abrirNueva(Number(actual.id), actual.nombre);
+      return;
+    }
+    const data: SearchListtDialogData = {
+      titulo: '¿Para qué sucursal es la nota?',
+      tableData: [
+        { id: 'nombre', nombre: 'Sucursal', width: '40%' },
+        { id: 'direccion', nombre: 'Dirección', width: '40%' },
+        { id: 'ciudad', nombre: 'Ciudad', width: '20%' }
+      ],
+      query: this.localesDeSalidaGQL,
+      // Solo existe en el central: reintentar contra el filial no aporta nada.
+      fallbackToLocal: false,
+      // Son pocas sucursales: se muestran todas al abrir, sin tener que buscar.
+      inicialSearch: true
+    };
+    this.dialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((local: any) => {
+      if (local?.sucursalId) this.abrirNueva(local.sucursalId, local.nombre);
+    });
+  }
+
+  private abrirNueva(sucursalId: number, sucursalNombre: string): void {
+    this.dialog.open(AddNotaRemisionDialogComponent, {
+      width: '95%', maxWidth: '1200px',
+      data: { origen: OrigenNotaRemision.MANUAL, sucursalId, sucursalNombre }
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) this.buscar();
+    });
+  }
+
+  onEnviar(nota: NotaRemision): void {
+    this.service.onGenerarYEnviar(nota.id, nota.sucursalId).pipe(untilDestroyed(this)).subscribe(de => {
+      if (de) {
+        this.notificacionService.openSucess(`Enviada a SIFEN. CDC ${de.cdc}`, 5);
+        this.buscar();
+      }
+    });
+  }
+
+  onReenviar(nota: NotaRemision): void {
+    this.service.onReenviar(nota.id, nota.sucursalId).pipe(untilDestroyed(this)).subscribe(() => this.buscar());
+  }
+
+  onImprimir(nota: NotaRemision): void {
+    // El nombre es también el del archivo al descargar el PDF: «Nota de remisión» dejaba todos
+    // los KuDE con el mismo nombre en la carpeta de descargas. Con el número se distinguen.
+    // soloPdf: el ticket térmico de la nota no entra en esta entrega (el backend lo rechaza).
+    this.impresionService.imprimir(
+      this.nombreArchivo(nota),
+      () => this.service.onImprimir(nota.id, nota.sucursalId),
+      true
+    );
+  }
+
+  private nombreArchivo(nota: NotaRemision): string {
+    const numero = this.numeroFormateado(nota);
+    return numero ? `KuDE-NR-${numero}` : 'KuDE-NR';
+  }
+
+  onAnular(nota: NotaRemision): void {
+    this.dialogosService.confirm(
+      'Anular nota de remisión',
+      `Se va a cancelar ante SIFEN la nota ${this.numeroFormateado(nota)}.`,
+      '¿Confirmás?'
+    ).pipe(untilDestroyed(this)).subscribe(confirmado => {
+      if (confirmado) {
+        this.service.onAnular(nota.id, nota.sucursalId).pipe(untilDestroyed(this)).subscribe(() => this.buscar());
+      }
+    });
+  }
+
+  numeroFormateado(nota: NotaRemision): string {
+    if (!nota?.numeroNotaRemision) return '';
+    return `001-001-${String(nota.numeroNotaRemision).padStart(7, '0')}`;
+  }
+
+  /**
+   * Reenviar tiene sentido mientras SIFEN no lo aprobó: un envío fallido deja el documento en
+   * EN_LOTE, no en PENDIENTE (hallazgo B2 de la auditoría).
+   */
+  private cargarEstados(): void {
+    (this.dataSource.data ?? []).forEach(nota => {
+      this.service.onGetDocumentoElectronico(nota.id, nota.sucursalId)
+        .pipe(untilDestroyed(this))
+        .subscribe(de => {
+          this.estadoDePorNota[nota.id] = de?.estado ?? 'SIN ENVIAR';
+          this.cdcPorNota[nota.id] = de?.cdc ?? '';
+        });
+    });
+  }
+}

@@ -15,10 +15,10 @@ export class GestionPagoDialogComponent implements OnInit {
   saving = false;
 
   // TODO: Más opciones serán implementadas futuramente (registro de pago, adjuntar comprobante, etc.)
+  // Sin Parcial ni Concluido: los pagos se registran solo desde la caja mayor (el central rechaza
+  // marcarlos a mano). Devuelto tampoco: lo fija tesorería con un motivo.
   estadoOpciones: { value: SolicitudPagoEstado; label: string }[] = [
     { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
-    { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
-    { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
   ];
 

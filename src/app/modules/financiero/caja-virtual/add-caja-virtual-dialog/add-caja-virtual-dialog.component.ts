@@ -98,7 +98,8 @@ export class AddCajaVirtualDialogComponent implements OnInit {
     cajaVirtual.usuario = this.mainService.usuarioActual;
 
     this.isSaving = true;
-    this.cajaVirtualService.onSave(cajaVirtual)
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.cajaVirtualService.onSave(cajaVirtual, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -110,7 +111,6 @@ export class AddCajaVirtualDialogComponent implements OnInit {
         },
         error: () => {
           this.isSaving = false;
-          this.notificacionService.openAlgoSalioMal('Error al guardar la caja virtual');
         }
       });
   }

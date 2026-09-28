@@ -100,7 +100,7 @@ export class ConfigurarCajaVirtualDialogComponent implements OnInit {
       operacionesFinancierasHabilitado: this.operacionesHabilitado,
       cuentasBancariasVisiblesIds: ids,
       cuentasBancariasOrden: JSON.stringify(ids),
-    }).pipe(untilDestroyed(this)).subscribe({
+    }, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.guardando = false;
         if (res != null) {
@@ -108,10 +108,9 @@ export class ConfigurarCajaVirtualDialogComponent implements OnInit {
           this.dialogRef.close(true);
         }
       },
-      error: err => {
+      // El aviso de error lo da onSaveCustom.
+      error: () => {
         this.guardando = false;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo guardar la configuración';
-        this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
       }
     });
   }

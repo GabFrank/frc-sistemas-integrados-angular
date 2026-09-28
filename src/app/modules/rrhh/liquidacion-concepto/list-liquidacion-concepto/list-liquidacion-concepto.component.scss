@@ -1,0 +1,21 @@
+// El componente se crea dentro de app-tab-content, que no define altura. Sin un host
+// con altura definida, el <div fxFlex> de app-generic-list (flex-basis: 0%) colapsa a
+// cero y la tabla queda invisible.
+:host {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+table { width: 100%; }
+
+// Las clases sin prefijo `mat-mdc-` son de la API vieja de Material y no matchean nada
+// en la 15: el padding hay que aplicarlo sobre las MDC.
+th.mat-mdc-header-cell, td.mat-mdc-cell { padding: 4px 8px; }
+
+// Columnas de dato corto o de iconos: centradas. Codigo y descripcion se leen mejor
+// alineadas a la izquierda, que es el default de la tabla.
+.col-centro { text-align: center; }
+.si { color: #66bb6a; }
+.no { opacity: 0.5; }
+.inactivo { opacity: 0.55; }

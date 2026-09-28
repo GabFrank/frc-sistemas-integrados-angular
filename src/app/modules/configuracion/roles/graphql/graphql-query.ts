@@ -102,6 +102,24 @@ export const saveUsuarioRole = gql`
   }
 `;
 
+export const saveUsuarioRoleList = gql`
+  mutation saveUsuarioRoleList($entity: [UsuarioRoleInput!]!) {
+    data: saveUsuarioRoleList(usuarioRoleList: $entity) {
+      id
+      role {
+        id
+        nombre
+      }
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
 export const deleteUsuarioRoleQuery = gql`
   mutation deleteUsuarioRole($id: ID!) {
     deleteUsuarioRole(id: $id)

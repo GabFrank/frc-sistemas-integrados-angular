@@ -60,6 +60,7 @@
         (keyup)="onKeyUp(2, valorDescuentoRsControl.value)"
       />
       <span matTextPrefix>Descuento en Reales</span>
+      <mat-hint *ngIf="sinCotizacionRs">Sin cotización cargada</mat-hint>
     </mat-form-field>
   </div>
   <div fxFlex>
@@ -75,6 +76,7 @@
         (keyup)="onKeyUp(3, valorDescuentoDsControl.value)"
       />
       <span matTextPrefix>Descuento en Dolares</span>
+      <mat-hint *ngIf="sinCotizacionDs">Sin cotización cargada</mat-hint>
     </mat-form-field>
   </div>
   <div fxFlex style="height: 35px">

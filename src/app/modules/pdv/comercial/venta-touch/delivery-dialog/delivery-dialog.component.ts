@@ -205,13 +205,13 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
       this.monedaList = res;
       this.cambioRs = this.monedaList.find(
         (m) => m.denominacion == "REAL"
-      )?.cambio;
+      )?.cambio ?? null;
       this.cambioDs = this.monedaList.find(
         (m) => m.denominacion == "DOLAR"
-      )?.cambio;
+      )?.cambio ?? null;
       this.cambioArg = this.monedaList.find(
         (m) => m.denominacion == "PESO ARG"
-      )?.cambio;
+      )?.cambio ?? null;
 
       this.monedaControl.setValue(this.monedaList[0])
       this.deliveryService.onGetPreciosDelivery().subscribe(res => {
@@ -394,7 +394,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   cargarDatosDelivery(delivery: Delivery) {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.selectedDelivery = new Delivery;
     this.selectedVenta = new Venta;
     this.selectedVuelto = new Vuelto;
@@ -425,7 +425,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     }
     this.calcularSaldo()
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       this.finalizarBtn.onGetFocus()
     }, 800);
   }
@@ -435,27 +435,29 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.vueltoListRs = []
     this.vueltoListDs = []
     let factorGs = Math.floor(this.totalConDelivery / 100000) + 1;
-    let factorRs = Math.floor((this.totalConDelivery / this.cambioRs) / 100) + 1;
-    let factorDs = Math.floor((this.totalConDelivery / this.cambioDs) / 100) + 1;
     this.vueltoListGs.push(factorGs * 100000);
-    this.vueltoListRs.push(factorRs * 100);
-    this.vueltoListDs.push(factorDs * 100);
-
     if (this.totalConDelivery < 50000) {
       this.vueltoListGs.push(50000)
     }
-    if (this.totalConDelivery / this.cambioRs < 50) {
-      this.vueltoListRs.push(50)
-    }
-    if (this.totalConDelivery / this.cambioDs < 50) {
-      this.vueltoListDs.push(50)
-    }
-
     this.vueltoListGs.push(this.totalConDelivery)
 
-    this.vueltoListRs.push(this.totalConDelivery / this.cambioRs)
-
-    this.vueltoListDs.push(this.totalConDelivery / this.cambioDs)
+    // Sin cotización la lista de esa moneda queda vacía: dividir por null/0 da Infinity.
+    if (this.cambioRs) {
+      let totalRs = this.totalConDelivery / this.cambioRs;
+      this.vueltoListRs.push((Math.floor(totalRs / 100) + 1) * 100);
+      if (totalRs < 50) {
+        this.vueltoListRs.push(50)
+      }
+      this.vueltoListRs.push(totalRs)
+    }
+    if (this.cambioDs) {
+      let totalDs = this.totalConDelivery / this.cambioDs;
+      this.vueltoListDs.push((Math.floor(totalDs / 100) + 1) * 100);
+      if (totalDs < 50) {
+        this.vueltoListDs.push(50)
+      }
+      this.vueltoListDs.push(totalDs)
+    }
 
 
     if (this.monedaControl.value?.denominacion.includes('GUARANI')) {
@@ -825,7 +827,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.selectedDelivery = null;
     this.selectedVenta = null;
     this.selectedVuelto = null;
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.onDeliverySelect(null)
     this.telefonoPrefixControl.setValue(this.prefixList[0])
     this.telefonoControl.setValue('')
@@ -841,7 +843,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.valorControl.setValue(null)
     this.calcularSaldo();
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       this.telefonoInput.nativeElement.focus()
     }, 500);
   }

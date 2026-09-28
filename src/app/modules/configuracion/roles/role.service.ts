@@ -7,6 +7,7 @@ import { RoleByIdGQL } from './graphql/roleById';
 import { RolesGQL } from './graphql/rolesQuery';
 import { SaveRoleGQL } from './graphql/saveRole';
 import { SaveUsuarioRoleGQL } from './graphql/saveUsuarioRole';
+import { SaveUsuarioRoleListGQL } from './graphql/saveUsuarioRoleList';
 import { UsuarioRolePorUsuarioIdGQL } from './graphql/usuarioRolePorUsuarioId';
 import { Role, UsuarioRole } from './role.model';
 
@@ -24,6 +25,7 @@ export class RoleService {
     private deleteRole: DeleteRoleGQL,
     private getUsuarioRolePorUsuarioId: UsuarioRolePorUsuarioIdGQL,
     private saveUsuarioRole: SaveUsuarioRoleGQL,
+    private saveUsuarioRoleList: SaveUsuarioRoleListGQL,
     private deleteUsuarioRole: DeleteUsuarioRoleGQL,
     private injector: Injector
   ) {
@@ -52,6 +54,10 @@ export class RoleService {
 
   onSaveUsuarioRole(input): Observable<UsuarioRole> {
     return this.genericCrud.onSave(this.saveUsuarioRole, input)
+  }
+
+  onSaveUsuarioRoleList(inputList): Observable<UsuarioRole[]> {
+    return this.genericCrud.onSave(this.saveUsuarioRoleList, inputList)
   }
 
   onDeleteUsuarioRole(id): Observable<boolean> {

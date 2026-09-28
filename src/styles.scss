@@ -496,9 +496,10 @@ input {
   }
 }
 
-// Historial de edicion de un conteo: sin padding, para que la banda de color
-// llegue hasta los bordes del dialogo.
-.historial-conteo-panel {
+// Dialogos con banda de color a sangre (historial de edicion de un conteo, ABM de
+// conceptos de liquidacion): sin padding, para que la banda llegue hasta los bordes.
+.historial-conteo-panel,
+.liquidacion-concepto-panel {
   .mat-mdc-dialog-container {
     padding: 0;
     overflow: hidden;
@@ -507,6 +508,23 @@ input {
     .mat-mdc-dialog-surface {
       padding: 0;
       overflow: hidden;
+    }
+  }
+}
+
+// Dialogo de ultimas ventas del PDV (reimpresion / cancelacion). Va por panelClass y no en el
+// scss del componente: ahi solo se alcanzaba la superficie con un ::ng-deep global, que le
+// imponia min-width 800px a todos los dialogos de la sesion (#327).
+.ultimas-ventas-panel {
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    min-width: 800px;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  @media (max-width: 768px) {
+    .mat-mdc-dialog-container .mdc-dialog__surface {
+      min-width: 100%;
     }
   }
 }

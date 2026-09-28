@@ -34,6 +34,8 @@ import { PagarAguinaldoDialogComponent } from './aguinaldo/pagar-aguinaldo-dialo
 import { ListBonoComponent } from './bono/list-bono/list-bono.component';
 import { EditBonoDialogComponent } from './bono/edit-bono-dialog/edit-bono-dialog.component';
 import { ListLiquidacionComponent } from './liquidacion/list-liquidacion/list-liquidacion.component';
+import { ListLiquidacionConceptoComponent } from './liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
+import { EditLiquidacionConceptoDialogComponent } from './liquidacion-concepto/edit-liquidacion-concepto-dialog/edit-liquidacion-concepto-dialog.component';
 import { GenerarLiquidacionDialogComponent } from './liquidacion/generar-liquidacion-dialog/generar-liquidacion-dialog.component';
 import { LiquidacionDetalleDialogComponent } from './liquidacion/liquidacion-detalle-dialog/liquidacion-detalle-dialog.component';
 import { LegajoFuncionarioComponent } from './legajo/legajo-funcionario/legajo-funcionario.component';
@@ -84,6 +86,8 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     ListBonoComponent,
     EditBonoDialogComponent,
     ListLiquidacionComponent,
+    ListLiquidacionConceptoComponent,
+    EditLiquidacionConceptoDialogComponent,
     GenerarLiquidacionDialogComponent,
     LiquidacionDetalleDialogComponent,
     LegajoFuncionarioComponent,

@@ -37,7 +37,7 @@
       </div>
     </div>
     <div fxLayout="row" fxLayoutGap="10px">
-      <div fxFlex="20%">
+      <div fxFlex="17%">
         <mat-form-field style="width: 100%">
           <mat-label>Estado</mat-label>
           <mat-select [formControl]="estadoControl" (selectionChange)="onFiltrar()">
@@ -47,7 +47,7 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="25%">
+      <div fxFlex="22%">
         <mat-form-field style="width: 100%">
           <mat-label>Cargo</mat-label>
           <mat-select [formControl]="cargoControl" (selectionChange)="onFiltrar()">
@@ -56,7 +56,7 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="20%">
+      <div fxFlex="17%">
         <mat-form-field style="width: 100%">
           <mat-label>Diarista</mat-label>
           <mat-select [formControl]="diaristaControl" (selectionChange)="onFiltrar()">
@@ -66,10 +66,20 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="20%">
+      <div fxFlex="17%">
         <mat-form-field style="width: 100%">
           <mat-label>Fase de prueba</mat-label>
           <mat-select [formControl]="fasePruebaControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option [value]="true">Sí</mat-option>
+            <mat-option [value]="false">No</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="17%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Cobra por banco</mat-label>
+          <mat-select [formControl]="cobraBancoControl" (selectionChange)="onFiltrar()">
             <mat-option [value]="null">Todos</mat-option>
             <mat-option [value]="true">Sí</mat-option>
             <mat-option [value]="false">No</mat-option>

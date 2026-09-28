@@ -1,0 +1,73 @@
+<div class="edit-formato" [formGroup]="formGroup" fxLayout="column" fxLayoutGap="10px">
+
+  <h2 class="titulo">{{ data?.formato ? 'Editar formato de QR' : 'Nuevo formato de QR' }}</h2>
+  <p class="subtitulo">
+    El patrón se aplica en la caja de cada sucursal. Probalo contra la cadena de ejemplo antes de guardar.
+  </p>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Nombre</mat-label>
+    <input matInput formControlName="nombre" placeholder="Ej: ValidaPix FRCP1" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Patrón (regex con grupos nombrados)</mat-label>
+    <textarea matInput formControlName="patron" rows="3"
+      placeholder="^FRCP1\*(?<auth>[A-Z0-9]{0,20})\*..."></textarea>
+    <mat-hint>Los grupos se declaran (?&lt;nombre&gt;...). Debe empezar con ^ y terminar con $.</mat-hint>
+  </mat-form-field>
+
+  <!-- Sin esto, todo formato quedaba comodín y la detección de cupón de otra terminal nunca se
+       activaba. Dejarlo vacío sigue siendo válido: significa "probar contra cualquier terminal". -->
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Proveedor de la terminal</mat-label>
+    <mat-select formControlName="proveedorServicioId">
+      <mat-option [value]="null">Cualquiera (comodín)</mat-option>
+      <mat-option *ngFor="let p of proveedores" [value]="p.id">
+        {{ p.persona?.nombre || p.nombreContacto || ('Proveedor ' + p.id) }}
+      </mat-option>
+    </mat-select>
+    <mat-hint>
+      Si se asigna, el cupón que no sea de este proveedor se marca como de otra terminal.
+    </mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Mapeo (JSON)</mat-label>
+    <textarea matInput formControlName="mapeo" rows="8"></textarea>
+  </mat-form-field>
+
+  <div class="fila-accion">
+    <button mat-button type="button" (click)="usarMapeoEjemplo()">Usar el mapeo de ValidaPix como base</button>
+  </div>
+
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Cadena de ejemplo (un cupón real)</mat-label>
+    <input matInput formControlName="ejemplo" [maxlength]="maxLongitud" />
+    <mat-hint>Máximo {{ maxLongitud }} caracteres: es lo que el lector puede entregar.</mat-hint>
+  </mat-form-field>
+
+  <mat-slide-toggle formControlName="activo">Activo</mat-slide-toggle>
+
+  <div class="preview">
+    <div class="preview-titulo">Vista previa — esto es lo que el PDV va a leer</div>
+
+    <div class="preview-error" *ngIf="errorPreview">{{ errorPreview }}</div>
+
+    <table *ngIf="!errorPreview && preview.length">
+      <tr *ngFor="let fila of preview">
+        <td class="campo">{{ fila.campo }}</td>
+        <td class="valor">{{ fila.valor }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-success"
+      [disabled]="formGroup.invalid || guardando" (click)="onGuardar()">
+      Guardar
+    </button>
+  </div>
+
+</div>

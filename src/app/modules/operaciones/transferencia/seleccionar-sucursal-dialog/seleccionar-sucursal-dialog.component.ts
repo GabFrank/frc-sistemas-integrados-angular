@@ -62,7 +62,7 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.sucursalService.onGetAllSucursales(true)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
@@ -81,7 +81,7 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
             this.onDestinoChange(this.sucursalList?.find(s => s.id == this.data.sucursalDestino?.id))
           }
         }
-        this.cargandoService.closeDialog()
+        this.cargandoService.closeDialog(requestId)
       })
 
     setInterval(() => {

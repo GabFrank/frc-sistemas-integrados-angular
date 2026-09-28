@@ -93,8 +93,11 @@ export class LoginService {
 
     this.usuarioService
       .onSaveInicioSesion(inicioSesion.toInput(), servidor)
-      .subscribe((res) => {
-        this.mainService.usuarioActual.inicioSesion = res;
+      .subscribe({
+        next: (res) => {
+          this.mainService.usuarioActual.inicioSesion = res;
+        },
+        error: (err) => console.warn("No se pudo registrar el inicio de sesion", err),
       });
   }
 
@@ -115,7 +118,9 @@ export class LoginService {
     inicioSesion.token = null;
     this.usuarioService
       .onSaveInicioSesion(inicioSesion.toInput(), servidor)
-      .subscribe();
+      .subscribe({
+        error: (err) => console.warn("No se pudo cerrar el inicio de sesion", err),
+      });
   }
 
   login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {

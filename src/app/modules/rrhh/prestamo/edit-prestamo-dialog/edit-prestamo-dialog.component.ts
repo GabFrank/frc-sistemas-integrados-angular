@@ -89,8 +89,9 @@ export class EditPrestamoDialogComponent implements OnInit {
     p.cantidadCuotas = this.cantidadCuotasControl.value;
     p.observacion = this.observacionControl.value ? this.observacionControl.value.toUpperCase() : null;
 
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.prestamoService.onCrear(p.toInput(), this.cajaControl.value)
       .pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 }

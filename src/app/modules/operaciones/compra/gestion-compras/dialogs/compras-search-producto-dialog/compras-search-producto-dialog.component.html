@@ -286,10 +286,23 @@
                 type="button"
                 mat-fab
                 color="primary"
+                aria-label="Cargar más resultados"
+                [disabled]="busquedaEnCurso || !hayMasResultados"
                 (click)="cargarMasDatos()"
               >
                 <mat-icon>add</mat-icon>
               </button>
+            </div>
+
+            <div
+              *ngIf="
+                !busquedaEnCurso &&
+                !hayMasResultados &&
+                dataSource.data.length > 0
+              "
+              class="estado-busqueda"
+            >
+              No hay más resultados
             </div>
 
             <div

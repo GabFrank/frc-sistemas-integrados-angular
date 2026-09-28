@@ -136,8 +136,8 @@ const movimientoBancarioFields = `
 `;
 
 export const movimientosBancariosQuery = gql`
-  query ($cuentaBancariaId: ID!, $page: Int, $size: Int) {
-    data: movimientosBancarios(cuentaBancariaId: $cuentaBancariaId, page: $page, size: $size) {
+  query ($cuentaBancariaId: ID!, $desde: String, $fin: String, $tipo: String, $soloActivos: Boolean, $page: Int, $size: Int) {
+    data: movimientosBancarios(cuentaBancariaId: $cuentaBancariaId, desde: $desde, fin: $fin, tipo: $tipo, soloActivos: $soloActivos, page: $page, size: $size) {
       getTotalElements
       getContent {
         ${movimientoBancarioFields}

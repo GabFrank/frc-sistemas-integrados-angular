@@ -285,7 +285,8 @@
                       <div *ngIf="item.stockActualLoading" class="loading-container">
                         <mat-spinner diameter="20"></mat-spinner>
                       </div>
-                      <div *ngIf="!item.stockActualLoading" class="cantidad-display">
+                      <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
+                      <div *ngIf="!item.stockActualLoading && !item.stockOculto" class="cantidad-display">
                         <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.stockActual) | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.stockActual | number : "1.0-2" }} unidades)</div>
                       </div>
@@ -297,7 +298,8 @@
                     <th mat-header-cell *matHeaderCellDef>Cant. Sugerida</th>
                     <td mat-cell *matCellDef="let item; let i = index">
                       <span *ngIf="item.cantidadSugeridaLoading">Calculando...</span>
-                      <div *ngIf="!item.cantidadSugeridaLoading" class="cantidad-display">
+                      <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
+                      <div *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto" class="cantidad-display">
                         <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.cantidadSugerida) | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.cantidadSugerida | number : "1.0-2" }} unidades)</div>
                       </div>

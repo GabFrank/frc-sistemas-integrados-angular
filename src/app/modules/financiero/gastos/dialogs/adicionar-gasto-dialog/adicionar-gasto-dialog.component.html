@@ -72,7 +72,11 @@
         <div #retiro fxFlex fxLayout="row">
           <mat-form-field style="width: 100%">
             <mat-label>Observación</mat-label>
-            <input #obs type="text" matInput [formControl]="observacionControl" (keyup.enter)="gs.select()" />
+            <input #obs type="text" matInput required [formControl]="observacionControl"
+              (keyup.enter)="gs.select()" />
+            <mat-error *ngIf="observacionControl.hasError('required')">
+              La observación es obligatoria
+            </mat-error>
           </mat-form-field>
         </div>
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
@@ -138,7 +142,8 @@
           <app-boton #guardarBtn (clickEvent)="isVuelto != true ? onGuardar() : onSaveVuelto()" [disableExpression]="
               selectedResponsable == null ||
               selectedTipoGasto == null ||
-              autorizado != true
+              autorizado != true ||
+              observacionControl.invalid
             " color="accent" nombre="Guardar">
           </app-boton>
         </div>

@@ -21,7 +21,7 @@ import {
   ComprasSearchProductoResponse,
 } from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { BuscadorComprasService } from "../../buscador-compras.service";
-import { take } from "rxjs/operators";
+import { take, timeout } from "rxjs/operators";
 import {
   PedidoItem,
   PedidoItemInput,
@@ -34,13 +34,19 @@ import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
+import { PorSucursal } from "../../../../../../commons/core/utils/por-sucursal";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../../../personas/roles/roles.enum";
+import { MainService } from "../../../../../../main.service";
 import { PedidoItemDistribucion, PedidoItemDistribucionInput } from "../../pedido-item-distribucion.model";
 import { ProductoService } from "../../../../../productos/producto/producto.service";
-import { MovimientoStockService } from "../../../../../operaciones/movimiento-stock/movimiento-stock.service";
-import { TipoMovimiento } from "../../../../../operaciones/movimiento-stock/movimiento-stock.enums";
+import {
+  CantidadSugeridaPorSucursal,
+  MovimientoStockService,
+} from "../../../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { MatTableDataSource } from "@angular/material/table";
 import { SelectSucursalesDialogComponent, SelectSucursalesDialogData, SelectSucursalesDialogResult } from "./select-sucursales-dialog.component";
 
@@ -73,6 +79,8 @@ export interface DistribucionItem {
   cantidadSugeridaLoading: boolean;
   cantidadPedir: number;
   distribucionId?: number; // Para modo edición
+  /** Influencia COMPRAS sin `VER_STOCK_COMPRAS`: ni el stock ni la sugerida (que lo resta) se muestran. */
+  stockOculto?: boolean;
 }
 
 @Component({
@@ -224,6 +232,8 @@ export class AddEditItemDialogComponent implements OnInit {
   ];
   sucursalesInfluencia: Sucursal[] = [];
   sucursalesEntrega: Sucursal[] = [];
+  /** Sin este rol no se muestra el stock de la sucursal COMPRAS, igual que en la lista de productos. */
+  puedeVerStockCompras = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -236,6 +246,7 @@ export class AddEditItemDialogComponent implements OnInit {
     private productoService: ProductoService,
     private movimientoStockService: MovimientoStockService,
     private buscadorComprasService: BuscadorComprasService,
+    private mainService: MainService,
     @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
   ) {
     this.initializeForm();
@@ -243,6 +254,8 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+
     // Cargar monedas para tener la información completa disponible
     this.loadMonedas();
     
@@ -620,7 +633,8 @@ export class AddEditItemDialogComponent implements OnInit {
     // Update simplified stock and tooltip
     this.stockTotalSimplificadoComputed = 0;
     let tooltipText = "Desglose por Sucursal:\n";
-    this.distribucionesItems.forEach(item => {
+    // Las filas con el stock oculto no suman ni aparecen: su 0 sería un cero falso.
+    this.distribucionesItems.filter(item => !item.stockOculto).forEach(item => {
       const stock = item.stockActual || 0;
       if (stock > 0) {
         this.stockTotalSimplificadoComputed += stock;
@@ -872,24 +886,25 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null;
 
+    // `ultimoPrecioCompra` se persiste SIEMPRE en guaraníes, igual que `costoMedio`
+    // (ver CostosPorProductoService.aplicarCostoCompra). La moneda/cotización del costo son
+    // solo REFERENCIA de la compra original, no describen en qué moneda está el importe:
+    // el contrato lo fija <app-costo-display>, que reconstruye el original dividiendo.
+    // Por eso acá solo se convierte Gs -> moneda del pedido. Multiplicar por costo.cotizacion
+    // inflaba el precio sugerido por la cotización, y como ese precio inflado terminaba siendo
+    // el costo de la compra siguiente, el error se componía en cada compra.
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
-    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
-    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
-    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
-    const costo = producto?.costo;
-    const costoMonedaId = costo?.moneda?.id;
-    const pedidoMonedaId = this.data.pedido?.moneda?.id;
-    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
-      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
-      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
-      if (pedidoCotizacion > 1) {
-        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
-      } else {
-        precioInicial = Math.round(costoEnGs);
-      }
+    // Pedido en moneda extranjera: se prioriza pedido.cotizacion (fijada al guardar el pedido)
+    // y se cae a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    // cotizacion > 1 identifica a la moneda extranjera (el guaraní cotiza 1), misma convención
+    // que CostoMedioCalculator.aGuaranies y <app-costo-display>.
+    const pedidoCotizacion =
+      this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+    if (precioInicial > 0 && pedidoCotizacion > 1) {
+      precioInicial = Math.round((precioInicial / pedidoCotizacion) * 100) / 100;
     }
-    
+
     this.itemForm.patchValue(
       {
         productoSearch: coincidenciaExacta ? "" : producto.descripcion,
@@ -1578,21 +1593,71 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
-    // Iniciar carga de stock y cantidad sugerida para cada distribución de forma asíncrona e independiente
-    this.distribucionesItems.forEach((item, index) => {
-      // Usar setTimeout con delay mínimo para asegurar que cada carga sea independiente
-      // y no sature el servidor con múltiples peticiones simultáneas
-      // El delay incremental es muy pequeño (10ms) para no afectar la experiencia del usuario
-      setTimeout(() => {
-        // Solo cargar si aún está en estado de carga (no se ha cargado manualmente)
-        if (item.stockActualLoading) {
-          this.loadStockActual(item);
-        }
-        // Cargar cantidad sugerida también de forma asíncrona
-        if (item.cantidadSugeridaLoading) {
-          this.calculateCantidadSugerida(item);
-        }
-      }, index * 10); // Pequeño delay incremental para evitar saturación del servidor
+    // Stock y cantidad sugerida son, cada uno, una sola pregunta sobre el mismo producto en varias
+    // sucursales: un request cada uno, no uno por fila. La sugerida sale encadenada al stock y no
+    // en paralelo, porque lo resta: ver loadStockActualDeTodasLasDistribuciones().
+    this.loadStockActualDeTodasLasDistribuciones(producto.id);
+  }
+
+  /**
+   * Resuelve el stock de todas las distribuciones pendientes con un solo request.
+   *
+   * Las sucursales sin movimientos no vuelven en la respuesta del central —no hay filas que
+   * sumar— y quedan en cero, igual que devolvía la consulta por sucursal.
+   */
+  private loadStockActualDeTodasLasDistribuciones(productoId: number): void {
+    // Las filas de COMPRAS sin el rol se cierran acá, sin preguntar: no entran en `pendientes`.
+    this.distribucionesItems
+      .filter((item) => item.stockActualLoading)
+      .forEach((item) => this.cerrarSiStockOculto(item));
+    const enCarga = this.distribucionesItems.filter((item) => item.stockActualLoading);
+
+    // Una fila sin sucursal de influencia no tiene stock que pedir; se la saca del spinner acá
+    // mismo, que es lo que hacía loadStockActual() al entrar.
+    enCarga
+      .filter((item) => item.sucursalInfluencia?.id == null)
+      .forEach((item) => { item.stockActualLoading = false; });
+
+    const pendientes = enCarga.filter((item) => item.sucursalInfluencia?.id != null);
+
+    // Las filas que no esperan stock —las que no tienen sucursal de influencia, y las que ya lo
+    // tienen resuelto— no tienen a qué encadenarse: su sugerida sale ahora. Sin esto se quedarían
+    // en "Calculando..." para siempre, que es lo que evitaba el forEach sobre todas las filas que
+    // había antes acá.
+    this.calcularCantidadSugeridaDeDistribuciones(
+      this.distribucionesItems.filter(
+        (item) => item.cantidadSugeridaLoading && pendientes.indexOf(item) < 0
+      )
+    );
+
+    if (pendientes.length === 0) {
+      return;
+    }
+
+    this.productoService.onGetStockPorSucursales(productoId).subscribe({
+      next: (stockPorSucursal: PorSucursal<number>) => {
+        pendientes.forEach((item) => {
+          item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+        this.calcularCantidadSugeridaDeDistribuciones(pendientes);
+      },
+      error: (error) => {
+        console.error('Error cargando el stock por sucursal del producto:', error);
+        pendientes.forEach((item) => {
+          item.stockActual = 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+        // Sin stock la sugerida igual se puede calcular —queda como si el stock fuera cero—, y
+        // sobre todo saca las filas del "Calculando..." en vez de dejarlas colgadas.
+        this.calcularCantidadSugeridaDeDistribuciones(pendientes);
+      },
     });
   }
 
@@ -1677,9 +1742,9 @@ export class AddEditItemDialogComponent implements OnInit {
     // Si loadStockImmediately es false, se cargará mediante loadAllStocksAsync()
     if (loadStockImmediately) {
       // Usar setTimeout para asegurar que la carga sea completamente asíncrona
+      // loadStockActual() encadena la cantidad sugerida cuando vuelve: la sugerida resta el stock.
       setTimeout(() => {
         this.loadStockActual(distribucionItem);
-        this.calculateCantidadSugerida(distribucionItem);
       }, 0);
     }
 
@@ -1761,11 +1826,22 @@ export class AddEditItemDialogComponent implements OnInit {
   /**
    * Carga el stock actual para una distribución de forma asíncrona e independiente
    * No bloquea la UI y actualiza solo el item específico
+   *
+   * Al volver dispara la cantidad sugerida de esa fila. Van encadenados y no en paralelo porque
+   * la sugerida resta el stock: si salen juntos, gana el que conteste primero y la sugerida se
+   * calcula contra un stock en cero.
    */
   private loadStockActual(distribucionItem: DistribucionItem): void {
     const producto = this.itemForm.get("producto")?.value;
     if (!producto?.id || !distribucionItem.sucursalInfluencia?.id) {
       distribucionItem.stockActualLoading = false;
+      return;
+    }
+
+    if (this.cerrarSiStockOculto(distribucionItem)) {
+      setTimeout(() => {
+        this.updateComputedProperties();
+      }, 0);
       return;
     }
 
@@ -1788,6 +1864,7 @@ export class AddEditItemDialogComponent implements OnInit {
         setTimeout(() => {
           this.updateComputedProperties();
         }, 0);
+        this.calcularCantidadSugeridaDeDistribuciones([distribucionItem]);
       },
       error: (error) => {
         console.error('Error cargando stock para sucursal', distribucionItem.sucursalInfluencia.nombre, ':', error);
@@ -1799,155 +1876,159 @@ export class AddEditItemDialogComponent implements OnInit {
         setTimeout(() => {
           this.updateComputedProperties();
         }, 0);
+        this.calcularCantidadSugeridaDeDistribuciones([distribucionItem]);
       }
     });
   }
 
   /**
-   * Calcula la cantidad sugerida para una distribución
+   * Ventana histórica que mira la cantidad sugerida: el mismo mes del año pasado.
    */
-  private calculateCantidadSugerida(distribucionItem: DistribucionItem): void {
-    const producto = this.itemForm.get("producto")?.value;
-    if (!producto?.id || !distribucionItem.sucursalInfluencia?.id) {
-      distribucionItem.cantidadSugeridaLoading = false;
-      distribucionItem.cantidadSugerida = 0;
+  private ventanaCantidadSugerida(): { inicio: Date; fin: Date } {
+    const ahora = new Date();
+    const anhoPasado = ahora.getFullYear() - 1;
+    const mesActual = ahora.getMonth(); // 0-11
+    return {
+      inicio: new Date(anhoPasado, mesActual, 1),
+      fin: new Date(anhoPasado, mesActual + 1, 0, 23, 59, 59),
+    };
+  }
+
+  /**
+   * Marca si el stock de la fila se oculta, y si se oculta la cierra: sin stock ni sugerida, y
+   * con los dos indicadores de carga apagados. Si quedara alguno prendido, la fila se quedaría en
+   * "Calculando..." para siempre, porque nadie más la va a cerrar.
+   *
+   * La sugerida también se oculta porque resta el stock: con las ventas a la vista, lo revela.
+   */
+  private cerrarSiStockOculto(item: DistribucionItem): boolean {
+    item.stockOculto = !this.puedeVerStockCompras && esSucursalCompras(item.sucursalInfluencia);
+    if (item.stockOculto) {
+      item.stockActual = 0;
+      item.stockActualLoading = false;
+      item.cantidadSugerida = null;
+      item.cantidadSugeridaLoading = false;
+    }
+    return item.stockOculto;
+  }
+
+  /**
+   * Calcula la cantidad sugerida de varias distribuciones con UN request.
+   *
+   * Antes esto eran dos consultas encadenadas por distribución —compras y, en su respuesta,
+   * ventas—, cada una con `size: 1000` y escalonadas con `setTimeout(index * 10)`. Con 10
+   * distribuciones eran 20 idas y vueltas en dos olas seriadas, ocupando el pool de 6 conexiones
+   * por origen del navegador, y hasta 1000 filas por sucursal y por tipo para terminar en unos
+   * pocos números. El central ahora agrupa y devuelve esos números.
+   *
+   * Va encadenado al stock, nunca en paralelo: la cuenta lo resta.
+   */
+  private calcularCantidadSugeridaDeDistribuciones(items: DistribucionItem[]): void {
+    const pendientes = items.filter((item) => item.cantidadSugeridaLoading);
+    if (pendientes.length === 0) {
       return;
     }
 
-    distribucionItem.cantidadSugeridaLoading = true;
+    const producto = this.itemForm.get("producto")?.value;
+    const cerrarEnCero = (filas: DistribucionItem[]) => {
+      filas.forEach((item) => {
+        item.cantidadSugerida = 0;
+        item.cantidadSugeridaLoading = false;
+      });
+    };
 
-    // Obtener fecha del mes actual del año pasado
-    const ahora = new Date();
-    const añoPasado = ahora.getFullYear() - 1;
-    const mesActual = ahora.getMonth(); // 0-11
+    if (!producto?.id) {
+      cerrarEnCero(pendientes);
+      return;
+    }
 
-    const inicio = new Date(añoPasado, mesActual, 1);
-    const fin = new Date(añoPasado, mesActual + 1, 0, 23, 59, 59);
+    // Una fila sin sucursal de influencia no tiene historial que pedir.
+    cerrarEnCero(pendientes.filter((item) => item.sucursalInfluencia?.id == null));
 
-    // Obtener movimientos de compra/transferencia (positivas) y venta
-    const tipoMovimientosCompra: TipoMovimiento[] = [TipoMovimiento.COMPRA, TipoMovimiento.TRANSFERENCIA];
-    const tipoMovimientosVenta: TipoMovimiento[] = [TipoMovimiento.VENTA];
+    const conSucursal = pendientes.filter((item) => item.sucursalInfluencia?.id != null);
+    if (conSucursal.length === 0) {
+      return;
+    }
 
-    // Obtener movimientos de compra
-    this.movimientoStockService.onGetMovimientoStockPorFiltros(
-      dateToString(inicio),
-      dateToString(fin),
-      [distribucionItem.sucursalInfluencia.id],
-      producto.id,
-      tipoMovimientosCompra,
-      null,
-      0,
-      1000,
-      true, // servidor
-      true  // silentLoad
-    ).subscribe({
-      next: (comprasPage) => {
-        const compras = comprasPage?.getContent || [];
-        
-        // Obtener movimientos de venta
-        this.movimientoStockService.onGetMovimientoStockPorFiltros(
-          dateToString(inicio),
-          dateToString(fin),
-          [distribucionItem.sucursalInfluencia.id],
-          producto.id,
-          tipoMovimientosVenta,
-          null,
-          0,
-          1000,
-          true, // servidor
-          true  // silentLoad
-        ).subscribe({
-          next: (ventasPage) => {
-            const ventas = ventasPage?.getContent || [];
-            
-            // Calcular cantidad sugerida
-            const cantidadSugerida = this.calcularCantidadSugeridaInteligente(
-              compras,
-              ventas,
-              distribucionItem.stockActual
+    const { inicio, fin } = this.ventanaCantidadSugerida();
+    const sucursales = Array.from(
+      new Set(conSucursal.map((item) => item.sucursalInfluencia.id))
+    );
+
+    this.movimientoStockService
+      .onGetCantidadSugeridaPorSucursales(
+        producto.id,
+        dateToString(inicio),
+        dateToString(fin),
+        sucursales
+      )
+      // Ante un error de red, GenericCrudService no emite, no completa y no propaga: el observable
+      // queda colgado y la fila se queda en "Calculando..." para siempre. Este timeout es lo que
+      // la saca de ahí; el `error` de abajo no alcanza porque nunca llegaría a dispararse.
+      .pipe(timeout(60000))
+      .subscribe({
+        next: (porSucursal: PorSucursal<CantidadSugeridaPorSucursal>) => {
+          conSucursal.forEach((item) => {
+            item.cantidadSugerida = this.calcularCantidadSugeridaDesdeAgregado(
+              porSucursal?.get(item.sucursalInfluencia.id),
+              item.stockActual
             );
-            
-            distribucionItem.cantidadSugerida = cantidadSugerida;
-            distribucionItem.cantidadSugeridaLoading = false;
-          },
-          error: (error) => {
-            console.error('Error calculando cantidad sugerida (ventas):', error);
-            distribucionItem.cantidadSugerida = 0;
-            distribucionItem.cantidadSugeridaLoading = false;
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Error calculando cantidad sugerida (compras):', error);
-        distribucionItem.cantidadSugerida = 0;
-        distribucionItem.cantidadSugeridaLoading = false;
-      }
-    });
+            item.cantidadSugeridaLoading = false;
+          });
+          setTimeout(() => {
+            this.updateComputedProperties();
+          }, 0);
+        },
+        error: (error) => {
+          console.error('Error calculando la cantidad sugerida:', error);
+          cerrarEnCero(conSucursal);
+        },
+      });
   }
 
   /**
-   * Calcula la cantidad sugerida de forma inteligente
+   * La cantidad sugerida de una sucursal, a partir de sus totales del mismo mes del año pasado.
+   *
+   * Es la misma fórmula que hacía la versión que se bajaba los movimientos, sobre los mismos
+   * números:
+   *
+   * - la frecuencia de compra era el promedio de las diferencias entre compras consecutivas
+   *   ordenadas; esa suma telescopa, así que es `(última - primera) / (cantidad - 1)`;
+   * - el total de ventas era `reduce` sobre el valor absoluto de las cantidades;
+   * - la última compra era el último elemento de una lista que el central devolvía ordenada
+   *   ascendente por fecha, o sea el máximo.
+   *
+   * El early return de "sin datos históricos" que tenía la versión vieja no hace falta: si no hubo
+   * ventas el consumo diario es cero, la cantidad necesaria es cero y el resultado es cero por el
+   * mismo camino.
    */
-  private calcularCantidadSugeridaInteligente(
-    compras: any[],
-    ventas: any[],
+  private calcularCantidadSugeridaDesdeAgregado(
+    agregado: CantidadSugeridaPorSucursal | undefined,
     stockActual: number
   ): number {
-    if (compras.length === 0 && ventas.length === 0) {
-      return 0; // Sin datos históricos
+    const MS_POR_DIA = 1000 * 60 * 60 * 24;
+    const DIAS_DEL_MES = 30; // Aproximación, igual que antes
+
+    const totalVentas = agregado?.totalVentas ?? 0;
+    const cantidadCompras = agregado?.cantidadCompras ?? 0;
+    const primeraCompra = agregado?.primeraCompra ?? null;
+    const ultimaCompra = agregado?.ultimaCompra ?? null;
+
+    // Frecuencia de compra (días entre compras). Con una sola compra, o ninguna, se asume mensual.
+    let frecuenciaCompraDias = DIAS_DEL_MES;
+    if (cantidadCompras > 1 && primeraCompra && ultimaCompra) {
+      frecuenciaCompraDias =
+        (ultimaCompra.getTime() - primeraCompra.getTime()) / MS_POR_DIA / (cantidadCompras - 1);
     }
 
-    // Filtrar transferencias positivas (solo las que aumentan stock)
-    const comprasFiltradas = compras.filter(c => {
-      if (c.tipoMovimiento === TipoMovimiento.TRANSFERENCIA) {
-        return c.cantidad > 0;
-      }
-      return true;
-    });
+    const consumoDiarioPromedio = totalVentas > 0 ? totalVentas / DIAS_DEL_MES : 0;
 
-    // Calcular frecuencia de compra (días entre compras)
-    let frecuenciaCompraDias = 30; // Default: mensual
-    if (comprasFiltradas.length > 1) {
-      const fechasCompras = comprasFiltradas
-        .map(c => new Date(c.creadoEn))
-        .filter(d => !isNaN(d.getTime())) // Filtrar fechas inválidas
-        .sort((a, b) => a.getTime() - b.getTime());
-      
-      if (fechasCompras.length > 1) {
-        let totalDias = 0;
-        for (let i = 1; i < fechasCompras.length; i++) {
-          const diff = fechasCompras[i].getTime() - fechasCompras[i - 1].getTime();
-          totalDias += diff / (1000 * 60 * 60 * 24); // Convertir a días
-        }
-        frecuenciaCompraDias = totalDias / (fechasCompras.length - 1);
-      }
-    } else if (comprasFiltradas.length === 1) {
-      // Si solo hay una compra, usar 30 días como frecuencia por defecto
-      frecuenciaCompraDias = 30;
-    }
-
-    // Calcular consumo diario promedio (ventas)
-    const totalVentas = ventas.reduce((sum, v) => sum + Math.abs(v.cantidad || 0), 0);
-    const diasDelMes = 30; // Aproximación
-    const consumoDiarioPromedio = totalVentas > 0 ? totalVentas / diasDelMes : 0;
-
-    // Calcular días hasta próxima compra esperada
-    const ultimaCompra = comprasFiltradas.length > 0 
-      ? (() => {
-          const fecha = new Date(comprasFiltradas[comprasFiltradas.length - 1].creadoEn);
-          return !isNaN(fecha.getTime()) ? fecha : null;
-        })()
-      : null;
-    
-    const ahora = new Date();
     let diasHastaProximaCompra = frecuenciaCompraDias;
-    
     if (ultimaCompra) {
-      const diasDesdeUltimaCompra = (ahora.getTime() - ultimaCompra.getTime()) / (1000 * 60 * 60 * 24);
+      const diasDesdeUltimaCompra = (Date.now() - ultimaCompra.getTime()) / MS_POR_DIA;
       diasHastaProximaCompra = Math.max(0, frecuenciaCompraDias - diasDesdeUltimaCompra);
     }
 
-    // Calcular cantidad sugerida
     // Cantidad sugerida = (consumo diario × días hasta próxima compra) - stock actual
     const cantidadNecesaria = consumoDiarioPromedio * diasHastaProximaCompra;
     const cantidadSugerida = Math.max(0, cantidadNecesaria - stockActual);

@@ -6,7 +6,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { FormControl } from "@angular/forms";
+import { FormControl, Validators } from "@angular/forms";
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
@@ -62,6 +62,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   autorizadoPorInput: ElementRef;
   @ViewChild("guaraniVueltoGs", { static: false })
   guaraniVueltoGsInput: ElementRef;
+  @ViewChild("obs", { static: false }) observacionInput: ElementRef;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("responsableInput", { read: MatAutocompleteTrigger, static: false })
   responsableAutocomplete: MatAutocompleteTrigger;
@@ -106,7 +107,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   responsableControl = new FormControl();
   tipoGastoControl = new FormControl();
   autorizadoPorControl = new FormControl();
-  observacionControl = new FormControl();
+  observacionControl = new FormControl(null, Validators.required);
   guaraniControl = new FormControl(0);
   realControl = new FormControl(0);
   dolarControl = new FormControl(0);
@@ -203,7 +204,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         if (res != null && res.length != 0) {
           this.autorizadoPorTimer = setTimeout(() => {
             this.funcionarioService
-              .onFuncionarioSearch(res, false)
+              .onFuncionarioSearchSimple(res, false)
               .pipe(untilDestroyed(this))
               .subscribe((response) => {
                 this.autorizadoPorList = response;
@@ -276,7 +277,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     if (this.responsableControl.valid) {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
-          .onGetFuncionarioPorPersona(this.responsableControl.value, false)
+          .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -292,7 +293,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onSearchFuncionarioPorNombre() {
     this.funcionarioService
-      .onFuncionarioSearch(this.responsableControl.value, false)
+      .onFuncionarioSearchSimple(this.responsableControl.value, false)
       .pipe(untilDestroyed(this))
       .subscribe((response) => {
         this.responsableList = response;
@@ -443,13 +444,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     input.monedaId = montos[0].monedaId;
     input.montoSolicitado = montos[0].monto;
 
-    this.cargandoDialog.openDialog();
+    const { requestId } = this.cargandoDialog.openDialog();
     this.gastoService
       .preGastoGuardar(input)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (guardado) => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           if (guardado != null) {
             this.notificacionService.openSucess("Solicitud de gasto registrada");
             this.autorizado = true;
@@ -464,7 +465,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           }
         },
         error: () => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
         }
       });
@@ -512,6 +513,16 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onGuardar() {
     if (this.isVuelto == false) {
+      const observacion = (this.observacionControl.value ?? "").toString().trim();
+      if (observacion.length == 0) {
+        this.observacionControl.setValue(null);
+        this.observacionControl.markAsTouched();
+        this.notificacionService.openWarn("La observación es obligatoria");
+        setTimeout(() => {
+          this.observacionInput?.nativeElement?.focus();
+        }, 0);
+        return;
+      }
       if (this.selectedResponsable != null && this.verficarValores()) {
         this.dialogService
           .confirm("Confirmar valores de gasto", null, null, [
@@ -533,7 +544,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               gasto.responsable = this.selectedResponsable;
               gasto.tipoGasto = this.selectedTipoGasto;
               gasto.autorizadoPor = this.selectedAutorizadoPor;
-              gasto.observacion = this.observacionControl.value;
+              gasto.observacion = observacion;
               gasto.retiroGs = this.guaraniControl.value;
               gasto.retiroRs = this.realControl.value;
               gasto.retiroDs = this.dolarControl.value;
@@ -557,7 +568,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
                 .subscribe((gastoResponse) => {
-                  this.cargandoDialog.closeDialog();
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
                     if (this.mainService.usuarioActual?.persona?.id) {
@@ -631,10 +641,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 valorDs: this.dolarVueltoControl.value,
               }, false)
               .pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res != null) {
-                  this.ngOnInit();
-                }
+              .subscribe({
+                next: (res) => {
+                  if (res != null) {
+                    this.ngOnInit();
+                  }
+                },
+                // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+                error: () => {}
               });
           }
         });
@@ -651,7 +665,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.responsableControl.setValue(null);
     this.tipoGastoControl.setValue(null);
     this.autorizadoPorControl.setValue(null);
-    this.observacionControl.setValue(null);
+    this.observacionControl.reset(null);
     this.guaraniControl.setValue(0);
     this.realControl.setValue(0);
     this.dolarControl.setValue(0);
@@ -674,16 +688,17 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onFinalizar(gasto: Gasto) {
-    this.cargandoDialog.openDialog();
     let newGasto = new Gasto();
     Object.assign(newGasto, gasto);
     if (newGasto != null && newGasto.finalizado != true) {
+      // Dentro del if: con el gasto ya finalizado no se guarda nada y el spinner quedaba abierto (#319).
+      const { requestId } = this.cargandoDialog.openDialog();
       newGasto.finalizado = true;
       this.gastoService
         .onSave(newGasto, false)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           if (res != null) {
             this.gastoList = replaceObject<Gasto>(this.gastoList, res);
             this.dataSource.data = this.gastoList;

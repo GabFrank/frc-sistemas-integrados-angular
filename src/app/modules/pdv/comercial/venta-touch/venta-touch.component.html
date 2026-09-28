@@ -10,7 +10,7 @@
     fxLayout="column"
     style="width: 100%; height: 100%; padding: 10px;"
     [style.background-color]="isDelivery ? '#f57c00' : (isAuxiliar ? 'rgb(0, 155, 39)' : '')"
-    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
+    (click)="isDialogOpen || isCargando ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="20%">
       <app-totales
@@ -34,7 +34,7 @@
         [tiposPrecios]="tiposPrecios"
         (dialogEvent)="isDialogOpen = true"
         (addItemEvent)="agregarConLote($event)"
-        [focusEvent]="!isDialogOpen ? buscadorFocusSub.asObservable() : null"
+        [focusEvent]="!isDialogOpen && !isCargando ? buscadorFocusSub.asObservable() : null"
         [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"
         [mostrarPrecios]="mostrarPrecios"
@@ -57,7 +57,7 @@
         <app-boton
           nombre="Pago (F12)"
           color="accent"
-          [disableExpression]="selectedItemList.length == 0"
+          [disableExpression]="selectedItemList.length == 0 || guardandoVenta"
           (clickEvent)="onPagoClick()"
         ></app-boton>
       </div>
@@ -69,7 +69,7 @@
     fxLayout="column"
     class="acciones-laterales-card"
     style="width: 100%; height: 100%; padding: 10px;"
-    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
+    (click)="isDialogOpen || isCargando ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="85%">
       <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>
@@ -94,14 +94,14 @@
       <div fxFlex="20%">
         <app-boton
           nombre="Cobro Rápido (F8)"
-          [disableExpression]="selectedItemList.length == 0 || isDelivery"
+          [disableExpression]="selectedItemList.length == 0 || isDelivery || guardandoVenta"
           (clickEvent)="onTicketClick()"
         ></app-boton>
       </div>
       <div fxFlex="20%">
         <app-boton
           nombre="CR + Ticket (F11)"
-          [disableExpression]="selectedItemList.length == 0 || isDelivery"
+          [disableExpression]="selectedItemList.length == 0 || isDelivery || guardandoVenta"
           (clickEvent)="onTicketClick(true)"
         ></app-boton>
       </div>

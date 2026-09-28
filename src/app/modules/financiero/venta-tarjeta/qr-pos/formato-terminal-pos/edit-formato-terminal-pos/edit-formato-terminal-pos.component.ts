@@ -1,0 +1,454 @@
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Observable, of, throwError } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { mensajeDeError } from '../../mensaje-error';
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from '../../../../../../notificacion-snackbar.service';
+import { MainService } from '../../../../../../main.service';
+import { FormatoQrPos } from '../../formato-qr-pos.model';
+import { MAX_LONGITUD_QR, parsearCupon } from '../../qr-pos-parser';
+import { ProveedorServicio } from '../../../../../personas/proveedor-servicio/proveedor-servicio.model';
+import { ProveedorServicioService } from '../../../../../personas/proveedor-servicio/proveedor-servicio.service';
+import {
+  FormatoTerminalPos,
+  TIPOS_FORMATO_TERMINAL,
+  TIPO_MAQUINA,
+} from '../formato-terminal-pos.model';
+import { FormatoTerminalPosService } from '../formato-terminal-pos.service';
+import { VistaPreviaFormatoComponent } from '../vista-previa-formato/vista-previa-formato.component';
+import { ERROR_FORMULARIO_INCOMPLETO } from '../probar-formato-panel/probar-formato-panel.component';
+
+/** La solapa del patrón y la cadena de ejemplo. */
+const TAB_COMO_SE_LEE = 1;
+
+/**
+ * El título de la última solapa.
+ *
+ * Por título y no por índice: la solapa del mapa sólo existe para MAQUINA, así que en un formato
+ * WEB la vista previa es la 3 y no la 4, y comparar contra un número fijo hacía que nunca se
+ * recargara.
+ */
+const TITULO_VISTA_PREVIA = 'Vista previa';
+
+export interface EditFormatoTerminalPosData {
+  formato?: FormatoTerminalPos;
+}
+
+interface FilaPreview {
+  campo: string;
+  valor: string;
+}
+
+/**
+ * Alta y edición de un formato de terminal POS.
+ *
+ * La pantalla existe para no tener que hacer un release cada vez que aparece un modelo de aparato
+ * nuevo. Como el patrón que se carga acá termina corriendo en la caja de cada sucursal, no deja
+ * guardar nada que no se haya probado antes contra la cadena de ejemplo: la vista previa de abajo
+ * es exactamente lo que el PDV va a leer del cupón.
+ *
+ * <b>La diferencia con el ABM viejo de `formato_qr_pos`</b>: allá la unicidad era por proveedor y
+ * el mensaje era «el proveedor ya tiene el formato X». Eso prohibía lo que esta tabla existe para
+ * permitir —Bancard v5.2 y v5.5 conviviendo— así que acá un proveedor puede tener varios, y lo
+ * que no se puede repetir es el nombre dentro del proveedor.
+ */
+@UntilDestroy({ checkProperties: true })
+@Component({
+  selector: 'app-edit-formato-terminal-pos',
+  templateUrl: './edit-formato-terminal-pos.component.html',
+  styleUrls: ['./edit-formato-terminal-pos.component.scss'],
+})
+export class EditFormatoTerminalPosComponent implements OnInit {
+
+  formGroup: FormGroup;
+  guardando = false;
+
+  /**
+   * Algo se guardó --el formato o su mapa--, así que la lista tiene que recargar al cerrar.
+   *
+   * Público porque el template lo usa: el botón de salir dice «Cancelar» hasta el primer guardado
+   * y «Cerrar» después. (Un miembro privado en un binding lo rechaza el AOT, no `ng serve`.)
+   */
+  huboCambios = false;
+
+  preview: FilaPreview[] = [];
+  errorPreview: string = null;
+
+  readonly maxLongitud = MAX_LONGITUD_QR;
+  readonly tipos = TIPOS_FORMATO_TERMINAL;
+
+  /**
+   * Campos, no getters: este repo prohibe getters en bindings porque se re-evaluan en cada ciclo
+   * de change detection. Se actualizan desde `valueChanges`, que es donde el valor cambia.
+   */
+  ayudaTipo: string = null;
+  esMaquina = false;
+
+  /**
+   * Lo que la solapa de vista previa necesita del formulario.
+   *
+   * Campos y no `formGroup.get('patron').value` en el template: el repo prohíbe llamar funciones
+   * desde un binding porque se re-evalúan en cada ciclo de change detection. Se actualizan donde
+   * el valor cambia, que es `valueChanges`.
+   */
+  patronActual: string = null;
+  mapeoActual: string = null;
+  ejemploActual: string = null;
+
+  tabActivo = 0;
+
+  /**
+   * El formato tal como está guardado. El panel del mapa lo necesita con id: las regiones cuelgan
+   * de él, y un formato que todavía no se guardó no tiene dónde colgarlas.
+   */
+  formatoGuardado: FormatoTerminalPos = null;
+
+  @ViewChild('vistaPrevia') vistaPrevia: VistaPreviaFormatoComponent;
+
+  /**
+   * Qué tab tiene algo sin completar. Con los campos repartidos en tabs, un requerido vacío puede
+   * quedar escondido detrás de otra solapa: sin esto el usuario ve un Guardar que no guarda y no
+   * tiene forma de saber por qué.
+   */
+  incompletos = { aparato: false, lectura: false, campos: false };
+
+  proveedores: ProveedorServicio[] = [];
+
+  /** Se ofrece como punto de partida: es el formato que ya está en producción. */
+  readonly mapeoEjemplo = JSON.stringify(
+    {
+      codigoAutorizacion: { de: 'auth', obligatorio: true },
+      numeroBoleta: { de: 'bol' },
+      moneda: { de: 'cur', mapa: { PYG: 1, BRL: 2, USD: 3 } },
+      monto: { de: 'amt', escalaSegunMoneda: true, obligatorio: true },
+      identificadorTransaccion: { de: 'ref' },
+      fecha: { de: 'ts', formato: 'yyyyMMddHHmm', zona: 'America/Asuncion' },
+    },
+    null,
+    2
+  );
+
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: EditFormatoTerminalPosData,
+    private dialogRef: MatDialogRef<EditFormatoTerminalPosComponent>,
+    private formatoService: FormatoTerminalPosService,
+    private notificacionSnackbar: NotificacionSnackbarService,
+    private mainService: MainService,
+    private proveedorServicioService: ProveedorServicioService
+  ) {}
+
+  ngOnInit(): void {
+    const f = this.data?.formato;
+    this.formatoGuardado = f?.id ? f : null;
+    this.formGroup = new FormGroup({
+      nombre: new FormControl(f?.nombre || null, Validators.required),
+      // El tipo no tiene default: elegirlo es una decisión, y un default silencioso deja
+      // terminales leyendo por el camino equivocado sin que nadie lo haya decidido.
+      tipo: new FormControl(f?.tipo || null, Validators.required),
+      // Obligatorios porque los DOS tipos que esta pantalla ofrece matchean texto. Si algún día se
+      // ofrece API --que no parsea texto y puede no tener patrón-- estos dos pasan a condicionales.
+      patron: new FormControl(f?.patron || null, Validators.required),
+      // Indentado al abrir: en la base se guarda como venga --a veces una sola linea de 200
+      // caracteres-- y asi no se lee ni se corrige. Si no es JSON valido se deja tal cual, que es
+      // justamente cuando hay que poder verlo para arreglarlo.
+      mapeo: new FormControl(indentar(f?.mapeo) || null, Validators.required),
+      ejemplo: new FormControl(f?.ejemplo || null, Validators.required),
+      activo: new FormControl(f?.activo !== false),
+      // null = comodín: se prueba cuando la terminal no tiene un formato propio asignado.
+      proveedorServicioId: new FormControl(
+        f?.proveedorServicioId ?? f?.proveedorServicio?.id ?? null
+      ),
+    });
+
+    this.proveedorServicioService
+      .onGetPaginated(0, 200)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => (this.proveedores = res?.getContent ?? []));
+
+    // El preview se recalcula solo. Es la única forma de que quien carga el formato vea, antes de
+    // guardar, que el patrón separa los campos donde corresponde: un grupo corrido deja el importe
+    // en el lugar de la boleta y eso en producción se descubre cobrando.
+    this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.refrescarTipo();
+      this.refrescarValores();
+      this.refrescarIncompletos();
+      this.recalcular();
+    });
+    this.refrescarTipo();
+    this.refrescarValores();
+    this.refrescarIncompletos();
+    this.recalcular();
+  }
+
+  /**
+   * Qué camino se abre con el tipo elegido y, sobre todo, cuál se cierra. Es lo que el
+   * administrador necesita leer antes de guardar.
+   */
+  private refrescarTipo(): void {
+    const v = this.formGroup.get('tipo').value;
+    this.ayudaTipo = this.tipos.find((t) => t.valor === v)?.ayuda || null;
+    this.esMaquina = v === TIPO_MAQUINA;
+  }
+
+  private refrescarValores(): void {
+    const v = this.formGroup.value;
+    this.patronActual = v.patron;
+    this.mapeoActual = v.mapeo;
+    this.ejemploActual = v.ejemplo;
+  }
+
+  private refrescarIncompletos(): void {
+    const falta = (c: string) => this.formGroup.get(c).invalid;
+    this.incompletos = {
+      aparato: falta('nombre') || falta('tipo'),
+      lectura: falta('patron') || falta('ejemplo'),
+      campos: falta('mapeo'),
+    };
+  }
+
+  private recalcular(): void {
+    this.preview = [];
+    this.errorPreview = null;
+
+    const { patron, mapeo, ejemplo } = this.formGroup.value;
+    if (!patron || !mapeo || !ejemplo) return;
+
+    // Se usa el mismo motor que el PDV, no una imitación: si acá se ve bien, en la caja se ve
+    // igual. Los decimales van fijos porque son los de financiero.moneda.
+    const formato: FormatoQrPos = { nombre: 'previsualización', patron, mapeo, ejemplo, activo: true };
+    const r = parsearCupon(ejemplo, [formato], { 1: 0, 2: 2, 3: 2 });
+    if (!r.ok) {
+      // ⚠️ El motivo REAL va primero. Antes se descartaba `r.error` y se mostraba siempre el
+      // mismo texto sobre el patrón: cuando lo que fallaba era el mapeo --un formato de fecha que
+      // este motor no soportaba-- el aviso mandaba a revisar un patrón que estaba perfecto, y
+      // costó media hora de diagnóstico encontrarlo. El motor tiene UN mensaje que no sirve acá,
+      // el del cajero; ese sí se reemplaza.
+      const noMatcheo = r.error?.includes('no corresponde a ningún formato');
+      this.errorPreview = noMatcheo
+        ? 'El patrón no reconoce la cadena de ejemplo. Se aplica sobre el texto que devuelve el'
+          + ' OCR --con sus rarezas: un cero donde el papel dice O, un paréntesis de otro ancho-- y'
+          + ' no sobre lo que dice el papel. Subí la foto en "El mapa del cupón" y tocá "Usar como'
+          + ' cadena de ejemplo": trae el texto exacto, que a mano es imposible de acertar.'
+        : r.error;
+      return;
+    }
+    const d = r.datos;
+    this.preview = [
+      { campo: 'Código de autorización', valor: mostrar(d.codigoAutorizacion) },
+      { campo: 'Número de boleta', valor: mostrar(d.numeroBoleta) },
+      { campo: 'Moneda (id)', valor: mostrar(d.monedaId) },
+      { campo: 'Monto', valor: mostrar(d.monto) },
+      { campo: 'Identificador de transacción', valor: mostrar(d.identificadorTransaccion) },
+      { campo: 'Fecha', valor: d.fecha ? d.fecha.toLocaleString('es-PY') : '—' },
+    ];
+  }
+
+  usarMapeoEjemplo(): void {
+    this.formGroup.get('mapeo').setValue(this.mapeoEjemplo);
+  }
+
+  /** Para el JSON que se pega de un lado y viene en una sola linea. */
+  formatearMapeo(): void {
+    const actual = this.formGroup.get('mapeo').value;
+    const lindo = indentar(actual);
+    if (lindo === actual) {
+      this.notificacionSnackbar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: 'No se puede indentar: todavia no es un JSON valido.',
+        duracion: 4,
+      });
+      return;
+    }
+    this.formGroup.get('mapeo').setValue(lindo);
+  }
+
+  onGuardar(): void {
+    if (this.guardando) return;
+    if (!this.validarAntesDeGuardar()) return;
+    this.persistir().subscribe({
+      next: () => {
+        this.notificacionSnackbar.openSucess(
+          this.formatoGuardado
+            ? 'Formato guardado. Podés seguir editando.'
+            : 'Formato guardado.'
+        );
+      },
+      error: (err) => {
+        // El backend valida lo mismo que la pantalla y devuelve el motivo exacto --nombre
+        // repetido en el proveedor, tipo invalido, patron sin anclar-- y mostrarlo tal cual es
+        // mas util que un "algo salio mal".
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.danger,
+          texto: mensajeDeError(err, 'No se pudo guardar el formato.'),
+          duracion: 8,
+        });
+      },
+    });
+  }
+
+  /**
+   * Deja guardado lo que hay en el formulario, y devuelve el formato persistido.
+   *
+   * <b>Es lo que el botón «Probar» necesita.</b> La prueba corre contra el formato GUARDADO —es lo
+   * que las 24 filiales van a recibir— así que probar un borrador diría algo que no es cierto de
+   * nada desplegado. En vez de prohibir la prueba mientras haya cambios sin guardar, se guarda: el
+   * ciclo real es tocar el patrón y volver a probar, y pedir un Guardar manual en el medio lo
+   * único que logra es que alguien lo saltee.
+   *
+   * Si no hay nada que guardar, no llama al servidor.
+   */
+  asegurarGuardado = (): Observable<FormatoTerminalPos> => {
+    // ⚠️ Con un guardado en vuelo NO se arranca otro. Sin esto, apretar Guardar en un formato
+    // NUEVO y saltar a «Probar» antes de que vuelva la respuesta mandaba una segunda mutation
+    // --las dos sin id, porque `formatoGuardado` todavía no existía-- y el backend creaba DOS
+    // formatos. `onGuardar` ya se protegía así; este camino no.
+    if (this.guardando) {
+      return throwError(() => new Error('Se está guardando el formato. Probá de nuevo en un segundo.'));
+    }
+    if (!this.formGroup.dirty && this.formatoGuardado?.id) return of(this.formatoGuardado);
+    if (!this.validarAntesDeGuardar()) {
+      // El aviso y el salto de solapa ya los hizo la validación; acá sólo se corta el flujo.
+      return throwError(() => new Error(ERROR_FORMULARIO_INCOMPLETO));
+    }
+    return this.persistir();
+  };
+
+  /**
+   * Lo que tiene que estar bien antes de mandar nada al servidor.
+   *
+   * Avisa y lleva a la solapa donde está el hueco. El botón NO se deshabilita cuando el formulario
+   * está incompleto: lo que falta puede estar en un tab que no se ve, y un botón muerto sin
+   * explicación es peor que un aviso.
+   */
+  private validarAntesDeGuardar(): boolean {
+    if (this.formGroup.invalid) {
+      const destino = this.incompletos.aparato ? 0 : this.incompletos.lectura ? 1 : 2;
+      const donde = ['"Qué aparato es"', '"Cómo se lee el cupón"', '"Qué campos produce"'][destino];
+      this.tabActivo = destino;
+      this.notificacionSnackbar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: 'Falta completar algo en ' + donde + '.',
+        duracion: 5,
+      });
+      return false;
+    }
+
+    if (this.errorPreview || this.preview.length === 0) {
+      this.tabActivo = 1;
+      this.notificacionSnackbar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: this.errorPreview
+          ? this.errorPreview
+          : 'Completá el patrón, el mapeo y la cadena de ejemplo: todavía no se extrae ningún campo.',
+        duracion: 5,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /** Manda el formulario al servidor. Quien llama decide qué avisar. */
+  private persistir(): Observable<FormatoTerminalPos> {
+    this.guardando = true;
+    const v = this.formGroup.value;
+    // Lo que se mandó, para poder saber al volver si el usuario siguió editando mientras tanto.
+    const enviado = JSON.stringify(v);
+    return this.formatoService
+      .onSave({
+        // El id de lo ya guardado manda: en un formato nuevo, el primer Guardar lo crea y el
+        // segundo tiene que actualizarlo, no crear otro.
+        id: this.formatoGuardado?.id ?? this.data?.formato?.id,
+        nombre: v.nombre,
+        tipo: v.tipo,
+        patron: v.patron,
+        mapeo: v.mapeo,
+        ejemplo: v.ejemplo,
+        activo: v.activo,
+        proveedorServicioId: v.proveedorServicioId ?? null,
+        usuarioId: this.mainService?.usuarioActual?.id,
+      })
+      .pipe(
+        untilDestroyed(this),
+        tap({
+          next: (res) => {
+            this.guardando = false;
+            this.huboCambios = true;
+            // NO se cierra. Guardar el patrón y tener que volver a abrir el formato para seguir
+            // con el mapa es el camino normal de configurar uno --el orden obliga a guardar antes
+            // de derivar-- y cerrarse ahí convertía cada paso en un viaje de ida y vuelta.
+            //
+            // Y se recuerda lo guardado: sin esto, el segundo Guardar de un formato NUEVO iría sin
+            // id y crearía otro.
+            if (res?.id) this.formatoGuardado = res;
+            // El formulario deja de estar sucio SÓLO si sigue siendo lo que se mandó. Nada bloquea
+            // los campos mientras se guarda, así que si el usuario editó el patrón en el medio,
+            // marcarlo pristine haría que el próximo «Probar» diera por guardado algo que no lo
+            // está, y probaría la versión vieja creyendo que es la nueva.
+            if (JSON.stringify(this.formGroup.value) === enviado) {
+              this.formGroup.markAsPristine();
+            }
+          },
+          error: () => (this.guardando = false),
+        })
+      );
+  }
+
+  /**
+   * El mapa ya se guardó solo contra el backend. Lo único que hace falta acá es recordar que algo
+   * cambió, para que al cerrar la lista se refresque: la columna del mapa muestra si lo tiene.
+   */
+  onMapaGuardado(): void {
+    this.huboCambios = true;
+  }
+
+  /**
+   * Al entrar a la vista previa se recarga lo que muestra.
+   *
+   * <p>Sus `@Input` no cambian --el formato es el mismo-- así que sin esto una foto sacada en la
+   * solapa del mapa no aparecería hasta cerrar y volver a abrir el formato.
+   */
+  onCambioDeTab(evento: any): void {
+    if (evento?.tab?.textLabel === TITULO_VISTA_PREVIA) this.vistaPrevia?.recargar();
+  }
+
+  /**
+   * Toma el texto que el OCR leyó como cadena de ejemplo y lleva a la solapa del patrón.
+   *
+   * <p>Es donde se ve al instante si el patrón lo reconoce, que es lo único que hace falta saber
+   * para poder guardar.
+   */
+  onUsarComoEjemplo(texto: string): void {
+    if (!texto) return;
+    this.formGroup.get('ejemplo').setValue(texto);
+    this.tabActivo = TAB_COMO_SE_LEE;
+    this.notificacionSnackbar.openSucess('Cadena de ejemplo tomada de la foto');
+  }
+
+  onCancelar(): void {
+    this.dialogRef.close(this.huboCambios ? this.formatoGuardado ?? true : undefined);
+  }
+}
+
+/** Devuelve el mismo texto si no es un objeto JSON valido: nunca pierde lo que el usuario escribio. */
+function indentar(json: string): string {
+  if (!json) return json;
+  try {
+    const o = JSON.parse(json);
+    if (o === null || typeof o !== 'object' || Array.isArray(o)) return json;
+    return JSON.stringify(o, null, 2);
+  } catch {
+    return json;
+  }
+}
+
+function mostrar(valor: any): string {
+  if (valor === undefined || valor === null) return '—';
+  if (valor === '') return '(vacío)';
+  return String(valor);
+}

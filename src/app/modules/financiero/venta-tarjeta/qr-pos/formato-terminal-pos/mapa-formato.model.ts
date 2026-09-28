@@ -1,0 +1,145 @@
+/**
+ * El mapa de un formato: qué caja del OCR es qué campo.
+ *
+ * Anclado a la **etiqueta impresa**, no a coordenadas absolutas. Un mapa por coordenadas se rompe
+ * el día que el proveedor agrega una línea al ticket, y se rompen todos los mapas de ese modelo a
+ * la vez. La geometría está igual, pero como **pista para acotar el reconocimiento** —reconocer 6
+ * cajas en vez de 26 baja el OCR de 3.841 a ~900 ms— no como verdad para asignar.
+ */
+
+/** Una región ya guardada. */
+export interface RegionFormato {
+  id?: number;
+  campo?: string;
+  etiqueta?: string;
+  /** DERECHA | ABAJO | DENTRO */
+  posicion?: string;
+  /** TEXTO | NUMERO | FECHA */
+  tipo?: string;
+  obligatorio?: boolean;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  /**
+   * DERIVADA | MANUAL.
+   *
+   * No es decorativo: una región MANUAL **no la pisa una corrida de derivación**, ni siquiera con
+   * la confirmación. Es una corrección que alguien hizo mirando un cupón.
+   */
+  origen?: string;
+  orden?: number;
+}
+
+/** Una región propuesta por la derivación, o el motivo por el que ese campo no se pudo derivar. */
+export interface RegionDerivada {
+  campo?: string;
+  etiqueta?: string;
+  posicion?: string;
+  /** Lo que se leyó en el cupón de muestra, para verificar de un vistazo. */
+  valorLeido?: string;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  /**
+   * `null` si se derivó bien; si no, por qué no se pudo.
+   *
+   * Un campo sin región **no es un fracaso**: se resuelve por patrón, sin restricción espacial. Un
+   * mapa parcial es válido y es preferible a una región mal dibujada, que después acota el
+   * reconocimiento y hace desaparecer un campo que hoy se lee bien.
+   */
+  sinRegion?: string;
+  /**
+   * TEXTO | NUMERO | FECHA, tomado del `mapeo` del formato — **no deducido de la muestra**: una
+   * sola foto no alcanza para afirmar el tipo de un campo (el código de autorización de INFONET
+   * sale alfanumérico con crédito y numérico con débito, por la misma terminal el mismo día).
+   * Viaja sin tocarse hasta el guardado: el filial lo usa al leer un cupón para mandar a revisión
+   * un valor que no encaja con su tipo.
+   */
+  tipo?: string;
+}
+
+export interface CapturaMuestraQr {
+  token?: string;
+  /** La ruta en central. El desktop la compone con el endpoint de central que ya usa. */
+  ruta?: string;
+  /** Absoluta, sólo si el servidor tiene configurada su dirección pública. */
+  url?: string;
+  expiraEn?: string;
+}
+
+export type EstadoMuestra = 'ESPERANDO' | 'LISTO' | 'ERROR' | 'VENCIDA';
+
+export interface MuestraEstado {
+  token?: string;
+  estado?: EstadoMuestra;
+  textoOcr?: string;
+  error?: string;
+  msOcr?: number;
+}
+
+/** Lo que devuelve guardar el mapa derivado. */
+export interface ResultadoDerivacion {
+  /** `false` = no se escribió nada todavía; falta confirmar. No es un error: es una pregunta. */
+  aplicado?: boolean;
+  creadas?: number;
+  actualizadas?: number;
+  /** Regiones derivadas que el patrón ya no produce: seguían acotando el OCR para nada. */
+  eliminadas?: number;
+  /** Campos cuya región MANUAL se dejó intacta. */
+  conservadasManuales?: string[];
+  /** El diff en frases: qué cambiaría por campo. Es lo que el operador tiene que leer. */
+  cambios?: string[];
+  mensaje?: string;
+}
+
+/**
+ * Una muestra ya guardada: la foto de un cupón real con la que se configuró el formato.
+ *
+ * `ancho` y `alto` no son decoración: las regiones están normalizadas 0..1, así que son lo que
+ * permite dibujarlas encima de la foto.
+ */
+export interface MuestraGuardada {
+  id?: number;
+  creadoEn?: string;
+  ancho?: number;
+  alto?: number;
+  msOcr?: number;
+  textoOcr?: string;
+}
+
+/**
+ * Un campo tal como la prueba lo encontró en el cupón — o el motivo por el que no lo encontró.
+ *
+ * `valor` es lo que queda **después** del mapeo (escala, mapa, mayúsculas): es lo que vería el
+ * cajero. Mostrar el grupo crudo haría pasar por bueno un mapeo que escala mal.
+ */
+export interface CampoProbado {
+  campo?: string;
+  valor?: string;
+  /** El `mapeo` lo declara. `false` = grupo suelto del patrón, que iría a `datos_extra`. */
+  declarado?: boolean;
+  /** El `mapeo` lo marca obligatorio. Un obligatorio vacío es lo que hace fallar la prueba. */
+  obligatorio?: boolean;
+  /** `null` si el campo está bien; si no, qué le pasa. */
+  problema?: string;
+}
+
+/**
+ * Qué haría este formato con un cupón real, sin que haya una venta de por medio.
+ *
+ * Hasta acá, la única forma de probar un patrón era cobrar de verdad: se guardaba el formato y el
+ * siguiente cliente que pagaba con tarjeta era el ensayo. Un patrón frágil costaba una venta
+ * interrumpida con el cliente delante.
+ */
+export interface ResultadoPruebaFormato {
+  /** Pasa si el patrón reconoció el cupón y ningún campo obligatorio quedó vacío. */
+  pasa?: boolean;
+  /** Por qué no pasó, cuando el patrón ni siquiera reconoció el cupón. */
+  error?: string;
+  campos?: CampoProbado[];
+  extras?: CampoProbado[];
+  /** El texto sobre el que corrió el patrón. Es lo primero que hay que mirar cuando no matchea. */
+  texto?: string;
+}

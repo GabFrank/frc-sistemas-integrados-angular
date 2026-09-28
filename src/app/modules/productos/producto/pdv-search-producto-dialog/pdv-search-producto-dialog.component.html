@@ -140,9 +140,11 @@
                   [fxLayout]="isTransferencia ? 'row' : 'column'"
                   fxLayoutAlign="center center"
                 >
+                  <!-- Con el origen oculto (COMPRAS sin el rol), el botón se va cuando llega el destino:
+                       volver a pedir no traería el origen. -->
                   <button
                     type="button"
-                    *ngIf="producto?.stockPorProducto == null"
+                    *ngIf="producto?.stockPorProducto == null && !(ocultarStockOrigen && producto?.stockPorProductoDestino != null)"
                     mat-flat-button
                     (click)="mostrarStock(producto); $event.stopPropagation()"
                     style="text-align: center; width: 100%"
@@ -158,8 +160,15 @@
                     {{ producto?.stockPorProducto | number : "1.0-2" }}
                   </span>
                   <span
+                    fxFlex="49"
+                    *ngIf="ocultarStockOrigen && producto?.stockPorProductoDestino != null"
+                    style="text-align: center"
+                    matTooltip="Sin permiso para ver el stock de COMPRAS"
+                    >—</span
+                  >
+                  <span
                     fxFlex="2"
-                    *ngIf="producto?.stockPorProductoDestino != null"
+                    *ngIf="producto?.stockPorProductoDestino != null || (ocultarStockDestino && producto?.stockPorProducto != null)"
                     >/</span
                   >
                   <span
@@ -169,6 +178,13 @@
                   >
                     {{ producto?.stockPorProductoDestino | number : "1.0-2" }}
                   </span>
+                  <span
+                    fxFlex="49"
+                    *ngIf="ocultarStockDestino && producto?.stockPorProducto != null"
+                    style="text-align: center"
+                    matTooltip="Sin permiso para ver el stock de COMPRAS"
+                    >—</span
+                  >
                 </td>
               </ng-container>
 

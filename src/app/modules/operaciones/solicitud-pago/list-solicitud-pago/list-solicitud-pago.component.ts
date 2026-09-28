@@ -64,6 +64,7 @@ export class ListSolicitudPagoComponent implements OnInit {
   estadoToRowClass: Record<string, string> = {
     PENDIENTE: '',
     SOLICITADO: 'row-estado-solicitado',
+    DEVUELTO: 'row-estado-devuelto',
     PARCIAL: 'row-estado-parcial',
     CONCLUIDO: 'row-estado-concluido',
     CANCELADO: 'row-estado-cancelado'
@@ -82,6 +83,7 @@ export class ListSolicitudPagoComponent implements OnInit {
     { value: '', label: 'Todos' },
     { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
     { value: SolicitudPagoEstado.SOLICITADO, label: 'Solicitado' },
+    { value: SolicitudPagoEstado.DEVUELTO, label: 'Devuelto' },
     { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
     { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }

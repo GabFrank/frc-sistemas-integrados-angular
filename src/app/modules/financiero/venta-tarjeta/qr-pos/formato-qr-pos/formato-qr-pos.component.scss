@@ -1,0 +1,40 @@
+.formato-qr-pos {
+  padding: 12px;
+}
+
+.titulo {
+  color: #ffffff;
+  margin: 0;
+}
+
+.subtitulo {
+  color: #ff9800;
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+  max-width: 70ch;
+}
+
+.tabla {
+  width: 100%;
+
+  // Convención del repo: contenido de tabla centrado.
+  th, td {
+    text-align: center;
+  }
+
+  // El ejemplo es una cadena larga; se deja legible y monoespaciada.
+  .ejemplo {
+    font-family: monospace;
+    font-size: 0.95rem;
+    max-width: 40ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.vacio {
+  color: #9e9e9e;
+  padding: 12px;
+  text-align: center;
+}

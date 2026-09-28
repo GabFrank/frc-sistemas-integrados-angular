@@ -283,9 +283,13 @@ export class InventarioService {
    * @returns Observable con el inventario actualizado
    */
   onFinalizarInventario(id: number): Observable<Inventario> {
+    // Finalizar recorre producto por producto en el central (miles en un depósito): puede pasar el minuto.
     return this.genericCrudService.onCustomMutation(
       this.finalizarInventario,
-      { id }
+      { id },
+      true,
+      false,
+      { timeoutMs: 300000 }
     );
   }
 

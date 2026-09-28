@@ -1,0 +1,183 @@
+<div class="dialog-header">
+    <h2 mat-dialog-title>Política de facturación</h2>
+    <div class="subtitulo">Qué ventas se facturan sin que el cajero lo pida</div>
+</div>
+
+<mat-dialog-content>
+    <mat-button-toggle-group class="vistas" [value]="vista">
+        <mat-button-toggle value="config" (click)="onVerConfiguracion()">Configuración</mat-button-toggle>
+        <mat-button-toggle value="historial" (click)="onVerHistorial()">Historial</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <div class="aviso" *ngIf="sinSoporte">
+        <mat-icon>warning_amber</mat-icon>
+        <span>El servidor central de este canal todavía no tiene esta función.</span>
+    </div>
+
+    <!-- ===================== CONFIGURACIÓN ===================== -->
+    <ng-container *ngIf="vista === 'config'">
+        <div class="aviso aviso-info" *ngIf="!sinSoporte && !isLoading && avisoGlobal">
+            <mat-icon>info_outline</mat-icon>
+            <span>{{ avisoGlobal }}</span>
+        </div>
+
+        <div class="acciones-masivas" *ngIf="!sinSoporte">
+            <button mat-stroked-button [disabled]="!haySucursalesActivas" (click)="onSetActivoSucursales(false)">
+                <mat-icon>pause_circle_outline</mat-icon> Desactivar sucursales
+            </button>
+            <button mat-stroked-button [disabled]="!haySucursalesInactivas" (click)="onSetActivoSucursales(true)">
+                <mat-icon>play_circle_outline</mat-icon> Activar sucursales
+            </button>
+        </div>
+
+        <table class="tabla-config">
+            <thead>
+                <tr>
+                    <th>Activo</th>
+                    <th>Sucursal</th>
+                    <th>Modo</th>
+                    <th>Venta + Ticket / Delivery</th>
+                    <th>Modificado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId"
+                    [class.inactiva]="fila.config.activo === false">
+                    <td>
+                        <mat-slide-toggle color="accent" [checked]="fila.config.activo !== false"
+                            (change)="onToggleActivo(fila)" matTooltip="Activar / desactivar"></mat-slide-toggle>
+                    </td>
+                    <td class="sucursal">{{ fila.sucursalNombre }}</td>
+                    <td>
+                        <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
+                    </td>
+                    <td>
+                        <span class="chip" [class.chip-respeta]="fila.respetaActivo"
+                            [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
+                    </td>
+                    <td class="modificado">
+                        <div>{{ fila.modificadoPor }}</div>
+                        <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
+                    </td>
+                    <td class="acciones">
+                        <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
+                            <mat-icon>edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
+                            <mat-icon>delete</mat-icon>
+                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
+                    <td colspan="6" class="vacio">
+                        <mat-icon>info_outline</mat-icon>
+                        <span>Sin configuración: cada sucursal usa su contador local.</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <form [formGroup]="form" class="form-config">
+            <div class="form-titulo">{{ editandoId != null ? 'Editar configuración' : 'Nueva configuración' }}</div>
+
+            <!-- Pistas como texto propio y no mat-hint: styles.scss colapsa el subscript de Material a 0px. -->
+            <div class="form-grid">
+                <div class="campo">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Sucursal</mat-label>
+                        <mat-select formControlName="sucursalId">
+                            <mat-option [value]="GLOBAL">TODAS</mat-option>
+                            <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+
+                <div class="campo">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Modo</mat-label>
+                        <mat-select formControlName="modo" (selectionChange)="onModoChange()">
+                            <mat-option *ngFor="let m of modos" [value]="m.value">{{ m.label }}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                    <div class="pista">{{ modoHint }}</div>
+                </div>
+
+                <div class="campo" *ngIf="esIntervalo">
+                    <mat-form-field appearance="outline">
+                        <mat-label>N (ventas sin factura)</mat-label>
+                        <input matInput type="number" min="0" formControlName="ventasSinFactura" (input)="onIntervaloChange()">
+                    </mat-form-field>
+                    <div class="pista">{{ intervaloHint }}</div>
+                </div>
+            </div>
+
+            <div class="toggle-respeta" [class.irrelevante]="respetaIrrelevante">
+                <mat-slide-toggle formControlName="ventaTicketRespetaPolitica" color="accent" (change)="onRespetaChange()">
+                    Venta + Ticket y delivery respetan la política
+                </mat-slide-toggle>
+                <div class="toggle-hint">{{ respetaHint }}</div>
+            </div>
+        </form>
+    </ng-container>
+
+    <!-- ===================== HISTORIAL ===================== -->
+    <ng-container *ngIf="vista === 'historial'">
+        <div class="filtro-historial">
+            <mat-form-field appearance="outline">
+                <mat-label>Sucursal</mat-label>
+                <mat-select [(value)]="filtroHistorial" (selectionChange)="onFiltroHistorialChange()">
+                    <mat-option [value]="null">SIN FILTRO</mat-option>
+                    <mat-option [value]="GLOBAL">TODAS</mat-option>
+                    <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+
+        <div class="aviso" *ngIf="historialError">
+            <mat-icon>warning_amber</mat-icon>
+            <span>No se pudo cargar el historial desde el servidor central.</span>
+        </div>
+
+        <table class="tabla-config" *ngIf="!historialError">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Sucursal</th>
+                    <th>Cambio</th>
+                    <th>Modo</th>
+                    <th>Venta + Ticket / Delivery</th>
+                    <th>Estado</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let h of historial">
+                    <td class="modificado">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td class="sucursal">{{ h.sucursalNombre }}</td>
+                    <td><span class="chip" [ngClass]="h.accionClase">{{ h.accionLabel }}</span></td>
+                    <td><span class="chip" [ngClass]="h.modoClase">{{ h.modoLabel }}</span></td>
+                    <td>{{ h.respetaLabel }}</td>
+                    <td>{{ h.activoLabel }}</td>
+                    <td>{{ h.usuario }}</td>
+                </tr>
+                <tr *ngIf="!historialCargando && historial.length === 0">
+                    <td colspan="7" class="vacio">
+                        <mat-icon>info_outline</mat-icon>
+                        <span>Sin cambios registrados.</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCerrar()">Cerrar</button>
+    <ng-container *ngIf="vista === 'config'">
+        <button mat-button *ngIf="editandoId != null" (click)="onNuevo()">Cancelar edición</button>
+        <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="sinSoporte">
+            <mat-icon>save</mat-icon> Guardar
+        </button>
+    </ng-container>
+</mat-dialog-actions>

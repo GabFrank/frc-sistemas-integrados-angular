@@ -1,0 +1,20 @@
+.factura {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.aviso {
+  opacity: 0.8;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.campo-ancho {
+  width: 100%;
+}
+
+// Los mat-form-field outline apilados quedaban pegados: el borde del Motivo tocaba la etiqueta
+// flotante de la Descripción.
+.campo-ancho + .campo-ancho {
+  margin-top: 12px;
+}

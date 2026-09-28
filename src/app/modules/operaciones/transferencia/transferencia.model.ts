@@ -49,6 +49,8 @@ export class Transferencia {
   tipo: TipoTransferencia;
   etapa: EtapaTransferencia
   observacion: string;
+  /** Funcionario de la sucursal destino que pidio los productos. No opera el flujo. */
+  solicitante: Usuario;
   usuarioPreTransferencia: Usuario;
   usuarioPreparacion: Usuario;
   usuarioTransporte: Usuario;
@@ -68,6 +70,7 @@ export class Transferencia {
     input.observacion = this.observacion;
     input.sucursalDestinoId = this.sucursalDestino?.id;
     input.sucursalOrigenId = this.sucursalOrigen?.id;
+    input.solicitanteId = this.solicitante?.id;
     input.usuarioPreTransferenciaId = this.usuarioPreTransferencia?.id;
     input.usuarioPreparacionId = this.usuarioPreparacion?.id;
     input.usuarioTransporteId = this.usuarioTransporte?.id;
@@ -91,6 +94,7 @@ export class TransferenciaInput {
   isOrigen: boolean;
   isDestino: boolean;
   usuarioTransporteId: number;
+  solicitanteId: number;
   usuarioPreTransferenciaId: number;
   usuarioPreparacionId: number;
   usuarioRecepcionId: number;

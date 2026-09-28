@@ -724,7 +724,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   seleccionarSubfamilia(tipo) {
-    this.cargandoDialog.openDialog();
+    const { requestId } = this.cargandoDialog.openDialog();
     this.selectedSubfamilia = tipo;
     if (this.selectedFamilia?.nombre == "BEBIDAS") {
       this.datosGeneralesControl.controls.esAlcoholico.setValue(true);
@@ -741,7 +741,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
     setTimeout(() => {
       this.stepper.next();
-      this.cargandoDialog.closeDialog();
+      this.cargandoDialog.closeDialog(requestId);
     }, 500);
   }
 
@@ -1091,13 +1091,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
       [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]
     ).pipe(untilDestroyed(this)).subscribe(confirmed => {
       if (confirmed) {
-        this.cargandoDialog.openDialog();
+        const { requestId } = this.cargandoDialog.openDialog();
         this.presentacionService
           .onDeletePresentacion(presentacion)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
-            this.cargandoDialog.closeDialog();
-            
+            this.cargandoDialog.closeDialog(requestId);
+
             if (res === true || res === 'true' || res != null) {
               this.notifiActionBar.notification$.next({
                 texto: "Presentación eliminada correctamente",
@@ -1107,7 +1107,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
               this.getPresentacionPorProductoId(this.selectedProducto.id);
             }
           }, error => {
-            this.cargandoDialog.closeDialog();
+            this.cargandoDialog.closeDialog(requestId);
             this.notifiActionBar.notification$.next({
               texto: "Error al eliminar la presentación",
               color: NotificacionColor.warn,

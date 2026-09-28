@@ -1,0 +1,196 @@
+<div class="registrar-vt" fxLayout="column">
+
+  <div class="cabecera">
+    <div class="titulo-center">{{ data.titulo || 'Venta con Tarjeta' }}</div>
+    <div class="subtitulo-dialog" *ngIf="data.terminalDescripcion">{{ data.terminalDescripcion }}</div>
+  </div>
+
+  <!-- El monto y la terminal son contra lo que el cajero contrasta el cupón que tiene en la mano:
+       van juntos y destacados, no como una línea más de texto. -->
+  <div class="monto-caja">
+    <span class="monto-label">A registrar</span>
+    <span class="monto">{{ data.monto | number: '1.0-2' }} {{ data.monedaSimbolo || 'Gs.' }}</span>
+  </div>
+
+  <!-- Cupón ya leído, pero la venta tiene más de un cobro con tarjeta libre: hay que decir a
+       cuál pertenece. Reemplaza TODO el resto para que no haya forma de seguir sin elegir. -->
+  <div class="elegir-cobro" *ngIf="candidatos.length">
+    <div class="elegir-titulo">¿A qué cobro corresponde este cupón?</div>
+    <div class="elegir-ayuda">
+      La venta tiene más de un cobro con tarjeta. Elegí cuál pagó este cupón para que quede
+      conciliado.
+    </div>
+
+    <mat-radio-group class="lista-cobros" [(ngModel)]="cobroElegidoId">
+      <mat-radio-button *ngFor="let c of candidatos; let i = index" [value]="c.id">
+        <span class="cobro-linea">
+          <span class="cobro-orden">Cobro {{ i + 1 }}</span>
+          <span class="cobro-monto">{{ c.valor | number: '1.0-2' }} {{ c.moneda?.simbolo || 'Gs.' }}</span>
+        </span>
+      </mat-radio-button>
+    </mat-radio-group>
+
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px" class="acciones">
+      <button mat-button class="btn-descartar" [disabled]="procesando" (click)="descartarCuponLeido()">
+        Descartar cupón
+      </button>
+      <button
+        mat-raised-button
+        class="btn-success"
+        [disabled]="cobroElegidoId == null || procesando"
+        (click)="confirmarCobroElegido()"
+      >
+        Confirmar y registrar
+      </button>
+    </div>
+  </div>
+
+  <!-- La terminal no tiene formato: no hay forma de leer su cupón, y decirlo es mejor que
+       ofrecer caminos que no van a funcionar. El mensaje dice qué falta y quién lo arregla. -->
+  <div class="zona-lectura con-error" *ngIf="bloqueo">
+    <mat-icon class="icono-lector">report_problem</mat-icon>
+    <div class="error-lectura">{{ bloqueo }}</div>
+    <div class="ayuda">
+      Mientras tanto podés registrarla más tarde: el cierre de caja la va a reclamar.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!candidatos.length && !bloqueo">
+
+    <!-- Camino principal: el lector del PDV. Solo para los formatos cuyo ticket TRAE QR. En una
+         maquinita que no imprime QR, ofrecer el lector deja al cajero esperando frente a algo que
+         nunca va a leer nada. -->
+    <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="ofreceLector">
+      <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
+
+      <mat-form-field appearance="outline" class="campo-cupon">
+        <mat-label>Escaneá el QR del cupón</mat-label>
+        <input
+          matInput
+          [formControl]="cuponControl"
+          autofocus
+          cdkFocusInitial
+          [maxlength]="maxLongitud"
+          autocomplete="off"
+        />
+      </mat-form-field>
+
+      <div class="ayuda" *ngIf="!errorLectura && !procesando">
+        Apuntá el lector al QR impreso en el ticket. Se registra solo.
+      </div>
+      <div class="procesando" *ngIf="procesando">Registrando…</div>
+      <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
+    </div>
+
+    <div class="separador" *ngIf="ofreceLector && ofreceCamara">
+      <span>o sacale una foto al cupón</span>
+    </div>
+
+    <!-- Camino de la foto: la página la sirve el propio filial por HTTP en la LAN, así que sirve
+         cualquier teléfono y no hace falta nada instalado.
+
+         ⚠️ Acá vivía tambien el QR de la app movil, y se saco el 2026-09-17. Ese codigo abria
+         `RegistroVentaTarjetaComponent` de `frc-mobile`, que escribe con `updateVentaTarjeta` del
+         CENTRAL --un setter pelado que pone `estado` sin pasar por `completar()` del filial: sin
+         chequeo de cupon repetido, sin control de monto y sin importarle que el cobro ya estuviera
+         conciliado. En una terminal `tipo = MAQUINA` ese QR era ademas el que se mostraba PRIMERO,
+         o sea que el camino por defecto era el unico que esquivaba todas las guardas de la fase 2.
+         `PLAN-IMPLEMENTACION-FASE-2.md:1545` ya decia que la pantalla de `mobile` es un camino
+         heredado y NO el de esta fase; el hallazgo B1 se habia bajado a severidad baja con el
+         argumento de que los dos caminos vivos pasaban por `completar()`, que era falso mientras
+         esta pantalla ofreciera el tercero. Encontrado probando el cupon INFONET del cobro 50. -->
+    <!-- Este bloque es el ANTES del QR, y dura lo que tarda el filial en abrir la captura: el
+         diálogo ya la pidió solo en `ngOnInit`. No hay botón para pedirla. -->
+    <div class="qr" *ngIf="!capturaUrl && ofreceCamara">
+      <div class="esperando" *ngIf="pidiendoCaptura">
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Preparando el código…</span>
+      </div>
+
+      <!-- Si la captura no se pudo abrir, acá hay que dar una salida: sin QR y sin botón la
+           pantalla se quedaría muda. Las otras dos --carga a mano y más tarde-- viven fuera de
+           este bloque y siguen estando. -->
+      <ng-container *ngIf="!pidiendoCaptura && errorCaptura">
+        <div class="error-lectura">{{ errorCaptura }}</div>
+        <button mat-button class="btn-foto" [disabled]="procesando" (click)="onSacarFoto()">
+          <mat-icon>photo_camera</mat-icon>
+          Sacar otra foto
+        </button>
+      </ng-container>
+    </div>
+
+    <!-- Captura por foto. Mientras está activa el diálogo NO se cierra solo: ver onSacarFoto. -->
+    <div class="captura" *ngIf="capturaUrl && ofreceCamara">
+      <div class="captura-qr">
+        <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
+      </div>
+
+      <div class="ayuda" *ngIf="esperandoFoto && !errorCaptura">
+        Escaneá este código con el teléfono y sacale una foto al cupón.
+      </div>
+
+      <div class="esperando" *ngIf="esperandoFoto">
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Esperando la foto…</span>
+      </div>
+
+      <!-- Un error acá NO cierra nada: el código sigue sirviendo y la foto se repite. -->
+      <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
+
+      <!-- El cupón no siempre está en el teléfono: puede estar escaneado, bajado o pasado por
+           cable. Sin esto la única salida era volver a fotografiar el papel con el teléfono
+           teniendo la imagen en la pantalla al lado.
+
+           Va por el MISMO token que el QR de arriba, así que el resultado vuelve por la misma
+           suscripción: son dos puertas al mismo camino, no dos caminos.
+
+           ⚠️ El input va oculto y se dispara desde el label: un `<input type="file">` a la vista
+           no se puede estilar como el resto de los botones del diálogo. -->
+      <label class="btn-foto btn-imagen" for="imagen-cupon" [class.deshabilitado]="subiendoImagen || procesando">
+        <mat-icon>image</mat-icon>
+        {{ subiendoImagen ? 'Mandando la imagen…' : 'Elegir una imagen de esta PC' }}
+      </label>
+      <input id="imagen-cupon" type="file" accept="image/*" hidden
+             [disabled]="subiendoImagen || procesando" (change)="onElegirImagen($event)" />
+
+    </div>
+
+    <!-- ⚠️ El texto del OCR va FUERA de los dos bloques de arriba, y es a propósito: el momento en
+         que más se lo necesita es justo cuando el QR ya no está --la lectura no dio ningún campo y
+         hay que tipear desde acá--. Adentro del bloque de la captura desaparecía en ese preciso
+         instante. -->
+    <div class="texto-ocr" *ngIf="textoOcr">
+      <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+      <pre>{{ textoOcr }}</pre>
+      <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
+    </div>
+
+  </ng-container>
+
+  <!-- ⚠️ Las dos salidas van FUERA del ng-container de arriba, y es a proposito.
+       Ese contenedor se oculta cuando hay bloqueo por falta de formato, que es justo el momento en
+       que el cajero mas necesita una salida: si quedaran adentro, la pantalla bloqueada no
+       ofreceria ninguna. -->
+
+  <!-- La carga a mano es la salida universal: disponible para CUALQUIER tipo, y tambien bloqueado.
+       Es lo que hace aceptable que el tipo cierre el otro camino. -->
+  <div fxLayout="row" fxLayoutAlign="center center" class="acciones" *ngIf="!candidatos.length">
+    <button mat-button class="btn-foto" *ngIf="ofreceCargaManual"
+            [disabled]="procesando" (click)="onCargarAMano()">
+      <mat-icon>keyboard</mat-icon>
+      Cargar el cupón a mano
+    </button>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones"
+       *ngIf="!candidatos.length">
+    <!-- Antes este botón decía sólo "Salir" y no explicaba nada. Cerrar el diálogo siempre dejó
+         la venta cerrada y el registro pendiente; ahora lo dice. -->
+    <button mat-button class="btn-mas-tarde" [disabled]="procesando" (click)="onMasTarde()">
+      Registrar más tarde
+    </button>
+    <!-- Un número suelto no dice nada: se cierra solo, y eso hay que decirlo. -->
+    <span class="countdown" *ngIf="countdown != null">se cierra en {{ countdown }} s</span>
+  </div>
+
+</div>

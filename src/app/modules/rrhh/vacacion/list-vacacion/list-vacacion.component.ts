@@ -79,9 +79,10 @@ export class ListVacacionComponent implements OnInit {
       this.notificacion.notification$.next({ texto: 'Seleccione un funcionario', color: NotificacionColor.warn, duracion: 3 });
       return;
     }
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.vacacionService.onDevengar(this.funcionarioControl.value)
       .pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.onFiltrar(); });
+      .subscribe({ next: res => { if (res != null) this.onFiltrar(); }, error: () => {} });
   }
 
   onGestionar(vacacion: Vacacion) {

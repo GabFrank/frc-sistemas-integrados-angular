@@ -2265,3 +2265,32 @@ private mostrarInfoDistribuciones(item: NotaRecepcionItem): void {
 - **Notificaciones:** Informar al usuario sobre las distribuciones afectadas
 - **Rollback:** Permitir deshacer el rechazo si es necesario
 - **Reportes:** Generar reportes de rechazos incluyendo distribuciones afectadas
+## 9. Buscador de productos (`ComprasSearchProductoDialogComponent`)
+
+### 9.1 Paginación del «+»
+
+- Por texto, el diálogo usa `productoSearch` del central, que pagina por **offset** y devuelve
+  **10 filas por llamada**, fijas en el central (`limit 10` en `ProductoRepository.findbyAll`,
+  `from + 10` en `ProductoService.buscarPorTextoLucene`). El tamaño no viaja en el schema: vive en
+  `FILAS_POR_LLAMADA_PRODUCTO_SEARCH` de `buscador-compras.service.ts`, y si el central lo cambia
+  hay que cambiarlo ahí. Por código de barras usa `buscarProductoInteligente` /
+  `searchProductoWithFilters`, que paginan por número de página con `size`.
+- «Hay más» se decide por el **tamaño crudo** de la página recibida
+  (`BuscadorComprasService.filasPorPaginaDialog`), no por las filas nuevas después del dedupe por
+  id: el orden de Lucene puede variar entre llamadas y una página llena de repetidos no significa
+  que se terminó.
+- La página 0 la comparten el prefetch de `gestion-compras` / `add-edit-item-dialog` y el diálogo
+  (caché `termino|page|size`, 60 s). Ante un error devuelve `[]`; en las páginas siguientes el
+  error llega al diálogo, que avisa y deja reintentar sin avanzar la página.
+- Cada búsqueda nueva sube `generacionBusqueda`; la respuesta de una búsqueda o de un «+» anterior
+  se descarta. Comparar el término no alcanza (A → B → A).
+- Límite del central: Lucene trabaja sobre como máximo 200 ids y el tamaño del conjunto crece con
+  el offset, así que entre páginas puede repetirse (lo tapa el dedupe) o saltearse alguna fila.
+
+### 9.2 Gotcha: `onCustomQuery` sin `propagate` no termina ante un error de red
+
+`GenericCrudService.onCustomQuery`, ante un error de red y sin
+`errorConf.networkError.propagate: true`, **no emite ni completa**: quien espera la respuesta queda
+colgado (un spinner o un botón deshabilitado para siempre). Un error de GraphQL, en cambio, avisa y
+emite `null`. Por eso el camino de texto del buscador llama la query con `propagate: true` y trata
+`null` como error. El camino de código de barras (`buscarProducto`) todavía no lo hace.

@@ -50,16 +50,18 @@ export class CreateItemDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.selectedtransferencia = this.data.transferencia;
     if (this.data.item != null) {
-      this.cargarDatos(this.data.item)
+      this.cargarDatos(this.data.item, requestId)
     } else if (this.data.presentacion != null) {
       this.selectedPresentacion = this.data.presentacion;
       this.presentacionService.onGetPresentacionesPorProductoId(this.selectedPresentacion.producto.id).subscribe(res => {
         this.presentacionList = res;
+        this.cargandoService.closeDialog(requestId)
       })
     } else {
+      this.cargandoService.closeDialog(requestId)
       this.matDialogRef.close()
     }
 
@@ -81,14 +83,16 @@ export class CreateItemDialogComponent implements OnInit {
     }, 500);
   }
 
-  cargarDatos(item: TransferenciaItem) {
+  cargarDatos(item: TransferenciaItem, requestId: number) {
     this.selectedItem = item;
     if (this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION || this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
       this.activoControl.setValue(item.activo)
       this.cantidadControl.setValue(item.cantidadPreTransferencia)
       this.vencimientoControl.setValue(new Date(item.vencimientoPreTransferencia))
       this.selectedPresentacion = item.presentacionPreTransferencia;
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
+    } else {
+      this.cargandoService.closeDialog(requestId)
     }
   }
 

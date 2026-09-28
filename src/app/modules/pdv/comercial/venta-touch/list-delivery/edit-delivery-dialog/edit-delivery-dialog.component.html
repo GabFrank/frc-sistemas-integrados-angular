@@ -571,8 +571,10 @@
       </div>
       <div fxFlex="50%" style="text-align: center; font-size: 1.2em">
         {{
-          (selectedDelivery?.venta?.valorTotal + selectedPrecio?.valor) /
-            cambioRs | number : "1.2-2"
+          cambioRs
+            ? ((selectedDelivery?.venta?.valorTotal + selectedPrecio?.valor) /
+                cambioRs | number : "1.2-2")
+            : "—"
         }}
       </div>
       <!-- <div fxFlex="33%" style="text-align: center; font-size: 1.2em">
@@ -593,8 +595,10 @@
       </div>
       <div fxFlex="50%" style="text-align: center; font-size: 1.2em">
         {{
-          (selectedDelivery?.venta?.valorTotal + selectedPrecio?.valor) /
-            cambioDs | number : "1.2-2"
+          cambioDs
+            ? ((selectedDelivery?.venta?.valorTotal + selectedPrecio?.valor) /
+                cambioDs | number : "1.2-2")
+            : "—"
         }}
       </div>
     </div>

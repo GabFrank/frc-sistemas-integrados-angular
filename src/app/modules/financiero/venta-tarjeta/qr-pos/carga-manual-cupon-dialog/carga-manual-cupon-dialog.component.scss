@@ -1,0 +1,71 @@
+.carga-manual {
+  padding: 16px;
+
+  .cabecera { text-align: center; margin-bottom: 4px; }
+
+  .monto-cobrado {
+    text-align: center;
+    font-size: 15px;
+    opacity: 0.9;
+  }
+
+  .ayuda {
+    font-size: 13px;
+    opacity: 0.75;
+    margin: 4px 0 8px;
+  }
+
+  .error-lectura {
+    color: #ff6b6b;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .acciones { margin-top: 8px; }
+}
+
+// ── Semáforo por campo ────────────────────────────────────────────────────────────────────
+//
+// El color es la señal de "mirá acá", pero NO es la única: el texto de la pista dice lo mismo en
+// palabras y el tilde es lo que realmente bloquea. Un semáforo que sólo fuera color dejaría
+// afuera a quien no lo distingue, y esta pantalla decide si un cobro se registra bien.
+.carga-manual {
+  .campo {
+    border-left: 3px solid transparent;
+    padding-left: 8px;
+    margin-left: -11px;   // el borde no corre el input respecto de los campos sin semáforo
+  }
+
+  .campo-bueno { border-left-color: #4caf50; }
+  .campo-dudoso { border-left-color: #ffb300; }
+  // Ni verde ni ámbar: no hay lectura que calificar. Gris tenue, que dice "acá falta algo" sin
+  // competir con el ámbar, que es el que pide una decisión sobre algo ya leído.
+  .campo-no-leido { border-left-color: rgba(255, 255, 255, 0.28); }
+
+  .campo-input { width: 100%; }
+
+  // La pista y el tilde, debajo de su campo, en el flujo normal.
+  //
+  // Sin márgenes negativos y sin `mat-hint`. Las dos cosas se probaron y las dos fallan por la
+  // misma causa: `styles.scss` fija global `.mat-mdc-form-field-subscript-wrapper { height: 0 }`,
+  // así que el subscript de Material no ocupa lugar. Un `mat-hint` ahí adentro flota sobre el
+  // campo siguiente, y un margen negativo calculado a ojo sube este bloque encima del propio.
+  // Un elemento normal debajo del form-field se ubica solo.
+  .semaforo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 10px;
+    font-size: 12px;
+  }
+
+  .pista { opacity: 0.7; }
+  .pista-dudosa { color: #ffb300; opacity: 1; }
+
+  .falta-confirmar {
+    font-size: 13px;
+    color: #ffb300;
+    text-align: center;
+  }
+}

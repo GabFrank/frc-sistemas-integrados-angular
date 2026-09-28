@@ -40,6 +40,7 @@ import { Persona } from '../../personas/persona/persona.model';
 import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
 import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
+import { TransferenciaQrEscaneadoSubGQL } from './graphql/transferenciaQrEscaneadoSub';
 import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
 
 @UntilDestroy({ checkProperties: true })
@@ -81,8 +82,20 @@ export class TransferenciaService {
     private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL,
     private getHojaRutaPorFechaPage: GetHojaRutaPorFechaPageGQL,
     private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL,
-    private desconfirmarTransferenciaItemGQL: DesconfirmarTransferenciaItemGQL
+    private desconfirmarTransferenciaItemGQL: DesconfirmarTransferenciaItemGQL,
+    private transferenciaQrEscaneadoSub: TransferenciaQrEscaneadoSubGQL
   ) { }
+
+  /**
+   * Avisa cuando alguien escaneó el QR de una transferencia desde el móvil.
+   *
+   * Emite una sola vez y completa —así resuelve `onCustomSub`—, que es
+   * justo lo que hace falta para cerrar el diálogo del QR: después del
+   * primer escaneo ya no hay nada que escuchar.
+   */
+  qrEscaneadoSub() {
+    return this.genericCrudService.onCustomSub(this.transferenciaQrEscaneadoSub, null, true, false);
+  }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
     this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {
@@ -162,8 +175,9 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?");
   }
 
-  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor);
+  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true,
+                          opciones?: { avisarExito?: boolean }): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor, opciones);
   }
 
   /**
@@ -223,11 +237,12 @@ export class TransferenciaService {
     return new Observable<boolean>(obs => {
       this.dialogoService.confirm('Atención, revise los datos antes de proceder.', texto).subscribe(res => {
         if (res) {
+          // Avanzar etapa recorre cada ítem en el central (stock, lotes): con muchos ítems puede pasar el minuto.
           this.genericCrudService.onCustomMutation(this.prepararTransferencia, {
             id: transferencia.id,
             etapa,
             usuarioId: this.mainService.usuarioActual.id
-          }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+          }, servidor, false, { timeoutMs: 300000 }).pipe(untilDestroyed(this)).subscribe(res => {
             console.log('res', res);
             obs.next(res);
             obs.complete();

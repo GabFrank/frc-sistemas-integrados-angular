@@ -17,6 +17,7 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { esSucursalCompras } from '../../../empresarial/sucursal/sucursal-compras.util';
 import { Producto } from '../../../productos/producto/producto.model';
 import {
   AjustarStockLoteDialogComponent,
@@ -160,6 +161,18 @@ export class ListStockLoteComponent implements OnInit {
   /** Lo lee el template para mostrar u ocultar el ajuste. */
   puedeAjustarStock = false;
 
+  /** Habilita el bloque "Cambiar estado" del menú de acciones. */
+  puedeCambiarEstado = false;
+
+  /** Habilita "Ver historial" en el menú de acciones. */
+  puedeVerHistorial = false;
+
+  /**
+   * Con los tres permisos en cero el menú de la fila quedaría vacío. Decide si la columna de
+   * acciones se arma o no; se resuelve una vez en ngOnInit.
+   */
+  private tieneAccionesDisponibles = false;
+
   /** Etiquetas resueltas una sola vez: el template no debe indexar mapas en cada ciclo. */
   readonly opcionesEstado: OpcionEstado[] = [
     {
@@ -220,6 +233,28 @@ export class ListStockLoteComponent implements OnInit {
     this.puedeAjustarStock =
       this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) || false;
 
+    // Poner un lote en cuarentena o bloquearlo saca mercadería de circulación en toda la red:
+    // lo mismo que habilita a editar el producto, no el simple ver.
+    this.puedeCambiarEstado =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) ||
+      false;
+
+    // El historial expone ventas y clientes del lote, así que va con los roles de análisis.
+    this.puedeVerHistorial =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ANALISIS_DE_CAJA) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ANALISIS_DE_VENTA) ||
+      false;
+
+    this.tieneAccionesDisponibles =
+      this.puedeVerHistorial || this.puedeAjustarStock || this.puedeCambiarEstado;
+
+    // Sin ninguna acción habilitada la columna quedaría como una franja vacía a la derecha.
+    if (!this.tieneAccionesDisponibles) {
+      this.displayedColumns = this.displayedColumns.filter((col) => col !== 'acciones');
+    }
+
     this.cargarSucursales();
 
     // El filtro de texto se dispara solo, con debounce para no consultar en cada tecla.
@@ -233,13 +268,20 @@ export class ListStockLoteComponent implements OnInit {
   /**
    * Solo sucursales activas, el mismo criterio con el que el backend arma el desglose por
    * sucursal. Ofrecer una sucursal dada de baja en el filtro dejaría el panel vacío al elegirla.
+   *
+   * COMPRAS solo con el rol: filtrada, `sucursalVisible` la deja pasar sin mirar el rol, y el
+   * ajuste abriría con COMPRAS fija.
    */
   private cargarSucursales(): void {
     this.sucursalService.onGetAllSucursales()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.sucursales = res.filter((sucursal) => sucursal.activo !== false);
+          this.sucursales = res.filter(
+            (sucursal) =>
+              sucursal.activo !== false &&
+              (this.puedeVerStockCompras || !esSucursalCompras(sucursal))
+          );
           this.cdr.markForCheck();
         }
       });
@@ -451,7 +493,7 @@ export class ListStockLoteComponent implements OnInit {
    * para que abra con el mismo recorte.
    */
   onVerHistorial(fila: StockLoteRow): void {
-    if (!fila.esLoteReal) {
+    if (!this.puedeVerHistorial || !fila.esLoteReal) {
       return;
     }
     const tabData: HistorialLoteTabData = {
@@ -525,7 +567,7 @@ export class ListStockLoteComponent implements OnInit {
    * el impacto es en TODAS las sucursales, así que nunca se aplica de un solo click.
    */
   onCambiarEstado(fila: StockLoteRow, estado: EstadoLote): void {
-    if (!fila.esLoteReal || fila.estado === estado) {
+    if (!this.puedeCambiarEstado || !fila.esLoteReal || fila.estado === estado) {
       return;
     }
 

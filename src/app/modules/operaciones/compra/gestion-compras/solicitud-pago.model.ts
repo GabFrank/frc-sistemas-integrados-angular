@@ -9,6 +9,7 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 export enum SolicitudPagoEstado {
     PENDIENTE = 'PENDIENTE',   // borrador
     SOLICITADO = 'SOLICITADO', // validada, lista para pagar
+    DEVUELTO = 'DEVUELTO',     // tesorería la devolvió a compras: se corrige y se reenvía, o se cancela
     PARCIAL = 'PARCIAL',
     CONCLUIDO = 'CONCLUIDO',
     CANCELADO = 'CANCELADO'

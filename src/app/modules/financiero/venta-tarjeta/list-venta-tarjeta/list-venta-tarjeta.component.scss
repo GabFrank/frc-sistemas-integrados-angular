@@ -43,3 +43,40 @@ mat-chip {
     }
   }
 }
+// NO_COMPLETADO no tenia clase y caia al chip por defecto, indistinguible de nada. Gris y no rojo:
+// rojo es CANCELADO, que es otra cosa --ahi la venta se deshizo; aca la plata entro y lo que falta
+// es el cupon.
+mat-chip.no-completado {
+  color: #616161 !important;
+  background-color: #616161 !important;
+
+  ::ng-deep .mat-mdc-chip-text-label,
+  ::ng-deep .mdc-evolution-chip__text-label {
+    color: #ffffff !important;
+    padding-top: 3px;
+  }
+}
+
+// Debajo del chip de estado, no en columnas propias: solo tienen contenido en las filas
+// NO_COMPLETADO y en las reabiertas, y dos columnas vacias para el resto no pagan su ancho.
+.rastro {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+  line-height: 1.2;
+
+  .quien {
+    opacity: 0.8;
+  }
+
+  &.reabierto {
+    color: #64b5f6;
+    opacity: 0.9;
+  }
+}
+
+.accion-abrir-caja {
+  color: #64b5f6;
+  cursor: pointer;
+  margin-left: 6px;
+}

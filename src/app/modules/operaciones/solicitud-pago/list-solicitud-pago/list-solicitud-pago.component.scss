@@ -25,7 +25,8 @@ tr.example-detail-row {
   &.estado-SOLICITADO { background-color: #1e88e5; } // lista para pagar
   &.estado-PARCIAL { background-color: #fb8c00; }    // pago parcial
   &.estado-CONCLUIDO { background-color: #43a047; }  // pagada
-  &.estado-CANCELADO { background-color: #757575; }  // cancelada
+  &.estado-CANCELADO { background-color: #e53935; }  // cancelada
+  &.estado-DEVUELTO { background-color: #8e24aa; }   // devuelta por tesorería
 }
 
 .example-element-row td {

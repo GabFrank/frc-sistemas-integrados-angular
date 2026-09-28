@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 
-const FIELDS = `id funcionario { id persona { id nombre } } tipo monto fecha motivo esRecurrente frecuencia anulado`;
+const FIELDS = `id funcionario { id persona { id nombre } } tipo monto fecha motivo esRecurrente frecuencia anulado liquidacionId bonoRecurrenteId editable motivoNoEditable`;
 
 export const bonosPorFuncionarioQuery = gql`
   query ($funcionarioId: ID!) { data: bonosPorFuncionario(funcionarioId: $funcionarioId) { ${FIELDS} } }

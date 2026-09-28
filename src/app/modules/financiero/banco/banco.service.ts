@@ -22,16 +22,16 @@ export class BancoService {
     return this.genericService.onCustomQuery(this.bancosGQL, { page, size });
   }
 
-  onSave(banco: Banco): Observable<Banco> {
+  onSave(banco: Banco, opciones?: { avisarExito?: boolean }): Observable<Banco> {
     let aux = banco;
     if (!(banco instanceof Banco)) {
       aux = new Banco();
       Object.assign(aux, banco);
     }
-    return this.genericService.onSaveCustom(this.saveBancoGQL, { banco: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveBancoGQL, { banco: aux.toInput() }, true, opciones);
   }
 
-  onDelete(id: number): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.deleteBancoGQL, { id });
+  onDelete(id: number, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteBancoGQL, { id }, true, opciones);
   }
 }

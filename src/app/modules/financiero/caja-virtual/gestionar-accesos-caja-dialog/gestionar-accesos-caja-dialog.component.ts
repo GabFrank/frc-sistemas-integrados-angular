@@ -127,7 +127,8 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
 
   private guardar(usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean, luego?: () => void): void {
     this.isSaving = true;
-    this.cajaVirtualService.onOtorgarAcceso(this.data.cajaVirtual.id, usuarioId, puedeLeer, puedeEscribir)
+    // En las tres acciones de este diálogo el aviso de éxito es propio y el de error lo da onSaveCustom.
+    this.cajaVirtualService.onOtorgarAcceso(this.data.cajaVirtual.id, usuarioId, puedeLeer, puedeEscribir, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -138,7 +139,7 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
             this.cargar();
           }
         },
-        error: e => { this.isSaving = false; this.err(this.mensaje(e)); },
+        error: () => { this.isSaving = false; },
       });
   }
 
@@ -151,11 +152,11 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r !== true) return;
       this.isSaving = true;
-      this.cajaVirtualService.onRevocarAcceso(this.data.cajaVirtual.id, row.usuarioId)
+      this.cajaVirtualService.onRevocarAcceso(this.data.cajaVirtual.id, row.usuarioId, { avisarExito: false })
         .pipe(untilDestroyed(this))
         .subscribe({
           next: () => { this.isSaving = false; this.ok('Acceso quitado'); this.cargar(); },
-          error: e => { this.isSaving = false; this.err(this.mensaje(e)); },
+          error: () => { this.isSaving = false; },
         });
     });
   }
@@ -173,7 +174,7 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r !== true) return;
       this.isSaving = true;
-      this.cajaVirtualService.onTransferirPropiedad(this.data.cajaVirtual.id, row.usuarioId)
+      this.cajaVirtualService.onTransferirPropiedad(this.data.cajaVirtual.id, row.usuarioId, { avisarExito: false })
         .pipe(untilDestroyed(this))
         .subscribe({
           next: res => {
@@ -183,13 +184,9 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
               this.dialogRef.close(true);
             }
           },
-          error: e => { this.isSaving = false; this.err(this.mensaje(e)); },
+          error: () => { this.isSaving = false; },
         });
     });
-  }
-
-  private mensaje(e: any): string {
-    return e?.graphQLErrors?.[0]?.message || e?.message || 'No se pudo completar la operación';
   }
 
   private ok(texto: string): void {

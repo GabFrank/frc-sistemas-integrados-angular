@@ -76,6 +76,7 @@ import { DashChartCardComponent } from './components/dashboard/dash-chart-card/d
 import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.component';
 import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
 import { MontoMonedaPipe } from './pipes/monto-moneda.pipe';
+import { MotivoDialogComponent } from './components/motivo-dialog/motivo-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -135,7 +136,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DashQuickActionComponent,
     DashRankingListComponent,
     DashChartCardComponent,
-    CostoDisplayComponent
+    CostoDisplayComponent,
+    MotivoDialogComponent
   ],
   imports: [
     CommonModule,
@@ -200,7 +202,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DashQuickActionComponent,
     DashRankingListComponent,
     DashChartCardComponent,
-    CostoDisplayComponent
+    CostoDisplayComponent,
+    MotivoDialogComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

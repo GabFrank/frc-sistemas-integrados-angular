@@ -36,7 +36,13 @@ export class PrestamoService {
     return this.genericService.onSaveCustom<Prestamo>(this.crearPrestamoGQL, { prestamo, cajaVirtualId }, servidor);
   }
 
-  onCobrarCuota(cuotaId: number, cajaVirtualId: number, montoPago: number, servidor = true): Observable<PrestamoCuota> {
-    return this.genericService.onSaveCustom<PrestamoCuota>(this.cobrarCuotaGQL, { cuotaId, cajaVirtualId, montoPago }, servidor);
+  /**
+   * `montoPagadoEsperado` es el monto pagado que mostraba la pantalla: si la cuota cambió desde entonces
+   * (un reintento, otro cobro), el central rechaza el cobro sin tocar la caja.
+   */
+  onCobrarCuota(cuotaId: number, cajaVirtualId: number, montoPago: number, montoPagadoEsperado: number,
+                servidor = true): Observable<PrestamoCuota> {
+    return this.genericService.onSaveCustom<PrestamoCuota>(this.cobrarCuotaGQL,
+      { cuotaId, cajaVirtualId, montoPago, montoPagadoEsperado }, servidor);
   }
 }

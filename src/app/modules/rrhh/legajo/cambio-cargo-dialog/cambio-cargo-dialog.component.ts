@@ -85,23 +85,35 @@ export class CambioCargoDialogComponent implements OnInit {
       autorizadoPorId: this.mainService.usuarioActual?.id
     };
     this.legajoService.onCambiarCargo(input).pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res == null) { return; }
-        // si se pidió, ajustar también el salario al sueldo base del nuevo cargo
-        if (this.actualizarSalarioControl.value && this.cargoSeleccionadoSueldo != null) {
-          const salInput = {
-            funcionarioId: this.data.funcionarioId,
-            nuevoSalario: this.cargoSeleccionadoSueldo,
-            monedaId: this.monedaControl.value,
-            fecha: dateToString(this.fechaControl.value),
-            motivo: 'AJUSTE POR CAMBIO DE CARGO' + (this.motivoControl.value ? ' - ' + this.motivoControl.value.toUpperCase() : ''),
-            autorizadoPorId: this.mainService.usuarioActual?.id
-          };
-          this.legajoService.onCambiarSalario(salInput).pipe(untilDestroyed(this))
-            .subscribe(res2 => { this.dialogRef.close(res2 != null ? res2 : res); });
-        } else {
-          this.dialogRef.close(res);
-        }
+      .subscribe({
+        next: res => {
+          if (res == null) { return; }
+          // si se pidió, ajustar también el salario al sueldo base del nuevo cargo
+          if (this.actualizarSalarioControl.value && this.cargoSeleccionadoSueldo != null) {
+            const salInput = {
+              funcionarioId: this.data.funcionarioId,
+              nuevoSalario: this.cargoSeleccionadoSueldo,
+              monedaId: this.monedaControl.value,
+              fecha: dateToString(this.fechaControl.value),
+              motivo: 'AJUSTE POR CAMBIO DE CARGO' + (this.motivoControl.value ? ' - ' + this.motivoControl.value.toUpperCase() : ''),
+              autorizadoPorId: this.mainService.usuarioActual?.id
+            };
+            this.legajoService.onCambiarSalario(salInput).pipe(untilDestroyed(this))
+              .subscribe({
+                next: res2 => { this.dialogRef.close(res2 != null ? res2 : res); },
+                // El cargo ya quedó guardado: dejar el diálogo abierto invita a repetirlo y
+                // duplicar el histórico. Se avisa qué faltó y se cierra con el cargo nuevo.
+                error: () => {
+                  this.notificacion.openWarn('El cargo se cambió, pero el salario no se pudo actualizar. Revisalo con Cambiar salario.', 6);
+                  this.dialogRef.close(res);
+                }
+              });
+          } else {
+            this.dialogRef.close(res);
+          }
+        },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        error: () => {}
       });
   }
 

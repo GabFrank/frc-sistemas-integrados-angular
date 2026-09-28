@@ -27,8 +27,8 @@ export class AguinaldoService {
     return this.genericService.onCustomQuery(this.aguinaldosPageGQL, { page, size, anio, funcionarioId }, servidor);
   }
 
-  onCalcular(anio: number, servidor = true): Observable<number> {
-    return this.genericService.onSaveCustom<number>(this.calcularAguinaldosAnioGQL, { anio }, servidor);
+  onCalcular(anio: number, servidor = true, opciones?: { avisarExito?: boolean }): Observable<number> {
+    return this.genericService.onSaveCustom<number>(this.calcularAguinaldosAnioGQL, { anio }, servidor, opciones);
   }
 
   onAprobar(id: number, servidor = true): Observable<any> {

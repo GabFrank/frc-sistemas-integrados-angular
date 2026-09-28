@@ -448,3 +448,22 @@
     }
   }
 }
+
+/* Estado de la solicitud: misma paleta que list-solicitud-pago. */
+.estado-solicitud {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+
+  &.estado-PENDIENTE { background-color: #607d8b; }  // borrador
+  &.estado-SOLICITADO { background-color: #1e88e5; } // lista para pagar
+  &.estado-PARCIAL { background-color: #fb8c00; }    // pago parcial
+  &.estado-CONCLUIDO { background-color: #43a047; }  // pagada
+  &.estado-CANCELADO { background-color: #e53935; }  // cancelada
+  &.estado-DEVUELTO { background-color: #8e24aa; }   // devuelta por tesorería
+}

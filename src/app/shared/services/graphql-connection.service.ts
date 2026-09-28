@@ -17,6 +17,12 @@ import { environment } from '../../../environments/environment';
 import { ConfiguracionService, ConfiguracionSistema } from './configuracion.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../notificacion-snackbar.service';
 import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
+import {
+  crearTimeoutLink,
+  MENSAJE_TIMEOUT_MUTATION,
+  MENSAJE_TIMEOUT_QUERY,
+  TipoOperacion,
+} from './timeout-link';
 
 // Connection status subjects that can be subscribed to by components
 export const connectionStatusSub = new BehaviorSubject<boolean>(null);
@@ -40,6 +46,10 @@ export class GraphqlConnectionService {
   // "Cargando..." de forma indefinida si el central está offline (sin internet,
   // caído, etc.). Solo aplica al central; el servidor local no se ve afectado.
   private readonly centralOfflineTimeoutMs = 3000;
+
+  // Varias operaciones cortadas por timeout a la vez dan un solo aviso.
+  private readonly ventanaAvisoTimeoutMs = 5000;
+  private ultimoAvisoTimeout = new Map<TipoOperacion, number>();
 
   constructor(
     private configService: ConfiguracionService,
@@ -210,10 +220,15 @@ export class GraphqlConnectionService {
     // Create an abortable link
     const abortableLink = this.createAbortableLink();
 
+    // Timeout real por operación HTTP (central y local): al vencer desuscribe, lo que aborta el
+    // XHR, y avisa una sola vez. Las subscriptions (WebSocket) no pasan por acá. Issue #304.
+    const timeoutLink = crearTimeoutLink((tipo) => this.avisarTimeout(tipo));
+
     // Create HTTP links - only create local link if isLocal is true
     let http = null;
     if (this.isLocal && url) {
       http = ApolloLink.from([
+        timeoutLink,
         basic,
         auth,
         this.createEmptyResultGuardLink(),
@@ -229,6 +244,7 @@ export class GraphqlConnectionService {
     // el central está offline, en vez de dejar la request colgada. Solo se aplica
     // a este link (central), nunca al local ni a las subscriptions.
     const http2 = ApolloLink.from([
+      timeoutLink,
       this.createCentralTimeoutLink(),
       basic,
       auth,
@@ -345,16 +361,12 @@ export class GraphqlConnectionService {
   }
 
   /**
-   * Create an abortable link for better request management
+   * Normaliza un resultado vacío en un error legible. No aborta nada por sí mismo: cortar una
+   * request es desuscribirse (lo hace el timeout link o el que llama); el HttpLink de
+   * apollo-angular usa HttpClient y no lee `fetchOptions`.
    */
   private createAbortableLink(): ApolloLink {
     return new ApolloLink((operation, forward) => {
-      const controller = new AbortController();
-      const signal = controller.signal;
-
-      // Set the signal in the operation context
-      operation.setContext({ fetchOptions: { signal } });
-
       return new Observable((observer) => {
         const subscription = forward(operation).subscribe({
           next: (result) => {
@@ -376,10 +388,22 @@ export class GraphqlConnectionService {
         });
 
         return () => {
-          controller.abort();
           subscription.unsubscribe();
         };
       });
+    });
+  }
+
+  /** Snackbar del timeout link, sin repetir el mismo aviso dentro de `ventanaAvisoTimeoutMs`. */
+  private avisarTimeout(tipo: TipoOperacion): void {
+    const ahora = Date.now();
+    const ultimo = this.ultimoAvisoTimeout.get(tipo);
+    if (ultimo != null && ahora - ultimo < this.ventanaAvisoTimeoutMs) return;
+    this.ultimoAvisoTimeout.set(tipo, ahora);
+    this.notificationService.notification$.next({
+      texto: tipo === 'mutation' ? MENSAJE_TIMEOUT_MUTATION : MENSAJE_TIMEOUT_QUERY,
+      color: NotificacionColor.warn,
+      duracion: tipo === 'mutation' ? 8 : 4,
     });
   }
 

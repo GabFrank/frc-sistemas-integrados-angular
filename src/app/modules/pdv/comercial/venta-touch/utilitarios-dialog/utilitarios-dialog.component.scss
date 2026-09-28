@@ -1,10 +1,50 @@
+// El margin-bottom que traian las tarjetas dejaba 30px de aire abajo contra 20px arriba.
+// La separacion entre filas ahora la da el row-gap del contenedor, que no desbalancea.
 :host::ng-deep mat-card {
-    margin-bottom: 10px;
+    margin-bottom: 0;
   }
+
+.utilitarios {
+  row-gap: 20px;
+}
 
   p {
     font-size: medium;
   }
+
+// El estado vacio cuando no hay caja abierta. Ocupa la fila entera y no una tarjeta mas: no es
+// una opcion mas que no se puede usar, es la explicacion de por que no hay ninguna.
+//
+// `flex-basis: 100%` porque el contenedor es un `fxLayout="row wrap"`: sin eso el bloque se
+// acomodaba al lado de nada, centrado en una columna de ancho minimo.
+.sin-caja {
+  flex-basis: 100%;
+  max-width: 560px;
+  margin: 24px auto;
+  text-align: center;
+  opacity: .85;
+
+  mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    opacity: .5;
+  }
+
+  .sin-caja-titulo {
+    // Pisa el `p { font-size: medium }` de mas arriba, que aplica a todo el componente.
+    font-size: 17px;
+    font-weight: 600;
+    margin: 10px 0 6px;
+  }
+
+  .sin-caja-detalle {
+    font-size: 13.5px;
+    line-height: 1.5;
+    opacity: .75;
+    margin: 0;
+  }
+}
 
 //   impresion m2 : 60.000gs
 //   impresion m2 con estructura: 130.000 gs
