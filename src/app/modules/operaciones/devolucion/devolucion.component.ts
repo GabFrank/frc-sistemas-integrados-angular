@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
@@ -66,6 +66,8 @@ interface EstancadaVista {
   styleUrls: ["./devolucion.component.scss"],
 })
 export class DevolucionComponent implements OnInit, OnDestroy {
+  @Input() data: Tab;
+
   readonly ROLES = ROLES;
   private destroy$ = new Subject<void>();
 
@@ -125,6 +127,16 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       },
       error: () => this.iniciar(),
     });
+    // La pestaña queda viva en segundo plano: al volver, refrescar lo operado
+    // desde otras pestañas (conserva el rango elegido).
+    this.tabService
+      .onTabReactivada(this.data)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.cargar();
+        this.cargarSerie();
+        this.cargarEstancadas();
+      });
   }
 
   private aplicarConfig(c: any): void {

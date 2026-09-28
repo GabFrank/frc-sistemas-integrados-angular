@@ -36,6 +36,16 @@ export class ConfiguracionVentaTarjetaDialogComponent implements OnInit {
         this.notificacionService.openAlgoSalioMal('Error al cargar la configuración');
       }
     });
+    // Aparte: un central que todavía no tiene la columna (V232.5) no rompe el resto del ABM. Si no
+    // llega, el toggle no se muestra y el campo no se manda al guardar.
+    this.configuracionService.onGetTerminalObligatoria().subscribe({
+      next: (valor) => (this.config.terminalObligatoria = valor),
+      error: () => (this.config.terminalObligatoria = undefined),
+    });
+  }
+
+  onToggleTerminalObligatoria(): void {
+    this.config.terminalObligatoria = !this.config.terminalObligatoria;
   }
 
   onToggleHabilitado(): void {
@@ -48,7 +58,7 @@ export class ConfiguracionVentaTarjetaDialogComponent implements OnInit {
     this.configuracionService.onSaveConfiguracion(input).subscribe({
       next: (res) => {
         if (res != null) {
-          this.config = res;
+          Object.assign(this.config, res);
           this.notificacionService.openSucess('Configuración guardada correctamente');
           this.dialogRef.close(this.config);
         }

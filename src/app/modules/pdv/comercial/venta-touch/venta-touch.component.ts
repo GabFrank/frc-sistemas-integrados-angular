@@ -50,6 +50,7 @@ import {
   TarjetaPago,
 } from "./pago-touch/pago-touch.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
+import { PdvCategoriaService } from "./pdv-categoria/pdv-categoria.service";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 import { SeleccionarCajaDialogComponent } from "./seleccionar-caja-dialog/seleccionar-caja-dialog.component";
 import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
@@ -108,7 +109,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, finalize, map, startWith, switchMap, takeUntil } from "rxjs/operators";
+import { catchError, finalize, map, startWith, switchMap, take, takeUntil, timeout } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -214,7 +215,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private puntoDeVentaService: PuntoDeVentaService,
     private ventaTarjetaService: VentaTarjetaService,
     private facturaLegalService: FacturaLegalService,
-    private productoService: ProductoService
+    private productoService: ProductoService,
+    private pdvCategoriaService: PdvCategoriaService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -565,8 +567,39 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
+  /** Evita abrir dos selecciones si se toca dos veces mientras llega el grupo. */
+  private cargandoGrupo = false;
+
   onGridCardClick(grupo: PdvGrupo) {
     this.mostrarPrecios = false;
+    if (this.cargandoGrupo || this.isDialogOpen) return;
+    // En modo web no hay filial local: la consulta iria al central, que no aplica precios especiales.
+    if (!this.mainService.isLocal()) {
+      this.abrirSeleccionProductos(grupo);
+      return;
+    }
+    this.cargandoGrupo = true;
+    // Los favoritos se cargan al abrir el POS: se vuelven a pedir a la filial para que un precio
+    // especial nuevo, cortado o vencido valga desde este toque. Si la consulta falla, se usa lo
+    // que ya estaba cargado.
+    this.pdvCategoriaService
+      .onGetGrupoProductosPorGrupoId(grupo.id, false)
+      .pipe(
+        // onGetById no emite ni completa si la consulta falla: sin esto el grupo quedaria trabado.
+        // Si la filial no responde en 3 s, se abre con los favoritos ya cargados.
+        timeout(3000),
+        catchError(() => of(null)),
+        take(1),
+        untilDestroyed(this)
+      )
+      .subscribe((res) => {
+        if (res != null) grupo.pdvGruposProductos = res;
+        this.cargandoGrupo = false;
+        this.abrirSeleccionProductos(grupo);
+      });
+  }
+
+  private abrirSeleccionProductos(grupo: PdvGrupo) {
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
     let productos: Producto[] = [];

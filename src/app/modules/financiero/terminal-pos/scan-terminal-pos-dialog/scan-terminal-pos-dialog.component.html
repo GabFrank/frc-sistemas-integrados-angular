@@ -28,7 +28,8 @@
             matInput
             [formControl]="codigoControl"
             required
-            autofocus
+            cdkFocusInitial
+            (blur)="onBlurCodigo($event)"
             placeholder="Ej: POS-001"
           />
           <mat-error *ngIf="codigoControl.hasError('required')">

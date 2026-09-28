@@ -45,13 +45,17 @@ export class DevolucionService {
     private cancelarDevolucionGQL: CancelarDevolucionGQL
   ) {}
 
-  onGetDevolucion(id, servidor = true): Observable<Devolucion> {
+  onGetDevolucion(id, servidor = true, silentLoad?: boolean): Observable<Devolucion> {
     return this.genericCrudService.onGetById(
       this.getDevolucionGQL,
       id,
       null,
       null,
-      servidor
+      servidor,
+      null,
+      null,
+      null,
+      silentLoad
     );
   }
 
@@ -63,7 +67,8 @@ export class DevolucionService {
     fechaFin?: string,
     page?: number,
     size?: number,
-    servidor = true
+    servidor = true,
+    silentLoad?: boolean
   ): Observable<PageInfo<Devolucion>> {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionesConFiltrosGQL,
@@ -76,7 +81,9 @@ export class DevolucionService {
         page,
         size,
       },
-      servidor
+      servidor,
+      null,
+      silentLoad
     );
   }
 
@@ -95,12 +102,15 @@ export class DevolucionService {
 
   onGetDevolucionItemsPorDevolucion(
     devolucionId: number,
-    servidor = true
+    servidor = true,
+    silentLoad?: boolean
   ): Observable<DevolucionItem[]> {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionItemsPorDevolucionGQL,
       { devolucionId },
-      servidor
+      servidor,
+      null,
+      silentLoad
     );
   }
 

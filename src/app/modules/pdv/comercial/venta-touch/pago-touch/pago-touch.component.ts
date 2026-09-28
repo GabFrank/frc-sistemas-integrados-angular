@@ -99,7 +99,7 @@ import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-t
 import { VentaTarjetaService } from "../../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../../financiero/venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
-import { esCobroTarjetaRegistrable } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
+import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
@@ -158,6 +158,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * cualquier otra forma de pago: sin escaneo de terminal ni de cupón.
    */
   ventaTarjetaHabilitada = false;
+  /**
+   * Si `onFinalizar` exige la terminal de cada tarjeta antes de cerrar. Arranca en `true` y queda
+   * en `true` si la consulta falla (filial sin V104.5): el lado seguro. Ver `lineasTarjetaSinTerminal`.
+   */
+  terminalObligatoria = true;
   /** Decimales por moneda, para escalar el importe del cupón (viene en la menor unidad). */
   decimalesPorMoneda: DecimalesPorMoneda = {};
 
@@ -239,6 +244,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.configuracionVentaTarjetaService.onGetConfiguracion(false).subscribe({
       next: (config) => (this.ventaTarjetaHabilitada = config?.habilitado === true),
       error: () => (this.ventaTarjetaHabilitada = false),
+    });
+    // Aparte de `habilitado` a propósito: si el filial todavía no tiene el campo, esta falla sola y
+    // se queda en true, sin arrastrar a la de arriba.
+    this.configuracionVentaTarjetaService.onGetTerminalObligatoria(false).subscribe({
+      next: (valor) => (this.terminalObligatoria = valor),
+      error: () => (this.terminalObligatoria = true),
     });
     setTimeout(() => {
       this.setFocusToValorInput();
@@ -634,6 +645,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         `No hay cotización cargada para ${this.selectedMoneda?.denominacion || "la moneda seleccionada"}: no se puede registrar el cobro en esa moneda.`
       );
     }
+    // Si esta línea abre el escaneo de la tarjeta, el foco es del diálogo: el campo «valor» lo
+    // recupera `finEscaneoTarjeta` cuando el escaneo termina.
+    let abrioEscaneo = false;
     if (this.formGroup.valid && saldo != 0 && !sinCotizacion) {
       let item = new CobroDetalle();
       if (selectedItem != null) Object.assign(item, selectedItem);
@@ -672,14 +686,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         item.requiereRegistroTarjeta = esLineaNueva;
         this.cobroDetalleList.push(item);
-        if (esLineaNueva) this.escanearSiEsTarjeta(item);
+        if (esLineaNueva) abrioEscaneo = this.escanearSiEsTarjeta(item);
       }
     }
     this.isVuelto = false;
     this.isDescuento = false;
     this.isAumento = false;
     this.setFormaPago(this.formaPagoList[0]?.descripcion);
-    this.setFocusToValorInput();
+    // ⚠️ No enfocar el cobro si se abrió el escaneo: este llamado le ganaba el foco al diálogo de
+    // terminal, el lector escribía en «valor» y su Enter finalizaba la venta sin terminal.
+    if (!abrioEscaneo) this.setFocusToValorInput();
   }
 
   setFocusToValorInput() {
@@ -701,6 +717,22 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     itens?: VentaCreditoCuotaInput[],
     ticket?: boolean
   ) {
+    // Todos los caminos de cierre pasan por acá (Enter, F10, botón, saldo 0 en addCobroDetalle):
+    // es el único lugar donde la regla no se puede saltear.
+    if (this.ventaTarjetaHabilitada && this.terminalObligatoria) {
+      const sinTerminal = lineasTarjetaSinTerminal(this.cobroDetalleList);
+      if (sinTerminal.length > 0) {
+        const cd = sinTerminal[0];
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: `Falta elegir la terminal de la tarjeta de ${Number(cd.valor).toLocaleString('es-PY')} `
+            + `${cd.moneda?.simbolo || 'Gs.'}. Escaneá el código de la terminal para poder cerrar la venta.`,
+          duracion: 5,
+        });
+        this.escanearTarjeta(cd);
+        return;
+      }
+    }
     const tarjetaPagos: TarjetaPago[] = this.ventaTarjetaHabilitada
       ? this.cobroDetalleList
           // `requiereRegistroTarjeta` y no solo el predicado: al reabrir un delivery, sus líneas
@@ -767,12 +799,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
-        this.isDialogOpen = false;
         if (!confirmado) {
+          // "Escanear otro": escanearTarjeta vuelve a poner la guarda, no hay ventana sin ella.
           this.escanearTarjeta(item);
           return;
         }
         this.aplicarCupon(item, datosCupon);
+        this.finEscaneoTarjeta();
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.warn,
           texto: `Registrado con diferencia: ${avisos.join(' y ')}.`,
@@ -786,10 +819,23 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * mostrar el estado por línea (pendiente / registrada) en la tabla y ofrecer el ícono de QR
    * para reabrir. Si el flujo está deshabilitado, TARJETA queda como forma de pago normal.
    */
-  private escanearSiEsTarjeta(item: CobroDetalle): void {
-    if (!this.ventaTarjetaHabilitada) return;
-    if (!esCobroTarjetaRegistrable(item)) return;
+  private escanearSiEsTarjeta(item: CobroDetalle): boolean {
+    if (!this.ventaTarjetaHabilitada) return false;
+    if (!esCobroTarjetaRegistrable(item)) return false;
     this.escanearTarjeta(item);
+    return true;
+  }
+
+  /**
+   * Cierra el escaneo de tarjeta: vuelve a activar los atajos del cobro y le devuelve el foco al
+   * campo «valor». Se llama donde el escaneo TERMINA de verdad: sin terminal, más tarde, cupón no
+   * usable, cupón aplicado o diferencia confirmada. NO antes de `procesarCupon`: ese consulta el
+   * duplicado por red y puede abrir la confirmación de diferencia, y en ese intervalo un Enter
+   * finalizaba la venta con el cupón sin aplicar (auditoría del diff, 2026-09-28).
+   */
+  private finEscaneoTarjeta(): void {
+    this.isDialogOpen = false;
+    this.setFocusToValorInput();
   }
 
   /**
@@ -798,6 +844,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * falta antes de Finalizar: siempre reemplaza lo que la línea ya tenía.
    */
   escanearTarjeta(item: CobroDetalle): void {
+    // Mientras dure el escaneo, los atajos del cobro (Enter/F10 = finalizar, F12, F4/F5, ...) quedan
+    // apagados. Sin esto, un Enter del lector que caía fuera del diálogo cerraba la venta.
+    this.isDialogOpen = true;
     this.matDialog.open(ScanTerminalPosDialogComponent, {
       width: '380px',
       disableClose: true,
@@ -812,12 +861,17 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         sucursalId: Number(this.mainService.sucursalActual?.id),
       }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: ScanTerminalPosResult) => {
-      if (!result?.terminalPos) return; // canceló la selección de terminal: la línea queda como estaba
+      if (!result?.terminalPos) { // canceló la selección de terminal: la línea queda como estaba
+        this.finEscaneoTarjeta();
+        return;
+      }
       item.terminalPos = result.terminalPos;
 
       // El cajero escaneó directamente el cupón y la terminal se resolvió sola --por la serie que
       // el propio cupón imprime--. El segundo diálogo no tiene nada que preguntar.
       if (result.datosCupon) {
+        // La guarda sigue puesta: procesarCupon consulta el duplicado por red y puede abrir la
+        // confirmación de diferencia. Él mismo la apaga cuando termina (finEscaneoTarjeta).
         this.procesarCupon(item, result.datosCupon);
         return;
       }
@@ -853,6 +907,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .pipe(untilDestroyed(this))
         .subscribe((datosCupon) => {
           if (!datosCupon) {
+            this.finEscaneoTarjeta();
             // Pospuesto al reabrir: si la línea YA tenía un cupón bueno de un escaneo anterior,
             // no se pisa. "Más tarde" significa "no tengo nada nuevo que darte ahora", no
             // "olvidate lo que ya habías leído".
@@ -907,6 +962,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (motivo) => {
           if (motivo) {
             this.avisarCuponNoUsable(motivo);
+            this.finEscaneoTarjeta();
             return;   // la linea queda PENDIENTE: el cupon no se aplica
           }
           this.evaluarCupon(item, datosCupon);
@@ -959,6 +1015,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.notificacionSnackbar.notification$.next(
       { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
     );
+    this.finEscaneoTarjeta();
   }
 
   private cerrarConRespuesta(
@@ -1127,7 +1184,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onConvenioClick() {
-    this.isDialogOpen = true;
+    // `isDialogOpen` se marca recién al abrir el diálogo y se apaga al cerrarlo. Antes se ponía en
+    // true acá arriba --incluso en los return tempranos-- y nunca volvía a false: después de un
+    // CONVENIO los atajos del cobro (Enter, F10, F1-F6) quedaban muertos.
     this.setFormaPago("CONVENIO");
     if (this.formGroup?.controls?.saldo?.value == 0) {
       return this.notificacionSnackbar.openWarn("El valor no puede ser 0.");
@@ -1137,6 +1196,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         "El saldo es negativo, necesita dar vuelto"
       );
     } else {
+      this.isDialogOpen = true;
       this.matDialog
         .open(AddVentaCreditoDialogComponent, {
           width: "100%",
@@ -1145,6 +1205,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         })
         .afterClosed()
         .subscribe((res) => {
+          this.isDialogOpen = false;
           if (res?.ventaCredito != null) {
             let ventaCredito: VentaCredito = res["ventaCredito"];
             let cobroDetalle = new CobroDetalle();
@@ -1180,7 +1241,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .afterClosed()
       .subscribe((res) => {
-        if (res["ventaCredito"] != null) {
+        // Mismo defecto que CONVENIO: sin esto los atajos quedaban muertos tras cerrar el diálogo.
+        this.isDialogOpen = false;
+        if (res?.["ventaCredito"] != null) {
           let ventaCredito: VentaCredito = res["ventaCredito"];
           let cobroDetalle = new CobroDetalle();
           cobroDetalle.pago = true;
