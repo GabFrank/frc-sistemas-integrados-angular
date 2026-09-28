@@ -219,6 +219,12 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     });
   }
 
+  /** Recibo de un solo item del finiquito: PDF o ticket, con el dialogo oficial de impresion. */
+  onReciboItem(it: any) {
+    this.impresionService.imprimir('Recibo ' + (it.descripcion || it.concepto || it.id) + ' — ' + (this.nombre || this.liq.id),
+      (anchoMm, escpos) => this.liquidacionFinalService.onImprimirReciboItem(it.id, anchoMm, escpos));
+  }
+
   onImprimirRecibo() {
     this.impresionService.imprimir('Finiquito — ' + (this.nombre || this.liq.id),
       (anchoMm, escpos) => this.liquidacionFinalService.onImprimirRecibo(this.liq.id, anchoMm, escpos));

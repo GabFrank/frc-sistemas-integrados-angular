@@ -9,6 +9,7 @@ import { VolverBorradorLiquidacionFinalGQL } from './graphql/VolverBorradorLiqui
 import { PagarLiquidacionFinalGQL } from './graphql/PagarLiquidacionFinal';
 import { AnularLiquidacionFinalGQL } from './graphql/AnularLiquidacionFinal';
 import { ImprimirReciboFinalGQL } from './graphql/ImprimirReciboFinal';
+import { ImprimirReciboItemLiquidacionFinalGQL } from './graphql/ImprimirReciboItemLiquidacionFinal';
 import { PreviewLiquidacionFinalGQL } from './graphql/PreviewLiquidacionFinal';
 import { AgregarItemLiquidacionFinalGQL } from './graphql/AgregarItemLiquidacionFinal';
 import { EditarItemLiquidacionFinalGQL } from './graphql/EditarItemLiquidacionFinal';
@@ -30,7 +31,8 @@ export class LiquidacionFinalService {
     private agregarItemGQL: AgregarItemLiquidacionFinalGQL,
     private editarItemGQL: EditarItemLiquidacionFinalGQL,
     private eliminarItemGQL: EliminarItemLiquidacionFinalGQL,
-    private previewGQL: PreviewLiquidacionFinalGQL
+    private previewGQL: PreviewLiquidacionFinalGQL,
+    private imprimirReciboItemGQL: ImprimirReciboItemLiquidacionFinalGQL
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
@@ -67,6 +69,11 @@ export class LiquidacionFinalService {
 
   onImprimirRecibo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.imprimirReciboFinalGQL, { id, anchoMm, escpos }, servidor);
+  }
+
+  /** Recibo de un solo item del finiquito (HABER: recibo; DESCUENTO: constancia). Solo APROBADA o PAGADA. */
+  onImprimirReciboItem(itemId: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboItemGQL, { itemId, anchoMm, escpos }, servidor);
   }
 
   onAgregarItem(liquidacionFinalId: number, descripcion: string, monto: number, tipo: string, servidor = true): Observable<any> {
