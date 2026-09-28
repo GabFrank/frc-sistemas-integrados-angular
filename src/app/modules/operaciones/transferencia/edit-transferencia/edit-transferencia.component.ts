@@ -497,6 +497,10 @@ export class EditTransferenciaComponent implements OnInit {
             res.getContent,
             alertas
           );
+          // Igual que frc-mobile: la etapa (filtro de rechazados y si se puede finalizar) se
+          // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
+          // "todo confirmado".
+          this.verificarEtapa();
         }
       });
   }
@@ -613,12 +617,10 @@ export class EditTransferenciaComponent implements OnInit {
         break;
     }
 
-    if (
-      this.selectedResponsable.id == this.mainService.usuarioActual.id ||
-      this.selectedResponsable.id == null
-    ) {
-      this.puedeEditar = true;
-    }
+    // Se recalcula en cada etapa: el responsable cambia al avanzar.
+    this.puedeEditar =
+      this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
+      this.selectedResponsable?.id == null;
     this.onVerificarConfirmados();
   }
 
@@ -1133,9 +1135,11 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onVerificarConfirmados() {
-    let okPreparacion = true;
-    let okTransporte = true;
-    let okRecepcion = true;
+    // Con la grilla vacia (items todavia cargando) no se puede dar nada por confirmado.
+    const hayItems = this.dataSource.data.length > 0;
+    let okPreparacion = hayItems;
+    let okTransporte = hayItems;
+    let okRecepcion = hayItems;
     this.dataSource.data.find((i) => {
       if (
         this.selectedTransferencia.etapa ==
@@ -1243,18 +1247,11 @@ export class EditTransferenciaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.selectedTransferencia.etapa = etapa;
-          this.actualizarPermisosPorSucursal();
-          this.verificarEtapa();
-          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_CAMINO) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_TRANSITO;
-          } else if (etapa == EtapaTransferencia.RECEPCION_EN_VERIFICACION) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_DESTINO;
-          }
+          // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
+          // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
+          // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
+          // responsable, dejando Finalizar habilitado sin confirmar nada.
+          this.cargarDatos(this.selectedTransferencia.id);
         }
       });
   }
