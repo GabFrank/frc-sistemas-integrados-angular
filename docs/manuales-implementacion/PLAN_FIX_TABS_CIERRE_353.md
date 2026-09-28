@@ -104,6 +104,36 @@ Dos auditores Sonnet, sin verse, 2026-09-28.
   llamadores.
 - Sin persistencia: rollback = revertir el commit.
 
+## Auditoría del diff (paso 8)
+
+Sobre `6b5d06e6`; ningún condicional. Fijo 1 y 2 en un mismo auditor (desvío anotado, como en #354).
+- Fijo 1 — sin bypass: solo actúa sobre pestañas ya abiertas con permiso. "Cambiar de pestaña con el
+  diálogo de cierre abierto" → **descartado**: el diálogo es modal con backdrop y `removeTab` usa el
+  índice capturado, no `currentIndex`.
+- Fijo 2 — sin esquema; `currentIndex`/`active` con escritor y lectores.
+- Fijo 3 — los 8 escenarios trazados contra `tabs.mjs` terminan coherentes; guardias sin llamadores
+  rotos. Observaciones sin cambio: `currentIndex` se sincroniza una microtask después del clic (nadie
+  lo lee en ese instante); `removeTab` emite `tabSub` dos veces al cerrar la activa (ya lo hacía,
+  idempotente).
+
+## Prueba de runtime (paso 9) — 2026-09-28
+
+`ng serve -c web` (worktree) + central local 8081, espía sobre `TabService`.
+- Caso 1 OK (#353): Dashboard → Lista → Devol. 3 → Histórico de colectas → clic en Devol. 3
+  (`currentIndex` 2, `active` = Devol. 3) → cerrar → queda **Lista** (padre), visible y refrescada
+  (#354).
+- Caso 2 OK: cerrar una anterior a la activa → misma activa, `currentIndex` 1→0.
+- Caso 3 OK: cerrar la última activa sin padre → la anterior.
+- Caso 4 OK: cerrar la hija con el padre ya cerrado → la vecina (antes: ninguna).
+- Caso 5 OK: clic en P3 + `changeCurrentTabName` → renombra P3.
+- Caso 7 OK: 7 clics seguidos sin espera → visible, `currentTab()`, `active`, `currentIndex` en la
+  última clickeada; sin bucle.
+- Caso 8 OK: `addTab` + `removeTab(currentIndex - 1)` en el mismo tick → `currentTab()` = la nueva.
+- Caso 6 **NO VERIFICADO**: *Venta* no arranca en modo web (`BuscadorComponent` → `precios.split`
+  sobre `undefined`, crash preexistente citado en `tab-content.component.ts`). Queda cubierto solo
+  por la auditoría (los `removeTab(currentIndex)` del POS corren dentro de diálogos modales del
+  arranque). Verificar en Electron antes de liberar.
+
 ## Qué queda sin verificar / fuera de alcance
 
 - Las 12+ llamadas `removeTab(currentIndex)` no se tocan: el arreglo las corrige de rebote. Solo se
