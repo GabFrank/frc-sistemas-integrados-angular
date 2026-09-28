@@ -137,10 +137,18 @@ Sobre `6b5d06e6`; ningún condicional. Fijo 1 y 2 en un mismo auditor (desvío a
     el clic sigue sin emitir `tabSub`); el buscador responde (abre "Buscar Producto").
   - Sin PDV **OK**: `pdvId` vacío → aviso "No se ha configurado un ID de Punto de Venta" → *Cerrar* →
     se cierra **solo *Venta***, queda *Devoluciones* (`currentIndex` 0). Config restaurada después.
-  - "Salir" al elegir caja: **NO VERIFICADO** — el PDV 3 ya tiene caja abierta, el diálogo no aparece;
-    forzarlo requiere cerrar esa caja. Mismo mecanismo (`removeTab(currentIndex)` en un diálogo modal
-    del arranque) que el caso "sin PDV", que sí se verificó.
-  - Error de validación de PDV (filial congelado): **NO VERIFICADO**, no se congeló el servicio.
+  - "Salir" al elegir caja **OK**: en lugar de cerrar la caja 3009 en la base del filial (tabla que
+    replica), se interceptó en el navegador `CajaService.onGetByUsuarioIdAndAbierto` para que
+    devuelva "sin caja" → diálogo "No hay ninguna caja abierta a nombre de MAURO…" → *Salir* → se
+    cierra **solo *Venta***, queda *Devoluciones* (`currentIndex` 0). Interceptor quitado; datos
+    intactos.
+  - Error de validación de PDV (filial congelado): **NO VERIFICADO** — el `kill -STOP` al filial lo
+    bloqueó el clasificador de permisos de Claude Code; no se ejecutó. **Hallazgo preexistente**: esa
+    rama del POS (`venta-touch.component.ts:351-365`, aviso "Error de Validación") es inalcanzable
+    ante un error de red: `onGetPuntoDeVentaPorId` usa `onCustomQuery` sin `errorConf`, y
+    `onCustomQuery` solo propaga el error con `errorConf.networkError.propagate` → con el filial caído
+    *Venta* queda en blanco hasta el timeout (300 s) y después sigue en blanco, sin aviso. Fuera de
+    alcance de #353; candidato a issue.
 
 ## Qué queda sin verificar / fuera de alcance
 
