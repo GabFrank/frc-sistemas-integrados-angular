@@ -96,6 +96,29 @@ Dos auditores Sonnet, sin verse, 2026-09-28.
 - MEDIA · doble click → ya cubierto por `[disabled]="colectando"`; se mantiene.
 - BAJA · `mensaje` nulo → **aplicado** (fallback).
 
+## Auditoría del diff (paso 8)
+
+Tres fijos (Sonnet) sobre `446c6d2f`; ningún condicional disparado (solo UI del desktop).
+- Fijo 1 — sin hallazgos: sin operaciones GraphQL nuevas; la pantalla sigue gateada por
+  `VER_TRANSFERENCIA` (`side-mini-variant.component.ts:1347`).
+- Fijo 2 — sin esquema; todos los datos nuevos con escritor y lector (`hayColectables` faltaba en la
+  tabla del plan: escribe `recalcularSeleccion`, lee el checkbox de cabecera).
+- Fijo 3 — contrato intacto; orden de `ngModelChange` correcto. "origenId null suma un origen
+  fantasma" → **descartado**: `operaciones.devolucion.sucursal_origen_id` es `NOT NULL`.
+
+## Prueba de runtime (paso 9) — 2026-09-28
+
+`ng serve -c web` (worktree) + central local 8081 perfil `dev`, base `bodega@5551`, 5 devoluciones
+sembradas `T224-*` (2 en CENTRAL, 1 CALLE 10, 1 ROTONDA, 1 sin proveedor).
+Casos 1-8: **OK**. El ID de GraphQL llega como string (`"410"`, `"1"`): el `Number()` era necesario.
+Destino CENTRAL → diálogo "2 sucursales… 2 devolución(es) ya está(n) en SUC. CENTRAL" → base: 2
+colectas creadas (origen 6 y 3), las de CENTRAL siguen SEPARADO.
+
+Observación fuera de alcance: la pantalla filtra colectables por `proveedor != null` y el backend
+exige `tipo = CON_PROVEEDOR` (`DevolucionService.validarTransicion`). Una fila con proveedor y `tipo`
+NULL se ofrece y el backend la rechaza ("COLECTADO solo aplica a devoluciones con proveedor"); con
+este fix el snackbar ahora muestra ese motivo.
+
 ## Qué queda sin verificar
 
 - Impresión, IPC y auto-update: no aplica (pantalla sin Electron).
