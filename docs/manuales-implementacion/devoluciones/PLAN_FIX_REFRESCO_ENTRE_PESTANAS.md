@@ -109,6 +109,40 @@ Dos auditores Sonnet, sin verse, 2026-09-28.
 - MEDIA · no depender de `.active` (el clic no lo actualiza) → **aplicado** (identidad de `Tab`).
 - Sin migración ni DML: rollback = revertir el commit.
 
+## Auditoría del diff (paso 8)
+
+Sobre `df0c19cd`; ningún condicional disparado. **Desvío del ciclo:** Fijo 1 y Fijo 2 corrieron en
+un mismo auditor (los dos casi N/A en un diff solo de UI); Fijo 3 aparte.
+- Fijo 1 — sin hallazgos: solo re-disparo de lecturas existentes con los mismos filtros; la sucursal
+  fija del dashboard pasa por el mismo getter.
+- Fijo 2 — sin esquema; todos los datos nuevos con escritor y lector.
+- Fijo 3 — `proveedorTexto` tipeado sin buscar no contaba como edición pendiente y un refresco lo
+  pisaba → **aplicado**. "Cancelar `filtroSub` deja colgado el diálogo Buscando" → **descartado**:
+  `onCustomQuery` no devuelve la suscripción interna como teardown, así que el `closeDialog` corre
+  igual; comprobado en runtime (dos `onFilter()` seguidos → 0 diálogos abiertos).
+
+## Prueba de runtime (paso 9) — 2026-09-28
+
+`ng serve -c web` (worktree) + central local 8081 perfil `dev`, base `bodega@5551`. Espías en
+`tabReactivada$` y en `DevolucionService`. Cambios "de otra PC" simulados por SQL.
+- Caso 6 OK: abrir Devol. 3 y Devol. 6 → una consulta cada una, cero reactivaciones.
+- Caso 1 OK: SQL inserta una devolución → volver al dashboard → 6→7 devoluciones, 5→6 pendientes de
+  retiro, sin diálogo, una reactivación.
+- Caso 3 OK (#222): revertir colecta desde *Histórico de colectas* → volver a Devol. 3 → Estado
+  Separado, botones de SEPARADO, aviso "cambió a SEPARADO en otra pestaña", consulta silenciosa.
+- Caso 4 OK: observación tipeada en Devol. 6 (PENDIENTE) + SQL la pasa a SEPARADO → volver → texto
+  conservado (sigue dirty), estado y botones nuevos, aviso. Misma instancia del componente.
+- Caso 2 OK (#223): volver a la lista → la nueva aparece y las revertidas figuran SEPARADO, silencioso.
+- Caso 5 OK: volver a una pestaña sin cambios → consulta silenciosa, sin aviso.
+- Caso 7 **distinto a lo planeado**: al cerrar Devol. 3 quedó activa *Histórico de colectas*, no la
+  lista padre. Causa preexistente: `removeTab` vuelve al padre solo si `currentIndex == index`, y
+  `currentIndex` no se actualiza con el clic del usuario. La señal emitió para la pestaña que quedó
+  visible (correcto); la lista se refresca al volver a ella (caso 2). Se reporta aparte con
+  `removeTab:106`.
+
+Verificado además: al cambiar de pestaña el componente **no se destruye** (misma instancia al
+volver; Material solo saca el contenido inactivo del DOM).
+
 ## Qué queda sin verificar / fuera de alcance
 
 - Otras vistas del módulo con el mismo patrón (historial de retiros/colectas, colecta interna, retiro
