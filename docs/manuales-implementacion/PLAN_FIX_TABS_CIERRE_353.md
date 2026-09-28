@@ -129,10 +129,18 @@ Sobre `6b5d06e6`; ningún condicional. Fijo 1 y 2 en un mismo auditor (desvío a
 - Caso 7 OK: 7 clics seguidos sin espera → visible, `currentTab()`, `active`, `currentIndex` en la
   última clickeada; sin bucle.
 - Caso 8 OK: `addTab` + `removeTab(currentIndex - 1)` en el mismo tick → `currentTab()` = la nueva.
-- Caso 6 **NO VERIFICADO**: *Venta* no arranca en modo web (`BuscadorComponent` → `precios.split`
-  sobre `undefined`, crash preexistente citado en `tab-content.component.ts`). Queda cubierto solo
-  por la auditoría (los `removeTab(currentIndex)` del POS corren dentro de diálogos modales del
-  arranque). Verificar en Electron antes de liberar.
+- Caso 6 (POS) — primer intento falló por configuración, no por el cambio: con la app apuntando
+  solo al central, *Venta* revienta en `BuscadorComponent` (`precios.split`). Repetido con la config
+  de PDV (filial local :8080, `pdvId` 3, `isLocal`), 2026-09-28:
+  - Uso normal **OK**: *Venta* abre con la caja abierta del PDV 3; clic Venta ↔ Devoluciones ↔ Lista
+    → `currentTab()`/`active` siguen al clic; al volver a *Venta* el foco no salta (igual que antes:
+    el clic sigue sin emitir `tabSub`); el buscador responde (abre "Buscar Producto").
+  - Sin PDV **OK**: `pdvId` vacío → aviso "No se ha configurado un ID de Punto de Venta" → *Cerrar* →
+    se cierra **solo *Venta***, queda *Devoluciones* (`currentIndex` 0). Config restaurada después.
+  - "Salir" al elegir caja: **NO VERIFICADO** — el PDV 3 ya tiene caja abierta, el diálogo no aparece;
+    forzarlo requiere cerrar esa caja. Mismo mecanismo (`removeTab(currentIndex)` en un diálogo modal
+    del arranque) que el caso "sin PDV", que sí se verificó.
+  - Error de validación de PDV (filial congelado): **NO VERIFICADO**, no se congeló el servicio.
 
 ## Qué queda sin verificar / fuera de alcance
 
