@@ -72,7 +72,7 @@ export class PdvCategoriaService implements OnDestroy {
       this.pdvCategorias.forEach((cat) => {
         cat.grupos.forEach((gr) => {
           if (gr.activo == true) {
-            this.onGetGrupoProductosPorGrupoId(gr.id)
+            this.onGetGrupoProductosPorGrupoId(gr.id, false)
               .pipe(untilDestroyed(this))
               .subscribe((res) => {
                 if (res != null) {

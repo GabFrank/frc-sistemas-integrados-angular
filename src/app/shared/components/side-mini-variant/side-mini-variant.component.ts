@@ -79,6 +79,7 @@ import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.co
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
 import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component';
+import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
@@ -684,6 +685,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'inventory',
           action: 'list-stock-lote',
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
+        },
+        {
+          name: 'Promociones',
+          icon: 'local_offer',
+          action: 'list-precio-especial',
+          visibilityRoles: [ROLES.ADMIN, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]
         }
       ]
     },
@@ -1280,6 +1287,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "list-precio-especial":
+        this.openTabIfAuthorized([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], ListPrecioEspecialComponent, "Promociones");
         break;
       case "funcionario-dashboard":
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");
