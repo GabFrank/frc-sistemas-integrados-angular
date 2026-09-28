@@ -31,6 +31,7 @@ import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Router } from '@angular/router';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../layouts/tab/tab.service';
 import { AdicionarCajaDialogComponent } from '../pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
@@ -109,7 +110,8 @@ export class AnalisisDiferenciaComponent implements OnInit {
     private matDialog: MatDialog,
     private searchMaletinGQL: SearchMaletinGQL,
     private ventaService: VentaService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private notificacionBar: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -481,22 +483,11 @@ export class AnalisisDiferenciaComponent implements OnInit {
     }
   }
 
+  // La caja no esta en las filas cargadas: no se sabe de que sucursal es, y abrirla con la de otra
+  // fila podia mostrar la caja de otra sucursal con el mismo id y cargarle el conteo a esa.
   openFallbackTab(cajaId: number) {
-    const primerItemMaletin = this.diferenciaMaletinDataSource.data[0];
-    const primerItemCaja = this.diferenciaCajaDataSource.data[0];
-    const primerItem = primerItemMaletin || primerItemCaja;    
-    const fallbackData = primerItem ? {
-      id: cajaId,
-      sucursalId: primerItem.sucursalId,
-      sucursal: primerItem.sucursal
-    } : { id: cajaId };
-
-    this.tabService.addTab(
-      new Tab(
-        AdicionarCajaDialogComponent,
-        "Conteo de caja " + cajaId,
-        new TabData(cajaId, fallbackData)
-      )
+    this.notificacionBar.openWarn(
+      `La caja ${cajaId} no está en la lista actual. Filtrá por su sucursal para abrirla.`
     );
   }
 

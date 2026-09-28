@@ -1154,6 +1154,17 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
+    // Precio 0 solo vale para bonificaciones: la recepción no aplica costo con precio 0,
+    // y un producto nuevo quedaría sin costo para siempre (su precio se precarga desde el costo).
+    const precioUnitario = Number(this.itemForm.get("precioUnitarioSolicitado")?.value);
+    if (!this.itemForm.get("esBonificacion")?.value && !(precioUnitario > 0)) {
+      this.notificacionService.openWarn(
+        "El precio unitario debe ser mayor a 0. Si el producto viene sin cargo, márquelo como bonificación"
+      );
+      this.precioPorPresentacionInput?.nativeElement?.focus();
+      return;
+    }
+
     if (this.savingComputed) {
       return;
     }
