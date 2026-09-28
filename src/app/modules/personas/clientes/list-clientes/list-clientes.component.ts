@@ -56,7 +56,6 @@ export class ListClientesComponent implements OnInit {
     "credito",
     "saldo",
     "deuda",
-    "contactos",
     "telefono",
     "usuario",
     "acciones"
