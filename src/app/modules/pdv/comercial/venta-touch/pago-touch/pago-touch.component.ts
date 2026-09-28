@@ -799,12 +799,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
-        this.isDialogOpen = false;
         if (!confirmado) {
+          // "Escanear otro": escanearTarjeta vuelve a poner la guarda, no hay ventana sin ella.
           this.escanearTarjeta(item);
           return;
         }
         this.aplicarCupon(item, datosCupon);
+        this.finEscaneoTarjeta();
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.warn,
           texto: `Registrado con diferencia: ${avisos.join(' y ')}.`,
@@ -827,8 +828,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /**
    * Cierra el escaneo de tarjeta: vuelve a activar los atajos del cobro y le devuelve el foco al
-   * campo «valor». Se llama por TODOS los caminos en que termina el escaneo (cancelar, cupón leído,
-   * más tarde), antes de procesar el cupón --que puede abrir su propio diálogo y volver a marcarlo--.
+   * campo «valor». Se llama donde el escaneo TERMINA de verdad: sin terminal, más tarde, cupón no
+   * usable, cupón aplicado o diferencia confirmada. NO antes de `procesarCupon`: ese consulta el
+   * duplicado por red y puede abrir la confirmación de diferencia, y en ese intervalo un Enter
+   * finalizaba la venta con el cupón sin aplicar (auditoría del diff, 2026-09-28).
    */
   private finEscaneoTarjeta(): void {
     this.isDialogOpen = false;
@@ -867,7 +870,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       // El cajero escaneó directamente el cupón y la terminal se resolvió sola --por la serie que
       // el propio cupón imprime--. El segundo diálogo no tiene nada que preguntar.
       if (result.datosCupon) {
-        this.finEscaneoTarjeta();
+        // La guarda sigue puesta: procesarCupon consulta el duplicado por red y puede abrir la
+        // confirmación de diferencia. Él mismo la apaga cuando termina (finEscaneoTarjeta).
         this.procesarCupon(item, result.datosCupon);
         return;
       }
@@ -902,8 +906,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .afterClosed()
         .pipe(untilDestroyed(this))
         .subscribe((datosCupon) => {
-          this.finEscaneoTarjeta();
           if (!datosCupon) {
+            this.finEscaneoTarjeta();
             // Pospuesto al reabrir: si la línea YA tenía un cupón bueno de un escaneo anterior,
             // no se pisa. "Más tarde" significa "no tengo nada nuevo que darte ahora", no
             // "olvidate lo que ya habías leído".
@@ -958,6 +962,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (motivo) => {
           if (motivo) {
             this.avisarCuponNoUsable(motivo);
+            this.finEscaneoTarjeta();
             return;   // la linea queda PENDIENTE: el cupon no se aplica
           }
           this.evaluarCupon(item, datosCupon);
@@ -1010,6 +1015,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.notificacionSnackbar.notification$.next(
       { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
     );
+    this.finEscaneoTarjeta();
   }
 
   private cerrarConRespuesta(
