@@ -281,7 +281,10 @@ export class EditDevolucionComponent implements OnInit {
       this.acreditarMode ||
       controles.some((c) => c.dirty) ||
       (this.selectedProveedor?.id ?? null) !=
-        (this.selectedDevolucion?.proveedor?.id ?? null)
+        (this.selectedDevolucion?.proveedor?.id ?? null) ||
+      // Texto tipeado en el buscador de proveedor sin confirmar la búsqueda.
+      (this.proveedorTexto ?? "") !=
+        (this.selectedProveedor?.persona?.nombre ?? "")
     );
   }
 
