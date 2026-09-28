@@ -144,6 +144,7 @@ export class ListUsuarioComponent implements OnInit {
     this.selectedPageInfo = null;
     this.rolesControl.setValue([]);
     this.rolesResumen = '';
+    // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca (con los roles vacios).
     this.buscarControl.setValue(null);
   }
 
