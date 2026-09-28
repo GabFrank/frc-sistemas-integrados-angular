@@ -11,6 +11,8 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { Venta } from "../venta.model";
 import { VentaService } from "../venta.service";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
+import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
 
 class UltimasVentasDialogData {
   caja: PdvCaja;
@@ -64,7 +66,8 @@ export class UltimasVentasDialogComponent implements OnInit {
     private ventaService: VentaService,
     private cargandoService: CargandoDialogService,
     private notificacionSnackBar: NotificacionSnackbarService,
-    private dialogService: DialogosService
+    private dialogService: DialogosService,
+    private ventaTarjetaService: VentaTarjetaService
   ) {
     if (data?.cancelacion == true) {
       this.titulo = "CANCELAR VENTA";
@@ -117,7 +120,21 @@ export class UltimasVentasDialogComponent implements OnInit {
     }
   }
 
+  /**
+   * Cancela la venta en el CENTRAL, que es donde se recorre toda la cadena: caja, stock, delivery,
+   * credito, factura y venta con tarjeta. La replica la baja a esta sucursal.
+   *
+   * Hasta el 2026-09-28 esto iba al filial (`servidor=false`), cuyo `cancelarVenta` era un stub que
+   * devolvia true sin hacer nada: el cajero veia "Cancelado con exito" y la venta seguia igual.
+   *
+   * El central ALTERNA (una venta cancelada se reactiva), y esta pantalla solo ofrece cancelar: por
+   * eso una venta ya cancelada no se manda.
+   */
   cancelarVenta(venta: Venta, index) {
+    if (venta?.estado == VentaEstado.CANCELADA) {
+      this.notificacionSnackBar.openWarn("La venta " + venta.id + " ya está cancelada.");
+      return;
+    }
     this.dialogService
       .confirm(
         "ATENCIÓN!!",
@@ -126,13 +143,26 @@ export class UltimasVentasDialogComponent implements OnInit {
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.ventaService.onCancelarVenta(venta.id, venta.sucursalId, false).pipe(untilDestroyed(this)).subscribe((res) => {
-            if (res) {
+          this.ventaService.onCancelarVenta(venta.id, venta.sucursalId, true).pipe(untilDestroyed(this)).subscribe({
+            next: (res) => {
+              if (!res) {
+                this.notificacionSnackBar.openAlgoSalioMal("No se pudo cancelar la venta " + venta.id + ".");
+                return;
+              }
               this.notificacionSnackBar.openSucess("Cancelado con éxito");
               venta.estado = VentaEstado.CANCELADA;
               this.dataSource.data = updateDataSource(this.dataSource.data, venta, index);
+              // Respaldo: el central ya la cancela, pero si alguna vez se revierte el central por
+              // debajo de este cambio, esto sigue cancelando la venta con tarjeta en la sucursal.
+              // Las dos escriben CANCELADO: repetirlo no cambia nada.
+              this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+                error: (err) => console.error('[VentaTarjeta] no se pudo cancelar el registro de tarjeta:', err),
+              });
               this.reimpresionVenta(venta.id);
-            }
+            },
+            // Antes no habia handler: si fallaba, el cajero no veia ni exito ni error.
+            error: (err) => this.notificacionSnackBar.openAlgoSalioMal(
+              mensajeDeError(err, "No se pudo cancelar la venta " + venta.id + ". Revisá la conexión con el servidor central.")),
           });
         }
       });

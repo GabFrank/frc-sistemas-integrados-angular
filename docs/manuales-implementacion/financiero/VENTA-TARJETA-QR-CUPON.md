@@ -101,6 +101,23 @@ llamarlo también.
   central. **Los errores de la captura se muestran con `mensajeDeError`**: el texto genérico
   «revisá el servidor» solo aparece cuando el filial de verdad no respondió.
 
+- **Mientras se escanea una tarjeta, el cobro no escucha el teclado.** `pago-touch` tiene un
+  listener `keydown` donde Enter/F10 con saldo 0 = `onFinalizar()`, y su única guarda es
+  `isDialogOpen`. Hasta el 2026-09-28 el escaneo no la marcaba y `addCobroDetalle` le robaba el foco
+  al diálogo de terminal: el lector (keyboard-wedge) escribía en «valor» y su Enter cerraba la venta
+  sin terminal — 116 de 631 en farmacia filial 1 en tres días. Reglas: `escanearTarjeta` marca
+  `isDialogOpen`; se apaga **solo** en `finEscaneoTarjeta`, que se llama donde el escaneo termina de
+  verdad (no antes de `procesarCupon`, que consulta por red); todo diálogo nuevo del cobro tiene que
+  marcarla y desmarcarla (CONVENIO y FIRMA la dejaban pegada en `true`). El diálogo de terminal usa
+  `cdkFocusInitial` y recupera el foco si sale fuera de él.
+- **`terminalObligatoria`** (perilla del ABM, default `true`): `onFinalizar` no cierra mientras
+  `lineasTarjetaSinTerminal` no esté vacía. Se lee del filial **en una query aparte** con Apollo
+  directo (sin el snackbar de `GenericCrudService`): si fuera en la query de `habilitado`, un filial
+  sin la columna tiraría todo el módulo. Si falla, `true`.
+- **Cancelar una venta va al central**, también desde «Últimas ventas» del PDV (antes iba a un
+  stub del filial que simulaba éxito). El central alterna CANCELADA↔CONCLUIDA: el PDV no manda una
+  venta ya cancelada. Se sigue llamando `onCancelarPorVentaId` (filial) como respaldo idempotente.
+
 ## 4. El rol nuevo son 3 ediciones en el sidebar
 
 `VENTA_TARJETA_COMPLETAR` (enum `roles.enum.ts` ↔ fila `VENTA TARJETA COMPLETAR` de
@@ -128,7 +145,7 @@ node -r /tmp/jasmine-shim.js /tmp/spec.js
 ```
 
 45 verdes: `qr-pos-parser` (23), `venta-tarjeta-qr-payload` (8), `cobro-tarjeta` (8), `mensaje-error` (6).
-Sumados el 2026-09-24: `monto-cupon` (9), `mapa-formato.service` (3) y `caja-abierta` (6 expects). El shim de jasmine necesita
+Sumados el 2026-09-24: `monto-cupon` (9), `mapa-formato.service` (3) y `caja-abierta` (6 expects). 2026-09-28: `lineasTarjetaSinTerminal` (5 casos en `cobro-tarjeta.spec`). El shim de jasmine necesita
 `window`/`location` (Karma corre en un navegador por `http://localhost`) y, si el spec importa algo
 que arrastra Angular, `node -r @angular/compiler` con `NODE_PATH=<desktop>/node_modules`. Un spec
 que importa un **componente** con Angular Material no corre en node (pide DOM): por eso la lógica
