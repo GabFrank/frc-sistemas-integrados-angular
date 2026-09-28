@@ -98,6 +98,9 @@ import {
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ConfiguracionTransferenciaService } from '../configuracion-transferencia-dialog/configuracion-transferencia.service';
 
+/** Deposito Aquario SDG: el unico origen donde el solicitante puede ser cualquier funcionario. */
+const SUCURSAL_DEPOSITO_AQUARIO_ID = 13;
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-edit-transferencia",
@@ -1308,30 +1311,50 @@ export class EditTransferenciaComponent implements OnInit {
    * al buscador de usuarios contra el servidor, que es el comportamiento de siempre.
    *
    * En los dos casos no se preselecciona nada: la lista llega acotada, elegir sigue siendo manual.
+   *
+   * Si el origen es un deposito, quien pide no siempre es el cajero de turno (encargados,
+   * repositores): el buscador arranca con los cajeros, pero lo que se escribe busca entre todos
+   * los usuarios en el servidor.
    */
   private abrirBuscadorDeSolicitante(cajeros: Usuario[] | null) {
-    const seleccion =
-      cajeros != null
-        ? this.matDialog
-            .open(SearchListDialogComponent, {
-              data: {
-                titulo: "Buscar solicitante (con caja abierta)",
-                tableData: [
-                  { id: "id", nombre: "Id", width: "20%" },
-                  { id: "persona.nombre", nombre: "Nombre", width: "80%" },
-                ],
-                query: null,
-                inicialData: cajeros,
-              } as SearchListtDialogData,
-              height: "80vh",
-              width: "70vw",
-              panelClass: "search-dialog-dark",
-            })
-            .afterClosed()
-        : this.usuarioHelperService.abrirBuscador(
-            this.matDialog,
-            "Buscar solicitante"
-          );
+    // Por id: en la base `deposito`/`tipoLocal` estan en true/DEPOSITO para todas las sucursales
+    // (la central incluida), asi que no distinguen al deposito real.
+    const origenEsDeposito =
+      +this.selectedTransferencia?.sucursalOrigen?.id == SUCURSAL_DEPOSITO_AQUARIO_ID;
+    let seleccion: Observable<Usuario | undefined>;
+    if (cajeros == null) {
+      seleccion = this.usuarioHelperService.abrirBuscador(
+        this.matDialog,
+        "Buscar solicitante"
+      );
+    } else if (origenEsDeposito) {
+      seleccion = this.usuarioHelperService.abrirBuscador(
+        this.matDialog,
+        "Buscar solicitante (con caja abierta)",
+        {
+          inicialData: cajeros,
+          inicialDataSiVacio: true,
+          textHint: "Escriba para buscar entre todos los funcionarios...",
+        }
+      );
+    } else {
+      seleccion = this.matDialog
+        .open(SearchListDialogComponent, {
+          data: {
+            titulo: "Buscar solicitante (con caja abierta)",
+            tableData: [
+              { id: "id", nombre: "Id", width: "20%" },
+              { id: "persona.nombre", nombre: "Nombre", width: "80%" },
+            ],
+            query: null,
+            inicialData: cajeros,
+          } as SearchListtDialogData,
+          height: "80vh",
+          width: "70vw",
+          panelClass: "search-dialog-dark",
+        })
+        .afterClosed();
+    }
 
     seleccion.pipe(untilDestroyed(this)).subscribe((usuario) => {
       if (usuario == null) return;
