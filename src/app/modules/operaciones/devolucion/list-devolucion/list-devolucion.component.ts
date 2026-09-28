@@ -1,4 +1,5 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, Input, OnInit, ViewChild } from "@angular/core";
+import { Subscription } from "rxjs";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
@@ -23,7 +24,10 @@ import { EditDevolucionComponent } from "../edit-devolucion/edit-devolucion.comp
   styleUrls: ["./list-devolucion.component.scss"],
 })
 export class ListDevolucionComponent implements OnInit {
+  @Input() data: Tab;
   @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  private filtroSub: Subscription;
 
   dataSource = new MatTableDataSource<Devolucion>([]);
 
@@ -84,6 +88,13 @@ export class ListDevolucionComponent implements OnInit {
       }
       this.onFilter();
     }, 0);
+
+    // La pestaña queda viva en segundo plano: al volver, releer con los mismos
+    // filtros y página lo que se operó desde otras pestañas.
+    this.tabService
+      .onTabReactivada(this.data)
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.onFilter(true));
   }
 
   onBuscarProveedor() {
@@ -105,7 +116,7 @@ export class ListDevolucionComponent implements OnInit {
     this.onFilter();
   }
 
-  onFilter() {
+  onFilter(silencioso = false) {
     let fechaInicio: Date = this.fechaInicioControl.value;
     let fechaFin: Date = this.fechaFinControl.value;
     let inicioStr: string = null;
@@ -120,7 +131,9 @@ export class ListDevolucionComponent implements OnInit {
       aux.setHours(23, 59, 59);
       finStr = dateToString(aux);
     }
-    this.devolucionService
+    // Una respuesta vieja no debe pisar a una búsqueda más nueva.
+    this.filtroSub?.unsubscribe();
+    this.filtroSub = this.devolucionService
       .onGetDevolucionesConFiltros(
         this.selectedProveedor?.id,
         this.sucursalControl.value?.id,
@@ -128,7 +141,9 @@ export class ListDevolucionComponent implements OnInit {
         inicioStr,
         finStr,
         this.pageIndex,
-        this.pageSize
+        this.pageSize,
+        true,
+        silencioso
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<Devolucion>) => {

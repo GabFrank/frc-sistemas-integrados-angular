@@ -1,5 +1,6 @@
 import { EventEmitter, Injectable, OnInit } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
 
@@ -28,6 +29,15 @@ export class TabService implements OnInit {
   currentIndex = -1;
   tabSub = new BehaviorSubject<Tab[]>(this.tabs);
   tabChangedEvent = new EventEmitter<any>();
+
+  /**
+   * Emite una pestaña cuando vuelve a quedar activa después de haber estado en
+   * segundo plano (no al abrirse). Las pantallas quedan vivas al cambiar de
+   * pestaña, así que la usan para volver a pedir sus datos: ver onTabReactivada.
+   */
+  private tabReactivada$ = new Subject<Tab>();
+  private ultimaActiva: Tab = null;
+  private yaDesactivadas = new WeakSet<Tab>();
 
   constructor(
     private cargandoService: CargandoDialogService
@@ -62,7 +72,27 @@ export class TabService implements OnInit {
 
   tabChanged(index): void {
     this.tabChangedEvent.emit(index)
+    this.registrarActivacion(index);
     // this.setTabActive(index);
+  }
+
+  /** Emite cuando `tab` (el `data` que recibe cada pantalla) vuelve a quedar activa. */
+  onTabReactivada(tab: Tab): Observable<Tab> {
+    return this.tabReactivada$.pipe(filter((t) => tab != null && t === tab));
+  }
+
+  /**
+   * Llega por dos caminos para una misma activación: el clic del usuario solo pasa
+   * por tabChanged, y setTabActive rebota por tabChanged vía mat-tab-group. Se
+   * compara la instancia de Tab (no el índice ni el flag active, que el clic no
+   * mantiene); un índice que no resuelve a una pestaña se ignora.
+   */
+  private registrarActivacion(index): void {
+    const tab = typeof index === 'number' ? this.tabs[index] : null;
+    if (tab == null || tab === this.ultimaActiva) return;
+    if (this.ultimaActiva != null) this.yaDesactivadas.add(this.ultimaActiva);
+    this.ultimaActiva = tab;
+    if (this.yaDesactivadas.has(tab)) this.tabReactivada$.next(tab);
   }
 
   currentTab(): Tab {
@@ -80,6 +110,7 @@ export class TabService implements OnInit {
         this.tabs[index].active = true;
       }
       this.currentIndex = index;
+      this.registrarActivacion(index);
       this.tabSub.next(this.tabs);
 
     }
