@@ -20,6 +20,15 @@
   .colecta-tabla {
     width: 100%;
   }
+  .colecta-fila-en-destino {
+    opacity: 0.5;
+  }
+  .colecta-en-destino {
+    margin-left: 8px;
+    color: #9e9e9e;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
   .colecta-vacio {
     display: flex;
     flex-direction: column;
