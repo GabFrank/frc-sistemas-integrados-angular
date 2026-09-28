@@ -14,7 +14,7 @@
   <div class="colecta-controles" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
     <mat-form-field appearance="outline" class="colecta-destino">
       <mat-label>Depósito destino</mat-label>
-      <mat-select [(ngModel)]="destino">
+      <mat-select [(ngModel)]="destino" (ngModelChange)="aplicarDestino()">
         <mat-option *ngFor="let s of sucursales" [value]="s">
           {{ s.id }} - {{ s.nombre }}
         </mat-option>
@@ -23,11 +23,11 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="colectando || !destino"
+      [disabled]="colectando || !destino || cantidadSeleccionadas === 0"
       (click)="onColectar()"
     >
       <mat-icon>local_shipping</mat-icon>
-      Colectar seleccionadas ({{ seleccionadas.length }})
+      Colectar seleccionadas ({{ cantidadSeleccionadas }})
     </button>
   </div>
 
@@ -45,12 +45,17 @@
     <ng-container matColumnDef="check">
       <th mat-header-cell *matHeaderCellDef>
         <mat-checkbox
-          [checked]="seleccionadas.length === filas.length"
+          [checked]="todasSeleccionadas"
+          [disabled]="!hayColectables"
           (change)="toggleTodas($event.checked)"
         ></mat-checkbox>
       </th>
       <td mat-cell *matCellDef="let f">
-        <mat-checkbox [(ngModel)]="f.seleccionada"></mat-checkbox>
+        <mat-checkbox
+          [(ngModel)]="f.seleccionada"
+          [disabled]="f.enDestino"
+          (ngModelChange)="recalcularSeleccion()"
+        ></mat-checkbox>
       </td>
     </ng-container>
     <ng-container matColumnDef="id">
@@ -59,13 +64,20 @@
     </ng-container>
     <ng-container matColumnDef="origen">
       <th mat-header-cell *matHeaderCellDef>Origen</th>
-      <td mat-cell *matCellDef="let f">{{ f.origen }}</td>
+      <td mat-cell *matCellDef="let f">
+        {{ f.origen }}
+        <span *ngIf="f.enDestino" class="colecta-en-destino">ya está en el destino</span>
+      </td>
     </ng-container>
     <ng-container matColumnDef="proveedor">
       <th mat-header-cell *matHeaderCellDef>Proveedor</th>
       <td mat-cell *matCellDef="let f">{{ f.proveedor }}</td>
     </ng-container>
     <tr mat-header-row *matHeaderRowDef="['check', 'id', 'origen', 'proveedor']"></tr>
-    <tr mat-row *matRowDef="let row; columns: ['check', 'id', 'origen', 'proveedor']"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: ['check', 'id', 'origen', 'proveedor']"
+      [class.colecta-fila-en-destino]="row.enDestino"
+    ></tr>
   </table>
 </div>

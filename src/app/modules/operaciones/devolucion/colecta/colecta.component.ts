@@ -14,9 +14,12 @@ import { ColectaDevolucionService } from "./colecta-devolucion.service";
 interface FilaColecta {
   id: number;
   identificador: string;
+  origenId: number | null;
   origen: string;
   proveedor: string;
   seleccionada: boolean;
+  // Ya está en el depósito destino elegido: el backend la rechaza, no se ofrece.
+  enDestino: boolean;
 }
 
 /**
@@ -37,6 +40,9 @@ export class ColectaComponent implements OnInit, OnDestroy {
   cargando = false;
   colectando = false;
   filas: FilaColecta[] = [];
+  cantidadSeleccionadas = 0;
+  todasSeleccionadas = false;
+  hayColectables = false;
 
   constructor(
     public mainService: MainService,
@@ -62,8 +68,30 @@ export class ColectaComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  get seleccionadas(): number[] {
-    return this.filas.filter((f) => f.seleccionada).map((f) => f.id);
+  /**
+   * Marca las filas cuyo origen es el depósito destino: se destildan y quedan
+   * deshabilitadas. Las que dejan de estarlo vuelven al default (tildadas).
+   */
+  aplicarDestino(): void {
+    const destinoId = this.destino?.id != null ? Number(this.destino.id) : null;
+    this.filas.forEach((f) => {
+      const enDestino = destinoId != null && f.origenId === destinoId;
+      if (enDestino) {
+        f.seleccionada = false;
+      } else if (f.enDestino) {
+        f.seleccionada = true;
+      }
+      f.enDestino = enDestino;
+    });
+    this.recalcularSeleccion();
+  }
+
+  recalcularSeleccion(): void {
+    const colectables = this.filas.filter((f) => !f.enDestino);
+    this.cantidadSeleccionadas = colectables.filter((f) => f.seleccionada).length;
+    this.hayColectables = colectables.length > 0;
+    this.todasSeleccionadas =
+      this.hayColectables && this.cantidadSeleccionadas === colectables.length;
   }
 
   cargarSeparadas(): void {
@@ -90,10 +118,15 @@ export class ColectaComponent implements OnInit, OnDestroy {
             .map((d: any) => ({
               id: d.id,
               identificador: d.identificador,
+              // El ID de GraphQL puede llegar como string: normalizar para comparar.
+              origenId:
+                d.sucursalOrigen?.id != null ? Number(d.sucursalOrigen.id) : null,
               origen: d.sucursalOrigen?.nombre || "—",
               proveedor: d.proveedor?.persona?.nombre || "—",
               seleccionada: true,
+              enDestino: false,
             }));
+          this.aplicarDestino();
         },
         error: () => {
           this.cargando = false;
@@ -105,7 +138,10 @@ export class ColectaComponent implements OnInit, OnDestroy {
   }
 
   toggleTodas(checked: boolean): void {
-    this.filas.forEach((f) => (f.seleccionada = checked));
+    this.filas
+      .filter((f) => !f.enDestino)
+      .forEach((f) => (f.seleccionada = checked));
+    this.recalcularSeleccion();
   }
 
   onColectar(): void {
@@ -114,22 +150,27 @@ export class ColectaComponent implements OnInit, OnDestroy {
       this.notificacionService.openWarn("Elegí un depósito destino");
       return;
     }
-    const ids = this.seleccionadas;
+    // Las que ya están en el destino no se colectan (el backend las rechaza).
+    const seleccionadas = this.filas.filter((f) => f.seleccionada && !f.enDestino);
+    const ids = seleccionadas.map((f) => f.id);
     if (ids.length === 0) {
       this.notificacionService.openWarn("Seleccioná al menos una devolución");
       return;
     }
     // Una colecta = un viaje origen -> destino: el backend crea una operación por
     // cada sucursal de origen distinta. Avisar si la selección cruza varios orígenes.
-    const origenes = new Set(
-      this.filas.filter((f) => f.seleccionada).map((f) => f.origen)
-    );
+    const origenes = new Set(seleccionadas.map((f) => f.origenId));
     if (origenes.size > 1) {
+      const enDestino = this.filas.filter((f) => f.enDestino).length;
+      const aviso =
+        enDestino > 0
+          ? ` ${enDestino} devolución(es) ya está(n) en ${this.destino.nombre} y no se colecta(n).`
+          : "";
       this.dialogosService
         .confirm(
           "Atención!!",
           `La selección incluye ${origenes.size} sucursales de origen distintas.`,
-          "Se generará una operación de colecta separada por cada origen. ¿Continuar?"
+          `Se generará una operación de colecta separada por cada origen.${aviso} ¿Continuar?`
         )
         .pipe(takeUntil(this.destroy$))
         .subscribe((ok) => {
@@ -151,10 +192,15 @@ export class ColectaComponent implements OnInit, OnDestroy {
           this.colectando = false;
           const resultados = res?.resultados || [];
           const ok = resultados.filter((r: any) => r.ok).length;
-          const fail = resultados.length - ok;
-          if (fail > 0) {
+          const fallidas = resultados.filter((r: any) => !r.ok);
+          if (fallidas.length > 0) {
+            const motivos = Array.from(
+              new Set(fallidas.map((r: any) => r.mensaje || "motivo desconocido"))
+            ).join(" / ");
             this.notificacionService.openWarn(
-              `${ok} colectada(s), ${fail} con error a ${this.destino?.nombre}`
+              `${ok} enviada(s) a ${this.destino?.nombre}. ` +
+                `${fallidas.length} sin colectar: ${motivos}`,
+              8
             );
           } else {
             this.notificacionService.openSucess(
