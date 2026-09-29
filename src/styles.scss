@@ -384,16 +384,16 @@ input {
   background-color: #f44336 !important;
 }
 
-/* Íconos de botones con texto a 24px (Material 15 los fija en 18px).
+/* Íconos de botones con texto a 20px (Material 15 los fija en 18px).
    `body` sube la especificidad a (0,2,1): gana a Material (0,2,0) y pierde ante
    reglas locales anidadas (`.x mat-icon`), que conservan su propio tamaño. */
 body .mat-mdc-button > .mat-icon,
 body .mat-mdc-unelevated-button > .mat-icon,
 body .mat-mdc-raised-button > .mat-icon,
 body .mat-mdc-outlined-button > .mat-icon {
-  font-size: 24px;
-  height: 24px;
-  width: 24px;
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
 }
 
 /* Global warn color configuration */
