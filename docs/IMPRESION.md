@@ -10,6 +10,9 @@ la salida de todo comprobante/recibo firmable: **PDF (A4)** o **Ticket térmico
 > - uno de los dos formatos no sea viable (ej. un reporte tabular agregado no tiene
 >   sentido en ticket → va **solo PDF**).
 
+> Tickets del **POS** impresos en la impresora local de la PC (sin que el filial la alcance):
+> ver [impresion-pos-desde-cliente.md](impresion-pos-desde-cliente.md).
+
 ## Cómo funciona (resumen)
 
 El mismo comprobante se genera en el **backend** en dos formatos según los

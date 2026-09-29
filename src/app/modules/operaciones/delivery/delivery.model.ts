@@ -18,6 +18,8 @@ export class Delivery {
     usuario: Usuario;
     precio: PrecioDelivery;
     estado: DeliveryEstado;
+    /** Comprobantes ESC/POS (base64) que devuelve la filial en modo "Imprimir desde esta PC". */
+    ticketEscpos?: string;
     vuelto: Vuelto;
     barrio: Barrio;
     duracion: any;

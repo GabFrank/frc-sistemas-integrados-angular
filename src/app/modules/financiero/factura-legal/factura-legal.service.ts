@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
-import { catchError, timeout } from "rxjs/operators";
+import { catchError, tap, timeout } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import {
@@ -18,6 +18,7 @@ import { FacturasLegalesFullInfoGQL } from "./graphql/allFacturasFullInfo";
 import { ImprimirFacturaGQL } from "./graphql/imprimirFactura";
 import { environment } from "../../../../environments/environment";
 import { CrearExcelService } from "../../../shared/crear-excel/crear-excel.service";
+import { ImpresionPosService } from "../../../shared/services/impresion-pos/impresion-pos.service";
 import { removeSecondDigito } from "../../../commons/core/utils/rucUtils";
 import { ResumenFacturasGQL } from "./graphql/resumenFacturas";
 import { GenerarExcelFacturasGQL } from "./graphql/generarExcelFacturas";
@@ -68,7 +69,8 @@ export class FacturaLegalService {
     private imprimirTicketFacturaEnImpresoraGQL: ImprimirTicketFacturaEnImpresoraGQL,
     private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL,
     private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL,
-    private facturaSimilarRecienteGQL: FacturaSimilarRecienteGQL
+    private facturaSimilarRecienteGQL: FacturaSimilarRecienteGQL,
+    private impresionPos: ImpresionPosService
   ) {}
 
   /**
@@ -132,6 +134,24 @@ export class FacturaLegalService {
     servidor: boolean = true
   ): Observable<any> {
     if (input?.nombre != null) input.nombre = input.nombre.toUpperCase();
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": sin printerName la filial guarda y no imprime (saveFacturaLegal
+      // solo imprime con printerName), y la factura se pide y se imprime acá.
+      return this.genericService.onSaveConDetalle(
+        this.saveFactura,
+        input,
+        facturaLegalItemInputList,
+        null,
+        null,
+        this.configService?.getConfig()?.pdvId, servidor
+      ).pipe(
+        tap((res) => {
+          if (res?.facturaLegalId != null) {
+            this.impresionPos.imprimirTicket("FACTURA", res.facturaLegalId, "La factura").subscribe();
+          }
+        })
+      );
+    }
     return this.genericService.onSaveConDetalle(
       this.saveFactura,
       input,

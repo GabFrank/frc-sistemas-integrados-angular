@@ -26,6 +26,8 @@ export class Venta {
     isDelivery: boolean;
     delivery: Delivery;
     ventaObservacionList: any[];
+    /** Comprobante ESC/POS (base64) que devuelve la filial en modo "Imprimir desde esta PC". */
+    ticketEscpos?: string;
 
     toInput(): VentaInput {
         let input = new VentaInput()

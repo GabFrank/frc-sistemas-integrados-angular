@@ -29,6 +29,7 @@ import { VerificarCajaGQL } from "./graphql/verificarCaja";
 import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
 import { CajerosConCajaAbiertaGQL } from "./graphql/cajerosConCajaAbierta";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { ImpresionPosService } from "../../../../shared/services/impresion-pos/impresion-pos.service";
 import { TransferirCajaGQL } from "./graphql/transferirCaja";
 
 @UntilDestroy({ checkProperties: true })
@@ -57,7 +58,8 @@ export class CajaService {
     private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
     private cajerosConCajaAbierta: CajerosConCajaAbiertaGQL,
     private configService: ConfiguracionService,
-    private transferirCaja: TransferirCajaGQL
+    private transferirCaja: TransferirCajaGQL,
+    private impresionPos: ImpresionPosService
   ) { }
 
   // onGetAll(): Observable<any> {
@@ -221,6 +223,10 @@ export class CajaService {
   }
 
   onImprimirBalance(id, sucId?, servidor: boolean = true) {
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": la filial arma el balance y se imprime acá.
+      return this.impresionPos.imprimirTicket("BALANCE", id, "El balance de la caja");
+    }
     console.log('imprimir balance', 'id', id, 'printerName', this.configService.getConfig().printers["ticket"], 'local', this.configService.getConfig().local, 'sucId', sucId);
     return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId}, servidor, null, null);
   }

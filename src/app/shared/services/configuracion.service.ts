@@ -562,10 +562,6 @@ export class ConfiguracionService {
   }
 
   /**
-   * Salva la configuración del sistema
-   * @param config
-   */
-  /**
    * `true` si esta PC tiene que imprimir desde el frontend (Electron → `impresoraLocal`) en vez de
    * mandarle `printerName` al backend. Es el punto único que consulta cada flujo de impresión.
    */
@@ -597,6 +593,10 @@ export class ConfiguracionService {
     }
   }
 
+  /**
+   * Salva la configuración del sistema
+   * @param config
+   */
   saveConfig(config: ConfiguracionSistema): void {
     try {
       const validConfig = this.validateConfigObject(config);
