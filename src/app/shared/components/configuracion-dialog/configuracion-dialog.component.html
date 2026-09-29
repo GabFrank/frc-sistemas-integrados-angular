@@ -47,6 +47,9 @@
       <mat-hint>Separados por coma (ej: EXPO, EXPO-DEPOSITO)</mat-hint>
     </mat-form-field>
     
+    <mat-checkbox [checked]="porServidor" (change)="onCheckServidor($event)">
+      Imprimir por servidor
+    </mat-checkbox>
     <div fxLayout="row" fxLayoutGap="16px">
       <mat-form-field fxFlex>
         <mat-label>Impresora Ticket</mat-label>
@@ -59,7 +62,10 @@
       </mat-form-field>
     </div>
 
-    <div class="impresora-local" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="8px">
+    <mat-checkbox [checked]="porPc" [disabled]="!impresoraLocal" (change)="onCheckPc($event)">
+      Imprimir desde esta PC
+    </mat-checkbox>
+    <div class="impresora-local" [class.inactiva]="!porPc" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="8px">
       <div fxLayout="column">
         <span class="impresora-local-label">Impresora USB local</span>
         <span>{{ impresoraLocalResumen }}</span>

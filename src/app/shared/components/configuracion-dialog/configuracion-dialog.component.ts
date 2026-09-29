@@ -1,10 +1,11 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, FormArray } from '@angular/forms';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { take } from 'rxjs/operators';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
-import { ConfiguracionSistema, ConfiguracionService, ImpresoraLocalConfig, UpdateChannel } from '../../services/configuracion.service';
+import { ConfiguracionSistema, ConfiguracionService, ImpresoraLocalConfig, ModoImpresion, UpdateChannel } from '../../services/configuracion.service';
 import { ImpresoraLocalDialogComponent } from './impresora-local-dialog/impresora-local-dialog.component';
 
 @Component({
@@ -18,6 +19,10 @@ export class ConfiguracionDialogComponent implements OnInit {
   impresoraLocal: ImpresoraLocalConfig | null = null;
   impresoraLocalResumen = '';
   probandoImpresoraLocal = false;
+  /** Por dónde imprime esta PC; siempre hay exactamente uno activo (ver setModoImpresion). */
+  modoImpresion: ModoImpresion = 'BACKEND';
+  porServidor = true;
+  porPc = false;
 
   constructor(
     private fb: FormBuilder,
@@ -45,6 +50,33 @@ export class ConfiguracionDialogComponent implements OnInit {
       updateChannel: [this.data.updateChannel || null, Validators.required]
     });
     this.setImpresoraLocal(this.data.impresoraLocal || null);
+    this.setModoImpresion(this.data.modoImpresion === 'FRONTEND' && this.impresoraLocal ? 'FRONTEND' : 'BACKEND');
+  }
+
+  /** Marcar uno desmarca el otro; desmarcar el activo pasa al otro (si se puede). */
+  onCheckServidor(e: MatCheckboxChange): void {
+    this.setModoImpresion(e.checked || !this.impresoraLocal ? 'BACKEND' : 'FRONTEND');
+    e.source.checked = this.porServidor;
+  }
+
+  onCheckPc(e: MatCheckboxChange): void {
+    this.setModoImpresion(e.checked && this.impresoraLocal ? 'FRONTEND' : 'BACKEND');
+    e.source.checked = this.porPc;
+  }
+
+  private setModoImpresion(modo: ModoImpresion): void {
+    this.modoImpresion = modo;
+    this.porServidor = modo === 'BACKEND';
+    this.porPc = modo === 'FRONTEND';
+    // Deshabilitados pero con su valor: al volver a BACKEND siguen estando (se guardan con getRawValue).
+    ['ticketPrinter', 'facturaPrinter'].forEach((c) => {
+      const control = this.configForm.get(c);
+      if (this.porServidor) {
+        control.enable({ emitEvent: false });
+      } else {
+        control.disable({ emitEvent: false });
+      }
+    });
   }
 
   onConfigurarImpresoraLocal(): void {
@@ -56,6 +88,9 @@ export class ConfiguracionDialogComponent implements OnInit {
       // El sub-diálogo ya persistió (al instalar, aceptar o quitar): se relee de ahí aunque se
       // haya cancelado, para que el GUARDAR de acá no pise una instalación con el valor viejo.
       this.setImpresoraLocal(this.configService.getConfig()?.impresoraLocal || null);
+      if (!this.impresoraLocal && this.porPc) {
+        this.setModoImpresion('BACKEND'); // se quitó la impresora local: no queda dónde imprimir
+      }
     });
   }
 
@@ -106,7 +141,9 @@ export class ConfiguracionDialogComponent implements OnInit {
       // querer en la IP --`' 100.64.0.2'`-- produce `ws:// 100.64.0.2:8080/...` y sale un
       // `DOMException: Failed to construct 'WebSocket': The URL is invalid` que no menciona la
       // configuracion por ningun lado. Costo un rato de diagnostico en el testeo del 2026-09-08.
-      const formValue = this.configForm.value;
+      // getRawValue: en modo FRONTEND las impresoras del servidor están deshabilitadas y `value`
+      // las omitiría, con lo que se perderían al guardar.
+      const formValue = this.configForm.getRawValue();
       
       // Convert form values to ConfiguracionSistema
       const config: ConfiguracionSistema = {
@@ -121,6 +158,7 @@ export class ConfiguracionDialogComponent implements OnInit {
         isLocal: formValue.isLocal,
         updateChannel: formValue.updateChannel,
         impresoraLocal: this.impresoraLocal,
+        modoImpresion: this.modoImpresion,
         printers: {
           ticket: formValue.ticketPrinter,
           factura: formValue.facturaPrinter
@@ -142,7 +180,7 @@ export class ConfiguracionDialogComponent implements OnInit {
    */
   onBackup(): void {
     // Create a temporary configuration object from the current form values
-    const formValue = this.configForm.value;
+    const formValue = this.configForm.getRawValue();
     const tempConfig: ConfiguracionSistema = {
       serverIp: formValue.serverIp || this.data.serverIp,
       serverPort: formValue.serverPort || this.data.serverPort,
@@ -155,6 +193,7 @@ export class ConfiguracionDialogComponent implements OnInit {
       isLocal: formValue.isLocal !== undefined ? formValue.isLocal : this.data.isLocal,
       updateChannel: formValue.updateChannel || this.data.updateChannel || 'stable',
       impresoraLocal: this.impresoraLocal,
+      modoImpresion: this.modoImpresion,
       printers: {
         ticket: formValue.ticketPrinter || this.data.printers?.ticket || '',
         factura: formValue.facturaPrinter || this.data.printers?.factura || ''
