@@ -8,6 +8,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { Role } from '../../../configuracion/roles/role.model';
+import { RoleService } from '../../../configuracion/roles/role.service';
 import { ROLES } from '../../roles/roles.enum';
 import { AdicionarUsuarioDialogComponent } from '../adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { Usuario } from '../usuario.model';
@@ -48,11 +50,19 @@ export class ListUsuarioComponent implements OnInit {
 
   buscarControl = new FormControl(null);
 
+  // Arranca deshabilitado: se habilita cuando llegan los roles. Si la carga falla,
+  // onGetAll no emite y el selector queda deshabilitado en vez de vacio.
+  rolesControl = new FormControl<number[]>({ value: [], disabled: true });
+  roleList: Role[] = [];
+  rolesResumen = '';
+  private rolesFiltrados = '';
+
   constructor(
     public service: UsuarioService,
     private matDialog: MatDialog,
     public mainService: MainService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private roleService: RoleService
   ) { }
 
   ngOnInit(): void {
@@ -60,6 +70,7 @@ export class ListUsuarioComponent implements OnInit {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
       this.onFiltrar();
+      this.cargarRoles();
     }, 0);
 
     this.buscarControl.valueChanges
@@ -78,9 +89,46 @@ export class ListUsuarioComponent implements OnInit {
   rowSelectedEvent(e) {
   }
 
+  cargarRoles(): void {
+    this.roleService.onGetRoles()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res?.length > 0) {
+          this.roleList = [...res].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+          this.rolesControl.enable();
+        }
+      });
+  }
+
+  // Filtra al cerrar el selector, no en cada tilde (regla del repo sobre valueChanges).
+  onRolesOpenedChange(abierto: boolean): void {
+    if (abierto) return;
+    this.actualizarRolesResumen();
+    const seleccion = this.rolesSeleccionadosKey();
+    if (seleccion !== this.rolesFiltrados) {
+      this.pageIndex = 0;
+      if (this.paginator) this.paginator.pageIndex = 0;
+      this.onFiltrar();
+    }
+  }
+
+  private rolesSeleccionadosKey(): string {
+    return [...(this.rolesControl.value || [])].map(String).sort().join(',');
+  }
+
+  private actualizarRolesResumen(): void {
+    const ids = (this.rolesControl.value || []).map(String);
+    const nombres = this.roleList.filter(r => ids.includes(String(r.id))).map(r => r.nombre);
+    this.rolesResumen = nombres.length > 1
+      ? `${nombres[0]} (+${nombres.length - 1} ${nombres.length === 2 ? 'otro' : 'otros'})`
+      : (nombres[0] || '');
+  }
+
   onFiltrar(): void {
     const texto = this.buscarControl.value?.toString().trim() || null;
-    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize)
+    const roleIds = this.rolesControl.value || [];
+    this.rolesFiltrados = this.rolesSeleccionadosKey();
+    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize, true, roleIds)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
@@ -94,6 +142,9 @@ export class ListUsuarioComponent implements OnInit {
     this.pageIndex = 0;
     this.dataSource.data = [];
     this.selectedPageInfo = null;
+    this.rolesControl.setValue([]);
+    this.rolesResumen = '';
+    // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca (con los roles vacios).
     this.buscarControl.setValue(null);
   }
 

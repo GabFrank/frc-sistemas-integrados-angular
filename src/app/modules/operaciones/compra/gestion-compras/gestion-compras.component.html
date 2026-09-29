@@ -737,7 +737,7 @@
                         <!-- Paginador en el footer -->
                         <div class="table-footer">
                           <mat-paginator
-                            [pageSizeOptions]="[5, 10, 25]"
+                            [pageSizeOptions]="[5, 10, 25, 50, 100]"
                             [pageSize]="productosProveedorPageSize"
                             [pageIndex]="productosProveedorPageIndex"
                             [length]="productosProveedorTotalElements"
@@ -853,7 +853,7 @@
                         <!-- Paginador en el footer -->
                         <div class="table-footer">
                           <mat-paginator
-                            [pageSizeOptions]="[5, 10, 25]"
+                            [pageSizeOptions]="[5, 10, 25, 50, 100]"
                             [pageSize]="ultimasComprasPageSize"
                             [pageIndex]="ultimasComprasPageIndex"
                             [length]="ultimasComprasTotalElements"
@@ -1085,7 +1085,7 @@
               </div>
                   </div>
               <mat-paginator
-                [pageSizeOptions]="[5, 10, 25]"
+                [pageSizeOptions]="[5, 10, 25, 50, 100]"
                 [pageSize]="itemsPageSize"
                 [pageIndex]="itemsPageIndex"
                 [length]="itemsTotalElements"
@@ -1293,7 +1293,7 @@
                   <!-- Paginador para ítems pendientes -->
                   <mat-paginator
                     #itemsPendientesPaginator
-                    [pageSizeOptions]="[5, 10, 25, 50]"
+                    [pageSizeOptions]="[5, 10, 25, 50, 100]"
                     [pageSize]="itemsPendientesPageSize"
                     [pageIndex]="itemsPendientesPageIndex"
                     [length]="itemsPendientesTotalElements"
@@ -1447,7 +1447,7 @@
                   <!-- Paginador para notas de recepción -->
                   <mat-paginator
                     #notasRecepcionPaginator
-                    [pageSizeOptions]="[5, 10, 25, 50]"
+                    [pageSizeOptions]="[5, 10, 25, 50, 100]"
                     [pageSize]="notasRecepcionPageSize"
                     [pageIndex]="notasRecepcionPageIndex"
                     [length]="notasRecepcionTotalElements"

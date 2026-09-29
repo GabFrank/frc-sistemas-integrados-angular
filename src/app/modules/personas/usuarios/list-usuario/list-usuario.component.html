@@ -11,6 +11,17 @@
           <input #buscar type="text" matInput [formControl]="buscarControl" (keyup.enter)="onFiltrar()">
         </mat-form-field>
       </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%;">
+          <mat-label>Roles</mat-label>
+          <mat-select [formControl]="rolesControl" multiple (openedChange)="onRolesOpenedChange($event)">
+            <mat-select-trigger>{{ rolesResumen }}</mat-select-trigger>
+            <mat-option *ngFor="let role of roleList" [value]="role.id">
+              {{ role.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
     </div>
   </div>
   <div table>
