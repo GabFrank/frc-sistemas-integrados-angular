@@ -105,9 +105,16 @@ quita acentos (la térmica RAW no soporta codepages con tildes).
 
 ## Dónde ya está aplicado (RRHH)
 
-Recibos con **PDF + Ticket** vía este componente (7 casos):
+Recibos con **PDF + Ticket** vía este componente (8 casos):
 vale, penalización, aguinaldo, préstamo (entrega), bono, **finiquito**,
-**liquidación mensual**.
+**liquidación mensual** y **recibo por ítem de liquidación**.
+
+El recibo por ítem es el ícono `receipt` de cada fila en el detalle de la liquidación
+mensual y del finiquito (`imprimirReciboItemLiquidacion` /
+`imprimirReciboItemLiquidacionFinal`). Un ítem HABER sale como «RECIBO DE LIQUIDACION
+Nro. `<id de la liquidación>`» y un DESCUENTO como «CONSTANCIA DE DESCUENTO». Se ofrece en
+BORRADOR, APROBADA y PAGADA (no en ANULADA) y solo en ítems con monto mayor a cero; el
+central valida lo mismo.
 
 Reportes agregados (**solo PDF**, sin ticket): nómina del mes, resumen IPS, vales
 pendientes, préstamos activos, aguinaldo del año.
