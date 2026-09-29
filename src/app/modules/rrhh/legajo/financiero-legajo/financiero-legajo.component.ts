@@ -80,10 +80,11 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
     this.valeService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this)).subscribe((res: any[]) => {
       const list = res || [];
       this.vales.data = list;
-      // Pendiente de descontar = confirmados que aún no entraron a una liquidación.
+      // Pendiente de descontar = confirmados que aún no entraron a una liquidación. En un vale en
+      // cuotas cuenta solo lo que falta (saldoPendiente lo calcula el backend).
       this.valesPendiente = list
         .filter(v => v.estado === 'CONFIRMADO')
-        .reduce((acc, v) => acc + (+v.monto || 0), 0);
+        .reduce((acc, v) => acc + (+v.saldoPendiente || 0), 0);
       this.recomputarExposicion();
     });
   }
