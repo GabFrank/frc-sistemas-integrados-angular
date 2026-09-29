@@ -1,7 +1,11 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, FormArray } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { ConfiguracionSistema, ConfiguracionService, UpdateChannel } from '../../services/configuracion.service';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { take } from 'rxjs/operators';
+import { ElectronService } from '../../../commons/core/electron/electron.service';
+import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { ConfiguracionSistema, ConfiguracionService, ImpresoraLocalConfig, UpdateChannel } from '../../services/configuracion.service';
+import { ImpresoraLocalDialogComponent } from './impresora-local-dialog/impresora-local-dialog.component';
 
 @Component({
   selector: 'app-configuracion-dialog',
@@ -10,12 +14,19 @@ import { ConfiguracionSistema, ConfiguracionService, UpdateChannel } from '../..
 })
 export class ConfiguracionDialogComponent implements OnInit {
   configForm: FormGroup;
+  /** Impresora USB instalada en esta PC; se guarda aparte de `printers` (ver ImpresoraLocalConfig). */
+  impresoraLocal: ImpresoraLocalConfig | null = null;
+  impresoraLocalResumen = '';
+  probandoImpresoraLocal = false;
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<ConfiguracionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ConfiguracionSistema,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private dialog: MatDialog,
+    private electronService: ElectronService,
+    private notificacion: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -33,6 +44,56 @@ export class ConfiguracionDialogComponent implements OnInit {
       isLocal: [this.data.isLocal !== undefined ? this.data.isLocal : true],
       updateChannel: [this.data.updateChannel || null, Validators.required]
     });
+    this.setImpresoraLocal(this.data.impresoraLocal || null);
+  }
+
+  onConfigurarImpresoraLocal(): void {
+    this.dialog.open(ImpresoraLocalDialogComponent, {
+      data: this.impresoraLocal,
+      width: '560px',
+      autoFocus: false,
+    }).afterClosed().pipe(take(1)).subscribe(() => {
+      // El sub-diálogo ya persistió (al instalar, aceptar o quitar): se relee de ahí aunque se
+      // haya cancelado, para que el GUARDAR de acá no pise una instalación con el valor viejo.
+      this.setImpresoraLocal(this.configService.getConfig()?.impresoraLocal || null);
+    });
+  }
+
+  onProbarImpresoraLocal(): void {
+    if (!this.impresoraLocal) {
+      return;
+    }
+    this.probandoImpresoraLocal = true;
+    this.electronService.printTestLocal({
+      conexion: this.impresoraLocal.conexion,
+      cola: this.impresoraLocal.cola,
+      nombre: this.impresoraLocal.nombre,
+      perfil: this.impresoraLocal.perfil,
+    }).pipe(take(1)).subscribe({
+      next: (res) => {
+        this.probandoImpresoraLocal = false;
+        if (res?.success) {
+          this.notificacion.notification$.next({
+            texto: 'Prueba enviada a ' + this.impresoraLocal.cola,
+            color: NotificacionColor.success,
+            duracion: 3,
+          });
+        } else {
+          this.notificacion.openAlgoSalioMal(res?.error || 'No se pudo imprimir la prueba', 6);
+        }
+      },
+      error: (e) => {
+        this.probandoImpresoraLocal = false;
+        this.notificacion.openAlgoSalioMal(e?.message || 'No se pudo imprimir la prueba', 6);
+      },
+    });
+  }
+
+  private setImpresoraLocal(imp: ImpresoraLocalConfig | null): void {
+    this.impresoraLocal = imp;
+    this.impresoraLocalResumen = imp
+      ? imp.nombre + ' (' + imp.perfil.replace('MM_', '') + ' mm)'
+      : 'Sin configurar';
   }
 
   onSave(): void {
@@ -59,6 +120,7 @@ export class ConfiguracionDialogComponent implements OnInit {
         modo: formValue.modo,
         isLocal: formValue.isLocal,
         updateChannel: formValue.updateChannel,
+        impresoraLocal: this.impresoraLocal,
         printers: {
           ticket: formValue.ticketPrinter,
           factura: formValue.facturaPrinter
@@ -92,6 +154,7 @@ export class ConfiguracionDialogComponent implements OnInit {
       modo: formValue.modo || this.data.modo,
       isLocal: formValue.isLocal !== undefined ? formValue.isLocal : this.data.isLocal,
       updateChannel: formValue.updateChannel || this.data.updateChannel || 'stable',
+      impresoraLocal: this.impresoraLocal,
       printers: {
         ticket: formValue.ticketPrinter || this.data.printers?.ticket || '',
         factura: formValue.facturaPrinter || this.data.printers?.factura || ''
