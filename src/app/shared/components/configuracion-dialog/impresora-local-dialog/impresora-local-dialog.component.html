@@ -1,0 +1,79 @@
+<h2 mat-dialog-title>Impresora USB local</h2>
+<mat-dialog-content>
+  <div *ngIf="!esElectron" class="aviso">
+    Disponible solo en la aplicación de escritorio.
+  </div>
+
+  <div fxLayout="column" fxLayoutGap="12px">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <button mat-stroked-button color="primary" [disabled]="detectando || !esElectron" (click)="onDetectar()">
+        <mat-icon>usb</mat-icon> DETECTAR
+      </button>
+      <mat-spinner *ngIf="detectando" diameter="22"></mat-spinner>
+      <span *ngIf="detectado && !detectando && dispositivos.length === 0 && instaladas.length === 0" class="aviso">
+        No se detectó ninguna impresora. Conectala, encendela y volvé a detectar.
+      </span>
+    </div>
+
+    <mat-form-field *ngIf="instaladas.length > 0" class="con-hint">
+      <mat-label>Usar una impresora ya instalada en el sistema</mat-label>
+      <mat-select [formControl]="instaladaControl" (selectionChange)="onUsarInstalada()">
+        <mat-option *ngFor="let p of instaladas" [value]="p.name">
+          {{ p.displayName || p.name }}<span *ngIf="p.isDefault"> (predeterminada)</span>
+        </mat-option>
+      </mat-select>
+      <mat-hint>Se imprime en crudo (ESC/POS): tiene que ser una térmica de tickets</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="dispositivos.length > 0">
+      <mat-label>O instalar un dispositivo USB nuevo</mat-label>
+      <mat-select [formControl]="dispositivoControl">
+        <mat-option *ngFor="let d of dispositivos" [value]="d">
+          {{ d.nombre }} — {{ d.descripcion }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>Nombre de la impresora</mat-label>
+        <input matInput [formControl]="nombreControl" placeholder="TICKET_CAJA1" class="mayus">
+        <mat-error *ngIf="nombreControl.invalid">Solo letras, números, _ o -</mat-error>
+      </mat-form-field>
+
+      <mat-form-field fxFlex>
+        <mat-label>Ancho de papel</mat-label>
+        <mat-select [formControl]="perfilControl">
+          <mat-option *ngFor="let p of perfiles" [value]="p.value">{{ p.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field *ngIf="pidePassword">
+      <mat-label>Contraseña de administrador (sudo)</mat-label>
+      <input matInput type="password" [formControl]="passwordControl" (keyup.enter)="onInstalar()">
+    </mat-form-field>
+
+    <div class="acciones" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <button mat-raised-button color="accent"
+              [disabled]="instalando || !dispositivoControl.value || nombreControl.invalid"
+              (click)="onInstalar()">
+        <mat-icon>download</mat-icon> INSTALAR EN ESTA PC
+      </button>
+      <button mat-stroked-button [disabled]="probando || !cola" (click)="onProbar()">
+        <mat-icon>print</mat-icon> PROBAR IMPRESIÓN
+      </button>
+      <mat-spinner *ngIf="instalando || probando" diameter="22"></mat-spinner>
+    </div>
+
+    <div *ngIf="cola" class="estado">
+      <mat-icon>check_circle</mat-icon> Cola instalada: <b>{{ cola }}</b>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button color="warn" *ngIf="cola" (click)="onQuitar()">QUITAR</button>
+  <button mat-button (click)="onCancelar()">CANCELAR</button>
+  <button mat-raised-button color="primary" [disabled]="!cola" (click)="onGuardar()">ACEPTAR</button>
+</mat-dialog-actions>

@@ -58,6 +58,22 @@
         <input matInput formControlName="facturaPrinter">
       </mat-form-field>
     </div>
+
+    <div class="impresora-local" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="8px">
+      <div fxLayout="column">
+        <span class="impresora-local-label">Impresora USB local</span>
+        <span>{{ impresoraLocalResumen }}</span>
+      </div>
+      <div fxLayout="row" fxLayoutGap="4px">
+        <button mat-stroked-button type="button" [disabled]="!impresoraLocal || probandoImpresoraLocal"
+                (click)="onProbarImpresoraLocal()">
+          <mat-icon>print</mat-icon> PROBAR
+        </button>
+        <button mat-stroked-button type="button" color="primary" (click)="onConfigurarImpresoraLocal()">
+          <mat-icon>usb</mat-icon> CONFIGURAR
+        </button>
+      </div>
+    </div>
     
     <mat-form-field>
       <mat-label>Modo</mat-label>
