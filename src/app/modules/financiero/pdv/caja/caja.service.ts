@@ -227,6 +227,11 @@ export class CajaService {
       // "Imprimir desde esta PC": la filial arma el balance y se imprime acá.
       return this.impresionPos.imprimirTicket("BALANCE", id, "El balance de la caja");
     }
+    if (servidor !== false && sucId != null && this.impresionPos.imprimeEstaPc()) {
+      // "Imprimir Cierre" contra el central en modo "Imprimir desde esta PC": el central arma el
+      // mismo balance y se imprime acá.
+      return this.impresionPos.imprimirTicketCentral("BALANCE", id, sucId, "El cierre de caja");
+    }
     console.log('imprimir balance', 'id', id, 'printerName', this.configService.getConfig().printers["ticket"], 'local', this.configService.getConfig().local, 'sucId', sucId);
     return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId}, servidor, null, null);
   }
