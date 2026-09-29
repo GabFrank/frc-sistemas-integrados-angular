@@ -1,0 +1,31 @@
+mat-dialog-content {
+  max-height: 70vh;
+  padding-top: 16px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.acciones {
+  margin-top: 16px;
+}
+
+.mayus {
+  text-transform: uppercase;
+}
+
+.aviso {
+  color: #ffb74d;
+}
+
+.estado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #81c784;
+}
+
+.con-hint {
+  margin-bottom: 12px;
+}
