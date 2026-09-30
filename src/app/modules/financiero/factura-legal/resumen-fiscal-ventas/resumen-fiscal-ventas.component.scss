@@ -1,0 +1,130 @@
+@import '../../../grafico/styles/grafico-filtros';
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.resumen-fiscal {
+  &__contenido {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  &__vacio {
+    color: $grafico-text-secondary;
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  &__contribuyente + &__contribuyente {
+    margin-top: 32px;
+  }
+
+  &__titulo {
+    margin: 0 0 12px;
+    font-size: 16px;
+
+    span {
+      display: block;
+      font-size: 12px;
+      font-weight: normal;
+      color: $grafico-text-secondary;
+    }
+  }
+
+  &__fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    > .resumen-fiscal__panel:first-child {
+      flex: 1 1 420px;
+    }
+  }
+
+  &__panel {
+    background: $grafico-bg-panel;
+    border: 1px solid $grafico-border;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+
+      small {
+        color: $grafico-text-secondary;
+        font-weight: normal;
+      }
+    }
+
+    &--datos {
+      flex: 0 1 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+
+      > div {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .aviso {
+        justify-content: flex-start;
+        align-items: center;
+        color: #ffb74d;
+        font-size: 12px;
+
+        mat-icon {
+          font-size: 18px;
+          height: 18px;
+          width: 18px;
+        }
+      }
+    }
+  }
+
+  &__tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+
+    th,
+    td {
+      padding: 4px 8px;
+      border-bottom: 1px solid $grafico-border;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: $grafico-text-secondary;
+      font-weight: 500;
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .aviso {
+      color: #ffb74d;
+    }
+
+    tr.total td {
+      font-weight: bold;
+      border-top: 2px solid $grafico-border;
+    }
+
+    &--rubros td:nth-child(2) {
+      white-space: normal;
+    }
+  }
+}
