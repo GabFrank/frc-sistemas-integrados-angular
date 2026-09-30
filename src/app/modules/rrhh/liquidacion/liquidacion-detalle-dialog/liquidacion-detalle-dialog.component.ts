@@ -13,6 +13,7 @@ import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 
 /**
  * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
@@ -78,7 +79,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     private dialogosService: DialogosService,
     private reporteService: ReporteService,
     public mainService: MainService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private impresionService: ImpresionService
   ) { }
 
   ngOnInit(): void {
@@ -252,6 +254,13 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         'Recibo ' + this.liq.periodo + ' - ' + (this.liq.funcionario?.persona?.nombre || this.liq.id), base64);
       this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
     });
+  }
+
+  /** Recibo de un solo item: PDF o ticket, con el dialogo oficial de impresion. */
+  onReciboItem(it: LiquidacionItem) {
+    this.impresionService.imprimir(
+      'Recibo ' + (it.descripcion || it.codigo || it.id) + ' - ' + (this.liq.funcionario?.persona?.nombre || this.liq.id),
+      (anchoMm, escpos) => this.liquidacionService.onImprimirReciboItem(it.id, anchoMm, escpos));
   }
 
   onToggleAgregar() {

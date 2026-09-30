@@ -40,6 +40,29 @@
       <mat-slide-toggle [formControl]="esAdelantoControl">Adelanto de sueldo</mat-slide-toggle>
     </div>
 
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Cuotas</mat-label>
+        <input matInput type="number" min="1" [max]="maxCuotas" [formControl]="cuotasControl" required />
+        <mat-hint>1 = se descuenta entero</mat-hint>
+        <mat-error *ngIf="cuotasControl.invalid">Entre 1 y {{ maxCuotas }}</mat-error>
+      </mat-form-field>
+      <mat-slide-toggle *ngIf="puedeAprobar" [formControl]="enEspecieControl">Entrega en especie</mat-slide-toggle>
+    </div>
+
+    <div class="aviso-especie" *ngIf="enEspecieControl.value">
+      Se entrega en bienes (ej. uniforme): el vale queda confirmado y no sale plata de la Caja Mayor.
+    </div>
+
+    <div class="preview-cuotas" *ngIf="cuotasPreview.length > 0">
+      <div class="preview-titulo">Se descuenta en la liquidación que cubra cada fecha:</div>
+      <div class="preview-fila" *ngFor="let c of cuotasPreview" fxLayout="row" fxLayoutGap="12px">
+        <span class="preview-numero">{{ c.numero }}/{{ cuotasPreview.length }}</span>
+        <span fxFlex>{{ c.fecha | date:'dd/MM/yyyy' }}</span>
+        <span>{{ c.monto | number:'1.0-2' }}</span>
+      </div>
+    </div>
+
     <mat-form-field style="width: 100%">
       <mat-label>Observación</mat-label>
       <input matInput [formControl]="observacionControl" />
