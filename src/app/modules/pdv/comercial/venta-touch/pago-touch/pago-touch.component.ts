@@ -844,6 +844,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * falta antes de Finalizar: siempre reemplaza lo que la línea ya tenía.
    */
   escanearTarjeta(item: CobroDetalle): void {
+    // Con el flujo deshabilitado no hay terminal ni cupón que pedir, venga de donde venga la llamada.
+    if (!this.ventaTarjetaHabilitada) return;
     // Mientras dure el escaneo, los atajos del cobro (Enter/F10 = finalizar, F12, F4/F5, ...) quedan
     // apagados. Sin esto, un Enter del lector que caía fuera del diálogo cerraba la venta.
     this.isDialogOpen = true;
