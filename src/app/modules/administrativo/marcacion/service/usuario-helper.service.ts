@@ -46,7 +46,12 @@ export class UsuarioHelperService {
      * `titulo` existe para que quien abre el buscador diga a quien esta buscando: no siempre es
      * "un usuario" en abstracto (ej. el solicitante de una transferencia).
      */
-    abrirBuscador(dialog: MatDialog, titulo = "Buscar Usuario"): Observable<Usuario | undefined> {
+    /** `extra` pisa la configuracion por defecto del dialogo (ej. una lista sugerida en `inicialData`). */
+    abrirBuscador(
+        dialog: MatDialog,
+        titulo = "Buscar Usuario",
+        extra?: Partial<SearchListtDialogData>
+    ): Observable<Usuario | undefined> {
         const data: SearchListtDialogData = {
             titulo,
             tableData: [
@@ -56,6 +61,7 @@ export class UsuarioHelperService {
             ],
             query: this.searchUsuario,
             fallbackToLocal: true,
+            ...extra,
         };
 
         return dialog.open(SearchListDialogComponent, {
