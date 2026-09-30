@@ -46,3 +46,15 @@
   .chip-PAGADA { background: rgba(76, 175, 80, 0.2); color: #66bb6a; }
   .chip-ANULADA { background: rgba(244, 67, 54, 0.2); color: #ef5350; }
 }
+
+.programados {
+  .programados-titulo {
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  .vencido {
+    color: #ffb74d;
+    font-weight: 600;
+  }
+}
