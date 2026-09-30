@@ -302,3 +302,32 @@ export const usuariosSearchPaginated = gql`
     }
   }
 `;
+
+// Solo se usa con roles elegidos: con la lista vacia va usuariosSearchPaginated, que existe
+// tambien en centrales que todavia no tienen esta query.
+export const usuariosSearchPaginatedPorRoles = gql`
+  query ($texto: String, $page: Int, $size: Int, $roleIds: [ID]) {
+    data: usuarioSearchPaginatedPorRoles(texto: $texto, page: $page, size: $size, roleIds: $roleIds) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nickname
+        activo
+        creadoEn
+        persona {
+          id
+          nombre
+          telefono
+          documento
+          imagenes
+        }
+      }
+    }
+  }
+`;

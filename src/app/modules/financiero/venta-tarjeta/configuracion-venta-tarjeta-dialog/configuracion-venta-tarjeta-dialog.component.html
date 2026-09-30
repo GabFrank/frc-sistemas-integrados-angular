@@ -23,6 +23,27 @@
                 </span>
             </div>
         </div>
+
+        <div class="config-item" *ngIf="config.terminalObligatoria !== undefined">
+            <div class="config-item-info">
+                <div class="config-item-title">Exigir la terminal antes de cerrar la venta</div>
+                <div class="config-item-desc">
+                    Cuando está activado, el PDV no cierra una venta con tarjeta hasta que se elija la
+                    terminal POS de cada cobro. Si está desactivado, la venta se puede cerrar sin terminal
+                    y queda pendiente de registrar.
+                </div>
+            </div>
+            <div class="config-item-toggle">
+                <mat-slide-toggle
+                    [checked]="config.terminalObligatoria"
+                    (change)="onToggleTerminalObligatoria()"
+                    color="accent">
+                </mat-slide-toggle>
+                <span class="toggle-label" [class.active]="config.terminalObligatoria" [class.desactive]="!config.terminalObligatoria">
+                    {{ config.terminalObligatoria ? 'ACTIVADO' : 'DESACTIVADO' }}
+                </span>
+            </div>
+        </div>
     </div>
 </mat-dialog-content>
 

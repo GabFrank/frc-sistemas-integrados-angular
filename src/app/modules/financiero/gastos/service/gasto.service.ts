@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
+import { ImpresionPosService } from '../../../../shared/services/impresion-pos/impresion-pos.service';
+import { SaveGastoClienteGQL } from '../graphql/saveGastoCliente';
 import { PageInfo } from '../../../../app.component';
 import { Gasto } from '../models/gastos.model';
 import { PreGasto } from '../models/pre-gasto.model';
@@ -76,7 +78,9 @@ export class GastoService {
     private preGastoRetiroConfirmadoGQL: PreGastoRetiroConfirmadoGQL,
     private registrarDevolucionSaldoGQL: RegistrarDevolucionSaldoGQL,
     private saveGastoRendicionGQL: SaveGastoRendicionGQL,
-    private cancelarGastoGQL: CancelarGastoGQL
+    private cancelarGastoGQL: CancelarGastoGQL,
+    private saveGastoCliente: SaveGastoClienteGQL,
+    private impresionPos: ImpresionPosService
   ) { }
 
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
@@ -84,6 +88,18 @@ export class GastoService {
     if (!(gasto instanceof Gasto)) {
       gastoAux = new Gasto();
       Object.assign(gastoAux, gasto);
+    }
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": la filial guarda sin imprimir y el ticket se pide e imprime acá.
+      // Misma condición que usa saveGasto para imprimir: solo si el gasto no llega finalizado.
+      const input = gastoAux.toInput();
+      return this.genericService.onSave<Gasto>(this.saveGastoCliente, input, undefined, this.configService?.getConfig()?.local, servidor).pipe(
+        tap((res) => {
+          if (res?.id != null && input.finalizado !== true) {
+            this.impresionPos.imprimirTicket('GASTO', res.id, 'El ticket del gasto', false).subscribe();
+          }
+        })
+      );
     }
     return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
@@ -93,6 +109,11 @@ export class GastoService {
   }
 
   onReimprimir(id: number, servidor = true): Observable<boolean> {
+    if (this.impresionPos.porCliente(servidor)) {
+      return this.impresionPos
+        .imprimirTicket('GASTO', id, 'La reimpresión del gasto', true)
+        .pipe(map((ok) => (ok ? true : null)));
+    }
     return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor);
   }
 

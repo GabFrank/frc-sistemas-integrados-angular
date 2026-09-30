@@ -2,3 +2,24 @@
   min-width: 500px;
   padding: 8px;
 }
+
+.aviso-especie {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.preview-cuotas {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+
+  .preview-titulo {
+    opacity: 0.8;
+    margin-bottom: 4px;
+  }
+
+  .preview-numero {
+    width: 40px;
+  }
+}

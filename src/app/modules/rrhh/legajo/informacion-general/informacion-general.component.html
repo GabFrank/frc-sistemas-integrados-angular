@@ -110,10 +110,23 @@
       </mat-form-field>
     </div>
 
-    <div fxLayout="row" fxLayoutGap="24px" class="toggles-row">
-      <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
-      <mat-slide-toggle [formControl]="fasePruebaControl">Fase de prueba</mat-slide-toggle>
-      <mat-slide-toggle [formControl]="diaristaControl">Diarista</mat-slide-toggle>
+    <div fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start start" class="credito-row">
+      <mat-form-field fxFlex="23">
+        <mat-label>Crédito (Gs.)</mat-label>
+        <input
+          matInput
+          type="text"
+          [formControl]="creditoControl"
+          currencyMask
+          [options]="currencyMask.currencyOptionsGuarani" />
+        <mat-hint>Límite de venta a crédito asignado al funcionario</mat-hint>
+      </mat-form-field>
+
+      <div fxLayout="row" fxLayoutGap="24px" class="toggles-row">
+        <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
+        <mat-slide-toggle [formControl]="fasePruebaControl">Fase de prueba</mat-slide-toggle>
+        <mat-slide-toggle [formControl]="diaristaControl">Diarista</mat-slide-toggle>
+      </div>
     </div>
   </mat-card>
 

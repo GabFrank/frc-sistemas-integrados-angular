@@ -24,6 +24,7 @@ import { EditMotivoValeDialogComponent } from './motivo-vale/edit-motivo-vale-di
 import { ListValeComponent } from './vale/list-vale/list-vale.component';
 import { EditValeDialogComponent } from './vale/edit-vale-dialog/edit-vale-dialog.component';
 import { ConfirmarValeDialogComponent } from './vale/confirmar-vale-dialog/confirmar-vale-dialog.component';
+import { ValeCuotasDialogComponent } from './vale/vale-cuotas-dialog/vale-cuotas-dialog.component';
 import { ListPrestamoComponent } from './prestamo/list-prestamo/list-prestamo.component';
 import { EditPrestamoDialogComponent } from './prestamo/edit-prestamo-dialog/edit-prestamo-dialog.component';
 import { PrestamoCuotasDialogComponent } from './prestamo/prestamo-cuotas-dialog/prestamo-cuotas-dialog.component';
@@ -76,6 +77,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     ListValeComponent,
     EditValeDialogComponent,
     ConfirmarValeDialogComponent,
+    ValeCuotasDialogComponent,
     ListPrestamoComponent,
     EditPrestamoDialogComponent,
     PrestamoCuotasDialogComponent,
