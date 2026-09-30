@@ -20,6 +20,10 @@
   <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
 
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>N°</th>
+        <td mat-cell *matCellDef="let row">{{ row.numero }}</td>
+      </ng-container>
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef>Id</th>
         <td mat-cell *matCellDef="let row" [ngClass]="row.activo ? '' : 'inactivo'">{{ row.id }}</td>
