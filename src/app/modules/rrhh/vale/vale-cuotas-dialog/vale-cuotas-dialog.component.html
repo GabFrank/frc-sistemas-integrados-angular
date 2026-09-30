@@ -1,0 +1,43 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Cuotas del vale #{{ vale.id }}</h2>
+
+  <div class="resumen" fxLayout="column" fxLayoutGap="4px">
+    <div><b>Funcionario:</b> {{ vale.funcionario?.persona?.nombre }}</div>
+    <div><b>Monto:</b> {{ vale.monto | number:'1.0-2' }} {{ vale.moneda?.denominacion }}
+      en {{ vale.cantidadCuotas }} cuotas</div>
+    <div><b>Pendiente:</b> {{ vale.saldoPendiente | number:'1.0-2' }}</div>
+  </div>
+
+  <table mat-table [dataSource]="cuotas" class="mat-elevation-z1" style="width: 100%">
+    <ng-container matColumnDef="numero">
+      <th mat-header-cell *matHeaderCellDef>Cuota</th>
+      <td mat-cell *matCellDef="let c">{{ c.numero }}/{{ vale.cantidadCuotas }}</td>
+    </ng-container>
+    <ng-container matColumnDef="fechaDescuento">
+      <th mat-header-cell *matHeaderCellDef>Se descuenta</th>
+      <td mat-cell *matCellDef="let c">{{ c.fechaDescuento | date:'dd/MM/yyyy' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="monto">
+      <th mat-header-cell *matHeaderCellDef>Monto</th>
+      <td mat-cell *matCellDef="let c">{{ c.monto | number:'1.0-2' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef>Estado</th>
+      <td mat-cell *matCellDef="let c">{{ c.estado }}</td>
+    </ng-container>
+    <ng-container matColumnDef="documento">
+      <th mat-header-cell *matHeaderCellDef>Descontada en</th>
+      <td mat-cell *matCellDef="let c">
+        <span *ngIf="c.liquidacionId">Liquidación #{{ c.liquidacionId }}</span>
+        <span *ngIf="c.liquidacionFinalId">Finiquito #{{ c.liquidacionFinalId }}</span>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+    <tr mat-row *matRowDef="let c; columns: columnas"></tr>
+  </table>
+  <div class="vacio" *ngIf="!cargando && cuotas.length === 0">El vale no tiene cuotas.</div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
+    <button mat-stroked-button (click)="onCerrar()">Cerrar</button>
+  </div>
+</div>

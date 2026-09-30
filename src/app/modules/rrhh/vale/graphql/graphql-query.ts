@@ -9,6 +9,9 @@ const VALE_FIELDS = `
   fecha
   estado
   esAdelanto
+  cantidadCuotas
+  enEspecie
+  saldoPendiente
   cajaVirtualId
   observacion
   autorizadoPor { id nickname }
@@ -62,5 +65,25 @@ export const anularValeMutation = gql`
 export const crearValeConfirmadoMutation = gql`
   mutation crearValeConfirmado($entity: ValeRrhhInput!, $cajaVirtualId: ID!, $autorizadoPorId: ID) {
     data: crearValeConfirmado(vale: $entity, cajaVirtualId: $cajaVirtualId, autorizadoPorId: $autorizadoPorId) { ${VALE_FIELDS} }
+  }
+`;
+
+export const crearValeEnEspecieMutation = gql`
+  mutation crearValeEnEspecie($entity: ValeRrhhInput!, $autorizadoPorId: ID) {
+    data: crearValeEnEspecie(vale: $entity, autorizadoPorId: $autorizadoPorId) { ${VALE_FIELDS} }
+  }
+`;
+
+export const valeCuotasQuery = gql`
+  query ($valeId: ID!) {
+    data: valeCuotas(valeId: $valeId) {
+      id
+      numero
+      monto
+      fechaDescuento
+      estado
+      liquidacionId
+      liquidacionFinalId
+    }
   }
 `;
