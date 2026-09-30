@@ -56,6 +56,11 @@ export class SearchListtDialogData {
   filtro?: (item: any) => boolean;
   /** Texto del boton de confirmacion en modo multiple. Default: 'Aplicar filtro' */
   labelAceptar?: string;
+  /**
+   * Con `query` e `inicialData`: la busqueda sin texto vuelve a mostrar `inicialData` (una lista
+   * sugerida) en vez de traer todo del servidor; con texto se busca en el servidor como siempre.
+   */
+  inicialDataSiVacio?: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -211,6 +216,12 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     }
 
     if (this.data?.query == null) {
+      this.filterLocalData();
+      return;
+    }
+
+    const textoActual = String(this.buscarControl.value ?? '').trim();
+    if (this.data?.inicialDataSiVacio && (textoActual === '' || textoActual === '%')) {
       this.filterLocalData();
       return;
     }

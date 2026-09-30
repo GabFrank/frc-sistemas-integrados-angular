@@ -98,6 +98,9 @@ import {
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ConfiguracionTransferenciaService } from '../configuracion-transferencia-dialog/configuracion-transferencia.service';
 
+/** Deposito Aquario SDG: el unico origen donde el solicitante puede ser cualquier funcionario. */
+const SUCURSAL_DEPOSITO_AQUARIO_ID = 13;
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-edit-transferencia",
@@ -494,6 +497,10 @@ export class EditTransferenciaComponent implements OnInit {
             res.getContent,
             alertas
           );
+          // Igual que frc-mobile: la etapa (filtro de rechazados y si se puede finalizar) se
+          // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
+          // "todo confirmado".
+          this.verificarEtapa();
         }
       });
   }
@@ -610,12 +617,10 @@ export class EditTransferenciaComponent implements OnInit {
         break;
     }
 
-    if (
-      this.selectedResponsable.id == this.mainService.usuarioActual.id ||
-      this.selectedResponsable.id == null
-    ) {
-      this.puedeEditar = true;
-    }
+    // Se recalcula en cada etapa: el responsable cambia al avanzar.
+    this.puedeEditar =
+      this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
+      this.selectedResponsable?.id == null;
     this.onVerificarConfirmados();
   }
 
@@ -1130,9 +1135,11 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onVerificarConfirmados() {
-    let okPreparacion = true;
-    let okTransporte = true;
-    let okRecepcion = true;
+    // Con la grilla vacia (items todavia cargando) no se puede dar nada por confirmado.
+    const hayItems = this.dataSource.data.length > 0;
+    let okPreparacion = hayItems;
+    let okTransporte = hayItems;
+    let okRecepcion = hayItems;
     this.dataSource.data.find((i) => {
       if (
         this.selectedTransferencia.etapa ==
@@ -1240,18 +1247,11 @@ export class EditTransferenciaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.selectedTransferencia.etapa = etapa;
-          this.actualizarPermisosPorSucursal();
-          this.verificarEtapa();
-          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_CAMINO) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_TRANSITO;
-          } else if (etapa == EtapaTransferencia.RECEPCION_EN_VERIFICACION) {
-            this.selectedTransferencia.estado = TransferenciaEstado.EN_DESTINO;
-          }
+          // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
+          // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
+          // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
+          // responsable, dejando Finalizar habilitado sin confirmar nada.
+          this.cargarDatos(this.selectedTransferencia.id);
         }
       });
   }
@@ -1308,30 +1308,50 @@ export class EditTransferenciaComponent implements OnInit {
    * al buscador de usuarios contra el servidor, que es el comportamiento de siempre.
    *
    * En los dos casos no se preselecciona nada: la lista llega acotada, elegir sigue siendo manual.
+   *
+   * Si el origen es un deposito, quien pide no siempre es el cajero de turno (encargados,
+   * repositores): el buscador arranca con los cajeros, pero lo que se escribe busca entre todos
+   * los usuarios en el servidor.
    */
   private abrirBuscadorDeSolicitante(cajeros: Usuario[] | null) {
-    const seleccion =
-      cajeros != null
-        ? this.matDialog
-            .open(SearchListDialogComponent, {
-              data: {
-                titulo: "Buscar solicitante (con caja abierta)",
-                tableData: [
-                  { id: "id", nombre: "Id", width: "20%" },
-                  { id: "persona.nombre", nombre: "Nombre", width: "80%" },
-                ],
-                query: null,
-                inicialData: cajeros,
-              } as SearchListtDialogData,
-              height: "80vh",
-              width: "70vw",
-              panelClass: "search-dialog-dark",
-            })
-            .afterClosed()
-        : this.usuarioHelperService.abrirBuscador(
-            this.matDialog,
-            "Buscar solicitante"
-          );
+    // Por id: en la base `deposito`/`tipoLocal` estan en true/DEPOSITO para todas las sucursales
+    // (la central incluida), asi que no distinguen al deposito real.
+    const origenEsDeposito =
+      +this.selectedTransferencia?.sucursalOrigen?.id == SUCURSAL_DEPOSITO_AQUARIO_ID;
+    let seleccion: Observable<Usuario | undefined>;
+    if (cajeros == null) {
+      seleccion = this.usuarioHelperService.abrirBuscador(
+        this.matDialog,
+        "Buscar solicitante"
+      );
+    } else if (origenEsDeposito) {
+      seleccion = this.usuarioHelperService.abrirBuscador(
+        this.matDialog,
+        "Buscar solicitante (con caja abierta)",
+        {
+          inicialData: cajeros,
+          inicialDataSiVacio: true,
+          textHint: "Escriba para buscar entre todos los funcionarios...",
+        }
+      );
+    } else {
+      seleccion = this.matDialog
+        .open(SearchListDialogComponent, {
+          data: {
+            titulo: "Buscar solicitante (con caja abierta)",
+            tableData: [
+              { id: "id", nombre: "Id", width: "20%" },
+              { id: "persona.nombre", nombre: "Nombre", width: "80%" },
+            ],
+            query: null,
+            inicialData: cajeros,
+          } as SearchListtDialogData,
+          height: "80vh",
+          width: "70vw",
+          panelClass: "search-dialog-dark",
+        })
+        .afterClosed();
+    }
 
     seleccion.pipe(untilDestroyed(this)).subscribe((usuario) => {
       if (usuario == null) return;
