@@ -34,7 +34,7 @@ export class EditLiquidacionConceptoDialogComponent implements OnInit {
   esCalculadoAutoControl = new FormControl(false);
   activoControl = new FormControl(true);
   /** Número fijo para elegir la operación tipeando al cargar ítems. Vacío = sin número. */
-  numeroControl = new FormControl(null, [Validators.min(1)]);
+  numeroControl = new FormControl(null, [Validators.min(1), Validators.max(9999), Validators.pattern(/^\d+$/)]);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: LiquidacionConceptoDialogData,
