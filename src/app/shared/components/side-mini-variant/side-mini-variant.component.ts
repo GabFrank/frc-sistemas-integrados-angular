@@ -656,6 +656,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'request_quote',
               action: 'list-nota-credito',
               visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
+            },
+            {
+              name: 'Gráficos',
+              icon: 'bar_chart',
+              action: 'graficos',
+              visibilityRoles: [ROLES.ADMIN]
             }
           ]
         },
@@ -695,21 +701,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
-      name: 'Vehículos',
-      icon: 'directions_car',
-      isExpanded: false,
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN],
-      items: [
-        {
-          name: 'Vehículo',
-          icon: 'commute',
-          action: 'list-vehiculo',
-          visibilityRoles: [ROLES.ADMIN]
-        }
-      ]
-    },
-    {
       name: 'Bienes',
       icon: 'forest',
       isExpanded: false,
@@ -721,6 +712,20 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'check_circle',
           action: 'bienes-dashboard',
           visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Vehículos',
+          icon: 'directions_car',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vehículo',
+              icon: 'commute',
+              action: 'list-vehiculo',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
         }
       ]
     },
@@ -770,13 +775,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
-    },
-    {
-      name: 'Gráficos',
-      icon: 'bar_chart',
-      action: 'graficos',
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN]
     },
     {
       name: 'Configuración',
