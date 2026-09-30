@@ -43,6 +43,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   montoControl = new FormControl(0);
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
+  /**
+   * Periodo en que se aplica el item que se carga: el de esta liquidacion (item manual, como
+   * siempre) o uno de los 12 siguientes (queda programado y entra solo en esa liquidacion).
+   */
+  periodoControl = new FormControl(null);
+  periodoOptions: string[] = [];
+
+  /** Items programados PENDIENTES del funcionario (para cualquier periodo). */
+  programados = new MatTableDataSource<any>([]);
+  programadosColumns = ['periodo', 'descripcion', 'tipo', 'monto', 'estado', 'acciones'];
 
   /**
    * Operaciones elegibles al cargar un item a mano. El backend deriva el signo de
@@ -111,7 +121,12 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
     this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) { this.liq = res; this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0; }
+      if (res != null) {
+        this.liq = res;
+        this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+        this.periodoOptions = this.periodosDesde(this.liq.periodo);
+        this.cargarProgramados();
+      }
     });
     this.cargarItems(liqId);
   }
@@ -121,6 +136,38 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (liqId == null) { return; }
     this.liquidacionService.onGetItems(liqId)
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+  }
+
+  /** "2026-09" y los 12 meses siguientes. */
+  private periodosDesde(periodo: string): string[] {
+    if (!periodo) { return []; }
+    const [anio, mes] = periodo.split('-').map(Number);
+    const out: string[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const d = new Date(anio, mes - 1 + i, 1);
+      out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    return out;
+  }
+
+  private cargarProgramados() {
+    const funcionarioId = this.liq?.funcionario?.id;
+    if (funcionarioId == null) { return; }
+    this.liquidacionService.onGetItemsProgramados(funcionarioId, 'PENDIENTE')
+      .pipe(untilDestroyed(this)).subscribe({ next: res => { this.programados.data = res || []; }, error: () => {} });
+  }
+
+  onAnularProgramado(p: any) {
+    this.dialogosService.confirm(
+      'Anular item programado',
+      '¿Anular "' + (p.descripcion || '') + '" programado para ' + p.periodo + '?',
+      'Si ya está en el borrador de ese periodo, se saca de ahí.', null, true, 'Sí', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(r => {
+      if (r === true) {
+        this.liquidacionService.onAnularItemProgramado(p.id).pipe(untilDestroyed(this))
+          .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
+      }
+    });
   }
 
   private aplicar(res: any) {
@@ -160,14 +207,26 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       });
       return;
     }
+    // Otro periodo: el item queda programado y entra solo en la liquidacion de ese mes.
+    const periodo = this.periodoControl.value;
+    const programar = this.editandoItemId == null && periodo != null && periodo !== this.liq.periodo;
     const obs = this.editandoItemId != null
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
-      : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
-          this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
+      : programar
+        ? this.liquidacionService.onProgramarItem(this.liq.id, periodo, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value)
+        : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (res != null) {
+          if (programar) {
+            this.notificacion.notification$.next({
+              texto: 'Programado: se aplicará en la liquidación de ' + periodo,
+              color: NotificacionColor.success, duracion: 4
+            });
+          }
           this.editandoItemId = null;
           this.descripcionControl.reset(); this.montoControl.setValue(0);
           this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
@@ -267,7 +326,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.mostrarAgregar = !this.mostrarAgregar;
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
     else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
-      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = ''; }
+      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = '';
+      this.periodoControl.setValue(this.liq?.periodo); }
   }
 
   onCerrar() {

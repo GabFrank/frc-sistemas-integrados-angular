@@ -23,6 +23,14 @@
       <mat-label>Monto</mat-label>
       <input matInput type="number" [formControl]="montoControl" />
     </mat-form-field>
+    <!-- Otro periodo: queda programado y entra solo en la liquidacion de ese mes. -->
+    <mat-form-field fxFlex="140px" *ngIf="!editandoItemId">
+      <mat-label>Periodo</mat-label>
+      <mat-select [formControl]="periodoControl">
+        <mat-option *ngFor="let p of periodoOptions" [value]="p">{{ p }}</mat-option>
+      </mat-select>
+      <mat-hint *ngIf="periodoControl.value && periodoControl.value !== liq.periodo">Queda programado</mat-hint>
+    </mat-form-field>
     <!-- Fallback: sin catalogo cargado hay que poder elegir el signo a mano. -->
     <mat-form-field fxFlex="160px" *ngIf="editandoItemId || sinCatalogo">
       <mat-label>Tipo</mat-label>
@@ -59,7 +67,7 @@
       <ng-container matColumnDef="origen">
         <th mat-header-cell *matHeaderCellDef>Origen</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.manual ? 'MANUAL' : 'AUTO' }}
+          {{ row.referenciaTipo === 'ITEM_PROGRAMADO' ? 'PROGRAMADO' : (row.manual ? 'MANUAL' : 'AUTO') }}
           <mat-icon *ngIf="row.editado" class="editado-icon"
             [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:'1.0-0') : '')">
             edit
@@ -69,10 +77,11 @@
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let row">
-          <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onEditarItemInit(row)" matTooltip="Editar">
+          <!-- El item de un programado se anula desde "Items programados", no se edita ni elimina aca. -->
+          <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR' && row.referenciaTipo !== 'ITEM_PROGRAMADO'" (click)="onEditarItemInit(row)" matTooltip="Editar">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
+          <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR' && row.referenciaTipo !== 'ITEM_PROGRAMADO'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
             <mat-icon>delete</mat-icon>
           </button>
           <button mat-icon-button color="primary" *ngIf="liq.estado !== 'ANULADA' && row.monto > 0"
@@ -83,6 +92,46 @@
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="itemsColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: itemsColumns"></tr>
+    </table>
+  </div>
+
+  <!-- Items programados del funcionario, para esta u otras liquidaciones -->
+  <div class="programados" *ngIf="programados.data.length > 0" fxLayout="column" fxLayoutGap="6px">
+    <div class="programados-titulo">Ítems programados de {{ liq.funcionario?.persona?.nombre }}</div>
+    <table mat-table [dataSource]="programados" class="mat-elevation-z1">
+      <ng-container matColumnDef="periodo">
+        <th mat-header-cell *matHeaderCellDef>Periodo</th>
+        <td mat-cell *matCellDef="let p">{{ p.periodo }}</td>
+      </ng-container>
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Concepto</th>
+        <td mat-cell *matCellDef="let p" class="text-left">{{ p.descripcion }}</td>
+      </ng-container>
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let p"><span [ngClass]="p.tipo === 'HABER' ? 'haber' : 'descuento'">{{ p.tipo }}</span></td>
+      </ng-container>
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let p">{{ p.monto | number:'1.0-0' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let p">
+          <span *ngIf="!p.vencido">PENDIENTE</span>
+          <span class="vencido" *ngIf="p.vencido" matTooltip="Su periodo ya pasó y nadie liquidó ese mes: anulalo o lo toma el finiquito">VENCIDO</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let p">
+          <button mat-icon-button color="warn" *ngIf="puedeLiquidar" (click)="onAnularProgramado(p)" matTooltip="Anular">
+            <mat-icon>block</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="programadosColumns"></tr>
+      <tr mat-row *matRowDef="let p; columns: programadosColumns"></tr>
     </table>
   </div>
 

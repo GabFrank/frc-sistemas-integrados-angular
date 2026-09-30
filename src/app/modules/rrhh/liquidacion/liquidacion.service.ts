@@ -11,6 +11,9 @@ import { GenerarMesGQL } from './graphql/GenerarMes';
 import { GenerarLoteGQL } from './graphql/GenerarLote';
 import { ConceptosParaItemManualGQL } from './graphql/ConceptosParaItemManual';
 import { AgregarItemGQL } from './graphql/AgregarItem';
+import { ItemsProgramadosGQL } from './graphql/ItemsProgramados';
+import { ProgramarItemGQL } from './graphql/ProgramarItem';
+import { AnularItemProgramadoGQL } from './graphql/AnularItemProgramado';
 import { EditarItemGQL } from './graphql/EditarItem';
 import { EliminarItemGQL } from './graphql/EliminarItem';
 import { AprobarLiquidacionGQL } from './graphql/AprobarLiquidacion';
@@ -37,6 +40,9 @@ export class LiquidacionService {
     private generarMesGQL: GenerarMesGQL,
     private generarLoteGQL: GenerarLoteGQL,
     private agregarItemGQL: AgregarItemGQL,
+    private itemsProgramadosGQL: ItemsProgramadosGQL,
+    private programarItemGQL: ProgramarItemGQL,
+    private anularItemProgramadoGQL: AnularItemProgramadoGQL,
     private conceptosParaItemManualGQL: ConceptosParaItemManualGQL,
     private editarItemGQL: EditarItemGQL,
     private eliminarItemGQL: EliminarItemGQL,
@@ -102,6 +108,21 @@ export class LiquidacionService {
    */
   onGetConceptosParaItemManual(servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.conceptosParaItemManualGQL, {}, servidor, null, true);
+  }
+
+  /** Programa un item para la liquidacion de un periodo posterior (hasta 12 meses). */
+  onProgramarItem(liquidacionId: number, periodo: string, descripcion: string, monto: number, tipo: string,
+                  liquidacionConceptoId: number = null, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.programarItemGQL,
+      { liquidacionId, periodo, descripcion, monto, tipo, liquidacionConceptoId }, servidor);
+  }
+
+  onGetItemsProgramados(funcionarioId: number, estado: string = null, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.itemsProgramadosGQL, { funcionarioId, estado }, servidor, null, true);
+  }
+
+  onAnularItemProgramado(id: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.anularItemProgramadoGQL, { id }, servidor);
   }
 
   onEditarItem(itemId: number, descripcion: string, monto: number, tipo: string, usuarioId: number, servidor = true): Observable<any> {
