@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../layouts/tab/tab.model';
@@ -14,6 +14,26 @@ import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+
+/** "2026-11", "11/2026" o "11-2026" → "2026-11"; cualquier otra cosa (o vacío) → null. */
+export function normalizarPeriodo(texto: string): string {
+  const t = (texto || '').trim();
+  let m = /^(\d{4})[-/](\d{1,2})$/.exec(t);
+  let anio: number, mes: number;
+  if (m) { anio = +m[1]; mes = +m[2]; } else {
+    m = /^(\d{1,2})[-/](\d{4})$/.exec(t);
+    if (!m) { return null; }
+    mes = +m[1]; anio = +m[2];
+  }
+  if (mes < 1 || mes > 12) { return null; }
+  return anio + '-' + String(mes).padStart(2, '0');
+}
+
+/** Vacío vale (se usa el periodo de la liquidación); si hay texto, tiene que ser un periodo. */
+function periodoValido(c: AbstractControl): ValidationErrors | null {
+  const v = (c.value || '').trim();
+  return v === '' || normalizarPeriodo(v) != null ? null : { periodo: true };
+}
 
 /**
  * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
@@ -43,6 +63,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   montoControl = new FormControl(0);
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
+  /**
+   * Periodo en que se aplica el item que se carga, tipeado (quien liquida lo prefiere a elegirlo
+   * de una lista): el de esta liquidacion (item manual, como siempre) o uno posterior, hasta 12
+   * meses (queda programado y entra solo en esa liquidacion). Acepta 2026-11, 11/2026 y 11-2026.
+   */
+  periodoControl = new FormControl(null, [periodoValido]);
+
+  /** Items programados PENDIENTES del funcionario (para cualquier periodo). */
+  programados = new MatTableDataSource<any>([]);
+  programadosColumns = ['periodo', 'descripcion', 'tipo', 'monto', 'estado', 'acciones'];
 
   /**
    * Operaciones elegibles al cargar un item a mano. El backend deriva el signo de
@@ -111,7 +141,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
     this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) { this.liq = res; this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0; }
+      if (res != null) {
+        this.liq = res;
+        this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+        this.cargarProgramados();
+      }
     });
     this.cargarItems(liqId);
   }
@@ -121,6 +155,27 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (liqId == null) { return; }
     this.liquidacionService.onGetItems(liqId)
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+  }
+
+
+  private cargarProgramados() {
+    const funcionarioId = this.liq?.funcionario?.id;
+    if (funcionarioId == null) { return; }
+    this.liquidacionService.onGetItemsProgramados(funcionarioId, 'PENDIENTE')
+      .pipe(untilDestroyed(this)).subscribe({ next: res => { this.programados.data = res || []; }, error: () => {} });
+  }
+
+  onAnularProgramado(p: any) {
+    this.dialogosService.confirm(
+      'Anular item programado',
+      '¿Anular "' + (p.descripcion || '') + '" programado para ' + p.periodo + '?',
+      'Si ya está en el borrador de ese periodo, se saca de ahí.', null, true, 'Sí', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(r => {
+      if (r === true) {
+        this.liquidacionService.onAnularItemProgramado(p.id).pipe(untilDestroyed(this))
+          .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
+      }
+    });
   }
 
   private aplicar(res: any) {
@@ -160,14 +215,34 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       });
       return;
     }
+    // Otro periodo: el item queda programado y entra solo en la liquidacion de ese mes. Vacio = el de
+    // esta liquidacion. El rango (posterior y hasta 12 meses) lo valida el backend con un mensaje claro.
+    if (this.editandoItemId == null && this.periodoControl.invalid) {
+      this.notificacion.notification$.next({
+        texto: 'Periodo inválido: escribilo como 2026-11 o 11/2026',
+        color: NotificacionColor.warn, duracion: 4
+      });
+      return;
+    }
+    const periodo = normalizarPeriodo(this.periodoControl.value) ?? this.liq.periodo;
+    const programar = this.editandoItemId == null && periodo !== this.liq.periodo;
     const obs = this.editandoItemId != null
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
-      : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
-          this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
+      : programar
+        ? this.liquidacionService.onProgramarItem(this.liq.id, periodo, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value)
+        : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (res != null) {
+          if (programar) {
+            this.notificacion.notification$.next({
+              texto: 'Programado: se aplicará en la liquidación de ' + periodo,
+              color: NotificacionColor.success, duracion: 4
+            });
+          }
           this.editandoItemId = null;
           this.descripcionControl.reset(); this.montoControl.setValue(0);
           this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
@@ -267,7 +342,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.mostrarAgregar = !this.mostrarAgregar;
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
     else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
-      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = ''; }
+      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = '';
+      this.periodoControl.setValue(this.liq?.periodo); }
   }
 
   onCerrar() {
