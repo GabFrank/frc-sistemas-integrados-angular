@@ -7,9 +7,13 @@ import { NotificacionColor, NotificacionSnackbarService } from "../../../notific
 import { ConfiguracionService } from "../configuracion.service";
 import { SenaCuponEscposGQL } from "./graphql/senaCuponEscpos";
 import { TicketEscposGQL } from "./graphql/ticketEscpos";
+import { TicketEscposCentralGQL } from "./graphql/ticketEscposCentral";
 
 /** Qué comprobante del POS genera la filial (enum TicketEscposTipo del filial). */
 export type TicketEscposTipo = "VENTA" | "FACTURA" | "BALANCE" | "GASTO" | "RETIRO" | "DELIVERY";
+
+/** Qué comprobante genera el central (enum TicketEscposTipo del central). */
+export type TicketEscposCentralTipo = "FACTURA" | "BALANCE";
 
 /**
  * Impresión del POS desde esta PC ("Imprimir desde esta PC" en Configuración).
@@ -18,8 +22,10 @@ export type TicketEscposTipo = "VENTA" | "FACTURA" | "BALANCE" | "GASTO" | "RETI
  * imprime con Electron en `impresoraLocal`. En modo "Imprimir por servidor" nada de esto se usa y
  * cada service manda exactamente lo de siempre.
  *
- * Solo aplica a operaciones contra la filial (`servidor === false`): las consultas que devuelven el
- * ticket existen en la filial, no en el central. Ver docs/impresion-pos-desde-cliente.md.
+ * Contra la filial (`servidor === false`) cubre todo el POS (`porCliente`, `imprimirTicket`).
+ * Contra el central solo lo que tiene su consulta ahí (`imprimirTicketCentral`: factura de la lista
+ * de facturas y cierre de caja); el resto del central sigue imprimiendo por servidor.
+ * Ver docs/impresion-pos-desde-cliente.md.
  *
  * Imprimir nunca rompe la operación: si falla, lo que se guardó ya está guardado y se avisa con un
  * snackbar para que el cajero use la reimpresión.
@@ -33,13 +39,19 @@ export class ImpresionPosService {
     private electronService: ElectronService,
     private genericService: GenericCrudService,
     private ticketEscpos: TicketEscposGQL,
+    private ticketEscposCentral: TicketEscposCentralGQL,
     private senaCuponEscpos: SenaCuponEscposGQL,
     private notificacion: NotificacionSnackbarService
   ) {}
 
   /** ¿Esta operación la imprime el frontend? Solo contra la filial y en modo "desde esta PC". */
   porCliente(servidor: boolean): boolean {
-    return servidor === false && this.electronService.isElectron && this.configService.imprimirPorFrontend();
+    return servidor === false && this.imprimeEstaPc();
+  }
+
+  /** ¿Esta PC está en modo "Imprimir desde esta PC" (y corre en Electron)? */
+  imprimeEstaPc(): boolean {
+    return this.electronService.isElectron && this.configService.imprimirPorFrontend();
   }
 
   /** `local` configurado en esta PC: sale en el encabezado de los tickets, igual que por servidor. */
@@ -80,19 +92,23 @@ export class ImpresionPosService {
 
   /** Pide a la filial el comprobante `tipo` de `id` y lo imprime acá. */
   imprimirTicket(tipo: TicketEscposTipo, id: number, que: string, reimpresion?: boolean): Observable<boolean> {
+    return this.pedirEImprimir(
+      this.ticketEscpos, { tipo, id, reimpresion: reimpresion ?? null, local: this.local }, false, que);
+  }
+
+  /** Pide al CENTRAL el comprobante `tipo` del registro (`id`, `sucId`) y lo imprime acá. */
+  imprimirTicketCentral(tipo: TicketEscposCentralTipo, id: number, sucId: number, que: string): Observable<boolean> {
+    return this.pedirEImprimir(this.ticketEscposCentral, { tipo, id, sucId, local: this.local }, true, que);
+  }
+
+  private pedirEImprimir(gql: any, variables: any, servidor: boolean, que: string): Observable<boolean> {
     return this.genericService
-      .onCustomQuery(
-        this.ticketEscpos,
-        { tipo, id, reimpresion: reimpresion ?? null, local: this.local },
-        false,
-        { networkError: { show: true, propagate: true } },
-        true
-      )
+      .onCustomQuery(gql, variables, servidor, { networkError: { show: true, propagate: true } }, true)
       .pipe(
         take(1),
         switchMap((base64: string) => {
           if (!base64) {
-            this.avisarFallo(que, "la filial no devolvió el comprobante");
+            this.avisarFallo(que, "el servidor no devolvió el comprobante");
             return of(false);
           }
           return this.imprimir(base64, que);

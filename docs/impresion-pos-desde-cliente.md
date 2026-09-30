@@ -39,8 +39,18 @@ Todas las impresiones del POS contra la filial (`servidor === false`):
 | Retiro / reimpresión | `RetiroService.onSave` / `onReimprimirRetiro` | `saveRetiroCliente` → `ticketEscpos(RETIRO)` |
 | Seña de cobro con tarjeta | `VentaTarjetaService.onImprimirSena` | `senaCuponEscpos` |
 
-Todo lo que va al **central** (`servidor !== false`) sigue igual en cualquier modo: las consultas que
-devuelven el ticket existen solo en la filial.
+### Contra el central
+
+Solo dos flujos (desde 2026-09-29, rama `feat/impresion-central-desde-pc` + central
+`feat/impresion-central-cliente`, ver `franco-system-backend-servidor/docs/impresion-desde-cliente.md`):
+
+| Flujo | Service | Modo PC |
+|---|---|---|
+| Lista de facturas → Reimprimir | `FacturaLegalService.onReimprimirFacturaTicket` | `ticketEscpos(FACTURA, id, sucId)` del central |
+| Editar caja → Imprimir Cierre (fuera del POS) | `CajaService.onImprimirBalance` | `ticketEscpos(BALANCE, id, sucId)` del central |
+
+Todo lo demás que va al **central** sigue imprimiendo por servidor en cualquier modo (por ejemplo
+"Imprimir ticket/PDF en sucursal", o la impresión al crear una factura desde el diálogo de alta).
 
 ## Cómo está hecho
 
@@ -50,6 +60,8 @@ devuelven el ticket existen solo en la filial.
   - `imprimir(base64, que)`: `ElectronService.printLocal` con la cola de `impresoraLocal`.
   - `imprimirTicket(tipo, id, que, reimpresion?)`: pide `ticketEscpos` a la filial e imprime.
   - `imprimirSenaCupon(input)`: ídem con `senaCuponEscpos`.
+  - `imprimirTicketCentral(tipo, id, sucId, que)`: pide `ticketEscpos` al **central** e imprime.
+  - `imprimeEstaPc()`: modo "desde esta PC" sin importar a qué servidor va la operación.
 - Cada service del POS tiene una rama `if (this.impresionPos.porCliente(servidor)) { ... }` al
   principio; **fuera de esa rama el código y el pedido son los de siempre**.
 - Las mutaciones del modo PC usan **documentos GraphQL aparte** (`saveVentaCliente`,

@@ -175,6 +175,22 @@ export class FacturaLegalService {
       });
   }
 
+  /**
+   * "Reimprimir" de la lista de facturas: en modo "Imprimir desde esta PC" el central devuelve el
+   * mismo ticket y se imprime acá; si no, la reimpresión de siempre por servidor.
+   */
+  onReimprimirFacturaTicket(id: number, sucId: number): void {
+    if (this.impresionPos.imprimeEstaPc()) {
+      this.impresionPos.imprimirTicketCentral("FACTURA", id, sucId, "La reimpresión de la factura").subscribe((ok) => {
+        if (ok) {
+          this.notificacionService.openGuardadoConExito();
+        }
+      });
+      return;
+    }
+    this.onReimprimirFactura(id, sucId);
+  }
+
   onReimprimirFactura(id: number, sucId: number, servidor: boolean = true) {
     return this.genericService
       .onCustomQuery(this.imprimirFactura, {
