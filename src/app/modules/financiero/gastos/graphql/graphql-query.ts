@@ -58,6 +58,62 @@ export const saveGasto = gql`
   }
 `;
 
+/**
+ * saveGasto para "Imprimir desde esta PC": la filial guarda y no imprime; el ticket se pide con
+ * ticketEscpos(GASTO). Documento aparte: el de arriba no cambia.
+ */
+export const saveGastoCliente = gql`
+  mutation saveGastoCliente($entity: GastoInput!, $local: String) {
+    data: saveGasto(entity: $entity, local: $local, imprimirEnCliente: true) {
+      id
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      tipoGasto {
+        id
+        descripcion
+        autorizacion
+      }
+      autorizadoPor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      observacion
+      creadoEn
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
+      preGasto {
+        id
+        sucursalId
+      }
+    }
+  }
+`;
+
 export const saveVueltoGasto = gql`
   mutation saveVueltoGasto($id: ID!, $valorGs: Float, $valorRs: Float, $valorDs: Float) {
     data: saveVueltoGasto(id: $id, valorGs: $valorGs, valorRs: $valorRs, valorDs: $valorDs) {

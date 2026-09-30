@@ -733,6 +733,30 @@ export const saveDeliveryEstadoQuery = gql`
   }
 `;
 
+/**
+ * saveDeliveryEstado para "Imprimir desde esta PC": la filial no imprime y devuelve los
+ * comprobantes en `ticketEscpos`. Documento aparte: el de arriba no cambia.
+ */
+export const saveDeliveryEstadoClienteQuery = gql`
+  mutation saveDeliveryEstadoCliente(
+    $deliveryId: Int!
+    $deliveryEstado: DeliveryEstado!
+    $local: String
+    $pdvId: Int
+  ) {
+    data: saveDeliveryEstado(
+      deliveryId: $deliveryId
+      deliveryEstado: $deliveryEstado
+      local: $local
+      pdvId: $pdvId
+      imprimirEnCliente: true
+    ) {
+      estado
+      ticketEscpos
+    }
+  }
+`;
+
 export const reimprimirDeliveryQuery = gql`
   query reimprimirDelivery($id: Int!, $printerName: String, $local: String) {
     data: reimprimirDelivery(id: $id, printerName: $printerName, local: $local)

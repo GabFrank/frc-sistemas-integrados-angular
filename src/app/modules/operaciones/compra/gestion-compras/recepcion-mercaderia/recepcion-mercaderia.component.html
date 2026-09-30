@@ -433,7 +433,7 @@
             <!-- Paginador para ítems -->
             <mat-paginator
               #itemsPaginator
-              [pageSizeOptions]="[5, 10, 25, 50]"
+              [pageSizeOptions]="[5, 10, 25, 50, 100]"
               [pageSize]="itemsPageSize"
               [pageIndex]="itemsPageIndex"
               [length]="itemsTotalElements"
@@ -553,7 +553,7 @@
             <!-- Paginador para notas -->
             <mat-paginator
               #notasPaginator
-              [pageSizeOptions]="[5, 10, 25, 50]"
+              [pageSizeOptions]="[5, 10, 25, 50, 100]"
               [pageSize]="10"
               [disabled]="loadingNotas"
               showFirstLastButtons
@@ -568,7 +568,7 @@
             mat-raised-button
             color="accent"
             (click)="validarYFinalizarRecepcion()"
-            [disabled]="!botonFinalizarHabilitadoComputed"
+            [disabled]="!botonFinalizarHabilitadoComputed || loading"
             matTooltip="Finalizar recepción física del pedido"
           >
             <mat-icon>check_circle</mat-icon>

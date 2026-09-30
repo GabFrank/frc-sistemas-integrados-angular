@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { merge } from 'rxjs';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
@@ -16,6 +17,15 @@ import { ValeService } from '../vale.service';
 export interface ValeDialogData {
   funcionarioId: number;
 }
+
+/** Fila de la vista previa: cuándo se descuenta cada cuota. */
+export interface CuotaPreview {
+  numero: number;
+  monto: number;
+  fecha: Date;
+}
+
+export const MAX_CUOTAS_VALE = 12;
 
 @UntilDestroy()
 @Component({
@@ -38,6 +48,13 @@ export class EditValeDialogComponent implements OnInit {
   // descuente en la liquidacion. Los que no lo son son la excepcion.
   esAdelantoControl = new FormControl(true);
   observacionControl = new FormControl(null);
+  cuotasControl = new FormControl(1, [Validators.required, Validators.min(1), Validators.max(MAX_CUOTAS_VALE)]);
+  // Entregado en bienes: nace confirmado sin caja. Solo RRHH APROBAR (el backend lo exige).
+  enEspecieControl = new FormControl(false);
+
+  puedeAprobar = false;
+  cuotasPreview: CuotaPreview[] = [];
+  maxCuotas = MAX_CUOTAS_VALE;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: ValeDialogData,
@@ -57,7 +74,17 @@ export class EditValeDialogComponent implements OnInit {
       moneda: this.monedaControl,
       fecha: this.fechaControl,
       esAdelanto: this.esAdelantoControl,
-      observacion: this.observacionControl
+      observacion: this.observacionControl,
+      cuotas: this.cuotasControl,
+      enEspecie: this.enEspecieControl
+    });
+    this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
+    merge(this.montoControl.valueChanges, this.cuotasControl.valueChanges, this.fechaControl.valueChanges)
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.actualizarPreview());
+    // Un uniforme o una herramienta no son adelanto de sueldo.
+    this.enEspecieControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => {
+      if (v) this.esAdelantoControl.setValue(false);
     });
     if (this.data?.funcionarioId != null) {
       this.funcionarioControl.setValue(this.data.funcionarioId);
@@ -70,6 +97,40 @@ export class EditValeDialogComponent implements OnInit {
       const guarani = this.monedas.find(m => m.denominacion && m.denominacion.toUpperCase().includes('GUARANI'));
       if (guarani) this.monedaControl.setValue(guarani.id);
     });
+  }
+
+  /**
+   * Mismo cálculo que el backend: montos enteros si el monto lo es, la última cuota absorbe el
+   * redondeo, y la cuota k se descuenta en la liquidación que cubra fecha + (k-1) meses. Se muestra
+   * la fecha y no el mes porque con día de cierre < 28 el periodo no es el mes calendario.
+   */
+  private actualizarPreview() {
+    const n = +this.cuotasControl.value || 1;
+    const monto = +this.montoControl.value || 0;
+    const fecha: Date = this.fechaControl.value ? new Date(this.fechaControl.value) : null;
+    if (n <= 1 || n > MAX_CUOTAS_VALE || monto <= 0 || fecha == null) {
+      this.cuotasPreview = [];
+      return;
+    }
+    const decimales = Number.isInteger(monto) ? 0 : 2;
+    const factor = Math.pow(10, decimales);
+    const base = Math.round((monto / n) * factor) / factor;
+    const preview: CuotaPreview[] = [];
+    let acumulado = 0;
+    for (let i = 1; i <= n; i++) {
+      const m = i === n ? Math.round((monto - acumulado) * factor) / factor : base;
+      acumulado += m;
+      preview.push({ numero: i, monto: m, fecha: this.sumarMeses(fecha, i - 1) });
+    }
+    this.cuotasPreview = preview;
+  }
+
+  /** Como LocalDate.plusMonths: el 31/01 + 1 mes es el 28/02, no el 03/03. */
+  private sumarMeses(fecha: Date, meses: number): Date {
+    const destino = new Date(fecha.getFullYear(), fecha.getMonth() + meses, 1);
+    const ultimoDia = new Date(destino.getFullYear(), destino.getMonth() + 1, 0).getDate();
+    destino.setDate(Math.min(fecha.getDate(), ultimoDia));
+    return destino;
   }
 
   onCancelar() {
@@ -96,9 +157,13 @@ export class EditValeDialogComponent implements OnInit {
     v.esAdelanto = this.esAdelantoControl.value ?? false;
     v.observacion = this.observacionControl.value ? this.observacionControl.value.toUpperCase() : null;
     v.usuario = this.mainService.usuarioActual;
+    v.cantidadCuotas = +this.cuotasControl.value || 1;
 
-    this.valeService.onSave(v.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+    const guardar$ = this.puedeAprobar && this.enEspecieControl.value
+      ? this.valeService.onCrearEnEspecie(v.toInput(), this.mainService.usuarioActual?.id)
+      : this.valeService.onSave(v.toInput());
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.
+    guardar$.pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 }

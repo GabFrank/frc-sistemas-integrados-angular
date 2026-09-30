@@ -15,6 +15,7 @@ import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
 import { EditValeDialogComponent } from '../edit-vale-dialog/edit-vale-dialog.component';
 import { ConfirmarValeDialogComponent } from '../confirmar-vale-dialog/confirmar-vale-dialog.component';
+import { ValeCuotasDialogComponent } from '../vale-cuotas-dialog/vale-cuotas-dialog.component';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -27,7 +28,7 @@ export class ListValeComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  displayedColumns = ['fecha', 'funcionario', 'motivo', 'monto', 'moneda', 'esAdelanto', 'estado', 'acciones'];
+  displayedColumns = ['fecha', 'funcionario', 'motivo', 'monto', 'cuotas', 'pendiente', 'moneda', 'esAdelanto', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<Vale>([]);
 
   funcionarioControl = new FormControl(null);
@@ -108,6 +109,10 @@ export class ListValeComponent implements OnInit {
   onConfirmar(vale: Vale) {
     this.dialog.open(ConfirmarValeDialogComponent, { data: { vale }, width: '480px', disableClose: true })
       .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+  }
+
+  onVerCuotas(vale: Vale) {
+    this.dialog.open(ValeCuotasDialogComponent, { data: { vale }, width: '640px' });
   }
 
   onAnular(vale: Vale) {
