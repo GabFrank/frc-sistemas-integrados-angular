@@ -22,7 +22,7 @@ import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/re
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
-import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
+import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
@@ -201,7 +201,7 @@ export class SideComponent implements OnInit {
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
           this.tabService.addTab(
-            new Tab(ClienteDashboardComponent, "Clientes", null, null)
+            new Tab(ListClientesComponent, "Lista de clientes", null, null)
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
