@@ -33,9 +33,9 @@ import { ResumenFiscalVentas } from "./resumen-fiscal-ventas.model";
 import { ResumenFiscalVentasService } from "./resumen-fiscal-ventas.service";
 
 /**
- * Resumen fiscal de ventas del mes (Reportes y Análisis): base sin IVA e IVA por tasa, rubros del
- * formulario 120 y detalle por timbrado, para pasarle al contador en PDF. Todo el cálculo lo
- * hace el central; la pantalla solo muestra y pide el PDF.
+ * Resumen de ventas del mes para el contador (Reportes y Análisis): exentas, gravadas 5 % y 10 %
+ * (base sin IVA e IVA) y detalle por timbrado, en PDF. Solo datos: la declaración la arma el
+ * contador. Todo el cálculo lo hace el central; la pantalla solo muestra y pide el PDF.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({

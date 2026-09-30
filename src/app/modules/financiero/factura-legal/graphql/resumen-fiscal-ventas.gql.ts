@@ -25,17 +25,6 @@ export class ResumenFiscalVentasGQL extends Query<{ data: ResumenFiscalVentas }>
           totalFacturado
           emitidas
           anuladas
-          fueraDeVigencia
-          rubros {
-            rubro
-            inciso
-            concepto
-            gravada10
-            gravada5
-            iva10
-            iva5
-            exentas
-          }
           detalle {
             sucursalId
             sucursal
@@ -45,7 +34,6 @@ export class ResumenFiscalVentasGQL extends Query<{ data: ResumenFiscalVentas }>
             numeroHasta
             emitidas
             anuladas
-            fueraDeVigencia
             gravada10
             iva10
             gravada5

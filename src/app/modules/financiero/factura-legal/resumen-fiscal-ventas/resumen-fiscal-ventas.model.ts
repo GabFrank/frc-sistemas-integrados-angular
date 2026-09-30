@@ -1,4 +1,4 @@
-/** Resumen fiscal de las ventas facturadas de un mes. Montos gravados SIN IVA (como el formulario 120). */
+/** Ventas facturadas de un mes para el contador: exentas, gravadas 5 % y 10 %. Montos gravados SIN IVA. */
 export interface ResumenFiscalVentas {
   anio: number;
   mes: number;
@@ -20,20 +20,7 @@ export interface ResumenFiscalContribuyente {
   totalFacturado: number;
   emitidas: number;
   anuladas: number;
-  fueraDeVigencia: number;
-  rubros: ResumenFiscalRubro[];
   detalle: ResumenFiscalTimbrado[];
-}
-
-export interface ResumenFiscalRubro {
-  rubro: string;
-  inciso: string;
-  concepto: string;
-  gravada10: number;
-  gravada5: number;
-  iva10: number;
-  iva5: number;
-  exentas: number;
 }
 
 export interface ResumenFiscalTimbrado {
@@ -45,7 +32,6 @@ export interface ResumenFiscalTimbrado {
   numeroHasta: string;
   emitidas: number;
   anuladas: number;
-  fueraDeVigencia: number;
   gravada10: number;
   iva10: number;
   gravada5: number;
