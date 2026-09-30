@@ -15,7 +15,6 @@
       <mat-autocomplete #autoOperacion="matAutocomplete" [displayWith]="displayOperacion" [autoActiveFirstOption]="true">
         <mat-option *ngFor="let c of conceptosFiltrados" [value]="c">{{ c.numero != null ? c.numero + ' · ' : '' }}{{ c.descripcion }}</mat-option>
       </mat-autocomplete>
-      <mat-hint *ngIf="!operacionInexistente">{{ signoConcepto }}</mat-hint>
       <mat-hint *ngIf="operacionInexistente" class="operacion-inexistente">No existe esa operación</mat-hint>
     </mat-form-field>
     <mat-form-field fxFlex>
