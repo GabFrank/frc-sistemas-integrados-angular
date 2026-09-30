@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -87,6 +88,19 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    */
   sinCatalogo = false;
   conceptoControl = new FormControl(null, [Validators.required]);
+  /**
+   * Operación, escrita o elegida de la lista: tipear el número fijo del catálogo (1 = AJUSTE (HABER))
+   * o parte del nombre filtra la lista; Enter toma la primera. Lo que se elige queda en conceptoControl.
+   */
+  operacionControl = new FormControl<any>('');
+  @ViewChild(MatAutocompleteTrigger) operacionTrigger: MatAutocompleteTrigger;
+  /** Precalculados para el template (el repo no llama funciones desde el HTML). */
+  conceptosFiltrados: any[] = [];
+  operacionInexistente = false;
+  /** Cómo se muestra la operación elegida en el input. */
+  displayOperacion = (c: any): string => c && typeof c === 'object'
+    ? (c.numero != null ? c.numero + ' · ' : '') + c.descripcion
+    : (c || '');
   /** Precalculado para el template (el repo no llama funciones desde el HTML). */
   signoConcepto = '';
 
@@ -120,6 +134,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.conceptos = res || [];
+        this.conceptosFiltrados = this.conceptos;
         this.sinCatalogo = this.conceptos.length === 0;
         if (this.sinCatalogo) { this.conceptoControl.clearValidators(); }
         this.conceptoControl.updateValueAndValidity();
@@ -127,6 +142,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
+    this.operacionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.filtrarOperaciones(v));
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
@@ -246,6 +262,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
           this.editandoItemId = null;
           this.descripcionControl.reset(); this.montoControl.setValue(0);
           this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
+          this.limpiarOperacion();
           this.recargar();
         }
       },
@@ -253,9 +270,66 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     });
   }
 
-  onConceptoChange() {
-    const c = this.conceptos.find(x => x.id === this.conceptoControl.value);
+  /**
+   * Número: primero la operación con ese número (queda elegida), después las que empiezan igual (1 → 10…).
+   * Texto: las que lo contienen en el nombre; queda elegida si el nombre coincide entero.
+   * Un objeto es una opción elegida de la lista.
+   */
+  private filtrarOperaciones(valor: any) {
+    if (valor && typeof valor === 'object') {
+      this.conceptosFiltrados = this.conceptos;
+      this.elegirOperacion(valor);
+      return;
+    }
+    const t = (valor || '').toString().trim().toUpperCase();
+    if (!t) {
+      this.conceptosFiltrados = this.conceptos;
+      this.elegirOperacion(null);
+      return;
+    }
+    let elegida = null;
+    if (/^\d+$/.test(t)) {
+      const exacta = this.conceptos.filter(c => c.numero === +t);
+      const empiezan = this.conceptos.filter(c => c.numero != null && c.numero !== +t && String(c.numero).startsWith(t));
+      this.conceptosFiltrados = [...exacta, ...empiezan];
+      elegida = exacta[0] ?? null;
+      // Número que no es el comienzo de otro (con 1..8, cualquiera): se completa el campo en el acto.
+      // Si hay más largos que empiezan igual (1 y 12), espera Enter o salir del campo.
+      if (elegida && empiezan.length === 0) {
+        this.operacionControl.setValue(elegida);
+        // El autocomplete reabre la lista al cambiar el valor: se cierra en el ciclo siguiente.
+        setTimeout(() => this.operacionTrigger?.closePanel());
+        return;
+      }
+    } else {
+      this.conceptosFiltrados = this.conceptos.filter(c => (c.descripcion || '').toUpperCase().includes(t));
+      elegida = this.conceptosFiltrados.find(c => (c.descripcion || '').toUpperCase() === t) ?? null;
+    }
+    this.elegirOperacion(elegida, this.conceptosFiltrados.length === 0);
+  }
+
+  /**
+   * Al salir del campo con texto escrito: si ya quedó elegida una operación (número exacto o nombre
+   * completo), se muestra; si no, y lo escrito deja una sola opción, se elige esa.
+   */
+  onOperacionBlur() {
+    const texto = this.operacionControl.value;
+    if (typeof texto !== 'string' || texto.trim() === '') { return; }
+    const elegida = this.conceptos.find(c => c.id === this.conceptoControl.value)
+      ?? (this.conceptosFiltrados.length === 1 ? this.conceptosFiltrados[0] : null);
+    if (elegida) { this.operacionControl.setValue(elegida); }
+  }
+
+  private elegirOperacion(c: any, inexistente = false) {
+    this.conceptoControl.setValue(c ? c.id : null);
     this.signoConcepto = c ? (c.esHaber ? 'Suma al total (HABER)' : 'Resta del total (DESCUENTO)') : '';
+    this.operacionInexistente = inexistente;
+  }
+
+  private limpiarOperacion() {
+    this.operacionControl.setValue('', { emitEvent: false });
+    this.conceptosFiltrados = this.conceptos;
+    this.operacionInexistente = false;
   }
 
   onEliminarItem(it: LiquidacionItem) {
@@ -343,6 +417,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
     else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
       this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = '';
+      this.limpiarOperacion();
       this.periodoControl.setValue(this.liq?.periodo); }
   }
 

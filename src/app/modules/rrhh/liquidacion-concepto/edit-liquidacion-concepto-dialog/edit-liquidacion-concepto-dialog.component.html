@@ -9,6 +9,12 @@
 
   <form class="concepto__cuerpo" [formGroup]="formGroup">
     <mat-form-field class="concepto__campo">
+      <mat-label>N° de operación</mat-label>
+      <input matInput type="number" min="1" max="9999" step="1" [formControl]="numeroControl" placeholder="Vacío = sin número" />
+      <mat-error *ngIf="numeroControl.invalid">Un entero de 1 a 9999</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="concepto__campo">
       <mat-label>Código</mat-label>
       <input matInput [formControl]="codigoControl" required />
       <mat-error *ngIf="codigoControl.hasError('required')">Ingresá el código</mat-error>
