@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../layouts/tab/tab.model';
@@ -14,6 +14,33 @@ import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+
+/** "2026-11", "11/2026" o "11-2026" → "2026-11"; cualquier otra cosa (o vacío) → null. */
+export function normalizarPeriodo(texto: string): string {
+  const t = (texto || '').trim();
+  let m = /^(\d{4})[-/](\d{1,2})$/.exec(t);
+  let anio: number, mes: number;
+  if (m) { anio = +m[1]; mes = +m[2]; } else {
+    m = /^(\d{1,2})[-/](\d{4})$/.exec(t);
+    if (!m) { return null; }
+    mes = +m[1]; anio = +m[2];
+  }
+  if (mes < 1 || mes > 12) { return null; }
+  return anio + '-' + String(mes).padStart(2, '0');
+}
+
+/** Vacío vale (se usa el periodo de la liquidación); si hay texto, tiene que ser un periodo. */
+function periodoValido(c: AbstractControl): ValidationErrors | null {
+  const v = (c.value || '').trim();
+  return v === '' || normalizarPeriodo(v) != null ? null : { periodo: true };
+}
+
+function sumarMeses(periodo: string, meses: number): string {
+  if (!periodo) { return ''; }
+  const [anio, mes] = periodo.split('-').map(Number);
+  const d = new Date(anio, mes - 1 + meses, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
 
 /**
  * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
@@ -44,11 +71,15 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
   /**
-   * Periodo en que se aplica el item que se carga: el de esta liquidacion (item manual, como
-   * siempre) o uno de los 12 siguientes (queda programado y entra solo en esa liquidacion).
+   * Periodo en que se aplica el item que se carga, tipeado (quien liquida lo prefiere a elegirlo
+   * de una lista): el de esta liquidacion (item manual, como siempre) o uno posterior, hasta 12
+   * meses (queda programado y entra solo en esa liquidacion). Acepta 2026-11, 11/2026 y 11-2026.
    */
-  periodoControl = new FormControl(null);
-  periodoOptions: string[] = [];
+  periodoControl = new FormControl(null, [periodoValido]);
+  /** Precalculados para el template (el repo no llama funciones desde el HTML). */
+  periodoInterpretado: string = null;
+  periodoProgramado = false;
+  periodoMaximo = '';
 
   /** Items programados PENDIENTES del funcionario (para cualquier periodo). */
   programados = new MatTableDataSource<any>([]);
@@ -107,6 +138,10 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
+    this.periodoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => {
+      this.periodoInterpretado = normalizarPeriodo(v);
+      this.periodoProgramado = this.periodoInterpretado != null && this.periodoInterpretado !== this.liq?.periodo;
+    });
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
@@ -124,7 +159,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       if (res != null) {
         this.liq = res;
         this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
-        this.periodoOptions = this.periodosDesde(this.liq.periodo);
+        this.periodoMaximo = sumarMeses(this.liq.periodo, 12);
         this.cargarProgramados();
       }
     });
@@ -138,17 +173,6 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
   }
 
-  /** "2026-09" y los 12 meses siguientes. */
-  private periodosDesde(periodo: string): string[] {
-    if (!periodo) { return []; }
-    const [anio, mes] = periodo.split('-').map(Number);
-    const out: string[] = [];
-    for (let i = 0; i <= 12; i++) {
-      const d = new Date(anio, mes - 1 + i, 1);
-      out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
-    }
-    return out;
-  }
 
   private cargarProgramados() {
     const funcionarioId = this.liq?.funcionario?.id;
@@ -207,9 +231,17 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       });
       return;
     }
-    // Otro periodo: el item queda programado y entra solo en la liquidacion de ese mes.
-    const periodo = this.periodoControl.value;
-    const programar = this.editandoItemId == null && periodo != null && periodo !== this.liq.periodo;
+    // Otro periodo: el item queda programado y entra solo en la liquidacion de ese mes. Vacio = el de
+    // esta liquidacion. El rango (posterior y hasta 12 meses) lo valida el backend con un mensaje claro.
+    if (this.editandoItemId == null && this.periodoControl.invalid) {
+      this.notificacion.notification$.next({
+        texto: 'Periodo inválido: escribilo como 2026-11 o 11/2026',
+        color: NotificacionColor.warn, duracion: 4
+      });
+      return;
+    }
+    const periodo = normalizarPeriodo(this.periodoControl.value) ?? this.liq.periodo;
+    const programar = this.editandoItemId == null && periodo !== this.liq.periodo;
     const obs = this.editandoItemId != null
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
