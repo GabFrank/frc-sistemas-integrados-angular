@@ -177,9 +177,12 @@
                   >
                     {{ item.formaPago?.descripcion }}
                     <!-- Solo en líneas TARJETA: si ya se leyó el cupón, ya no hace falta pasar
-                         por el celular ni bloquea el cierre de caja. Si no, avisa que falta. -->
+                         por el celular ni bloquea el cierre de caja. Si no, avisa que falta.
+                         Con venta_tarjeta deshabilitada no se pide cupón: solo queda el check de
+                         una línea que ya trae uno (p. ej. un delivery reabierto). -->
                     <mat-icon
-                      *ngIf="item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento"
+                      *ngIf="item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento
+                        && (ventaTarjetaHabilitada || item.datosCupon || item.identificadorTransaccion)"
                       [style.color]="item.datosCupon || item.identificadorTransaccion ? '#4caf50' : '#ff9800'"
                       style="font-size: 1.1em; vertical-align: middle; width: auto; height: auto;"
                       [matTooltip]="item.datosCupon || item.identificadorTransaccion ? 'Cupón registrado' : 'Falta escanear el cupón'"
@@ -253,9 +256,10 @@
                     "
                   >
                     <!-- Reabre el escaneo de esta línea: elegir/cambiar terminal y volver a leer
-                         el cupón, o completarlo si se había pospuesto. -->
+                         el cupón, o completarlo si se había pospuesto. Solo con venta_tarjeta
+                         habilitada: si no, TARJETA es una forma de pago más, sin escaneo. -->
                     <mat-icon
-                      *ngIf="item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento"
+                      *ngIf="ventaTarjetaHabilitada && item.formaPago?.descripcion === 'TARJETA' && item.pago && !item.vuelto && !item.descuento"
                       style="color: #37474f; cursor: pointer;"
                       matTooltip="Escanear cupón de tarjeta"
                       (click)="escanearTarjeta(item)"
