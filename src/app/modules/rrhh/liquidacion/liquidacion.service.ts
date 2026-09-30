@@ -18,6 +18,7 @@ import { VolverBorradorGQL } from './graphql/VolverBorrador';
 import { PagarLiquidacionGQL } from './graphql/PagarLiquidacion';
 import { AnularLiquidacionGQL } from './graphql/AnularLiquidacion';
 import { ImprimirReciboLiquidacionGQL } from './graphql/ImprimirReciboLiquidacion';
+import { ImprimirReciboItemLiquidacionGQL } from './graphql/ImprimirReciboItemLiquidacion';
 
 /** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
 const TIMEOUT_GENERACION_MASIVA_MS = 300000;
@@ -43,7 +44,8 @@ export class LiquidacionService {
     private volverBorradorGQL: VolverBorradorGQL,
     private pagarLiquidacionGQL: PagarLiquidacionGQL,
     private anularLiquidacionGQL: AnularLiquidacionGQL,
-    private imprimirReciboGQL: ImprimirReciboLiquidacionGQL
+    private imprimirReciboGQL: ImprimirReciboLiquidacionGQL,
+    private imprimirReciboItemGQL: ImprimirReciboItemLiquidacionGQL
   ) { }
 
   onGetById(id: number, servidor = true): Observable<any> {
@@ -128,5 +130,10 @@ export class LiquidacionService {
 
   onImprimirRecibo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id, anchoMm, escpos }, servidor);
+  }
+
+  /** Recibo de un solo item (HABER: recibo; DESCUENTO: constancia). No en liquidacion ANULADA. */
+  onImprimirReciboItem(itemId: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboItemGQL, { itemId, anchoMm, escpos }, servidor);
   }
 }

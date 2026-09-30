@@ -1106,27 +1106,37 @@ export class GestionComprasComponent
    * Verifica si se puede reabrir la planificación
    * Condiciones:
    * 1. La etapa CREACION está COMPLETADA
-   * 2. La etapa RECEPCION_NOTA está PENDIENTE (no ha empezado)
+   * 2. La etapa RECEPCION_NOTA está PENDIENTE o EN_PROCESO (no se finalizó)
+   * 3. La etapa RECEPCION_MERCADERIA no empezó
+   * La regla la valida también el backend (revertirEtapaCreacion).
    */
   private canReabrirPlanificacion(): boolean {
     if (!this.currentPedido?.procesoEtapas) {
       return false;
     }
-    
+
     const etapaCreacion = this.currentPedido.procesoEtapas.find(
       e => e.tipoEtapa === ProcesoEtapaTipo.CREACION
     );
     const etapaRecepcionNota = this.currentPedido.procesoEtapas.find(
       e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA
     );
-    
+    const etapaRecepcionMercaderia = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_MERCADERIA
+    );
+
     // CREACION debe estar COMPLETADA
     const creacionCompletada = etapaCreacion?.estadoEtapa === ProcesoEtapaEstado.COMPLETADA;
-    
-    // RECEPCION_NOTA debe estar PENDIENTE (no ha empezado)
-    const recepcionNotaPendiente = etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE;
-    
-    return creacionCompletada && recepcionNotaPendiente;
+
+    // RECEPCION_NOTA no debe estar finalizada
+    const recepcionNotaAbierta = etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE ||
+      etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO;
+
+    // La recepción física no debe haber empezado
+    const recepcionMercaderiaSinEmpezar = !etapaRecepcionMercaderia ||
+      etapaRecepcionMercaderia.estadoEtapa === ProcesoEtapaEstado.PENDIENTE;
+
+    return creacionCompletada && recepcionNotaAbierta && recepcionMercaderiaSinEmpezar;
   }
 
   // Step 1: Modificar el comportamiento del botón
@@ -1625,12 +1635,14 @@ export class GestionComprasComponent
   private getEstadoFromResumen(etapaActual: any): string {
     // Handle both string and object types for backward compatibility
     const tipoEtapa = typeof etapaActual === 'string' ? etapaActual : etapaActual?.tipoEtapa;
-    
+    const estadoEtapa = typeof etapaActual === 'object' ? etapaActual?.estadoEtapa : null;
+
     switch (tipoEtapa) {
       case 'CREACION':
         return "EN PLANIFICACIÓN";
       case 'RECEPCION_NOTA':
-        return "EN RECEPCIÓN NOTAS";
+        // Todavía no se cargó ninguna nota: la planificación está cerrada pero la recepción no empezó
+        return estadoEtapa === ProcesoEtapaEstado.PENDIENTE ? "PLANIFICACIÓN FINALIZADA" : "EN RECEPCIÓN NOTAS";
       case 'RECEPCION_MERCADERIA':
         return "EN RECEPCIÓN FÍSICA";
       case 'SOLICITUD_PAGO':
@@ -3259,7 +3271,7 @@ export class GestionComprasComponent
   /**
    * Reabre la planificación del pedido
    * Revierte la etapa CREACION de COMPLETADA a EN_PROCESO
-   * Solo se permite si RECEPCION_NOTA está en estado PENDIENTE
+   * Se permite mientras la recepción documental no se haya finalizado y la física no haya empezado
    */
   onReabrirPlanificacion(): void {
     if (!this.currentPedido?.id) {
@@ -3269,17 +3281,18 @@ export class GestionComprasComponent
 
     // Validar condiciones antes de mostrar confirmación
     if (!this.canReabrirPlanificacionComputed) {
-      this.notificacionService.openWarn("No se puede reabrir la planificación. La etapa de Recepción Documental ya ha comenzado.");
+      this.notificacionService.openWarn("No se puede reabrir la planificación. La Recepción Documental ya se finalizó o la Recepción Física ya comenzó.");
       return;
     }
 
-    // Guardar el tab actual para preservarlo después de recargar
-    const currentTabIndex = this.selectedTabIndex;
+    // Guardar el tab actual para preservarlo después de recargar.
+    // Desde el tab 3 se vuelve a Ítems: con la planificación abierta los tabs 3+ quedan deshabilitados.
+    const currentTabIndex = Math.min(this.selectedTabIndex, 1);
 
     // Mostrar confirmación
     this.dialogosService.confirm(
       "Reabrir Planificación",
-      "¿Está seguro de que desea reabrir la planificación del pedido? Esto revertirá la etapa de creación a estado 'En Proceso' y permitirá modificar los items nuevamente."
+      "¿Está seguro de que desea reabrir la planificación del pedido? Esto revertirá la etapa de creación a estado 'En Proceso' y permitirá modificar los items nuevamente. Las notas ya cargadas se conservan."
     ).subscribe(confirmed => {
       if (confirmed) {
         // Llamar al backend para revertir la etapa CREACION

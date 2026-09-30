@@ -661,82 +661,91 @@ interface DispositivoLocal {
 }
 
 /**
- * Dispositivos de impresion conectados a ESTA PC Windows. Tres fuentes, de la mas util a la menos:
- *  1) `Get-Printer` con PortName USB o DOT4: la impresora que Windows ya instalo sola por PnP.
- *     Es el caso normal: en Windows enchufar la USB alcanza para tener una cola utilizable.
- *  2) `Get-PrinterPort` USB* sin cola asociada: un puerto libre donde Add-Printer puede crear una
- *     cola RAW (tipico de las termicas ESC/POS genericas, que Windows reconoce pero no instala).
- *  3) `Get-PnpDevice` de impresion sin cola: se listan para que se vea que el cable esta bien.
- * Se devuelven con la misma forma que los dispositivos de `lpinfo -v` del backend, asi el
- * frontend los consume igual venga de donde venga.
+ * Puerto del spooler (USB001, USB009...) de cada impresora USB CONECTADA a esta PC Windows.
+ * usbmon registra el puerto de cada dispositivo `usbprint` en la clave de su interfaz
+ * (GUID_DEVINTERFACE_USBPRINT): `DeviceInstance` dice de que dispositivo es y `Device Parameters`
+ * trae `Base Name` + `Port Number`. Se cruza con `Get-PnpDevice -PresentOnly` porque el spooler
+ * NUNCA borra los puertos de impresoras que ya se desenchufaron: la lista de `Get-PrinterPort`
+ * esta llena de puertos fantasma y colgar una cola de uno de esos acepta el trabajo y no imprime.
+ * Un dispositivo presente sin puerto registrado vuelve con `Puerto` vacio.
+ */
+async function puertosUsbConectadosWindows(): Promise<{ Puerto: string; Nombre: string }[]> {
+  const ps =
+    "$ErrorActionPreference='SilentlyContinue';"
+    + "$pr=@{};"
+    + "Get-PnpDevice -PresentOnly | Where-Object { $_.Service -eq 'usbprint' -or $_.Class -eq 'USBPrint' } |"
+    + " ForEach-Object { $pr[$_.InstanceId.ToUpper()] = $_.FriendlyName };"
+    + "$res=@(); $conPuerto=@{};"
+    + "Get-ChildItem -LiteralPath 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceClasses\\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}' |"
+    + " ForEach-Object {"
+    + "  $inst = [string](Get-ItemProperty -LiteralPath $_.PSPath).DeviceInstance;"
+    + "  $dp = Get-ItemProperty -LiteralPath ($_.PSPath + '\\#\\Device Parameters');"
+    + "  if ($inst -and $dp -and $dp.'Base Name' -and $pr.ContainsKey($inst.ToUpper())) {"
+    + "   $conPuerto[$inst.ToUpper()] = $true;"
+    + "   $res += [pscustomobject]@{ Puerto = ('{0}{1:D3}' -f $dp.'Base Name', [int]$dp.'Port Number'); Nombre = $pr[$inst.ToUpper()] } } };"
+    + "$pr.Keys | Where-Object { -not $conPuerto.ContainsKey($_) } |"
+    + " ForEach-Object { $res += [pscustomobject]@{ Puerto = ''; Nombre = $pr[$_] } };"
+    + "ConvertTo-Json -InputObject @($res) -Compress";
+  const r = await correrPowerShell(ps);
+  return filasDeJson(r.stdout)
+    .map((f: any) => ({ Puerto: String(f && f.Puerto ? f.Puerto : '').trim(), Nombre: String(f && f.Nombre ? f.Nombre : '').trim() }))
+    .filter((f) => f.Puerto || f.Nombre);
+}
+
+/**
+ * Impresoras USB conectadas a ESTA PC Windows, cada una con SU puerto real (ver
+ * puertosUsbConectadosWindows):
+ *  - si ya hay una cola sobre ese puerto (Windows la instalo sola por PnP), se ofrece esa;
+ *  - si no, se ofrece crear una cola RAW en ese puerto.
+ * Las colas sobre puertos DOT4 se listan tal cual (no pasan por usbprint). Las colas colgadas de
+ * un puerto USB fantasma y los puertos libres NO se listan: antes se tomaba el primer puerto
+ * "libre" para una impresora sin cola y la cola quedaba muda (trabajos en Error en el spooler).
+ * Misma forma que los dispositivos de `lpinfo -v` del backend, asi el frontend los consume igual.
  */
 async function detectarDispositivosWindows(): Promise<DispositivoLocal[]> {
   const lista: DispositivoLocal[] = [];
-  const puertosConCola = new Set<string>();
+  const conectados = await puertosUsbConectadosWindows();
 
-  // 1) Colas ya instaladas sobre un puerto USB/DOT4. En Windows este es el caso normal: al
-  //    enchufar la impresora el spooler la instala solo por PnP, asi que ya hay cola utilizable.
   const psColas =
     "$ErrorActionPreference='SilentlyContinue';"
     + "Get-Printer | Where-Object { $_.PortName -like 'USB*' -or $_.PortName -like 'DOT4*' } |"
     + "Select-Object Name, PortName, DriverName | ConvertTo-Json -Compress";
-  const colas = await correrPowerShell(psColas);
-  filasDeJson(colas.stdout).forEach((c: any) => {
+  const colas = filasDeJson((await correrPowerShell(psColas)).stdout);
+  const colaDePuerto = (puerto: string) => colas.find((c: any) => String(c && c.PortName ? c.PortName : '').trim().toUpperCase() === puerto.toUpperCase());
+
+  conectados.forEach((d) => {
+    const nombreDisp = d.Nombre || 'Impresora USB';
+    if (!d.Puerto) {
+      lista.push({
+        clase: 'direct',
+        // Sin puerto no hay donde crear la cola: la URI va sin puerto para que la instalacion
+        // falle con un motivo claro en vez de apuntar a un puerto inventado.
+        uri: ESQUEMA_USB_WIN,
+        nombre: nombreDisp,
+        descripcion: 'USB conectada pero Windows no le asigno puerto · desenchufala y volve a enchufarla',
+      });
+      return;
+    }
+    const cola: any = colaDePuerto(d.Puerto);
+    lista.push({
+      clase: 'direct',
+      uri: ESQUEMA_USB_WIN + d.Puerto,
+      nombre: nombreDisp,
+      descripcion: cola
+        ? d.Puerto + ' · cola ya instalada "' + String(cola.Name).trim() + '"' + (cola.DriverName ? ' · ' + cola.DriverName : '')
+        : d.Puerto + ' · conectada sin cola (se instala en este puerto)',
+    });
+  });
+
+  colas.forEach((c: any) => {
     const puerto = String(c && c.PortName ? c.PortName : '').trim();
     const nombre = String(c && c.Name ? c.Name : '').trim();
-    if (!puerto || !nombre) { return; }
-    puertosConCola.add(puerto.toUpperCase());
+    if (!nombre || !/^DOT4/i.test(puerto)) { return; }
     lista.push({
       clase: 'direct',
       uri: ESQUEMA_USB_WIN + puerto,
       nombre,
-      descripcion: puerto + ' · cola ya instalada "' + nombre + '"'
-        + (c && c.DriverName ? ' · ' + c.DriverName : ''),
-    });
-  });
-
-  // 2) Puertos USB del spooler que quedaron LIBRES (sin cola): son los que puede tomar Add-Printer
-  //    para crear una cola RAW sobre una termica que Windows reconocio pero no instalo.
-  const psPuertos =
-    "$ErrorActionPreference='SilentlyContinue';"
-    + "Get-PrinterPort | Where-Object { $_.Name -like 'USB*' } | Select-Object Name | ConvertTo-Json -Compress";
-  const puertos = await correrPowerShell(psPuertos);
-  const libres: string[] = [];
-  filasDeJson(puertos.stdout).forEach((pp: any) => {
-    const nombre = String(pp && pp.Name ? pp.Name : '').trim();
-    if (!nombre || puertosConCola.has(nombre.toUpperCase())) { return; }
-    libres.push(nombre);
-    lista.push({
-      clase: 'direct',
-      uri: ESQUEMA_USB_WIN + nombre,
-      nombre: 'Puerto ' + nombre,
-      descripcion: nombre + ' · puerto USB libre (se le puede crear una cola)',
-    });
-  });
-
-  // 3) Dispositivos USB de impresion que Windows ve pero que no tienen cola. Se listan para que
-  //    se note que el cable esta bien; si ademas hay un puerto libre, se puede instalar ahi.
-  const psPnp =
-    "$ErrorActionPreference='SilentlyContinue';"
-    + "Get-PnpDevice -PresentOnly |"
-    + "Where-Object { $_.Class -eq 'USBPrint' -or $_.Class -eq 'Printer' -or $_.Service -eq 'usbprint' } |"
-    + "Select-Object FriendlyName, InstanceId, Status | ConvertTo-Json -Compress";
-  const pnp = await correrPowerShell(psPnp);
-  filasDeJson(pnp.stdout).forEach((d: any) => {
-    const nombre = String(d && d.FriendlyName ? d.FriendlyName : '').trim();
-    if (!nombre) { return; }
-    // Si ya aparece como cola instalada, no lo repetimos.
-    if (lista.some((x) => x.nombre.toLowerCase() === nombre.toLowerCase())) { return; }
-    const puerto = libres.length > 0 ? libres[0] : '';
-    lista.push({
-      clase: 'direct',
-      // Sin puerto libre no hay donde crear la cola: se deja la URI sin puerto para que la
-      // instalacion falle con un motivo claro en vez de apuntar a un USB001 inventado.
-      uri: ESQUEMA_USB_WIN + puerto,
-      nombre,
-      descripcion: puerto
-        ? 'USB conectada sin cola · se instalaria en ' + puerto
-        : 'USB conectada sin cola ni puerto libre · instalala primero desde Windows',
+      descripcion: puerto + ' · cola ya instalada "' + nombre + '"' + (c.DriverName ? ' · ' + c.DriverName : ''),
     });
   });
 
@@ -794,18 +803,22 @@ async function detectarDispositivosLocales(): Promise<DispositivoLocal[]> {
 async function instalarImpresoraWindowsUsb(cola: string, puerto: string): Promise<ResultadoInstalacionLocal> {
   const puertoSeguro = (puerto || '').replace(/[^A-Za-z0-9_.-]/g, '');
   if (!puertoSeguro) {
-    // Lo detectamos como dispositivo USB presente pero sin ningun puerto del spooler libre donde
-    // colgar la cola: Windows tiene que reconocerla primero (Configuracion > Impresoras > Agregar).
+    // Dispositivo USB presente sin puerto registrado por usbmon (ver puertosUsbConectadosWindows):
+    // no hay donde colgar la cola sin adivinar, y adivinar deja la cola muda.
     return {
       success: false,
-      error: 'Windows no expone un puerto USB libre para esta impresora. Instalala primero desde '
-        + 'Configuracion > Impresoras y escaneres, y despues volve a tocar Detectar.',
+      error: 'Windows no le asigno un puerto USB a esta impresora. Desenchufala, volve a '
+        + 'enchufarla y toca Detectar de nuevo.',
     };
   }
   const ps =
     "$ErrorActionPreference='Stop';"
     + "$existente = Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.PortName -eq '" + puertoSeguro + "' } | Select-Object -First 1;"
     + "if ($existente) { Write-Output ('REUSADA:' + $existente.Name); exit 0 };\n"
+    // Una cola con el mismo nombre en OTRO puerto (tipico: quedo colgada de un puerto fantasma en
+    // una instalacion anterior) se mueve al puerto real en vez de fallar con "ya existe".
+    + "if (Get-Printer -Name '" + cola + "' -ErrorAction SilentlyContinue) {"
+    + " Set-Printer -Name '" + cola + "' -PortName '" + puertoSeguro + "'; Write-Output ('MOVIDA:" + cola + "'); exit 0 };\n"
     + "Add-Printer -Name '" + cola + "' -DriverName 'Generic / Text Only' -PortName '" + puertoSeguro + "';"
     + "Write-Output ('CREADA:" + cola + "')";
   const r = await correrPowerShell(ps, 40000);
@@ -813,7 +826,7 @@ async function instalarImpresoraWindowsUsb(cola: string, puerto: string): Promis
   if (r.code !== 0) {
     return { success: false, cola, error: (r.stderr || '').trim() || 'Add-Printer fallo' };
   }
-  const m = salida.match(/^(REUSADA|CREADA):(.+)$/m);
+  const m = salida.match(/^(REUSADA|MOVIDA|CREADA):(.+)$/m);
   const colaFinal = m ? m[2].trim() : cola;
   return { success: true, cola: colaFinal, uri: ESQUEMA_USB_WIN + puertoSeguro };
 }

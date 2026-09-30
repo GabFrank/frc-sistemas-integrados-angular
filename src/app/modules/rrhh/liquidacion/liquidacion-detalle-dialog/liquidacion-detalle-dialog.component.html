@@ -75,6 +75,10 @@
           <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
             <mat-icon>delete</mat-icon>
           </button>
+          <button mat-icon-button color="primary" *ngIf="liq.estado !== 'ANULADA' && row.monto > 0"
+            (click)="onReciboItem(row)" matTooltip="Generar recibo">
+            <mat-icon>receipt</mat-icon>
+          </button>
         </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="itemsColumns"></tr>

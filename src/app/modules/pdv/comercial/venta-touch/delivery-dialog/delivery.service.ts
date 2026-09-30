@@ -7,6 +7,7 @@ import { UntilDestroy } from "@ngneat/until-destroy";
 import { GenericCrudService } from "../../../../../generics/generic-crud.service";
 import { PreciosDeliveryGQL } from "../../../../operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio";
 import { Observable } from "rxjs";
+import { map, tap } from "rxjs/operators";
 import { DeliveryPrecio } from "../../../../operaciones/delivery/precio-delivery/delivery-precios.model";
 import { PrecioDelivery } from "../../../../operaciones/delivery/precio-delivery.model";
 import { SaveDeliveryAndVentaGQL } from "../../../../operaciones/delivery/graphql/delivery-save";
@@ -28,6 +29,8 @@ import { CobroDetalleInput } from "../../../../operaciones/venta/cobro/cobro-det
 import { ReimprimirDeliveryGQL } from "../../../../operaciones/delivery/graphql/reimprimir-delivery";
 import { DeliverysPorCajaIdAndEstadoGQL } from "../../../../operaciones/delivery/graphql/deliveryPorCajaIdAndEstado";
 import { ConfiguracionService } from "../../../../../shared/services/configuracion.service";
+import { ImpresionPosService } from "../../../../../shared/services/impresion-pos/impresion-pos.service";
+import { SaveDeliveryEstadoClienteGQL } from "../../../../operaciones/delivery/graphql/saveDeliveryEstadoCliente";
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -44,7 +47,9 @@ export class DeliveryService {
     private saveDeliveryEstado: SaveDeliveryEstadoGQL,
     private reimprimirDelivery: ReimprimirDeliveryGQL,
     private deliveryPorCajaIdAndEstado: DeliverysPorCajaIdAndEstadoGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private saveDeliveryEstadoCliente: SaveDeliveryEstadoClienteGQL,
+    private impresionPos: ImpresionPosService
   ) {
   }
 
@@ -78,6 +83,17 @@ export class DeliveryService {
   }
 
   onSaveDeliveryEstado(id, estado, servidor: boolean = true): Observable<Delivery> {
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": la filial devuelve los comprobantes y se imprimen acá.
+      return this.genericService.onSaveCustom(this.saveDeliveryEstadoCliente, {
+        deliveryId: id,
+        deliveryEstado: estado,
+        local: this.configService?.getConfig()?.local,
+        pdvId: this.configService?.getConfig()?.pdvId,
+      }, servidor).pipe(
+        tap((res: Delivery) => this.impresionPos.imprimir(res?.ticketEscpos, "El comprobante del delivery").subscribe())
+      );
+    }
     return this.genericService.onSaveCustom(this.saveDeliveryEstado, {
       deliveryId: id,
       deliveryEstado: estado,
@@ -88,6 +104,11 @@ export class DeliveryService {
   }
 
   onReimprimirDelivery(id, servidor: boolean = true): Observable<boolean> {
+    if (this.impresionPos.porCliente(servidor)) {
+      return this.impresionPos
+        .imprimirTicket("DELIVERY", id, "La reimpresión del delivery")
+        .pipe(map((ok) => (ok ? true : null)));
+    }
     return this.genericService.onCustomQuery(this.reimprimirDelivery, {
       id: id,
       printerName: this.configService?.getConfig()?.printers?.ticket,

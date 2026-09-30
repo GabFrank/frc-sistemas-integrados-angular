@@ -77,6 +77,10 @@ export const imprimirReciboLiquidacionQuery = gql`
   query ($id: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboLiquidacion(id: $id, anchoMm: $anchoMm, escpos: $escpos) }
 `;
 
+export const imprimirReciboItemLiquidacionQuery = gql`
+  query ($itemId: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboItemLiquidacion(itemId: $itemId, anchoMm: $anchoMm, escpos: $escpos) }
+`;
+
 export const generarLoteMutation = gql`
   mutation generarLiquidacionesLote($funcionarioIds: [Int], $periodo: String!, $monedaId: ID) {
     data: generarLiquidacionesLote(funcionarioIds: $funcionarioIds, periodo: $periodo, monedaId: $monedaId)

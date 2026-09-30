@@ -24,6 +24,30 @@ export interface ConfiguracionSistema {
   isConfigured: boolean;
   isLocal: boolean;
   updateChannel: UpdateChannel;
+  /**
+   * Impresora USB instalada en el SO de ESTA PC (CUPS en Linux, Generic / Text Only en Windows)
+   * desde Configuración. Imprime directo desde Electron, sin backend. Independiente de
+   * `printers.ticket`, que sigue viajando al backend en el flujo de impresión actual.
+   */
+  impresoraLocal?: ImpresoraLocalConfig | null;
+  /**
+   * Por dónde imprime esta PC. BACKEND (por defecto): el flujo de siempre, el servidor imprime en
+   * `printers.ticket`. FRONTEND: Electron imprime en `impresoraLocal`. Ver `imprimirPorFrontend()`.
+   */
+  modoImpresion?: ModoImpresion;
+}
+
+export type ModoImpresion = 'BACKEND' | 'FRONTEND';
+
+export type PerfilPapelLocal = 'MM_48' | 'MM_58' | 'MM_72' | 'MM_80';
+
+export interface ImpresoraLocalConfig {
+  nombre: string;
+  cola: string;
+  uri: string;
+  /** USB: instalada desde este diálogo. SISTEMA: una cola que ya existía en el SO (sin `uri`). */
+  conexion: 'USB' | 'SISTEMA';
+  perfil: PerfilPapelLocal;
 }
 
 import { environment } from '../../../environments/environment';
@@ -313,6 +337,9 @@ export class ConfiguracionService {
       isConfigured: config.isConfigured ?? DEFAULT_CONFIG.isConfigured,
       isLocal: config.isLocal ?? DEFAULT_CONFIG.isLocal,
       updateChannel: config.updateChannel || DEFAULT_CONFIG.updateChannel,
+      impresoraLocal: config.impresoraLocal || null,
+      // FRONTEND sin impresora local no tiene dónde imprimir: se cae al flujo de siempre.
+      modoImpresion: config.modoImpresion === 'FRONTEND' && config.impresoraLocal ? 'FRONTEND' : 'BACKEND',
       printers: {
         ticket: config.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
         factura: config.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -535,6 +562,38 @@ export class ConfiguracionService {
   }
 
   /**
+   * `true` si esta PC tiene que imprimir desde el frontend (Electron → `impresoraLocal`) en vez de
+   * mandarle `printerName` al backend. Es el punto único que consulta cada flujo de impresión.
+   */
+  imprimirPorFrontend(): boolean {
+    const config = this.getConfig();
+    return config?.modoImpresion === 'FRONTEND' && !!config?.impresoraLocal;
+  }
+
+  /**
+   * Persiste SOLO la impresora USB local (localStorage + config-backup.json) apenas se instala o
+   * se cambia, sin esperar al GUARDAR de Configuración. No emite `configChanged`: los que lo
+   * escuchan (graphql-connection, header, etc.) reaccionan a cambios de servidor, no de impresora.
+   */
+  guardarImpresoraLocal(impresora: ImpresoraLocalConfig | null): void {
+    try {
+      const validConfig = this.validateConfigObject({ ...(this.getConfig() || DEFAULT_CONFIG), impresoraLocal: impresora });
+      this.saveConfigToLocalStorage(validConfig);
+      this.saveToBackupFile(validConfig).catch((error) => {
+        console.error('Failed to save configuration backup file:', error);
+      });
+      this.config = validConfig;
+      const isElectron = window && typeof window['require'] === 'function';
+      if (isElectron) {
+        const { ipcRenderer } = window['require']('electron');
+        ipcRenderer.send('save-config-backup', JSON.stringify(validConfig, null, 2));
+      }
+    } catch (e) {
+      console.error('Error guardando la impresora local:', e);
+    }
+  }
+
+  /**
    * Salva la configuración del sistema
    * @param config
    */
@@ -652,6 +711,8 @@ export class ConfiguracionService {
             isConfigured: false, // Always mark as not configured since it's from a file
             isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
             updateChannel: response.updateChannel || DEFAULT_CONFIG.updateChannel,
+            impresoraLocal: response.impresoraLocal || null,
+            modoImpresion: response.modoImpresion === 'FRONTEND' && response.impresoraLocal ? 'FRONTEND' : 'BACKEND',
             printers: {
               ticket: response.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
               factura: response.printers?.factura || DEFAULT_CONFIG.printers.factura
