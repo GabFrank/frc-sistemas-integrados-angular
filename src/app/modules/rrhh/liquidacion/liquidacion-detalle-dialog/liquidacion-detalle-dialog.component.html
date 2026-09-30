@@ -27,8 +27,6 @@
     <mat-form-field fxFlex="150px" *ngIf="!editandoItemId">
       <mat-label>Periodo</mat-label>
       <input matInput [formControl]="periodoControl" placeholder="AAAA-MM" maxlength="7" />
-      <mat-hint *ngIf="periodoProgramado">Queda programado para {{ periodoInterpretado }}</mat-hint>
-      <mat-hint *ngIf="!periodoProgramado && periodoControl.valid">Hasta {{ periodoMaximo }}</mat-hint>
       <mat-error *ngIf="periodoControl.hasError('periodo')">Ej.: 2026-11 o 11/2026</mat-error>
     </mat-form-field>
     <!-- Fallback: sin catalogo cargado hay que poder elegir el signo a mano. -->

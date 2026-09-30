@@ -35,13 +35,6 @@ function periodoValido(c: AbstractControl): ValidationErrors | null {
   return v === '' || normalizarPeriodo(v) != null ? null : { periodo: true };
 }
 
-function sumarMeses(periodo: string, meses: number): string {
-  if (!periodo) { return ''; }
-  const [anio, mes] = periodo.split('-').map(Number);
-  const d = new Date(anio, mes - 1 + meses, 1);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-}
-
 /**
  * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
  * varias liquidaciones abiertas a la vez. Recibe el id vía TabData y carga el resto.
@@ -76,10 +69,6 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    * meses (queda programado y entra solo en esa liquidacion). Acepta 2026-11, 11/2026 y 11-2026.
    */
   periodoControl = new FormControl(null, [periodoValido]);
-  /** Precalculados para el template (el repo no llama funciones desde el HTML). */
-  periodoInterpretado: string = null;
-  periodoProgramado = false;
-  periodoMaximo = '';
 
   /** Items programados PENDIENTES del funcionario (para cualquier periodo). */
   programados = new MatTableDataSource<any>([]);
@@ -138,10 +127,6 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
-    this.periodoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => {
-      this.periodoInterpretado = normalizarPeriodo(v);
-      this.periodoProgramado = this.periodoInterpretado != null && this.periodoInterpretado !== this.liq?.periodo;
-    });
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
@@ -159,7 +144,6 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       if (res != null) {
         this.liq = res;
         this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
-        this.periodoMaximo = sumarMeses(this.liq.periodo, 12);
         this.cargarProgramados();
       }
     });
