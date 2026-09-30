@@ -83,6 +83,7 @@ import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-e
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
+import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factura-legal/resumen-fiscal-ventas/resumen-fiscal-ventas.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
@@ -619,7 +620,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           isExpanded: false,
           // Sin VENTA_TARJETA_COMPLETAR: estaba solo por 'Terminales POS', que se mudo a 'Venta
           // con tarjeta'. Dejarlo le abriria a ese rol un grupo en el que no puede entrar a nada.
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          // ANALISIS_CONTABLE y FACTURACION_*: sin ellos el grupo quedaba oculto para quien solo
+          // puede entrar al resumen fiscal o a las notas.
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN],
           items: [
             {
               name: 'Análisis de diferencias',
@@ -644,6 +647,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'receipt',
               action: 'factura-dashboard',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Resumen fiscal de ventas',
+              icon: 'request_page',
+              action: 'resumen-fiscal-ventas',
+              visibilityRoles: [ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
             },
             {
               name: 'Notas de remisión',
@@ -1241,6 +1250,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
+        break;
+      case "resumen-fiscal-ventas":
+        this.openTabIfAuthorized(
+          [ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR],
+          ResumenFiscalVentasComponent,
+          "Resumen fiscal de ventas"
+        );
         break;
       case "analisis-diferencias":
         this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
