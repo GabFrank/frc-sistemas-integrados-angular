@@ -24,7 +24,7 @@ import { EditLiquidacionConceptoDialogComponent } from '../edit-liquidacion-conc
 })
 export class ListLiquidacionConceptoComponent implements OnInit {
 
-  displayedColumns = ['id', 'codigo', 'descripcion', 'tipo', 'esRemunerativo', 'esCalculadoAuto', 'activo', 'acciones'];
+  displayedColumns = ['numero', 'id', 'codigo', 'descripcion', 'tipo', 'esRemunerativo', 'esCalculadoAuto', 'activo', 'acciones'];
   dataSource = new MatTableDataSource<LiquidacionConcepto>([]);
 
   textoControl = new FormControl(null);

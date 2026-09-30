@@ -50,7 +50,7 @@ export const agregarItemMutation = gql`
 // asi que la UI no pide tipo por separado.
 export const conceptosParaItemManualQuery = gql`
   query liquidacionConceptosParaItemManual {
-    data: liquidacionConceptosParaItemManual { id codigo descripcion esHaber }
+    data: liquidacionConceptosParaItemManual { id codigo descripcion esHaber numero }
   }
 `;
 export const editarItemMutation = gql`

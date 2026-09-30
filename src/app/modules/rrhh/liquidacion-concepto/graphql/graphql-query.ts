@@ -8,6 +8,7 @@ const LIQUIDACION_CONCEPTO_FIELDS = `
   esCalculadoAuto
   esRemunerativo
   activo
+  numero
 `;
 
 export const liquidacionConceptosQuery = gql`

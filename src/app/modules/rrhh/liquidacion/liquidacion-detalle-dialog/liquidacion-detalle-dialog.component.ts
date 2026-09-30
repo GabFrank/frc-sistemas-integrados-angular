@@ -87,6 +87,13 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    */
   sinCatalogo = false;
   conceptoControl = new FormControl(null, [Validators.required]);
+  /**
+   * N° de operación: tipear el número fijo del catálogo elige la operación (1 = AJUSTE (HABER)).
+   * Elegir en el select completa el número. Sin número o inexistente → error, no guarda.
+   */
+  numeroOperacionControl = new FormControl(null, [(c: AbstractControl) =>
+    c.value == null || c.value === '' || !this.conceptos.length
+      || this.conceptos.some(x => x.numero === +c.value) ? null : { inexistente: true }]);
   /** Precalculado para el template (el repo no llama funciones desde el HTML). */
   signoConcepto = '';
 
@@ -127,6 +134,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
+    this.numeroOperacionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.onNumeroOperacion(v));
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
@@ -246,6 +254,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
           this.editandoItemId = null;
           this.descripcionControl.reset(); this.montoControl.setValue(0);
           this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
+          this.numeroOperacionControl.reset(null, { emitEvent: false });
           this.recargar();
         }
       },
@@ -255,6 +264,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
 
   onConceptoChange() {
     const c = this.conceptos.find(x => x.id === this.conceptoControl.value);
+    this.signoConcepto = c ? (c.esHaber ? 'Suma al total (HABER)' : 'Resta del total (DESCUENTO)') : '';
+    // Elegido en el select: el N° muestra su número (sin volver a disparar la búsqueda).
+    this.numeroOperacionControl.setValue(c?.numero ?? null, { emitEvent: false });
+    this.numeroOperacionControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Tipeado el N°: elige esa operación si existe; si no, deja la operación vacía y el campo en error. */
+  private onNumeroOperacion(valor: any) {
+    const c = valor == null || valor === '' ? null : this.conceptos.find(x => x.numero === +valor);
+    this.conceptoControl.setValue(c ? c.id : null);
     this.signoConcepto = c ? (c.esHaber ? 'Suma al total (HABER)' : 'Resta del total (DESCUENTO)') : '';
   }
 
@@ -343,6 +362,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
     else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
       this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = '';
+      this.numeroOperacionControl.reset(null, { emitEvent: false });
       this.periodoControl.setValue(this.liq?.periodo); }
   }
 
