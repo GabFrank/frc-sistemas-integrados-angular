@@ -25,6 +25,8 @@ export class ResumenFiscalVentasGQL extends Query<{ data: ResumenFiscalVentas }>
           totalFacturado
           emitidas
           anuladas
+          rechazadas
+          montoRechazadas
           detalle {
             sucursalId
             sucursal
@@ -34,6 +36,8 @@ export class ResumenFiscalVentasGQL extends Query<{ data: ResumenFiscalVentas }>
             numeroHasta
             emitidas
             anuladas
+            rechazadas
+            montoRechazadas
             gravada10
             iva10
             gravada5

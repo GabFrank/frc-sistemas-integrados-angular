@@ -90,6 +90,13 @@
           <div><span>Total facturado (con IVA)</span><strong>{{ c.totalFacturado | number: "1.0-0" }}</strong></div>
           <div><span>Facturas vigentes</span><strong>{{ c.emitidas | number: "1.0-0" }}</strong></div>
           <div><span>Facturas anuladas (no suman)</span><strong>{{ c.anuladas | number: "1.0-0" }}</strong></div>
+          <div>
+            <span>Rechazadas por SIFEN (no suman)</span>
+            <strong>
+              {{ c.rechazadas | number: "1.0-0" }}
+              <small *ngIf="c.rechazadas > 0">({{ c.montoRechazadas | number: "1.0-0" }})</small>
+            </strong>
+          </div>
         </div>
       </div>
 
@@ -99,7 +106,7 @@
           <thead>
             <tr>
               <th>Sucursal / Timbrado</th><th>Tipo</th><th>Numeración usada</th>
-              <th class="num">Vigentes</th><th class="num">Anuladas</th>
+              <th class="num">Vigentes</th><th class="num">Anuladas</th><th class="num">Rechaz.</th>
               <th class="num">Grav. 10%</th><th class="num">IVA 10%</th>
               <th class="num">Grav. 5%</th><th class="num">IVA 5%</th>
               <th class="num">Exentas</th><th class="num">Total c/IVA</th>
@@ -112,6 +119,7 @@
               <td>{{ d.numeroDesde }} al {{ d.numeroHasta }}</td>
               <td class="num">{{ d.emitidas | number: "1.0-0" }}</td>
               <td class="num">{{ d.anuladas | number: "1.0-0" }}</td>
+              <td class="num">{{ d.rechazadas | number: "1.0-0" }}</td>
               <td class="num">{{ d.gravada10 | number: "1.0-0" }}</td>
               <td class="num">{{ d.iva10 | number: "1.0-0" }}</td>
               <td class="num">{{ d.gravada5 | number: "1.0-0" }}</td>
@@ -123,6 +131,7 @@
               <td>Total</td><td></td><td></td>
               <td class="num">{{ c.emitidas | number: "1.0-0" }}</td>
               <td class="num">{{ c.anuladas | number: "1.0-0" }}</td>
+              <td class="num">{{ c.rechazadas | number: "1.0-0" }}</td>
               <td class="num">{{ c.gravada10 | number: "1.0-0" }}</td>
               <td class="num">{{ c.iva10 | number: "1.0-0" }}</td>
               <td class="num">{{ c.gravada5 | number: "1.0-0" }}</td>

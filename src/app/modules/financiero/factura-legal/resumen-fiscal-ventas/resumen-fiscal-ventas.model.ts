@@ -20,6 +20,9 @@ export interface ResumenFiscalContribuyente {
   totalFacturado: number;
   emitidas: number;
   anuladas: number;
+  /** Rechazadas por SIFEN: no suman en los montos. */
+  rechazadas: number;
+  montoRechazadas: number;
   detalle: ResumenFiscalTimbrado[];
 }
 
@@ -32,6 +35,9 @@ export interface ResumenFiscalTimbrado {
   numeroHasta: string;
   emitidas: number;
   anuladas: number;
+  /** Rechazadas por SIFEN: no suman en los montos. */
+  rechazadas: number;
+  montoRechazadas: number;
   gravada10: number;
   iva10: number;
   gravada5: number;
