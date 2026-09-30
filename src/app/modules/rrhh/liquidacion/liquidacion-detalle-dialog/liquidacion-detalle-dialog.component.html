@@ -11,7 +11,7 @@
     <mat-form-field fxFlex="240px" *ngIf="!editandoItemId && !sinCatalogo">
       <mat-label>Operación</mat-label>
       <input matInput [formControl]="operacionControl" [matAutocomplete]="autoOperacion"
-        placeholder="N° o nombre" (blur)="onOperacionBlur()" required />
+        placeholder="N° o nombre" (blur)="onOperacionBlur()" (focus)="$any($event.target).select()" required />
       <mat-autocomplete #autoOperacion="matAutocomplete" [displayWith]="displayOperacion" [autoActiveFirstOption]="true">
         <mat-option *ngFor="let c of conceptosFiltrados" [value]="c">{{ c.numero != null ? c.numero + ' · ' : '' }}{{ c.descripcion }}</mat-option>
       </mat-autocomplete>

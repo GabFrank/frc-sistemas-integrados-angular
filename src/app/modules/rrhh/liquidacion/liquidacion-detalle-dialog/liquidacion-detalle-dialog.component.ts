@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -92,6 +93,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    * o parte del nombre filtra la lista; Enter toma la primera. Lo que se elige queda en conceptoControl.
    */
   operacionControl = new FormControl<any>('');
+  @ViewChild(MatAutocompleteTrigger) operacionTrigger: MatAutocompleteTrigger;
   /** Precalculados para el template (el repo no llama funciones desde el HTML). */
   conceptosFiltrados: any[] = [];
   operacionInexistente = false;
@@ -291,6 +293,14 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       const empiezan = this.conceptos.filter(c => c.numero != null && c.numero !== +t && String(c.numero).startsWith(t));
       this.conceptosFiltrados = [...exacta, ...empiezan];
       elegida = exacta[0] ?? null;
+      // Número que no es el comienzo de otro (con 1..8, cualquiera): se completa el campo en el acto.
+      // Si hay más largos que empiezan igual (1 y 12), espera Enter o salir del campo.
+      if (elegida && empiezan.length === 0) {
+        this.operacionControl.setValue(elegida);
+        // El autocomplete reabre la lista al cambiar el valor: se cierra en el ciclo siguiente.
+        setTimeout(() => this.operacionTrigger?.closePanel());
+        return;
+      }
     } else {
       this.conceptosFiltrados = this.conceptos.filter(c => (c.descripcion || '').toUpperCase().includes(t));
       elegida = this.conceptosFiltrados.find(c => (c.descripcion || '').toUpperCase() === t) ?? null;
@@ -298,12 +308,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.elegirOperacion(elegida, this.conceptosFiltrados.length === 0);
   }
 
-  /** Al salir del campo: si lo escrito deja una sola opción, se elige esa. */
+  /**
+   * Al salir del campo con texto escrito: si ya quedó elegida una operación (número exacto o nombre
+   * completo), se muestra; si no, y lo escrito deja una sola opción, se elige esa.
+   */
   onOperacionBlur() {
-    if (this.conceptoControl.value == null && this.conceptosFiltrados.length === 1
-        && typeof this.operacionControl.value === 'string' && this.operacionControl.value.trim() !== '') {
-      this.operacionControl.setValue(this.conceptosFiltrados[0]);
-    }
+    const texto = this.operacionControl.value;
+    if (typeof texto !== 'string' || texto.trim() === '') { return; }
+    const elegida = this.conceptos.find(c => c.id === this.conceptoControl.value)
+      ?? (this.conceptosFiltrados.length === 1 ? this.conceptosFiltrados[0] : null);
+    if (elegida) { this.operacionControl.setValue(elegida); }
   }
 
   private elegirOperacion(c: any, inexistente = false) {
