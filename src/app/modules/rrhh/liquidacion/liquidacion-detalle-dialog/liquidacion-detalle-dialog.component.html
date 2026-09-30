@@ -5,7 +5,7 @@
   </div>
 
   <!-- Alta de item manual: sobre la tabla, oculta hasta que se presiona Agregar Item -->
-  <div class="agregar-panel" *ngIf="mostrarAgregar && liq.estado === 'BORRADOR'"
+  <div class="agregar-panel" *ngIf="mostrarAgregar && liq.estado === 'BORRADOR' && puedeLiquidar"
     fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="10px" fxLayoutAlign="start center">
     <mat-form-field fxFlex="220px" *ngIf="!editandoItemId && !sinCatalogo">
       <mat-label>Operación</mat-label>
@@ -40,7 +40,7 @@
     <button mat-button (click)="onToggleAgregar()">Cancelar</button>
   </div>
 
-  <div *ngIf="!mostrarAgregar && liq.estado === 'BORRADOR'" fxLayout="row" fxLayoutAlign="end center">
+  <div *ngIf="!mostrarAgregar && liq.estado === 'BORRADOR' && puedeLiquidar" fxLayout="row" fxLayoutAlign="end center">
     <button mat-stroked-button color="primary" (click)="onToggleAgregar()">
       <mat-icon>add</mat-icon> Agregar Item
     </button>
