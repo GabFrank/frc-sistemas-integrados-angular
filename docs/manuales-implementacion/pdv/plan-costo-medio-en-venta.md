@@ -27,8 +27,10 @@ El costo que corresponde a la mercadería vendida es el **costo medio ponderado*
    El respaldo cubre el producto sin costo medio (alta nueva, consulta cacheada vieja): sin él
    el ítem quedaría sin costo y el reporte caería al último costo global, que es peor.
 2. Pedir `costoMedio` en las consultas que alimentan esas rutas y hoy no lo piden:
-   - `productos/producto/graphql/graphql-query.ts` → `productoSearchPdv` (lista del buscador) y
-     `findByPdvGrupoProductoQuery` (productos de un grupo PDV).
+   - `productos/producto/graphql/graphql-query.ts` → `productoSearchPdv` (lista del buscador).
+     `findByPdvGrupoProductoQuery` **no** se toca: `onFindByPdvGrupoProductoId` no tiene
+     llamadores y `findByPdvGrupoProductoId` no existe ni en el filial ni en el central
+     (validado 2026-10-01: `FieldUndefined` en `:8080` y `:8083`). Es código muerto.
    - `pdv/comercial/venta-touch/pdv-categoria/graphql/graphql-query.ts` → bloque
      `pdvGruposProductos.producto.costo` (línea 44).
    Las que ya lo piden: `productoPorCodigoQuery`, `productoQuery` (detalle), el segundo bloque de
@@ -54,6 +56,22 @@ Efecto colateral buscado: el tope de descuento de `pago-touch` (`onDescuento`) u
   Gate: `npm run check` (AOT producción), leído del log.
 - Prueba de runtime: verificar en el PDV servido como web contra un filial que el `saveVenta`
   manda `precioCosto` = costo medio por las rutas buscador y grupo.
+
+### Resultado de la prueba de runtime (2026-10-01)
+
+PDV servido desde el worktree (`ng serve -c web`) contra el filial local `:8080` (sucursal 2) y
+el central alpha `:8083`. Como en la base local `costoMedio` = `ultimoPrecioCompra` para todos los
+productos, se reescribió en el navegador (interceptor de XHR, sin tocar ninguna base) la respuesta
+del producto 4711 a `costoMedio 2200 / ultimoPrecioCompra 42,5`. Se leyó `precioCosto` del ítem
+con `ng.getComponent(app-venta-touch).selectedItemList`:
+
+| Ruta | Resultado |
+|---|---|
+| Buscador → diálogo → presentación | `precioCosto = 2200` ✔ |
+| Escaneo de código (`crearItem`), lista vacía | `precioCosto = 2200` ✔ |
+| Grupo PDV → diálogo de selección | **no ejercitada**: la base local no tiene ningún grupo PDV. Solo se validó que el filial acepta `pdvCategoriaSearch` con `costoMedio` (200, sin errores) |
+
+No se guardó ninguna venta: `toInput()` (`venta-item.model.ts:32`) copia `precioCosto` sin cambios.
 
 ## Qué queda sin verificar
 
