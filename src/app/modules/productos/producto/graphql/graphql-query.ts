@@ -684,7 +684,6 @@ export const findByPdvGrupoProductoQuery = gql`
       stock
       isEnvase
       costo {
-        costoMedio
         ultimoPrecioCompra
       }
       envase {
