@@ -12,7 +12,46 @@
   padding: 0 24px 8px;
 }
 
+// La tabla toma el alto que sobra y scrollea sola: el formulario de abajo queda siempre a la vista.
+// El scroll del diálogo queda de respaldo para cuando la pantalla no da el mínimo de la tabla.
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 75vh;
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  > .tabla-scroll {
+    flex: 1 1 auto;
+  }
+}
+
+.tabla-scroll {
+  min-height: 180px;
+  overflow: auto;
+  margin-bottom: 24px;
+
+  .tabla-config {
+    margin-bottom: 0;
+  }
+
+  // Sticky va en cada th, con fondo opaco y el borde como sombra: con border-collapse el
+  // border-bottom de un th fijo no se pinta.
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #424242;
+    border-bottom: none;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
 .vistas {
+  // En la columna flex se estiraría a todo el ancho.
+  align-self: flex-start;
   margin-bottom: 16px;
 }
 
@@ -85,6 +124,8 @@
 
   .sucursal {
     font-weight: 500;
+    // "NUEVA ESPERANZA SAN ANTONIO" en una sola línea.
+    white-space: nowrap;
   }
 
   .modificado {

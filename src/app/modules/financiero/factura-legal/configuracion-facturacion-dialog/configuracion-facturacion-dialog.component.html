@@ -30,53 +30,55 @@
             </button>
         </div>
 
-        <table class="tabla-config">
-            <thead>
-                <tr>
-                    <th>Activo</th>
-                    <th>Sucursal</th>
-                    <th>Modo</th>
-                    <th>Venta + Ticket / Delivery</th>
-                    <th>Modificado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId"
-                    [class.inactiva]="fila.config.activo === false">
-                    <td>
-                        <mat-slide-toggle color="accent" [checked]="fila.config.activo !== false"
-                            (change)="onToggleActivo(fila)" matTooltip="Activar / desactivar"></mat-slide-toggle>
-                    </td>
-                    <td class="sucursal">{{ fila.sucursalNombre }}</td>
-                    <td>
-                        <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
-                    </td>
-                    <td>
-                        <span class="chip" [class.chip-respeta]="fila.respetaActivo"
-                            [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
-                    </td>
-                    <td class="modificado">
-                        <div>{{ fila.modificadoPor }}</div>
-                        <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
-                    </td>
-                    <td class="acciones">
-                        <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
-                            <mat-icon>edit</mat-icon>
-                        </button>
-                        <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
-                            <mat-icon>delete</mat-icon>
-                        </button>
-                    </td>
-                </tr>
-                <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
-                    <td colspan="6" class="vacio">
-                        <mat-icon>info_outline</mat-icon>
-                        <span>Sin configuración: cada sucursal usa su contador local.</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="tabla-scroll">
+            <table class="tabla-config">
+                <thead>
+                    <tr>
+                        <th>Activo</th>
+                        <th>Sucursal</th>
+                        <th>Modo</th>
+                        <th>Venta + Ticket / Delivery</th>
+                        <th>Modificado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId"
+                        [class.inactiva]="fila.config.activo === false">
+                        <td>
+                            <mat-slide-toggle color="accent" [checked]="fila.config.activo !== false"
+                                (change)="onToggleActivo(fila)" matTooltip="Activar / desactivar"></mat-slide-toggle>
+                        </td>
+                        <td class="sucursal">{{ fila.sucursalNombre }}</td>
+                        <td>
+                            <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
+                        </td>
+                        <td>
+                            <span class="chip" [class.chip-respeta]="fila.respetaActivo"
+                                [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
+                        </td>
+                        <td class="modificado">
+                            <div>{{ fila.modificadoPor }}</div>
+                            <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
+                        </td>
+                        <td class="acciones">
+                            <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
+                        <td colspan="6" class="vacio">
+                            <mat-icon>info_outline</mat-icon>
+                            <span>Sin configuración: cada sucursal usa su contador local.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <form [formGroup]="form" class="form-config">
             <div class="form-titulo">{{ editandoId != null ? 'Editar configuración' : 'Nueva configuración' }}</div>
@@ -139,36 +141,38 @@
             <span>No se pudo cargar el historial desde el servidor central.</span>
         </div>
 
-        <table class="tabla-config" *ngIf="!historialError">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Sucursal</th>
-                    <th>Cambio</th>
-                    <th>Modo</th>
-                    <th>Venta + Ticket / Delivery</th>
-                    <th>Estado</th>
-                    <th>Usuario</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let h of historial">
-                    <td class="modificado">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td class="sucursal">{{ h.sucursalNombre }}</td>
-                    <td><span class="chip" [ngClass]="h.accionClase">{{ h.accionLabel }}</span></td>
-                    <td><span class="chip" [ngClass]="h.modoClase">{{ h.modoLabel }}</span></td>
-                    <td>{{ h.respetaLabel }}</td>
-                    <td>{{ h.activoLabel }}</td>
-                    <td>{{ h.usuario }}</td>
-                </tr>
-                <tr *ngIf="!historialCargando && historial.length === 0">
-                    <td colspan="7" class="vacio">
-                        <mat-icon>info_outline</mat-icon>
-                        <span>Sin cambios registrados.</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="tabla-scroll" *ngIf="!historialError">
+            <table class="tabla-config">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Sucursal</th>
+                        <th>Cambio</th>
+                        <th>Modo</th>
+                        <th>Venta + Ticket / Delivery</th>
+                        <th>Estado</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let h of historial">
+                        <td class="modificado">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+                        <td class="sucursal">{{ h.sucursalNombre }}</td>
+                        <td><span class="chip" [ngClass]="h.accionClase">{{ h.accionLabel }}</span></td>
+                        <td><span class="chip" [ngClass]="h.modoClase">{{ h.modoLabel }}</span></td>
+                        <td>{{ h.respetaLabel }}</td>
+                        <td>{{ h.activoLabel }}</td>
+                        <td>{{ h.usuario }}</td>
+                    </tr>
+                    <tr *ngIf="!historialCargando && historial.length === 0">
+                        <td colspan="7" class="vacio">
+                            <mat-icon>info_outline</mat-icon>
+                            <span>Sin cambios registrados.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </ng-container>
 </mat-dialog-content>
 

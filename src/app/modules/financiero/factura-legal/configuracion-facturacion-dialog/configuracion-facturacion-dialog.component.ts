@@ -163,7 +163,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       // La 0 es el SERVIDOR central: no tiene cajas ni factura, no lleva política propia.
       this.sucursales = (res != null ? res : [])
         .filter((s) => s.id != 0)
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+        .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     });
     this.cargar();
   }
@@ -176,11 +176,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
         // una lista vacía llega como []. Sin esto, el error se vería igual que "sin configuración".
         this.sinSoporte = res == null;
         const configs = (res != null ? res : []).map((r) => Object.assign(new ConfiguracionFacturacion(), r));
-        // La global primero; después las sucursales por nombre.
+        // La global primero; después las sucursales por id, como el selector.
         configs.sort((a, b) => {
           if (a.sucursal == null) return -1;
           if (b.sucursal == null) return 1;
-          return (a.sucursal.nombre || '').localeCompare(b.sucursal.nombre || '');
+          return (a.sucursal.id ?? 0) - (b.sucursal.id ?? 0);
         });
         this.filas = configs.map((c) => this.toFila(c));
         this.calcularEstado(configs);
