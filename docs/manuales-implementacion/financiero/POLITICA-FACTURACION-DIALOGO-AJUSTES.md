@@ -48,6 +48,19 @@ N/A batería: el desktop no tiene batería en ningún gate (skill `frc-desktop`,
   `> :not(.tabla-scroll)` del componente (ver `frc-desktop/ui-patterns.md`). Se reemplazó por `> *` y
   `> .tabla-scroll`; el check pasó.
 
+## Fase 2 (pedido de Franco tras ver la fase 1)
+
+Las filas quedaban altas porque «Modificado» apilaba usuario y fecha en dos renglones.
+
+| Archivo | Cambio |
+|---|---|
+| `configuracion-facturacion-dialog.component.html` | columna «Fecha» propia al lado de «Modificado»; la fila vacía pasa a `colspan="7"` |
+| `configuracion-facturacion-dialog.component.scss` | `.modificado` en una línea (`nowrap`); la fecha en gris |
+| `factura-legal-dashboard.component.ts` | `width: '1120px'` → `'1280px'` (sigue `maxWidth: '95vw'`) |
+
+Sin auditoría nueva: no abre ningún concern que los ejes A y B de la fase 1 no hayan mirado (ancho
+acotado por `maxWidth`, sin estado ni backend).
+
 ## Sin verificar
 
 - La prueba visual con datos reales de 24 sucursales: queda para Franco al probar la rama.

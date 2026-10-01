@@ -39,6 +39,7 @@
                         <th>Modo</th>
                         <th>Venta + Ticket / Delivery</th>
                         <th>Modificado</th>
+                        <th>Fecha</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -57,10 +58,8 @@
                             <span class="chip" [class.chip-respeta]="fila.respetaActivo"
                                 [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
                         </td>
-                        <td class="modificado">
-                            <div>{{ fila.modificadoPor }}</div>
-                            <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
-                        </td>
+                        <td class="modificado">{{ fila.modificadoPor }}</td>
+                        <td class="modificado fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
                         <td class="acciones">
                             <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
                                 <mat-icon>edit</mat-icon>
@@ -71,7 +70,7 @@
                         </td>
                     </tr>
                     <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
-                        <td colspan="6" class="vacio">
+                        <td colspan="7" class="vacio">
                             <mat-icon>info_outline</mat-icon>
                             <span>Sin configuración: cada sucursal usa su contador local.</span>
                         </td>

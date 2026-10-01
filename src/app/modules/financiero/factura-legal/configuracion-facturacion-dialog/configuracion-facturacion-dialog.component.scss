@@ -128,13 +128,13 @@ mat-dialog-content {
     white-space: nowrap;
   }
 
+  // Usuario y fecha en columnas propias y en una línea: la fila no crece a dos renglones.
   .modificado {
     font-size: 13px;
+    white-space: nowrap;
 
-    .fecha {
+    &.fecha {
       color: #9e9e9e;
-      font-size: 12px;
-      margin-top: 2px;
     }
   }
 
