@@ -8,6 +8,7 @@ import { Buffer } from 'buffer';
 import { PosPrinter } from 'electron-pos-printer';
 
 import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
+import { GitHubProviderCanalEstricto, motivoSinProviderCanal } from "./updater-canal";
 
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
@@ -18,6 +19,25 @@ app.disableHardwareAcceleration();
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+
+// Feed de releases filtrado al canal configurado: sin esto un desktop alpha instala builds beta
+// cuando un beta queda arriba en el feed (#381). Mismo owner/repo que electron-builder.json:publish.
+// Si algo falla, el updater sigue con app-update.yml, como antes.
+if (GitHubProviderCanalEstricto) {
+  try {
+    autoUpdater.setFeedURL({
+      provider: 'custom',
+      updateProvider: GitHubProviderCanalEstricto,
+      owner: 'GabFrank',
+      repo: 'frc-sistemas-integrados-angular',
+    } as any);
+    log.info('Auto-updater: feed filtrado por canal activo');
+  } catch (e) {
+    log.error('Auto-updater: no se pudo activar el feed filtrado por canal, se usa app-update.yml:', e);
+  }
+} else {
+  log.warn(`Auto-updater: feed filtrado por canal desactivado (${motivoSinProviderCanal})`);
+}
 
 // Patch: safe AppImage swap (rename-then-move instead of unlink-then-move)
 // Prevents losing the AppImage if the update fails mid-swap.
