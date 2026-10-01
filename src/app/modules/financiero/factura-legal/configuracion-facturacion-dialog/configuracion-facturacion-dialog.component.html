@@ -1,13 +1,24 @@
 <div class="dialog-header">
     <h2 mat-dialog-title>Política de facturación</h2>
-    <div class="subtitulo">Qué ventas se facturan sin que el cajero lo pida</div>
 </div>
 
 <mat-dialog-content>
-    <mat-button-toggle-group class="vistas" [value]="vista">
-        <mat-button-toggle value="config" (click)="onVerConfiguracion()">Configuración</mat-button-toggle>
-        <mat-button-toggle value="historial" (click)="onVerHistorial()">Historial</mat-button-toggle>
-    </mat-button-toggle-group>
+    <!-- Vistas a la izquierda y acciones masivas a la derecha, en una sola fila. -->
+    <div class="barra">
+        <mat-button-toggle-group [value]="vista">
+            <mat-button-toggle value="config" (click)="onVerConfiguracion()">Configuración</mat-button-toggle>
+            <mat-button-toggle value="historial" (click)="onVerHistorial()">Historial</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <div class="acciones-masivas" *ngIf="vista === 'config' && !sinSoporte">
+            <button mat-stroked-button [disabled]="!haySucursalesActivas" (click)="onSetActivoSucursales(false)">
+                <mat-icon>pause_circle_outline</mat-icon> Desactivar sucursales
+            </button>
+            <button mat-stroked-button [disabled]="!haySucursalesInactivas" (click)="onSetActivoSucursales(true)">
+                <mat-icon>play_circle_outline</mat-icon> Activar sucursales
+            </button>
+        </div>
+    </div>
 
     <div class="aviso" *ngIf="sinSoporte">
         <mat-icon>warning_amber</mat-icon>
@@ -19,15 +30,6 @@
         <div class="aviso aviso-info" *ngIf="!sinSoporte && !isLoading && avisoGlobal">
             <mat-icon>info_outline</mat-icon>
             <span>{{ avisoGlobal }}</span>
-        </div>
-
-        <div class="acciones-masivas" *ngIf="!sinSoporte">
-            <button mat-stroked-button [disabled]="!haySucursalesActivas" (click)="onSetActivoSucursales(false)">
-                <mat-icon>pause_circle_outline</mat-icon> Desactivar sucursales
-            </button>
-            <button mat-stroked-button [disabled]="!haySucursalesInactivas" (click)="onSetActivoSucursales(true)">
-                <mat-icon>play_circle_outline</mat-icon> Activar sucursales
-            </button>
         </div>
 
         <div class="tabla-scroll">

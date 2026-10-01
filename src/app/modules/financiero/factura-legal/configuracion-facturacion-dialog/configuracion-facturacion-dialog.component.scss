@@ -6,12 +6,6 @@
   }
 }
 
-.subtitulo {
-  font-size: 14px;
-  color: #9e9e9e;
-  padding: 0 24px 8px;
-}
-
 // La tabla toma el alto que sobra y scrollea sola: el formulario de abajo queda siempre a la vista.
 // El scroll del diálogo queda de respaldo para cuando la pantalla no da el mínimo de la tabla.
 mat-dialog-content {
@@ -49,9 +43,11 @@ mat-dialog-content {
   }
 }
 
-.vistas {
-  // En la columna flex se estiraría a todo el ancho.
-  align-self: flex-start;
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -74,9 +70,7 @@ mat-dialog-content {
 
 .acciones-masivas {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
-  margin-bottom: 8px;
 }
 
 .filtro-historial {

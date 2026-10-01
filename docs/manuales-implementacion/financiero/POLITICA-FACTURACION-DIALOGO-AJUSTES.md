@@ -61,6 +61,15 @@ Las filas quedaban altas porque «Modificado» apilaba usuario y fecha en dos re
 Sin auditoría nueva: no abre ningún concern que los ejes A y B de la fase 1 no hayan mirado (ancho
 acotado por `maxWidth`, sin estado ni backend).
 
+## Fase 3 (pedido de Franco: achicar el alto)
+
+| Archivo | Cambio |
+|---|---|
+| `configuracion-facturacion-dialog.component.html` | sin el subtítulo «Qué ventas se facturan sin que el cajero lo pida»; el toggle Configuración/Historial y los botones Desactivar/Activar sucursales comparten una fila (`div.barra`): toggle a la izquierda, botones a la derecha, solo en la vista de configuración. Los avisos quedan debajo de esa fila |
+| `configuracion-facturacion-dialog.component.scss` | `.barra` flex `space-between`; fuera `.subtitulo` y `.vistas` |
+
+Sin auditoría nueva por la misma razón que la fase 2.
+
 ## Sin verificar
 
 - La prueba visual con datos reales de 24 sucursales: queda para Franco al probar la rama.
