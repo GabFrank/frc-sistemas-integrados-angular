@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -134,6 +135,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   historialCargando = false;
   /** null = sin filtro; GLOBAL = solo la fila "Todas"; id = una sucursal. */
   filtroHistorial: number = null;
+  historialTotal = 0;
+  historialPageIndex = 0;
+  historialPageSize = 15;
+  /** Número de la última consulta del historial: una respuesta de una anterior llega tarde y se descarta. */
+  private historialConsulta = 0;
 
   // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
   modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
@@ -363,19 +369,30 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   }
 
   onFiltroHistorialChange(): void {
+    this.historialPageIndex = 0;
+    this.cargarHistorial();
+  }
+
+  onHistorialPage(event: PageEvent): void {
+    this.historialPageIndex = event.pageIndex;
+    this.historialPageSize = event.pageSize;
     this.cargarHistorial();
   }
 
   private cargarHistorial(): void {
+    const consulta = ++this.historialConsulta;
     this.historialCargando = true;
-    this.configuracionService.onGetHistorial(this.filtroHistorial).subscribe({
+    this.configuracionService.onGetHistorialPage(this.filtroHistorial, this.historialPageIndex, this.historialPageSize).subscribe({
       next: (res) => {
-        // null = error (distinto de "sin cambios", que llega como []).
+        if (consulta !== this.historialConsulta) return;
+        // null = error (distinto de "sin cambios", que llega con getContent vacío).
         this.historialError = res == null;
-        this.historial = (res != null ? res : []).map((h) => this.toFilaHistorial(h));
+        this.historialTotal = res?.getTotalElements ?? 0;
+        this.historial = (res?.getContent ?? []).map((h) => this.toFilaHistorial(h));
         this.historialCargando = false;
       },
       error: () => {
+        if (consulta !== this.historialConsulta) return;
         this.historialError = true;
         this.historialCargando = false;
       }

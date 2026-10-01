@@ -73,6 +73,15 @@ mat-dialog-content {
   gap: 10px;
 }
 
+// El paginador va pegado debajo del scroll de la tabla del historial, siempre a la vista.
+.tabla-scroll.con-paginador {
+  margin-bottom: 0;
+}
+
+mat-paginator {
+  background: transparent;
+}
+
 .filtro-historial {
   width: 420px;
   max-width: 100%;
