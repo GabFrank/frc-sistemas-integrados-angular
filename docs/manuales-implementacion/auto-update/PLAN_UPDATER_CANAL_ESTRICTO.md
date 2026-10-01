@@ -108,8 +108,10 @@ N/A batería: el CI del desktop no corre tests [ev: `.github/workflows/ci.yml`].
   último beta del feed, y el cliente beta da `No published versions on GitHub` y no actualiza
   hasta que salga otro beta. **Pasa igual hoy**, sin este cambio (el loop original también
   saltea los alphas), así que no es una regresión. Queda anotado para una issue aparte
-  (paginar el feed o usar la API de releases). Para alpha el caso es teórico, y el fallback al XML
-  original lo vuelve inofensivo.
+  (paginar el feed o usar la API de releases). Para alpha el caso es teórico. Si pasara, el fallback al XML
+  original **reintroduce el salto a beta** para ese chequeo, sin más aviso que un warn en
+  `main.log` (auditoría del diff). Se acepta: es el precio de que un bug del filtro no trabe a los
+  alpha.
 - **Downgrade dentro del canal**: con `allowDowngrade = true`, si se borra el alpha más alto, los
   clientes vuelven al anterior. Pasa igual hoy; no se cambia.
 - **Cómo les llega el fix a los alpha ya instalados** (auditoría A, hallazgo alto): corren el
