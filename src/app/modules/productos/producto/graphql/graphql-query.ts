@@ -94,6 +94,7 @@ export const productoSearchPdv = gql`
       precioPrincipal
       activo
       costo {
+        costoMedio
         ultimoPrecioCompra
         cotizacion
         moneda {
@@ -683,6 +684,7 @@ export const findByPdvGrupoProductoQuery = gql`
       stock
       isEnvase
       costo {
+        costoMedio
         ultimoPrecioCompra
       }
       envase {

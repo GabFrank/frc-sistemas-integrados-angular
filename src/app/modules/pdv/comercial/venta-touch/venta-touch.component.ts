@@ -628,7 +628,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           item.precio = respuesta.data?.precio?.precio;
           item.producto = respuesta.producto;
           item.cantidad = respuesta.data.cantidad;
-          item.precioCosto = respuesta?.producto?.costo?.ultimoPrecioCompra;
+          item.precioCosto = respuesta?.producto?.costo?.costoMedio || respuesta?.producto?.costo?.ultimoPrecioCompra;
           this.agregarConLote(item);
         }
         this.dialogReference = undefined;
@@ -953,7 +953,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     let precio = eventData["precio"];
     item.cantidad = cantidad;
     item.producto = producto;
-    item.precioCosto = producto?.costo?.costoMedio;
+    item.precioCosto = producto?.costo?.costoMedio || producto?.costo?.ultimoPrecioCompra;
 
     if (selectedPresentacion == null) {
       if (texto != null) {
