@@ -13,6 +13,8 @@ export class LiquidacionConcepto {
   esCalculadoAuto: boolean;
   esRemunerativo: boolean;
   activo: boolean;
+  /** Número fijo de la operación (atajo al cargar ítems). Null = sin número. */
+  numero: number;
   creadoEn: Date;
   usuario: Usuario;
 
@@ -25,6 +27,8 @@ export class LiquidacionConcepto {
       esCalculadoAuto: this.esCalculadoAuto,
       esRemunerativo: this.esRemunerativo,
       activo: this.activo,
+      // undefined (no vino del servidor) = no cambiar; null (vaciado a propósito) = 0, sin número.
+      numero: this.numero === undefined ? null : (this.numero ?? 0),
       usuarioId: this.usuario?.id
     };
   }
@@ -38,5 +42,6 @@ export interface LiquidacionConceptoInput {
   esCalculadoAuto: boolean;
   esRemunerativo: boolean;
   activo: boolean;
+  numero: number;
   usuarioId: number;
 }

@@ -565,7 +565,7 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onImprimir(factura: FacturaLegal, i) {
-    this.facturaService.onReimprimirFactura(factura.id, factura.sucursalId);
+    this.facturaService.onReimprimirFacturaTicket(factura.id, factura.sucursalId);
   }
 
   handlePageEvent(e: PageEvent) {

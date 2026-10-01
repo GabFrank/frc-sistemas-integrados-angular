@@ -114,6 +114,15 @@ llamarlo también.
   `lineasTarjetaSinTerminal` no esté vacía. Se lee del filial **en una query aparte** con Apollo
   directo (sin el snackbar de `GenericCrudService`): si fuera en la query de `habilitado`, un filial
   sin la columna tiraría todo el módulo. Si falla, `true`.
+- **`habilitado` apaga el escaneo en TODAS las puertas del cobro**, no solo en la apertura
+  automática. En `pago-touch` son: `escanearSiEsTarjeta` (al agregar la línea), el bloqueo y el
+  armado de `tarjetaPagos` en `onFinalizar`, el ícono QR de la fila y el indicador «Falta escanear
+  el cupón» (los dos en el template, gateados por `ventaTarjetaHabilitada`), y la guarda al inicio
+  de `escanearTarjeta`. Hasta el 2026-09-30 el ícono QR no lo miraba: con el flujo apagado seguía
+  abriendo el diálogo de terminal. El check verde de una línea que ya trae cupón (delivery
+  reabierto) se muestra igual con el flujo apagado. ⚠️ `onGetConfiguracion` va por
+  `onCustomQuery` sin `propagate`: si el filial no responde, no emite, el `error:` del PDV no corre y
+  `ventaTarjetaHabilitada` queda `false` en silencio — con el flujo activo, esa venta sale sin cupón.
 - **Cancelar una venta va al central**, también desde «Últimas ventas» del PDV (antes iba a un
   stub del filial que simulaba éxito). El central alterna CANCELADA↔CONCLUIDA: el PDV no manda una
   venta ya cancelada. Se sigue llamando `onCancelarPorVentaId` (filial) como respaldo idempotente.

@@ -18,6 +18,7 @@ import { CobroDetalleDeVenta, CobrosTarjetaDeVentaGQL } from './graphql/cobrosTa
 import { ImprimirSenaCuponGQL } from './graphql/imprimirSenaCupon';
 import { VentaTarjetaCompletaPorIdGQL } from './graphql/ventaTarjetaCompletaPorId';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
+import { ImpresionPosService } from '../../../shared/services/impresion-pos/impresion-pos.service';
 import { codificarQr } from '../../../shared/qr-code/qr-code.component';
 import { TipoEntidad } from '../../../generics/tipo-entidad.enum';
 import { PageInfo } from '../../../app.component';
@@ -118,6 +119,7 @@ export class VentaTarjetaService {
     private imprimirSenaCuponGQL: ImprimirSenaCuponGQL,
     private ventaTarjetaCompletaPorIdGQL: VentaTarjetaCompletaPorIdGQL,
     private configService: ConfiguracionService,
+    private impresionPos: ImpresionPosService,
     private mainService: MainService,
     private reporteService: ReporteService,
     private tabService: TabService
@@ -272,8 +274,10 @@ export class VentaTarjetaService {
     // ninguna pista de que el problema es la configuración de ESTA caja, no la impresora. Medido
     // el 2026-09-16: la config guardada del perfil de prueba no tenía el bloque `printers`, porque
     // se guardó antes de que existiera, y `getConfig()?.printers?.ticket` daba `undefined`.
+    // "Imprimir desde esta PC": la impresora que importa es la local, que porCliente ya exige.
+    const porCliente = this.impresionPos.porCliente(false);
     const impresora = this.configService?.getConfig()?.printers?.ticket;
-    if (!impresora) {
+    if (!porCliente && !impresora) {
       return throwError(() => new Error(
         'No hay impresora de tickets configurada en esta caja (Configuración → Impresora Ticket).'
       ));
@@ -291,18 +295,23 @@ export class VentaTarjetaService {
       timestamp: Date.now(),
     });
 
+    const input = {
+      ventaId: datos.ventaId,
+      ventaTarjetaId: datos.ventaTarjetaId,
+      cajaId: datos.cajaId,
+      cajero: datos.cajero,
+      terminal: datos.terminal,
+      monto: datos.monto,
+      monedaSimbolo: datos.monedaSimbolo,
+      decimales: datos.decimales,
+      qr,
+    };
+    if (porCliente) {
+      return this.impresionPos.imprimirSenaCupon(input);
+    }
+
     return this.genericService.onCustomMutation(this.imprimirSenaCuponGQL, {
-      input: {
-        ventaId: datos.ventaId,
-        ventaTarjetaId: datos.ventaTarjetaId,
-        cajaId: datos.cajaId,
-        cajero: datos.cajero,
-        terminal: datos.terminal,
-        monto: datos.monto,
-        monedaSimbolo: datos.monedaSimbolo,
-        decimales: datos.decimales,
-        qr,
-      },
+      input,
       printerName: impresora,
       local: this.configService?.getConfig()?.local,
     }, false);

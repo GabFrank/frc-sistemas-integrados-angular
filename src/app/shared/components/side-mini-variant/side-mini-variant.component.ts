@@ -18,7 +18,7 @@ import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/re
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
-import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
+import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
@@ -83,6 +83,7 @@ import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-e
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
+import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factura-legal/resumen-fiscal-ventas/resumen-fiscal-ventas.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
@@ -619,7 +620,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           isExpanded: false,
           // Sin VENTA_TARJETA_COMPLETAR: estaba solo por 'Terminales POS', que se mudo a 'Venta
           // con tarjeta'. Dejarlo le abriria a ese rol un grupo en el que no puede entrar a nada.
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          // ANALISIS_CONTABLE y FACTURACION_*: sin ellos el grupo quedaba oculto para quien solo
+          // puede entrar al resumen fiscal o a las notas.
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN],
           items: [
             {
               name: 'Análisis de diferencias',
@@ -646,6 +649,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
             },
             {
+              name: 'Resumen fiscal de ventas',
+              icon: 'request_page',
+              action: 'resumen-fiscal-ventas',
+              visibilityRoles: [ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
+            },
+            {
               name: 'Notas de remisión',
               icon: 'local_shipping',
               action: 'list-nota-remision',
@@ -656,6 +665,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'request_quote',
               action: 'list-nota-credito',
               visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
+            },
+            {
+              name: 'Gráficos',
+              icon: 'bar_chart',
+              action: 'graficos',
+              visibilityRoles: [ROLES.ADMIN]
             }
           ]
         },
@@ -695,21 +710,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
-      name: 'Vehículos',
-      icon: 'directions_car',
-      isExpanded: false,
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN],
-      items: [
-        {
-          name: 'Vehículo',
-          icon: 'commute',
-          action: 'list-vehiculo',
-          visibilityRoles: [ROLES.ADMIN]
-        }
-      ]
-    },
-    {
       name: 'Bienes',
       icon: 'forest',
       isExpanded: false,
@@ -721,6 +721,20 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'check_circle',
           action: 'bienes-dashboard',
           visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Vehículos',
+          icon: 'directions_car',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vehículo',
+              icon: 'commute',
+              action: 'list-vehiculo',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
         }
       ]
     },
@@ -770,13 +784,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
-    },
-    {
-      name: 'Gráficos',
-      icon: 'bar_chart',
-      action: 'graficos',
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN]
     },
     {
       name: 'Configuración',
@@ -1244,6 +1251,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
         break;
+      case "resumen-fiscal-ventas":
+        this.openTabIfAuthorized(
+          [ROLES.ANALISIS_CONTABLE, ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR],
+          ResumenFiscalVentasComponent,
+          "Resumen fiscal de ventas"
+        );
+        break;
       case "analisis-diferencias":
         this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
         break;
@@ -1267,7 +1281,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "clientes-dashboard":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_USUARIOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
-          this.tabService.addTab(new Tab(ClienteDashboardComponent, "Clientes", null, null));
+          this.tabService.addTab(new Tab(ListClientesComponent, "Lista de clientes", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

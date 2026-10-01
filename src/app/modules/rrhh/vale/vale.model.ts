@@ -4,6 +4,18 @@ import { Usuario } from '../../personas/usuarios/usuario.model';
 import { MotivoVale } from '../motivo-vale/motivo-vale.model';
 
 export type ValeEstado = 'SOLICITADO' | 'CONFIRMADO' | 'DESCONTADO' | 'ANULADO';
+export type ValeCuotaEstado = 'PENDIENTE' | 'DESCONTADA' | 'ANULADA';
+
+/** Cuota de un vale que se descuenta en varias liquidaciones (cantidadCuotas > 1). */
+export class ValeCuota {
+  id: number;
+  numero: number;
+  monto: number;
+  fechaDescuento: string;
+  estado: ValeCuotaEstado;
+  liquidacionId: number;
+  liquidacionFinalId: number;
+}
 
 export class Vale {
   id: number;
@@ -14,6 +26,12 @@ export class Vale {
   fecha: string;
   estado: ValeEstado;
   esAdelanto: boolean;
+  /** 1 = se descuenta entero; más de 1 = una cuota por liquidación. */
+  cantidadCuotas: number;
+  /** Entregado en bienes (ej. uniforme): nace confirmado sin sacar plata de caja. */
+  enEspecie: boolean;
+  /** Lo que falta descontar (lo calcula el backend). */
+  saldoPendiente: number;
   cajaVirtualId: number;
   autorizadoPor: Usuario;
   observacion: string;
@@ -29,6 +47,7 @@ export class Vale {
       fecha: this.fecha,
       estado: this.estado,
       esAdelanto: this.esAdelanto,
+      cantidadCuotas: this.cantidadCuotas,
       observacion: this.observacion,
       autorizadoPorId: this.autorizadoPor?.id,
       usuarioId: this.usuario?.id

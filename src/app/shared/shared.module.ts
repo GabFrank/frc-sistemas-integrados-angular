@@ -61,6 +61,7 @@ import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
 import { A11yModule } from '@angular/cdk/a11y';
 import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
 import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
+import { ImpresoraLocalDialogComponent } from './components/configuracion-dialog/impresora-local-dialog/impresora-local-dialog.component';
 import { UpdateDialogComponent } from './components/update-dialog/update-dialog.component';
 import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
 import { CellFormatPipe } from '../commons/core/pipes/cell-format.pipe';
@@ -125,6 +126,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DataDisplayComponent,
     ConfiguracionFullDialogComponent,
     ConfiguracionDialogComponent,
+    ImpresoraLocalDialogComponent,
     UpdateDialogComponent,
     SideMiniVariantComponent,
     CellFormatPipe,

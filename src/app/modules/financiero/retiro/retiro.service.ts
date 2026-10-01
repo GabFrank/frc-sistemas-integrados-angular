@@ -1,5 +1,6 @@
 import { Injectable, Input } from "@angular/core";
 import { Observable, pipe } from "rxjs";
+import { map, tap } from "rxjs/operators";
 import { MainService } from "../../../main.service";
 import {
   NotificacionColor,
@@ -21,6 +22,8 @@ import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+import { ImpresionPosService } from "../../../shared/services/impresion-pos/impresion-pos.service";
+import { SaveRetiroClienteGQL } from "./graphql/saveRetiroCliente";
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -39,7 +42,9 @@ export class RetiroService {
     private retirosFlotantesGQL: RetirosFlotantesGQL,
     private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
     private cancelarRetiro: CancelarRetiroGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private saveRetiroCliente: SaveRetiroClienteGQL,
+    private impresionPos: ImpresionPosService
   ) { }
 
   onGetFlotantes(sucId?: number, cajaId?: number, desde?: string, hasta?: string,
@@ -70,6 +75,11 @@ export class RetiroService {
 
   onReimprimirRetiro(id: number, sucId?: number, servidor = true): Observable<boolean> {
     if (sucId == null) {
+      if (this.impresionPos.porCliente(servidor)) {
+        return this.impresionPos
+          .imprimirTicket("RETIRO", id, "La reimpresión del retiro", true)
+          .pipe(map((ok) => (ok ? true : null)));
+      }
       return this.crudService.onCustomQuery(this.reimprimirRetiro, {
         id, printerName: this.configService?.getConfig()?.printers?.ticket,
         local: this.configService?.getConfig()?.local
@@ -103,6 +113,21 @@ export class RetiroService {
     }
 
     retiroAux.usuario = this.mainService.usuarioActual;
+
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": la filial guarda sin imprimir y el ticket se pide e imprime acá.
+      return this.crudService.onCustomMutation(this.saveRetiroCliente, {
+        entity: retiroAux.toInput(),
+        retiroDetalleInputList: retiroAux.toDetalleInput(),
+        local: this.configService?.getConfig()?.local
+      }, servidor, silentLoad).pipe(
+        tap((res) => {
+          if (res?.id != null) {
+            this.impresionPos.imprimirTicket("RETIRO", res.id, "El ticket del retiro", false).subscribe();
+          }
+        })
+      );
+    }
 
     return this.crudService.onCustomMutation(this.saveRetiro, {
       entity: retiroAux.toInput(),

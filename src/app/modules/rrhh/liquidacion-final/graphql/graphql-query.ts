@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 
-const ITEM = `id concepto descripcion monto tipo manual editado editadoPor { id nickname } editadoEn montoOriginal`;
+const ITEM = `id concepto descripcion monto tipo manual editado editadoPor { id nickname } editadoEn montoOriginal referenciaTipo`;
 const LF = `
   id funcionario { id persona { id nombre } } fechaEgreso motivoEgreso
   antiguedadDias antiguedadMeses antiguedadAnios salarioPromedio
@@ -59,4 +59,8 @@ export const eliminarItemLiquidacionFinalMutation = gql`
 
 export const imprimirReciboFinalQuery = gql`
   query ($id: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboFinal(id: $id, anchoMm: $anchoMm, escpos: $escpos) }
+`;
+
+export const imprimirReciboItemLiquidacionFinalQuery = gql`
+  query ($itemId: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboItemLiquidacionFinal(itemId: $itemId, anchoMm: $anchoMm, escpos: $escpos) }
 `;

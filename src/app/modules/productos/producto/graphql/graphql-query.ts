@@ -94,6 +94,7 @@ export const productoSearchPdv = gql`
       precioPrincipal
       activo
       costo {
+        costoMedio
         ultimoPrecioCompra
         cotizacion
         moneda {

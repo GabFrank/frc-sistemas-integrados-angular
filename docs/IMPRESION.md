@@ -10,6 +10,9 @@ la salida de todo comprobante/recibo firmable: **PDF (A4)** o **Ticket térmico
 > - uno de los dos formatos no sea viable (ej. un reporte tabular agregado no tiene
 >   sentido en ticket → va **solo PDF**).
 
+> Tickets del **POS** impresos en la impresora local de la PC (sin que el filial la alcance):
+> ver [impresion-pos-desde-cliente.md](impresion-pos-desde-cliente.md).
+
 ## Cómo funciona (resumen)
 
 El mismo comprobante se genera en el **backend** en dos formatos según los
@@ -105,9 +108,16 @@ quita acentos (la térmica RAW no soporta codepages con tildes).
 
 ## Dónde ya está aplicado (RRHH)
 
-Recibos con **PDF + Ticket** vía este componente (7 casos):
+Recibos con **PDF + Ticket** vía este componente (8 casos):
 vale, penalización, aguinaldo, préstamo (entrega), bono, **finiquito**,
-**liquidación mensual**.
+**liquidación mensual** y **recibo por ítem de liquidación**.
+
+El recibo por ítem es el ícono `receipt` de cada fila en el detalle de la liquidación
+mensual y del finiquito (`imprimirReciboItemLiquidacion` /
+`imprimirReciboItemLiquidacionFinal`). Un ítem HABER sale como «RECIBO DE LIQUIDACION
+Nro. `<id de la liquidación>`» y un DESCUENTO como «CONSTANCIA DE DESCUENTO». Se ofrece en
+BORRADOR, APROBADA y PAGADA (no en ANULADA) y solo en ítems con monto mayor a cero; el
+central valida lo mismo.
 
 Reportes agregados (**solo PDF**, sin ticket): nómina del mes, resumen IPS, vales
 pendientes, préstamos activos, aguinaldo del año.

@@ -165,6 +165,43 @@ export const saveVenta = gql`
   }
 `;
 
+/**
+ * saveVenta para "Imprimir desde esta PC": la filial no imprime y devuelve el comprobante en
+ * `ticketEscpos`. Documento aparte a propósito: el de arriba no se toca, así una PC en modo servidor
+ * sigue funcionando contra filiales que no conocen `imprimirEnCliente`.
+ */
+export const saveVentaCliente = gql`
+  mutation saveVentaCliente(
+    $ventaInput: VentaInput!
+    $ventaItemList: [VentaItemInput]
+    $cobro: CobroInput
+    $cobroDetalleList: [CobroDetalleInput]
+    $ticket: Boolean
+    $facturar: Boolean
+    $local: String
+    $pdvId: Int
+    $ventaCreditoInput: VentaCreditoInput
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
+  ) {
+    data: saveVenta(
+      ventaInput: $ventaInput
+      ventaItemList: $ventaItemList
+      cobro: $cobro
+      cobroDetalleList: $cobroDetalleList
+      ticket: $ticket
+      facturar: $facturar
+      local: $local
+      pdvId: $pdvId
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
+      imprimirEnCliente: true
+    ) {
+      id
+      ticketEscpos
+    }
+  }
+`;
+
 export const saveVentaDelivery = gql`
   mutation saveVentaDelivery(
     $ventaInput: VentaInput!
