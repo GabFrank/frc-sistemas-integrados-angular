@@ -14,7 +14,7 @@ import { MovimientoStock } from "./movimiento-stock.model";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GetMovimientoStockPorFiltrosGQL } from "./graphql/getMovimientoStockByFilters";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { PageInfo } from "../../../app.component";
 import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
 import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
@@ -79,12 +79,13 @@ export class MovimientoStockService {
     }
   }
 
-  onGetStockPorProducto(id, sucursalId?: number, servidor = true): Observable<number> {
-    //use genericService        
+  /** `errorConf` y `contexto` son para el POS; el resto de las pantallas no los pasa y queda como antes. */
+  onGetStockPorProducto(id, sucursalId?: number, servidor = true,
+                        errorConf?: QueryError, contexto?: ContextoConsulta): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockPorProducto, {
       id,
       sucId: sucursalId
-    }, servidor);
+    }, servidor, errorConf, undefined, contexto);
   }
 
   onGetMovimientoStockPorFiltros(

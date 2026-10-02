@@ -16,7 +16,7 @@ import {
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -181,12 +181,15 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor);
   }
 
-  onGetProductoPorCodigo(texto, servidor: boolean = true, silentLoad: boolean = false): Observable<Producto> {
-    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor, undefined, silentLoad);
+  /** `errorConf` y `contexto` son para el POS; el resto de las pantallas no los pasa y queda como antes. */
+  onGetProductoPorCodigo(texto, servidor: boolean = true, silentLoad: boolean = false,
+                         errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor, errorConf, silentLoad, contexto);
   }
 
-  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, undefined, silentLoad);
+  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false,
+           errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, errorConf, silentLoad, contexto);
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {
