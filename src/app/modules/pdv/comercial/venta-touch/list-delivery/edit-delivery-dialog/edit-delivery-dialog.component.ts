@@ -680,7 +680,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
           error: (err) => {
             // En el timeout ya avisa el link ("pudo haberse aplicado. Verificá antes de reintentar").
             if (esTimeoutDeLink(err)) return;
-            this.notificacionSnackbar.openWarn('No se guardó el delivery: el servidor no responde. Podés reintentar.', 4);
+            // Un corte de red puede llegar después de que el filial guardó: no se promete que no se guardó.
+            this.notificacionSnackbar.openWarn('No se pudo confirmar el guardado del delivery: revisá la lista antes de reintentar.', 4);
           },
         })
     }
