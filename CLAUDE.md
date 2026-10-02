@@ -136,6 +136,22 @@ App inicia → lee canal de config (alpha/beta/stable/dev)
 
 El canal se configura en la UI: **Configuración → Canal de actualización**.
 
+### Qué release elige cada canal ([app/updater-canal.ts](app/updater-canal.ts))
+
+- **stable** pide `/releases/latest`, que excluye prereleases.
+- **alpha / beta** leen el feed `releases.atom`, que **no** viene ordenado por fecha de creación (un
+  beta puede quedar arriba del alpha más nuevo), y `electron-updater` 5.3.0 toma la **primera**
+  entrada aceptada: para un cliente alpha, un tag beta pasa (#381). Por eso `main.ts` instala con
+  `setFeedURL` un provider que filtra el feed al canal configurado y lo ordena por versión.
+- Asignar `autoUpdater.channel` pone `allowDowngrade = true`. **No lo apagues**: es lo que permite
+  cambiar de canal bajando de versión (alpha `4.5.0-alpha.3` → stable `4.4.0`).
+- Si el feed no trae ninguna entrada del canal (trae solo los últimos 10 releases), si no se
+  reconoce el XML, o si `electron-updater` no es `5.3.0`, se usa el feed original: el
+  comportamiento de antes, incluido el salto alpha → beta. En `main.log`: `Feed filtrado al canal
+  …` (bien) o `Feed sin entradas del canal …` (fallback).
+- **Al actualizar `electron-updater`**: revisar `GitHubProvider.getLatestVersion` y subir
+  `VERSION_AUDITADA` en `updater-canal.ts`; si no, el filtro se apaga solo.
+
 ### Persistencia local de la app instalada
 
 | Archivo | Contenido |

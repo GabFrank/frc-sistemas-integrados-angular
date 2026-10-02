@@ -19,6 +19,7 @@ const child_process_1 = require("child_process");
 const buffer_1 = require("buffer");
 const electron_pos_printer_1 = require("electron-pos-printer");
 const electron_updater_1 = require("electron-updater");
+const updater_canal_1 = require("./updater-canal");
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
@@ -26,6 +27,26 @@ electron_1.app.disableHardwareAcceleration();
 electron_updater_1.autoUpdater.logger = log;
 electron_updater_1.autoUpdater.autoDownload = false;
 electron_updater_1.autoUpdater.autoInstallOnAppQuit = false;
+// Feed de releases filtrado al canal configurado: sin esto un desktop alpha instala builds beta
+// cuando un beta queda arriba en el feed (#381). Mismo owner/repo que electron-builder.json:publish.
+// Si algo falla, el updater sigue con app-update.yml, como antes.
+if (updater_canal_1.GitHubProviderCanalEstricto) {
+    try {
+        electron_updater_1.autoUpdater.setFeedURL({
+            provider: 'custom',
+            updateProvider: updater_canal_1.GitHubProviderCanalEstricto,
+            owner: 'GabFrank',
+            repo: 'frc-sistemas-integrados-angular',
+        });
+        log.info('Auto-updater: feed filtrado por canal activo');
+    }
+    catch (e) {
+        log.error('Auto-updater: no se pudo activar el feed filtrado por canal, se usa app-update.yml:', e);
+    }
+}
+else {
+    log.warn(`Auto-updater: feed filtrado por canal desactivado (${updater_canal_1.motivoSinProviderCanal})`);
+}
 // Patch: safe AppImage swap (rename-then-move instead of unlink-then-move)
 // Prevents losing the AppImage if the update fails mid-swap.
 if (process.platform === 'linux') {
