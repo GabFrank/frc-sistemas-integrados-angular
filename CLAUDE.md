@@ -156,7 +156,7 @@ El canal se configura en la UI: **Configuración → Canal de actualización**.
 
 | Archivo | Contenido |
 |---|---|
-| `%AppData%/FRC/config/config-backup.json` | Canal de actualización seleccionado, persistido vía IPC desde renderer al main process |
+| `%AppData%/FRC/config/config-backup.json` | Canal de actualización seleccionado, persistido vía IPC desde renderer al main process. **Para el canal, este archivo manda** (#384): el renderer lo pide al arrancar (IPC `get-update-channel`) y lo adopta sobre el de su `localStorage`; solo una elección en la UI lo cambia. Si llega una config sin canal, el main conserva el guardado |
 | `%AppData%/FRC/config/zoom-level.json` | Nivel de zoom del usuario |
 | `%AppData%/FRC/logs/main.log` | Logs del proceso main de Electron — **primer lugar para debuggear problemas de auto-update** |
 
