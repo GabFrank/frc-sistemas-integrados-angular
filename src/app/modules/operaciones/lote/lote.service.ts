@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -94,8 +94,11 @@ export class LoteService {
     page = 0,
     size = 10,
     servidor = true,
-    silentLoad = false
+    silentLoad = false,
+    timeoutMs?: number
   ): Observable<PageInfo<StockLotePresentacion>> {
+    // Propaga el error de red: los tres que llaman (los dos del diálogo de lote del POS y el de
+    // transferencias) tienen `error:`. Sin esto quedaban "cargando" para siempre (#390).
     return this.genericService.onCustomQuery(
       this.stockPorLoteEnPresentacionGQL,
       {
@@ -107,8 +110,9 @@ export class LoteService {
         size
       },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      timeoutMs != null ? { timeoutMs, silenciarAvisoTimeout: true } : undefined
     );
   }
 

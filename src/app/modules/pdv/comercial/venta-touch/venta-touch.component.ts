@@ -8,6 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -1862,7 +1863,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     return forkJoin(
       entries.map((entry) =>
         this.movimientoStockService
-          .onGetStockPorProducto(entry.productoId, sucursalId, false)
+          // Chequeo de fondo después de la venta: sin respuesta se descarta (catchError → null) en
+          // vez de dejar el forkJoin abierto (#390).
+          .onGetStockPorProducto(entry.productoId, sucursalId, false, PROPAGAR_ERROR_DE_RED, {
+            timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS,
+            silenciarAvisoTimeout: true,
+          })
           .pipe(
             catchError(() => of(null)),
             map((stock) => ({ entry, stock }))
