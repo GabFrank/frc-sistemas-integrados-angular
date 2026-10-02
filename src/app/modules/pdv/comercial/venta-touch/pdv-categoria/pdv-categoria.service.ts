@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PdvGruposProductos } from '../pdv-grupos-productos/pdv-grupos-productos.model';
 import { PdvCategoriaFullInfoGQL } from './graphql/getCategoriaFullInfo';
@@ -35,25 +35,17 @@ export class PdvCategoriaService implements OnDestroy {
     // }, 900000);
   }
 
+  /**
+   * Corre en el constructor de un servicio root: puede ser fuera del POS o antes del login. Si el
+   * servidor no responde no avisa (sería un mensaje en una pantalla ajena); el cajero reintenta con
+   * el botón actualizar de favoritos, que sí avisa (#390).
+   */
   cargarCategorias() {
     this.onGetCategorias(false)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.pdvCategorias = res;
-        this.pdvCategoriasSub.next(this.pdvCategorias)
-        this.pdvCategorias.forEach((cat) => {
-          cat.grupos.forEach((gr) => {
-            if (gr.activo == true) {
-              this.onGetGrupoProductosPorGrupoId(gr.id, false)
-                .pipe(untilDestroyed(this))
-                .subscribe((res) => {
-                  if (res != null) {
-                    gr.pdvGruposProductos = res;
-                  }
-                });
-            }
-          });
-        });
+      .subscribe({
+        next: (res) => this.aplicarCategorias(res),
+        error: (err) => console.warn('[PDV] No se pudieron cargar las categorías', err),
       });
   }
 
@@ -61,28 +53,42 @@ export class PdvCategoriaService implements OnDestroy {
     clearInterval(this.timer)
   }
 
+  /** Los dos que la llaman (cargarCategorias y onRefresh) manejan el error de red. */
   onGetCategorias(servidor: boolean = true): Observable<PdvCategoria[]> {
-    return this.genericService.onCustomQuery(this.getCategorias, {}, servidor, null, true);
+    return this.genericService.onCustomQuery(this.getCategorias, {}, servidor, PROPAGAR_ERROR_DE_RED, true, {
+      timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+      silenciarAvisoTimeout: true,
+    });
   }
 
   onRefresh() {
-    this.onGetCategorias(false).subscribe(res => {
-      this.pdvCategorias = res;
-      this.pdvCategoriasSub.next(this.pdvCategorias)
-      this.pdvCategorias.forEach((cat) => {
-        cat.grupos.forEach((gr) => {
-          if (gr.activo == true) {
-            this.onGetGrupoProductosPorGrupoId(gr.id, false)
-              .pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res != null) {
-                  gr.pdvGruposProductos = res;
-                }
-              });
-          }
-        });
+    this.onGetCategorias(false).subscribe({
+      next: (res) => this.aplicarCategorias(res),
+      error: () =>
+        this.notificacionService.openWarn(
+          'No se pudieron cargar las categorías del PDV: el servidor no responde. Probá de nuevo con actualizar.',
+          4
+        ),
+    });
+  }
+
+  private aplicarCategorias(res: PdvCategoria[]) {
+    // Con un error GraphQL onCustomQuery emite null: antes reventaba en el forEach.
+    this.pdvCategorias = res ?? [];
+    this.pdvCategoriasSub.next(this.pdvCategorias)
+    this.pdvCategorias.forEach((cat) => {
+      cat.grupos?.forEach((gr) => {
+        if (gr.activo == true) {
+          this.onGetGrupoProductosPorGrupoId(gr.id, false)
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+              if (res != null) {
+                gr.pdvGruposProductos = res;
+              }
+            });
+        }
       });
-    })
+    });
   }
 
   onSaveCategoria(input: PdvCategoriaInput, servidor = true) {
