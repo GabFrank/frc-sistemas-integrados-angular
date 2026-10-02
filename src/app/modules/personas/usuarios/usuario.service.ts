@@ -13,7 +13,13 @@ import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
 import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 import { UsuariosGQL } from "./graphql/usuariosQuery";
 import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonaId";
@@ -65,14 +71,19 @@ export class UsuarioService {
     return this.genericService.onGetAll(this.getUsuarios, page, null, servidor)
   }
 
-  onGetUsuario(id: number, servidor: boolean = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
+  /** `errorConf` y `contexto` son para el arranque (#390); sin ellos queda como antes. */
+  onGetUsuario(id: number, servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor, errorConf, undefined, contexto);
   }
 
   // Usa la query de login (sin `persona.embeddingFacial`) para ser compatible
   // con servidores en `release/beta` que aun no tienen ese campo en el schema.
+  // Su único suscriptor (login.service) maneja el error de red: sin esto el login quedaba esperando (#390).
   onGetUsuarioParaLogin(id: number, servidor: boolean = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.getUsuarioLogin, { id }, servidor);
+    return this.genericService.onCustomQuery(this.getUsuarioLogin, { id }, servidor, PROPAGAR_ERROR_DE_RED, undefined, {
+      timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+      silenciarAvisoTimeout: true,
+    });
   }
 
   onGetUsuarioPorPersonaId(id: number, servidor: boolean = true, errorConf?: any): Observable<any> {

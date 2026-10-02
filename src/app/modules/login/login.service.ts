@@ -160,7 +160,14 @@ export class LoginService {
                   this.usuarioService
                     .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
-                    .subscribe((res) => {
+                    .subscribe({
+                      // Sin usuario (no respondió o error del servidor) el login emitía nada y quedaba esperando (#390).
+                      error: () => obs.next(this.noSeCargoElUsuario()),
+                      next: (res) => {
+                      if (res?.id == null) {
+                        obs.next(this.noSeCargoElUsuario());
+                        return;
+                      }
                       if (res?.id != null) {
                         this.mainService.usuarioActual = res;
                         this.registrarSesionActiva(res, !config.isLocal);
@@ -172,7 +179,7 @@ export class LoginService {
                         };
                         obs.next(response);
                       }
-                    });
+                    }});
                 }
               }, 500);
             } else {
@@ -280,6 +287,20 @@ export class LoginService {
     return this.buildServerErrorResponse(
       "No se pudo iniciar sesión por un error del servidor. Intente nuevamente."
     );
+  }
+
+  /**
+   * Autenticó pero no se pudo cargar el usuario. Se limpia lo que la autenticación ya guardó: con
+   * "mantener sesión" el próximo arranque entraba con un token sin sesión registrada.
+   */
+  private noSeCargoElUsuario(): LoginResponse {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuarioId");
+    localStorage.removeItem("token_central");
+    return {
+      usuario: null,
+      error: this.buildServerErrorResponse("No se pudo cargar el usuario: el servidor no responde. Intente nuevamente."),
+    };
   }
 
   private buildAuthErrorResponse(
