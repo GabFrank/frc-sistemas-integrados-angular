@@ -734,6 +734,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.resolverTarjetasPendientes(r.tarjetas.valor);
       return;
     }
+    if (r.tarjetas.estado === "error") {
+      // El filial respondió con error al contarlas y el cajero eligió cerrar igual: puede haber
+      // pendientes, así que pasa por el mismo motivo auditable que si las hubiera contado.
+      this.pedirMotivoYMarcarNoCompletadas(null);
+      return;
+    }
     this.irAlCierre();
   }
 
@@ -764,33 +770,38 @@ export class AdicionarCajaDialogComponent implements OnInit {
       },
     }).afterClosed().pipe(take(1)).subscribe((quiereForzar) => {
       if (quiereForzar !== true) return;
-      this.matDialog.open(MotivoNoConciliarDialogComponent, {
-        width: "460px",
-        disableClose: true,
-        data: { cuantos: pendientes },
-      }).afterClosed().pipe(take(1)).subscribe((res: MotivoNoConciliarResultado) => {
-        // Sin motivo no se marca nada: es la condicion de que esto sea auditable y
-        // no un "cerrar igualmente" con otro nombre.
-        if (!res?.motivo) return;
-        this.ventaTarjetaService.onMarcarNoCompletadas(
-          this.selectedCaja.id,
-          this.selectedCaja.sucursalId,
-          res.motivo,
-          res.observacion,
-          this.mainService.usuarioActual?.id
-        )
-          .pipe(take(1))
-          .subscribe({
-            next: () => {
-              this.irAlCierre();
-            },
-            error: () => {
-              this.notificacionBar.openWarn(
-                "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
-              );
-            },
-          });
-      });
+      this.pedirMotivoYMarcarNoCompletadas(pendientes);
+    });
+  }
+
+  /** @param pendientes null si no se pudieron contar (error del servidor al verificar el cierre). */
+  private pedirMotivoYMarcarNoCompletadas(pendientes: number | null): void {
+    this.matDialog.open(MotivoNoConciliarDialogComponent, {
+      width: "460px",
+      disableClose: true,
+      data: { cuantos: pendientes },
+    }).afterClosed().pipe(take(1)).subscribe((res: MotivoNoConciliarResultado) => {
+      // Sin motivo no se marca nada: es la condicion de que esto sea auditable y
+      // no un "cerrar igualmente" con otro nombre.
+      if (!res?.motivo) return;
+      this.ventaTarjetaService.onMarcarNoCompletadas(
+        this.selectedCaja.id,
+        this.selectedCaja.sucursalId,
+        res.motivo,
+        res.observacion,
+        this.mainService.usuarioActual?.id
+      )
+        .pipe(take(1))
+        .subscribe({
+          next: () => {
+            this.irAlCierre();
+          },
+          error: () => {
+            this.notificacionBar.openWarn(
+              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
+            );
+          },
+        });
     });
   }
 
