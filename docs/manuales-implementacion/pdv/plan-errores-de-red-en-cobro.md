@@ -156,3 +156,20 @@ requiere un QR de cupón real o de prueba; si no hay, el caso 3 queda **no verif
 | Aviso inmediato de la config de factura (central) en cada cobro sin internet | baja | **aplicado**: el aviso inmediato queda solo para tarjeta; la de factura avisa al tocar F12 |
 | El `return` de `addCobroDetalle` sale antes del reset de `isAumento` | baja | aceptado: combinación TARJETA + aumento sin caso real |
 | ABM de configuración: tras fallar la carga, «Guardar» queda habilitado con la config vacía | baja | preexistente (antes quedaba colgado con el mismo botón) → #390 |
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-02)
+
+Desktop `ng serve -c web` sobre `ddd0d69c` (+ el ajuste de Utilitarios), filial `frc-filial` :8080, PDV 3
+con venta con tarjeta y factura con venta **habilitadas** (leído del componente), manejado con la extensión
+de Chrome y un observador de snackbars.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ filial normal: el cobro abre sin avisos; `configTarjeta = ok`, `configFactura = ok` |
+| 2 | ✅ filial congelado: «Buscando…» y a los 10 s (17:37:28 → 17:37:38) `configTarjeta = fallo` + aviso «No se pudo cargar la configuración de cobro con tarjeta: cerrá y volvé a abrir el cobro para reintentar.»; Tarjeta (F5) + ✓ **no agrega** la línea y repite el aviso. `configFactura = ok` (el central respondía) |
+| 2b | No verificado: central sin respuesta (alpha compartido). Verificado por código y auditoría |
+| 3, 5 | **No verificados en runtime**: escanear/registrar un cupón requiere una cadena que acepte `parsearCupon` y una terminal configurada. Verificados por código y auditoría (falla abierta con aviso; registrar no completa sin vínculo) |
+| 4 | ✅ conciliación de cupones con el filial congelado: «Buscar» → a los 20 s (17:40:33 → 17:40:53) «No se pudieron cargar las ventas con tarjeta: el servidor no responde.». La búsqueda por QR no se probó (requiere el QR de una seña) |
+| 6 | ✅ Utilitarios con el filial congelado: el «Cargando…» se cierra en <10 s y «Conciliación de cupones» queda oculta. Encontrado en la prueba: Utilitarios pedía la config **sin** timeout (hasta 300 s); se acotó en `utilitarios-dialog` |
+
+No se completó ningún cobro: los diálogos se cancelaron.
