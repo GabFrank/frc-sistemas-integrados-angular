@@ -348,6 +348,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.pdvValidado = true;
           this.iniciarCargaDeCaja();
         },
+        // Llega por error de red o por el timeout de 20 s: depende del `propagate` del servicio.
         error: (err) => {
           console.error('Error al validar PDV:', err);
           this.dialogoService
