@@ -136,6 +136,7 @@ filial»). Franco hace el login. Congelar con `kill -STOP` y `kill -CONT` de res
 | 3b | Filial congelado: a los 10 s apretar «Cerrar» del spinner, luego F12 con ítems | aviso «Validando…» (el teclado ya no lo bloquea `isCargando`) |
 | 5 | Error GraphQL en la validación (simular: PDV de un id inexistente no sirve, da `null`; ver nota) | «Error de Validación» con el mensaje del servidor, sin snackbar «Ups!» |
 | 6 | Filial vuelve, reabrir Venta | abre normal |
+| 7 | Factura Legal: buscar un RUC cuya consulta dé error del servidor | entra a la rama `error:` del diálogo (no contribuyente / sin central / factura sin cliente) y no queda colgado; sin snackbar «Ups!» (ver auditoría del diff) |
 
 Nota caso 5: provocar un `errors` real del resolver `puntoDeVentaPorId` sin tocar el filial no es
 obvio. Si no hay forma limpia, queda **no verificado** y se verifica solo leyendo el código.
@@ -177,3 +178,17 @@ obvio. Si no hay forma limpia, queda **no verificado** y se verifica solo leyend
 | B | Spinner y `isLoading` se cierran en todos los caminos | — | verificado |
 | B | Rollback: la fase 4 toca el `error:` que usa la 3 → revertir en orden 4, 3, 2, 1 | baja | anotado |
 | B | `iniciarCargaDeCaja` sin `error:` | baja | preexistente → Riesgos / #387 |
+
+## Auditoría del diff (paso 8, 2026-10-02)
+
+- Fijo 1 y Fijo 2: `N/A porque el diff no agrega resolver, menú, .graphqls, migración ni entidad`.
+  Condicionales A y B: ningún glob coincide.
+- Fijo 3 (auditor sonnet sobre `045a4e2f`):
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| `ClienteService.onGetClientePorPersonaDocumentoDetallado` (`cliente.service.ts:66-76`) ya pasaba `graphError: {show:false, propagate:true}` a `onCustomQuery`, que lo ignoraba. Su único suscriptor, `add-factura-legal-dialog.component.ts:361`, recibía `next(null)` y reventaba en `response.errores` (`:365`), y el diálogo quedaba colgado. Con la fase 4 entra a su `error:` (`:404-415`) y no sale el snackbar «Ups!» | media | verificado. **Franco decidió aceptarlo** como cambio intencional (es lo que el autor configuró y arregla un cuelgue). Caso 7 de la prueba |
+| Ningún otro llamador de `onCustomQuery` pasa `graphError`; sin la opción la rama `res.errors` queda igual | — | verificado |
+| Modo diálogo (`delivery-dialog:746`): ante un fallo de validación queda abierto con «Validando…» | baja | ya estaba en el plan: botón deshabilitado por fraude, no se toca |
+| F10 (delivery) ahora también espera la validación | baja | intencional: `onDeliveryClick` usa la caja (`:1655`) |
+| JSDoc de `pdvSinValidar` encima del método equivocado | cosmético | corregido |
