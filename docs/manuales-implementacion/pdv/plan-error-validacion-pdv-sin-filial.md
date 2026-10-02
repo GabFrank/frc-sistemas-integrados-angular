@@ -116,6 +116,27 @@ Antes de la prueba: traer `develop` a la rama si avanzó.
   iniciar la validación.
 - El error GraphQL de la validación mostrado como «No se encontró el PDV».
 - Gatear F12/F11/F8 con `pdvValidado`.
+- El «Cargando...» de formas de pago y monedas que tapa el aviso hasta los 60 s (hallazgo del paso 9).
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-02)
+
+Desktop `ng serve -c web` sobre `24770f5c`, filial `frc-filial` :8080, PDV 3, manejado con la extensión de Chrome.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ *Venta* abre sin diálogos |
+| 2 | ✅ «Error de Validación» a los 20 s exactos (consola: «iniciando venta touch» 14:29:14 → «Error al validar PDV» 14:29:34), sin snackbar de timeout; al aceptar se cierra la pestaña. Ver hallazgo |
+| 3 | ✅ abre normal, con «¡Conexión local restablecida!» |
+| 4 | **No verificado**: el clic en el navegador lo bloqueó el control de permisos automático después del `kill -9`. Decidido saltearlo: con conexión rechazada el error entra por la misma rama `error:` que en el caso 2 |
+| 6 | ✅ cerrando *Venta* antes de 20 s, la consulta vence después (14:31:06) y no aparece ningún diálogo |
+| 7 | sin probar |
+| 8 | documentado: si se cierra el «Cargando...», «Pago (F12)» queda habilitado con la validación pendiente (preexistente, `pdvValidado` no gatea) |
+| 9 | sin probar |
+
+**Hallazgo (preexistente, va al seguimiento):** entre los 20 y los 60 s el diálogo queda tapado por un
+«Cargando...» (con botón «Cerrar») de dos consultas que *Venta* lanza al iniciar con el timeout por
+defecto de 60 s: `formaPagoService.onGetAllFormaPago(false)` (`venta-touch.component.ts:465`) y
+`monedaService.onGetAll(false)` (`:529`). Vencieron a las 14:30:14 y recién ahí el diálogo quedó libre.
 
 ## Auditoría del plan (paso 5, 2026-10-02)
 
@@ -126,3 +147,13 @@ Antes de la prueba: traer `develop` a la rama si avanzó.
 | A/B | El error GraphQL sale como «No se encontró el PDV» + snackbar | media/baja | preexistente; se anota en Riesgos y en el seguimiento |
 | B | `pdvValidado` no gatea F12/F11/F8 | media | verificado con grep; preexistente; se anota en Riesgos y en el seguimiento |
 | B | No queda ningún flag colgado; una respuesta tardía se descarta; cerrar *Venta* antes no abre diálogo; el rollback es limpio | baja | verificado; se suman los casos 6-8 |
+
+## Auditoría del diff (paso 8)
+
+- Fijo 1: `N/A para desktop porque el diff no agrega resolver, mutation ni entrada de menú`.
+- Fijo 2: `N/A porque no hay .graphqls, migración ni entidad`.
+- Condicionales A y B: ningún glob coincide.
+- Fijo 3 (auditor sonnet): firma posicional de `onCustomQuery` correcta, sin import circular, único
+  llamador. Dijo que el camino del central nunca aplica; es cierto con `isLocal=true`, pero con
+  `isLocal=false` todo va por `http2` (`graphql-connection.service.ts:296-`) → caso 9, ya cubierto.
+  Sin cambios al diff.
