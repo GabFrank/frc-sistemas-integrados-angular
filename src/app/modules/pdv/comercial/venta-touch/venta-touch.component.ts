@@ -231,9 +231,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Monedas y formas de pago se piden recién con el PDV validado (validarPdvSucursal): con el filial
+    // sin responder su spinner de 60 s tapaba el aviso de la validación (#387).
     this.formaPagoList = [];
-    this.setPrecios();
-    this.getFormaPagos();
 
     setTimeout(() => {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
@@ -346,6 +346,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
           // PDV válido - proceder con la carga de caja
           this.pdvValidado = true;
+          this.setPrecios();
+          this.getFormaPagos();
           this.iniciarCargaDeCaja();
         },
         // Llega por error de red o por el timeout de 20 s: depende del `propagate` del servicio.
