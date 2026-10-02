@@ -308,8 +308,9 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    * puede desempatarlos si son del mismo monto y hoy no vincula ninguno: el dato del cupón queda
    * guardado pero la conciliación se pierde. Por eso acá se FRENA y se obliga a elegir.
    *
-   * Si la consulta de cobros falla no se bloquea el registro: se completa sin cobroDetalleId y
-   * el backend hace lo que pueda. Perder el vínculo es malo; perder el registro del cupón, peor.
+   * Si la consulta de cobros no responde, NO se completa sin vínculo (#390): sin saber cuántos cobros
+   * hay, con dos del mismo monto el registro quedaba COMPLETADO sin vínculo y sin forma de deshacerlo.
+   * El cupón no se pierde: se vuelve a escanear, o «Más tarde» lo deja PENDIENTE en la conciliación.
    */
   private resolverCobroYCompletar(datos: DatosCupon, advertencias: string[]): void {
     if (!this.data.ventaId) {
@@ -350,7 +351,10 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.procesando = false;
-          this.completar(datos, advertencias);
+          this.cuponControl.setValue('', { emitEvent: false });
+          this.errorLectura = 'No se pudo consultar los cobros de la venta: el servidor no responde. Volvé a escanear el cupón.';
+          // El texto de arriba solo se ve con el lector; por foto o captura, el aviso.
+          this.notificacionSnackbar.openWarn(this.errorLectura, 4);
         },
       });
   }
