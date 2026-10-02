@@ -674,11 +674,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   /** Un error GraphQL llega como null: se distingue de "no respondió". */
   private chequeo<T>(obs: Observable<T>): Observable<ChequeoCierre<T>> {
+    const sinRespuesta: ChequeoCierre<T> = { estado: "sin-respuesta" };
     return obs.pipe(
       take(1),
       map((valor): ChequeoCierre<T> => (valor == null ? { estado: "error" } : { estado: "ok", valor })),
-      catchError(() => of<ChequeoCierre<T>>({ estado: "sin-respuesta" })),
-      defaultIfEmpty<ChequeoCierre<T>>({ estado: "sin-respuesta" })
+      catchError(() => of(sinRespuesta)),
+      defaultIfEmpty(sinRespuesta)
     );
   }
 
