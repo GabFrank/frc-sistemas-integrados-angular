@@ -137,3 +137,19 @@ Filial `:8080` congelado (`kill -STOP` + respaldo). **El login lo hace Franco** 
 | A | Aviso del arranque repetido en cada reconexión; el login ya está visible (no «en blanco») | baja | sin aviso propio en el arranque |
 | A | `contexto` va en 6.ª posición de `onCustomQuery` (5.ª es `silentLoad`) | — | anotado: pasar `undefined` en `silentLoad` |
 | A | Firmas opcionales sin colisión; suscriptores únicos de lo que propaga en servicio | — | verificado |
+
+## Auditoría del diff (paso 8, 2026-10-02)
+
+- Fijo 1 y Fijo 2: `N/A porque el diff no agrega resolver, menú, .graphqls, migración ni entidad`.
+  Condicionales A y B: ningún glob coincide.
+- Fijo 3 (auditor sonnet sobre `9ab504d8`): llaves y flujo exitoso del login intactos; único consumidor de
+  `getUsuario()`; `authenticationSub.next(false)` no hace logout; `consultarJornadaActualAsync` solo se llama tras
+  resetear el estado del funcionario (no arrastra el de otro); `finalizarUsuario` una sola vez por usuario;
+  firmas compatibles: verificado.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| `onSaveHorario` y `onSaveFuncionario` van por `onSave`, que también se traga el error de red sin `errorConf` (`generic-crud.service.ts:543`): el lote seguía colgado al guardar | alta | **verificado y aplicado**: `errorConf` opcional en los dos y `PROPAGAR_ERROR_DE_RED` desde `list-funcioario` |
+| Login: `autenticarEnCentral` (3 s, fire-and-forget) podía escribir `token_central` después de que `noSeCargoElUsuario` limpiara la sesión | media | **aplicado**: se guarda su suscripción y se cancela antes de limpiar |
+| `if (res?.id != null)` muerto en el login | baja | quitado |
+| Cambiar de funcionario durante el `await` de la marcación aplica la respuesta tardía al nuevo | baja | preexistente; con el corte de 5 s es poco probable → #390 |
