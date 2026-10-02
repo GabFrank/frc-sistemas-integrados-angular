@@ -1,4 +1,5 @@
 import { Component, Inject, OnInit } from "@angular/core";
+import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import {
   MatDialog,
   MatDialogRef,
@@ -74,7 +75,8 @@ export class UtilitariosDialogComponent implements OnInit {
     if (this.selectedCaja != null && tieneRol) {
       // Contra el filial (false), igual que pago-touch: la caja se opera sin internet.
       this.configuracionVentaTarjetaService
-        .onGetConfiguracion(false)
+        // Acotado (#390): sin respuesta, el «Buscando…» tapaba Utilitarios (cerrar caja, retiro…) hasta 300 s.
+        .onGetConfiguracion(false, { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true })
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (config) => (this.puedeRegistrarCupones = config?.habilitado === true),
