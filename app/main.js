@@ -103,6 +103,29 @@ if (process.platform === 'linux') {
     }
 }
 let updateEnabled = false;
+// true si config-backup.json se armó al arrancar copiando una ruta de fallback: esa copia tiene
+// edad desconocida, así que no se le informa al renderer como canal guardado (#384)
+let configCopiadaDeFallback = false;
+function rutaConfigBackup() {
+    return path.join(electron_1.app.getPath('userData'), 'config', 'config-backup.json');
+}
+/**
+ * Canal guardado en config-backup.json, el que usa el updater al arrancar. Nunca lanza:
+ * archivo ausente, ilegible o con JSON roto → null.
+ */
+function leerCanalGuardado() {
+    var _a;
+    if (configCopiadaDeFallback) {
+        return null;
+    }
+    try {
+        const canal = (_a = JSON.parse(fs.readFileSync(rutaConfigBackup(), 'utf8'))) === null || _a === void 0 ? void 0 : _a.updateChannel;
+        return ['alpha', 'beta', 'stable', 'dev'].includes(canal) ? canal : null;
+    }
+    catch (_b) {
+        return null;
+    }
+}
 function configureUpdateChannel() {
     try {
         const configPath = path.join(electron_1.app.getPath('userData'), 'config', 'config-backup.json');
@@ -141,6 +164,7 @@ function configureUpdateChannel() {
                         fs.mkdirSync(configDir, { recursive: true });
                     }
                     fs.copyFileSync(fallback, configPath);
+                    configCopiadaDeFallback = true;
                     log.info(`Copied config to expected location: ${configPath}`);
                     return applyUpdateChannel(channel);
                 }
@@ -413,17 +437,44 @@ ipcMain.on('get-config-file', (event, arg) => {
     console.log(arg);
 });
 ipcMain.on('save-config-backup', (event, configData) => {
+    var _a;
     try {
         const configDir = path.join(electron_1.app.getPath('userData'), 'config');
         if (!fs.existsSync(configDir)) {
             fs.mkdirSync(configDir, { recursive: true });
         }
         const configPath = path.join(configDir, 'config-backup.json');
-        fs.writeFileSync(configPath, configData, 'utf8');
+        let contenido = configData;
+        // Una config sin canal no borra el que ya está guardado: el updater lo lee de acá al arrancar (#384)
+        try {
+            const entrante = JSON.parse(configData);
+            if (entrante && !entrante.updateChannel && fs.existsSync(configPath)) {
+                const canalGuardado = (_a = JSON.parse(fs.readFileSync(configPath, 'utf8'))) === null || _a === void 0 ? void 0 : _a.updateChannel;
+                if (canalGuardado) {
+                    contenido = JSON.stringify(Object.assign(Object.assign({}, entrante), { updateChannel: canalGuardado }), null, 2);
+                    log.info(`Config backup sin canal: se conserva el guardado (${canalGuardado})`);
+                }
+            }
+        }
+        catch (_b) {
+            // JSON entrante o guardado ilegible: se escribe lo que mandó el renderer, como antes
+        }
+        fs.writeFileSync(configPath, contenido, 'utf8');
         log.info(`Config backup saved by main process to: ${configPath}`);
     }
     catch (e) {
         log.error('Error saving config backup from renderer:', e);
+    }
+});
+// Canal guardado, para que el renderer lo adopte al arrancar en vez de imponer el de su
+// localStorage (#384). Siempre responde: un sendSync sin respuesta congela el renderer.
+ipcMain.on('get-update-channel', (event) => {
+    let canal = null;
+    try {
+        canal = leerCanalGuardado();
+    }
+    finally {
+        event.returnValue = canal;
     }
 });
 ipcMain.on('set-update-channel', (event, channel) => {
