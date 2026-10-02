@@ -4,7 +4,7 @@ import { DeliverysUltimos10GQL } from "../../../../operaciones/delivery/graphql/
 import { DeliverysUltimos10SubGQL } from "../../../../operaciones/delivery/graphql/deliverysUltimos10Sub";
 
 import { UntilDestroy } from "@ngneat/until-destroy";
-import { GenericCrudService } from "../../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../../generics/generic-crud.service";
 import { PreciosDeliveryGQL } from "../../../../operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio";
 import { Observable } from "rxjs";
 import { map, tap } from "rxjs/operators";
@@ -53,8 +53,11 @@ export class DeliveryService {
   ) {
   }
 
-  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId, servidor: boolean = true): Observable<Delivery[]> {
-    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId }, servidor);
+  /** `errorConf`, `contexto` y `silentLoad` son para el POS (#390); sin ellos queda como antes. */
+  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId, servidor: boolean = true,
+                               errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<Delivery[]> {
+    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId }, servidor,
+      errorConf, silentLoad, contexto);
   }
 
   onGetById(id, servidor: boolean = true): Observable<Delivery> {
@@ -65,7 +68,12 @@ export class DeliveryService {
     return this.genericService.onCustomQuery(this.deliverysByEstadoList, { estadoList, sucId }, servidor)
   }
 
-  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[], servidor: boolean = true) {
+  /**
+   * Es una mutation enviada como query (el link la reconoce igual por el documento). `errorConf` y
+   * `contexto` son para el diálogo de delivery (#390); sin ellos queda como antes.
+   */
+  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[], servidor: boolean = true,
+                         errorConf?: QueryError, contexto?: ContextoConsulta) {
     if (delivery != null && delivery.usuarioId == null) delivery.usuarioId = this.mainService?.usuarioActual?.id
     if (venta != null && venta.usuarioId == null) venta.usuarioId = this.mainService?.usuarioActual?.id
     if (cobro != null && cobro.usuarioId == null) cobro.usuarioId = this.mainService?.usuarioActual?.id
@@ -75,7 +83,7 @@ export class DeliveryService {
       ventaItemInputList: ventaItemList,
       cobroInput: cobro,
       cobroDetalleInputList: cobroDetalleList
-    }, servidor);
+    }, servidor, errorConf, undefined, contexto);
   }
 
   onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[]> {
@@ -113,6 +121,7 @@ export class DeliveryService {
       id: id,
       printerName: this.configService?.getConfig()?.printers?.ticket,
       local: this.configService?.getConfig()?.local,
-    }, servidor);
+    }, servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta("la reimpresión del delivery"));
   }
 }

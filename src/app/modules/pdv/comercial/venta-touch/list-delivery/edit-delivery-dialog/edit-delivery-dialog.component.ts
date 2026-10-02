@@ -3,6 +3,10 @@ import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../../generics/generic-crud.service';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { comparatorLike } from '../../../../../../commons/core/utils/string-utils';
 import { BotonComponent } from '../../../../../../shared/components/boton/boton.component';
@@ -130,6 +134,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     private clienteService: ClienteService,
     private matDialog: MatDialog,
     private ventaService: VentaService,
+    private notificacionSnackbar: NotificacionSnackbarService,
   ) {
     
     this.selectedDelivery = data?.delivery;
@@ -633,7 +638,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   }
 
+  /** Un segundo «Guardar» con uno en vuelo duplicaría el delivery y su venta (#390). */
+  private guardando = false;
+
   onGuardar() {
+    if (this.guardando) return;
     if (this.telefonoControl.valid) {
       let delivery = new Delivery()
       let venta = new Venta()
@@ -651,14 +660,30 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         cobro.cobroDetalleList = this.cobroItemList;
       }
 
-      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false).subscribe(res => {
-        if (res != null) {
-          delivery.id = res.id;
-          delivery.venta = res.venta;
-          delivery.creadoEn = res.creadoEn;
-          this.matDialogRef.close({ delivery })
-        }
-      })
+      this.guardando = true;
+      // 60 s y no menos: un guardado lento que termina después del corte es justo el que se duplica.
+      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false,
+        PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS })
+        .pipe(finalize(() => (this.guardando = false)))
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              delivery.id = res.id;
+              delivery.venta = res.venta;
+              delivery.creadoEn = res.creadoEn;
+              this.matDialogRef.close({ delivery })
+            } else {
+              // Error del servidor (llega como null): antes el diálogo quedaba abierto sin decir nada.
+              this.notificacionSnackbar.openWarn('No se pudo guardar el delivery.', 4);
+            }
+          },
+          error: (err) => {
+            // En el timeout ya avisa el link ("pudo haberse aplicado. Verificá antes de reintentar").
+            if (esTimeoutDeLink(err)) return;
+            // Un corte de red puede llegar después de que el filial guardó: no se promete que no se guardó.
+            this.notificacionSnackbar.openWarn('No se pudo confirmar el guardado del delivery: revisá la lista antes de reintentar.', 4);
+          },
+        })
     }
   }
 

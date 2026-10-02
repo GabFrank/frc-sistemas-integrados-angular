@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
 import { MotivoCuponNoUsableGQL } from './graphql/motivoCuponNoUsable';
@@ -204,15 +204,20 @@ export class VentaTarjetaService {
     );
   }
 
-  onCountSinRegistrar(cajaId: number, sucId: number): Observable<number> {
+  /**
+   * Lo usa solo el cierre de caja, que maneja el error de red: sin respuesta no deja cerrar (#390).
+   */
+  onCountSinRegistrar(cajaId: number, sucId: number, contexto?: ContextoConsulta): Observable<number> {
     return this.genericService.onCustomQuery(
       this.countVentasTarjetaGQL,
       { cajaId, sucId },
       false,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      contexto
     );
   }
+
 
   onGetEstadoPorId(id: number, sucId: number): Observable<VentaTarjeta> {
     return this.genericService.onCustomQuery(

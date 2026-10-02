@@ -15,8 +15,14 @@ import {
   MatDialogRef,
 } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
-import { Subject } from "rxjs";
-import { take } from "rxjs/operators";
+import { forkJoin, Observable, of, Subject } from "rxjs";
+import { catchError, defaultIfEmpty, finalize, map, take } from "rxjs/operators";
+import {
+  ContextoConsulta,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from "../../../../../generics/generic-crud.service";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -131,9 +137,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   /** Habilita la correccion de montos en los conteos: solo ADMIN y sobre cajas no verificadas. */
   puedeEditarConteos = false;
 
-  isDeliveryAbierto = false;
-  isSolicitudPendienteOAutorizado = false;
-  hayVentasTarjetaPendientes = false;
+  /** Ignora un segundo «Conteo Cierre» mientras se verifica el primero. */
+  private verificandoCierre = false;
 
   verificarMaletinTimeout = null;
 
@@ -192,38 +197,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
               }, 1000);
             }
 
-            this.deliveryService
-              .onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [
-                DeliveryEstado.ABIERTO,
-                DeliveryEstado.EN_CAMINO,
-                DeliveryEstado.PARA_ENTREGA,
-              ], this.selectedCaja.sucursal.id, !this.isVentaTouch)
-              .subscribe((deliveryRes: Delivery[]) => {
-                if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
-              });
-
-            this.gastoService.preGastoFilter(
-              undefined,
-              this.selectedCaja.id,
-              undefined,
-              undefined,
-              undefined,
-              0,
-              1,
-              ["PENDIENTE", "AUTORIZADO"]
-            )
-              .pipe(untilDestroyed(this))
-              .subscribe((solicitudRes) => {
-                this.isSolicitudPendienteOAutorizado =
-                  (solicitudRes?.getNumberOfElements ?? 0) > 0 ||
-                  (solicitudRes?.getContent?.length ?? 0) > 0;
-              });
-
-            this.ventaTarjetaService.onCountSinRegistrar(this.selectedCaja.id, this.selectedCaja.sucursalId)
-              .pipe(untilDestroyed(this))
-              .subscribe(count => {
-                this.hayVentasTarjetaPendientes = count > 0;
-              });
+            // Deliverys, solicitudes y tarjetas se verifican al tocar «Conteo Cierre», no acá: un
+            // chequeo que no respondía al abrir dejaba su flag en false y el cierre pasaba (#390).
           }
         });
     } else {
@@ -617,88 +592,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.focusToAPerturaSub.next(null);
         break;
       case "cierre":
-        if (this.isDeliveryAbierto) {
-          this.notificacionBar.openWarn("Posee deliverys sin concluir");
-        } else if (this.isSolicitudPendienteOAutorizado) {
-          this.notificacionBar.openWarn(
-            "Posee solicitudes en estado pendiente o autorizado"
-          );
-        } else {
-          this.ventaTarjetaService.onCountSinRegistrar(this.selectedCaja.id, this.selectedCaja.sucursalId)
-            .pipe(take(1))
-            .subscribe({
-              next: (pendientes) => {
-                if (pendientes > 0) {
-                  // El pendiente de tarjeta NO deja pasar de largo, pero tampoco traba la caja.
-                  //
-                  // Historia corta: primero fue una advertencia con "Cerrar igualmente" a mano del
-                  // cajero, y ese escape convertia cada venta sin registrar en un NO COMPLETADO
-                  // silencioso --plata cobrada con tarjeta que despues no se puede conciliar contra
-                  // la liquidacion del proveedor. Entonces se cerro del todo, y quedo el problema
-                  // opuesto: el cupon que no se imprimio o el POS que fallo dejaban la caja trabada
-                  // de noche esperando a un supervisor que no estaba.
-                  //
-                  // Lo que cambia ahora no es quien puede, sino que queda: el cajero sale, pero
-                  // tiene que decir POR QUE, y eso se guarda con su usuario y la hora en cada fila
-                  // (venta_tarjeta.no_completado_*). La decision deja de evaporarse.
-                  this.matDialog.open(ConfirmDialogComponent, {
-                    width: "520px",
-                    data: {
-                      title: "Ventas con tarjeta sin registrar",
-                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
-                        `Registralas escaneando el QR del cupón desde el PDV o desde el celular. ` +
-                        `Si el cupón no existe --no se imprimió, falló la terminal, se perdió-- ` +
-                        `podés dejarlas sin conciliar diciendo por qué: queda registrado con tu ` +
-                        `usuario para que se pueda revisar después.`,
-                      confirmText: "Dejar sin conciliar",
-                      cancelText: "Volver a registrarlas",
-                    },
-                  }).afterClosed().pipe(take(1)).subscribe((quiereForzar) => {
-                    if (quiereForzar !== true) return;
-                    this.matDialog.open(MotivoNoConciliarDialogComponent, {
-                      width: "460px",
-                      disableClose: true,
-                      data: { cuantos: pendientes },
-                    }).afterClosed().pipe(take(1)).subscribe((res: MotivoNoConciliarResultado) => {
-                      // Sin motivo no se marca nada: es la condicion de que esto sea auditable y
-                      // no un "cerrar igualmente" con otro nombre.
-                      if (!res?.motivo) return;
-                      this.ventaTarjetaService.onMarcarNoCompletadas(
-                        this.selectedCaja.id,
-                        this.selectedCaja.sucursalId,
-                        res.motivo,
-                        res.observacion,
-                        this.mainService.usuarioActual?.id
-                      )
-                        .pipe(take(1))
-                        .subscribe({
-                          next: () => {
-                            this.stepper.selectedIndex = 1;
-                            this.stepper.selectedIndex = 2;
-                            this.focusToCierreSub.next(null);
-                          },
-                          error: () => {
-                            this.notificacionBar.openWarn(
-                              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
-                            );
-                          },
-                        });
-                    });
-                  });
-                } else {
-                  this.stepper.selectedIndex = 1;
-                  this.stepper.selectedIndex = 2;
-                  this.focusToCierreSub.next(null);
-                }
-              },
-              error: () => {
-                this.notificacionBar.openWarn(
-                  "No se pudo verificar el estado de las ventas con tarjeta. Intente nuevamente."
-                );
-              }
-            });
-        }
-
+        this.verificarCierre();
         break;
       case "imprimir":
         if (this.selectedCaja != null) {
@@ -729,6 +623,194 @@ export class AdicionarCajaDialogComponent implements OnInit {
         break;
     }
   }
+  /**
+   * Verifica en el momento lo que impide cerrar (#390). Política mixta:
+   * - el servidor local no responde (deliverys en el POS, tarjetas) → no avanza: sin él tampoco se
+   *   guarda el cierre;
+   * - el central no responde (solicitudes de gasto) o algún servidor devolvió error → pregunta si cerrar
+   *   igual, para que una filial sin internet o desactualizada no quede trabada para siempre.
+   */
+  private verificarCierre(): void {
+    if (this.verificandoCierre || this.selectedCaja == null) return;
+    this.verificandoCierre = true;
+    const caja = this.selectedCaja;
+    // Fuera del POS el diálogo habla con el central: más margen.
+    const contextoLocal: ContextoConsulta = {
+      timeoutMs: this.isVentaTouch ? TIMEOUT_CONSULTA_MOSTRADOR_MS : TIMEOUT_CONSULTA_DE_FONDO_MS,
+      silenciarAvisoTimeout: true,
+    };
+    const contextoCentral: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+    const { requestId } = this.cargandoDialog.openDialog(false, "Verificando el cierre...");
+
+    forkJoin({
+      deliverys: this.chequeo(
+        this.deliveryService.onDeliveryPorCajaIdAndEstado(
+          caja.id,
+          [DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA],
+          caja.sucursal?.id,
+          !this.isVentaTouch,
+          PROPAGAR_ERROR_DE_RED,
+          this.isVentaTouch ? contextoLocal : contextoCentral,
+          true
+        )
+      ),
+      solicitudes: this.chequeo(
+        this.gastoService.preGastoFilter(
+          undefined, caja.id, undefined, undefined, undefined, 0, 1, ["PENDIENTE", "AUTORIZADO"],
+          true, PROPAGAR_ERROR_DE_RED, contextoCentral
+        )
+      ),
+      tarjetas: this.chequeo(this.ventaTarjetaService.onCountSinRegistrar(caja.id, caja.sucursalId, contextoLocal)),
+    })
+      .pipe(
+        untilDestroyed(this),
+        finalize(() => {
+          this.verificandoCierre = false;
+          this.cargandoDialog.closeDialog(requestId);
+        })
+      )
+      .subscribe((r) => this.decidirCierre(r));
+  }
+
+  /** Un error GraphQL llega como null: se distingue de "no respondió". */
+  private chequeo<T>(obs: Observable<T>): Observable<ChequeoCierre<T>> {
+    const sinRespuesta: ChequeoCierre<T> = { estado: "sin-respuesta" };
+    return obs.pipe(
+      take(1),
+      map((valor): ChequeoCierre<T> => (valor == null ? { estado: "error" } : { estado: "ok", valor })),
+      catchError(() => of(sinRespuesta)),
+      defaultIfEmpty(sinRespuesta)
+    );
+  }
+
+  private decidirCierre(r: ResultadoCierre): void {
+    const localSinRespuesta =
+      r.tarjetas.estado === "sin-respuesta" || (this.isVentaTouch && r.deliverys.estado === "sin-respuesta");
+    if (localSinRespuesta) {
+      this.notificacionBar.openWarn(
+        "No se pudo verificar el cierre: el servidor local no responde. Intente nuevamente.",
+        4
+      );
+      return;
+    }
+
+    const noVerificado: string[] = [];
+    if (r.deliverys.estado !== "ok") noVerificado.push("los deliverys abiertos");
+    if (r.solicitudes.estado !== "ok") noVerificado.push("las solicitudes de gasto pendientes");
+    if (r.tarjetas.estado !== "ok") noVerificado.push("las ventas con tarjeta sin registrar");
+    if (noVerificado.length === 0) {
+      this.evaluarCierre(r);
+      return;
+    }
+    this.matDialog
+      .open(ConfirmDialogComponent, {
+        width: "480px",
+        data: {
+          title: "No se pudo verificar todo",
+          message: `No se pudo verificar ${noVerificado.join(", ")}: el servidor no respondió o devolvió un error. ¿Cerrar la caja igual?`,
+          confirmText: "Cerrar igual",
+          cancelText: "Volver",
+        },
+      })
+      .afterClosed()
+      .pipe(take(1), untilDestroyed(this))
+      .subscribe((cerrarIgual) => {
+        if (cerrarIgual === true) this.evaluarCierre(r);
+      });
+  }
+
+  /** Con lo que sí se pudo verificar, el mismo orden de antes. */
+  private evaluarCierre(r: ResultadoCierre): void {
+    if (r.deliverys.estado === "ok" && r.deliverys.valor.length > 0) {
+      this.notificacionBar.openWarn("Posee deliverys sin concluir");
+      return;
+    }
+    const solicitudes = r.solicitudes.estado === "ok" ? r.solicitudes.valor : null;
+    if ((solicitudes?.getNumberOfElements ?? 0) > 0 || (solicitudes?.getContent?.length ?? 0) > 0) {
+      this.notificacionBar.openWarn("Posee solicitudes en estado pendiente o autorizado");
+      return;
+    }
+    if (r.tarjetas.estado === "ok" && r.tarjetas.valor > 0) {
+      this.resolverTarjetasPendientes(r.tarjetas.valor);
+      return;
+    }
+    if (r.tarjetas.estado === "error") {
+      // El filial respondió con error al contarlas y el cajero eligió cerrar igual: puede haber
+      // pendientes, así que pasa por el mismo motivo auditable que si las hubiera contado.
+      this.pedirMotivoYMarcarNoCompletadas(null);
+      return;
+    }
+    this.irAlCierre();
+  }
+
+  private resolverTarjetasPendientes(pendientes: number): void {
+    // El pendiente de tarjeta NO deja pasar de largo, pero tampoco traba la caja.
+    //
+    // Historia corta: primero fue una advertencia con "Cerrar igualmente" a mano del
+    // cajero, y ese escape convertia cada venta sin registrar en un NO COMPLETADO
+    // silencioso --plata cobrada con tarjeta que despues no se puede conciliar contra
+    // la liquidacion del proveedor. Entonces se cerro del todo, y quedo el problema
+    // opuesto: el cupon que no se imprimio o el POS que fallo dejaban la caja trabada
+    // de noche esperando a un supervisor que no estaba.
+    //
+    // Lo que cambia ahora no es quien puede, sino que queda: el cajero sale, pero
+    // tiene que decir POR QUE, y eso se guarda con su usuario y la hora en cada fila
+    // (venta_tarjeta.no_completado_*). La decision deja de evaporarse.
+    this.matDialog.open(ConfirmDialogComponent, {
+      width: "520px",
+      data: {
+        title: "Ventas con tarjeta sin registrar",
+        message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
+          `Registralas escaneando el QR del cupón desde el PDV o desde el celular. ` +
+          `Si el cupón no existe --no se imprimió, falló la terminal, se perdió-- ` +
+          `podés dejarlas sin conciliar diciendo por qué: queda registrado con tu ` +
+          `usuario para que se pueda revisar después.`,
+        confirmText: "Dejar sin conciliar",
+        cancelText: "Volver a registrarlas",
+      },
+    }).afterClosed().pipe(take(1)).subscribe((quiereForzar) => {
+      if (quiereForzar !== true) return;
+      this.pedirMotivoYMarcarNoCompletadas(pendientes);
+    });
+  }
+
+  /** @param pendientes null si no se pudieron contar (error del servidor al verificar el cierre). */
+  private pedirMotivoYMarcarNoCompletadas(pendientes: number | null): void {
+    this.matDialog.open(MotivoNoConciliarDialogComponent, {
+      width: "460px",
+      disableClose: true,
+      data: { cuantos: pendientes },
+    }).afterClosed().pipe(take(1)).subscribe((res: MotivoNoConciliarResultado) => {
+      // Sin motivo no se marca nada: es la condicion de que esto sea auditable y
+      // no un "cerrar igualmente" con otro nombre.
+      if (!res?.motivo) return;
+      this.ventaTarjetaService.onMarcarNoCompletadas(
+        this.selectedCaja.id,
+        this.selectedCaja.sucursalId,
+        res.motivo,
+        res.observacion,
+        this.mainService.usuarioActual?.id
+      )
+        .pipe(take(1))
+        .subscribe({
+          next: () => {
+            this.irAlCierre();
+          },
+          error: () => {
+            this.notificacionBar.openWarn(
+              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
+            );
+          },
+        });
+    });
+  }
+
+  private irAlCierre(): void {
+    this.stepper.selectedIndex = 1;
+    this.stepper.selectedIndex = 2;
+    this.focusToCierreSub.next(null);
+  }
+
 
   crearNuevaCaja() {
     setTimeout(() => {
@@ -802,3 +884,11 @@ export class AdicionarCajaDialogComponent implements OnInit {
     }
   }
 }
+
+/** Resultado de cada consulta que verifica el cierre (#390). */
+interface ResultadoCierre {
+  deliverys: ChequeoCierre<Delivery[]>;
+  solicitudes: ChequeoCierre<any>;
+  tarjetas: ChequeoCierre<number>;
+}
+type ChequeoCierre<T> = { estado: "ok"; valor: T } | { estado: "sin-respuesta" } | { estado: "error" };

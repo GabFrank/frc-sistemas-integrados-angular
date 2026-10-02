@@ -2,7 +2,7 @@ import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
   PdvCaja,
@@ -85,7 +85,9 @@ export class CajaService {
     verificado: boolean,
     page: number,
     size: number,
-    servidor: boolean = true
+    servidor: boolean = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ) {
     // Preparar los parámetros, convirtiendo null/undefined a null explícitamente
     const queryParams: any = {
@@ -101,7 +103,8 @@ export class CajaService {
       size: size || 15
     };
     
-    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor);
+    // errorConf/contexto: solo Últimas cajas del POS (#390); list-caja no los pasa y queda como antes.
+    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor, errorConf, undefined, contexto);
   }
 
   onGetCajasAnalisisDiferencias(
@@ -233,7 +236,10 @@ export class CajaService {
       return this.impresionPos.imprimirTicketCentral("BALANCE", id, sucId, "El cierre de caja");
     }
     console.log('imprimir balance', 'id', id, 'printerName', this.configService.getConfig().printers["ticket"], 'local', this.configService.getConfig().local, 'sucId', sucId);
-    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId}, servidor, null, null);
+    return this.genericService
+      .onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId},
+        servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta("la impresión del balance"));
   }
 
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {

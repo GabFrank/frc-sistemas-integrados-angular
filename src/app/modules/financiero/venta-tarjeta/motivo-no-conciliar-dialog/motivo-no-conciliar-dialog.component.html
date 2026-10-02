@@ -4,8 +4,12 @@
   <div class="subtitulo-dialog" *ngIf="data?.cuantos > 1">
     {{ data.cuantos }} cobros con tarjeta de esta caja
   </div>
-  <div class="subtitulo-dialog" *ngIf="!data?.cuantos || data.cuantos === 1">
+  <div class="subtitulo-dialog" *ngIf="data?.cuantos === 1">
     Este cobro con tarjeta
+  </div>
+  <!-- Sin cantidad: el cierre no pudo contarlas por un error del servidor (#390). -->
+  <div class="subtitulo-dialog" *ngIf="data?.cuantos == null">
+    Los cobros con tarjeta sin registrar de esta caja
   </div>
 
   <p class="ayuda">

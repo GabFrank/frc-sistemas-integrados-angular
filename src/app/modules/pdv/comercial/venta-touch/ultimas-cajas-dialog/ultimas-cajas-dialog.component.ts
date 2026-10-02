@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -64,7 +65,10 @@ export class UltimasCajasDialogComponent implements OnInit {
       null,
       this.pageIndex,
       this.pageSize,
-      false
+      false,
+      // Sin esto el error: de abajo nunca corría y el spinner quedaba para siempre (#390).
+      PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
     ).pipe(untilDestroyed(this)).subscribe(res => {
       this.isLoading = false;
       if (res != null) {
@@ -75,7 +79,7 @@ export class UltimasCajasDialogComponent implements OnInit {
       }
     }, error => {
       this.isLoading = false;
-      this.notificacionSnackBar.openWarn('Error al cargar las cajas');
+      this.notificacionSnackBar.openWarn('No se pudieron cargar las cajas: el servidor no responde.');
     });
   }
 
