@@ -36,7 +36,7 @@ constructor(
       this.puntoDeVentaPorId,
       { id },
       servidor,
-      { networkError: { propagate: true, show: false } },
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } },
       false,
       { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
     );

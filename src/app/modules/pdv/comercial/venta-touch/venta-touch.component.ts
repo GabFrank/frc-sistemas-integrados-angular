@@ -358,18 +358,22 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.getFormaPagos();
           this.iniciarCargaDeCaja();
         },
-        // Llega por error de red o por el timeout de 20 s: depende del `propagate` del servicio.
+        // Llega por error de red, timeout de 20 s o error del servidor: depende del `propagate` del servicio.
         error: (err) => this.avisarErrorDeValidacion(err),
       });
   }
 
   private avisarErrorDeValidacion(err: any): void {
     console.error('Error al validar PDV:', err);
+    // Un error GraphQL trae `errors` y su mensaje dice qué pasó; uno de red o de timeout, no.
+    const detalle = err?.errors != null && err?.message
+      ? `El servidor respondió: ${err.message}`
+      : 'Verifique la conexión con el servidor e intente nuevamente.';
     this.dialogoService
       .confirm(
         'Error de Validación',
         'Ocurrió un error al validar el Punto de Venta.',
-        'Verifique la conexión con el servidor e intente nuevamente.',
+        detalle,
         null,
         false
       )
