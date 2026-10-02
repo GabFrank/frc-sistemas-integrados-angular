@@ -220,3 +220,26 @@ Caja». Si hace falta probar con deliverys o solicitudes abiertos, se usan los q
 | Delivery: un error de red que no es timeout también puede llegar después de que el filial guardó | baja | aviso neutro «No se pudo confirmar el guardado del delivery: revisá la lista antes de reintentar» |
 | El aviso de timeout del link se deduplica 5 s: si otro timeout de mutation saltó justo antes, el diálogo de delivery calla | baja | aceptado (preexistente del link) |
 | `onFiltrarDeliverys` sin respuesta deja la lista anterior bajo el filtro nuevo | baja | aceptado: hay aviso |
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-02)
+
+Desktop `ng serve -c web` sobre `ad38de45`, filial `frc-filial` :8080, PDV 3 con la caja abierta (maletín
+M4), manejado con la extensión de Chrome y un observador de snackbars.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ filial normal: «Conteo Cierre» llega al paso «Conteo Final» sin avisos. No se tocó «Cerrar Caja» |
+| 2 | ✅ filial congelado: a los 10 s (17:01:32 → 17:01:42) «No se pudo verificar el cierre: el servidor local no responde. Intente nuevamente.»; el diálogo **no avanza** |
+| 3 | ✅ doble clic en «Conteo Cierre» con el filial congelado: un solo aviso |
+| 2b | No verificado: el central (alpha :8083) es compartido y no se congela |
+| 2c | No se probó (cerrar el diálogo con la verificación en vuelo): verificado por código (`untilDestroyed` + `finalize`) |
+| 4, 7, 7b | **No verificados en runtime**: imprimir el balance o reimprimir manda trabajos reales a la impresora térmica del filial. Verificados por código |
+| 5 | ✅ Últimas cajas con el filial congelado: a los ~20 s «No se pudieron cargar las cajas: el servidor no responde.», sin spinner infinito |
+| 6 | ✅ lista de deliverys con el filial congelado: «No se pudieron cargar los deliverys: el servidor no responde.» al abrir (17:04:07) y con «Buscar» (17:04:54 → 17:05:14) |
+| 8 | No se probó: guardar un delivery con el filial normal deja uno ABIERTO en la caja y bloquea «Conteo Cierre» |
+| 9 | ✅ filial congelado, doble clic en «Guardar» del delivery: **una sola** mutation (un solo error en consola, 17:07:16), aviso del link «pudo haberse aplicado. Verificá antes de reintentar.», «Guardar» vuelve a estar habilitado. Al descongelar, el filial **no** procesó el guardado abortado (lista vacía) |
+| 9b | No se probó (filial apagado con `kill -9`): el control de permisos lo bloqueó en una prueba anterior |
+
+Preexistente, visto en la prueba (no es de este PR): al abrir «Nuevo delivery» con el filial congelado,
+`EditDeliveryDialogComponent.calcularVueltoPara` tira `TypeError: Cannot read properties of undefined
+(reading 'valor')` porque `selectedPrecio` no cargó.

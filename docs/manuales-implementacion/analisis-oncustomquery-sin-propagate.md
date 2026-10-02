@@ -114,6 +114,13 @@ PRs sugeridos (cada uno < 400 líneas, con su prueba de runtime contra el filial
 `app.component.ts:98-124` encola los snackbars: «Servidor Offline!!» (cada 3 s, 1 s de duración) no
 pisa los avisos de los `error:`, solo los retrasa hasta 1 s. Verificado en la prueba del PR 1.
 
+## Pendientes que dejó el PR 2b
+
+- `caja.onGetCajasAnalisisDiferencias`: propagar el error hace que el poll de diferencia de maletín
+  reintente abriendo «Buscando…» en cada intento (el método no admite `silentLoad`) y recorta una
+  consulta pesada del admin. Primero darle `silentLoad`/contexto opcionales; se revirtió en el PR 2b.
+- `edit-delivery-dialog.calcularVueltoPara`: `TypeError` si los precios de delivery no cargaron.
+
 ## Sin verificar
 
 - Los ~125 sitios de financiero clasificados por patrón.
