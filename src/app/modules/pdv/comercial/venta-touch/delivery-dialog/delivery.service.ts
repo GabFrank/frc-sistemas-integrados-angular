@@ -68,7 +68,12 @@ export class DeliveryService {
     return this.genericService.onCustomQuery(this.deliverysByEstadoList, { estadoList, sucId }, servidor)
   }
 
-  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[], servidor: boolean = true) {
+  /**
+   * Es una mutation enviada como query (el link la reconoce igual por el documento). `errorConf` y
+   * `contexto` son para el diálogo de delivery (#390); sin ellos queda como antes.
+   */
+  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[], servidor: boolean = true,
+                         errorConf?: QueryError, contexto?: ContextoConsulta) {
     if (delivery != null && delivery.usuarioId == null) delivery.usuarioId = this.mainService?.usuarioActual?.id
     if (venta != null && venta.usuarioId == null) venta.usuarioId = this.mainService?.usuarioActual?.id
     if (cobro != null && cobro.usuarioId == null) cobro.usuarioId = this.mainService?.usuarioActual?.id
@@ -78,7 +83,7 @@ export class DeliveryService {
       ventaItemInputList: ventaItemList,
       cobroInput: cobro,
       cobroDetalleInputList: cobroDetalleList
-    }, servidor);
+    }, servidor, errorConf, undefined, contexto);
   }
 
   onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[]> {
