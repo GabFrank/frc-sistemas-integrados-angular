@@ -284,7 +284,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -300,7 +300,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -323,7 +323,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 )
                 .pipe(untilDestroyed(this))
                 .subscribe(() => {
-                  this.tabService.removeTab(this.tabService.currentIndex);
+                  this.cerrarPestanaPropia();
                 });
               return;
             }
@@ -342,7 +342,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 )
                 .pipe(untilDestroyed(this))
                 .subscribe(() => {
-                  this.tabService.removeTab(this.tabService.currentIndex);
+                  this.cerrarPestanaPropia();
                 });
               return;
             }
@@ -375,7 +375,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       )
       .pipe(untilDestroyed(this))
       .subscribe(() => {
-        this.tabService.removeTab(this.tabService.currentIndex);
+        this.cerrarPestanaPropia();
       });
   }
 
@@ -384,6 +384,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * de la validación ya bloquea la pantalla, pero su botón «Cerrar» (a los 10 s) la libera antes.
    * Avisa en vez de no hacer nada: un atajo mudo parece una tecla rota (ver openUtilitarios).
    */
+  /**
+   * Cierra la pestaña de esta Venta, no la activa: la validación puede tardar hasta 20 s y el cajero
+   * pudo pasar a otra pestaña en el medio. `data` es el Tab de esta pantalla (tab-content lo asigna).
+   * Si ya no está (cerrada, o abierta como diálogo), no hace nada.
+   */
+  private cerrarPestanaPropia(): void {
+    const index = this.tabService.tabs.indexOf(this.data);
+    if (index !== -1) this.tabService.removeTab(index);
+  }
+
   private pdvSinValidar(): boolean {
     if (this.pdvValidado) return false;
     this.notificacionSnackbar.openWarn("Validando el punto de venta, esperá un momento...");
