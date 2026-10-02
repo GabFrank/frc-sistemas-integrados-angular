@@ -135,3 +135,26 @@ Si no hay un producto con lotes a mano en el PDV 3, el caso 4 queda sin verifica
 | F9: borrar el texto no invalidaba la tanda en vuelo, que repoblaba la lista | baja | **aplicado**: `busquedaId++` en la rama de texto vacío |
 | «Actualizar» con error GraphQL vaciaba los favoritos (antes reventaba) | baja | **aplicado**: con `null` se conservan las categorías anteriores |
 | Si falla una de las dos búsquedas se descarta también la otra | baja | decidido en el plan: no se muestra un resultado parcial como si fuera completo |
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-02)
+
+Desktop `ng serve -c web` sobre `e604cc0b`, filial `frc-filial` :8080, PDV 3, manejado con la extensión de Chrome.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ `7840058000019` + Enter agrega COCA COLA 500ML y limpia el buscador |
+| 2 | ✅ filial congelado: a los ~10 s (16:02:29 → 16:02:39) «No se pudo consultar el producto: el servidor local no responde»; el código queda **seleccionado** en el buscador |
+| 3 | ✅ F9 con el filial congelado: a los ~20 s «No se pudo buscar: el servidor no responde»; el diálogo no queda «buscando» |
+| 4 | ✅ (variante) con el diálogo de lote abierto, filial congelado y búsqueda de lote `1232`: a los ~10 s «No se pudo consultar el stock por lote. Probá de nuevo; lo que ya elegiste se mantiene.» y «Confirmar» habilitado. La rama de la **primera** carga (aviso FEFO) no se puede provocar a mano (el diálogo abre apenas responde el producto): verificada por código |
+| 5 | **No verificado en runtime** (stock crítico post-venta, chequeo de fondo sin cambios visibles): verificado por código |
+| 6 | Parcial: «actualizar» con el filial congelado corta a los 60 s (consola 16:04:38 → 16:05:38), pero el aviso **quedó tapado** por «Servidor Offline!!» (ver hallazgo). Este PDV no tiene categorías configuradas: «cargan al actualizar» no es verificable acá |
+| 7 | No se probó: los llamadores fuera del POS no cambian (sin `errorConf`); verificado por la auditoría del diff |
+| 8 | ✅ con el código viejo seleccionado, escribir otro lo reemplaza (`7840058000675`), no se concatena |
+| 9 | **No reproducible**: el spinner global «Cargando...» de la búsqueda (preexistente, `silentLoad` en `false`) bloquea el tipeo mientras busca, así que no se arman varias tandas |
+| 10 | **No reproducible**: provocar la falla solo en la 2.ª consulta de un pesable requiere que la 1.ª responda y la 2.ª no |
+| — | Regresión con el filial vivo: F9 «coca» lista resultados; el diálogo de lote carga los 5 lotes de ACTOCEF |
+
+**Hallazgo (preexistente, a la #390):** cuando cae la conexión local, `app.component.ts:218-226`
+emite «Servidor Offline!!» cada 3 s por el mismo snackbar y **pisa cualquier otro aviso**. Los avisos de
+este PR (4 s) pueden quedar tapados en cuanto arranca esa alerta. En los casos 2 y 3 se vieron porque
+todavía no había arrancado.
