@@ -139,3 +139,20 @@ requiere un QR de cupón real o de prueba; si no hay, el caso 3 queda **no verif
 | A | Todos los suscriptores tienen `error:`; sin wrappers; `onMotivoCuponNoUsable` solo desde el mostrador | — | verificado |
 | A | La config de factura con venta va al central desde el POS: sin internet nunca se habilita | baja | documentado; con el plan, «Factura (F12)» queda bloqueada y avisa en vez de emitir suelta |
 | B | Timeouts: una respuesta tardía se descarta (el link aborta); solo queries en este PR | — | verificado |
+
+## Auditoría del diff (paso 8, 2026-10-02)
+
+- Fijo 1 y Fijo 2: `N/A porque el diff no agrega resolver, menú, .graphqls, migración ni entidad`.
+  Condicionales A y B: ningún glob coincide.
+- Fijo 3 (auditor sonnet sobre `a5eef53e`): todas las líneas TARJETA nuevas pasan por `addCobroDetalle`;
+  todos los cierres por `onFinalizar`; ninguna otra vía emite factura ligada; sin aviso doble en el cupón;
+  sin ciclo de inyección; el reintento de registrar cupón funciona (foto y carga a mano no pasan por ahí);
+  `verificado` solo saltea la consulta: verificado.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| `onFactura` emite la factura ligada y recién después llama `onFinalizar`; si el cierre se bloqueaba por la config de tarjeta, quedaba una factura emitida sin venta | media | **aplicado** (`44a20a0b`): `onFactura` frena antes de emitir; y el bloqueo de `onFinalizar` solo cuenta líneas nuevas, que solo existen con la config en `ok` |
+| `onFinalizar` bloqueaba también las líneas TARJETA ya guardadas de un delivery reabierto | media | **aplicado**: solo líneas con `requiereRegistroTarjeta` (la misma marca que la regla de terminal) |
+| Aviso inmediato de la config de factura (central) en cada cobro sin internet | baja | **aplicado**: el aviso inmediato queda solo para tarjeta; la de factura avisa al tocar F12 |
+| El `return` de `addCobroDetalle` sale antes del reset de `isAumento` | baja | aceptado: combinación TARJETA + aumento sin caso real |
+| ABM de configuración: tras fallar la carga, «Guardar» queda habilitado con la config vacía | baja | preexistente (antes quedaba colgado con el mismo botón) → #390 |
