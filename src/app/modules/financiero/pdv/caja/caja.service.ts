@@ -3,6 +3,7 @@ import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import {
   CajaBalance,
   PdvCaja,
@@ -137,7 +138,10 @@ export class CajaService {
       page,
       size,
       difEstado
-    }, servidor);
+    }, servidor,
+    // Todos los que la llaman tienen error: (el poll de diferencia de maletín al abrir reintenta;
+    // analisis-diferencia resetea sus flags). Sin esto, un intento sin respuesta los dejaba colgados (#390).
+    PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS });
   }
 
   onGetByDate(inicio?: Date, fin?: Date, sucId?, servidor: boolean = true): Observable<PdvCaja[]> {
