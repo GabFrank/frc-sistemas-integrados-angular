@@ -4,7 +4,7 @@ import { LucroPorFuncionario } from "./lucro-por-funcionario.model";
 import { FormControl, FormGroup } from "@angular/forms";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable, forkJoin, of } from "rxjs";
-import { map, switchMap, tap } from "rxjs/operators";
+import { map, switchMap } from "rxjs/operators";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
 import {
@@ -99,9 +99,10 @@ export class LucroPorFuncionarioComponent implements OnInit {
   size = 20;
   totalElements = 0;
 
-  private cachedChartRows: LucroPorFuncionario[] | null = null;
-  private cachedChartQueryKey: string | null = null;
-  private cachedUsuarioIdList: number[] | null = null;
+  // Son pocos funcionarios: se traen todos en una sola consulta y se paginan acá.
+  private allRows: LucroPorFuncionario[] = [];
+  private fechaInicioConsulta: string;
+  private fechaFinConsulta: string;
 
   constructor(
     private sucursalService: SucursalService,
@@ -173,10 +174,8 @@ export class LucroPorFuncionarioComponent implements OnInit {
     });
   }
 
-  onFiltrar(isPagination: boolean = false) {
-    if (!isPagination) {
-      this.page = 0;
-    }
+  onFiltrar() {
+    this.page = 0;
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
       if (this.horaInicioControl.value == null)
         this.horaInicioControl.setValue("07:00");
@@ -202,52 +201,42 @@ export class LucroPorFuncionarioComponent implements OnInit {
         productoIdList.push(p.id);
       });
 
-      const queryKey = this.buildChartQueryKey(
-        fechaInicio,
-        fechaFin,
-        productoIdList
-      );
-      if (!isPagination) {
-        this.invalidateChartCache();
-      }
-
       this.resolveUsuarioIdList()
         .pipe(
-          switchMap((usuarioIdList) => {
-            this.cachedUsuarioIdList = usuarioIdList;
-            return this.ventaService.onGetLucroPorFuncionario(
+          switchMap((usuarioIdList) =>
+            // Sin page/size el backend devuelve la lista completa.
+            this.ventaService.onGetLucroPorFuncionario(
               fechaInicio,
               fechaFin,
               this.toSucursalesId(this.sucursalControl.value),
               usuarioIdList,
               productoIdList,
               this.selectedSubFamilia?.id,
-              this.page,
-              this.size,
+              null,
+              null,
               this.selectedFamilia?.id
-            );
-          }),
+            )
+          ),
           untilDestroyed(this)
         )
         .subscribe((res) => {
           if (res) {
-            this.dataSource.data = res.content || [];
-            this.totalElements = res.totalElements || 0;
+            this.allRows = res.content || [];
+            this.totalElements = res.totalElements || this.allRows.length;
+            this.fechaInicioConsulta = fechaInicio;
+            this.fechaFinConsulta = fechaFin;
+            this.mostrarPagina();
             if (res.summary) {
               this.populateSummary(res.summary);
-            }
-            if (!isPagination) {
-              this.updateChartCacheAfterSearch(
-                res,
-                queryKey,
-                fechaInicio,
-                fechaFin,
-                productoIdList
-              );
             }
           }
         });
     }
+  }
+
+  private mostrarPagina() {
+    const start = this.page * this.size;
+    this.dataSource.data = this.allRows.slice(start, start + this.size);
   }
 
   private resolveUsuarioIdList(): Observable<number[]> {
@@ -293,7 +282,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
   handlePageEvent(e: any) {
     this.page = e.pageIndex;
     this.size = e.pageSize;
-    this.onFiltrar(true);
+    this.mostrarPagina();
   }
 
   populateSummary(summary: any) {
@@ -303,8 +292,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
     this.totalDescuento = summary.totalDescuento || 0;
     this.totalAumento = summary.totalAumento || 0;
     this.margenPromedio = summary.margen || 0;
-    this.margenCostoPromedio =
-      this.totalCosto > 0 ? (this.totalLucro / this.totalCosto) * 100 : 0;
+    this.margenCostoPromedio = summary.margenCosto || 0;
   }
 
   cargarMasDatos() {}
@@ -328,7 +316,9 @@ export class LucroPorFuncionarioComponent implements OnInit {
     this.selectedFamilia = null;
     this.productoList = [];
     this.dataSource.data = [];
+    this.allRows = [];
     this.totalElements = 0;
+    this.page = 0;
 
     this.totalVenta = 0;
     this.totalCosto = 0;
@@ -337,148 +327,6 @@ export class LucroPorFuncionarioComponent implements OnInit {
     this.totalAumento = 0;
     this.margenPromedio = 0;
     this.margenCostoPromedio = 0;
-    this.invalidateChartCache();
-  }
-
-  private invalidateChartCache(): void {
-    this.cachedChartRows = null;
-    this.cachedChartQueryKey = null;
-    this.cachedUsuarioIdList = null;
-  }
-
-  private buildChartQueryKey(
-    fechaInicio: string,
-    fechaFin: string,
-    productoIdList?: number[]
-  ): string {
-    const sucIds = this.toSucursalesId(this.sucursalControl.value)
-      .slice()
-      .sort((a, b) => a - b)
-      .join(",");
-    const funcIds = this.funcionarioList
-      .map((f) => f.id)
-      .sort((a, b) => a - b)
-      .join(",");
-    const prodIds = (productoIdList || [])
-      .slice()
-      .sort((a, b) => a - b)
-      .join(",");
-    return [
-      fechaInicio,
-      fechaFin,
-      sucIds,
-      funcIds,
-      prodIds,
-      this.selectedSubFamilia?.id ?? "",
-      this.selectedFamilia?.id ?? "",
-    ].join("|");
-  }
-
-  private updateChartCacheAfterSearch(
-    res: any,
-    queryKey: string,
-    fechaInicio: string,
-    fechaFin: string,
-    productoIdList?: number[]
-  ): void {
-    const total = res?.totalElements || 0;
-    const content: LucroPorFuncionario[] = res?.content || [];
-    this.cachedChartQueryKey = queryKey;
-
-    if (total > 0 && content.length >= total) {
-      this.cachedChartRows = content;
-      return;
-    }
-
-    if (total > this.size && this.cachedUsuarioIdList != null) {
-      this.prefetchChartRows(
-        queryKey,
-        total,
-        fechaInicio,
-        fechaFin,
-        this.cachedUsuarioIdList,
-        productoIdList
-      );
-    }
-  }
-
-  private prefetchChartRows(
-    queryKey: string,
-    total: number,
-    fechaInicio: string,
-    fechaFin: string,
-    usuarioIdList: number[],
-    productoIdList?: number[]
-  ): void {
-    this.ventaService
-      .onGetLucroPorFuncionario(
-        fechaInicio,
-        fechaFin,
-        this.toSucursalesId(this.sucursalControl.value),
-        usuarioIdList,
-        productoIdList,
-        this.selectedSubFamilia?.id,
-        0,
-        total,
-        this.selectedFamilia?.id
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        const content: LucroPorFuncionario[] = res?.content || [];
-        if (
-          content.length > 0 &&
-          this.cachedChartQueryKey === queryKey &&
-          content.length >= (res?.totalElements || 0)
-        ) {
-          this.cachedChartRows = content;
-        }
-      });
-  }
-
-  private prepareFechasConsulta(): {
-    fechaInicio: string;
-    fechaFin: string;
-  } | null {
-    if (!this.fechaFormGroup.valid || !this.sucursalControl.valid) {
-      return null;
-    }
-    if (this.horaInicioControl.value == null) this.horaInicioControl.setValue("07:00");
-    if (this.horaFinalControl.value == null) this.horaFinalControl.setValue("06:59");
-    this.fechaInicioControl.setValue(
-      combineDateTime(this.fechaInicioControl.value, this.horaInicioControl.value)
-    );
-    this.fechaFinalControl.setValue(
-      combineDateTime(this.fechaFinalControl.value, this.horaFinalControl.value)
-    );
-    return {
-      fechaInicio: dateToString(this.fechaInicioControl.value),
-      fechaFin: dateToString(this.fechaFinalControl.value),
-    };
-  }
-
-  private getProductoIdList(): number[] | undefined {
-    let productoIdList: number[];
-    this.productoList.forEach((p) => {
-      if (productoIdList == null) productoIdList = [];
-      productoIdList.push(p.id);
-    });
-    return productoIdList;
-  }
-
-  private getChartRowsInstant(queryKey: string): LucroPorFuncionario[] | null {
-    if (
-      this.cachedChartRows?.length &&
-      this.cachedChartQueryKey === queryKey
-    ) {
-      return this.cachedChartRows;
-    }
-    if (
-      this.totalElements > 0 &&
-      this.dataSource.data.length >= this.totalElements
-    ) {
-      return this.dataSource.data;
-    }
-    return null;
   }
 
   private abrirTabGrafico(
@@ -738,70 +586,17 @@ export class LucroPorFuncionarioComponent implements OnInit {
   }
 
   onIrAGraficoVentas() {
-    const totalRegistros = this.totalElements || this.dataSource.data.length;
-    if (totalRegistros === 0) {
+    if (this.allRows.length === 0) {
       this.notificacionService.openWarn(
         "Primero debe buscar datos en la tabla de lucro por funcionario"
       );
       return;
     }
-
-    const fechas = this.prepareFechasConsulta();
-    if (!fechas) {
-      this.notificacionService.openWarn("Complete los filtros de fecha y sucursal");
-      return;
-    }
-
-    const { fechaInicio, fechaFin } = fechas;
-    const productoIdList = this.getProductoIdList();
-    const queryKey = this.buildChartQueryKey(
-      fechaInicio,
-      fechaFin,
-      productoIdList
+    this.abrirTabGrafico(
+      this.allRows,
+      this.fechaInicioConsulta,
+      this.fechaFinConsulta
     );
-
-    const cachedRows = this.getChartRowsInstant(queryKey);
-    if (cachedRows?.length) {
-      this.abrirTabGrafico(cachedRows, fechaInicio, fechaFin);
-      return;
-    }
-
-    const usuarioIdList$ =
-      this.cachedUsuarioIdList != null &&
-      this.cachedChartQueryKey === queryKey
-        ? of(this.cachedUsuarioIdList)
-        : this.resolveUsuarioIdList();
-
-    usuarioIdList$
-      .pipe(
-        tap((usuarioIdList) => {
-          this.cachedUsuarioIdList = usuarioIdList;
-        }),
-        switchMap((usuarioIdList) =>
-          this.ventaService.onGetLucroPorFuncionario(
-            fechaInicio,
-            fechaFin,
-            this.toSucursalesId(this.sucursalControl.value),
-            usuarioIdList,
-            productoIdList,
-            this.selectedSubFamilia?.id,
-            0,
-            totalRegistros,
-            this.selectedFamilia?.id
-          )
-        ),
-        untilDestroyed(this)
-      )
-      .subscribe((res) => {
-        const rows: LucroPorFuncionario[] = res?.content || [];
-        if (rows.length === 0) {
-          this.notificacionService.openWarn("No hay datos para generar el gráfico");
-          return;
-        }
-        this.cachedChartRows = rows;
-        this.cachedChartQueryKey = queryKey;
-        this.abrirTabGrafico(rows, fechaInicio, fechaFin);
-      });
   }
 
   private mapLucroToChartData(rows: LucroPorFuncionario[]) {
