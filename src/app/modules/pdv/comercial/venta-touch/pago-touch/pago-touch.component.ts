@@ -744,10 +744,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {
     // Todos los caminos de cierre pasan por acá (Enter, F10, botón, saldo 0 en addCobroDetalle):
     // es el único lugar donde la regla no se puede saltear.
-    if (
-      this.cobroDetalleList?.some((cd) => cd?.formaPago?.descripcion == "TARJETA") &&
-      this.bloqueaPorConfig("tarjeta")
-    ) {
+    if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) {
       return;
     }
     if (this.ventaTarjetaHabilitada && this.terminalObligatoria) {
@@ -1168,7 +1165,19 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.finalizarConFacturaHabilitado = false;
       this.configFactura = "fallo";
     }
-    this.bloqueaPorConfig(cual);
+    // Aviso inmediato solo para tarjeta (filial). La de factura va al central: sin internet fallaría en
+    // cada cobro; avisa recién si el cajero toca F12.
+    if (cual === "tarjeta") this.bloqueaPorConfig(cual);
+  }
+
+  /**
+   * Líneas TARJETA cargadas en este cobro (no las ya guardadas de un delivery reabierto, que no se
+   * bloquean: misma marca que usa la regla de terminal).
+   */
+  private hayTarjetaNueva(): boolean {
+    return this.cobroDetalleList?.some(
+      (cd) => cd?.formaPago?.descripcion == "TARJETA" && cd.requiereRegistroTarjeta
+    ) === true;
   }
 
   /** true (y avisa) si esa config no está confirmada: todavía cargando o no respondió. */
@@ -1192,6 +1201,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     if (this.bloqueaPorConfig("factura")) return;
+    // La factura ligada termina en onFinalizar: si ese cierre se fuera a bloquear, la factura quedaría
+    // emitida sin venta. Se frena antes de emitirla.
+    if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) return;
     if (
       this.finalizarConFacturaHabilitado &&
       this.formGroup.controls.saldo.value != 0
