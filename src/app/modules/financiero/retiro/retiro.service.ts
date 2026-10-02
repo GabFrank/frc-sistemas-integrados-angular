@@ -12,7 +12,7 @@ import { Retiro } from "./retiro.model";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { environment } from "../../../../environments/environment";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
@@ -83,7 +83,8 @@ export class RetiroService {
       return this.crudService.onCustomQuery(this.reimprimirRetiro, {
         id, printerName: this.configService?.getConfig()?.printers?.ticket,
         local: this.configService?.getConfig()?.local
-      }, servidor)
+      }, servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+        .pipe(this.impresionPos.avisarSinRespuesta("la reimpresión del retiro"))
     }
   }
 

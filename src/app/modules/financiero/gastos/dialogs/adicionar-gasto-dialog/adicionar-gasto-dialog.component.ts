@@ -12,7 +12,7 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, take } from 'rxjs/operators';
 import {
   orderByIdDesc,
   replaceObject,
@@ -869,7 +869,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onReimprimir(gasto: Gasto) {
-    this.gastoService.onReimprimir(gasto.id, false).subscribe().unsubscribe();
+    // Sin desuscribir al instante: el servicio avisa si el servidor no responde (#390).
+    this.gastoService.onReimprimir(gasto.id, false).pipe(take(1)).subscribe();
   }
 
   private cargarSolicitudesProcesadas(): void {

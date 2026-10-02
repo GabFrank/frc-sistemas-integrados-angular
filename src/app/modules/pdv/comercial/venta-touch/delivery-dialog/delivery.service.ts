@@ -4,7 +4,7 @@ import { DeliverysUltimos10GQL } from "../../../../operaciones/delivery/graphql/
 import { DeliverysUltimos10SubGQL } from "../../../../operaciones/delivery/graphql/deliverysUltimos10Sub";
 
 import { UntilDestroy } from "@ngneat/until-destroy";
-import { ContextoConsulta, GenericCrudService, QueryError } from "../../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../../generics/generic-crud.service";
 import { PreciosDeliveryGQL } from "../../../../operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio";
 import { Observable } from "rxjs";
 import { map, tap } from "rxjs/operators";
@@ -116,6 +116,7 @@ export class DeliveryService {
       id: id,
       printerName: this.configService?.getConfig()?.printers?.ticket,
       local: this.configService?.getConfig()?.local,
-    }, servidor);
+    }, servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta("la reimpresión del delivery"));
   }
 }

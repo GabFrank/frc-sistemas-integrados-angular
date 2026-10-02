@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
@@ -114,7 +114,10 @@ export class GastoService {
         .imprimirTicket('GASTO', id, 'La reimpresión del gasto', true)
         .pipe(map((ok) => (ok ? true : null)));
     }
-    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor);
+    return this.genericService
+      .onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor,
+        PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta('la reimpresión del gasto'));
   }
 
   onSaveVuelto(data: any, servidor = true): Observable<Gasto> {
