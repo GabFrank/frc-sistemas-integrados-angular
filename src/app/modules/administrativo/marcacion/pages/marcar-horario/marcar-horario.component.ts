@@ -311,14 +311,21 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       const estado = await firstValueFrom(
         this.marcacionService.onGetEstadoMarcacionUsuario(this.usuarioSeleccionado.id, true)
       );
+      // Un error GraphQL llega como null: tampoco se sabe el estado.
+      if (estado == null) {
+        this.avisarJornadaSinVerificar();
+        return;
+      }
       this.aplicarEstadoMarcacion(estado);
     } catch {
-      this.jornadaActual = null;
-      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
-      this.estaEnJornada = false;
-      this.marcacionActiva = null;
-      this.horaEntrada = null;
+      // No se resetea a ENTRADA (#390): pisaba lo que procesarMarcaciones ya dedujo de las marcaciones
+      // de hoy, y un funcionario con la entrada abierta no podía marcar la salida.
+      this.avisarJornadaSinVerificar();
     }
+  }
+
+  private avisarJornadaSinVerificar(): void {
+    this.notificacionService.openWarn('No se pudo verificar la jornada actual: se usan las marcaciones de hoy.', 4);
   }
 
   private consultarJornadaActual(): void {

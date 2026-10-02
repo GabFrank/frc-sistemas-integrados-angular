@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
 import { PageInfo } from '../../../../app.component';
 
@@ -123,10 +123,15 @@ export class MarcacionService {
   }
 
   onGetEstadoMarcacionUsuario(usuarioId: number, servidor = true): Observable<EstadoMarcacionUsuario> {
+    // Su único suscriptor (marcar-horario) maneja el error; mismo corte que la consulta de marcaciones
+    // que va antes. Sin esto, el botón de marcar quedaba bloqueado hasta 300 s (#390).
     return this.genericCrudService.onCustomQuery(
       this.getEstadoMarcacionUsuario,
       { usuarioId },
-      servidor
+      servidor,
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      { timeoutMs: 5000, silenciarAvisoTimeout: true }
     );
   }
 
