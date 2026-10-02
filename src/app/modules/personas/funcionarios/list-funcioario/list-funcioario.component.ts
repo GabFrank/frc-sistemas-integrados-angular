@@ -18,6 +18,7 @@ import { CargoService } from '../../../empresarial/cargo/cargo.service';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
 import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -212,22 +213,47 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       });
 
       let usuariosProcesados = 0;
+      let usuariosConFalla = 0;
       const totalUsuarios = funcionariosPorUsuario.size;
 
-      const finalizarUsuario = () => {
+      // Cada usuario termina una vez, bien o con falla: antes un error o un null colgaba el conteo y no
+      // salía ningún aviso (#390).
+      const finalizarUsuario = (ok: boolean) => {
         usuariosProcesados++;
-        if (usuariosProcesados === totalUsuarios) {
+        if (!ok) usuariosConFalla++;
+        if (usuariosProcesados !== totalUsuarios) return;
+        if (usuariosConFalla === 0) {
           this.notificacionService.openSucess('Horarios asignados correctamente');
           this.seleccionados.clear();
-          this.dataSource.data = [...this.dataSource.data];
+        } else {
+          // La selección queda para reintentar.
+          this.notificacionService.openWarn(
+            `Se asignaron horarios a ${totalUsuarios - usuariosConFalla} de ${totalUsuarios} usuarios: ` +
+            'el servidor no respondió para el resto.',
+            5
+          );
         }
+        this.dataSource.data = [...this.dataSource.data];
       };
 
       // 2. Para cada usuario único, verificar si ya tiene el horario antes de crear uno nuevo
       funcionariosPorUsuario.forEach((funcionarios, usuarioId) => {
-        this.horarioService.onGetHorariosPorUsuario(usuarioId).pipe(untilDestroyed(this)).subscribe(horariosExistentes => {
+        this.horarioService
+          .onGetHorariosPorUsuario(usuarioId, true, PROPAGAR_ERROR_DE_RED, {
+            timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+            silenciarAvisoTimeout: true,
+          })
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            error: () => finalizarUsuario(false),
+            next: (horariosExistentes) => {
+          // Un null es un error del servidor: crear un horario nuevo acá lo duplicaba en cada reintento.
+          if (horariosExistentes == null) {
+            finalizarUsuario(false);
+            return;
+          }
           // Buscar un horario idéntico en los registros del usuario
-          const horarioExistente = (horariosExistentes || []).find(h =>
+          const horarioExistente = horariosExistentes.find(h =>
             h.horaEntrada === this.horarioParaAsignar.entrada &&
             h.horaSalida === this.horarioParaAsignar.salida &&
             h.turno === this.horarioParaAsignar.turnoValue &&
@@ -246,17 +272,26 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
             horarioInput.dias = this.horarioParaAsignar.diasValue;
             horarioInput.turno = this.horarioParaAsignar.turnoValue;
 
-            this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe((res: any) => {
-              this.vincularMultiplesFuncionarios(funcionarios, res.id, finalizarUsuario);
+            this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe({
+              next: (res: any) => {
+                if (res?.id == null) {
+                  finalizarUsuario(false);
+                  return;
+                }
+                this.vincularMultiplesFuncionarios(funcionarios, res.id, finalizarUsuario);
+              },
+              error: () => finalizarUsuario(false),
             });
           }
-        });
+            },
+          });
       });
     }
   }
 
-  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: () => void) {
+  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: (ok: boolean) => void) {
     let completados = 0;
+    let todosOk = true;
     funcionarios.forEach(f => {
       let funcInput = new FuncionarioInput();
       funcInput.id = f.id;
@@ -275,10 +310,18 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         funcInput.fechaIngreso = dateToString(new Date(f.fechaIngreso));
       }
 
-      this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe(saved => {
-        f.horario = saved.horario;
+      const terminar = (ok: boolean) => {
+        if (!ok) todosOk = false;
         completados++;
-        if (completados === funcionarios.length) onComplete();
+        if (completados === funcionarios.length) onComplete(todosOk);
+      };
+      this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe({
+        next: (saved) => {
+          if (saved == null) return terminar(false);
+          f.horario = saved.horario;
+          terminar(true);
+        },
+        error: () => terminar(false),
       });
     });
   }
