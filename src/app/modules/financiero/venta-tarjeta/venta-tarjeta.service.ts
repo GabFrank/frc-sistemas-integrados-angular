@@ -1,7 +1,14 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { map, tap } from 'rxjs/operators';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
 import { MotivoCuponNoUsableGQL } from './graphql/motivoCuponNoUsable';
@@ -98,6 +105,11 @@ export interface SenaCuponData {
   decimales?: number;
 }
 
+/** El mostrador espera de pie; el `error:` de quien llama decide qué hacer (#390). */
+const CONTEXTO_MOSTRADOR: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
+/** Un listado: más margen. */
+const CONTEXTO_LISTADO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
 @Injectable({ providedIn: 'root' })
 export class VentaTarjetaService {
 
@@ -122,7 +134,8 @@ export class VentaTarjetaService {
     private impresionPos: ImpresionPosService,
     private mainService: MainService,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private notificacionSnackbar: NotificacionSnackbarService
   ) {}
 
   onSavePendiente(input: VentaTarjetaInput): Observable<VentaTarjetaResult> {
@@ -146,7 +159,8 @@ export class VentaTarjetaService {
    */
   onGetCobrosTarjetaDeVenta(ventaId: number, sucId: number): Observable<CobroDetalleDeVenta[]> {
     return this.genericService
-      .onCustomQuery(this.cobrosTarjetaDeVentaGQL, { id: ventaId, sucId }, false, null, true)
+      // Su único suscriptor (registrar cupón) maneja el error de red (#390).
+      .onCustomQuery(this.cobrosTarjetaDeVentaGQL, { id: ventaId, sucId }, false, PROPAGAR_ERROR_DE_RED, true, CONTEXTO_MOSTRADOR)
       .pipe(
         map((venta: any) => (venta?.cobro?.cobroDetalleList ?? []).filter(
           (cd: CobroDetalleDeVenta) =>
@@ -172,12 +186,14 @@ export class VentaTarjetaService {
     cajaId: number; sucId: number; estado?: string; terminalPosId?: number; monedaId?: number;
     montoDesde?: number; montoHasta?: number; usuarioId?: number; page?: number; size?: number;
   }): Observable<PageInfo<VentaTarjeta>> {
+    // Su único suscriptor (ventas con tarjeta de la caja) maneja el error de red (#390).
     return this.genericService.onCustomQuery(
       this.filtrarVentasTarjetaPorCajaGQL,
       params,
       false,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONTEXTO_LISTADO
     );
   }
 
@@ -195,12 +211,24 @@ export class VentaTarjetaService {
     codigoAutorizacion?: string,
     terminalPosId?: number
   ): Observable<string> {
+    // Los tres que la llaman (escanear cupón, terminal POS, pago-touch) fallan abierto en su `error:`
+    // a propósito: el backend valida igual al guardar. Sin propagar, ese `error:` nunca corría y el
+    // escaneo quedaba mudo (#390). El aviso va acá para que la falla abierta no sea invisible.
     return this.genericService.onCustomQuery(
       this.motivoCuponNoUsableGQL,
       { qrCrudo, identificadorTransaccion, sucId, codigoAutorizacion, terminalPosId },
       false,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONTEXTO_MOSTRADOR
+    ).pipe(
+      tap({
+        error: () =>
+          this.notificacionSnackbar.openWarn(
+            'No se pudo verificar el cupón: el servidor no responde. Se valida al guardar.',
+            4
+          ),
+      })
     );
   }
 
@@ -237,12 +265,14 @@ export class VentaTarjetaService {
    * fila que no está en la página cargada de la tabla.
    */
   onGetCompletaPorId(id: number, sucId: number): Observable<VentaTarjeta> {
+    // Su único suscriptor (buscar por QR en la conciliación) maneja el error de red (#390).
     return this.genericService.onCustomQuery(
       this.ventaTarjetaCompletaPorIdGQL,
       { id, sucId },
       false,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONTEXTO_MOSTRADOR
     );
   }
 

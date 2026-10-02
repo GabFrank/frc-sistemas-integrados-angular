@@ -384,7 +384,9 @@ export class EscanearCuponDialogComponent implements OnInit {
         // preguntar seria peor que el problema que esto resuelve.
         error: () => {
           this.verificando = false;
-          this.continuarTrasChequeo(datos);
+          // `verificado`: ya se intentó acá. Sin la marca, pago-touch volvía a preguntar y con el
+          // filial caído eran dos esperas para el mismo resultado (#390).
+          this.continuarTrasChequeo({ ...datos, verificado: true });
         },
       });
   }

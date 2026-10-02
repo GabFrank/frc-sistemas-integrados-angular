@@ -104,6 +104,11 @@ import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../..
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
 import { ConfirmDialogComponent, ConfirmDialogData } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
+import {
+  ContextoConsulta,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from "../../../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -151,6 +156,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   isCredito = false;
   finalizarConFacturaHabilitado = false;
   facturaLegalId: number;
+
+  /**
+   * Si las configs del cobro respondieron (#390). `false` en las banderas de arriba es «deshabilitado»
+   * solo si respondieron: si no, una línea TARJETA se guardaba sin terminal ni cupón (sin conciliar) y
+   * «Factura (F12)» emitía una factura suelta. Con `fallo` se bloquea lo afectado.
+   */
+  configTarjeta: EstadoConfigCobro = "cargando";
+  configFactura: EstadoConfigCobro = "cargando";
 
   /**
    * Se consulta UNA vez al abrir el diálogo (contra el filial, para funcionar sin internet) y
@@ -232,18 +245,26 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setPrecios();
     this.getFormaPagos();
     this.createForm();
-    this.configuracionFacturaConVentaService.onGetConfiguracion().subscribe({
+    // Con su «Buscando…» como barrera mientras cargan, pero acotado (#390). Un null es un error del
+    // servidor: no se sabe la config, igual que si no respondió.
+    const contextoCentral: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+    const contextoFilial: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
+    this.configuracionFacturaConVentaService.onGetConfiguracion(true, contextoCentral).subscribe({
       next: (res) => {
-        this.finalizarConFacturaHabilitado = res?.habilitado === true;
+        if (res == null) return this.configNoCargo("factura");
+        this.finalizarConFacturaHabilitado = res.habilitado === true;
+        this.configFactura = "ok";
       },
-      error: () => {
-        this.finalizarConFacturaHabilitado = false;
-      }
+      error: () => this.configNoCargo("factura"),
     });
     // Contra el filial (false = servidor local), para poder cobrar con tarjeta sin internet.
-    this.configuracionVentaTarjetaService.onGetConfiguracion(false).subscribe({
-      next: (config) => (this.ventaTarjetaHabilitada = config?.habilitado === true),
-      error: () => (this.ventaTarjetaHabilitada = false),
+    this.configuracionVentaTarjetaService.onGetConfiguracion(false, contextoFilial).subscribe({
+      next: (config) => {
+        if (config == null) return this.configNoCargo("tarjeta");
+        this.ventaTarjetaHabilitada = config.habilitado === true;
+        this.configTarjeta = "ok";
+      },
+      error: () => this.configNoCargo("tarjeta"),
     });
     // Aparte de `habilitado` a propósito: si el filial todavía no tiene el campo, esta falla sola y
     // se queda en true, sin arrastrar a la de arriba.
@@ -634,6 +655,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // solo tiene sentido para una línea nueva que el cajero está cargando ahora — dispararlo en
     // un replay abriría un diálogo modal por cada tarjeta ya cobrada en sesiones anteriores.
     const esLineaNueva = selectedItem?.id == null;
+    // Una línea ya guardada (replay) no se bloquea: solo las nuevas.
+    if (esLineaNueva && this.selectedFormaPago?.descripcion == "TARJETA" && this.bloqueaPorConfig("tarjeta")) {
+      return;
+    }
     // Una moneda sin cotización registraba el cobro con monto NaN (valor * null/undefined).
     // GUARANI tiene cambio 1: no pasa por acá. Un replay usa la cotización con la que se guardó
     // la línea, así una línea ya cobrada no desaparece. Sin return: el reset de abajo corre igual.
@@ -719,6 +744,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {
     // Todos los caminos de cierre pasan por acá (Enter, F10, botón, saldo 0 en addCobroDetalle):
     // es el único lugar donde la regla no se puede saltear.
+    if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) {
+      return;
+    }
     if (this.ventaTarjetaHabilitada && this.terminalObligatoria) {
       const sinTerminal = lineasTarjetaSinTerminal(this.cobroDetalleList);
       if (sinTerminal.length > 0) {
@@ -1129,12 +1157,53 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onPresupuesto() { }
 
+  private configNoCargo(cual: "tarjeta" | "factura"): void {
+    if (cual === "tarjeta") {
+      this.ventaTarjetaHabilitada = false;
+      this.configTarjeta = "fallo";
+    } else {
+      this.finalizarConFacturaHabilitado = false;
+      this.configFactura = "fallo";
+    }
+    // Aviso inmediato solo para tarjeta (filial). La de factura va al central: sin internet fallaría en
+    // cada cobro; avisa recién si el cajero toca F12.
+    if (cual === "tarjeta") this.bloqueaPorConfig(cual);
+  }
+
+  /**
+   * Líneas TARJETA cargadas en este cobro (no las ya guardadas de un delivery reabierto, que no se
+   * bloquean: misma marca que usa la regla de terminal).
+   */
+  private hayTarjetaNueva(): boolean {
+    return this.cobroDetalleList?.some(
+      (cd) => cd?.formaPago?.descripcion == "TARJETA" && cd.requiereRegistroTarjeta
+    ) === true;
+  }
+
+  /** true (y avisa) si esa config no está confirmada: todavía cargando o no respondió. */
+  private bloqueaPorConfig(cual: "tarjeta" | "factura"): boolean {
+    const estado = cual === "tarjeta" ? this.configTarjeta : this.configFactura;
+    if (estado === "ok") return false;
+    const que = cual === "tarjeta" ? "cobro con tarjeta" : "factura con venta";
+    this.notificacionSnackbar.openWarn(
+      estado === "cargando"
+        ? `Cargando la configuración de ${que}: esperá un momento.`
+        : `No se pudo cargar la configuración de ${que}: cerrá y volvé a abrir el cobro para reintentar.`,
+      4
+    );
+    return true;
+  }
+
   onFactura() {
     if (this.isDialogOpen) {
       // Evita abrir dos veces el diálogo de factura si el cajero toca el
       // botón repetidas veces antes de que se registre el primer click.
       return;
     }
+    if (this.bloqueaPorConfig("factura")) return;
+    // La factura ligada termina en onFinalizar: si ese cierre se fuera a bloquear, la factura quedaría
+    // emitida sin venta. Se frena antes de emitirla.
+    if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) return;
     if (
       this.finalizarConFacturaHabilitado &&
       this.formGroup.controls.saldo.value != 0
@@ -1279,3 +1348,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 }
+
+/** Estado de cada config del cobro (#390): `ok` también cuando respondió «deshabilitado». */
+type EstadoConfigCobro = "cargando" | "ok" | "fallo";

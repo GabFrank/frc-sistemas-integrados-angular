@@ -471,6 +471,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
         error: () => {
           this.dataSource.data = [];
           this.cargando = false;
+          this.notificacionSnackbar.openWarn('No se pudieron cargar las ventas con tarjeta: el servidor no responde.', 4);
         },
       });
   }
