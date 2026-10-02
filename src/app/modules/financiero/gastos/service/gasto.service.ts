@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
@@ -134,7 +134,9 @@ export class GastoService {
     }, servidor)
   }
 
-  preGastoFilter(id?: number, cajaId?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number, estados?: string[], silentLoad?: boolean): Observable<PageInfo<PreGasto>> {
+  /** Va al central. `errorConf` y `contexto` son para el cierre de caja (#390); sin ellos queda como antes. */
+  preGastoFilter(id?: number, cajaId?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number, estados?: string[], silentLoad?: boolean,
+                 errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<PreGasto>> {
     return this.genericService.onCustomQuery(this.filterPreGastosGQL, {
       id,
       cajaId,
@@ -144,7 +146,7 @@ export class GastoService {
       fin,
       page,
       size
-    }, true, null, silentLoad);
+    }, true, errorConf ?? null, silentLoad, contexto);
   }
 
   preGastoGuardar(input: unknown): Observable<PreGasto> {

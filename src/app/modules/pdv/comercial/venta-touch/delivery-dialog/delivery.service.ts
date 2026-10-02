@@ -4,7 +4,7 @@ import { DeliverysUltimos10GQL } from "../../../../operaciones/delivery/graphql/
 import { DeliverysUltimos10SubGQL } from "../../../../operaciones/delivery/graphql/deliverysUltimos10Sub";
 
 import { UntilDestroy } from "@ngneat/until-destroy";
-import { GenericCrudService } from "../../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../../../generics/generic-crud.service";
 import { PreciosDeliveryGQL } from "../../../../operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio";
 import { Observable } from "rxjs";
 import { map, tap } from "rxjs/operators";
@@ -53,8 +53,11 @@ export class DeliveryService {
   ) {
   }
 
-  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId, servidor: boolean = true): Observable<Delivery[]> {
-    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId }, servidor);
+  /** `errorConf`, `contexto` y `silentLoad` son para el POS (#390); sin ellos queda como antes. */
+  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId, servidor: boolean = true,
+                               errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<Delivery[]> {
+    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId }, servidor,
+      errorConf, silentLoad, contexto);
   }
 
   onGetById(id, servidor: boolean = true): Observable<Delivery> {
