@@ -272,7 +272,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
             horarioInput.dias = this.horarioParaAsignar.diasValue;
             horarioInput.turno = this.horarioParaAsignar.turnoValue;
 
-            this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe({
+            this.horarioService.onSaveHorario(horarioInput, true, PROPAGAR_ERROR_DE_RED).pipe(untilDestroyed(this)).subscribe({
               next: (res: any) => {
                 if (res?.id == null) {
                   finalizarUsuario(false);
@@ -315,7 +315,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         completados++;
         if (completados === funcionarios.length) onComplete(todosOk);
       };
-      this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe({
+      this.service.onSaveFuncionario(funcInput, true, PROPAGAR_ERROR_DE_RED).pipe(untilDestroyed(this)).subscribe({
         next: (saved) => {
           if (saved == null) return terminar(false);
           f.horario = saved.horario;

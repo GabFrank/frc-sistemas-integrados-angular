@@ -15,7 +15,7 @@ export interface LoginResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable, of } from "rxjs";
+import { Observable, of, Subscription } from "rxjs";
 import { catchError, tap, timeout } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
@@ -151,8 +151,11 @@ export class LoginService {
               }
 
               this.mainService.sucursalActual = res["sucursal"];
+              // Se guarda para cancelarla si el usuario no carga: si no, escribía token_central después
+              // de que noSeCargoElUsuario limpiara la sesión (#390).
+              let autenticacionCentral: Subscription = null;
               if (config.isLocal) {
-                this.autenticarEnCentral(nickname, password).subscribe();
+                autenticacionCentral = this.autenticarEnCentral(nickname, password).subscribe();
               }
 
               setTimeout(() => {
@@ -162,13 +165,13 @@ export class LoginService {
                     .pipe(untilDestroyed(this))
                     .subscribe({
                       // Sin usuario (no respondió o error del servidor) el login emitía nada y quedaba esperando (#390).
-                      error: () => obs.next(this.noSeCargoElUsuario()),
+                      error: () => obs.next(this.noSeCargoElUsuario(autenticacionCentral)),
                       next: (res) => {
                       if (res?.id == null) {
-                        obs.next(this.noSeCargoElUsuario());
+                        obs.next(this.noSeCargoElUsuario(autenticacionCentral));
                         return;
                       }
-                      if (res?.id != null) {
+                      {
                         this.mainService.usuarioActual = res;
                         this.registrarSesionActiva(res, !config.isLocal);
                         this.notificarInicioSesion(res.id);
@@ -293,7 +296,8 @@ export class LoginService {
    * Autenticó pero no se pudo cargar el usuario. Se limpia lo que la autenticación ya guardó: con
    * "mantener sesión" el próximo arranque entraba con un token sin sesión registrada.
    */
-  private noSeCargoElUsuario(): LoginResponse {
+  private noSeCargoElUsuario(autenticacionCentral: Subscription): LoginResponse {
+    autenticacionCentral?.unsubscribe();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     localStorage.removeItem("token_central");
