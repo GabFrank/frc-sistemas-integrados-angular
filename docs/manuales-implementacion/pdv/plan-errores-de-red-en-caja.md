@@ -140,7 +140,7 @@ Fuera de este PR: `delivery-dialog:376` (`onGetDeliverysByEstadoList`, central),
 |---|---|---|
 | 1 | `fix(pdv): no cerrar la caja sin verificar deliverys, solicitudes y tarjetas` | 1 |
 | 2 | `fix(pdv): avisar cuando no responde la impresion o la lista de la caja` | 2, 3, 5, 6 |
-| 3 | `fix(pdv): no cortar el aviso de diferencia de maletin sin respuesta` | 4 (separada: toca analisis-diferencia, admin) |
+| 3 | ~~`fix(pdv): no cortar el aviso de diferencia de maletin sin respuesta`~~ | 4 — **revertida** en la auditoría del diff |
 | 4 | `fix(pdv): avisar y no duplicar al guardar un delivery sin respuesta` | 7 |
 
 Tests: `N/A para desktop` [ev: ci.yml]. `npm run check` al final; prueba de runtime.
@@ -202,3 +202,21 @@ Caja». Si hace falta probar con deliverys o solicitudes abiertos, se usan los q
 | B | Fase 2 mezclaba el poll de diferencias (toca admin) con las impresiones | baja | fase 3 separada |
 | A | analisis-diferencia: sus `error:` solo resetean flags, sin aviso | baja | texto corregido |
 | A/B | Firmas opcionales sin conflicto posicional; ningún camino nuevo de edición de ítems de delivery | — | verificado |
+
+## Auditoría del diff (paso 8, 2026-10-02)
+
+- Fijo 1 y Fijo 2: `N/A porque el diff no agrega resolver, menú, .graphqls, migración ni entidad`.
+  Condicionales A y B: ningún glob coincide.
+- `npm run check` encontró dos errores de tipos en `chequeo` (`defaultIfEmpty` con un genérico):
+  corregidos en `58e7e49c`.
+- Fijo 3 (auditor sonnet sobre `58e7e49c`): política mixta, `forkJoin`/`finalize`/`untilDestroyed`,
+  flujo de tarjetas idéntico, ramas «imprimir desde esta PC» intactas, `EMPTY` sin romper suscriptores,
+  sin inyección circular, firmas compatibles y sin vía nueva de edición de ítems de delivery: verificado.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Error GraphQL del filial en tarjetas + «Cerrar igual» salteaba el motivo auditable (`venta_tarjeta.no_completado_*`) | media | **Franco decidió**: confirmar y pedir el motivo. Con error, «Cerrar igual» abre el diálogo de motivo (`cuantos: null` → «Los cobros con tarjeta sin registrar de esta caja») y marca con `onMarcarNoCompletadas`; si eso falla, avisa y no avanza |
+| Poll de diferencia de maletín: con el error propagado reintenta hasta 15 veces y cada intento abre «Buscando…» (el método no admite `silentLoad`); además bajaba de 300 s a 60 s una consulta pesada del admin | media | **fase 3 revertida** (`8d73dd8e`). Pendiente en #390: dar `silentLoad`/contexto al método antes de propagar |
+| Delivery: un error de red que no es timeout también puede llegar después de que el filial guardó | baja | aviso neutro «No se pudo confirmar el guardado del delivery: revisá la lista antes de reintentar» |
+| El aviso de timeout del link se deduplica 5 s: si otro timeout de mutation saltó justo antes, el diálogo de delivery calla | baja | aceptado (preexistente del link) |
+| `onFiltrarDeliverys` sin respuesta deja la lista anterior bajo el filtro nuevo | baja | aceptado: hay aviso |
