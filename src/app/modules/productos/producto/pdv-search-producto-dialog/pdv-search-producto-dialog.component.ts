@@ -45,6 +45,17 @@ import { MovimientoStockService } from "../../../operaciones/movimiento-stock/mo
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
+import {
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  ContextoConsulta,
+} from "../../../../generics/generic-crud.service";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+
+/** La búsqueda por descripción puede tardar más que un escaneo. */
+const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
+/** Un aviso por caída, no uno por cada pausa al tipear. */
+const INTERVALO_AVISO_SIN_RESPUESTA_MS = 10000;
 
 export interface PdvSearchProductoData {
   texto?: any;
@@ -61,6 +72,11 @@ export interface PdvSearchProductoData {
   // la busqueda y el stock mostrado se calculan sobre esta sucursal.
   sucursalFiltro?: Sucursal;
   servidor?: boolean;
+  /**
+   * Solo el buscador del POS (#390): si el servidor no responde, avisa en vez de quedar «buscando»,
+   * descarta respuestas de búsquedas viejas y no borra la lista. Sin esto, todo queda como antes.
+   */
+  modoMostrador?: boolean;
   modoSeleccionMultiple?: boolean;
   productosSeleccionados?: Producto[];
 }
@@ -125,6 +141,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   selectedTipoPrecio: TipoPrecio;
   isSearching = false;
   onSearchTimer;
+  /** Tanda vigente: una respuesta de una tanda anterior se descarta (modo mostrador). */
+  private busquedaId = 0;
+  private ultimoAvisoSinRespuesta = 0;
   productoDetailList: Producto[];
   mostrarTipoPrecios = false;
   desplegarTipoPrecios = false;
@@ -153,7 +172,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private _el: ElementRef,
     private stockService: MovimientoStockService,
     private configService: ConfiguracionService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private notificacionSnackbar: NotificacionSnackbarService
   ) {
     if (data?.mostrarStock == true) {
       this.displayedColumns = [
@@ -267,24 +287,46 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         // Determinar si el texto parece un código de barras (solo dígitos con ≥3 caracteres)
         const esCodigo = /^\d{3,}$/.test(text.trim());
 
+        const mostrador = this.data?.modoMostrador === true;
+        const id = ++this.busquedaId;
+        let fallo = false;
+        const errorConf: QueryError = mostrador ? PROPAGAR_ERROR_DE_RED : undefined;
+        const contexto: ContextoConsulta = mostrador
+          ? { timeoutMs: TIMEOUT_BUSQUEDA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
+          : undefined;
+        const marcarFallo = () => {
+          fallo = true;
+          return of([]);
+        };
+
         // Siempre buscar por descripción
         const busquedaDescripcion$ = this.productoService
-          .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor)
-          .pipe(catchError(() => of([])));
+          .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor, false, errorConf, contexto)
+          .pipe(catchError(marcarFallo));
 
         // Si parece código de barras, buscar también por código en paralelo
         const busquedaCodigo$ = esCodigo
           ? this.productoService
-              .onGetProductoPorCodigo(text.trim(), this.data.servidor)
+              .onGetProductoPorCodigo(text.trim(), this.data.servidor, false, errorConf, contexto)
               .pipe(
                 map((p: Producto) => (p ? [p] : [])),
-                catchError(() => of([]))
+                catchError(marcarFallo)
               )
           : of([]);
 
         forkJoin([busquedaDescripcion$, busquedaCodigo$])
           .pipe(untilDestroyed(this))
           .subscribe(([porDescripcion, porCodigo]: [Producto[], Producto[]]) => {
+            if (mostrador) {
+              // Otra tanda empezó después: esta respuesta ya no corresponde a lo que está escrito.
+              if (id !== this.busquedaId) return;
+              if (fallo) {
+                // No pisar la lista buena con [] ni simular "fin de lista" al paginar.
+                this.avisarSinRespuesta();
+                this.isSearching = false;
+                return;
+              }
+            }
             // Combinar resultados evitando duplicados (por id)
             const idsVistos = new Set<number>();
             const combinados: Producto[] = [];
@@ -321,6 +363,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           });
       }, 1000);
     }
+  }
+
+  private avisarSinRespuesta(): void {
+    const ahora = Date.now();
+    if (ahora - this.ultimoAvisoSinRespuesta < INTERVALO_AVISO_SIN_RESPUESTA_MS) return;
+    this.ultimoAvisoSinRespuesta = ahora;
+    this.notificacionSnackbar.openWarn("No se pudo buscar: el servidor no responde", 4);
   }
 
   highlight(index: number) {

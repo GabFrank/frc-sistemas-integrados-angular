@@ -45,6 +45,19 @@ const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 const MARGEN_DIALOGO_MS = 5000;
 /** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
 export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
+/** Lo que espera un cajero de pie (escanear, elegir un lote) antes de que se le diga algo (#390). */
+export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
+/**
+ * Para quien maneja el error de red con su propio `error:`: sin esto onCustomQuery no emite nada si
+ * el servidor no responde, y el que llama queda esperando para siempre. Solo red: un error GraphQL
+ * sigue llegando como `null` (#390).
+ */
+export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
+/** Contexto de onCustomQuery: timeout propio y si el link avisa al vencer. */
+export interface ContextoConsulta {
+  timeoutMs?: number;
+  silenciarAvisoTimeout?: boolean;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -138,7 +151,7 @@ export class GenericCrudService {
     servidor: boolean = true,
     errorConf?: QueryError,
     silentLoad?: boolean,
-    contexto?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }
+    contexto?: ContextoConsulta
   ): Observable<any> {
     const timeoutMs = contexto?.timeoutMs ?? TIMEOUT_CUSTOM_QUERY_MS;
     this.isLoading = true;
