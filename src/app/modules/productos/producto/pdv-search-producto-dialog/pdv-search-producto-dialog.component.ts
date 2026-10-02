@@ -280,6 +280,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
 
     if (text == "" || text == null || text == " ") {
+      // Invalida la tanda en vuelo: su respuesta no debe repoblar una lista que se acaba de vaciar.
+      this.busquedaId++;
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {

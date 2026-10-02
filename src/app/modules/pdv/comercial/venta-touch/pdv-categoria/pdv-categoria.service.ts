@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PdvGruposProductos } from '../pdv-grupos-productos/pdv-grupos-productos.model';
 import { PdvCategoriaFullInfoGQL } from './graphql/getCategoriaFullInfo';
@@ -56,7 +57,8 @@ export class PdvCategoriaService implements OnDestroy {
   /** Los dos que la llaman (cargarCategorias y onRefresh) manejan el error de red. */
   onGetCategorias(servidor: boolean = true): Observable<PdvCategoria[]> {
     return this.genericService.onCustomQuery(this.getCategorias, {}, servidor, PROPAGAR_ERROR_DE_RED, true, {
-      timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+      // Trae todas las categorías con sus grupos: puede tardar. El tiempo por defecto del link.
+      timeoutMs: TIMEOUT_POR_DEFECTO_MS,
       silenciarAvisoTimeout: true,
     });
   }
@@ -73,8 +75,10 @@ export class PdvCategoriaService implements OnDestroy {
   }
 
   private aplicarCategorias(res: PdvCategoria[]) {
-    // Con un error GraphQL onCustomQuery emite null: antes reventaba en el forEach.
-    this.pdvCategorias = res ?? [];
+    // Con un error GraphQL onCustomQuery emite null: antes reventaba en el forEach. Se conservan las
+    // categorías que ya había en vez de vaciar los favoritos.
+    if (res == null) return;
+    this.pdvCategorias = res;
     this.pdvCategoriasSub.next(this.pdvCategorias)
     this.pdvCategorias.forEach((cat) => {
       cat.grupos?.forEach((gr) => {
