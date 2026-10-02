@@ -192,3 +192,17 @@ obvio. Si no hay forma limpia, queda **no verificado** y se verifica solo leyend
 | Modo diálogo (`delivery-dialog:746`): ante un fallo de validación queda abierto con «Validando…» | baja | ya estaba en el plan: botón deshabilitado por fraude, no se toca |
 | F10 (delivery) ahora también espera la validación | baja | intencional: `onDeliveryClick` usa la caja (`:1655`) |
 | JSDoc de `pdvSinValidar` encima del método equivocado | cosmético | corregido |
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-02)
+
+Desktop `ng serve -c web` sobre `549732fd`, filial `frc-filial` :8080 (PID 981335), PDV 3, manejado con la extensión de Chrome.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ Venta abre; cotizaciones del día cargadas (1.200 / 6.450) después de validar; «Utilitarios» abre normal con el PDV validado |
+| 2 | ✅ filial congelado: spinner de la validación y «Error de Validación» a los 20 s exactos (consola 15:05:27 → 15:05:47), **sin nada encima**; al aceptar se cierra Venta |
+| 3b | ✅ cerrando el spinner a los 10 s, «Utilitarios» muestra «Validando el punto de venta, esperá un momento...» y no abre nada |
+| 4 | ✅ pasando a «Lista de clientes» antes de los 20 s, el aviso sale ahí y al aceptar se cierra **Venta**; «Lista de clientes» queda abierta |
+| 5 | **No verificado en runtime**: no hay forma limpia de provocar un error del resolver `puntoDeVentaPorId` sin tocar el filial. Verificado por lectura de código |
+| 6 | ✅ filial de vuelta: Venta reabre con cotizaciones |
+| 7 | Parcial: Factura Legal → RUC 80099482 encuentra el cliente (BODEGA FRANCO) y un RUC inexistente deja la carga manual, sin cuelgue: **el camino sin error no cambió**. La rama `error:` nueva (error GraphQL) **no se pudo provocar**; verificada por lectura de código. No se guardó ninguna factura |
