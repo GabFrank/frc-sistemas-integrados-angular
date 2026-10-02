@@ -147,14 +147,13 @@ Desktop `ng serve -c web` sobre `e604cc0b`, filial `frc-filial` :8080, PDV 3, ma
 | 3 | ✅ F9 con el filial congelado: a los ~20 s «No se pudo buscar: el servidor no responde»; el diálogo no queda «buscando» |
 | 4 | ✅ (variante) con el diálogo de lote abierto, filial congelado y búsqueda de lote `1232`: a los ~10 s «No se pudo consultar el stock por lote. Probá de nuevo; lo que ya elegiste se mantiene.» y «Confirmar» habilitado. La rama de la **primera** carga (aviso FEFO) no se puede provocar a mano (el diálogo abre apenas responde el producto): verificada por código |
 | 5 | **No verificado en runtime** (stock crítico post-venta, chequeo de fondo sin cambios visibles): verificado por código |
-| 6 | Parcial: «actualizar» con el filial congelado corta a los 60 s (consola 16:04:38 → 16:05:38), pero el aviso **quedó tapado** por «Servidor Offline!!» (ver hallazgo). Este PDV no tiene categorías configuradas: «cargan al actualizar» no es verificable acá |
+| 6 | ✅ «actualizar» con el filial congelado (16:17:08): el aviso «No se pudieron cargar las categorías del PDV…» sale a las 16:18:08 (60 s), registrado con un observador de snackbars. En el primer intento la captura cayó en un «Servidor Offline!!» y pareció tapado. Este PDV no tiene categorías configuradas: «cargan al actualizar» no es verificable acá |
 | 7 | No se probó: los llamadores fuera del POS no cambian (sin `errorConf`); verificado por la auditoría del diff |
 | 8 | ✅ con el código viejo seleccionado, escribir otro lo reemplaza (`7840058000675`), no se concatena |
 | 9 | **No reproducible**: el spinner global «Cargando...» de la búsqueda (preexistente, `silentLoad` en `false`) bloquea el tipeo mientras busca, así que no se arman varias tandas |
 | 10 | **No reproducible**: provocar la falla solo en la 2.ª consulta de un pesable requiere que la 1.ª responda y la 2.ª no |
 | — | Regresión con el filial vivo: F9 «coca» lista resultados; el diálogo de lote carga los 5 lotes de ACTOCEF |
 
-**Hallazgo (preexistente, a la #390):** cuando cae la conexión local, `app.component.ts:218-226`
-emite «Servidor Offline!!» cada 3 s por el mismo snackbar y **pisa cualquier otro aviso**. Los avisos de
-este PR (4 s) pueden quedar tapados en cuanto arranca esa alerta. En los casos 2 y 3 se vieron porque
-todavía no había arrancado.
+**Corrección:** en un primer momento se anotó que «Servidor Offline!!» (`app.component.ts:218-226`, cada
+3 s) pisaba los avisos. Es falso: `app.component.ts:98-124` encola los snackbars y los muestra de a uno.
+Un aviso de 4 s se ve entero, a lo sumo 1 s después. Verificado con el caso 6.

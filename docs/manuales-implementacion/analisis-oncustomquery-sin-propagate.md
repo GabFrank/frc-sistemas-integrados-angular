@@ -109,11 +109,10 @@ PRs sugeridos (cada uno < 400 líneas, con su prueba de runtime contra el filial
 
 `onGetById` tiene el mismo problema en todas sus ramas de error: queda fuera de esta lista y va aparte.
 
-## Hallazgo de la prueba del PR 1
+## Snackbars con el servidor caído
 
-`app.component.ts:218-226`: con la conexión local caída, «Servidor Offline!!» sale cada 3 s por el
-mismo snackbar (`notification$`, uno solo) y pisa cualquier aviso de un `error:`. Mientras eso siga así,
-los avisos que agreguen estos PRs pueden quedar tapados. Vale revisarlo antes de los PRs 2 en adelante.
+`app.component.ts:98-124` encola los snackbars: «Servidor Offline!!» (cada 3 s, 1 s de duración) no
+pisa los avisos de los `error:`, solo los retrasa hasta 1 s. Verificado en la prueba del PR 1.
 
 ## Sin verificar
 
