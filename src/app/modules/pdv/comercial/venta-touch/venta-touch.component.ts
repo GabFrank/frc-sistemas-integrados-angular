@@ -231,9 +231,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Monedas y formas de pago se piden recién con el PDV validado (validarPdvSucursal): con el filial
+    // sin responder su spinner de 60 s tapaba el aviso de la validación (#387).
     this.formaPagoList = [];
-    this.setPrecios();
-    this.getFormaPagos();
 
     setTimeout(() => {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
@@ -284,7 +284,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -300,7 +300,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -309,62 +309,99 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (puntoDeVenta) => {
-          if (puntoDeVenta == null) {
-            this.dialogoService
-              .confirm(
-                'Error de Configuración',
-                `No se encontró el Punto de Venta con ID ${pdvId}.`,
-                'El pdvId no corresponde a la sucursal actual.',
-                ['Verifique la configuración del PDV en la Configuración del Sistema.'],
-                false
-              )
-              .pipe(untilDestroyed(this))
-              .subscribe(() => {
-                this.tabService.removeTab(this.tabService.currentIndex);
-              });
-            return;
-          }
+          // Una excepción acá no llega al `error:`: dejaría pdvValidado en false, sin aviso, y las
+          // puertas de cobro bloqueadas en silencio.
+          try {
+            if (puntoDeVenta == null) {
+              this.dialogoService
+                .confirm(
+                  'Error de Configuración',
+                  `No se encontró el Punto de Venta con ID ${pdvId}.`,
+                  'El pdvId no corresponde a la sucursal actual.',
+                  ['Verifique la configuración del PDV en la Configuración del Sistema.'],
+                  false
+                )
+                .pipe(untilDestroyed(this))
+                .subscribe(() => {
+                  this.cerrarPestanaPropia();
+                });
+              return;
+            }
 
-          const sucursalPdv = puntoDeVenta.sucursal;
-          if (sucursalPdv == null || sucursalPdv.id != sucursalActual.id) {
-            const sucursalPdvNombre = sucursalPdv?.nombre || 'Desconocida';
-            const sucursalActualNombre = sucursalActual.nombre || 'Desconocida';
-            this.dialogoService
-              .confirm(
-                'Error de Configuración - PDV no corresponde',
-                `El Punto de Venta "${puntoDeVenta.nombre}" (ID: ${pdvId}) pertenece a la sucursal "${sucursalPdvNombre}" (ID: ${sucursalPdv?.id}).`,
-                `Sin embargo, este servidor está configurado como sucursal "${sucursalActualNombre}" (ID: ${sucursalActual.id}). No se puede operar con un PDV de otra sucursal.`,
-                null,
-                false
-              )
-              .pipe(untilDestroyed(this))
-              .subscribe(() => {
-                this.tabService.removeTab(this.tabService.currentIndex);
-              });
+            const sucursalPdv = puntoDeVenta.sucursal;
+            if (sucursalPdv == null || sucursalPdv.id != sucursalActual.id) {
+              const sucursalPdvNombre = sucursalPdv?.nombre || 'Desconocida';
+              const sucursalActualNombre = sucursalActual.nombre || 'Desconocida';
+              this.dialogoService
+                .confirm(
+                  'Error de Configuración - PDV no corresponde',
+                  `El Punto de Venta "${puntoDeVenta.nombre}" (ID: ${pdvId}) pertenece a la sucursal "${sucursalPdvNombre}" (ID: ${sucursalPdv?.id}).`,
+                  `Sin embargo, este servidor está configurado como sucursal "${sucursalActualNombre}" (ID: ${sucursalActual.id}). No se puede operar con un PDV de otra sucursal.`,
+                  null,
+                  false
+                )
+                .pipe(untilDestroyed(this))
+                .subscribe(() => {
+                  this.cerrarPestanaPropia();
+                });
+              return;
+            }
+
+            this.pdvValidado = true;
+          } catch (e) {
+            this.avisarErrorDeValidacion(e);
             return;
           }
 
           // PDV válido - proceder con la carga de caja
-          this.pdvValidado = true;
+          this.setPrecios();
+          this.getFormaPagos();
           this.iniciarCargaDeCaja();
         },
-        // Llega por error de red o por el timeout de 20 s: depende del `propagate` del servicio.
-        error: (err) => {
-          console.error('Error al validar PDV:', err);
-          this.dialogoService
-            .confirm(
-              'Error de Validación',
-              'Ocurrió un error al validar el Punto de Venta.',
-              'Verifique la conexión con el servidor e intente nuevamente.',
-              null,
-              false
-            )
-            .pipe(untilDestroyed(this))
-            .subscribe(() => {
-              this.tabService.removeTab(this.tabService.currentIndex);
-            });
-        }
+        // Llega por error de red, timeout de 20 s o error del servidor: depende del `propagate` del servicio.
+        error: (err) => this.avisarErrorDeValidacion(err),
       });
+  }
+
+  private avisarErrorDeValidacion(err: any): void {
+    console.error('Error al validar PDV:', err);
+    // Un error GraphQL trae `errors` y su mensaje dice qué pasó; uno de red o de timeout, no.
+    const detalle = err?.errors != null && err?.message
+      ? `El servidor respondió: ${err.message}`
+      : 'Verifique la conexión con el servidor e intente nuevamente.';
+    this.dialogoService
+      .confirm(
+        'Error de Validación',
+        'Ocurrió un error al validar el Punto de Venta.',
+        detalle,
+        null,
+        false
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.cerrarPestanaPropia();
+      });
+  }
+
+  /**
+   * Cierra la pestaña de esta Venta, no la activa: la validación puede tardar hasta 20 s y el cajero
+   * pudo pasar a otra pestaña en el medio. `data` es el Tab de esta pantalla (tab-content lo asigna).
+   * Si ya no está (cerrada, o abierta como diálogo), no hace nada.
+   */
+  private cerrarPestanaPropia(): void {
+    const index = this.tabService.tabs.indexOf(this.data);
+    if (index !== -1) this.tabService.removeTab(index);
+  }
+
+  /**
+   * Las puertas que operan sobre la caja del turno esperan a que el PDV esté validado. El spinner
+   * de la validación ya bloquea la pantalla, pero su botón «Cerrar» (a los 10 s) la libera antes.
+   * Avisa en vez de no hacer nada: un atajo mudo parece una tecla rota (ver openUtilitarios).
+   */
+  private pdvSinValidar(): boolean {
+    if (this.pdvValidado) return false;
+    this.notificacionSnackbar.openWarn("Validando el punto de venta, esperá un momento...");
+    return true;
   }
 
   /**
@@ -1073,6 +1110,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onPagoClick() {
     if (this.modoConsulta || this.guardandoVenta) return;
+    if (this.pdvSinValidar()) return;
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
@@ -1358,6 +1396,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onTicketClick(ticket?: boolean) {
     if (this.modoConsulta || this.guardandoVenta) return;
+    if (this.pdvSinValidar()) return;
     // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
     // facturación silenciosa); en delivery se cobra con onPagoClick, no por acá (#312).
     if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
@@ -1644,6 +1683,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onDeliveryClick() {
     if (this.modoConsulta) return;
+    if (this.pdvSinValidar()) return;
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
       this.selectedDelivery = new Delivery();
@@ -1743,6 +1783,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       return;
     }
+    if (this.pdvSinValidar()) return;
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {

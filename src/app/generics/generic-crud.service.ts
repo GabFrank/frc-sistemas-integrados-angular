@@ -136,7 +136,7 @@ export class GenericCrudService {
     gql: Query,
     data,
     servidor: boolean = true,
-    errorConf?,
+    errorConf?: QueryError,
     silentLoad?: boolean,
     contexto?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }
   ): Observable<any> {
@@ -175,11 +175,19 @@ export class GenericCrudService {
               obs.next(res.data["data"]);
               obs.complete();
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
+              if (errorConf?.graphError?.show !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + errorMessage,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              // Opt-in, con la misma forma que onGetByTexto: el que llama decide qué mostrar.
+              if (errorConf?.graphError?.propagate === true) {
+                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+                return;
+              }
               // Cerrar el observable igual: si no, el que llamo queda esperando para
               // siempre una respuesta que ya no va a llegar. Con errorPolicy 'all' puede
               // venir data parcial, asi que se emite lo que haya en vez de descartarla.
