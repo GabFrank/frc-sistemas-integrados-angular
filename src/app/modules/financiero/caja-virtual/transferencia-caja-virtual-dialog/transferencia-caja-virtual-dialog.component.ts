@@ -6,6 +6,8 @@ import { forkJoin } from 'rxjs';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { MainService } from '../../../../main.service';
@@ -66,10 +68,14 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
       }
     });
 
-    this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
+    const sinCajas = 'No se pudieron cargar las cajas de destino: cerrá y volvé a abrir para reintentar.';
+    this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { this.notificacion.openWarn(sinCajas, 5); return; }
         this.cajasList = res.filter(c => c.id !== this.cajaOrigen?.id);
-      }
+      },
+      error: () => this.notificacion.openWarn(sinCajas, 5)
     });
   }
 

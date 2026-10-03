@@ -26,13 +26,17 @@
 
     <mat-checkbox [(ngModel)]="nuevoPuedeEscribir" class="ga-check">Puede mover plata</mat-checkbox>
 
-    <button mat-raised-button color="primary" type="button" (click)="onAgregar()" [disabled]="isSaving">
+    <button mat-raised-button color="primary" type="button" (click)="onAgregar()" [disabled]="isSaving || !accesosCargados">
       <mat-icon>add</mat-icon> Agregar
     </button>
   </div>
 
   <div class="ga-cargando" *ngIf="isLoading">Cargando…</div>
-  <div class="ga-vacio" *ngIf="!isLoading && dataSource.data.length === 0">
+  <div class="ga-vacio" *ngIf="!isLoading && !accesosCargados">
+    No se pudieron cargar los accesos de la caja.
+    <button mat-button type="button" (click)="cargar()">Reintentar</button>
+  </div>
+  <div class="ga-vacio" *ngIf="!isLoading && accesosCargados && dataSource.data.length === 0">
     Nadie más tiene acceso. Solo el responsable (y un administrador) puede operar esta caja.
   </div>
 

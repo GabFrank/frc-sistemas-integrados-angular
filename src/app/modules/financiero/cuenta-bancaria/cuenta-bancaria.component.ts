@@ -62,10 +62,17 @@ export class CuentaBancariaComponent implements OnInit {
     this.isSearching = true;
     this.cuentaBancariaService.onGetAll()
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        this.todas = res || [];
-        this.onFiltrar();
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias.', 5); return; }
+          this.todas = res;
+          this.onFiltrar();
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: el servidor no responde.', 5);
+        }
       });
   }
 

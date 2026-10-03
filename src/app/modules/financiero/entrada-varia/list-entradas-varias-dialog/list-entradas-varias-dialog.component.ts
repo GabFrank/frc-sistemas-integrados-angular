@@ -57,11 +57,16 @@ export class ListEntradasVariasDialogComponent implements OnInit {
     this.isSearching = true;
     this.entradaVariaService.onGetEntradasVarias(this.cajaVirtual.id, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las entradas varias.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las entradas varias: el servidor no responde.', 5);
         }
       });
   }

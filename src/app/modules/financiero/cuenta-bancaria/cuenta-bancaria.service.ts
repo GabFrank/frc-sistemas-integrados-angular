@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { CuentaBancaria } from './cuenta-bancaria.model';
 import { CuentasBancariasGQL } from './graphql/cuentasBancarias';
 import { CuentasBancariasOperablesGQL } from './graphql/cuentasBancariasOperables';
@@ -23,7 +24,9 @@ export class CuentaBancariaService {
   ) { }
 
   onGetAll(page = 0, size = 100): Observable<CuentaBancaria[]> {
-    return this.genericService.onCustomQuery(this.cuentasBancariasGQL, { page, size });
+    // Un solo suscriptor (la lista de cuentas), con error: (#390).
+    return this.genericService.onCustomQuery(this.cuentasBancariasGQL, { page, size }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   /** Solo cuentas propias operables en tesorería (activas + disponibles para operaciones). */

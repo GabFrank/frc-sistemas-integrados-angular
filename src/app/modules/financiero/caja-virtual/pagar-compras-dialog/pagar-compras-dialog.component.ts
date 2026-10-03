@@ -17,6 +17,7 @@ import { PagarComprasService, SolicitudConLineas, LineaPagoInput, GastoParaPagoI
 import { ChequeraService } from '../../chequera/chequera.service';
 import { EstadoChequera } from '../../chequera/chequera.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { GastoService } from '../../gastos/service/gasto.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
@@ -25,7 +26,7 @@ import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
 import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
-import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -319,7 +320,14 @@ export class PagarComprasDialogComponent implements OnInit {
         }
       }
     });
-    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.cuentaList = res; });
+    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res) { this.cuentaList = res; return; }
+        this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5);
+      },
+      error: () => this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5)
+    });
     // Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud).
     this.chequeraService.onGetChequeras(0, 200).pipe(untilDestroyed(this)).subscribe(res => {
       this.chequerasActivas = (res || []).filter((c: any) => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles || 0) > 0);
@@ -811,13 +819,18 @@ export class PagarComprasDialogComponent implements OnInit {
   private cargarChequeras(cuenta: any) {
     this.chequeActivo = false; this.puedeCheque = false; this.chequerasCuenta = []; this.chequeraSel = null;
     if (!cuenta?.id) return;
-    this.pagarComprasService.onGetChequerasPorCuenta(cuenta.id).pipe(untilDestroyed(this)).subscribe(res => {
-      this.chequerasCuenta = (res || []).filter((c: any) => (c.hojasDisponibles || 0) > 0);
-      this.puedeCheque = this.chequerasCuenta.length > 0;
-      if (this.puedeCheque) {
-        this.chequeraSel = this.chequerasCuenta[0];
-        if (!this.chequeBeneficiario) this.chequeBeneficiario = this.proveedorNombreSel;
-      }
+    const sinChequeras = 'No se pudieron cargar las chequeras de la cuenta: no se ofrece pagar con cheque.';
+    this.pagarComprasService.onGetChequerasPorCuenta(cuenta.id).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { this.notificacion.openWarn(sinChequeras, 5); return; }
+        this.chequerasCuenta = res.filter((c: any) => (c.hojasDisponibles || 0) > 0);
+        this.puedeCheque = this.chequerasCuenta.length > 0;
+        if (this.puedeCheque) {
+          this.chequeraSel = this.chequerasCuenta[0];
+          if (!this.chequeBeneficiario) this.chequeBeneficiario = this.proveedorNombreSel;
+        }
+      },
+      error: () => this.notificacion.openWarn(sinChequeras, 5)
     });
   }
 

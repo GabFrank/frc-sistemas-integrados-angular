@@ -5,6 +5,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MovimientoBancario } from '../operacion-financiera.model';
 import { OperacionFinancieraService } from '../operacion-financiera.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 
 @UntilDestroy({ checkProperties: true })
@@ -26,6 +27,7 @@ export class ListMovimientosBancariosDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public cuentaBancaria: CuentaBancaria,
     private operacionFinancieraService: OperacionFinancieraService,
+    private notificacion: NotificacionSnackbarService,
   ) { }
 
   ngOnInit(): void {
@@ -37,11 +39,16 @@ export class ListMovimientosBancariosDialogComponent implements OnInit {
     this.isSearching = true;
     this.operacionFinancieraService.onGetMovimientosBancarios(this.cuentaBancaria.id, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta.', 5); return; }
           this.totalElements = res.getTotalElements;
           this.dataSource.data = res.getContent;
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta: el servidor no responde.', 5);
         }
       });
   }

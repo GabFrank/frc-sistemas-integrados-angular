@@ -169,7 +169,8 @@ export class PagarComprasService {
 
   /** Chequeras activas de una cuenta bancaria (para ofrecer cheque como forma de pago). */
   onGetChequerasPorCuenta(cuentaBancariaId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.chequerasPorCuentaGQL, { cuentaBancariaId, soloActivas: true }, servidor);
+    return this.genericService.onCustomQuery(this.chequerasPorCuentaGQL, { cuentaBancariaId, soloActivas: true }, servidor,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PAGOS);
   }
 
   onGetPendientes(proveedorId?: number, servidor = true): Observable<any> {
