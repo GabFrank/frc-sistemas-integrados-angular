@@ -51,7 +51,7 @@ export class ValeCuotasDialogComponent implements OnInit {
   private cuotasNoCargadas() {
     this.cargaFallo = true;
     this.notificacion.notification$.next({
-      texto: 'No se pudieron cargar las cuotas del vale: el servidor no responde.',
+      texto: 'No se pudieron cargar las cuotas del vale.',
       color: NotificacionColor.warn, duracion: 5
     });
   }

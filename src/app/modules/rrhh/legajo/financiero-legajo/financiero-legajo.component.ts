@@ -55,6 +55,8 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
   creditoNoCargado = false;
   /** Precalculado para el template: '' si la exposicion esta completa. */
   exposicionFaltante = '';
+  /** Numero de la ultima carga: lo que llega de una anterior (otro funcionario) se descarta. */
+  private cargaId = 0;
 
   // ---- Detalle ----
   vales = new MatTableDataSource<any>([]);
@@ -87,6 +89,7 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
 
   private cargar(): void {
     if (this.funcionarioId == null) { return; }
+    this.cargaId++;
     this.valesNoCargados = false;
     this.prestamosNoCargados = false;
     this.penalizacionesNoCargadas = false;
@@ -99,8 +102,10 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
   }
 
   private cargarVales(): void {
+    const id = this.cargaId;
     this.valeService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this)).subscribe({
       next: (res: any[]) => {
+        if (id !== this.cargaId) { return; }
         this.valesNoCargados = res == null;
         const list = res || [];
         this.vales.data = list;
@@ -111,13 +116,15 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
           .reduce((acc, v) => acc + (+v.saldoPendiente || 0), 0);
         this.recomputarExposicion();
       },
-      error: () => { this.valesNoCargados = true; this.recomputarExposicion(); }
+      error: () => { if (id === this.cargaId) { this.valesNoCargados = true; this.recomputarExposicion(); } }
     });
   }
 
   private cargarPrestamos(): void {
+    const id = this.cargaId;
     this.prestamoService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this)).subscribe({
       next: (res: any[]) => {
+        if (id !== this.cargaId) { return; }
         this.prestamosNoCargados = res == null;
         const list = (res || []).map(p => ({
           ...p,
@@ -129,7 +136,7 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
         this.prestamosSaldo = activos.reduce((acc, p) => acc + (p._saldo || 0), 0);
         this.recomputarExposicion();
       },
-      error: () => { this.prestamosNoCargados = true; this.recomputarExposicion(); }
+      error: () => { if (id === this.cargaId) { this.prestamosNoCargados = true; this.recomputarExposicion(); } }
     });
   }
 
@@ -139,15 +146,17 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
     const desdeDate = new Date();
     desdeDate.setFullYear(desdeDate.getFullYear() - 5);
     const desde = dateToString(desdeDate, 'yyyy-MM-dd');
+    const id = this.cargaId;
     this.penalizacionService.onGetPorFuncionarioYRango(this.funcionarioId, desde, hasta)
       .pipe(untilDestroyed(this)).subscribe({
         next: (res: any[]) => {
+          if (id !== this.cargaId) { return; }
           this.penalizacionesNoCargadas = res == null;
           const list = (res || []).filter(p => !p.anulada);
           this.penalizaciones.data = list;
           this.penalizacionesTotal = list.reduce((acc, p) => acc + (+p.monto || 0), 0);
         },
-        error: () => { this.penalizacionesNoCargadas = true; }
+        error: () => { if (id === this.cargaId) { this.penalizacionesNoCargadas = true; } }
       });
   }
 
@@ -156,19 +165,25 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
     this.creditoLimite = 0;
     this.creditoSaldo = 0;
     this.creditos.data = [];
+    this.recomputarExposicion();
     if (this.personaId == null) { return; }
+    const id = this.cargaId;
     // Sin cliente (null) no hay crédito: es legítimo. Sin respuesta, el crédito no se conoce.
     this.clienteService.onGetByPersonaId(this.personaId).pipe(
       timeout(CORTE_CLIENTE_MS),
-      catchError(() => { this.creditoNoCargado = true; this.recomputarExposicion(); return of(undefined); }),
+      catchError(() => {
+        if (id === this.cargaId) { this.creditoNoCargado = true; this.recomputarExposicion(); }
+        return of(undefined);
+      }),
       untilDestroyed(this)
     ).subscribe((cli: any) => {
-      if (cli == null) { return; }
+      if (cli == null || id !== this.cargaId) { return; }
       this.creditoLimite = +cli.credito || 0;
       this.ventaCreditoService.onGetPorCliente(cli.id, null, null, null, null, PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
         .pipe(untilDestroyed(this)).subscribe({
           next: (res: any[]) => {
+            if (id !== this.cargaId) { return; }
             this.creditoNoCargado = res == null;
             const list = res || [];
             this.creditos.data = list;
@@ -178,7 +193,7 @@ export class FinancieroLegajoComponent implements OnInit, OnChanges {
               .reduce((acc, vc) => acc + (+vc.saldoTotal || 0), 0);
             this.recomputarExposicion();
           },
-          error: () => { this.creditoNoCargado = true; this.recomputarExposicion(); }
+          error: () => { if (id === this.cargaId) { this.creditoNoCargado = true; this.recomputarExposicion(); } }
         });
     });
   }

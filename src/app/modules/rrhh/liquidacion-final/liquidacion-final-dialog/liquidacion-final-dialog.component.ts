@@ -121,13 +121,14 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   private finiquitoNoCargado() {
     this.cargaFallo = true;
     this.notificacion.notification$.next({
-      texto: 'No se pudo consultar el finiquito: el servidor no responde.',
+      texto: 'No se pudo consultar el finiquito. Usá «Reintentar».',
       color: NotificacionColor.warn, duracion: 5
     });
   }
 
   private aplicar(res: any) {
-    if (res != null) { this.liq = res; this.items.data = res.items || []; }
+    // Lo que devuelve una accion ya esta fresco: Aprobar se habilita sin pasar por «Reintentar».
+    if (res != null) { this.liq = res; this.items.data = res.items || []; this.cargaFallo = false; }
   }
 
   /** Regenerar reabre el diálogo de parámetros (prefilled) por si hay que cambiar

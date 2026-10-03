@@ -80,7 +80,7 @@ export class PrestamoCuotasDialogComponent implements OnInit {
     this.cargaFallo = true;
     this.dataSource.data = [];
     this.notificacion.notification$.next({
-      texto: 'No se pudieron cargar las cuotas del préstamo: el servidor no responde.',
+      texto: 'No se pudieron cargar las cuotas del préstamo. Usá «Reintentar».',
       color: NotificacionColor.warn, duracion: 5
     });
   }

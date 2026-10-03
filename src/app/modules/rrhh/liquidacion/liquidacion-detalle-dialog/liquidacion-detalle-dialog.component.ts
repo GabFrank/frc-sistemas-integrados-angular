@@ -131,6 +131,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   itemsCargados = false;
   /** La ultima carga de items fallo: muestra el aviso con «Reintentar» (no mientras carga). */
   itemsFallo = false;
+  /** Numero de la ultima carga de items: una respuesta de una carga anterior se descarta. */
+  private itemsPedido = 0;
 
   constructor(
     private tabService: TabService,
@@ -192,14 +194,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   cargarItems(id?: number) {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
+    const pedido = ++this.itemsPedido;
     this.liquidacionService.onGetItems(liqId).pipe(untilDestroyed(this)).subscribe({
       next: res => {
+        if (pedido !== this.itemsPedido) { return; }
         if (res == null) { this.itemsNoCargados(); return; }
         this.items.data = res;
         this.itemsCargados = true;
         this.itemsFallo = false;
       },
-      error: () => this.itemsNoCargados()
+      error: () => { if (pedido === this.itemsPedido) { this.itemsNoCargados(); } }
     });
   }
 
