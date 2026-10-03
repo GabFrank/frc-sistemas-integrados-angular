@@ -156,3 +156,57 @@ buscar por código de barras, lista de compras. **No se guarda ninguna compra** 
   queda «no disponible».
 - Las recargas tras una acción pueden fallar después de que la acción se hizo: se avisa que se registró y se ofrece
   reintentar la recarga, no la acción.
+
+## Implementación: desvíos respecto del plan (2026-10-03)
+
+- **`onGetEtapaActual`**: el corte de 60 s silencioso va en el contexto del servicio (`proceso-etapa.service`), no
+  como `timeout(60000)` en cada `forkJoin`: cubre los 5 llamadores (los 4 de `gestion-compras` y `recepcion:2482`),
+  todos con `error:`.
+- **`list-compra`** pasó a la fase 1: los métodos de `pedido.service` que ahora propagan lo alcanzan.
+- **`fetchProductoIdsEnPedido`** no tiene llamadores (código muerto): no se tocó.
+- **«Producto ya en el pedido»**: el aviso es informativo (un duplicado verificado tampoco se bloquea), así que
+  ante un fallo se avisa «No se pudo verificar si el producto ya está en la lista» en vez de bloquear el alta.
+- **Arranque**: los `subscribe` de `:534/:538` no reciben `error:`: con `catchError` por fuente el `forkJoin` ya
+  no puede fallar. Con el pedido sin cargar (modo edición) «Continuar» también queda deshabilitado.
+- **Cotización**: un `null` (error GraphQL, el servicio ya avisa «Ups») mantiene el fallback a `moneda.cambio`,
+  porque la query también devuelve `null` cuando la moneda no tiene cambios registrados; el error de red vacía.
+  Un contador descarta la respuesta de una moneda elegida antes.
+- **Buscador**: `buscarProductosParaDialog` recibe `propagarError`; el diálogo de búsqueda lo usa (con
+  `catchError` dentro del `switchMap` del `valueChanges` para no matar la búsqueda al escribir) y los dos Enter
+  (`gestion-compras`, diálogo de ítem) avisan en vez de abrir el diálogo, que volvería a esperar. El prefetch sigue
+  recibiendo lista vacía.
+- **Stock del panel de productos del proveedor** (`gc:loadStockPorSucursalesDeProducto`): con error queda «-»
+  (`stockTotal null`, ya soportado por la plantilla) en vez de 0.
+- **`onGetProductoParaPedido`**: 20 s y aviso propio.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (worktree de pruebas, sin perfil, `ReplicationPublicationSyncScheduler` y
+`ReplicationRefreshScheduler` en *Did not match*), congelado con `kill -STOP` + respaldo `kill -CONT`; desktop
+`ng serve -c web`. No se guardó nada.
+
+| Caso | Resultado |
+|---|---|
+| Lista de compras: filtro, sucursales del filtro, sucursales recepcionadas de una fila | avisos «No se pudo cargar la lista…» y «…sucursales del filtro»; filas conservadas; la fila queda «No se pudo cargar», sin cachear |
+| Abrir el pedido 4 con el central congelado | a los 65 s banner + aviso de monedas/formas/sucursales con «Reintentar»; aviso «No se pudo cargar el pedido… Usá «Actualizar»»; «Continuar» deshabilitado |
+| Reanudar: «Reintentar» + «Actualizar» | monedas cargadas, pedido 4 cargado, banner fuera |
+| Editar un ítem (distribuciones) | Guardar deshabilitado mientras carga; a los 69 s `distribucionesFallo`, aviso y botón «Reintentar distribuciones»; **no** se inicializó como alta |
+| Agregar una fila de distribución (stock/sugerida) | stock y sugerida «—», un aviso, sin «Calculando…» colgado |
+| «Distribuir» de la grilla | aviso, no se abre el diálogo vacío |
+| Enter en el buscador de código | aviso, no se abre el diálogo de búsqueda |
+| Compra nueva: REAL (1130 de mercado) → DOLAR congelado | la cotización se vacía al instante («obteniendo…»), a los 20 s aviso «ingresala a mano», control inválido |
+| Diálogo de búsqueda al escribir | aviso a los 5 s; tras reanudar, escribir de nuevo trae 3 resultados (el stream sigue vivo) |
+
+Notas: una vez que el desktop marca el central «offline» las consultas fallan en ~4 s en vez de esperar el corte.
+El «El servidor no respondió a tiempo» que aparece al abrir el diálogo de ítem es de su `loadMonedas`
+(`onGetAll` genérico), fuera de este PR. Casos `null` (error GraphQL): verificados por código.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| El stock detallado mostraría 0 por sucursal tras un fallo | media | no aplica: el botón solo existe con `stockTotal !== null` (`html:657`); con el fallo la celda muestra «-» |
+| Cambiar a guaraní con una consulta de cotización en vuelo: la respuesta tardía escribía la cotización y `cotizacionRefreshing` quedaba prendido | baja | la rama de guaraní incrementa el contador y baja el indicador |
+| El refresco manual vaciaba la cotización vigente si fallaba la lectura | baja | solo el cambio de moneda vacía; el refresco conserva el valor y avisa |
+| `onSave` con distribuciones sin cargar salía mudo | baja | avisa |
+| Suscriptores de todo lo que propaga (incl. recepción), rutas `null`, caché del buscador, prefetch, guardas de guardado y paso 1, `stockActual` nulo | — | verificado sin hallazgos |

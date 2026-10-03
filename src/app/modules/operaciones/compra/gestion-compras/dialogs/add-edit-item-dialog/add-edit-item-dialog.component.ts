@@ -1155,6 +1155,9 @@ export class AddEditItemDialogComponent implements OnInit {
   // Dialog actions
   onSave(): void {
     if (this.distribucionesCargando || this.distribucionesFallo) {
+      this.notificacionService.openWarn(this.distribucionesFallo
+        ? "No se puede guardar: faltan las distribuciones del ítem. Usá «Reintentar distribuciones»."
+        : "Esperá a que carguen las distribuciones del ítem antes de guardar.");
       return;
     }
     // Validar formulario

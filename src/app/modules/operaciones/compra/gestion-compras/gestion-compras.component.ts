@@ -2240,6 +2240,9 @@ export class GestionComprasComponent
     if (!cotizacionCtrl) return;
 
     if (!moneda || moneda.denominacion === 'GUARANI') {
+      // Descarta una consulta de cotización en vuelo de la moneda anterior
+      this.cotizacionConsulta++;
+      this.cotizacionRefreshing = false;
       cotizacionCtrl.setValue(null, { emitEvent: false });
       cotizacionCtrl.clearValidators();
       cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
@@ -2276,7 +2279,7 @@ export class GestionComprasComponent
    * Llama al backend y prefilea el control cotización con el mejor valor disponible:
    * mercado compra → mercado venta → manual PDV → moneda.cambio → null.
    */
-  private prefillCotizacionFromMercado(moneda: Moneda): Observable<boolean> {
+  private prefillCotizacionFromMercado(moneda: Moneda, vaciarSiFalla = true): Observable<boolean> {
     const consulta = ++this.cotizacionConsulta;
     return new Observable<boolean>((observer) => {
       this.cambioService.getUltimoCambioPorMonedaIdEnSegundoPlano(moneda.id)
@@ -2305,9 +2308,12 @@ export class GestionComprasComponent
               observer.complete();
               return;
             }
-            // Vacía, no un valor heredado: el guardado exige cotización y el usuario la carga a mano
-            this.datosGeneralesForm.get("cotizacion")?.setValue(null, { emitEvent: false });
-            this.cotizacionFromMercado = false;
+            // Al cambiar de moneda se vacía, no queda un valor heredado: el guardado exige cotización y el
+            // usuario la carga a mano. El refresco manual conserva la que había.
+            if (vaciarSiFalla) {
+              this.datosGeneralesForm.get("cotizacion")?.setValue(null, { emitEvent: false });
+              this.cotizacionFromMercado = false;
+            }
             this.updateComputedProperties();
             observer.next(false);
             observer.complete();
@@ -2332,10 +2338,10 @@ export class GestionComprasComponent
         // "actualizada" sobre un valor viejo lleva a pricear una compra con una cotización
         // stale creyendo que se acaba de refrescar.
         next: (ok) => {
-          this.prefillCotizacionFromMercado(moneda).subscribe((leida) => {
+          this.prefillCotizacionFromMercado(moneda, false).subscribe((leida) => {
             this.cotizacionRefreshing = false;
             if (!leida) {
-              this.notificacionService.openWarn("No se pudo obtener la cotización: el servidor no responde. Ingresala a mano.", 6);
+              this.notificacionService.openWarn("No se pudo leer la cotización: el servidor no responde. Se mantiene la cargada.", 6);
             } else if (ok) {
               this.notificacionService.openSucess("Cotización de mercado actualizada");
             } else {
