@@ -89,7 +89,7 @@
 <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
   <mat-spinner *ngIf="cargandoPreview" diameter="18"></mat-spinner>
   <button mat-button (click)="onCancelar()">Cancelar</button>
-  <button mat-raised-button color="primary" [disabled]="generando || cargandoPreview" (click)="onGenerar()">
+  <button mat-raised-button color="primary" [disabled]="generando || cargandoPreview || previewFallo" (click)="onGenerar()">
     {{ generando ? 'Generando…' : 'Generar borrador' }}
   </button>
 </div>

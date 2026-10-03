@@ -6,6 +6,7 @@ import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
 import { MotivoEgreso } from '../liquidacion-final.model';
 import { LiquidacionFinalService } from '../liquidacion-final.service';
+import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 export interface LiquidacionFinalGenerarDialogData {
   funcionarioId: number;
@@ -54,13 +55,21 @@ export class LiquidacionFinalGenerarDialogComponent implements OnInit {
 
   antiguedadTexto = '';
   cargandoPreview = false;
+  /**
+   * El ultimo calculo no llego (central sin responder o error de negocio): los campos quedarian
+   * vacios o con valores de otra fecha, asi que «Generar» se deshabilita hasta que uno salga bien.
+   */
+  previewFallo = false;
+  /** Numero del ultimo calculo pedido: la respuesta de uno anterior (cambio de fecha rapido) se descarta. */
+  private previewPedido = 0;
   generando = false;
   currencyMask = new CurrencyMask();   // formato Gs: sin decimales, miles con "."
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: LiquidacionFinalGenerarDialogData,
     private dialogRef: MatDialogRef<LiquidacionFinalGenerarDialogComponent>,
-    private service: LiquidacionFinalService
+    private service: LiquidacionFinalService,
+    private notificacion: NotificacionSnackbarService
   ) {
     if (data?.motivo != null) { this.motivoControl.setValue(data.motivo); }
     if (data?.fecha != null) { this.fechaEgresoControl.setValue(new Date(data.fecha)); }
@@ -75,24 +84,42 @@ export class LiquidacionFinalGenerarDialogComponent implements OnInit {
    *  valores del prefill (regenerar) por sobre el preview. */
   private cargarPreview(aplicaPrefill: boolean) {
     this.cargandoPreview = true;
+    this.previewFallo = false;
+    const pedido = ++this.previewPedido;
     const fecha = dateToString(this.fechaEgresoControl.value);
-    this.service.onPreview(this.data.funcionarioId, fecha).pipe(untilDestroyed(this)).subscribe((p: any) => {
-      this.cargandoPreview = false;
-      if (p == null) { return; }
-      this.antiguedadTexto = (p.antiguedadAnios || 0) + ' años (' + (p.antiguedadDias || 0) + ' días)';
-      this.fechaIngresoControl.setValue(p.fechaIngreso ? stringToLocalDate(p.fechaIngreso) : null);
-      this.salarioBaseControl.setValue(p.salarioPromedio);
-      this.diasTrabajadosMesControl.setValue(p.diasTrabajadosMes);
-      this.diasVacacionesControl.setValue(p.diasVacacionesNoGozadas);
-      this.aguinaldoControl.setValue(p.aguinaldoProporcional);
-      this.preavisoDiasControl.setValue(p.preavisoDias);
-      this.ipsBaseControl.setValue(p.ipsBase);
-      // Descontar IPS por defecto según ipsActivo del funcionario (null/true = sí).
-      this.descontarIpsControl.setValue(p.ipsActivo !== false);
-      if (aplicaPrefill) {
-        if (this.data?.salarioBase != null) { this.salarioBaseControl.setValue(this.data.salarioBase); }
-        if (this.data?.diasVacaciones != null) { this.diasVacacionesControl.setValue(this.data.diasVacaciones); }
+    this.service.onPreview(this.data.funcionarioId, fecha).pipe(untilDestroyed(this)).subscribe({
+      next: (p: any) => {
+        if (pedido !== this.previewPedido) { return; }
+        this.cargandoPreview = false;
+        if (p == null) { this.previewNoCalculado(); return; }
+        this.antiguedadTexto = (p.antiguedadAnios || 0) + ' años (' + (p.antiguedadDias || 0) + ' días)';
+        this.fechaIngresoControl.setValue(p.fechaIngreso ? stringToLocalDate(p.fechaIngreso) : null);
+        this.salarioBaseControl.setValue(p.salarioPromedio);
+        this.diasTrabajadosMesControl.setValue(p.diasTrabajadosMes);
+        this.diasVacacionesControl.setValue(p.diasVacacionesNoGozadas);
+        this.aguinaldoControl.setValue(p.aguinaldoProporcional);
+        this.preavisoDiasControl.setValue(p.preavisoDias);
+        this.ipsBaseControl.setValue(p.ipsBase);
+        // Descontar IPS por defecto según ipsActivo del funcionario (null/true = sí).
+        this.descontarIpsControl.setValue(p.ipsActivo !== false);
+        if (aplicaPrefill) {
+          if (this.data?.salarioBase != null) { this.salarioBaseControl.setValue(this.data.salarioBase); }
+          if (this.data?.diasVacaciones != null) { this.diasVacacionesControl.setValue(this.data.diasVacaciones); }
+        }
+      },
+      error: () => {
+        if (pedido !== this.previewPedido) { return; }
+        this.cargandoPreview = false;
+        this.previewNoCalculado();
       }
+    });
+  }
+
+  private previewNoCalculado() {
+    this.previewFallo = true;
+    this.notificacion.notification$.next({
+      texto: 'No se pudo calcular el finiquito. Cambiá la fecha o reabrí para reintentar.',
+      color: NotificacionColor.warn, duracion: 5
     });
   }
 
