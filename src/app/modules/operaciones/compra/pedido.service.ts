@@ -494,7 +494,9 @@ export class PedidoService {
    * @returns Observable<NotaRecepcion>
    */
   onGetNotaRecepcionById(id: number): Observable<NotaRecepcion> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionByIdGQL, { id });
+    // Un solo llamador («Ver nota» de la lista de solicitudes de pago), con su error: (#390)
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionByIdGQL, { id }, true, PROPAGAR_ERROR_DE_RED, true,
+      CONSULTA_DIALOGO);
   }
 
   /**

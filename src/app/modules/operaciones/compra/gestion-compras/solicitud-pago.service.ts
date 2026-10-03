@@ -73,9 +73,12 @@ export class SolicitudPagoService {
       this.getSolicitudesPorPedidoGQL,
       { pedidoId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     ).pipe(
+      // null (error GraphQL, el servicio ya avisó) pasa a error: antes daba TypeError y el llamador quedaba cargando
+      switchMap(result => result == null ? throwError(() => new Error('Solicitudes sin datos')) : of(result)),
       map(result => this.processComputedProperties(result as SolicitudPago[]))
     );
   }
@@ -121,8 +124,9 @@ export class SolicitudPagoService {
       this.getSolicitudesPagoPaginatedGQL,
       { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     ).pipe(
       map((pageResult: SolicitudPagoPageResult) => {
         if (pageResult?.getContent?.length) {
@@ -141,8 +145,9 @@ export class SolicitudPagoService {
       this.getNotaRecepcionDisponibleParaPagoPorNumeroGQL,
       { numero, proveedorId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -156,8 +161,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoGQL,
       { pedidoId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -169,8 +175,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoPorProveedorGQL,
       { proveedorId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -187,8 +194,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoPorProveedorPaginatedGQL,
       { proveedorId, page, size, filtroTexto: filtroTexto?.trim() || null },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -236,12 +244,16 @@ export class SolicitudPagoService {
    * @returns Observable con resultado booleano
    */
   onDelete(id: number): Observable<boolean> {
+    // Sin el confirm propio del genérico (el llamador ya pregunta: eran dos y, rechazando el segundo, quedaba
+    // cargando). Un fallo emite null en el genérico: solo true es éxito (#390).
     return this.genericCrudService.onDelete(
       this.deleteSolicitudPagoGQL,
       id,
       'solicitud de pago',
       null,
-      true
+      false
+    ).pipe(
+      switchMap((ok) => ok === true ? of(true) : throwError(() => new Error('No se pudo eliminar la solicitud')))
     );
   }
 
