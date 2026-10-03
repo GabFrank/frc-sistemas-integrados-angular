@@ -70,8 +70,10 @@ export class CajaService {
     return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor);
   }
 
-  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true): Observable<CajaBalance> {
-    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, null, true);
+  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true,
+                                  errorConf?: QueryError, contexto?: ContextoConsulta): Observable<CajaBalance> {
+    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, errorConf ?? null,
+      true, contexto);
   }
 
   onGetCajasWithFilters(
@@ -121,7 +123,9 @@ export class CajaService {
     page: number,
     size: number,
     difEstado: string = null,
-    servidor: boolean = true
+    servidor: boolean = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ) {
     return this.genericService.onCustomQuery(this.cajasAnalisisDiferencias, {
       cajaId,
@@ -137,7 +141,7 @@ export class CajaService {
       page,
       size,
       difEstado
-    }, servidor);
+    }, servidor, errorConf, undefined, contexto);
   }
 
   onGetByDate(inicio?: Date, fin?: Date, sucId?, servidor: boolean = true): Observable<PdvCaja[]> {

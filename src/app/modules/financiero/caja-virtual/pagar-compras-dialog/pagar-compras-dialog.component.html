@@ -253,7 +253,11 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
-          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">
+          <div class="vacio" *ngIf="!isLoading && cargaFallo">
+            No se pudieron cargar los pendientes de pago.
+            <button mat-button (click)="cargar()">Reintentar</button>
+          </div>
+          <div class="vacio" *ngIf="!isLoading && !cargaFallo && dataSource.data.length === 0">
             <ng-container *ngIf="esVale && !esRrhh">No hay vales pendientes de pago. Creá uno con "Nuevo Vale".</ng-container>
             <ng-container *ngIf="esGasto">No hay gastos pendientes. Creá uno con "Nuevo gasto".</ng-container>
             <ng-container *ngIf="esRrhh">No hay {{ tituloPlural }} pendientes de pago. Se aprueban desde RRHH.</ng-container>

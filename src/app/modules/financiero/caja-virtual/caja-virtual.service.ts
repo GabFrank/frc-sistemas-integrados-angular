@@ -106,8 +106,8 @@ export class CajaVirtualService {
     return this.genericService.onCustomQuery(this.cajaVirtualesPorTipoGQL, { tipo });
   }
 
-  onGetActivas(): Observable<CajaVirtual[]> {
-    return this.genericService.onCustomQuery(this.cajaVirtualesActivasGQL, {});
+  onGetActivas(errorConf?: QueryError, contexto?: ContextoConsulta): Observable<CajaVirtual[]> {
+    return this.genericService.onCustomQuery(this.cajaVirtualesActivasGQL, {}, true, errorConf, undefined, contexto);
   }
 
   onSave(cajaVirtual: CajaVirtual, opciones?: { avisarExito?: boolean }): Observable<CajaVirtual> {
