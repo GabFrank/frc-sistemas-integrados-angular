@@ -1,4 +1,4 @@
-import { GenericCrudService } from './../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from './../../../generics/generic-crud.service';
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
 import { MainService } from "../../../main.service";
@@ -38,8 +38,9 @@ export class PresentacionService {
     private genericService: GenericCrudService
   ) { }
 
-  onGetPresentacionesPorProductoId(id, servidor = true): Observable<Presentacion[]>{
-    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id, null, null, servidor);
+  onGetPresentacionesPorProductoId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Presentacion[]>{
+    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id, null, null, servidor, null, null, null, null,
+      null, null, errorConf, contexto);
   }
 
   onGetPresentaciones(servidor = true) {

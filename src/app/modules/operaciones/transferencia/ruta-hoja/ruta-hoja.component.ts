@@ -82,8 +82,10 @@ export class RutaHojaComponent implements OnInit {
     this.isLoading = true;
     this.transferenciaService.onGetHojaRuta(id)
       .pipe(untilDestroyed(this), finalize(() => this.isLoading = false))
-      .subscribe(res => {
-        if (res) {
+      .subscribe({
+        next: res => {
+          // Sin la hoja cargada, Guardar mandaría id undefined y crearía una hoja nueva duplicada: se cierra (#390).
+          if (res == null) { this.hojaNoCargada(); return; }
           this.selectedHojaRuta = res;
           this.selectedVehiculo = res.vehiculo;
           this.selectedChofer = res.chofer;
@@ -91,10 +93,16 @@ export class RutaHojaComponent implements OnInit {
             this.fechaSalidaControl.setValue(new Date(res.fechaSalida));
           }
           this.acompanhantes = res.acompanantes || [];
-        }
-        this.isLoading = false;
-        this.actualizarResumen();
+          this.isLoading = false;
+          this.actualizarResumen();
+        },
+        error: () => this.hojaNoCargada()
       });
+  }
+
+  private hojaNoCargada(): void {
+    this.notificacionService.openWarn('No se pudo cargar la hoja de ruta: intentá de nuevo.', 5);
+    this.dialogRef.close();
   }
 
   onBuscarVehiculo(): void {
