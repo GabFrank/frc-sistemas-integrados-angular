@@ -131,15 +131,18 @@ export class MovimientoStockService {
     fin: String,
     sucursalList: number[],
     servidor = true,
-    silentLoad = true
+    silentLoad = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PorSucursal<CantidadSugeridaPorSucursal>> {
     return this.genericService
       .onCustomQuery(
         this.getCantidadSugeridaPorSucursalesGQL,
         { productoId, inicio, fin, sucursalList },
         servidor,
-        undefined,
-        silentLoad
+        errorConf,
+        silentLoad,
+        contexto
       )
       .pipe(
         map((filas: CantidadSugeridaPorSucursalRaw[]) => {

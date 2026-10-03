@@ -163,10 +163,12 @@ export class ProductoService {
   onGetStockPorSucursales(
     proId: number,
     silentLoad = true,
-    servidor = true
+    servidor = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PorSucursal<number>> {
     return this.genericService
-      .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, undefined, silentLoad)
+      .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, errorConf, silentLoad, contexto)
       .pipe(
         map((filas: StockPorSucursalRaw[]) => {
           const porSucursal = new PorSucursal<number>();
@@ -234,8 +236,9 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.printProductoPorId, {id}, servidor);
   }
 
-  onGetProductoParaPedido(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.getProductoParaPedido, id, null, null, servidor);
+  onGetProductoParaPedido(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.getProductoParaPedido, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onExportarReporte(texto: string, servidor = true): Observable<string> {

@@ -45,6 +45,8 @@ import {
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 @UntilDestroy()
 @Component({
@@ -73,6 +75,8 @@ export class ListCompraComponent implements OnInit {
   expandedPedido: Pedido;
   sucursalesRecepcionadasMap: { [pedidoId: number]: SucursalRecepcionFisica[] } = {};
   loadingSucursalesRecepcionadasMap: { [pedidoId: number]: boolean } = {};
+  /** Si falló, no se escribe el mapa: al volver a abrir la fila se reintenta (#390). */
+  fallaSucursalesRecepcionadasMap: { [pedidoId: number]: boolean } = {};
 
   idControl = new FormControl();
   sucursalControl = new FormControl();
@@ -150,9 +154,18 @@ export class ListCompraComponent implements OnInit {
   }
 
   loadSucursales() {
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
+      next: (res) => {
+        this.sucursalList = (res ?? []).filter((s) => s.id != 0);
+      },
+      error: () => this.notificacionService.openWarn("No se pudieron cargar las sucursales del filtro: el servidor no responde.", 5),
     });
+  }
+
+  /** La lista queda con lo que mostraba: se avisa en vez de dejarla como si no hubiera pedidos (#390). */
+  private avisarListaSinRespuesta(): void {
+    this.notificacionService.openWarn("No se pudo cargar la lista de compras: el servidor no responde. Intentá de nuevo.", 5);
   }
 
   loadProveedores() {
@@ -185,21 +198,27 @@ export class ListCompraComponent implements OnInit {
           this.pageSize
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res: PageInfo<Pedido>) => {
-          if (res != null) {
-            this.selectedPageInfo = res;
-            res.getContent.forEach(pedido => this.enriquecerPedido(pedido));
-            this.dataSource.data = res.getContent;
-          }
+        .subscribe({
+          next: (res: PageInfo<Pedido>) => {
+            if (res != null) {
+              this.selectedPageInfo = res;
+              res.getContent.forEach(pedido => this.enriquecerPedido(pedido));
+              this.dataSource.data = res.getContent;
+            }
+          },
+          error: () => this.avisarListaSinRespuesta(),
         });
     } else {
       this.pedidoService
         .onGetPedidoById(this.idControl.value)
-        .subscribe((res) => {
-          if (res != null) {
-            this.enriquecerPedido(res);
-            this.dataSource.data = [res];
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.enriquecerPedido(res);
+              this.dataSource.data = [res];
+            }
+          },
+          error: () => this.avisarListaSinRespuesta(),
         });
     }
   }
@@ -533,16 +552,21 @@ export class ListCompraComponent implements OnInit {
     }
 
     this.loadingSucursalesRecepcionadasMap[pedidoId] = true;
+    this.fallaSucursalesRecepcionadasMap[pedidoId] = false;
     this.pedidoService
       .onGetPedidoRecepcionFisicaResumen(pedidoId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
-          this.sucursalesRecepcionadasMap[pedidoId] = res?.sucursalesRecepcionFisica || [];
+          if (res) {
+            this.sucursalesRecepcionadasMap[pedidoId] = res.sucursalesRecepcionFisica || [];
+          } else {
+            this.fallaSucursalesRecepcionadasMap[pedidoId] = true;
+          }
           this.loadingSucursalesRecepcionadasMap[pedidoId] = false;
         },
         error: () => {
-          this.sucursalesRecepcionadasMap[pedidoId] = [];
+          this.fallaSucursalesRecepcionadasMap[pedidoId] = true;
           this.loadingSucursalesRecepcionadasMap[pedidoId] = false;
         },
       });
