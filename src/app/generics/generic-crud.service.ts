@@ -336,6 +336,12 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * `errorConf`/`contexto` son opt-in (#390): sin ellos el comportamiento es el de siempre (no emite nada ante
+   * ningún error). Con `errorConf`: un error GraphQL emite `null` y completa (como onCustomQuery) o propaga si
+   * `graphError.propagate`; el error de red propaga si `networkError.propagate` y el aviso propio sale solo si
+   * `networkError.show === true` (el llamador avisa). `contexto.timeoutMs` fija el corte del link.
+   */
   onGetById<T>(
     gql: any,
     id: number,
@@ -347,7 +353,9 @@ export class GenericCrudService {
     duracion?,
     silentLoad?,
     errorText?,
-    warningText?
+    warningText?,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<T> {
     this.isLoading = true;
     let { requestId = null } =
@@ -363,6 +371,8 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
+              ...(contexto?.timeoutMs != null ? { timeoutMs: contexto.timeoutMs } : {}),
+              ...(contexto?.silenciarAvisoTimeout ? { silenciarAvisoTimeout: true } : {}),
             },
           }
         )
@@ -384,20 +394,36 @@ export class GenericCrudService {
                 });
               }
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
+              if (errorConf?.graphError?.show !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: errorText != null ? errorText : "Ups! Algo salió mal: " + errorMessage,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              if (errorConf != null) {
+                if (errorConf.graphError?.propagate === true) {
+                  obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+                } else {
+                  obs.next(null);
+                  obs.complete();
+                }
+              }
             }
           },
           (err) => {
-            if (!esTimeoutDeLink(err)) {
+            this.isLoading = false;
+            const avisar = errorConf != null ? errorConf.networkError?.show === true : true;
+            if (avisar && !esTimeoutDeLink(err)) {
               this.notificacionBar.openWarn(
                 warningText != null ? warningText : "Problema al realizar esta operación"
               );
             }
             this.cargandoService.closeDialog(requestId);
+            if (errorConf?.networkError?.propagate === true) {
+              obs.error(err);
+            }
           }
         );
     });

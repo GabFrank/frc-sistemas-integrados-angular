@@ -817,7 +817,9 @@ export class ListMovimientoStockComponent implements OnInit {
               movimiento,
               index
             );
-          });
+          },
+          // onGetTransferenciaItem ahora propaga el error de red (#390).
+          () => this.notificacionService.openWarn("No se pudo cargar el detalle de la transferencia.", 5));
         break;
 
       case TipoMovimiento.COMPRA:

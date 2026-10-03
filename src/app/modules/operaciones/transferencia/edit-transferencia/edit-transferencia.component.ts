@@ -81,7 +81,8 @@ import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Observable, Subscription, of } from "rxjs";
-import { finalize, map, switchMap } from "rxjs/operators";
+import { catchError, finalize, map, switchMap } from "rxjs/operators";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -428,9 +429,12 @@ export class EditTransferenciaComponent implements OnInit {
       this.transferenciaService
         .onGetTransferencia(id)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          // this.cargandoService.closeDialog();
-          if (res != null) {
+        .subscribe({
+          next: (res) => {
+            if (res == null) {
+              this.notificacionService.openWarn("No se pudo cargar la transferencia.", 5);
+              return;
+            }
             this.selectedTransferencia = new Transferencia();
             Object.assign(this.selectedTransferencia, res);
             setTimeout(() => {
@@ -441,7 +445,8 @@ export class EditTransferenciaComponent implements OnInit {
             this.actualizarPermisosPorSucursal();
             this.onVerificarConfirmados();
             this.verificarEtapa();
-          }
+          },
+          error: () => this.notificacionService.openWarn("No se pudo cargar la transferencia: el servidor no responde.", 5)
         });
     }
   }
@@ -484,14 +489,25 @@ export class EditTransferenciaComponent implements OnInit {
           if (!this.selectedTransferencia?.id || itemIds.length === 0) {
             return of({ res, alertas: [] as TransferenciaItemAlerta[] });
           }
+          // Sin alertas los ítems se muestran igual (con aviso); el error queda adentro del switchMap (#390).
           return this.transferenciaService
             .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
-            .pipe(map((alertas) => ({ res, alertas })));
+            .pipe(
+              catchError(() => of(null)),
+              map((alertas) => {
+                if (alertas == null) { this.avisarAlertasNoCargadas(); }
+                return { res, alertas: alertas ?? [] };
+              })
+            );
         }),
         untilDestroyed(this)
       )
-      .subscribe(({ res, alertas }) => {
-        if (res != null) {
+      .subscribe({
+        next: ({ res, alertas }) => {
+          if (res == null) {
+            this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia.", 5);
+            return;
+          }
           this.selectedPageInfo = res;
           this.dataSource.data = this.combinarItemsConAlertas(
             res.getContent,
@@ -501,8 +517,13 @@ export class EditTransferenciaComponent implements OnInit {
           // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
           // "todo confirmado".
           this.verificarEtapa();
-        }
+        },
+        error: () => this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia: el servidor no responde.", 5)
       });
+  }
+
+  private avisarAlertasNoCargadas(): void {
+    this.notificacionService.openWarn("No se pudieron cargar las alertas de vencidos y averiados de los ítems.", 5);
   }
 
   private combinarItemsConAlertas(
@@ -510,7 +531,7 @@ export class EditTransferenciaComponent implements OnInit {
     alertas: TransferenciaItemAlerta[]
   ): TransferenciaItemView[] {
     const alertaPorItemId = new Map<number, TransferenciaItemAlerta>();
-    for (const alerta of alertas) {
+    for (const alerta of alertas ?? []) {
       alertaPorItemId.set(alerta.transferenciaItemId, alerta);
     }
 
@@ -538,8 +559,12 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
       .pipe(untilDestroyed(this))
-      .subscribe((alertas) => {
-        this.dataSource.data = this.combinarItemsConAlertas(items, alertas);
+      .subscribe({
+        next: (alertas) => {
+          if (alertas == null) { this.avisarAlertasNoCargadas(); return; }
+          this.dataSource.data = this.combinarItemsConAlertas(items, alertas);
+        },
+        error: () => this.avisarAlertasNoCargadas()
       });
   }
 
@@ -1847,10 +1872,18 @@ export class EditTransferenciaComponent implements OnInit {
           ? "El producto tiene stock negativo y no puede ser transferido."
           : `El producto tiene stock negativo (${stock}) y no puede ser transferido.`;
       const { requestId } = this.cargandoService.openDialog(false, "Verificando stock...");
-      this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
+      // Fail-closed (#390): sin respuesta del central, o con un null (error del servidor), no se agrega el ítem.
+      // Antes, sin red el overlay tapaba la app 65 s sin avisar, y un null agregaba el ítem sin verificar.
+      this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
         .subscribe({
           next: (stock) => {
-            if (stock != null && stock < 0) {
+            if (stock == null) {
+              this.cargandoService.closeDialog(requestId);
+              this.notificacionService.openAlgoSalioMal("No se pudo verificar el stock del producto: no se agregó.");
+              return;
+            }
+            if (stock < 0) {
               this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
                 next: (config) => {
                   this.cargandoService.closeDialog(requestId);
@@ -1878,7 +1911,7 @@ export class EditTransferenciaComponent implements OnInit {
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
-            this.notificacionService.openAlgoSalioMal("Error al verificar el stock del producto");
+            this.notificacionService.openAlgoSalioMal("No se pudo verificar el stock del producto: el servidor no responde. No se agregó.");
           }
         });
     } else {
