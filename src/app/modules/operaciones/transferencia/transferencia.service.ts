@@ -44,12 +44,12 @@ import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItem
 import { TransferenciaQrEscaneadoSubGQL } from './graphql/transferenciaQrEscaneadoSub';
 import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
 
-@UntilDestroy({ checkProperties: true })
 /** Consultas que alguien espera (abrir una transferencia, su grilla, una hoja de ruta) (#390). */
 const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 /** Alertas de la grilla y hojas de ruta de entregadores: de fondo, corte corto (#390). */
 const CONSULTA_FONDO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
