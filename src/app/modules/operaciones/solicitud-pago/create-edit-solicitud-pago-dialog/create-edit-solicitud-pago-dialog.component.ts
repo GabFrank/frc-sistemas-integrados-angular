@@ -79,6 +79,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   monedasFallo = false;
   formasPagoFallo = false;
   creacionIncierta = false;
+  /** Una mutación quedó sin confirmar y la recarga no llegó: lo que se ve puede no ser lo del servidor. */
+  pantallaDesactualizada = false;
 
   /** Modo edición: true cuando se abre con solicitudPago existente. */
   isEditMode = false;
@@ -180,6 +182,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
    */
   private recargarSolicitud(aviso: string): void {
     this.notificacionService.openWarn(aviso, 8);
+    this.pantallaDesactualizada = true; // hasta que la recarga llegue
     if (this.solicitudPagoId != null) {
       this.loadSolicitudParaEdicion(true);
     }
@@ -192,6 +195,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.cargaSolicitudFallida(recarga);
           return;
         }
+        this.pantallaDesactualizada = false;
         this.selectedProveedor = sp.proveedor;
         this.solicitudPagoEstado = sp.estado ?? null;
         this.proveedorNombreDisplay = (sp?.proveedor?.persona?.nombre || '').toString().toUpperCase();
@@ -239,6 +243,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.saving = false;
     if (recarga) {
       // La solicitud ya estaba abierta: no se cierra, se avisa que lo que se ve puede no estar al día
+      this.pantallaDesactualizada = true;
       this.notificacionService.openWarn('No se pudo recargar la solicitud: cerrá y volvé a abrirla antes de seguir.', 8);
       return;
     }
@@ -338,8 +343,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarNota(): void {
-    if (this.creacionIncierta) {
-      this.avisarCreacionIncierta();
+    if (this.accionBloqueada()) {
       return;
     }
     if (!this.selectedProveedor?.id) {
@@ -408,6 +412,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   onQuitarNota(index: number): void {
     const nota = this.notasAgregadas[index];
     if (!nota) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
     const textoNota = nota.numero != null ? `la nota Nº ${nota.numero}` : 'esta nota de recepción';
     this.dialogosService
       .confirm('Eliminar nota de recepción', `¿Está seguro de que desea quitar ${textoNota} de la solicitud?`)
@@ -438,12 +445,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarFormaPago(): void {
-    if (this.monedasFallo || this.formasPagoFallo) {
-      this.avisarListasFaltantes();
+    if (this.accionBloqueada()) {
       return;
     }
-    if (this.creacionIncierta) {
-      this.avisarCreacionIncierta();
+    if (this.monedasFallo || this.formasPagoFallo) {
+      this.avisarListasFaltantes();
       return;
     }
     if (!this.selectedProveedor?.id) {
@@ -469,6 +475,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       // El diálogo devuelve un array: 1 forma, o N (una por cheque si se eligieron cuotas).
       if ((detalles as any)?.recargar) {
         // Alguna alta quedó sin confirmar (el diálogo ya avisó): lo que vale es lo del servidor (#390)
+        this.pantallaDesactualizada = true;
         this.loadSolicitudParaEdicion(true);
         return;
       }
@@ -492,6 +499,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
 
   onEditarDetalle(detalle: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }), index: number): void {
     if (!this.puedeEditarFormaPagoComputed) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
+    if (this.monedasFallo || this.formasPagoFallo) {
+      // Sin monedas el diálogo no muestra la cotización y el detalle volvería sin ella
+      this.avisarListasFaltantes();
+      return;
+    }
     const ref = this.dialog.open(AdicionarFormaPagoDialogComponent, {
       width: '50vw',
       data: {
@@ -564,6 +579,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   onQuitarDetalle(index: number): void {
     const detalle = this.detallesAgregados[index];
     if (!detalle) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
     const descripcion = detalle.formaPagoDescripcion
       ? `${detalle.formaPagoDescripcion} - ${detalle.valor != null ? detalle.valor : ''}`
       : 'esta forma de pago';
@@ -888,7 +906,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   private crearSolicitudYActivarEdicion(): void {
-    if (!this.notasAgregadas.length) return;
+    if (!this.notasAgregadas.length || this.saving || this.creacionIncierta) return;
     const input = this.buildInputForSave();
     this.saving = true;
     this.solicitudPagoService.onSaveInput(input).subscribe({
@@ -912,7 +930,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
    * crearía OTRA solicitud (deuda duplicada). Se bloquea agregar y guardar hasta revisar la lista (#390).
    */
   private marcarCreacionInciertaSiFueDeRed(error: any): void {
-    if (Array.isArray(error) || error?.graphQLErrors?.length) {
+    const mensaje = (Array.isArray(error) ? error[0]?.message : error?.graphQLErrors?.[0]?.message) ?? '';
+    const respuestaVacia = /respuesta vac[ií]a/i.test(mensaje);
+    if ((Array.isArray(error) || error?.graphQLErrors?.length) && !respuestaVacia) {
       return; // error de negocio: el servidor respondió que no
     }
     this.creacionIncierta = true;
@@ -923,10 +943,29 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.notificacionService.openWarn('No se pudo confirmar si la solicitud se creó: cerrá y revisá la lista antes de seguir.', 8);
   }
 
-  onGuardar(): void {
-    if (!this.isEditable) return;
+  /**
+   * Bloqueo común de las acciones que mutan la solicitud (#390): con un guardado en vuelo (si no, una segunda
+   * creación duplicaría la deuda), con la creación sin confirmar, o con la pantalla desactualizada (Guardar
+   * reemplaza notas y formas de pago con lo que se ve).
+   */
+  private accionBloqueada(): boolean {
+    if (this.saving) {
+      return true;
+    }
     if (this.creacionIncierta) {
       this.avisarCreacionIncierta();
+      return true;
+    }
+    if (this.pantallaDesactualizada) {
+      this.notificacionService.openWarn('La solicitud no está al día con el servidor: cerrá y volvé a abrirla antes de seguir.', 8);
+      return true;
+    }
+    return false;
+  }
+
+  onGuardar(): void {
+    if (!this.isEditable) return;
+    if (this.accionBloqueada()) {
       return;
     }
     if (!this.selectedProveedor?.id) {

@@ -77,6 +77,10 @@ export class AdicionarFormaPagoDialogComponent {
    * cotización lo recalcula desde el monto sugerido en Gs (si no, quedaría calculado con el primer dígito tipeado).
    */
   private valorDesdeCotizacionManual = false;
+  /** Al abrir un detalle existente no se consulta la cotización: se respeta la guardada. */
+  private cargandoExistente = false;
+  /** Altas en curso: un segundo Confirmar duplicaría formas de pago. */
+  guardando = false;
   /** Opciones ngx-currency para el campo Valor según moneda seleccionada (Guarani: sin decimales, punto miles; otras: decimales). */
   valorCurrencyOptions: any;
   /** Opciones ngx-currency para Cotización (siempre con decimales). */
@@ -150,11 +154,13 @@ export class AdicionarFormaPagoDialogComponent {
       const denom = (m?.denominacion || '').toUpperCase();
       this.mostrarCotizacion = denom !== 'GUARANI' && denom !== 'GS' && denom !== '';
       this.actualizarValidadoresCotizacion();
-      if (this.mostrarCotizacion && m) {
+      if (!this.mostrarCotizacion || !m) {
+        this.cotizacionConsulta++; // una consulta en vuelo de la moneda anterior ya no aplica
+      }
+      if (this.mostrarCotizacion && m && !this.cargandoExistente) {
         // Prefill cotización mercado siempre (compra > venta > último Cambio > moneda.cambio).
         this.prefillCotizacionMercado(m);
       } else if (!this.mostrarCotizacion && this.data?.montoSugerido != null && !this.isModoEdicion) {
-        this.cotizacionConsulta++; // una consulta en vuelo de la moneda anterior ya no aplica
         this.valorDesdeCotizacionManual = false;
         this.cotizacionOrigen = 'none';
         this.form.patchValue(
@@ -178,6 +184,7 @@ export class AdicionarFormaPagoDialogComponent {
       this.mostrarCamposCheque = formaPago?.descripcion != null && (formaPago.descripcion + '').toUpperCase().includes('CHEQUE');
       const fechaPago = existente.fechaPago ? new Date(existente.fechaPago) : null;
       const fechaEmisionCheque = existente.fechaEmisionCheque ? new Date(existente.fechaEmisionCheque) : this.form.get('fechaEmisionCheque').value;
+      this.cargandoExistente = true;
       this.form.patchValue({
         monedaId: existente.monedaId,
         formaPagoId: existente.formaPagoId,
@@ -190,6 +197,7 @@ export class AdicionarFormaPagoDialogComponent {
         nominal: existente.nominal ?? true,
         diferido: existente.diferido ?? true
       });
+      this.cargandoExistente = false;
     }
     this.form.get('valor').valueChanges.subscribe(() => {
       // El usuario escribió el valor: deja de calcularse desde la cotización
@@ -377,6 +385,9 @@ export class AdicionarFormaPagoDialogComponent {
   }
 
   onConfirmar(): void {
+    if (this.guardando) {
+      return;
+    }
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;
@@ -482,6 +493,10 @@ export class AdicionarFormaPagoDialogComponent {
   }
 
   private guardarEnSecuencia(solicitudPagoId: number, detalles: SolicitudPagoDetalleInput[]): void {
+    if (this.guardando) {
+      return;
+    }
+    this.guardando = true;
     const guardados: any[] = [];
     const siguiente = (i: number) => {
       if (i >= detalles.length) {

@@ -141,7 +141,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="!form.valid">
+    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="!form.valid || guardando">
       {{ textoBoton }}
     </button>
   </mat-dialog-actions>

@@ -57,7 +57,7 @@
         <div class="tab-body">
           <div class="tab-actions" *ngIf="isEditable">
             <button mat-stroked-button color="primary" type="button" (click)="onAgregarNota()"
-                    [disabled]="!selectedProveedor?.id || creacionIncierta">
+                    [disabled]="!selectedProveedor?.id || creacionIncierta || pantallaDesactualizada || saving">
               <mat-icon>add</mat-icon> Adicionar nota
             </button>
           </div>
@@ -137,7 +137,7 @@
         <div class="tab-body">
           <div class="tab-actions" *ngIf="isEditable">
             <button mat-stroked-button color="primary" type="button" (click)="onAgregarFormaPago()"
-                    [disabled]="!selectedProveedor?.id || (!isEditMode && notasAgregadas?.length < 1) || monedasFallo || formasPagoFallo || creacionIncierta">
+                    [disabled]="!selectedProveedor?.id || (!isEditMode && notasAgregadas?.length < 1) || monedasFallo || formasPagoFallo || creacionIncierta || pantallaDesactualizada || saving">
               <mat-icon>add</mat-icon> Adicionar forma de pago
             </button>
             <button *ngIf="monedasFallo || formasPagoFallo" mat-stroked-button color="warn" type="button" (click)="reintentarListas()">
@@ -170,7 +170,7 @@
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #menuFormaPago="matMenu">
-                    <button mat-menu-item (click)="onEditarDetalle(d, i)" [disabled]="!puedeEditarFormaPagoComputed">
+                    <button mat-menu-item (click)="onEditarDetalle(d, i)" [disabled]="!puedeEditarFormaPagoComputed || monedasFallo || formasPagoFallo || pantallaDesactualizada || creacionIncierta || saving">
                       <mat-icon>edit</mat-icon><span>Editar</span>
                     </button>
                     <button mat-menu-item (click)="onQuitarDetalle(i)">
@@ -201,7 +201,7 @@
       <mat-icon>lock_open</mat-icon> Reabrir
     </button>
     <button *ngIf="isEditable" mat-stroked-button color="primary" (click)="onGuardar()"
-            [disabled]="saving || creacionIncierta || !selectedProveedor || notasAgregadas?.length < 1">
+            [disabled]="saving || creacionIncierta || pantallaDesactualizada || !selectedProveedor || notasAgregadas?.length < 1">
       {{ saving ? 'Guardando...' : 'Guardar' }}
     </button>
     <button *ngIf="puedeSolicitar" mat-raised-button color="primary" (click)="onSolicitar()" [disabled]="saving">
