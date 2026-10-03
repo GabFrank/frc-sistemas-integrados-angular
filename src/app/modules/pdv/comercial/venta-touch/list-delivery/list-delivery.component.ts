@@ -269,7 +269,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onDeliveryClick(row: Delivery, index) {
     this.calcularVueltoSub.next(null);
-    if (row.venta?.id == null) {
+    // Con un cobro sin confirmar se vuelve a leer del filial: trae sus cobros reales y un objeto sin la marca (#390)
+    if (row.venta?.id == null || row.cobroIncierto) {
       this.deliveryService.onGetById(row.id, false).subscribe((res) => {
         if (res != null) {
           let aux = this.selectedDelivery?.id;
