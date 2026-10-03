@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { SolicitudPago, SolicitudPagoInput, SolicitudPagoDetalleInput, SolicitudPagoEstado } from './solicitud-pago.model';
 import { NotaRecepcion } from './nota-recepcion.model';
 import { GetSolicitudesPorPedidoGQL } from './graphql/getSolicitudesPorPedido';
@@ -25,7 +25,13 @@ import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
 import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+
+/** Cargas de la solicitud y sus listados: 60 s sin el aviso genérico del link; avisa el llamador (#390). */
+const CONSULTA_SOLICITUD: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Guardados: el error de red llega al llamador (el link ya avisa si se cortó por tiempo). */
+const GUARDADO_PROPAGA = { networkError: { propagate: true } };
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
@@ -67,9 +73,12 @@ export class SolicitudPagoService {
       this.getSolicitudesPorPedidoGQL,
       { pedidoId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     ).pipe(
+      // null (error GraphQL, el servicio ya avisó) pasa a error: antes daba TypeError y el llamador quedaba cargando
+      switchMap(result => result == null ? throwError(() => new Error('Solicitudes sin datos')) : of(result)),
       map(result => this.processComputedProperties(result as SolicitudPago[]))
     );
   }
@@ -89,7 +98,11 @@ export class SolicitudPagoService {
       null,
       null,
       null,
-      true
+      true,
+      null,
+      null,
+      PROPAGAR_ERROR_DE_RED,
+      CONSULTA_SOLICITUD
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -111,8 +124,9 @@ export class SolicitudPagoService {
       this.getSolicitudesPagoPaginatedGQL,
       { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     ).pipe(
       map((pageResult: SolicitudPagoPageResult) => {
         if (pageResult?.getContent?.length) {
@@ -131,8 +145,9 @@ export class SolicitudPagoService {
       this.getNotaRecepcionDisponibleParaPagoPorNumeroGQL,
       { numero, proveedorId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -146,8 +161,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoGQL,
       { pedidoId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -159,8 +175,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoPorProveedorGQL,
       { proveedorId },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -177,8 +194,9 @@ export class SolicitudPagoService {
       this.getNotasDisponiblesParaPagoPorProveedorPaginatedGQL,
       { proveedorId, page, size, filtroTexto: filtroTexto?.trim() || null },
       true,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_SOLICITUD
     );
   }
 
@@ -191,7 +209,11 @@ export class SolicitudPagoService {
     const input = solicitud.toInput();
     return this.genericCrudService.onSave<SolicitudPago>(
       this.saveSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -205,7 +227,11 @@ export class SolicitudPagoService {
   onSaveInput(input: SolicitudPagoInput): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.saveSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -218,12 +244,16 @@ export class SolicitudPagoService {
    * @returns Observable con resultado booleano
    */
   onDelete(id: number): Observable<boolean> {
+    // Sin el confirm propio del genérico (el llamador ya pregunta: eran dos y, rechazando el segundo, quedaba
+    // cargando). Un fallo emite null en el genérico: solo true es éxito (#390).
     return this.genericCrudService.onDelete(
       this.deleteSolicitudPagoGQL,
       id,
       'solicitud de pago',
       null,
-      true
+      false
+    ).pipe(
+      switchMap((ok) => ok === true ? of(true) : throwError(() => new Error('No se pudo eliminar la solicitud')))
     );
   }
 
@@ -232,12 +262,16 @@ export class SolicitudPagoService {
    * Usar después de confirmación del usuario (sin diálogo propio).
    */
   onEliminarSolicitudPagoDetalle(id: number): Observable<boolean> {
+    // El onDelete genérico emite null también ante un error de red o GraphQL: tomarlo como éxito hacía que
+    // editar una forma de pago la duplicara (borrar «ok» + agregar). Solo true es éxito (#390).
     return this.genericCrudService.onDelete(
       this.eliminarSolicitudPagoDetalleGQL,
       id,
       null,
       null,
       false
+    ).pipe(
+      switchMap((ok) => ok === true ? of(true) : throwError(() => new Error('No se pudo eliminar la forma de pago')))
     );
   }
 
@@ -280,7 +314,11 @@ export class SolicitudPagoService {
   onActualizarSolicitudPago(input: SolicitudPagoInput): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.actualizarSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );

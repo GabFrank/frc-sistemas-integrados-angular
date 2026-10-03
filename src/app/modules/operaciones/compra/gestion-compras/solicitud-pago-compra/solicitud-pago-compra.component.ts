@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { finalize } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { SolicitudPago, SolicitudPagoEstado } from '../solicitud-pago.model';
 import { NotaRecepcion } from '../nota-recepcion.model';
@@ -91,19 +92,17 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
    * Carga las solicitudes de pago existentes
    */
   private loadSolicitudes(): void {
+    // finalize: el loading tiene que bajar también en el error (antes solo en complete) (#390)
     this.solicitudPagoService.onGetSolicitudesPorPedido(this.pedido.id)
-      .pipe(untilDestroyed(this))
+      .pipe(finalize(() => this.loading = false), untilDestroyed(this))
       .subscribe({
         next: (solicitudes) => {
-          this.solicitudesPago = solicitudes;
+          this.solicitudesPago = solicitudes ?? [];
           this.updateComputedProperties();
         },
         error: (error) => {
           console.error('Error al cargar solicitudes:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cargar solicitudes de pago');
-        },
-        complete: () => {
-          this.loading = false;
+          this.notificacionService.openWarn('No se pudieron cargar las solicitudes de pago: el servidor no responde. Volvé a entrar a la pestaña.', 6);
         }
       });
   }
@@ -114,19 +113,19 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
   private loadNotasDisponibles(): void {
     this.loadingNotas = true;
     this.solicitudPagoService.onGetNotasDisponiblesParaPago(this.pedido.id)
-      .pipe(untilDestroyed(this))
+      .pipe(finalize(() => {
+        this.loadingNotas = false;
+        this.updateComputedProperties();
+      }), untilDestroyed(this))
       .subscribe({
         next: (notas) => {
-          this.notasDisponibles = notas;
+          // null = error GraphQL (el servicio ya avisó)
+          this.notasDisponibles = notas ?? [];
           this.updateComputedProperties();
         },
         error: (error) => {
           console.error('Error al cargar notas disponibles:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cargar notas disponibles');
-        },
-        complete: () => {
-          this.loadingNotas = false;
-          this.updateComputedProperties();
+          this.notificacionService.openWarn('No se pudieron cargar las notas disponibles para pago: no se puede crear una solicitud hasta volver a entrar a la pestaña.', 6);
         }
       });
   }
@@ -207,8 +206,9 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
             },
             error: (error) => {
               console.error('Error al eliminar solicitud:', error);
-              this.notificacionService.openAlgoSalioMal('Error al eliminar solicitud');
-              this.loading = false;
+              // Sin respuesta pudo haberse eliminado igual: se recarga para ver lo que quedó
+              this.notificacionService.openWarn('No se pudo confirmar que la solicitud se eliminó: revisá la lista.', 6);
+              this.loadData();
             }
           });
       }

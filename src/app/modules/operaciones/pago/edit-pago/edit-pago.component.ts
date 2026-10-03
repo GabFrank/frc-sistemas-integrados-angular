@@ -153,8 +153,11 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
         (solicitudPago) => {
           console.log('solicitudPago', solicitudPago);
           
-          this.solicitudPago = solicitudPago;
           this.loadingSolicitudPago = false;
+          if (solicitudPago == null) {
+            return; // Error GraphQL: el servicio ya avisó (#390)
+          }
+          this.solicitudPago = solicitudPago;
 
           // En la nueva versión, las notas vienen dentro de la solicitud
           if (this.solicitudPago.notasRecepcion && this.solicitudPago.notasRecepcion.length > 0) {
