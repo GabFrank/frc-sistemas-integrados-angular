@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 
 /** Lecturas del pedido: todos sus suscriptores tienen error: (#390). Corte de pantalla, sin aviso del link. */
 const CONSULTA_PEDIDO: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Consultas que espera un diálogo abierto (verificar, rechazar, guardar una nota): 20 s, avisa el llamador. */
+const CONSULTA_DIALOGO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 // GraphQL imports
 import { SavePedidoFullGQL } from './gestion-compras/graphql/savePedidoFull';
@@ -344,7 +346,9 @@ export class PedidoService {
    * @returns Observable<NotaRecepcionItemDistribucion[]>
    */
   onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(notaRecepcionItemId: number): Observable<NotaRecepcionItemDistribucion[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemDistribucionesByNotaRecepcionItemIdGQL, { notaRecepcionItemId });
+    // Sus llamadores (recepción, rechazar ítem, distribuir desde la nota) tienen todos su error: (#390)
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemDistribucionesByNotaRecepcionItemIdGQL, { notaRecepcionItemId },
+      true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_DIALOGO);
   }
 
   /**
@@ -475,7 +479,11 @@ export class PedidoService {
   onBuscarNotasPorProveedorYNumero(proveedorId: number, numero: number): Observable<NotaRecepcion[]> {
     return this.genericCrudService.onCustomQuery(
       this.getNotaRecepcionPorProveedorAndNumeroGQL,
-      { proveedorId, numero }
+      { proveedorId, numero },
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      CONSULTA_DIALOGO
     );
   }
 

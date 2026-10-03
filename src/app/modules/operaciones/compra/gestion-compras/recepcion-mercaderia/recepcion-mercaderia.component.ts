@@ -4,9 +4,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSelect } from '@angular/material/select';
 import { MatTableDataSource } from '@angular/material/table';
-import { Subject, forkJoin } from 'rxjs';
+import { Observable, Subject, forkJoin, of, throwError } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 // Importar modelos reales
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
@@ -897,7 +897,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     const sucursalSeleccionada = this.sucursalesSeleccionadas[0];
 
     // Buscar la distribución correspondiente para vincular correctamente
-    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id)
+    this.distribucionesDelItem$(item.id)
       .subscribe({
         next: (distribuciones) => {
           console.log('Distribuciones encontradas:', distribuciones);
@@ -1601,9 +1601,21 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     });
   }
 
+  /**
+   * Distribuciones de un ítem para verificar o rechazar. El servicio propaga el error de red; un `null` (error
+   * GraphQL, el servicio ya avisó) también va al `error:` del llamador: antes daba TypeError y el clic se perdía (#390).
+   */
+  private distribucionesDelItem$(itemId: number): Observable<NotaRecepcionItemDistribucion[]> {
+    return this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(itemId).pipe(
+      switchMap((distribuciones) =>
+        distribuciones == null ? throwError(() => new Error('Distribuciones sin datos')) : of(distribuciones)
+      )
+    );
+  }
+
   private abrirDialogoRechazo(item: NotaRecepcionItem): void {
     // Obtener las distribuciones del item y filtrar por sucursales seleccionadas
-    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id)
+    this.distribucionesDelItem$(item.id)
       .subscribe({
         next: (distribuciones) => {
           console.log('Distribuciones del item:', distribuciones);
@@ -1723,7 +1735,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Obtener distribuciones del backend para vincular correctamente
-    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id)
+    this.distribucionesDelItem$(item.id)
       .subscribe({
         next: (distribucionesBackend) => {
           console.log('Distribuciones del backend:', distribucionesBackend);
@@ -1896,7 +1908,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     });
 
     // Obtener distribuciones del backend para calcular la cantidad restante por sucursal
-    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id)
+    this.distribucionesDelItem$(item.id)
       .subscribe({
         next: (distribucionesBackend) => {
           console.log('Distribuciones del backend para recepción automática:', distribucionesBackend);

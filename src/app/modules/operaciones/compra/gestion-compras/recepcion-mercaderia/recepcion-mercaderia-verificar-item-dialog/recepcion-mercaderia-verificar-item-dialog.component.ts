@@ -19,6 +19,17 @@ import { MotivoModificacion, MOTIVO_MODIFICACION_LABELS } from './motivo-modific
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
 import { LoteService } from '../../../../lote/lote.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import {
+  ContextoConsulta,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../../../../generics/generic-crud.service';
+
+/** Presentaciones y lotes del ítem a verificar: 20 s, avisa el diálogo (#390). */
+const CONSULTA_VERIFICAR: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
 
 interface DistribucionFormData {
@@ -205,8 +216,11 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     
     // Crear observable para cargar presentaciones
     const presentacionesObservable = this.item.producto && this.item.producto.id
-      ? this.presentacionService.onGetPresentacionesPorProductoId(this.item.producto.id)
+      ? this.presentacionService.onGetPresentacionesPorProductoId(this.item.producto.id, true, PROPAGAR_ERROR_DE_RED,
+          CONSULTA_VERIFICAR)
           .pipe(
+            // Un null (error GraphQL) cae al mismo fallback que el error de red
+            map((presentaciones) => presentaciones ?? (this.item.presentacionEnNota ? [this.item.presentacionEnNota] : [])),
             catchError(error => {
               console.error('Error cargando presentaciones del producto:', error);
               // En caso de error, usar la presentación actual del item
@@ -215,14 +229,15 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           )
       : of([]);
 
-    // Lotes ya registrados del producto. Solo hacen falta si el producto lleva control de lote;
-    // un fallo acá no puede frenar la verificación, así que degrada a lista vacía.
+    // Lotes ya registrados del producto. Solo hacen falta si el producto lleva control de lote. Sin ellos un
+    // lote existente no autocompleta sus fechas ni avisa si no está liberado, y se guardaría con fechas que no
+    // son las del lote: un fallo (null) cierra el diálogo con aviso en vez de verificar a ciegas (#390).
     const lotesObservable = this.requiereLoteComputed && this.item.producto?.id
-      ? this.loteService.onGetLotesPorProducto(this.item.producto.id, true)
+      ? this.loteService.onGetLotesPorProducto(this.item.producto.id, true, PROPAGAR_ERROR_DE_RED, CONSULTA_VERIFICAR)
           .pipe(
             catchError(error => {
               console.error('Error cargando lotes del producto:', error);
-              return of([] as Lote[]);
+              return of(null as Lote[]);
             })
           )
       : of([] as Lote[]);
@@ -236,6 +251,15 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     .subscribe({
       next: (result) => {
         console.log('Todos los datos cargados:', result);
+
+        if (result.lotes == null) {
+          this.loadingPresentaciones = false;
+          this.notificacionService.openWarn(
+            `No se pudieron cargar los lotes de ${this.item.producto?.descripcion ?? 'este producto'}: ` +
+            'no se puede verificar sin ellos. Intentá de nuevo.', 6);
+          this.dialogRef.close();
+          return;
+        }
 
         this.indexarLotes(result.lotes);
 

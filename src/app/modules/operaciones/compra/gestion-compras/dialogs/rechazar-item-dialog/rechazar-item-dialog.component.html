@@ -160,6 +160,15 @@
       <!-- Botones de acción -->
       <div class="dialog-actions">
         <button
+          *ngIf="distribucionesFallo"
+          type="button"
+          mat-stroked-button
+          color="warn"
+          (click)="reintentarDistribuciones()"
+        >
+          Reintentar distribuciones
+        </button>
+        <button
           type="button"
           mat-button
           (click)="onCancelar()"
