@@ -145,6 +145,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cambioArg;
   cobroDetalleList: CobroDetalle[] = [];
   valorParcialPagado = 0;
+  /** Una línea de un delivery guardándose en el filial (#390). */
+  private cobroDeliveryEnVuelo = false;
   isDialogOpen = false;
   isVuelto = false;
   isDescuento = false;
@@ -231,7 +233,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
-      data.valor += data.delivery.precio.valor;
+      // Un delivery legado sin tarifa rompía acá (precio null): se cobra sin ella y se avisa (#390)
+      if (data.delivery.precio?.valor == null) {
+        this.notificacionSnackbar.openWarn('Este delivery no tiene tarifa de envío cargada: revisalo antes de cobrar.', 6);
+      }
+      data.valor += data.delivery.precio?.valor ?? 0;
     }
     if (data?.isCredito == true) this.isCredito = true;
   }
@@ -624,6 +630,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addCobroDetalle(selectedValor?: number, selectedItem?: CobroDetalle) {
+    if (selectedItem?.id == null && this.data?.delivery != null) {
+      if (this.cobroDeliveryEnVuelo) return; // un segundo Enter duplicaría la línea
+      if (this.data.delivery.cobroIncierto) {
+        this.notificacionSnackbar.openWarn('Un cobro de este delivery quedó sin confirmar: cerrá y abrilo de nuevo desde la lista de deliverys.', 8);
+        return;
+      }
+    }
     if (this.selectedFormaPago.descripcion == "CONVENIO") {
       this.onConvenioClick();
       return;
@@ -697,15 +710,27 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       if (this.data?.delivery != null && item?.id == null) {
         item.cobro = this.data?.delivery?.venta?.cobro;
+        // Lo pagado y el saldo ya se sumaron: si la línea no se registra se devuelven (#390)
+        const pagadoAntes = this.valorParcialPagado - item.valor * cambio;
+        this.cobroDeliveryEnVuelo = true;
         this.ventaService
           .onSaveCobroDetalle(item.toInput(), false)
           .pipe(untilDestroyed(this))
-          .subscribe((cbRes) => {
-            if (cbRes != null) {
-              item.id = cbRes.id;
-              item.requiereRegistroTarjeta = esLineaNueva;
-              this.cobroDetalleList.push(item);
-              if (esLineaNueva) this.escanearSiEsTarjeta(item);
+          .subscribe({
+            next: (cbRes) => {
+              this.cobroDeliveryEnVuelo = false;
+              if (cbRes != null) {
+                item.id = cbRes.id;
+                item.requiereRegistroTarjeta = esLineaNueva;
+                this.cobroDetalleList.push(item);
+                if (esLineaNueva) this.escanearSiEsTarjeta(item);
+              } else {
+                this.cobroDeliveryNoRegistrado([], pagadoAntes, cambio);
+              }
+            },
+            error: (err) => {
+              this.cobroDeliveryEnVuelo = false;
+              this.cobroDeliveryNoRegistrado(err, pagadoAntes, cambio);
             }
           });
       } else {
@@ -742,6 +767,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     itens?: VentaCreditoCuotaInput[],
     ticket?: boolean
   ) {
+    // Con una línea del delivery guardándose el saldo ya la cuenta: finalizar cerraría el delivery sin ella. Con
+    // un cobro sin confirmar, cerrarlo podría dejarlo incompleto o cobrarlo dos veces (#390).
+    if (this.cobroDeliveryEnVuelo) {
+      return;
+    }
+    if (this.data?.delivery?.cobroIncierto) {
+      this.notificacionSnackbar.openWarn('Un cobro de este delivery quedó sin confirmar: cerrá y abrilo de nuevo desde la lista de deliverys.', 8);
+      return;
+    }
     // Todos los caminos de cierre pasan por acá (Enter, F10, botón, saldo 0 en addCobroDetalle):
     // es el único lugar donde la regla no se puede saltear.
     if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) {
@@ -1068,6 +1102,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeleteItem(item: CobroDetalle, i) {
+    // Con una línea del delivery en vuelo, revertirla pisaría el efecto del borrado (#390)
+    if (this.data?.delivery != null && (this.cobroDeliveryEnVuelo || this.data.delivery.cobroIncierto)) {
+      return;
+    }
     if (item.id != null) {
       //quiere decir que esta guardado en la base de datos
       this.ventaService
@@ -1335,7 +1373,30 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
+    if (this.cobroDeliveryEnVuelo && this.data?.delivery) {
+      // Se cerró con una línea en vuelo: pudo haberse guardado (#390)
+      this.data.delivery.cobroIncierto = true;
+    }
     this.formaPagoSub.unsubscribe();
+  }
+
+  /**
+   * La línea del delivery no quedó registrada: se devuelve lo sumado. Un error de negocio (array) no se aplicó;
+   * uno de red o un corte pudo haberse guardado en el filial: el delivery queda marcado y no se cierra hasta
+   * volver a leerlo de la lista (#390).
+   */
+  private cobroDeliveryNoRegistrado(err: any, pagadoAntes: number, cambio: number): void {
+    this.valorParcialPagado = pagadoAntes;
+    this.formGroup.get("valor").setValue((this.data.valor - this.valorParcialPagado) / (cambio || 1));
+    this.formGroup.controls.saldo.setValue(this.data.valor - this.valorParcialPagado);
+    if (Array.isArray(err)) {
+      this.notificacionSnackbar.openWarn('No se pudo registrar el cobro: reintentá.', 5);
+      return;
+    }
+    if (this.data?.delivery) {
+      this.data.delivery.cobroIncierto = true;
+    }
+    this.notificacionSnackbar.openWarn('No se pudo confirmar el cobro: cerrá y abrí el delivery de nuevo desde la lista antes de seguir.', 8);
   }
 
   onValorEnter() {

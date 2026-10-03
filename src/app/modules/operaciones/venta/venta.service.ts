@@ -435,12 +435,15 @@ export class VentaService {
     cobroDetalleInput: CobroDetalleInput,
     servidor = true
   ): Observable<CobroDetalle> {
+    // Sin propagar, un error de red no emitía y la línea quedaba sumada al saldo sin registrarse. Sus dos
+    // llamadores (cobro de un delivery en edit-delivery y pago-touch) revierten en su error: (#390)
     return this.genericService.onSave(
       this.saveCobroDetalleQuery,
       cobroDetalleInput,
       null,
       null,
-      servidor
+      servidor,
+      { networkError: { propagate: true } }
     );
   }
 

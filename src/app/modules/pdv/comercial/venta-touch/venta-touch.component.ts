@@ -1115,6 +1115,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
+    if (this.selectedDelivery?.cobroIncierto) {
+      // Reusaría los cobros en memoria, sin la línea sin confirmar: se podría cobrar dos veces (#390)
+      this.notificacionSnackbar.openWarn("Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista de deliverys.", 8);
+      return;
+    }
     this.isDialogOpen = true;
     this.mostrarPrecios = false;
     if (this.selectedItemList?.length > 0) {
