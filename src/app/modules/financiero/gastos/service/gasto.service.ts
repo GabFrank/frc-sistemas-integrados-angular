@@ -110,8 +110,9 @@ export class GastoService {
     return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
 
-  onGetByCajaId(id: number, servidor = true): Observable<Gasto[]> {
-    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor);
+  onGetByCajaId(id: number, servidor = true, silentLoad?: boolean, warningText?: string): Observable<Gasto[]> {
+    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor, null, null, null, silentLoad,
+      null, warningText);
   }
 
   onReimprimir(id: number, servidor = true): Observable<boolean> {
@@ -130,7 +131,8 @@ export class GastoService {
     return this.genericService.onSaveCustom(this.saveVuelto, data, servidor);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Gasto>> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true,
+                errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<Gasto>> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
@@ -140,7 +142,7 @@ export class GastoService {
       descripcion,
       page,
       size
-    }, servidor)
+    }, servidor, errorConf ?? null, undefined, contexto)
   }
 
   /** Va al central. `errorConf` y `contexto` son para el cierre de caja (#390); sin ellos queda como antes. */
@@ -261,8 +263,10 @@ export class GastoService {
       undefined, RETIRO_PRE_GASTO);
   }
 
-  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId });
+  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number, errorConf?: QueryError, silentLoad?: boolean,
+                           contexto?: ContextoConsulta): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId }, true,
+      errorConf ?? null, silentLoad, contexto);
   }
 
   ejecutarRetiroPreGasto(input: {

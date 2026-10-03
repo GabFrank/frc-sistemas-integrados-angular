@@ -236,16 +236,25 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id, !this.isVentaTouch)
+        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id, !this.isVentaTouch,
+          PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true })
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedMaletin = res;
-            this.descripcionMaletinControl.setValue(
-              this.selectedMaletin.descripcion
-            );
-            this.descripcionMaletinControl.disable();
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedMaletin = res;
+              this.descripcionMaletinControl.setValue(
+                this.selectedMaletin.descripcion
+              );
+              this.descripcionMaletinControl.disable();
+            }
+          },
+          // Sin respuesta el campo del maletín quedaba vacío sin aviso (#390).
+          error: () => this.notificacionBar.notification$.next({
+            texto: "No se pudo cargar el maletín de la caja: el servidor no responde.",
+            color: NotificacionColor.warn,
+            duracion: 5,
+          })
         });
     if (this.selectedCaja?.conteoApertura != null) {
       this.selectedConteoApertura = this.selectedCaja.conteoApertura;
@@ -281,33 +290,41 @@ export class AdicionarCajaDialogComponent implements OnInit {
     if (this.verificarMaletinTimeout == null) {
       this.verificarMaletinTimeout = setTimeout(() => {
         this.maletinService
-          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch)
+          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch, PROPAGAR_ERROR_DE_RED)
           .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res != null) {
-              let maletinEncontrado: Maletin = res;
-              if (maletinEncontrado.abierto == true) {
+          .subscribe({
+            // Sin respuesta el clic de verificar quedaba mudo (el maletín no se verifica: no se abre con él) (#390).
+            error: () => this.notificacionBar.notification$.next({
+              texto: "No se pudo verificar el maletín: el servidor no responde. Intentá de nuevo.",
+              color: NotificacionColor.warn,
+              duracion: 5,
+            }),
+            next: (res) => {
+              if (res != null) {
+                let maletinEncontrado: Maletin = res;
+                if (maletinEncontrado.abierto == true) {
+                  this.notificacionBar.notification$.next({
+                    texto: "Este maletin ya esta siendo utilizado",
+                    color: NotificacionColor.warn,
+                    duracion: 3,
+                  });
+                  this.seleccionarMaletin(null);
+                } else {
+                  this.notificacionBar.notification$.next({
+                    texto: "Maletin verificado correctamente",
+                    color: NotificacionColor.success,
+                    duracion: 2,
+                  });
+                  this.seleccionarMaletin(maletinEncontrado);
+                }
+              } else {
                 this.notificacionBar.notification$.next({
-                  texto: "Este maletin ya esta siendo utilizado",
-                  color: NotificacionColor.warn,
+                  texto: "No existe un maletin registrado con ese código",
+                  color: NotificacionColor.danger,
                   duracion: 3,
                 });
                 this.seleccionarMaletin(null);
-              } else {
-                this.notificacionBar.notification$.next({
-                  texto: "Maletin verificado correctamente",
-                  color: NotificacionColor.success,
-                  duracion: 2,
-                });
-                this.seleccionarMaletin(maletinEncontrado);
               }
-            } else {
-              this.notificacionBar.notification$.next({
-                texto: "No existe un maletin registrado con ese código",
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
-              this.seleccionarMaletin(null);
             }
           });
         clearTimeout(this.verificarMaletinTimeout)

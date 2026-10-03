@@ -11,8 +11,9 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dial
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
-import { Subscription } from "rxjs";
-import { debounceTime, distinctUntilChanged, take } from 'rxjs/operators';
+import { of, Subscription } from "rxjs";
+import { catchError, debounceTime, distinctUntilChanged, take, timeout } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import {
   orderByIdDesc,
   replaceObject,
@@ -27,9 +28,12 @@ import { DialogosService } from "../../../../../shared/components/dialogos/dialo
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { FuncionarioService } from "../../../../personas/funcionarios/funcionario.service";
 import { MonedaService } from "../../../moneda/moneda.service";
-import { PdvCaja } from "../../../pdv/caja/caja.model";
+import { CajaBalance, esBalanceVerificable, PdvCaja } from "../../../pdv/caja/caja.model";
 import { GastoService } from "../../service/gasto.service";
 import { Gasto } from "../../models/gastos.model";
+
+const AVISO_SALDO = 'No se pudo verificar el saldo de la caja: no se puede registrar hasta reintentar.';
+const AVISO_GASTOS_CAJA = 'No se pudo cargar la lista de gastos de la caja: revisá antes de cargar otro.';
 
 export class AdicionarGastoData {
   caja: PdvCaja;
@@ -82,6 +86,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   ];
 
   dataSource = new MatTableDataSource<Gasto>(null);
+  /**
+   * Saldo de la caja contra el que se valida el monto. Propio del diálogo: la caja que llega es la compartida del
+   * POS y un balance de una apertura anterior quedaba escrito ahí. Sin balance verificado no se registra (#390).
+   */
+  balanceCaja: CajaBalance = null;
+  estadoBalance: 'cargando' | 'ok' | 'fallo' = 'cargando';
+  private balanceCargaId = 0;
   solicitudesProcesadasDataSource = new MatTableDataSource<PreGasto>([]);
   solicitudesProcesadasOriginal: PreGasto[] = [];
   filtroSolicitudIdControl = new FormControl("");
@@ -149,22 +160,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
-      gastoService
-        .onGetByCajaId(this.selectedCaja.id, false)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.gastoList = orderByIdDesc<Gasto>(res);
-            this.dataSource.data = this.gastoList;
-          }
-        });
-      this.cajaService
-        .onCajaBalancePorId(this.selectedCaja.id, false)
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedCaja.balance = res;
-          }
-        });
+      this.cargarGastosDeCaja();
+      this.cargarBalance();
     }
   }
 
@@ -726,23 +723,65 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onGastoClick(gasto: Gasto) { }
 
+  /** La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo gasto. */
+  private cargarGastosDeCaja(): void {
+    this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .subscribe((gastos) => {
+        if (gastos != null) {
+          this.gastoList = orderByIdDesc<Gasto>(gastos);
+          this.dataSource.data = this.gastoList;
+        } else {
+          this.notificacionService.openWarn(AVISO_GASTOS_CAJA, 5);
+        }
+      });
+  }
+
+  /** Carga silenciosa con corte de mostrador: onGetById no emite si falla, así que se corta acá. */
+  cargarBalance(): void {
+    const id = ++this.balanceCargaId;
+    this.estadoBalance = 'cargando';
+    this.cajaService.onCajaBalancePorId(this.selectedCaja.id, false, true, AVISO_SALDO)
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .subscribe((res) => {
+        if (id !== this.balanceCargaId) return;
+        if (esBalanceVerificable(res)) {
+          this.balanceCaja = res;
+          this.estadoBalance = 'ok';
+        } else {
+          this.estadoBalance = 'fallo';
+          this.notificacionService.openWarn(AVISO_SALDO, 5);
+        }
+      });
+  }
+
+  /** Sin saldo verificado no se registra un gasto: fail-closed (#390). */
+  private saldoVerificado(): boolean {
+    if (this.estadoBalance === 'ok') return true;
+    this.notificacionService.openWarn(this.estadoBalance === 'cargando'
+      ? 'Todavía se está verificando el saldo de la caja. Esperá unos segundos.'
+      : 'No se pudo verificar el saldo de la caja: usá «Reintentar».', 5);
+    return false;
+  }
+
   verficarValores(): boolean {
+    if (!this.saldoVerificado()) return false;
     if (
       this.guaraniControl.value >
-      this.selectedCaja.balance.diferenciaGs * -1
+      this.balanceCaja.diferenciaGs * -1
     ) {
       this.notificacionService.openWarn(
         "El monto en guaraníes es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.realControl.value > this.selectedCaja.balance.diferenciaRs * -1) {
+    if (this.realControl.value > this.balanceCaja.diferenciaRs * -1) {
       this.notificacionService.openWarn(
         "El monto en reales es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.dolarControl.value > this.selectedCaja.balance.diferenciaDs * -1) {
+    if (this.dolarControl.value > this.balanceCaja.diferenciaDs * -1) {
       this.notificacionService.openWarn(
         "El monto en dolares es mayor a lo que tiene en caja"
       );
@@ -785,14 +824,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res) {
         this.cargarSolicitudesProcesadas();
-        this.gastoService.onGetByCajaId(this.selectedCaja.id, false)
-          .pipe(untilDestroyed(this))
-          .subscribe((gastos) => {
-            if (gastos != null) {
-              this.gastoList = orderByIdDesc<Gasto>(gastos);
-              this.dataSource.data = this.gastoList;
-            }
-          });
+        this.cargarGastosDeCaja();
       }
     });
   }
@@ -895,7 +927,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       undefined,
       0,
       1000,
-      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"]
+      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"],
+      undefined,
+      PROPAGAR_ERROR_DE_RED,
+      // Va al central desde el POS (#390): su error: ya existía y era inalcanzable.
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
     )
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -926,6 +962,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.solicitudesProcesadasOriginal = [];
           this.solicitudesProcesadasDataSource.data = [];
           this.cargandoSolicitudes = false;
+          this.notificacionService.openWarn('No se pudieron cargar las solicitudes de gasto: el servidor no responde.', 5);
         },
       });
   }
