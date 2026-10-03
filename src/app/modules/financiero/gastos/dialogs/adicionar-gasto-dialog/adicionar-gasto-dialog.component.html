@@ -138,6 +138,11 @@
           </mat-card>
         </div>
         <br />
+        <div *ngIf="estadoBalance === 'fallo'" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <mat-icon color="warn">error_outline</mat-icon>
+          <span>No se pudo verificar el saldo de la caja.</span>
+          <button mat-stroked-button type="button" (click)="cargarBalance()">Reintentar</button>
+        </div>
         <div style="height: 35px">
           <app-boton #guardarBtn (clickEvent)="isVuelto != true ? onGuardar() : onSaveVuelto()" [disableExpression]="
               selectedResponsable == null ||

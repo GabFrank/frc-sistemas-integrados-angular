@@ -110,8 +110,9 @@ export class GastoService {
     return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
 
-  onGetByCajaId(id: number, servidor = true): Observable<Gasto[]> {
-    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor);
+  onGetByCajaId(id: number, servidor = true, silentLoad?: boolean, warningText?: string): Observable<Gasto[]> {
+    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor, null, null, null, silentLoad,
+      null, warningText);
   }
 
   onReimprimir(id: number, servidor = true): Observable<boolean> {

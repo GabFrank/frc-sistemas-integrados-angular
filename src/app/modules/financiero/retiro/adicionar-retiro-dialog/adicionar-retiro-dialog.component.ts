@@ -1,7 +1,9 @@
 import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { Subscription } from 'rxjs';
+import { of, Subscription } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
+import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
 import { CurrencyMask, stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -9,10 +11,13 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MonedaService } from '../../moneda/moneda.service';
-import { PdvCaja } from '../../pdv/caja/caja.model';
+import { CajaBalance, esBalanceVerificable, PdvCaja } from '../../pdv/caja/caja.model';
 import { RetiroDetalle } from '../retiro-detalle.model';
 import { Retiro } from '../retiro.model';
 import { RetiroService } from '../retiro.service';
+
+const AVISO_SALDO = 'No se pudo verificar el saldo de la caja: no se puede registrar hasta reintentar.';
+const AVISO_RETIROS_CAJA = 'No se pudo cargar la lista de retiros de la caja: revisá antes de cargar otro.';
 
 export class AdicionarRetiroData {
   caja: PdvCaja;
@@ -55,6 +60,13 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   timer: any;
 
   dataSource = new MatTableDataSource<Retiro>([]);
+  /**
+   * Saldo de la caja contra el que se valida el monto. Propio del diálogo: la caja que llega es la compartida del
+   * POS y un balance de una apertura anterior quedaba escrito ahí. Sin balance verificado no se registra (#390).
+   */
+  balanceCaja: CajaBalance = null;
+  estadoBalance: 'cargando' | 'ok' | 'fallo' = 'cargando';
+  private balanceCargaId = 0;
   displayedColumns = [
     'id',
     'responsable',
@@ -88,16 +100,17 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
         }
       });
       this.selectedCajaSalida = data.caja;
-      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id, false).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = res;
-        }
-      });
-      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id, false).subscribe(res => {
-        if (res != null) {
-          this.selectedCajaSalida.balance = res;
-        }
-      })
+      // La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo retiro (#390).
+      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id, false, true, AVISO_RETIROS_CAJA)
+        .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.dataSource.data = res;
+          } else {
+            this.notificacionService.openWarn(AVISO_RETIROS_CAJA, 5);
+          }
+        });
+      this.cargarBalance();
     } else {
       //show a dialog with the message "No se encontró caja" and when dialog is closed, close the current dialog
       this.dialogService.confirm('No se encontró caja', null, null, ['No se encontró caja']).subscribe(res => {
@@ -246,16 +259,44 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
+  /** Carga silenciosa con corte de mostrador: onGetById no emite si falla, así que se corta acá. */
+  cargarBalance(): void {
+    const id = ++this.balanceCargaId;
+    this.estadoBalance = 'cargando';
+    this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id, false, true, AVISO_SALDO)
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .subscribe((res) => {
+        if (id !== this.balanceCargaId) return;
+        if (esBalanceVerificable(res)) {
+          this.balanceCaja = res;
+          this.estadoBalance = 'ok';
+        } else {
+          this.estadoBalance = 'fallo';
+          this.notificacionService.openWarn(AVISO_SALDO, 5);
+        }
+      });
+  }
+
+  /** Sin saldo verificado no se registra un retiro: fail-closed (#390). */
+  private saldoVerificado(): boolean {
+    if (this.estadoBalance === 'ok') return true;
+    this.notificacionService.openWarn(this.estadoBalance === 'cargando'
+      ? 'Todavía se está verificando el saldo de la caja. Esperá unos segundos.'
+      : 'No se pudo verificar el saldo de la caja: usá «Reintentar».', 5);
+    return false;
+  }
+
   verficarValores(): boolean {
-    if (this.guaraniControl.value > (this.selectedCajaSalida.balance.diferenciaGs * -1)) {
+    if (!this.saldoVerificado()) return false;
+    if (this.guaraniControl.value > (this.balanceCaja.diferenciaGs * -1)) {
       this.notificacionService.openWarn("El monto en guaraníes es mayor a lo que tiene en caja")
       return false;
     }
-    if (this.realControl.value > (this.selectedCajaSalida.balance.diferenciaRs * -1)) {
+    if (this.realControl.value > (this.balanceCaja.diferenciaRs * -1)) {
       this.notificacionService.openWarn("El monto en reales es mayor a lo que tiene en caja")
       return false;
     }
-    if (this.dolarControl.value > (this.selectedCajaSalida.balance.diferenciaDs * -1)) {
+    if (this.dolarControl.value > (this.balanceCaja.diferenciaDs * -1)) {
       this.notificacionService.openWarn("El monto en dolares es mayor a lo que tiene en caja")
       return false;
     }
