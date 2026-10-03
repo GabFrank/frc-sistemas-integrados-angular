@@ -132,3 +132,37 @@ pestaña financiera del legajo.
 | A/B | Exposición: el crédito también la alimenta; el «no disponible» debe ser por fuente y resetearse | baja | aplicado |
 | A | Timeouts sin especificar (quedaba 300 s) | media | 60 s (`TIMEOUT_POR_DEFECTO_MS`) silenciado |
 | A | Ningún suscriptor fuera de `modules/rrhh`; mobile no comparte código | — | verificado |
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (rama local desde `develop` 70f1429d, `application.properties`, replicación apagada y verificada en
+*Negative matches*), congelado con `kill -STOP` y `kill -CONT` de respaldo. Desktop `ng serve -c web` apuntado al `:8081`.
+Para ver el gating sobre datos ya cargados, varios casos abren la pantalla con el central normal y fuerzan la recarga
+con el central congelado (`ng.getComponent(...)`), que es el mismo camino que la recarga tras una acción.
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Liquidación 494 (BORRADOR), central normal | «Agregar Item» visible, Aprobar habilitado |
+| 2 | Misma liquidación, recarga con central congelado | a los 60 s avisos de conceptos, cabecera e ítems; «Agregar Item» oculto; aviso con «Reintentar»; Aprobar **deshabilitado**; los ítems a la vista se conservan |
+| 3 | Descongelar → «Reintentar» | aviso desaparece, Aprobar habilitado |
+| 4 | Legajo (JULIO PEREZ) → Financiero, recarga congelado | los 4 totales «No disponible»; exposición «No disponible — No cargaron: crédito, vales, préstamos»; al recargar con el central normal vuelve a 50.000 |
+| 5 | «Liquidación final» con central congelado (sin finiquito vigente) | a los 60,7 s «No se pudo consultar el finiquito…»; **no** se abre el diálogo de generar ni la pestaña |
+| 6 | Diálogo de generar finiquito (central normal), congelar y cambiar fecha | a los 60 s aviso, spinner apagado, «Generar» **deshabilitado**; descongelar y cambiar fecha → se recalcula y se habilita. No se generó nada |
+| 7 | Cuotas de préstamo, recarga congelado (camino de la recarga tras cobrar) | tabla vacía + aviso + «Reintentar»; con el central normal «Reintentar» la recarga. No se cobró nada |
+| 8 | Cuotas de vale abiertas con central congelado | a los 60,7 s aviso y «No se pudieron cargar las cuotas…» (no «El vale no tiene cuotas») |
+
+**No verificado en runtime:** revertir egreso (no hay funcionario egresado a mano en la base local; verificado por
+código: `null` abre la reversa manual, solo el error de red bloquea).
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Ningún llamador de los métodos que propagan queda sin `error:`; `onGetPorCliente` sin cambios para sus otros llamadores | — | verificado |
+| Financiero: respuestas de un funcionario anterior pisan las del nuevo (flags «No disponible» falsos) | media | contador de carga, se descarta lo viejo |
+| Detalle de liquidación: dos `cargarItems` en vuelo se pisan | media/baja | contador de pedido |
+| Finiquito: `cargaFallo` seguía en `true` tras una acción que devuelve datos frescos | baja | se baja en `aplicar` |
+| Avisos decían «el servidor no responde» también con `null` (error GraphQL) | baja | textos neutros donde aplica `null` |
+| Exposición vieja hasta la primera respuesta al cambiar de funcionario | baja | se recomputa al resetear el crédito |
+| `itemsCargados` no baja mientras recarga | baja | decisión del plan (sin parpadeo); se mantiene |
+| `recargarItems` del finiquito es código muerto previo | baja | fuera de alcance |
