@@ -21,6 +21,7 @@ import { catchError, map } from "rxjs/operators";
 import {
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
 } from "../../../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import {
@@ -50,6 +51,8 @@ export interface ListDeliveryData {
 
 /** Un listado: más margen que un escaneo; el aviso lo da el componente. */
 const CONTEXTO_LISTA_DELIVERYS = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+/** Abrir un delivery de la lista: el cajero espera de pie (#390). */
+const CONSULTA_MOSTRADOR_DELIVERY = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -271,7 +274,12 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.calcularVueltoSub.next(null);
     // Con un cobro sin confirmar se vuelve a leer del filial: trae sus cobros reales y un objeto sin la marca (#390)
     if (row.venta?.id == null || row.cobroIncierto) {
-      this.deliveryService.onGetById(row.id, false).subscribe((res) => {
+      this.deliveryService.onGetById(row.id, false, PROPAGAR_ERROR_DE_RED, CONSULTA_MOSTRADOR_DELIVERY).subscribe({ error: () => {
+        this.notificacionSnackbar.openWarn('No se pudo abrir el delivery: el filial no responde. Intentá de nuevo.', 4);
+      }, next: (res) => {
+        if (res == null) {
+          return; // Error GraphQL: el servicio ya avisó
+        }
         if (res != null) {
           let aux = this.selectedDelivery?.id;
           this.selectedDelivery = res;
@@ -284,7 +292,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
             return this.onAbrirDeliveryOpciones(row, index);
           }
         }
-      });
+      } });
     } else {
       if (row.id == this.selectedDelivery.id) {
         return this.onAbrirDeliveryOpciones(row, index);

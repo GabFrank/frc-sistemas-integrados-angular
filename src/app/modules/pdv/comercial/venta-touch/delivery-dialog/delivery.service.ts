@@ -60,8 +60,9 @@ export class DeliveryService {
       errorConf, silentLoad, contexto);
   }
 
-  onGetById(id, servidor: boolean = true): Observable<Delivery> {
-    return this.genericService.onGetById(this.deliveryById, id, null, null, servidor);
+  onGetById(id, servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Delivery> {
+    return this.genericService.onGetById(this.deliveryById, id, null, null, servidor, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onGetDeliverysByEstadoList(estadoList: DeliveryEstado[], sucId?: number, servidor: boolean = true) {

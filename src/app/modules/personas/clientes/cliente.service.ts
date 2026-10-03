@@ -88,8 +88,8 @@ export class ClienteService {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, servidor);
   }
 
-  onSearch(texto: string, servidor: boolean = true): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor);
+  onSearch(texto: string, servidor: boolean = true, errorConf?: QueryError): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor, undefined, errorConf);
   }
 
   onSearchConFiltros(texto: string, tipo: TipoCliente, page, size, servidor: boolean = true): Observable<PageInfo<Cliente>> {

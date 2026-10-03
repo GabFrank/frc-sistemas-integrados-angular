@@ -199,8 +199,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         }
         if (res != null && res.length != 0) {
           this.clienteTimer = setTimeout(() => {
-            this.clienteService.onSearch(res).subscribe(clienteRes => {
-              this.filteredClienteList = clienteRes;
+            this.clienteService.onSearch(res, true, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+              this.notificacionSnackbar.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 4);
+            }, next: clienteRes => {
+              this.filteredClienteList = clienteRes ?? [];
               if (this.filteredClienteList.length == 1) {
                 this.onClienteSelect(this.filteredClienteList[0]);
                 this.onClienteAutocompleteClose();
@@ -208,7 +210,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
                 this.onClienteAutocompleteClose();
                 this.onClienteSelect(null);
               }
-            })
+            } })
           }, 500);
         } else {
           this.filteredClienteList = [];
@@ -217,7 +219,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     });
 
     setTimeout(() => {
-      this.monedaList = this.data?.monedaList;
+      this.monedaList = this.data?.monedaList ?? [];
+      if (this.monedaList.length === 0 || !(this.data?.formaPagoList?.length > 0)) {
+        this.notificacionSnackbar.openWarn('No se cargaron las monedas o formas de pago del POS: no se puede cobrar ni guardar el delivery.', 6);
+      }
       this.onMonedaVueltoSelect(this.monedaList[0])
       setTimeout(() => {
         this.onMonedaSelect(this.monedaList[0])
@@ -235,7 +240,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     }, 0);
 
     setTimeout(() => {
-      this.formaPagoList = this.data?.formaPagoList;
+      this.formaPagoList = this.data?.formaPagoList ?? [];
       this.onFormaPagoSelect(this.formaPagoList[0])
     }, 0);
 
@@ -374,6 +379,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
    * ella; con un cobro sin confirmar, cobrar o guardar de nuevo podría duplicarlo.
    */
   private bloqueaCobroYGuardado(): boolean {
+    if (!(this.monedaList?.length > 0) || !(this.formaPagoList?.length > 0)) {
+      // El POS no cargó monedas o formas de pago: cobrar daba error o calculaba con cotización nula (#390)
+      this.notificacionSnackbar.openWarn('No se cargaron las monedas o formas de pago del POS: cerrá el delivery y reintentá.', 6);
+      return true;
+    }
     if (this.selectedDelivery?.cobroIncierto) {
       this.notificacionSnackbar.openWarn('Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista para verificarlo.', 6);
       return true;
@@ -594,6 +604,16 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       // Una línea ya guardada (replay al reabrir) usa la cotización con la que se cobró si su
       // moneda hoy no tiene cotización: con la actual en null la línea sumaba 0 al saldo.
       const cambio = this.selectedMoneda?.cambio || (selectedItem?.id != null ? selectedItem?.cambio : null)
+      if (!cambio && esLineaNueva) {
+        // Igual que pago-touch: una línea nueva en una moneda sin cotización sumaba valor * null (#390)
+        this.notificacionSnackbar.openWarn(`No hay cotización cargada para ${this.selectedMoneda?.denominacion || 'la moneda seleccionada'}: no se puede registrar el cobro en esa moneda.`, 5);
+        this.isVuelto = previo.isVuelto;
+        this.isDescuento = previo.isDescuento;
+        this.isAumento = previo.isAumento;
+        this.selectedMoneda = previo.moneda;
+        this.selectedFormaPago = previo.formaPago;
+        return;
+      }
       item.cambio = cambio
       this.valorParcialPagado += item.valor * cambio;
       this.vueltoControl
