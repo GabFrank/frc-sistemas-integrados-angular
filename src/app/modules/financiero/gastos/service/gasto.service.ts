@@ -190,8 +190,9 @@ export class GastoService {
     });
   }
 
-  preGastoImprimir(id: number, sucId?: number): Observable<string> {
-    return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId });
+  preGastoImprimir(id: number, sucId?: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId }, true, errorConf ?? null, undefined,
+      contexto);
   }
 
   preGastoEnviarATesoreria(id: number, sucId: number, usuarioId: number): Observable<PreGasto> {
@@ -223,7 +224,9 @@ export class GastoService {
     texto?: string,
     page?: number,
     size?: number,
-    moduloPadre?: string | null
+    moduloPadre?: string | null,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PageInfo<TipoGasto>> {
     return this.genericService.onCustomQuery(this.filterTipoGastosGQL, {
       naturaleza,
@@ -231,7 +234,7 @@ export class GastoService {
       page,
       size,
       moduloPadre: moduloPadre ?? null,
-    });
+    }, true, errorConf ?? null, undefined, contexto);
   }
 
   preGastosParaRetiro(sucursalCajaId: number): Observable<PreGasto[]> {

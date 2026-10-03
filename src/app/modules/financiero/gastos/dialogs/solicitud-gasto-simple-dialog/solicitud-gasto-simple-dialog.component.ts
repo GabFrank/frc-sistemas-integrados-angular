@@ -1,3 +1,4 @@
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
 import { AbstractControl, FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -87,7 +88,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     private enteService: EnteService,
     private enteFinancialSummaryGQL: EnteFinancialSummaryGQL,
     private moduloGastoService: ModuloGastoService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private notificacion: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -96,12 +98,16 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       this.solicitanteNombreControl.setValue(this.data.solicitanteNombre);
     }
 
-    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe(modulos => {
-      this.catalogoModulos = modulos;
-      this.moduloInfo = buscarModuloInfo(modulos, this.data?.moduloPadre);
-      this.inicializarPropiedadesEnteActivo();
-      this.actualizarValidadoresEnte();
-      this.cdr.markForCheck();
+    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe({
+      next: modulos => {
+        this.catalogoModulos = modulos;
+        this.moduloInfo = buscarModuloInfo(modulos, this.data?.moduloPadre);
+        this.inicializarPropiedadesEnteActivo();
+        this.actualizarValidadoresEnte();
+        this.cdr.markForCheck();
+      },
+      // Sin catálogo el diálogo sigue, sin módulos para elegir (#390).
+      error: () => this.notificacion.openWarn('No se pudo cargar el catálogo de módulos de gasto: cerrá y volvé a abrir para reintentar.', 5)
     });
 
     this.suscribirEstadoFormulario();

@@ -90,11 +90,15 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     this.maletinService.onGetValor(maletin.id).pipe(untilDestroyed(this)).subscribe({
       next: (res: ValorItem[]) => {
         this.cargandoValor = false;
+        if (res == null) { this.notificacion.openWarn('No se pudo calcular el valor del maletín.', 5); return; }
         // Todas las monedas con valor arrancan seleccionadas; el usuario destilda las que no quiere.
         this.valorItems = (res || []).map(v => ({ ...v, sel: (v.total || 0) > 0 }));
         this.recalcularSeleccion();
       },
-      error: () => { this.cargandoValor = false; }
+      error: () => {
+        this.cargandoValor = false;
+        this.notificacion.openWarn('No se pudo calcular el valor del maletín: el servidor no responde.', 5);
+      }
     });
   }
 

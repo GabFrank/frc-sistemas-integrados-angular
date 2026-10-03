@@ -1,3 +1,4 @@
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
@@ -10,6 +11,8 @@ import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ModuloGastoService } from '../../service/modulo-gasto.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { etiquetaModuloPadre, ModuloGastoInfo } from '../../utils/tipo-gasto-modulo-reglas.util';
 
 type TipoGastoVista = TipoGasto & { moduloPadreEtiqueta: string };
@@ -24,6 +27,7 @@ type TipoGastoVista = TipoGasto & { moduloPadreEtiqueta: string };
 export class ListTipoGastosComponent implements OnInit {
   private gastoService = inject(GastoService);
   private moduloGastoService = inject(ModuloGastoService);
+  private notificacionAviso = inject(NotificacionSnackbarService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
 
@@ -44,7 +48,15 @@ export class ListTipoGastosComponent implements OnInit {
     'id', 'descripcion', 'tipoNaturaleza', 'moduloPadre', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
 
-  private catalogoModulos$ = this.moduloGastoService.obtenerModulos();
+  // Sin catálogo la lista de tipos sigue viva (sin etiqueta de módulo): antes un error del catálogo, que entra al
+  // combineLatest por fuera del switchMap, mataba la lista (#390).
+  private catalogoModulos$ = this.moduloGastoService.obtenerModulos().pipe(
+    catchError(() => {
+      this.notificacionAviso.openWarn('No se pudo cargar el catálogo de módulos de gasto.', 5);
+      return of([] as ModuloGastoInfo[]);
+    }),
+    shareReplay({ bufferSize: 1, refCount: false })
+  );
 
   private tabActivaSubject = new BehaviorSubject<number>(0);
   public tabActiva$ = this.tabActivaSubject.asObservable();
@@ -81,11 +93,17 @@ export class ListTipoGastosComponent implements OnInit {
         texto,
         pag.pageIndex,
         pag.pageSize,
-        moduloPadre
+        moduloPadre,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       ).pipe(
-        map(res => ({ res, catalogo })),
+        map(res => {
+          if (res == null) { this.notificacionAviso.openWarn('No se pudieron cargar los tipos de gasto.', 5); }
+          return { res, catalogo };
+        }),
         catchError(err => {
           console.error('Error fetching tipo_gastos:', err);
+          this.notificacionAviso.openWarn('No se pudieron cargar los tipos de gasto: el servidor no responde.', 5);
           return of({ res: null, catalogo });
         })
       );

@@ -1,3 +1,4 @@
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject, ViewChild, TemplateRef } from '@angular/core';
 import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
@@ -17,6 +18,8 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { CajaService } from '../../../pdv/caja/caja.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 
 @UntilDestroy()
 @Component({
@@ -27,6 +30,7 @@ import { CajaService } from '../../../pdv/caja/caja.service';
 })
 export class ListPreGastosComponent implements OnInit, DoCheck {
   private gastoService = inject(GastoService);
+  private notificacionAviso = inject(NotificacionSnackbarService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
   private tabService = inject(TabService);
@@ -139,10 +143,19 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         inicioStr,
         finStr,
         pag.pageIndex,
-        pag.pageSize
+        pag.pageSize,
+        undefined,
+        undefined,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       ).pipe(
+        map(res => {
+          if (res == null) { this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto.', 5); }
+          return res;
+        }),
         catchError(err => {
           console.error('Error fetching pre_gastos:', err);
+          this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto: el servidor no responde.', 5);
           return of(null);
         })
       );

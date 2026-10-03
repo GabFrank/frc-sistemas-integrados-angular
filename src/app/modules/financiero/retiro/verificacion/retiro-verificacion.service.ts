@@ -60,7 +60,7 @@ export class RetiroVerificacionService {
       hasta: filtros?.hasta || null,
       soloMios: filtros?.soloMios ? true : null,
       page, size,
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onAsignarCaso(casoId: number, usuarioId: number, opciones?: { avisarExito?: boolean }): Observable<RetiroCaso> {
