@@ -75,6 +75,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   montoTotalComputed = 0;
   totalFormasPagoComputed = 0;
   saving = false;
+  /** Fallos de carga y creación sin confirmar (#390). */
+  monedasFallo = false;
+  formasPagoFallo = false;
+  creacionIncierta = false;
 
   /** Modo edición: true cuando se abre con solicitudPago existente. */
   isEditMode = false;
@@ -248,19 +252,57 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     }
   }
 
+  /**
+   * Monedas y formas de pago: el diálogo de forma de pago las recibe por copia al abrirse y los totales en Gs usan
+   * moneda.cambio. Si faltan (error, null o lista vacía) se avisa y no se puede agregar una forma de pago (#390).
+   */
   private loadMonedas(): void {
-    this.monedaService.onGetAll().subscribe((list) => {
-      this.monedaList = list || [];
-      if (this.detallesAgregados?.length) {
-        this.updateResumenFormasPago();
+    this.monedasFallo = false;
+    this.monedaService.onGetAllEnSegundoPlano().subscribe({
+      next: (list) => {
+        this.monedaList = list || [];
+        this.monedasFallo = this.monedaList.length === 0;
+        if (this.monedasFallo) {
+          this.avisarListasFaltantes();
+        } else if (this.detallesAgregados?.length) {
+          this.updateResumenFormasPago();
+        }
+      },
+      error: () => {
+        this.monedasFallo = true;
+        this.avisarListasFaltantes();
       }
     });
   }
 
   private loadFormasPago(): void {
-    this.formaPagoService.onGetAllFormaPago(true).subscribe((list) => {
-      this.formaPagoList = list || [];
+    this.formasPagoFallo = false;
+    this.formaPagoService.onGetAllFormaPagoParaDialogo(true).subscribe({
+      next: (list) => {
+        this.formaPagoList = list || [];
+        this.formasPagoFallo = this.formaPagoList.length === 0;
+        if (this.formasPagoFallo) {
+          this.avisarListasFaltantes();
+        }
+      },
+      error: () => {
+        this.formasPagoFallo = true;
+        this.avisarListasFaltantes();
+      }
     });
+  }
+
+  private avisarListasFaltantes(): void {
+    this.notificacionService.openWarn('No se pudieron cargar las monedas o las formas de pago: usá «Reintentar» antes de agregar una forma de pago.', 6);
+  }
+
+  reintentarListas(): void {
+    if (this.monedasFallo) {
+      this.loadMonedas();
+    }
+    if (this.formasPagoFallo) {
+      this.loadFormasPago();
+    }
   }
 
   onProveedorKeydown(event: KeyboardEvent): void {
@@ -296,6 +338,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarNota(): void {
+    if (this.creacionIncierta) {
+      this.avisarCreacionIncierta();
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -331,17 +377,25 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
             nota.valorTotal ?? 0
           )
         );
-        let done = 0;
+        // Cada nota cuenta, falle o no; si alguna falló se recarga la solicitud al final: la nota se mostró y sumó
+        // antes de la mutación y, sin respuesta, pudo haberse vinculado igual (#390)
+        let terminadas = 0;
+        let fallidas = 0;
         const total = queue.length;
+        const terminar = () => {
+          terminadas++;
+          if (terminadas < total) return;
+          this.saving = false;
+          if (fallidas > 0) {
+            this.recargarSolicitud(`No se pudo confirmar ${fallidas} de ${total} nota(s): revisá la solicitud antes de reintentar.`);
+          }
+        };
         queue.forEach((obs) => {
           obs.subscribe({
-            next: () => {
-              done++;
-              if (done === total) this.saving = false;
-            },
+            next: () => terminar(),
             error: () => {
-              this.notificacionService.openAlgoSalioMal('Error al vincular nota');
-              this.saving = false;
+              fallidas++;
+              terminar();
             }
           });
         });
@@ -370,8 +424,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.saving = false;
             },
             error: () => {
-              this.notificacionService.openAlgoSalioMal('No se pudo desvincular la nota');
               this.saving = false;
+              this.recargarSolicitud('No se pudo confirmar que la nota se quitó: revisá la solicitud antes de reintentar.');
             }
           });
         } else {
@@ -384,6 +438,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarFormaPago(): void {
+    if (this.monedasFallo || this.formasPagoFallo) {
+      this.avisarListasFaltantes();
+      return;
+    }
+    if (this.creacionIncierta) {
+      this.avisarCreacionIncierta();
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -838,14 +900,35 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.tituloDialogo = 'Editar solicitud de pago';
         }
       },
-      error: () => {
+      error: (error) => {
         this.saving = false;
+        this.marcarCreacionInciertaSiFueDeRed(error);
       }
     });
   }
 
+  /**
+   * Una creación sin respuesta pudo haberse hecho en el servidor y la pantalla no tiene su id: la próxima acción
+   * crearía OTRA solicitud (deuda duplicada). Se bloquea agregar y guardar hasta revisar la lista (#390).
+   */
+  private marcarCreacionInciertaSiFueDeRed(error: any): void {
+    if (Array.isArray(error) || error?.graphQLErrors?.length) {
+      return; // error de negocio: el servidor respondió que no
+    }
+    this.creacionIncierta = true;
+    this.avisarCreacionIncierta();
+  }
+
+  private avisarCreacionIncierta(): void {
+    this.notificacionService.openWarn('No se pudo confirmar si la solicitud se creó: cerrá y revisá la lista antes de seguir.', 8);
+  }
+
   onGuardar(): void {
     if (!this.isEditable) return;
+    if (this.creacionIncierta) {
+      this.avisarCreacionIncierta();
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -878,8 +961,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.notificacionService.openSucess('Solicitud de pago creada');
           this.dialogRef.close(true);
         },
-        error: () => {
+        error: (error) => {
           this.saving = false;
+          this.marcarCreacionInciertaSiFueDeRed(error);
         }
       });
     }

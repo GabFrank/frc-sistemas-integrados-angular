@@ -25,7 +25,13 @@ import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
 import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+
+/** Cargas de la solicitud y sus listados: 60 s sin el aviso genérico del link; avisa el llamador (#390). */
+const CONSULTA_SOLICITUD: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Guardados: el error de red llega al llamador (el link ya avisa si se cortó por tiempo). */
+const GUARDADO_PROPAGA = { networkError: { propagate: true } };
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
@@ -89,7 +95,11 @@ export class SolicitudPagoService {
       null,
       null,
       null,
-      true
+      true,
+      null,
+      null,
+      PROPAGAR_ERROR_DE_RED,
+      CONSULTA_SOLICITUD
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -191,7 +201,11 @@ export class SolicitudPagoService {
     const input = solicitud.toInput();
     return this.genericCrudService.onSave<SolicitudPago>(
       this.saveSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -205,7 +219,11 @@ export class SolicitudPagoService {
   onSaveInput(input: SolicitudPagoInput): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.saveSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -284,7 +302,11 @@ export class SolicitudPagoService {
   onActualizarSolicitudPago(input: SolicitudPagoInput): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.actualizarSolicitudPagoGQL,
-      input
+      input,
+      undefined,
+      undefined,
+      true,
+      GUARDADO_PROPAGA
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );

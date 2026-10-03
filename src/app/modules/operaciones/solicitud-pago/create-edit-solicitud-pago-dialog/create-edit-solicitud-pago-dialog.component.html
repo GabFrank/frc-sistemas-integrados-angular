@@ -57,7 +57,7 @@
         <div class="tab-body">
           <div class="tab-actions" *ngIf="isEditable">
             <button mat-stroked-button color="primary" type="button" (click)="onAgregarNota()"
-                    [disabled]="!selectedProveedor?.id">
+                    [disabled]="!selectedProveedor?.id || creacionIncierta">
               <mat-icon>add</mat-icon> Adicionar nota
             </button>
           </div>
@@ -137,8 +137,11 @@
         <div class="tab-body">
           <div class="tab-actions" *ngIf="isEditable">
             <button mat-stroked-button color="primary" type="button" (click)="onAgregarFormaPago()"
-                    [disabled]="!selectedProveedor?.id || (!isEditMode && notasAgregadas?.length < 1)">
+                    [disabled]="!selectedProveedor?.id || (!isEditMode && notasAgregadas?.length < 1) || monedasFallo || formasPagoFallo || creacionIncierta">
               <mat-icon>add</mat-icon> Adicionar forma de pago
+            </button>
+            <button *ngIf="monedasFallo || formasPagoFallo" mat-stroked-button color="warn" type="button" (click)="reintentarListas()">
+              Reintentar monedas y formas de pago
             </button>
           </div>
 
@@ -198,7 +201,7 @@
       <mat-icon>lock_open</mat-icon> Reabrir
     </button>
     <button *ngIf="isEditable" mat-stroked-button color="primary" (click)="onGuardar()"
-            [disabled]="saving || !selectedProveedor || notasAgregadas?.length < 1">
+            [disabled]="saving || creacionIncierta || !selectedProveedor || notasAgregadas?.length < 1">
       {{ saving ? 'Guardando...' : 'Guardar' }}
     </button>
     <button *ngIf="puedeSolicitar" mat-raised-button color="primary" (click)="onSolicitar()" [disabled]="saving">
