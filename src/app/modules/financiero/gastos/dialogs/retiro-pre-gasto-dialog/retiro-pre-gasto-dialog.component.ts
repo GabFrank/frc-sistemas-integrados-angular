@@ -11,7 +11,8 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { NgxCurrencyModule } from 'ngx-currency';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, interval, of, Subscription } from 'rxjs';
-import { startWith, switchMap } from 'rxjs/operators';
+import { catchError, exhaustMap, startWith, switchMap } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PdvCaja } from '../../../pdv/caja/caja.model';
@@ -267,9 +268,14 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
     this.detenerPolling();
     const preGastoId = this.seleccionada.id;
     const sucursalId = this.seleccionada.sucursalId;
+    // exhaustMap: con el central más lento que 4 s, switchMap cancelaba cada consulta y la confirmación no llegaba
+    // nunca. Silenciosa (antes abría «Buscando…» cada 4 s) y con el error atrapado adentro: el sondeo sigue (#390).
     this.pollSub = interval(4000)
       .pipe(
-        switchMap(() => this.gastoService.preGastoRetiroConfirmado(preGastoId, sucursalId)),
+        exhaustMap(() => this.gastoService.preGastoRetiroConfirmado(preGastoId, sucursalId, PROPAGAR_ERROR_DE_RED, true,
+          { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }).pipe(
+          catchError(() => of(false))
+        )),
         untilDestroyed(this)
       )
       .subscribe({

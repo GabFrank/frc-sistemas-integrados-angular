@@ -262,8 +262,10 @@ export class GastoService {
       undefined, RETIRO_PRE_GASTO);
   }
 
-  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId });
+  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number, errorConf?: QueryError, silentLoad?: boolean,
+                           contexto?: ContextoConsulta): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId }, true,
+      errorConf ?? null, silentLoad, contexto);
   }
 
   ejecutarRetiroPreGasto(input: {

@@ -13,7 +13,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { of, Subscription } from "rxjs";
 import { catchError, debounceTime, distinctUntilChanged, take, timeout } from 'rxjs/operators';
-import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import {
   orderByIdDesc,
   replaceObject,
@@ -927,7 +927,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       undefined,
       0,
       1000,
-      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"]
+      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"],
+      undefined,
+      PROPAGAR_ERROR_DE_RED,
+      // Va al central desde el POS (#390): su error: ya existía y era inalcanzable.
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
     )
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -958,6 +962,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.solicitudesProcesadasOriginal = [];
           this.solicitudesProcesadasDataSource.data = [];
           this.cargandoSolicitudes = false;
+          this.notificacionService.openWarn('No se pudieron cargar las solicitudes de gasto: el servidor no responde.', 5);
         },
       });
   }
