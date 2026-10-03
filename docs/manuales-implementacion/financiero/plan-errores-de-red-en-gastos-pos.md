@@ -131,3 +131,26 @@ si no, verificado por código.
 | A | `list-gastos`: `null` deja el total viejo | baja | total a 0 también con `null` |
 | A | Referencias de línea (`adicionar-caja:239`, `onGetPorId` es `onCustomQuery`) | baja | corregidas |
 | A/B | `onCajaBalancePorId` solo tiene estos dos llamadores; sondeo de `venta-touch` correcto sin cambio; `verificarMaletin` sin flag trabado; `cargandoSolicitudes` ya baja en `error:` | — | verificado |
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Filial `:8080` de esta máquina congelado con `kill -STOP` (respaldo `kill -CONT`); desktop `ng serve -c web`, PDV 3
+con caja abierta. **No se guardó ningún gasto ni retiro.**
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Utilitarios → Gasto con el filial congelado | a los ~9 s avisos de la lista de gastos y del saldo; sin «Buscando…» abierto; «Guardar» (`verficarValores`) devuelve `false` con aviso; aparece «Reintentar» |
+| 2 | Descongelar → «Reintentar» | carga el saldo (estado `ok`); la caja compartida del POS ya no recibe `balance` |
+| 3 | Utilitarios → Retiro con el filial congelado | igual que el gasto: avisos a los ~9 s, «Guardar» no registra, «Reintentar» recupera |
+
+**Verificado por código:** solicitudes de gasto del POS, sondeo de confirmación del retiro de pre-gasto, maletín en
+la apertura de caja, lista de gastos (van al central o requieren abrir caja), y los casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Argumentos posicionales de `onGetById` y llamadores de todos los métodos tocados; sin lecturas restantes de `caja.balance` en los diálogos; orden de inicialización; sondeo con `exhaustMap`; `verificarMaletin`; `list-gastos` | — | verificado |
+| Aviso doble cuando el filial **rechaza** la conexión: `onGetById` avisa al instante (`warningText`) y el diálogo otra vez a los 10 s | media-baja | aceptado: con el filial congelado (timeout) sale uno solo; evitarlo pide tocar `onGetById` (>60 pantallas), que va aparte según el análisis de #390 |
+| «Reintentar» visible en modo vuelto, que no usa el saldo | baja | se oculta con `isVuelto` |
+| La tabla de gastos queda vacía (no con datos viejos) si falla | baja | aceptado: con aviso |
