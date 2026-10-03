@@ -35,7 +35,8 @@
     <tr mat-header-row *matHeaderRowDef="columnas"></tr>
     <tr mat-row *matRowDef="let c; columns: columnas"></tr>
   </table>
-  <div class="vacio" *ngIf="!cargando && cuotas.length === 0">El vale no tiene cuotas.</div>
+  <div class="vacio" *ngIf="!cargando && !cargaFallo && cuotas.length === 0">El vale no tiene cuotas.</div>
+  <div class="vacio" *ngIf="cargaFallo">No se pudieron cargar las cuotas: cerrá y volvé a abrir para reintentar.</div>
 
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
     <button mat-stroked-button (click)="onCerrar()">Cerrar</button>

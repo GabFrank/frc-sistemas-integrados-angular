@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PrestamosPorFuncionarioGQL } from './graphql/PrestamosPorFuncionario';
 import { PrestamosPageGQL } from './graphql/PrestamosPage';
 import { PrestamoCuotasGQL } from './graphql/PrestamoCuotas';
@@ -20,7 +21,8 @@ export class PrestamoService {
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.prestamosPorFuncionarioGQL, { funcionarioId }, servidor);
+    return this.genericService.onCustomQuery(this.prestamosPorFuncionarioGQL, { funcionarioId }, servidor,
+      PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   /** Padron del SaaS: lista paginada y filtrada en el backend. */
@@ -29,7 +31,8 @@ export class PrestamoService {
   }
 
   onGetCuotas(prestamoId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.prestamoCuotasGQL, { prestamoId }, servidor);
+    return this.genericService.onCustomQuery(this.prestamoCuotasGQL, { prestamoId }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onCrear(prestamo: any, cajaVirtualId: number, servidor = true): Observable<Prestamo> {

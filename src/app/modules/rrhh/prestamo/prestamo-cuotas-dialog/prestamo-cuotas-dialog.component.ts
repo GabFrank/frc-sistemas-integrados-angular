@@ -36,6 +36,11 @@ export class PrestamoCuotasDialogComponent implements OnInit {
 
   /** Un cobro en vuelo: un segundo clic no manda otro (issue central #299). */
   cobrando = false;
+  /**
+   * Las cuotas no llegaron (tambien la recarga que sigue a un cobro): la tabla se vacia para que
+   * no quede una cuota cobrable con el monto viejo, y se ofrece «Reintentar» (#390).
+   */
+  cargaFallo = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: PrestamoCuotasDialogData,
@@ -58,12 +63,26 @@ export class PrestamoCuotasDialogComponent implements OnInit {
   cargarCuotas() {
     this.prestamoService.onGetCuotas(this.prestamo.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.dataSource.data = (res || []).map((c: PrestamoCuota) => ({
-          ...c,
-          puedeCobrar: c.estado !== 'PAGADA' && c.estado !== 'CANCELADA',
-        }));
+      .subscribe({
+        next: res => {
+          if (res == null) { this.cuotasNoCargadas(); return; }
+          this.cargaFallo = false;
+          this.dataSource.data = res.map((c: PrestamoCuota) => ({
+            ...c,
+            puedeCobrar: c.estado !== 'PAGADA' && c.estado !== 'CANCELADA',
+          }));
+        },
+        error: () => this.cuotasNoCargadas()
       });
+  }
+
+  private cuotasNoCargadas() {
+    this.cargaFallo = true;
+    this.dataSource.data = [];
+    this.notificacion.notification$.next({
+      texto: 'No se pudieron cargar las cuotas del préstamo: el servidor no responde.',
+      color: NotificacionColor.warn, duracion: 5
+    });
   }
 
   onCobrar(cuota: CuotaFila) {
