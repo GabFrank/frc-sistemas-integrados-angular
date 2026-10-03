@@ -123,3 +123,44 @@ ni se cobra** con el filial congelado.
 | A/B | Precio: delivery guardado ya lo trae; lista vacía no es fallo; `onDeleteItem`; legado sin precio en `pago-touch` | media | ajustado |
 | B | `sinCotizacion` y `onDeleteItem` dividiendo por null | baja | alineado con `pago-touch` |
 | A | Llamadores, alcanzabilidad de `pago-touch`, query de precios sin variables, refetch de la lista | — | verificado |
+
+## Implementación: desvíos respecto del plan (2026-10-03)
+
+- **Marca del delivery**: en vez de anular `venta.id` (ese objeto se usa al guardar y podría crear otra venta),
+  `list-delivery.onDeliveryClick` vuelve a leer el delivery también cuando tiene `cobroIncierto`; el objeto nuevo no
+  trae la marca.
+- **`pago-touch`**: el revert devuelve pagado, valor y saldo; los flags de descuento/vuelto/aumento y la forma de
+  pago ya se resetean después de cada línea en ese componente (el cajero vuelve a elegirlos si reintenta).
+- **Cobros sin reconstruir**: un delivery guardado sin tarifa no puede rearmar sus cobros ya guardados; queda
+  bloqueado (cobrar y guardar) hasta volver a abrirlo, aunque «Reintentar tarifas» cargue la tarifa después.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Filial `:8080` de esta máquina (`/opt/frc-filial`, PID 981335) **congelado** con `kill -STOP` + respaldo `kill -CONT`;
+central = alpha `:8083` (no se congela); desktop `ng serve -c web`, caja 3009 abierta. Con el filial vivo se creó en
+la base local el **delivery 7** (DURACELL 2016 10.000 Gs + tarifa 5.000, venta 80088, ABIERTO). No se finalizó nada.
+
+| Caso | Resultado |
+|---|---|
+| Delivery nuevo (vivo) | tarifas cargadas (2), «DELIVERY 5.000», saldo 15.000 |
+| Cobro de 5.000 con el filial congelado + segundo Enter | durante el guardado saldo 10.000 y el segundo Enter **no** suma (pagado 5.000); a los 60 s aviso del link + «No se pudo confirmar el cobro»; **saldo vuelve a 15.000**, pagado 0, delivery marcado |
+| Cobrar y Guardar con el delivery marcado | bloqueados con aviso |
+| Reanudar, cerrar y tocar el delivery en la lista | se relee del filial: la marca desaparece; el filial tiene 0 cobros (el guardado congelado no se aplicó): se puede cobrar normalmente |
+
+Antes de este PR el mismo caso dejaba el saldo en 10.000 sin la línea registrada (cobro dado por pagado).
+
+No probado en runtime (por código): tarifas que no cargan en un delivery nuevo (Guardar y cobrar bloqueados),
+`pago-touch` (finalizar con una línea en vuelo o marcada), monedas/formas de pago vacías, cotización nula,
+abrir un delivery de la lista y buscar cliente con el filial congelado, casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Delivery legado sin tarifa: los cobros guardados no se rearman y «Reintentar tarifas» desbloqueaba con el saldo completo | media | `cobrosSinReconstruir` bloquea hasta reabrir |
+| `pago-touch`: borrar una línea con otra en vuelo (el revert pisaba el borrado) | baja | borrar bloqueado en vuelo o con el delivery marcado |
+| `edit-delivery`: borrar o descuento/aumento con una línea en vuelo dejaba flags pegados | baja | bloqueados mientras se guarda |
+| Mensaje «usá Reintentar» sin botón cuando el cajero borró la tarifa | baja | mensaje según el caso |
+| Revert de `pago-touch` sin snapshot de flags | baja | aceptado (se resetean igual tras cada línea) |
+| `delivery-dialog` sin pantalla: `null`/error de tarifas sin manejar | baja | aceptado (código muerto) |
+| Suscriptores, orden de `addCobroDetalle`, bloqueos, flujo de la marca entre lista/opciones/venta/pago, otros caminos de cierre, «Modif. itens» intacto | — | verificado |

@@ -1102,6 +1102,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeleteItem(item: CobroDetalle, i) {
+    // Con una línea del delivery en vuelo, revertirla pisaría el efecto del borrado (#390)
+    if (this.data?.delivery != null && (this.cobroDeliveryEnVuelo || this.data.delivery.cobroIncierto)) {
+      return;
+    }
     if (item.id != null) {
       //quiere decir que esta guardado en la base de datos
       this.ventaService

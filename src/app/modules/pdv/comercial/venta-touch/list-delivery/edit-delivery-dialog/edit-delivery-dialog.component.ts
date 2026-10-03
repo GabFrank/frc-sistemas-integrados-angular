@@ -134,6 +134,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   private guardandoCobro = false;
   /** Solo lo bajan la respuesta o el error: si el diálogo se cierra con la línea en vuelo, quedó sin confirmar. */
   private cobroSinRespuesta = false;
+  /**
+   * Un delivery guardado sin tarifa no pudo reconstruir sus cobros ya guardados: aunque después cargue la tarifa,
+   * el saldo no los contaría y se podría cobrar de nuevo. Hay que volver a abrirlo (#390).
+   */
+  private cobrosSinReconstruir = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: EditDeliveryDialogData,
@@ -388,10 +393,16 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       this.notificacionSnackbar.openWarn('Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista para verificarlo.', 6);
       return true;
     }
+    if (this.cobrosSinReconstruir) {
+      this.notificacionSnackbar.openWarn('No se pudieron cargar los cobros ya registrados de este delivery: cerrá y volvé a abrirlo.', 6);
+      return true;
+    }
     if (this.selectedPrecio == null) {
       this.notificacionSnackbar.openWarn(this.sinTarifas
         ? 'No hay tarifas de delivery configuradas: no se puede cobrar ni guardar el delivery.'
-        : 'Falta la tarifa de delivery: usá «Reintentar» antes de cobrar o guardar.', 6);
+        : this.preciosFallo
+          ? 'Falta la tarifa de delivery: usá «Reintentar tarifas» antes de cobrar o guardar.'
+          : 'Elegí la tarifa de delivery antes de cobrar o guardar.', 6);
       return true;
     }
     return false;
@@ -561,7 +572,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     const esLineaNueva = selectedItem?.id == null;
     if (this.selectedPrecio == null) {
       // Sin tarifa no se puede calcular el saldo (antes TypeError); una línea nueva además avisa
-      if (esLineaNueva) this.bloqueaCobroYGuardado();
+      if (esLineaNueva) {
+        this.bloqueaCobroYGuardado();
+      } else {
+        this.cobrosSinReconstruir = true;
+      }
       return;
     }
     if (esLineaNueva && (this.guardandoCobro || this.bloqueaCobroYGuardado())) {
@@ -722,6 +737,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onDeleteItem(item: CobroDetalle, i) {
+    if (this.guardandoCobro) return;
     if (this.selectedPrecio == null || this.selectedDelivery?.cobroIncierto) {
       this.bloqueaCobroYGuardado();
       return;
@@ -870,7 +886,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     //   this.isAumento = false;
     //   this.addCobroDetalle();
     // }
-    if (this.bloqueaCobroYGuardado()) return;
+    if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let saldo = this.saldoControl.value;
 
@@ -897,7 +913,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onAumento() {
-    if (this.bloqueaCobroYGuardado()) return;
+    if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let valor =
       this.vueltoControl.value;
