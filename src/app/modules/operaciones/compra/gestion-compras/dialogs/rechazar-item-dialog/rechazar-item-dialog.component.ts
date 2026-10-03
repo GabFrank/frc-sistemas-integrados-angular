@@ -188,10 +188,13 @@ export class RechazarItemDialogComponent implements OnInit {
 
   private loadPresentaciones(): void {
     if (this.data.pedidoItem.producto?.id) {
-      this.presentacionService.onGetPresentacionesPorProductoId(this.data.pedidoItem.producto.id)
+      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.data.pedidoItem.producto.id)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (presentaciones) => {
+            if (presentaciones == null) {
+              return; // Error GraphQL: el servicio ya avisó; sin presentación el formulario no es válido
+            }
             this.presentacionesDisponibles = presentaciones;
             
             // Seleccionar por defecto la presentación del pedido item
@@ -227,7 +230,7 @@ export class RechazarItemDialogComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error cargando presentaciones:', error);
-            this.notificacionService.openAlgoSalioMal('Error cargando presentaciones');
+            this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
           }
         });
     }

@@ -562,7 +562,8 @@ export class PedidoService {
    * @returns Observable<NotaRecepcionItem[]>
    */
   onGetNotaRecepcionItemListPorNotaRecepcionId(notaRecepcionId: number): Observable<NotaRecepcionItem[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemListPorNotaRecepcionIdGQL, { id: notaRecepcionId });
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemListPorNotaRecepcionIdGQL, { id: notaRecepcionId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**

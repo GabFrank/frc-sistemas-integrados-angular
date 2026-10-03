@@ -13,7 +13,8 @@ import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject, forkJoin } from 'rxjs';
-import { takeUntil, first } from 'rxjs/operators';
+import { takeUntil, first, timeout } from 'rxjs/operators';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 
 import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta } from '../../nota-recepcion.model';
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
@@ -231,10 +232,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private loadMonedas(): void {
     this.loadingMonedas = true;
     
+    // El onGetAll genérico no emite si falla: corte propio para no dejar «cargando» para siempre (#390)
     this.monedaService.onGetAll()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), takeUntil(this.destroy$))
       .subscribe({
         next: (monedas: Moneda[]) => {
+          monedas = monedas ?? [];
           this.monedas = monedas;
           this.loadingMonedas = false;
 
@@ -263,7 +266,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         },
         error: (error) => {
           console.error('Error al cargar monedas:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cargar las monedas');
+          this.notificacionService.openWarn('No se pudieron cargar las monedas: el servidor no responde. Cerrá y volvé a abrir la nota.', 6);
           this.loadingMonedas = false;
         }
       });
@@ -446,13 +449,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
-            this.itemsDataSource.data = items;
+            // null = error GraphQL (el servicio ya avisó)
+            this.itemsDataSource.data = items ?? [];
             this.loadingItems = false;
             this.updateComputedProperties();
           },
           error: (error) => {
             console.error('Error al cargar ítems de nota de recepción:', error);
-            this.notificacionService.openAlgoSalioMal('Error al cargar los ítems de la nota de recepción');
+            this.notificacionService.openWarn('No se pudieron cargar los ítems de la nota: el servidor no responde. Cerrá y volvé a abrirla.', 6);
             this.itemsDataSource.data = [];
             this.loadingItems = false;
             this.updateComputedProperties();
@@ -1536,6 +1540,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
+            if (items == null) {
+              this.avisarItemsSinRecargar(); // Error GraphQL: se conserva la tabla
+              return;
+            }
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
             
@@ -1546,8 +1554,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           },
           error: (error) => {
             console.error('Error al recargar ítems después de crear nota:', error);
-            this.itemsDataSource.data = [];
-            this.updateComputedProperties();
+            // Se conserva la tabla; la asignación automática no se saltea en silencio (#390)
+            this.avisarItemsSinRecargar();
           }
         });
     } else {
@@ -1607,19 +1615,30 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
+            // La asignación ya se hizo: cambios marcados aunque la recarga falle
+            this.changesMade = true;
+            if (items == null) {
+              this.avisarItemsSinRecargar();
+              return;
+            }
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
-            
-            // Marcar que se hicieron cambios
-            this.changesMade = true;
           },
           error: (error) => {
             console.error('Error al recargar ítems después de asignación:', error);
-            this.itemsDataSource.data = [];
-            this.updateComputedProperties();
+            this.changesMade = true;
+            this.avisarItemsSinRecargar();
           }
         });
     }
+  }
+
+  /** La nota ya se guardó: no se vacía la tabla ni se calla el fallo de la recarga (#390). */
+  private avisarItemsSinRecargar(): void {
+    const pendientes = this.autoAssignItems && this.selectedItemsToAssign.length > 0;
+    this.notificacionService.openWarn(pendientes
+      ? 'La nota se guardó, pero no se pudieron recargar sus ítems ni asignar los seleccionados: cerrá y volvé a abrirla.'
+      : 'La nota se guardó, pero no se pudieron recargar sus ítems: cerrá y volvé a abrirla.', 6);
   }
 
   private focusSalirButton(): void {
