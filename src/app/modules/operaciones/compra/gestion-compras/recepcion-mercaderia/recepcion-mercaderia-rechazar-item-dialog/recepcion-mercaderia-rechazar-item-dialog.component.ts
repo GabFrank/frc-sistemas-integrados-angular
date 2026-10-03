@@ -108,8 +108,10 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
     
     // Crear observable para cargar presentaciones
     const presentacionesObservable = this.item.producto && this.item.producto.id
-      ? this.presentacionService.onGetPresentacionesPorProductoId(this.item.producto.id)
+      ? this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.item.producto.id)
           .pipe(
+            // Un null (error GraphQL) cae al mismo fallback que el error de red: la presentación de la nota (#390)
+            map((presentaciones) => presentaciones ?? (this.item.presentacionEnNota ? [this.item.presentacionEnNota] : [])),
             catchError(error => {
               console.error('Error cargando presentaciones del producto:', error);
               // En caso de error, usar la presentación actual del item

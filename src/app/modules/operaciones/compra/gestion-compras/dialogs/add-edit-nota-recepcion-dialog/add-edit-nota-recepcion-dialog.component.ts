@@ -13,7 +13,8 @@ import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject, forkJoin } from 'rxjs';
-import { takeUntil, first } from 'rxjs/operators';
+import { takeUntil, first, timeout } from 'rxjs/operators';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 
 import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta } from '../../nota-recepcion.model';
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
@@ -28,6 +29,17 @@ import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-ite
 import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 import { MainService } from '../../../../../../main.service';
+import {
+  ContextoConsulta,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../../../../generics/generic-crud.service';
+
+/** Cotización de la nota: 20 s sin el aviso genérico del link; avisa el diálogo (#390). */
+const CONSULTA_COTIZACION: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
@@ -178,6 +190,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   loadingMonedas = false;
   loadingItems = false;
   savingNota = false;
+  /** Guardado en curso antes de `savingNota` (verificación de duplicado). */
+  private verificandoGuardado = false;
   deletingNota = false;
   
   // Estados para manejo de selects en navegación
@@ -218,10 +232,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private loadMonedas(): void {
     this.loadingMonedas = true;
     
+    // El onGetAll genérico no emite si falla: corte propio para no dejar «cargando» para siempre (#390)
     this.monedaService.onGetAll()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), takeUntil(this.destroy$))
       .subscribe({
         next: (monedas: Moneda[]) => {
+          monedas = monedas ?? [];
           this.monedas = monedas;
           this.loadingMonedas = false;
 
@@ -250,7 +266,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         },
         error: (error) => {
           console.error('Error al cargar monedas:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cargar las monedas');
+          this.notificacionService.openWarn('No se pudieron cargar las monedas: el servidor no responde. Cerrá y volvé a abrir la nota.', 6);
           this.loadingMonedas = false;
         }
       });
@@ -258,7 +274,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   private loadCotizacionFromCambio(monedaId?: number): void {
     const id = monedaId || this.data.pedido?.moneda?.id;
-    const denominacion = this.data.pedido?.moneda?.denominacion;
+    // La denominación de la moneda elegida, no la del pedido: con el pedido en Gs y la nota cambiada a otra
+    // moneda, mirar el pedido dejaba la cotización en 1 sin consultar (#390).
+    const denominacion = monedaId
+      ? (this.monedas.find((m) => Number(m.id) === Number(monedaId))?.denominacion ?? this.data.pedido?.moneda?.denominacion)
+      : this.data.pedido?.moneda?.denominacion;
     if (!id || denominacion === 'GUARANI') {
       if (!monedaId) return; // Initial call — skip for Guarani
       // Explicit moneda change to Guarani — reset to 1
@@ -280,22 +300,48 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
 
     // 2. Fallback: prefill desde mercado (lógica anterior)
-    this.cambioService.getUltimoCambioPorMonedaId(id)
+    this.cambioService.getUltimoCambioPorMonedaId(id, PROPAGAR_ERROR_DE_RED, CONSULTA_COTIZACION)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (cambio) => {
-          if (cambio) {
-            const tasa = cambio.valorEnGsCompraMercado ?? cambio.valorEnGsVentaMercado ?? cambio.valorEnGs;
-            if (tasa && tasa > 0) {
-              const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
-              // Only auto-fill if still at default (1) or empty
-              if (!currentCotizacion || currentCotizacion === 1) {
-                this.notaRecepcionForm.patchValue({ cotizacion: tasa });
-              }
+          if (!this.esMonedaActual(id)) {
+            return; // Respuesta de una moneda elegida antes: no pisa la actual
+          }
+          const tasa = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado ?? cambio?.valorEnGs;
+          if (tasa && tasa > 0) {
+            const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+            // Only auto-fill if still at default (1) or empty
+            if (!currentCotizacion || currentCotizacion === 1) {
+              this.notaRecepcionForm.patchValue({ cotizacion: tasa });
             }
+          } else {
+            this.vaciarCotizacionSinLeer();
+          }
+        },
+        error: () => {
+          if (this.esMonedaActual(id)) {
+            this.vaciarCotizacionSinLeer();
           }
         }
       });
+  }
+
+  private esMonedaActual(monedaId: number): boolean {
+    const actual = this.notaRecepcionForm?.get('moneda')?.value as Moneda;
+    return actual == null || Number(actual.id) === Number(monedaId);
+  }
+
+  /**
+   * Sin cotización leída, el 1 por defecto no queda como dato: en moneda extranjera es siempre erróneo y
+   * guardaba la nota con un total en Gs equivocado (#390). Se vacía (el campo es requerido) y se avisa.
+   */
+  private vaciarCotizacionSinLeer(): void {
+    const actual = this.notaRecepcionForm.get('cotizacion')?.value;
+    if (!actual || Number(actual) === 1) {
+      // Si el usuario ya tipeó una cotización se respeta y no se avisa
+      this.notaRecepcionForm.patchValue({ cotizacion: null });
+      this.notificacionService.openWarn('No se pudo obtener la cotización: ingresala a mano.', 6);
+    }
   }
 
   ngOnInit(): void {
@@ -404,13 +450,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
-            this.itemsDataSource.data = items;
+            // null = error GraphQL (el servicio ya avisó)
+            this.itemsDataSource.data = items ?? [];
             this.loadingItems = false;
             this.updateComputedProperties();
           },
           error: (error) => {
             console.error('Error al cargar ítems de nota de recepción:', error);
-            this.notificacionService.openAlgoSalioMal('Error al cargar los ítems de la nota de recepción');
+            this.notificacionService.openWarn('No se pudieron cargar los ítems de la nota: el servidor no responde. Cerrá y volvé a abrirla.', 6);
             this.itemsDataSource.data = [];
             this.loadingItems = false;
             this.updateComputedProperties();
@@ -947,6 +994,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Cargar las distribuciones existentes del ítem
     this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id).subscribe({
       next: (distribuciones) => {
+        if (distribuciones == null) {
+          // Error GraphQL: el servicio ya avisó; con la lista sin cargar no se abre el diálogo (#390)
+          return;
+        }
         // Cargar las sucursales del pedido
         const sucursalesInfluencia = this.data.pedido?.sucursalInfluenciaList?.map(psi => psi.sucursal) || [];
         const sucursalesEntrega = this.data.pedido?.sucursalEntregaList?.map(pse => pse.sucursal) || [];
@@ -1325,6 +1376,20 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   async onSave(): Promise<void> {
+    // La verificación de duplicado espera al servidor antes de que se prenda savingNota: sin este flag un
+    // segundo clic o el atajo de teclado lanzaban otro guardado (#390).
+    if (this.verificandoGuardado || this.savingNota) {
+      return;
+    }
+    this.verificandoGuardado = true;
+    try {
+      await this.guardarNota();
+    } finally {
+      this.verificandoGuardado = false;
+    }
+  }
+
+  private async guardarNota(): Promise<void> {
     // No permitir guardar si es nota de rechazo
     if (this.esNotaRechazoComputed) {
       this.notificacionService.openAlgoSalioMal('Las notas de rechazo no son editables');
@@ -1337,6 +1402,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       // Limpiar y convertir datos del formulario
       const cleanFormValue = this.cleanFormData(formValue);
       
+      if (!this.cotizacionValidaParaGuardar(cleanFormValue)) {
+        this.notificacionService.openWarn('La cotización de una moneda extranjera tiene que ser mayor a 1.', 6);
+        return;
+      }
+
       // Validar nota duplicada antes de guardar
       const proveedorId = this.data.pedido?.proveedor?.id;
       const numero = Number(cleanFormValue.numero);
@@ -1471,6 +1541,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
+            if (items == null) {
+              this.avisarItemsSinRecargar(); // Error GraphQL: se conserva la tabla
+              return;
+            }
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
             
@@ -1481,8 +1555,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           },
           error: (error) => {
             console.error('Error al recargar ítems después de crear nota:', error);
-            this.itemsDataSource.data = [];
-            this.updateComputedProperties();
+            // Se conserva la tabla; la asignación automática no se saltea en silencio (#390)
+            this.avisarItemsSinRecargar();
           }
         });
     } else {
@@ -1542,19 +1616,30 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
+            // La asignación ya se hizo: cambios marcados aunque la recarga falle
+            this.changesMade = true;
+            if (items == null) {
+              this.avisarItemsSinRecargar();
+              return;
+            }
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
-            
-            // Marcar que se hicieron cambios
-            this.changesMade = true;
           },
           error: (error) => {
             console.error('Error al recargar ítems después de asignación:', error);
-            this.itemsDataSource.data = [];
-            this.updateComputedProperties();
+            this.changesMade = true;
+            this.avisarItemsSinRecargar();
           }
         });
     }
+  }
+
+  /** La nota ya se guardó: no se vacía la tabla ni se calla el fallo de la recarga (#390). */
+  private avisarItemsSinRecargar(): void {
+    const pendientes = this.autoAssignItems && this.selectedItemsToAssign.length > 0;
+    this.notificacionService.openWarn(pendientes
+      ? 'La nota se guardó, pero no se pudieron recargar sus ítems ni asignar los seleccionados: cerrá y volvé a abrirla.'
+      : 'La nota se guardó, pero no se pudieron recargar sus ítems: cerrá y volvé a abrirla.', 6);
   }
 
   private focusSalirButton(): void {
@@ -1573,15 +1658,46 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
    * @param notaId - ID de la nota actual (opcional, para edición)
    * @returns Promise<boolean> - true si puede continuar, false si canceló
    */
+  /**
+   * Una moneda extranjera nunca cotiza 1 contra el guaraní. Se exige al crear o cuando el usuario tocó moneda o
+   * cotización: una nota vieja guardada con 1 se sigue pudiendo editar en lo demás (#390).
+   */
+  private cotizacionValidaParaGuardar(formValue: any): boolean {
+    const moneda = formValue?.moneda as Moneda;
+    if (!moneda || moneda.denominacion === 'GUARANI') {
+      return true;
+    }
+    const tocada = !this.data.isEdit
+      || this.notaRecepcionForm.get('moneda')?.dirty
+      || this.notaRecepcionForm.get('cotizacion')?.dirty;
+    return !tocada || Number(formValue?.cotizacion) > 1;
+  }
+
   private async validarNotaDuplicada(numero: number, proveedorId: number, notaId?: number): Promise<boolean> {
+    let notasExistentes: NotaRecepcion[] | null;
     try {
-      // Buscar notas existentes con mismo número y proveedor
-      const notasExistentes = await this.pedidoService.onBuscarNotasPorProveedorYNumero(
+      notasExistentes = await this.pedidoService.onBuscarNotasPorProveedorYNumero(
         proveedorId,
         numero
       ).pipe(first()).toPromise();
-
-      if (!notasExistentes || notasExistentes.length === 0) {
+    } catch (error) {
+      console.error('Error al validar nota duplicada:', error);
+      notasExistentes = null;
+    }
+    if (notasExistentes == null) {
+      // Error de red o GraphQL: antes se guardaba sin verificar. Ahora se pregunta (#390).
+      return await this.dialogosService.confirm(
+        'No se pudo verificar la nota',
+        'No se pudo verificar si ya existe una nota con este número para el proveedor: el servidor no responde.',
+        '¿Guardar igual?',
+        undefined,
+        true,
+        'Guardar igual',
+        'Cancelar'
+      ).pipe(first()).toPromise() || false;
+    }
+    try {
+      if (notasExistentes.length === 0) {
         return true; // No hay duplicados
       }
 
@@ -1607,9 +1723,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         'Cancelar'
       ).pipe(first()).toPromise() || false;
     } catch (error) {
-      console.error('Error al validar nota duplicada:', error);
-      // En caso de error, permitir continuar (no bloquear)
-      return true;
+      console.error('Error al confirmar nota duplicada:', error);
+      return false;
     }
   }
 

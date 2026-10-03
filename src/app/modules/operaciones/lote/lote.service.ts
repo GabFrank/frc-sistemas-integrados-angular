@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
-import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -63,11 +63,15 @@ export class LoteService {
   ) {}
 
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
-  onGetLotesPorProducto(productoId: number, servidor = true): Observable<Lote[]> {
+  onGetLotesPorProducto(productoId: number, servidor = true, errorConf?: QueryError,
+                        contexto?: ContextoConsulta): Observable<Lote[]> {
     return this.genericService.onCustomQuery(
       this.lotesPorProductoGQL,
       { productoId },
-      servidor
+      servidor,
+      errorConf,
+      undefined,
+      contexto
     );
   }
 

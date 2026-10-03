@@ -15,6 +15,18 @@ import { NotificacionSnackbarService } from '../../../../../../notificacion-snac
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
 import { debounceTime } from 'rxjs/operators';
+import {
+  ContextoConsulta,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../../../../generics/generic-crud.service';
+
+/** Cotización de la nota que crea el rechazo: 20 s, avisa el diálogo (#390). */
+const CONSULTA_COTIZACION: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
+const MENSAJE_SIN_COTIZACION = 'No se pudo obtener la cotización: el rechazo no se registró. Intentá de nuevo.';
 
 export interface RechazarItemDialogData {
   pedidoItem: PedidoItem;
@@ -64,6 +76,12 @@ export class RechazarItemDialogComponent implements OnInit {
   itemToReject: NotaRecepcionItem | null = null;
   distribucionesDelItem: any[] = [];
   tieneDistribuciones: boolean = false;
+  /**
+   * Sin saber si el ítem tiene distribuciones no se rechaza: se saltearía la confirmación y el rechazo de las
+   * distribuciones (#390).
+   */
+  distribucionesCargando = false;
+  distribucionesFallo = false;
 
   // Propiedades computadas para evitar funciones en template
   productoDisplay = '';
@@ -170,10 +188,13 @@ export class RechazarItemDialogComponent implements OnInit {
 
   private loadPresentaciones(): void {
     if (this.data.pedidoItem.producto?.id) {
-      this.presentacionService.onGetPresentacionesPorProductoId(this.data.pedidoItem.producto.id)
+      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.data.pedidoItem.producto.id)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (presentaciones) => {
+            if (presentaciones == null) {
+              return; // Error GraphQL: el servicio ya avisó; sin presentación el formulario no es válido
+            }
             this.presentacionesDisponibles = presentaciones;
             
             // Seleccionar por defecto la presentación del pedido item
@@ -209,7 +230,7 @@ export class RechazarItemDialogComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error cargando presentaciones:', error);
-            this.notificacionService.openAlgoSalioMal('Error cargando presentaciones');
+            this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
           }
         });
     }
@@ -271,7 +292,7 @@ export class RechazarItemDialogComponent implements OnInit {
   }
 
   get canSave(): boolean {
-    return this.form.valid && !this.isLoading;
+    return this.form.valid && !this.isLoading && !this.distribucionesCargando && !this.distribucionesFallo;
   }
 
   get hasItemToReject(): boolean {
@@ -407,12 +428,14 @@ export class RechazarItemDialogComponent implements OnInit {
     nuevaNota.numero = esNotaRechazo ? this.generarNumeroNotaRechazo() : this.generarNumeroNota();
     nuevaNota.fecha = new Date();
 
-    // Asegurar que la moneda no sea null - usar moneda del pedido o una por defecto
-    if (this.data.pedidoItem.pedido?.moneda) {
-      nuevaNota.moneda = this.data.pedidoItem.pedido.moneda;
-    } else {
-      nuevaNota.moneda = { id: 1, denominacion: 'Guaraní', cambio: 1 } as any;
+    // Sin la moneda del pedido no se inventa una (antes { id: 1, 'Guaraní' }, que además no coincidía con
+    // 'GUARANI' y consultaba la cotización de la moneda 1) (#390)
+    if (!this.data.pedidoItem.pedido?.moneda) {
+      this.isLoading = false;
+      this.notificacionService.openWarn('No se conoce la moneda del pedido: el rechazo no se registró. Recargá el pedido.', 6);
+      return;
     }
+    nuevaNota.moneda = this.data.pedidoItem.pedido.moneda;
 
     nuevaNota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
     nuevaNota.esNotaRechazo = esNotaRechazo;
@@ -420,16 +443,23 @@ export class RechazarItemDialogComponent implements OnInit {
     // Cargar cotización real para monedas no-Guaraní, luego guardar
     const moneda = nuevaNota.moneda;
     if (moneda && moneda.denominacion !== 'GUARANI' && moneda.id) {
-      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+      // Sin cotización no se guarda la nota: antes quedaba con 1 y el total en Gs salía mal (#390)
+      this.cambioService.getUltimoCambioPorMonedaId(moneda.id, PROPAGAR_ERROR_DE_RED, CONSULTA_COTIZACION)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (cambio) => {
-            nuevaNota.cotizacion = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado ?? cambio?.valorEnGs ?? 1;
+            const tasa = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado ?? cambio?.valorEnGs;
+            if (!(tasa > 0)) {
+              this.isLoading = false;
+              this.notificacionService.openWarn(MENSAJE_SIN_COTIZACION, 6);
+              return;
+            }
+            nuevaNota.cotizacion = tasa;
             this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
           },
           error: () => {
-            nuevaNota.cotizacion = 1;
-            this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
+            this.isLoading = false;
+            this.notificacionService.openWarn(MENSAJE_SIN_COTIZACION, 6);
           }
         });
     } else {
@@ -608,12 +638,24 @@ export class RechazarItemDialogComponent implements OnInit {
     }, 100);
   }
 
+  reintentarDistribuciones(): void {
+    this.cargarDistribucionesDelItem();
+  }
+
   private cargarDistribucionesDelItem(): void {
     if (this.itemToReject?.id) {
+      this.distribucionesCargando = true;
+      this.distribucionesFallo = false;
       this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(this.itemToReject.id)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (distribuciones) => {
+            this.distribucionesCargando = false;
+            if (distribuciones == null) {
+              // Error GraphQL: el servicio ya avisó
+              this.distribucionesFallo = true;
+              return;
+            }
             this.distribucionesDelItem = distribuciones;
             this.tieneDistribuciones = distribuciones.length > 0;
             
@@ -624,8 +666,10 @@ export class RechazarItemDialogComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error al cargar distribuciones del ítem:', error);
-            this.distribucionesDelItem = [];
-            this.tieneDistribuciones = false;
+            // No es «sin distribuciones»: se bloquea el rechazo hasta poder verlas
+            this.distribucionesCargando = false;
+            this.distribucionesFallo = true;
+            this.notificacionService.openWarn('No se pudieron cargar las distribuciones del ítem: usá «Reintentar» antes de rechazar.', 6);
           }
         });
     }
