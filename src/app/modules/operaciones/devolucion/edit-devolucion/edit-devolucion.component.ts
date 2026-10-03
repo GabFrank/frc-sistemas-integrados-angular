@@ -112,6 +112,11 @@ export class EditDevolucionComponent implements OnInit {
   cargaReintentable = false;
   /** Los ítems no cargaron: no se ofrecen acciones de estado sobre una tabla vacía (#390). */
   itemsFallo = false;
+  /**
+   * Se está cargando una devolución existente: mientras tanto no es «nueva» ni editable (con el central lento,
+   * Guardar en esa ventana también creaba otra devolución) (#390).
+   */
+  cargandoDevolucion = false;
   /** Precalculado para el template: el id de la pestaña aunque la devolución no haya cargado. */
   tituloId: string = null;
   esPendiente = true;
@@ -216,17 +221,21 @@ export class EditDevolucionComponent implements OnInit {
 
   cargarDatos(id: number) {
     this.tituloId = id != null ? "#" + id : null;
+    this.esNuevo = false;
+    this.cargandoDevolucion = true;
+    this.computeEstadoFlags();
     this.devolucionService
       .onGetDevolucion(id, true, undefined, PROPAGAR_ERROR_DE_RED, CONSULTA_PANTALLA)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
           // null: el servicio ya avisó («Item no encontrado» o el error del servidor); no se reintenta.
+          this.cargandoDevolucion = false;
           if (res == null) { this.marcarCargaFallida(false); return; }
           this.cargaFallo = false;
           this.aplicarDevolucion(res);
         },
-        error: () => this.marcarCargaFallida(true)
+        error: () => { this.cargandoDevolucion = false; this.marcarCargaFallida(true); }
       });
   }
 
@@ -391,7 +400,7 @@ export class EditDevolucionComponent implements OnInit {
       this.tipoControl.value == TipoDevolucion.CON_PROVEEDOR;
 
     this.esPendiente = estado == null || estado == DevolucionEstado.PENDIENTE;
-    this.puedeEditarCabecera = !this.cargaFallo && (this.esNuevo || this.esPendiente);
+    this.puedeEditarCabecera = !this.cargaFallo && !this.cargandoDevolucion && (this.esNuevo || this.esPendiente);
     this.actualizarHabilitacionCabecera();
 
     this.canAvanzarSeparado = false;
