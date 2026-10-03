@@ -124,3 +124,38 @@ congelado. Si la base local no tiene productos con lote, se verifica por código
 | A | `onGetStockPorLoteEnPresentacion` ya acepta timeout; `onGetLotesPorProducto` tiene 2 llamadores | baja | sin cambio de firma; default en el servicio |
 | B | Reintento de sucursales y de la preselección; avisos duplicados | baja | ajustado |
 | A | Llamadores, streams, mutaciones, venta del POS | — | verificado |
+
+## Implementación: desvíos respecto del plan (2026-10-03)
+
+- **Ajuste**: el cambio de sucursal descarta **cualquier** lectura de lote en vuelo (relectura o preselección) y, sin
+  lote elegido, relanza la preselección en la sucursal nueva.
+- **Transferencias**: además del bloqueo por fallo, un contador descarta respuestas de una búsqueda o página
+  anterior, y al fallar se pone en 0 el total del paginador.
+- **Sucursales** de `list-stock-lote` e `historial-lote`: solo aviso (sin estado inline), como decía el plan.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (worktree de pruebas, sin perfil, `ReplicationPublicationSyncScheduler` y
+`ReplicationRefreshScheduler` en *Did not match*), congelado con `kill -STOP` + respaldo `kill -CONT`; desktop
+`ng serve -c web`. La base local **no tiene lotes** («Stock por lotes» da «sin resultados» legítimo).
+
+| Caso | Resultado |
+|---|---|
+| «Stock por lotes» con el central congelado | a los 60 s aviso + «No se pudo consultar el stock por lotes… Reintentar» (antes «sin resultados» o búsqueda colgada); sin «sin resultados» |
+| Reanudar y «Reintentar» | vuelve a «sin resultados» (correcto: no hay lotes) |
+
+No probado en runtime por falta de lotes en la base local (verificado por código): ajuste de stock por lote
+(relectura al cambiar de sucursal, existencia, carrera de respuestas, Guardar bloqueado), selección de lotes en una
+transferencia, desglose por sucursal, historial y lotes del producto con fallo; casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Una preselección en vuelo de la sucursal anterior todavía aplicaba su saldo y habilitaba Guardar | media | el cambio de sucursal descarta toda lectura de lote en vuelo y relanza la preselección |
+| `loteFallo` viejo tras cambiar de sucursal | baja | se limpia al cambiar |
+| Transferencias sin contador: una respuesta vieja podía bloquear o desbloquear Confirmar | media-baja | contador de carga |
+| Total del paginador al fallar; aviso de fallo visible durante la búsqueda siguiente | baja | corregidos |
+| Constantes entre los imports del servicio | baja | movidas |
+| Lote «no encontrado» solo con snackbar | baja | aceptado (Guardar bloqueado, se resuelve con el buscador) |
+| Suscriptores, recepción sin cambios, spec de `list-stock-lote`, flags del ajuste, transferencias, historial, lotes del producto | — | verificado |

@@ -12,10 +12,6 @@ import {
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
-
-/** Consultas de lotes: el error de red llega al llamador, que avisa (#390). 20 s en diálogos, 60 s en listados. */
-const CONSULTA_DIALOGO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
-const CONSULTA_LISTADO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -45,6 +41,9 @@ import {
   StockLotePresentacion,
   StockLoteSucursal
 } from './lote.model';
+/** Consultas de lotes: el error de red llega al llamador, que avisa (#390). 20 s en diálogos, 60 s en listados. */
+const CONSULTA_DIALOGO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+const CONSULTA_LISTADO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 /**
  * Maestro de lotes: consulta y administración del estado.

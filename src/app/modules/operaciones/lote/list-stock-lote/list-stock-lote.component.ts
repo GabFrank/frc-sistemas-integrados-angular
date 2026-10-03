@@ -305,6 +305,7 @@ export class ListStockLoteComponent implements OnInit {
     const valores = this.filtros.value;
     const carga = ++this.cargaBusqueda;
     this.isSearching = true;
+    this.busquedaFallo = false;
     this.loteService
       .onBuscarStockPorLote(
         {

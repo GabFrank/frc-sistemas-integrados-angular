@@ -153,12 +153,20 @@ export class AjustarStockLoteDialogComponent implements OnInit {
 
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe((sucursalId) => {
       this.selectedSucursal = this.sucursales.find((s) => s.id === sucursalId);
+      // Una lectura de lote en vuelo (relectura o preselección) era de la sucursal anterior: se descarta (#390)
+      this.cargaLote++;
+      this.releyendoLote = false;
+      this.loteFallo = false;
       if (this.selectedSucursal != null) {
         this.cargarStockDelProducto();
         // El saldo del lote es POR SUCURSAL: el que quedó de la elección anterior ya no vale.
         if (this.loteElegido != null) {
           this.releerSaldoDelLote();
+        } else {
+          this.preseleccionarLote();
         }
+      } else {
+        this.recalcular();
       }
     });
 

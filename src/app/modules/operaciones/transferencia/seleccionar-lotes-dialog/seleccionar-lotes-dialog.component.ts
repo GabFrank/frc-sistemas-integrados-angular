@@ -136,6 +136,8 @@ export class SeleccionarLotesDialogComponent implements OnInit {
    * se bloquea hasta reintentar; la selección se conserva.
    */
   cargaFallo = false;
+  /** Solo aplica la última carga (búsqueda, página o reintento). */
+  private cargaLotes = 0;
 
   // Paginación server-side, con el mismo contrato que el resto de los listados del sistema.
   pageIndex = 0;
@@ -226,6 +228,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   }
 
   private cargarLotes(silentLoad = false): void {
+    const carga = ++this.cargaLotes;
     this.cargando = true;
     this.loteService
       .onGetStockPorLoteEnPresentacion(
@@ -242,6 +245,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<StockLotePresentacion>) => {
+          if (carga !== this.cargaLotes) return; // respuesta de una búsqueda o página anterior
           if (res == null) {
             this.marcarCargaFallida(); // error GraphQL: el servicio ya avisó
             return;
@@ -259,6 +263,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
+          if (carga !== this.cargaLotes) return;
           this.notificacionService.openWarn('No se pudieron consultar los lotes disponibles: usá «Reintentar».', 5);
           this.marcarCargaFallida();
         }
@@ -270,6 +275,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     this.cargandoInicial = false;
     this.cargaFallo = true;
     this.filas = [];
+    this.totalElementos = 0;
     this.sinLotes = false;
     this.sinCoincidencias = false;
     this.cdr.markForCheck();
