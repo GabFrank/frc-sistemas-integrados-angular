@@ -5,6 +5,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, MovimientoCajaVirtual, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { FormControl, FormGroup } from '@angular/forms';
 
@@ -63,7 +64,8 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public cajaVirtual: CajaVirtual,
-    private cajaVirtualService: CajaVirtualService
+    private cajaVirtualService: CajaVirtualService,
+    private notificacion: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -83,27 +85,31 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
         this.finControl.value.toISOString(),
         this.pageIndex,
         this.pageSize
-      ).pipe(untilDestroyed(this)).subscribe(this.handleResponse.bind(this));
+      ).pipe(untilDestroyed(this)).subscribe({ next: r => this.handleResponse(r), error: () => this.noCargo() });
     } else {
       this.cajaVirtualService.onGetMovimientos(this.cajaVirtual.id, this.pageIndex, this.pageSize)
-        .pipe(untilDestroyed(this)).subscribe(this.handleResponse.bind(this));
+        .pipe(untilDestroyed(this)).subscribe({ next: r => this.handleResponse(r), error: () => this.noCargo() });
     }
+  }
+
+  private noCargo() {
+    this.isSearching = false;
+    this.notificacion.openWarn('No se pudieron cargar los movimientos de la caja.', 5);
   }
 
   private handleResponse(res: PageInfo<MovimientoCajaVirtual>) {
     this.isSearching = false;
-    if (res != null) {
-      this.selectedPageInfo = res;
-      // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
-      // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
-      // en cada ciclo de change detection.
-      // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
-      // asignar sobre el objeto devuelto tira TypeError.
-      this.dataSource.data = (res.getContent || []).map(m => ({
-        ...m,
-        _label: labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels),
-      } as MovimientoRow));
-    }
+    if (res == null) { this.noCargo(); return; }
+    this.selectedPageInfo = res;
+    // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
+    // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
+    // en cada ciclo de change detection.
+    // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
+    // asignar sobre el objeto devuelto tira TypeError.
+    this.dataSource.data = (res.getContent || []).map(m => ({
+      ...m,
+      _label: labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels),
+    } as MovimientoRow));
   }
 
   onResetFiltro() {

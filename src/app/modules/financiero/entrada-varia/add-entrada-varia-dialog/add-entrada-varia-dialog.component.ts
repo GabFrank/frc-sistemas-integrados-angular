@@ -73,8 +73,10 @@ export class AddEntradaVariaDialogComponent implements OnInit {
       }
     });
 
-    this.entradaVariaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.categoriaList = res;
+    const sinCategorias = 'No se pudieron cargar las categorías: cerrá y volvé a abrir para reintentar.';
+    this.entradaVariaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.categoriaList = res; } else { this.notificacion.openWarn(sinCategorias, 5); } },
+      error: () => this.notificacion.openWarn(sinCategorias, 5)
     });
 
     this.formaPagoService.formaPagoSub.pipe(untilDestroyed(this)).subscribe(res => {

@@ -7,6 +7,8 @@ import { ChequeraService } from '../chequera.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { MainService } from '../../../../main.service';
 
 export interface EditChequeraData { chequera?: Chequera; }
@@ -58,13 +60,19 @@ export class EditChequeraDialogComponent implements OnInit {
       estadoControl: this.estadoControl,
     });
 
-    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => {
-      this.cuentas = res || [];
-      const ch = this.data?.chequera;
-      if (ch?.cuentaBancaria?.id) {
-        const sel = this.cuentas.find(c => c.id === ch.cuentaBancaria.id);
-        if (sel) this.cuentaControl.setValue(sel);
-      }
+    const sinCuentas = 'No se pudieron cargar las cuentas bancarias: cerrá y volvé a abrir para reintentar.';
+    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { this.notificacion.openWarn(sinCuentas, 5); return; }
+        this.cuentas = res;
+        const ch = this.data?.chequera;
+        if (ch?.cuentaBancaria?.id) {
+          const sel = this.cuentas.find(c => c.id === ch.cuentaBancaria.id);
+          if (sel) this.cuentaControl.setValue(sel);
+        }
+      },
+      error: () => this.notificacion.openWarn(sinCuentas, 5)
     });
 
     const ch = this.data?.chequera;

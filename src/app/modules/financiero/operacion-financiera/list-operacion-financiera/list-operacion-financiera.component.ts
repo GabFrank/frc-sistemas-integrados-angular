@@ -60,9 +60,10 @@ export class ListOperacionFinancieraComponent implements OnInit {
     this.isSearching = true;
     this.operacionFinancieraService.onGetOperaciones(this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las operaciones financieras.', 5); return; }
           this.totalElements = res.getTotalElements;
           // Etiquetas de origen/destino pre-calculadas al cargar — evita llamar
           // funciones desde el HTML en cada fila.
@@ -73,6 +74,10 @@ export class ListOperacionFinancieraComponent implements OnInit {
             destinoLabel: op.cajaMayorDestino?.nombre
               || (op.cuentaBancariaDestino ? `${op.cuentaBancariaDestino.banco?.nombre} ${op.cuentaBancariaDestino.numero}` : '-'),
           }));
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las operaciones financieras: el servidor no responde.', 5);
         }
       });
   }

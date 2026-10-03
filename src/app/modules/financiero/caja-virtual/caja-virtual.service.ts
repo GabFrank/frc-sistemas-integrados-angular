@@ -69,7 +69,8 @@ export class CajaVirtualService {
   // el backend lo verifica, el front solo esconde la opcion.
 
   onGetAccesos(cajaVirtualId: number): Observable<any> {
-    return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId });
+    return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_CAJA_MAYOR);
   }
 
   onOtorgarAcceso(cajaVirtualId: number, usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean,
@@ -99,7 +100,7 @@ export class CajaVirtualService {
       sucursalId: filtros.sucursalId ?? null,
       activo: filtros.activo ?? null,
       page, size
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetPorTipo(tipo: CajaVirtualTipo): Observable<CajaVirtual[]> {
@@ -124,11 +125,13 @@ export class CajaVirtualService {
   }
 
   onGetMovimientos(cajaVirtualId: number, page = 0, size = 20): Observable<PageInfo<MovimientoCajaVirtual>> {
-    return this.genericService.onCustomQuery(this.movimientosGQL, { cajaVirtualId, page, size });
+    return this.genericService.onCustomQuery(this.movimientosGQL, { cajaVirtualId, page, size }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetMovimientosPorFecha(cajaVirtualId: number, inicio: string, fin: string, page = 0, size = 20): Observable<PageInfo<MovimientoCajaVirtual>> {
-    return this.genericService.onCustomQuery(this.movimientosPorFechaGQL, { cajaVirtualId, inicio, fin, page, size });
+    return this.genericService.onCustomQuery(this.movimientosPorFechaGQL, { cajaVirtualId, inicio, fin, page, size }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onSaveMovimiento(movimiento: MovimientoCajaVirtual, opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {

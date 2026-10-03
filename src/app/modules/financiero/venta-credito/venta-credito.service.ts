@@ -59,8 +59,9 @@ export class VentaCreditoService {
     return this.genericService.onCustomSub(this.ventaCreditoQrAuthSub, null, true, false);
   }
 
-  onImprimirVentaCredito(id: number, sucId): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.imprimirVentaCredito, { id, sucId, printerName: this.configService?.getConfig()?.printers?.ticket })
+  onImprimirVentaCredito(id: number, sucId, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.imprimirVentaCredito,
+      { id, sucId, printerName: this.configService?.getConfig()?.printers?.ticket }, true, errorConf, undefined, contexto)
   }
 
   onCobrarVentaCredito(ventaCreditoInputList: VentaCreditoInput[], cobroDetalleInputList: CobroDetalleInput[]) {

@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Banco } from './banco.model';
 import { BancosGQL } from './graphql/bancos';
 import { SaveBancoGQL } from './graphql/saveBanco';
 import { DeleteBancoGQL } from './graphql/deleteBanco';
+
+/** Listados y catálogos con un solo suscriptor por método, que maneja el error (#390). */
+const CONSULTA_BANCOS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +23,8 @@ export class BancoService {
   ) { }
 
   onGetAll(page = 0, size = 100): Observable<Banco[]> {
-    return this.genericService.onCustomQuery(this.bancosGQL, { page, size });
+    return this.genericService.onCustomQuery(this.bancosGQL, { page, size }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_BANCOS);
   }
 
   onSave(banco: Banco, opciones?: { avisarExito?: boolean }): Observable<Banco> {

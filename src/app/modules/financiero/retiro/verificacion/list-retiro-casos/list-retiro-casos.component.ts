@@ -117,13 +117,16 @@ export class ListRetiroCasosComponent implements OnInit {
       .subscribe({
         next: res => {
           this.isLoading = false;
-          if (res == null) return;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5); return; }
           // Clonar antes de agregar props de display: Apollo congela los resultados.
           this.dataSource.data = (res.getContent || []).map(c => this.toRow(c));
           this.totalElements = res.getTotalElements || 0;
           if (resaltarId != null) this.resaltar(resaltarId);
         },
-        error: () => { this.isLoading = false; },
+        error: () => {
+          this.isLoading = false;
+          this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
+        },
       });
   }
 

@@ -429,11 +429,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
       desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
     })
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isLoading = false;
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          this.isLoading = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta.', 5); return; }
           this.dataSourceBanco.data = res.getContent || [];
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
+        },
+        error: () => {
+          this.isLoading = false;
+          this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta: el servidor no responde.', 5);
         }
       });
   }

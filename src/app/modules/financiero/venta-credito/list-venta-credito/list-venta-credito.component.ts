@@ -445,9 +445,12 @@ export class ListVentaCreditoComponent implements OnInit {
 
   onImprimir(ventaCredito: VentaCredito) {
     this.ventaCreditoService
-      .onImprimirVentaCredito(ventaCredito.id, ventaCredito?.sucursal?.id)
+      .onImprimirVentaCredito(ventaCredito.id, ventaCredito?.sucursal?.id, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {});
+      .subscribe({
+        error: () => this.notificacionService.openWarn('No se pudo imprimir la venta a crédito: el servidor no responde.', 5)
+      });
   }
 
   async onCobrarTodo() {

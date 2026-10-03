@@ -12,6 +12,8 @@ import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { CambioService } from '../../cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -134,15 +136,23 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       diferenciaObservacionControl: this.diferenciaObservacionControl,
     });
 
-    this.operacionFinancieraService.onGetCategorias().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.categoriaList = res;
+    // Sin estos catálogos los selectores quedaban vacíos sin aviso (#390). Las categorías propagan en el servicio.
+    const noCargo = (que: string) => this.notificacion.openWarn('No se pudieron cargar ' + que
+      + ': cerrá y volvé a abrir para reintentar.', 5);
+    this.operacionFinancieraService.onGetCategorias().pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.categoriaList = res; } else { noCargo('las categorías'); } },
+      error: () => noCargo('las categorías')
     });
-    this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.cajaVirtualList = res;
+    this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.cajaVirtualList = res; } else { noCargo('las cajas'); } },
+      error: () => noCargo('las cajas')
     });
     // Solo cuentas propias operables (no de terceros).
-    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.cuentaBancariaList = res;
+    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
+      error: () => noCargo('las cuentas bancarias')
     });
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;

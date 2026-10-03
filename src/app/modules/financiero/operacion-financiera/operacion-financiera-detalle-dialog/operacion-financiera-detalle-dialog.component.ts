@@ -23,6 +23,7 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
 
   op: OperacionFinanciera | null = null;
   isLoading = true;
+  cargaFallo = false;
   isAnulando = false;
 
   tipoLabel = '';
@@ -48,15 +49,22 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.service.onGetOperacion(this.data.operacionId).pipe(untilDestroyed(this)).subscribe(op => {
-      this.isLoading = false;
-      if (!op) return;
-      this.op = op;
-      this.tipoLabel = this.tipoLabels[op.tipoOperacion as any] || op.tipoOperacion;
-      this.origenLabel = this.fuenteLabel(op.cajaMayorOrigen, op.cuentaBancariaOrigen);
-      this.destinoLabel = this.fuenteLabel(op.cajaMayorDestino, op.cuentaBancariaDestino);
-      this.mostrarDestino = !!(op.cajaMayorDestino || op.cuentaBancariaDestino || op.montoDestino);
-      this.mostrarCotizacion = !!(op.cotizacion && op.cotizacion !== 1);
+    this.service.onGetOperacion(this.data.operacionId).pipe(untilDestroyed(this)).subscribe({
+      error: () => {
+        // Sin respuesta: no «Cargando…» eterno ni «No se encontró la operación», que sería falso (#390).
+        this.isLoading = false;
+        this.cargaFallo = true;
+      },
+      next: op => {
+        this.isLoading = false;
+        if (!op) return;
+        this.op = op;
+        this.tipoLabel = this.tipoLabels[op.tipoOperacion as any] || op.tipoOperacion;
+        this.origenLabel = this.fuenteLabel(op.cajaMayorOrigen, op.cuentaBancariaOrigen);
+        this.destinoLabel = this.fuenteLabel(op.cajaMayorDestino, op.cuentaBancariaDestino);
+        this.mostrarDestino = !!(op.cajaMayorDestino || op.cuentaBancariaDestino || op.montoDestino);
+        this.mostrarCotizacion = !!(op.cotizacion && op.cotizacion !== 1);
+      }
     });
   }
 

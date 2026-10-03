@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { AllMaletinsGQL } from './graphql/allMaletines';
 import { CountMaletinGQL } from './graphql/count-maletin';
 import { DeleteMaletinGQL } from './graphql/deleteMaletin';
@@ -40,7 +41,9 @@ export class MaletinService {
 
   /** Valor físico estimado dentro del maletín (por moneda, del último cierre). */
   onGetValor(maletinId: number, servidor: boolean = true): Observable<any> {
-    return this.genericCrud.onCustomQuery(this.valorMaletinGQL, { maletinId }, servidor);
+    // Un solo suscriptor, con error: ya escrito (#390).
+    return this.genericCrud.onCustomQuery(this.valorMaletinGQL, { maletinId }, servidor, PROPAGAR_ERROR_DE_RED, undefined,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   /** Ingresa a la caja mayor el valor de un maletín. */
