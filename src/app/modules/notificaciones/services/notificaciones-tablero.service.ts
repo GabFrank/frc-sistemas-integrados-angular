@@ -1,9 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, BehaviorSubject, of, Subject } from 'rxjs';
-import { map, tap, catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { map, tap, catchError, debounceTime, finalize } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
+
+/** Consultas de fondo del tablero: nadie las espera, pero sin esto con el central sin responder no terminan (#390). */
+const CONSULTA_TABLERO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 import { MainService } from '../../../main.service';
 import { NotificacionesUsuarioGQL } from '../graphql/notificacionesUsuario.gql';
 import {
@@ -86,6 +89,8 @@ export class NotificacionesTableroService {
   private readonly _unreadCount$ = new BehaviorSubject<number>(0);
 
   private isRefreshing = false;
+  /** Llegó un disparo mientras se refrescaba: se relanza uno al terminar, para no perder el push. */
+  private refrescoPendiente = false;
 
   readonly notificaciones$ = this._notificaciones$.asObservable();
   readonly paginationState$ = this._paginationState$.asObservable();
@@ -105,19 +110,28 @@ export class NotificacionesTableroService {
       });
     });
 
+    // Sin distinctUntilChanged: el trigger emite siempre undefined, así que solo pasaba el primer disparo de la
+    // sesión. isRefreshing se baja en finalize: sin respuesta del central quedaba en true para siempre (#390).
     this._refreshTrigger$.pipe(
-      debounceTime(500),
-      distinctUntilChanged()
+      debounceTime(500)
     ).subscribe(() => {
-      if (!this.isRefreshing) {
-        this.isRefreshing = true;
-        this.refrescarTodas();
-        setTimeout(() => {
-          this.obtenerConteoNoLeidas().subscribe(() => {
-            this.isRefreshing = false;
-          });
-        }, 800);
+      if (this.isRefreshing) {
+        this.refrescoPendiente = true;
+        return;
       }
+      this.isRefreshing = true;
+      this.refrescarTodas();
+      setTimeout(() => {
+        this.obtenerConteoNoLeidas().pipe(
+          finalize(() => {
+            this.isRefreshing = false;
+            if (this.refrescoPendiente) {
+              this.refrescoPendiente = false;
+              this._refreshTrigger$.next();
+            }
+          })
+        ).subscribe();
+      }, 800);
     });
 
     this.electronService.notificationReceived.subscribe(() => {
@@ -146,14 +160,16 @@ export class NotificacionesTableroService {
     if (this.mainService.authenticationSub.value !== true) {
       return of(0);
     }
-    return this.genericService.onCustomQuery(this.conteoNotificacionesNoLeidasGQL, {}, true, null, true).pipe(
+    return this.genericService.onCustomQuery(this.conteoNotificacionesNoLeidasGQL, {}, true, PROPAGAR_ERROR_DE_RED, true,
+      CONSULTA_TABLERO).pipe(
       map((count: any) => {
-        const result = count || 0;
-        this._unreadCount$.next(result);
-        return result;
+        // null = error del servidor: se conserva el último conteo en vez de borrar el badge.
+        if (count == null) { return this._unreadCount$.value; }
+        this._unreadCount$.next(count);
+        return count;
       }),
       catchError(() => {
-        return of(0);
+        return of(this._unreadCount$.value);
       })
     );
   }
@@ -207,8 +223,10 @@ export class NotificacionesTableroService {
       estadoTablero: estado,
       fechaInicio: filtroFechas.fechaInicio,
       fechaFin: filtroFechas.fechaFin
-    }, true, null, true).pipe(
+    }, true, PROPAGAR_ERROR_DE_RED, true, CONSULTA_TABLERO).pipe(
       tap((data: any) => {
+        // null = error del servidor: va al error: que baja el loading de la columna.
+        if (data == null) { throw new Error('No se pudieron cargar las notificaciones'); }
         const notificacionesActuales = this._notificaciones$.value;
         this._notificaciones$.next({
           ...notificacionesActuales,

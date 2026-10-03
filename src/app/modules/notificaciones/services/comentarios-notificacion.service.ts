@@ -8,7 +8,8 @@ import {
   NotificacionComentario
 } from '../graphql/comentariosNotificacion.gql';
 import { UsuariosConAccesoNotificacionGQL } from '../graphql/usuariosConAccesoNotificacion.gql';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 
 @Injectable({
   providedIn: 'root'
@@ -27,9 +28,13 @@ export class ComentariosNotificacionService {
   readonly comentariosPorNotificacion$ = this._comentariosPorNotificacion$.asObservable();
   readonly conteosPorNotificacion$ = this._conteosPorNotificacion$.asObservable();
 
-  obtenerComentarios(notificacionId: number): Observable<NotificacionComentario[]> {
-    return this.genericService.onCustomQuery(this.getComentariosGQL, { notificacionId }, true, null, true).pipe(
+  obtenerComentarios(notificacionId: number, errorConf?: QueryError,
+                     contexto?: ContextoConsulta): Observable<NotificacionComentario[]> {
+    return this.genericService.onCustomQuery(this.getComentariosGQL, { notificacionId }, true, errorConf ?? null, true,
+      contexto).pipe(
       tap(comentarios => {
+        // Un null (error del servidor) no pisa los comentarios ya cargados.
+        if (comentarios == null) { return; }
         const mapActual = new Map(this._comentariosPorNotificacion$.value);
         mapActual.set(notificacionId, comentarios);
         this._comentariosPorNotificacion$.next(mapActual);
@@ -75,7 +80,9 @@ export class ComentariosNotificacionService {
   }
 
   obtenerUsuariosConAcceso(notificacionId: number): Observable<any[]> {
-    return this.genericService.onCustomQuery(this.usuariosConAccesoGQL, { notificacionId }, true, null, true);
+    // Un solo suscriptor, con error: (#390).
+    return this.genericService.onCustomQuery(this.usuariosConAccesoGQL, { notificacionId }, true, PROPAGAR_ERROR_DE_RED,
+      true, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   obtenerComentariosDesdeCache(notificacionId: number): NotificacionComentario[] | null {
