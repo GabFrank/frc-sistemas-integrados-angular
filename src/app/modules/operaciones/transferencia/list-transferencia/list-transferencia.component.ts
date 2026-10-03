@@ -35,6 +35,8 @@ import { CargandoDialogService } from "./../../../../shared/components/cargando-
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
 import { interval } from "rxjs";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -183,13 +185,18 @@ export class ListTransferenciaComponent implements OnInit {
     this.sucursalIdlist = [];
 
     this.onGetTransferencias();
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res.filter((s) => {
-        if (s.id != 0) {
-          this.sucursalIdlist.push(s.id);
-          return s;
-        }
-      })
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
+      next: (res) => {
+        // Con null (error del servidor) res.filter lanzaba TypeError (#390).
+        this.sucursalList = (res ?? []).filter((s) => {
+          if (s.id != 0) {
+            this.sucursalIdlist.push(s.id);
+            return s;
+          }
+        });
+      },
+      error: () => this.notificacionService.openWarn('No se pudieron cargar las sucursales para el filtro.', 5)
     });
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(() => {
@@ -230,26 +237,40 @@ export class ListTransferenciaComponent implements OnInit {
           dateToString(fechaInicio),
           dateToString(fechaFin),
           this.pageIndex,
-          this.pageSize
+          this.pageSize,
+          true,
+          PROPAGAR_ERROR_DE_RED,
+          { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res: PageInfo<Transferencia>) => {
-          if (res != null) {
+        .subscribe({
+          next: (res: PageInfo<Transferencia>) => {
+            if (res == null) { this.avisarListaNoCargada(); return; }
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent.map((t) => this.toView(t));
             this.cargarNotasRemision();
-          }
+          },
+          error: () => this.avisarListaNoCargada()
         });
     } else {
       this.transferenciaService
         .onGetTransferencia(this.idControl.value)
-        .subscribe((res) => {
-          if (res != null) {
+        .subscribe({
+          next: (res) => {
+            if (res == null) {
+              this.notificacionService.openWarn('No se encontró la transferencia o no se pudo consultar.', 5);
+              return;
+            }
             this.dataSource.data = [this.toView(res)];
             this.cargarNotasRemision();
-          }
+          },
+          error: () => this.avisarListaNoCargada()
         });
     }
+  }
+
+  private avisarListaNoCargada() {
+    this.notificacionService.openWarn('No se pudieron cargar las transferencias: el servidor no responde.', 5);
   }
 
   onResetFiltro() {
@@ -370,6 +391,11 @@ export class ListTransferenciaComponent implements OnInit {
       .subscribe({
         next: (transferenciaCompleta) => {
           this.cargandoService.closeDialog(requestId);
+          // Sin la transferencia completa no se sabe si tiene productos: no se borra (#390).
+          if (transferenciaCompleta == null) {
+            this.notificacionService.openWarn('No se pudo verificar la transferencia: no se eliminó.', 5);
+            return;
+          }
 
           // Verificar si la transferencia tiene productos
           if (transferenciaCompleta?.transferenciaItemList && transferenciaCompleta.transferenciaItemList.length > 0) {

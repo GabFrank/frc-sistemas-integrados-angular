@@ -137,8 +137,10 @@ export class ProductoService {
     silentLoad);
   }
 
-  onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true){
-    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, undefined, silentLoad);
+  onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true, errorConf?: QueryError,
+                                   contexto?: ContextoConsulta){
+    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, errorConf, silentLoad,
+      contexto);
   }
 
   /**
