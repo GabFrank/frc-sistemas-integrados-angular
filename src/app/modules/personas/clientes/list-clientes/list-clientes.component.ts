@@ -20,6 +20,8 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
 import { forkJoin } from 'rxjs';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
@@ -259,7 +261,9 @@ export class ListClientesComponent implements OnInit {
         null,
         null,
         esCobro ? EstadoVentaCredito.ABIERTO : null,
-        false
+        false,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       );
 
       observables.push(
@@ -276,6 +280,15 @@ export class ListClientesComponent implements OnInit {
 
     forkJoin(observables).pipe(untilDestroyed(this)).subscribe({
       next: (results: VentaCredito[][]) => {
+        // Un cliente sin ventas responde [], nunca null: null es un error. Antes se omitía en silencio y se
+        // cobraba al resto con mensaje de éxito; ahora no se procesa ninguno (#390).
+        const fallidos = results.filter(r => r == null).length;
+        if (fallidos > 0) {
+          this.notificacionService.openAlgoSalioMal(
+            `No se pudieron consultar las ventas de ${fallidos} cliente(s): no se procesó ninguno. Intentá de nuevo.`, 6
+          );
+          return;
+        }
         const clienteVentaCreditoList: any[] = [];
         const todasLasVentas: VentaCreditoInput[] = [];
         let totalClientesConVentas = 0;

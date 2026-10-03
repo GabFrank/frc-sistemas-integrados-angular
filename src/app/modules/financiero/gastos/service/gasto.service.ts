@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
@@ -42,6 +42,12 @@ import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado
 import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
 import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
 import { CancelarGastoGQL } from '../graphql/cancelarGasto';
+
+/**
+ * Retiro de pre-gasto: lo espera el cajero en el POS y va al central. Sin esto, con el central sin
+ * responder no emiten nada y el diálogo queda con su spinner; los `error:` ya están escritos (#390).
+ */
+const RETIRO_PRE_GASTO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -229,11 +235,13 @@ export class GastoService {
   }
 
   preGastosParaRetiro(sucursalCajaId: number): Observable<PreGasto[]> {
-    return this.genericService.onCustomQuery(this.preGastosParaRetiroGQL, { sucursalCajaId });
+    return this.genericService.onCustomQuery(this.preGastosParaRetiroGQL, { sucursalCajaId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
   qrRetiroPreGasto(preGastoId: number, sucursalId: number): Observable<{ codigoQr: string; preGastoId: number; sucursalId: number; qrToken: string }> {
-    return this.genericService.onCustomQuery(this.qrRetiroPreGastoGQL, { preGastoId, sucursalId });
+    return this.genericService.onCustomQuery(this.qrRetiroPreGastoGQL, { preGastoId, sucursalId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
   preGastoPorId(id: number, sucId?: number): Observable<PreGasto> {
@@ -241,11 +249,13 @@ export class GastoService {
   }
 
   lineasRetiroSugeridas(preGastoId: number, sucursalId: number): Observable<LineaRetiroSugerida[]> {
-    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId });
+    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, RETIRO_PRE_GASTO);
   }
 
   montosRetiroDesdeLineas(lineas: RetiroPreGastoLineaInput[]): Observable<MontosRetiroPayload> {
-    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas });
+    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
   preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
@@ -275,6 +285,11 @@ export class GastoService {
     const sucursalCajaId = caja?.sucursal?.id ?? caja?.sucursalId;
     return this.montosRetiroDesdeLineas(lineas).pipe(
       switchMap((montos) => {
+        // Sin montos (error del servidor) el gasto se guardaba en la caja con retiro 0 y después se
+        // ejecutaba el retiro en el central con las líneas reales: caja descuadrada. Se corta antes (#390).
+        if (montos == null) {
+          return throwError(() => new Error('No se pudieron calcular los montos del retiro: no se registró nada.'));
+        }
         const gasto = new Gasto();
         gasto.caja = caja;
         gasto.sucursalId = sucursalCajaId;

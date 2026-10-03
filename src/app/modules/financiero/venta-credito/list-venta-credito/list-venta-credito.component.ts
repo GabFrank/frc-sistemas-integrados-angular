@@ -59,6 +59,8 @@ import {
 import { PageInfo } from "../../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -271,7 +273,8 @@ export class ListVentaCreditoComponent implements OnInit {
     this.onFiltrar();
   }
 
-  async onFiltrar() {
+  /** Resuelve `false` si las ventas no cargaron: quien espera (cobrar todo) no sigue sobre la tabla vacía (#390). */
+  async onFiltrar(): Promise<boolean> {
     let fechaInicial: Date = this.fechaInicioControl.value;
     let fechaFin: Date = this.fechaFinalControl.value;
     let horaInicial: Date = stringToTime(this.horaInicioControl.value);
@@ -286,20 +289,32 @@ export class ListVentaCreditoComponent implements OnInit {
     this.isAbiertos = false;
     this.isConcluidos = false;
 
-    return new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
+      const noCargaron = () => {
+        this.dataSource.data = [];
+        this.verificarEstados();
+        this.notificacionService.openWarn('No se pudieron cargar las ventas a crédito del cliente. Intentá de nuevo.', 5);
+        resolve(false);
+      };
       this.ventaCreditoService
         .onGetPorCliente(
           this.selectedCliente.id,
           this.fechaControl.value ? dateToString(fechaInicial) : null,
           this.fechaControl.value ? dateToString(fechaFin) : null,
           this.estadoControl.value,
-          this.filtrarPorControl.value == "Venta" ? false : true
+          this.filtrarPorControl.value == "Venta" ? false : true,
+          PROPAGAR_ERROR_DE_RED,
+          { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.dataSource.data = res;
-          this.verificarEstados();
-          resolve();
+        .subscribe({
+          next: (res) => {
+            if (res == null) { noCargaron(); return; }
+            this.dataSource.data = res;
+            this.verificarEstados();
+            resolve(true);
+          },
+          error: () => noCargaron()
         });
     });
   }
@@ -439,7 +454,7 @@ export class ListVentaCreditoComponent implements OnInit {
     this.selection.clear();
     this.estadoControl.setValue(EstadoVentaCredito.ABIERTO);
     this.fechaControl.setValue(false);
-    await this.onFiltrar();
+    if (!(await this.onFiltrar())) { return; }
     this.dataSource.data.forEach((row) => this.selection.select(row));
     this.onFinalizarSeleccionados();
   }
