@@ -284,7 +284,7 @@ export class EditDevolucionComponent implements OnInit {
    */
   private refrescarAlVolver() {
     // Si la carga había fallado, al volver a la pestaña se reintenta (#390).
-    if (this.cargaFallo && this.cargaReintentable) { this.onReintentarCarga(); return; }
+    if (this.cargaFallo && this.cargaReintentable && !this.cargandoDevolucion) { this.onReintentarCarga(); return; }
     const id = this.selectedDevolucion?.id;
     if (id == null || this.procesando) return;
     const estadoAnterior = this.selectedDevolucion.estado;
@@ -834,6 +834,7 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onConfirmarCanje() {
+    if (this.itemsFallo) return;
     const items = this.dataSource.data ?? [];
     if (items.length == 0) {
       this.notificacionService.openWarn("No hay items para canjear");
@@ -872,7 +873,7 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onConfirmarAcreditar() {
-    if (this.procesando) return;
+    if (this.procesando || this.itemsFallo) return;
     this.procesando = true;
     this.devolucionService
       .onAcreditar(

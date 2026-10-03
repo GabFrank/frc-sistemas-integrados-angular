@@ -36,14 +36,15 @@ export class ColectarDialogComponent implements OnInit {
 
   ngOnInit(): void {
     // Sin sucursales no hay destino que elegir: se cierra con aviso (antes quedaba cargando) (#390).
-    const noCargo = () => {
+    // avisar = false con null: el servicio ya avisó el error.
+    const noCargo = (avisar = true) => {
       this.cargando = false;
-      this.notificacion.openWarn("No se pudieron cargar las sucursales: intentá de nuevo.", 5);
+      if (avisar) this.notificacion.openWarn("No se pudieron cargar las sucursales: intentá de nuevo.", 5);
       this.dialogRef.close();
     };
     this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
       next: (res) => {
-        if (res == null) { noCargo(); return; }
+        if (res == null) { noCargo(false); return; }
         this.cargando = false;
         const origenId =
           this.data?.sucursalOrigenId != null ? Number(this.data.sucursalOrigenId) : null;

@@ -127,3 +127,36 @@ con el central congelado. Casos `null`: verificados por código.
 | B | `gestion-compras:1925` fail-open | baja | aviso no bloqueante (aceptado) |
 | B | KPIs viejos sin marca tras un fallo | baja | aceptado, en riesgos |
 | A/B | Llamadores de lo que propaga en servicio; `refrescarAlVolver` ya protegido; flags `procesando`; streams | — | verificado |
+
+## Ajustes durante la implementación
+
+- **Ventana de carga** (encontrado en la prueba): mientras se cargaba una devolución existente (hasta 60 s), `esNuevo`
+  seguía en `true` y la cabecera editable: con el central lento, «Guardar» en esa ventana también creaba otra
+  devolución. Se agregó `cargandoDevolucion`: al abrir una existente no es «nueva» ni editable hasta que carga.
+- `acreditar-retiro-dialog`: además de propagar, su `error:` avisa (sin eso, con `silenciarAvisoTimeout`, no avisaba
+  nadie).
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (rama local de pruebas, sin perfil, replicación apagada y verificada en *Negative
+matches*), congelado con `kill -STOP` y un respaldo `kill -CONT`. **No se guardó, acreditó ni retiró nada.**
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Abrir el dashboard con el central congelado | arranca (con los defaults) y sale **un solo** aviso «No se pudieron cargar algunos datos del dashboard» (no uno por panel); `cargando` baja |
+| 2 | Abrir la devolución 7 (PENDIENTE) congelado | **durante la carga** no es editable (solo «Lista»); al fallar (~60 s) «No se pudo cargar la devolución: no se puede editar» con «Reintentar» y «Lista»; título «#7» (no «(nueva)») |
+| 3 | Descongelar → «Reintentar» | carga la 7 como existente (`esNuevo = false`) con sus acciones (Agregar producto, Marcar como separado, Guardar datos, Cancelar devolución) |
+
+**Verificado por código:** diálogo de configuración, historiales, retiro a proveedor, colecta, acreditación,
+listas, compras y los casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Llamadores de todo lo tocado; devolución nueva no se bloquea; sin atajos a Guardar/Agregar; aviso único; config; historiales; compras | — | verificado |
+| Acreditación: el error de red ya no avisaba nadie (Confirmar deshabilitado sin mensaje) | media | aviso en su `error:` |
+| Avisos «el servidor no responde» también ante `null` (el servicio ya avisó) | baja | con `null` solo se marca el fallo |
+| Al volver a la pestaña durante un reintento, dos cargas en paralelo | baja | no reintenta si ya está cargando |
+| Canje y acreditación sin el resguardo de `itemsFallo` | baja | agregado |
+| Orden de imports y constantes (estilo) | baja | sin cambio: compila |

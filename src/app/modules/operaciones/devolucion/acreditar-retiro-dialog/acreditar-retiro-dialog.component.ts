@@ -75,7 +75,11 @@ export class AcreditarRetiroDialogComponent implements OnInit {
           this.lineas = (res.lineas || []).map((l: any) => this.mapLinea(l));
           this.recalcularMonto();
         },
-        () => (this.cargando = false)
+        () => {
+          this.cargando = false;
+          // El preview ahora propaga el error de red sin aviso propio: se avisa acá (#390).
+          this.notificacion.openWarn("No se pudo cargar el detalle a acreditar: el servidor no responde.", 5);
+        }
       );
   }
 

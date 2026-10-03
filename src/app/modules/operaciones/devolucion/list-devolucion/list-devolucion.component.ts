@@ -159,9 +159,8 @@ export class ListDevolucionComponent implements OnInit {
           if (res != null) {
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent;
-          } else if (!silencioso) {
-            this.notificacionService.openWarn("No se pudieron cargar las devoluciones.", 5);
           }
+          // null: el servicio ya avisó el error.
         },
         // En la recarga silenciosa (al volver a la pestaña) se conservan los datos y no se avisa.
         error: () => {

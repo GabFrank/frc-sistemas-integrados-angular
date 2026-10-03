@@ -70,13 +70,14 @@ export class HistorialRetirosComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           this.cargando = false;
-          if (res == null) { this.noCargo(); return; }
+          // null: el servicio ya avisó el error; acá solo se marca el fallo.
+          if (res == null) { this.noCargo(false); return; }
           this.cargaFallo = false;
           this.paginaCargada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
           this.totalElements = res.getTotalElements;
           this.operaciones = (res.getContent || []).map((op: any) => this.mapOp(op));
         },
-        error: () => { this.cargando = false; this.noCargo(); }
+        error: () => { this.cargando = false; this.noCargo(true); }
       });
   }
 
@@ -84,12 +85,14 @@ export class HistorialRetirosComponent implements OnInit {
    * Sin respuesta: no se muestra «No hay…» ni datos viejos, y la página vuelve a la última que cargó (si no,
    * «Reintentar» pediría la página a la que se intentó ir) (#390).
    */
-  private noCargo(): void {
+  private noCargo(avisar: boolean): void {
     this.cargaFallo = true;
     this.operaciones = [];
     this.pageIndex = this.paginaCargada.pageIndex;
     this.pageSize = this.paginaCargada.pageSize;
-    this.notificacionService.openWarn("No se pudieron cargar los retiros: el servidor no responde.", 5);
+    if (avisar) {
+      this.notificacionService.openWarn("No se pudieron cargar los retiros: el servidor no responde.", 5);
+    }
   }
 
   private mapOp(op: any): any {
