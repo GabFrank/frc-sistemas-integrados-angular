@@ -170,52 +170,76 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.loadFormasPago();
   }
 
-  private loadSolicitudParaEdicion(): void {
+  /**
+   * Una mutación de nota o forma de pago sin respuesta pudo haberse aplicado igual: en vez de corregir la pantalla
+   * a mano se vuelve a leer la solicitud del servidor (#390).
+   */
+  private recargarSolicitud(aviso: string): void {
+    this.notificacionService.openWarn(aviso, 8);
+    if (this.solicitudPagoId != null) {
+      this.loadSolicitudParaEdicion(true);
+    }
+  }
+
+  private loadSolicitudParaEdicion(recarga = false): void {
     this.solicitudPagoService.onGetById(this.solicitudPagoId).subscribe({
       next: (sp: SolicitudPago) => {
+        if (sp == null) {
+          this.cargaSolicitudFallida(recarga);
+          return;
+        }
         this.selectedProveedor = sp.proveedor;
         this.solicitudPagoEstado = sp.estado ?? null;
         this.proveedorNombreDisplay = (sp?.proveedor?.persona?.nombre || '').toString().toUpperCase();
-        this.form.patchValue({
-          observaciones: sp.observaciones || ''
-        });
-        if (sp.notasRecepcion?.length) {
-          this.notasAgregadas = sp.notasRecepcion.map((nr) => this.withProveedorDisplay(nr.notaRecepcion));
-          this.updateNotasDisplay();
-          this.updateMontoTotal();
+        // En una recarga no se pisa lo que el usuario ya editó en el formulario
+        if (!recarga || !this.form.dirty) {
+          this.form.patchValue({
+            observaciones: sp.observaciones || ''
+          });
         }
-        if (sp.detalles?.length) {
-          this.detallesAgregados = sp.detalles.map((d) => ({
-            id: d.id,
-            monedaId: d.moneda?.id,
-            formaPagoId: d.formaPago?.id,
-            valor: d.valor,
-            fechaPago: d.fechaPago,
-            observacion: d.observacion,
-            cotizacion: d.cotizacion,
-            orden: d.orden,
-            fechaEmisionCheque: d.fechaEmisionCheque,
-            portador: d.portador,
-            nominal: d.nominal,
-            diferido: d.diferido,
-            monedaDenominacion: (d.moneda?.denominacion || '').toString().toUpperCase(),
-            formaPagoDescripcion: (d.formaPago?.descripcion || '').toString().toUpperCase()
-          }));
-          this.detallesTableDataSource.data = this.detallesAgregados;
-          this.updateTotalFormasPago();
-          this.updateResumenFormasPago();
-        }
+        // Siempre lo del servidor, también vacío: tras una mutación incierta la pantalla no puede quedar con filas viejas
+        this.notasAgregadas = (sp.notasRecepcion ?? []).map((nr) => this.withProveedorDisplay(nr.notaRecepcion));
+        this.updateNotasDisplay();
+        this.refrescarTablaNotas();
+        this.updateMontoTotal();
+        this.detallesAgregados = (sp.detalles ?? []).map((d) => ({
+          id: d.id,
+          monedaId: d.moneda?.id,
+          formaPagoId: d.formaPago?.id,
+          valor: d.valor,
+          fechaPago: d.fechaPago,
+          observacion: d.observacion,
+          cotizacion: d.cotizacion,
+          orden: d.orden,
+          fechaEmisionCheque: d.fechaEmisionCheque,
+          portador: d.portador,
+          nominal: d.nominal,
+          diferido: d.diferido,
+          monedaDenominacion: (d.moneda?.denominacion || '').toString().toUpperCase(),
+          formaPagoDescripcion: (d.formaPago?.descripcion || '').toString().toUpperCase()
+        }));
+        this.detallesTableDataSource.data = this.detallesAgregados;
+        this.updateTotalFormasPago();
+        this.updateResumenFormasPago();
         if (!this.isEditable) {
           this.form.disable();
         }
         this.updatePuedeEditarFormaPago();
         this.updatePuedeEditarProveedor();
       },
-      error: () => {
-        this.notificacionService.openAlgoSalioMal('Error al cargar la solicitud');
-        this.dialogRef.close(false);
-      }
+      error: () => this.cargaSolicitudFallida(recarga)
     });
+  }
+
+  private cargaSolicitudFallida(recarga: boolean): void {
+    this.saving = false;
+    if (recarga) {
+      // La solicitud ya estaba abierta: no se cierra, se avisa que lo que se ve puede no estar al día
+      this.notificacionService.openWarn('No se pudo recargar la solicitud: cerrá y volvé a abrirla antes de seguir.', 8);
+      return;
+    }
+    this.notificacionService.openAlgoSalioMal('No se pudo cargar la solicitud: el servidor no responde.');
+    this.dialogRef.close(false);
   }
 
   ngAfterViewInit(): void {
@@ -381,6 +405,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
     ref.afterClosed().subscribe((detalles: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] | null) => {
       // El diálogo devuelve un array: 1 forma, o N (una por cheque si se eligieron cuotas).
+      if ((detalles as any)?.recargar) {
+        // Alguna alta quedó sin confirmar (el diálogo ya avisó): lo que vale es lo del servidor (#390)
+        this.loadSolicitudParaEdicion(true);
+        return;
+      }
       if (!detalles?.length) return;
       detalles.forEach((detalle) => {
         this.detallesAgregados.push({
@@ -451,14 +480,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
                 this.saving = false;
               },
               error: () => {
-                this.notificacionService.openAlgoSalioMal('Error al actualizar la forma de pago');
                 this.saving = false;
+                this.recargarSolicitud('La forma de pago anterior se eliminó, pero no se pudo confirmar la nueva: revisá la solicitud antes de reintentar.');
               }
             });
           },
           error: () => {
-            this.notificacionService.openAlgoSalioMal('No se pudo eliminar la forma de pago anterior');
             this.saving = false;
+            this.recargarSolicitud('No se pudo confirmar el cambio de la forma de pago: revisá la solicitud antes de reintentar.');
           }
         });
       } else {
@@ -494,7 +523,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.updatePuedeEditarProveedor();
             },
             error: () => {
-              this.notificacionService.openAlgoSalioMal('No se pudo eliminar la forma de pago');
+              this.recargarSolicitud('No se pudo confirmar que la forma de pago se eliminó: revisá la solicitud antes de reintentar.');
             }
           });
         } else {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { SolicitudPago, SolicitudPagoInput, SolicitudPagoDetalleInput, SolicitudPagoEstado } from './solicitud-pago.model';
 import { NotaRecepcion } from './nota-recepcion.model';
 import { GetSolicitudesPorPedidoGQL } from './graphql/getSolicitudesPorPedido';
@@ -232,12 +232,16 @@ export class SolicitudPagoService {
    * Usar después de confirmación del usuario (sin diálogo propio).
    */
   onEliminarSolicitudPagoDetalle(id: number): Observable<boolean> {
+    // El onDelete genérico emite null también ante un error de red o GraphQL: tomarlo como éxito hacía que
+    // editar una forma de pago la duplicara (borrar «ok» + agregar). Solo true es éxito (#390).
     return this.genericCrudService.onDelete(
       this.eliminarSolicitudPagoDetalleGQL,
       id,
       null,
       null,
       false
+    ).pipe(
+      switchMap((ok) => ok === true ? of(true) : throwError(() => new Error('No se pudo eliminar la forma de pago')))
     );
   }
 
