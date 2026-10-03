@@ -77,6 +77,8 @@ export class ConteoCajaDialogComponent implements OnInit {
       ? m.decimales
       : ((m?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
     this.formato = `1.0-${this.decimales}`;
+    // Sin saldo del sistema, el resumen dice «No disponible» desde el inicio (no espera a la grilla).
+    if (this.data.saldoSistema == null) { this.recalcular(); }
     const guardado = this.leerGuardado();
     this.cantidadesGuardadas = guardado?.cantidades || {};
     this.actualizadoEn = guardado?.actualizadoEn || null;
