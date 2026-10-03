@@ -15,8 +15,11 @@ import { GrillaConteoComponent } from '../../../../shared/components/grilla-cont
 export interface ConteoCajaDialogData {
   cajaVirtual: CajaVirtual;
   moneda: Moneda;
-  /** Saldo que el sistema tiene registrado para (caja, moneda) — contra esto se calcula la diferencia. */
-  saldoSistema: number;
+  /**
+   * Saldo que el sistema tiene registrado para (caja, moneda) — contra esto se calcula la diferencia.
+   * `null` = no se pudo cargar: se puede contar, pero no ajustar contra un saldo desconocido (#390).
+   */
+  saldoSistema: number | null;
   /** Color de la card que abrió el diálogo, para que el diálogo se lea como continuación de ella. */
   color?: string;
 }
@@ -46,6 +49,8 @@ export class ConteoCajaDialogComponent implements OnInit {
   diferenciaLabel = '';
   diferenciaColor = '#b0bec5';
   hayDiferencia = false;
+  /** Sin saldo del sistema no hay diferencia que calcular ni AJUSTE que postear. */
+  sinSaldoSistema = false;
 
   /** Decimales de la moneda: define el redondeo de la diferencia y el formato mostrado. */
   private decimales = 2;
@@ -123,6 +128,14 @@ export class ConteoCajaDialogComponent implements OnInit {
   }
 
   private recalcular() {
+    this.sinSaldoSistema = this.data.saldoSistema == null;
+    if (this.sinSaldoSistema) {
+      this.diferencia = 0;
+      this.hayDiferencia = false;
+      this.diferenciaLabel = 'Saldo del sistema no disponible';
+      this.diferenciaColor = '#b0bec5';
+      return;
+    }
     const sistema = this.data.saldoSistema || 0;
     // Redondear a los decimales de la moneda: restar dos doubles deja basura binaria
     // (3339.78 - 3300 = 39.780000000000002) que terminaría posteada como cantidad del AJUSTE.
@@ -186,7 +199,7 @@ export class ConteoCajaDialogComponent implements OnInit {
    * diferencia va tal cual (negativa si falta plata).
    */
   onCrearAjuste() {
-    if (!this.hayDiferencia || this.guardando) return;
+    if (!this.hayDiferencia || this.sinSaldoSistema || this.guardando) return;
     const simbolo = this.data.moneda?.simbolo || '';
     const signo = this.diferencia > 0 ? '+' : '';
     this.dialogosService.confirm(

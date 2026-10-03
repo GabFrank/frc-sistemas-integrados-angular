@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { CuentaBancaria } from './cuenta-bancaria.model';
 import { CuentasBancariasGQL } from './graphql/cuentasBancarias';
 import { CuentasBancariasOperablesGQL } from './graphql/cuentasBancariasOperables';
@@ -27,8 +27,8 @@ export class CuentaBancariaService {
   }
 
   /** Solo cuentas propias operables en tesorería (activas + disponibles para operaciones). */
-  onGetAllOperables(): Observable<CuentaBancaria[]> {
-    return this.genericService.onCustomQuery(this.cuentasBancariasOperablesGQL, {});
+  onGetAllOperables(errorConf?: QueryError, contexto?: ContextoConsulta): Observable<CuentaBancaria[]> {
+    return this.genericService.onCustomQuery(this.cuentasBancariasOperablesGQL, {}, true, errorConf, undefined, contexto);
   }
 
   onSave(cuentaBancaria: CuentaBancaria, opciones?: { avisarExito?: boolean }): Observable<CuentaBancaria> {

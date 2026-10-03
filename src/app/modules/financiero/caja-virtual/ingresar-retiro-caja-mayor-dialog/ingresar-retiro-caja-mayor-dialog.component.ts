@@ -125,6 +125,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       .subscribe({
         next: res => {
           this.isLoading = false;
+          // Sin retiros flotantes la página llega vacía, no null: null es un error y no «no hay retiros» (#390).
+          if (res == null) { this.flotantesNoCargados(); return; }
           const content = res?.getContent ?? [];
           // Clonar cada fila (Apollo congela los resultados en dev) + campos de display.
           this.dataSource.data = content.map((r: Retiro) => {
@@ -136,8 +138,14 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
           });
           this.totalElements = res?.getTotalElements ?? 0;
         },
-        error: () => { this.isLoading = false; }
+        error: () => { this.isLoading = false; this.flotantesNoCargados(); }
       });
+  }
+
+  private flotantesNoCargados() {
+    this.dataSource.data = [];
+    this.totalElements = 0;
+    this.notificacion.openWarn('No se pudieron cargar los retiros: intentá de nuevo.', 5);
   }
 
   /**

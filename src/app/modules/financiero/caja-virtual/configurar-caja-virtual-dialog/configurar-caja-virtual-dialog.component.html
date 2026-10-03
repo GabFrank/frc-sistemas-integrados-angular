@@ -5,7 +5,10 @@
     <mat-spinner diameter="36"></mat-spinner>
   </div>
 
-  <ng-container *ngIf="!loading">
+  <div *ngIf="!loading && cargaFallo" style="padding: 24px; opacity: 0.8;">
+    No se pudo cargar la configuración de la caja. Cerrá y volvé a abrir para reintentar.
+  </div>
+  <ng-container *ngIf="!loading && !cargaFallo">
     <!-- Cuentas bancarias visibles -->
     <section style="margin-bottom: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -57,7 +60,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancelar()" [disabled]="guardando">Cancelar</button>
-  <button mat-raised-button color="primary" (click)="guardar()" [disabled]="guardando || loading">
+  <button mat-raised-button color="primary" (click)="guardar()" [disabled]="guardando || loading || cargaFallo">
     <mat-icon>save</mat-icon> Guardar
   </button>
 </mat-dialog-actions>

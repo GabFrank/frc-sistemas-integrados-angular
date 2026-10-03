@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { PageInfo } from '../../../../app.component';
 import {
   BorradorVerificacion, ConteoRetiroMonedaInput, EstadoCasoRetiro,
@@ -29,7 +30,9 @@ export class RetiroVerificacionService {
   ) {}
 
   onGetVerificacion(retiroId: number, sucursalId: number): Observable<RetiroVerificacion> {
-    return this.genericService.onCustomQuery(this.verificacionDeRetiroGQL, { retiroId, sucursalId });
+    // null = el retiro no tiene verificación (legítimo). El error de red se propaga (#390).
+    return this.genericService.onCustomQuery(this.verificacionDeRetiroGQL, { retiroId, sucursalId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onVerificar(retiroId: number, sucursalId: number, cajaVirtualId: number,
