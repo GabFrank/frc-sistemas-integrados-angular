@@ -182,3 +182,47 @@ verificado por código.
 | B | Ocultar Conteo bloqueaba también el arqueo local | baja | Conteo disponible, solo el AJUSTE se bloquea |
 | A | Citas de línea de análisis de diferencias | baja | corregidas |
 | A | Suscriptores de los métodos que propagan en el servicio; streams que morirían (solo el poll de pre-gasto, excluido) | — | verificado |
+
+## Ajustes durante la implementación
+
+- Retiro de pre-gasto: corte de **20 s** (`TIMEOUT_CONSULTA_DE_FONDO_MS`), no 60 s: lo espera el cajero en el POS
+  contra el central (mismo criterio que #393 para la configuración de factura).
+- Saldos de la caja mayor: las cards **se conservan** con «No disponible» en vez de vaciarse; así Conteo sigue al
+  alcance (arqueo local) y el filtro por moneda no se pierde. El conteo recibe `saldoSistema = null` y no ofrece
+  «Crear ajuste». Si la **primera** carga falla no hay cards ni Conteo (solo el aviso con «Reintentar»).
+- Análisis de diferencias: además del contador por carga, `verificarCompletado` se definía **después** del
+  `forEach`: una caja sin datos lo llamaba antes de asignarlo (TypeError o cierre de la carga anterior).
+- Ingresar retiros: contador por carga (los filtros recargan al salir del campo y pueden quedar dos en vuelo).
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (rama local `chore/central-local-pruebas-390` = `develop` 70f1429d, sin perfil, replicación
+apagada y verificada en *Negative matches*), congelado con `kill -STOP` y un respaldo `kill -CONT`. Desktop
+`ng serve -c web` apuntado a `:8081`. Varios casos fuerzan la recarga con `ng.getComponent(...)`, el mismo camino
+que corre después de una acción.
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Dashboard financiero, «Actualizar» congelado | a los 62 s un aviso con las 4 fuentes; KPIs «No disponible» (no 0); «Actualizar» se libera. Con el central normal vuelve |
+| 2 | Caja mayor (RRHH), `recargar()` congelado | a los 60 s avisos de saldos, cuentas bancarias y movimientos; card «No disponible» + «Reintentar»; selector solo «Caja Mayor»; sin spinner. Con el central normal vuelve |
+| 3 | Conteo con saldos no disponibles | «Saldo del sistema: No disponible» desde el inicio; «Crear ajuste» deshabilitado |
+| 4 | Configurar caja abierto congelado | sale del spinner, mensaje de error, «Guardar» deshabilitado |
+| 5 | Pagar gasto abierto congelado | lista vacía con «No se pudieron cargar…» + «Reintentar», nada seleccionable; «Reintentar» con el central normal recupera |
+| 6 | Análisis de diferencias: balances con central congelado (filas sintéticas: 2 cajas + 1 sin datos) | las dos cajas en `SIN_DATOS`, la tabla termina de poblarse y el spinner baja; la caja sin datos no rompe el cierre. Lista de maletines: aviso a los 60,5 s |
+| 7 | Ingresar retiro de PDV abierto congelado | lista vacía, un aviso, sin spinner |
+| 8 | Cobro masivo (camino «Imprimir recibo», sin cobrar; clientes sintéticos 1 y 2) congelado | a los 60 s llega al `error:` (antes inalcanzable); no se procesa ninguno |
+
+**No verificado en runtime (verificado por código):** retiro de pre-gasto (exige un pre-gasto aprobado y la caja
+del filial), lector QR, `list-venta-credito`, anular verificación de retiro, y todos los casos `null` (error
+GraphQL), que no se pueden provocar a mano.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Suscriptores de los métodos que propagan; parámetros opcionales; `null` aborta antes de cobrar o guardar | — | verificado |
+| Análisis de diferencias: el cierre de una carga vieja pisaba la tabla de la nueva | media | contador de carga |
+| Caja mayor: dos recargas seguidas, una respuesta vieja exitosa volvía a mostrar el saldo anterior | baja | contador de carga en saldos |
+| Caja mayor: la configuración vieja quedaba si fallaba la consulta | baja | se limpia en el `error:` |
+| Primera carga de saldos fallida: no hay cards ni Conteo | baja | aceptado (fail-closed), documentado arriba |
+| Dashboard financiero: el gráfico queda vacío sin indicación propia | baja | aceptado: el KPI y el aviso ya dicen «saldos» |

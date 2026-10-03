@@ -117,6 +117,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
   saldoCards: SaldoCard[] = [];
   /** La última carga de saldos falló: los montos de las cards no se muestran ni se usan para ajustar. */
   saldosNoDisponibles = false;
+  /** Número de la última carga de saldos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
+  private saldosCargaId = 0;
   /** Moneda por la que se está filtrando la tabla (null = todas). La activa el click en la card. */
   monedaSelId: number = null;
 
@@ -249,15 +251,17 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   cargarSaldos() {
     if (!this.cajaVirtual?.id) return;
+    const id = ++this.saldosCargaId;
     this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id)
       .pipe(untilDestroyed(this)).subscribe({
         next: res => {
+          if (id !== this.saldosCargaId) return;
           if (res == null) { this.saldosNoCargados(); return; }
           this.saldosNoDisponibles = false;
           this.saldos = res;
           this.construirCards();
         },
-        error: () => this.saldosNoCargados()
+        error: () => { if (id === this.saldosCargaId) { this.saldosNoCargados(); } }
       });
   }
 
@@ -334,7 +338,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
               error: () => this.bancosNoCargados()
             });
         },
-        error: () => this.bancosNoCargados()
+        error: () => { this.config = null; this.bancosNoCargados(); }
       });
   }
 

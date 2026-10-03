@@ -107,6 +107,8 @@ export class AnalisisDiferenciaComponent implements OnInit {
   
   /** Las monedas no cargaron: no hay cotización para pasar reales y dólares a guaraníes. */
   private monedasNoCargadas = false;
+  /** Número de la última carga de balances: el cierre de una carga anterior no pisa la tabla de la nueva. */
+  private cargaBalancesId = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -850,6 +852,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     
     let cajasProcesadas = 0;
     const totalCajas = dataAugmented.length;
+    const cargaId = ++this.cargaBalancesId;
     
     if (totalCajas === 0) {
       this.diferenciaCajaDataSource.data = [];
@@ -874,6 +877,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     // llamaba antes de asignarlo, y con timeouts que ahora sí terminan un balance de una carga anterior
     // podía cerrar la carga nueva (#390).
     const verificarCompletado = () => {
+      if (cargaId !== this.cargaBalancesId) return;
       if (cajasProcesadas === totalCajas) {
         
         let filteredData = dataAugmented;
