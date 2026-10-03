@@ -116,3 +116,37 @@ central congelado. Casos `null` (error GraphQL): verificados por código.
 | A | Redacción (`error:` de stock solo avisa; «paginador inactivo» sin mecanismo) | baja | corregido |
 | B | Avisos apilados al abrir la lista (3 llamadas) | baja | aceptado |
 | A/B | Llamadores de los 7 métodos; `closeDialog` idempotente; `interval` no muere; `catchError` en `switchMap` correcto | — | verificado |
+
+## Ajustes durante la implementación
+
+- `onGetById` **sí** cierra «Buscando…» ante un error GraphQL (`closeDialog` está al principio del `next`); lo que
+  no hace es emitir. Además del `errorConf`, recibe `contexto?` opcional (13.º) para fijar el corte del link.
+- `…WithFilter` quedó con 60 s (es una búsqueda que el usuario espera), no 20 s.
+- Un commit intermedio de la rama no compilaba (constantes declaradas entre `@UntilDestroy` y `@Injectable`); se
+  corrigió con un commit posterior, sin reescribir lo pusheado.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (rama local de pruebas, sin perfil, replicación apagada y verificada en *Negative
+matches*), congelado con `kill -STOP` y un respaldo `kill -CONT`. **No se guardó, envió ni borró ninguna
+transferencia.**
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | «Eliminar» la 58150 con el central congelado | a los 59 s aviso (el `error:` que existía y era inalcanzable), overlay cerrado, **no se borró** (sigue en la lista al descongelar) |
+| 2 | Agregar un ítem (chequeo de stock) congelado | a los 20 s «No se pudo verificar el stock… No se agregó», «Verificando stock…» cerrado, `procederConGuardadoItem` **no** se ejecutó |
+| 3 | Recargar la cabecera congelado | aviso a los 60 s, sin overlay, cursor normal (`isLoading` baja) |
+| 4 | Central normal: abrir la 58215 (5 ítems) | grilla con las alertas combinadas: sin regresión |
+
+**Verificado por código:** alertas que fallan con ítems que cargan (no se puede aislar congelando), selector de
+sucursales, alta de ítem, hoja de ruta, entregadores, movimientos de stock y los casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| `onGetById` sin `errorConf` idéntico a `develop` (salvo `isLoading` en la rama de red); con `errorConf` según el plan; el link lee `timeoutMs` | — | verificado |
+| Llamadores de todo lo que propaga, `null` en `onDelete` y en el stock, parámetros opcionales, overlays cerrados una vez, estructura | — | verificado |
+| Aviso doble ante un error **GraphQL** (el «Ups!» genérico + el del componente) | baja | aceptado |
+| `…WithFilter` con 60 s en vez de 20 s | baja | aceptado (anotado arriba) |
+| `list-movimiento-stock:800`: sin detalle `movimiento.data` queda sin asignar (como antes, ahora con aviso) | baja | sin cambio |
