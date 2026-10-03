@@ -56,6 +56,10 @@ export class HistorialRetirosComponent implements OnInit {
     this.cargar();
   }
 
+  /** La última carga falló: se muestra el error con «Reintentar», no «No hay…». */
+  cargaFallo = false;
+  private paginaCargada = { pageIndex: 0, pageSize: 15 };
+
   cargar(): void {
     this.cargando = true;
     const fi = this.desde ? this.desde + " 00:00" : undefined;
@@ -63,13 +67,32 @@ export class HistorialRetirosComponent implements OnInit {
     this.operacionService
       .onGetRetiros(this.pageIndex, this.pageSize, fi, ff)
       .pipe(untilDestroyed(this))
-      .subscribe((res: any) => {
-        this.cargando = false;
-        if (res != null) {
+      .subscribe({
+        next: (res: any) => {
+          this.cargando = false;
+          // null: el servicio ya avisó el error; acá solo se marca el fallo.
+          if (res == null) { this.noCargo(false); return; }
+          this.cargaFallo = false;
+          this.paginaCargada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
           this.totalElements = res.getTotalElements;
           this.operaciones = (res.getContent || []).map((op: any) => this.mapOp(op));
-        }
+        },
+        error: () => { this.cargando = false; this.noCargo(true); }
       });
+  }
+
+  /**
+   * Sin respuesta: no se muestra «No hay…» ni datos viejos, y la página vuelve a la última que cargó (si no,
+   * «Reintentar» pediría la página a la que se intentó ir) (#390).
+   */
+  private noCargo(avisar: boolean): void {
+    this.cargaFallo = true;
+    this.operaciones = [];
+    this.pageIndex = this.paginaCargada.pageIndex;
+    this.pageSize = this.paginaCargada.pageSize;
+    if (avisar) {
+      this.notificacionService.openWarn("No se pudieron cargar los retiros: el servidor no responde.", 5);
+    }
   }
 
   private mapOp(op: any): any {
@@ -105,13 +128,16 @@ export class HistorialRetirosComponent implements OnInit {
     this.operacionService
       .onGetRemitoRetiro(op.id)
       .pipe(untilDestroyed(this))
-      .subscribe((pdf: string) => {
-        if (pdf) {
-          this.reporteService.onAdd(`Comprobante retiro ${op._titulo}`, pdf);
-          this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
-        } else {
-          this.notificacionService.openWarn("No se pudo generar el comprobante");
-        }
+      .subscribe({
+        next: (pdf: string) => {
+          if (pdf) {
+            this.reporteService.onAdd(`Comprobante retiro ${op._titulo}`, pdf);
+            this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
+          } else {
+            this.notificacionService.openWarn("No se pudo generar el comprobante");
+          }
+        },
+        error: () => this.notificacionService.openWarn("No se pudo generar el comprobante: el servidor no responde.")
       });
   }
 

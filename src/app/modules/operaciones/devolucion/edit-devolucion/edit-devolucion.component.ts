@@ -6,6 +6,11 @@ import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { EMPTY, Subscription } from "rxjs";
 import { catchError, timeout } from "rxjs/operators";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+
+/** Abrir una devolución y sus ítems: lo espera el usuario (#390). */
+const CONSULTA_PANTALLA = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import {
   updateDataSource,
   updateDataSourceInsertFirst,
@@ -98,6 +103,22 @@ export class EditDevolucionComponent implements OnInit {
 
   // flags precalculados (no llamar funciones desde el HTML)
   esNuevo = true;
+  /**
+   * La devolución pedida no cargó. Sin esto la pantalla quedaba como «nueva» y editable: Guardar o Agregar ítem
+   * creaban otra devolución en vez de editar la abierta (#390).
+   */
+  cargaFallo = false;
+  /** La carga falló por la red (se ofrece «Reintentar»); un no encontrado no se reintenta. */
+  cargaReintentable = false;
+  /** Los ítems no cargaron: no se ofrecen acciones de estado sobre una tabla vacía (#390). */
+  itemsFallo = false;
+  /**
+   * Se está cargando una devolución existente: mientras tanto no es «nueva» ni editable (con el central lento,
+   * Guardar en esa ventana también creaba otra devolución) (#390).
+   */
+  cargandoDevolucion = false;
+  /** Precalculado para el template: el id de la pestaña aunque la devolución no haya cargado. */
+  tituloId: string = null;
   esPendiente = true;
   esConProveedor = false;
   puedeEditarCabecera = true;
@@ -156,7 +177,8 @@ export class EditDevolucionComponent implements OnInit {
     this.selectedDevolucion.estado = DevolucionEstado.PENDIENTE;
 
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
+      // Con null (error del servidor) res.filter lanzaba TypeError (#390).
+      this.sucursalList = (res ?? []).filter((s) => s.id != 0);
       if (this.selectedDevolucion?.id == null) {
         let actual = this.sucursalList.find(
           (s) => s.id == this.mainService.sucursalActual?.id
@@ -198,12 +220,39 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   cargarDatos(id: number) {
+    this.tituloId = id != null ? "#" + id : null;
+    this.esNuevo = false;
+    this.cargandoDevolucion = true;
+    this.computeEstadoFlags();
     this.devolucionService
-      .onGetDevolucion(id)
+      .onGetDevolucion(id, true, undefined, PROPAGAR_ERROR_DE_RED, CONSULTA_PANTALLA)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) this.aplicarDevolucion(res);
+      .subscribe({
+        next: (res) => {
+          // null: el servicio ya avisó («Item no encontrado» o el error del servidor); no se reintenta.
+          this.cargandoDevolucion = false;
+          if (res == null) { this.marcarCargaFallida(false); return; }
+          this.cargaFallo = false;
+          this.aplicarDevolucion(res);
+        },
+        error: () => { this.cargandoDevolucion = false; this.marcarCargaFallida(true); }
       });
+  }
+
+  /** Bloquea la pantalla: nada se guarda ni se agrega sobre una devolución que no cargó. */
+  private marcarCargaFallida(reintentable: boolean) {
+    this.cargaFallo = true;
+    this.esNuevo = false;
+    this.cargaReintentable = reintentable;
+    this.computeEstadoFlags();
+    if (reintentable) {
+      this.notificacionService.openWarn("No se pudo cargar la devolución: el servidor no responde.", 5);
+    }
+  }
+
+  onReintentarCarga() {
+    const id = this.data?.tabData?.["id"];
+    if (id != null) this.cargarDatos(id);
   }
 
   private aplicarDevolucion(res: Devolucion, silencioso = false) {
@@ -234,6 +283,8 @@ export class EditDevolucionComponent implements OnInit {
    * actualizan estado y botones, para no ofrecer acciones de un estado viejo.
    */
   private refrescarAlVolver() {
+    // Si la carga había fallado, al volver a la pestaña se reintenta (#390).
+    if (this.cargaFallo && this.cargaReintentable && !this.cargandoDevolucion) { this.onReintentarCarga(); return; }
     const id = this.selectedDevolucion?.id;
     if (id == null || this.procesando) return;
     const estadoAnterior = this.selectedDevolucion.estado;
@@ -302,12 +353,29 @@ export class EditDevolucionComponent implements OnInit {
       .onGetDevolucionItemsPorDevolucion(
         this.selectedDevolucion.id,
         true,
-        silencioso
+        silencioso,
+        PROPAGAR_ERROR_DE_RED,
+        CONSULTA_PANTALLA
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.dataSource.data = res ?? [];
+      .subscribe({
+        next: (res) => {
+          if (res == null) { this.marcarItemsFallidos(silencioso); return; }
+          this.itemsFallo = false;
+          this.dataSource.data = res;
+          this.computeEstadoFlags();
+        },
+        error: () => this.marcarItemsFallidos(silencioso)
       });
+  }
+
+  private marcarItemsFallidos(silencioso: boolean) {
+    this.itemsFallo = true;
+    this.dataSource.data = [];
+    this.computeEstadoFlags();
+    if (!silencioso) {
+      this.notificacionService.openWarn("No se pudieron cargar los ítems de la devolución: no se puede avanzar hasta reintentar.", 5);
+    }
   }
 
   /**
@@ -332,7 +400,7 @@ export class EditDevolucionComponent implements OnInit {
       this.tipoControl.value == TipoDevolucion.CON_PROVEEDOR;
 
     this.esPendiente = estado == null || estado == DevolucionEstado.PENDIENTE;
-    this.puedeEditarCabecera = this.esNuevo || this.esPendiente;
+    this.puedeEditarCabecera = !this.cargaFallo && !this.cargandoDevolucion && (this.esNuevo || this.esPendiente);
     this.actualizarHabilitacionCabecera();
 
     this.canAvanzarSeparado = false;
@@ -344,7 +412,8 @@ export class EditDevolucionComponent implements OnInit {
     this.canCancelar = false;
     this.canRevertir = false;
 
-    if (this.selectedDevolucion?.id == null) {
+    // Sin la devolución o sin sus ítems no se ofrece ninguna acción de estado (#390).
+    if (this.selectedDevolucion?.id == null || this.cargaFallo || this.itemsFallo) {
       return;
     }
 
@@ -765,6 +834,7 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onConfirmarCanje() {
+    if (this.itemsFallo) return;
     const items = this.dataSource.data ?? [];
     if (items.length == 0) {
       this.notificacionService.openWarn("No hay items para canjear");
@@ -803,7 +873,7 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onConfirmarAcreditar() {
-    if (this.procesando) return;
+    if (this.procesando || this.itemsFallo) return;
     this.procesando = true;
     this.devolucionService
       .onAcreditar(

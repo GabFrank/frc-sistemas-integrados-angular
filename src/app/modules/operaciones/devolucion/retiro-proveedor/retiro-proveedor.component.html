@@ -94,7 +94,15 @@
   <!-- Sin resultados -->
   <div
     class="sin-datos"
-    *ngIf="proveedorSeleccionado && !buscando && grupos.length === 0"
+    *ngIf="proveedorSeleccionado && !buscando && consolidadoFallo"
+  >
+    <mat-icon>error_outline</mat-icon>
+    <span>No se pudo cargar el consolidado de devoluciones.</span>
+    <button mat-stroked-button (click)="cargarConsolidado()">Reintentar</button>
+  </div>
+  <div
+    class="sin-datos"
+    *ngIf="proveedorSeleccionado && !buscando && !consolidadoFallo && grupos.length === 0"
   >
     <mat-icon>inbox</mat-icon>
     <span>No hay devoluciones pendientes de retiro para este proveedor.</span>

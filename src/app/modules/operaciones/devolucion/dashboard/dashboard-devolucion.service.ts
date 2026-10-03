@@ -1,6 +1,13 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+
+/**
+ * Paneles del dashboard: propagan red y GraphQL sin aviso propio — el componente avisa una sola vez por recarga
+ * en vez de un «Ups» por panel (#390).
+ */
+const PANELES_ERROR: QueryError = { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } };
+const PANELES_CONTEXTO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 import {
   DevolucionEstancada,
   DevolucionPorEstado,
@@ -86,7 +93,7 @@ export class DashboardDevolucionService {
   }
 
   private query(gql: any, vars: any): Observable<any> {
-    return this.genericService.onCustomQuery(gql, vars, true, undefined, true);
+    return this.genericService.onCustomQuery(gql, vars, true, PANELES_ERROR, true, PANELES_CONTEXTO);
   }
 
   private vars(f: FiltroDashboard) {

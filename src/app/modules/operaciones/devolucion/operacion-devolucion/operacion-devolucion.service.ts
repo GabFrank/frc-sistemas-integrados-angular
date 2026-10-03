@@ -1,7 +1,11 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { PageInfo } from "../../../../app.component";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+
+/** Historiales, remito y acreditación: un suscriptor cada uno, con error: (#390). */
+const CONSULTA_PANTALLA: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import { MainService } from "../../../../main.service";
 import { GetColectasDevolucionGQL } from "./graphql/getColectasDevolucion";
 import { GetRemitoRetiroGQL } from "./graphql/getRemitoRetiro";
@@ -45,7 +49,7 @@ export class OperacionDevolucionService {
       size,
       fechaInicio: fechaInicio ?? null,
       fechaFin: fechaFin ?? null,
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PANTALLA);
   }
 
   onGetColectas(
@@ -59,11 +63,12 @@ export class OperacionDevolucionService {
       size,
       fechaInicio: fechaInicio ?? null,
       fechaFin: fechaFin ?? null,
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PANTALLA);
   }
 
   onGetRemitoRetiro(retiroId: number): Observable<string> {
-    return this.genericCrudService.onCustomQuery(this.getRemitoRetiroGQL, { retiroId });
+    return this.genericCrudService.onCustomQuery(this.getRemitoRetiroGQL, { retiroId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PANTALLA);
   }
 
   onRevertirEstado(devolucionId: number): Observable<any> {
@@ -89,7 +94,8 @@ export class OperacionDevolucionService {
 
   /** Preview consolidado (por producto, a costo medio) para acreditar un retiro. */
   onGetAcreditacionPreview(retiroId: number): Observable<any> {
-    return this.genericCrudService.onCustomQuery(this.acreditacionPreviewGQL, { retiroId });
+    return this.genericCrudService.onCustomQuery(this.acreditacionPreviewGQL, { retiroId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PANTALLA);
   }
 
   onAcreditarRetiro(

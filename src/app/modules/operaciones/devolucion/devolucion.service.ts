@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { UntilDestroy } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
 import { PageInfo } from "../../../app.component";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { MainService } from "../../../main.service";
 import {
   Devolucion,
@@ -45,7 +45,9 @@ export class DevolucionService {
     private cancelarDevolucionGQL: CancelarDevolucionGQL
   ) {}
 
-  onGetDevolucion(id, servidor = true, silentLoad?: boolean): Observable<Devolucion> {
+  /** `errorConf`/`contexto` opt-in (#390): con errorConf un error del servidor emite null. */
+  onGetDevolucion(id, servidor = true, silentLoad?: boolean, errorConf?: QueryError,
+                  contexto?: ContextoConsulta): Observable<Devolucion> {
     return this.genericCrudService.onGetById(
       this.getDevolucionGQL,
       id,
@@ -55,7 +57,11 @@ export class DevolucionService {
       null,
       null,
       null,
-      silentLoad
+      silentLoad,
+      null,
+      null,
+      errorConf,
+      contexto
     );
   }
 
@@ -68,7 +74,9 @@ export class DevolucionService {
     page?: number,
     size?: number,
     servidor = true,
-    silentLoad?: boolean
+    silentLoad?: boolean,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PageInfo<Devolucion>> {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionesConFiltrosGQL,
@@ -82,35 +90,42 @@ export class DevolucionService {
         size,
       },
       servidor,
-      null,
-      silentLoad
+      errorConf ?? null,
+      silentLoad,
+      contexto
     );
   }
 
   onGetDevolucionesPendientesPorProveedor(
     proveedorId: number,
-    servidor = true
+    servidor = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<Devolucion[]> {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionesPendientesPorProveedorGQL,
       { proveedorId },
       servidor,
-      null,
-      true
+      errorConf ?? null,
+      true,
+      contexto
     );
   }
 
   onGetDevolucionItemsPorDevolucion(
     devolucionId: number,
     servidor = true,
-    silentLoad?: boolean
+    silentLoad?: boolean,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<DevolucionItem[]> {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionItemsPorDevolucionGQL,
       { devolucionId },
       servidor,
-      null,
-      silentLoad
+      errorConf ?? null,
+      silentLoad,
+      contexto
     );
   }
 

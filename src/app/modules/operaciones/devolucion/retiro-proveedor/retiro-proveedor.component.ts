@@ -10,7 +10,11 @@ import {
   takeUntil,
 } from "rxjs/operators";
 
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+
+/** Consolidado y remito: sus error: ya existían y eran inalcanzables (#390). */
+const CONSULTA_PANTALLA = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -195,7 +199,10 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   }
 
   // ===== Carga del consolidado =====
-  private cargarConsolidado(): void {
+  /** El consolidado no cargó: la pantalla dice «No se pudo cargar», no «sin devoluciones». */
+  consolidadoFallo = false;
+
+  cargarConsolidado(): void {
     if (!this.proveedorSeleccionado?.id) {
       return;
     }
@@ -207,16 +214,21 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
         // Filtro en el servidor, no en el HTML: si el puesto está en una filial,
         // no debe siquiera traer devoluciones de otras sucursales.
         sucursalId: this.sucursalFija?.id ?? null,
-      })
+      }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PANTALLA)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data: RetiroProveedorConsolidado) => {
           this.buscando = false;
+          this.consolidadoFallo = data == null;
           this.consolidado = data || null;
           this.buildGrupos(data);
         },
         error: () => {
           this.buscando = false;
+          // Sin el consolidado no se ofrece retirar sobre el de antes (p. ej. tras retirar) (#390).
+          this.consolidadoFallo = true;
+          this.consolidado = null;
+          this.buildGrupos(null);
           this.notificacionService.openAlgoSalioMal(
             "Error al cargar el consolidado de devoluciones"
           );
@@ -330,7 +342,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
     this.genericService
       .onCustomQuery(this.remitoGQL, {
         devolucionIds: this.selectedDevolucionIdsArray,
-      })
+      }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PANTALLA)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (pdfBase64: string) => {
