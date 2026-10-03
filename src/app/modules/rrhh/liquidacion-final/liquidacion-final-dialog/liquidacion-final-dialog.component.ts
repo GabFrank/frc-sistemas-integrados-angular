@@ -61,6 +61,13 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   tipoControl = new FormControl('HABER');
   tipoOptions = ['HABER', 'DESCUENTO'];
 
+  /**
+   * La ultima consulta del finiquito fallo: lo que se ve puede estar viejo (por ejemplo, despues de
+   * editar un item). Se conserva, pero Aprobar queda deshabilitado hasta «Reintentar»: el backend
+   * aprueba por id con los montos que tenga, sin que nadie los haya visto (#390).
+   */
+  cargaFallo = false;
+
   constructor(
     private tabService: TabService,
     private liquidacionFinalService: LiquidacionFinalService,
@@ -86,17 +93,9 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
 
-    this.cargarExistente();
+    this.recargar();
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR'); });
-  }
-
-  private cargarExistente() {
-    this.liquidacionFinalService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this))
-      .subscribe((res: LiquidacionFinal[]) => {
-        const vigente = (res || []).find(l => l.estado !== 'ANULADA');
-        if (vigente) { this.liq = vigente; this.items.data = vigente.items || []; }
-      });
   }
 
   private recargarItems() {
@@ -105,17 +104,31 @@ export class LiquidacionFinalDialogComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
   }
 
-  /** Recarga cabecera (para el total recalculado) + items. */
-  private recargar() {
+  /** Carga (o recarga, para el total recalculado) cabecera + items. Si falla se conserva lo que habia. */
+  recargar() {
     this.liquidacionFinalService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this))
-      .subscribe((res: LiquidacionFinal[]) => {
-        const vigente = (res || []).find(l => l.estado !== 'ANULADA');
-        if (vigente) { this.liq = vigente; this.items.data = vigente.items || []; }
+      .subscribe({
+        next: (res: LiquidacionFinal[]) => {
+          if (res == null) { this.finiquitoNoCargado(); return; }
+          this.cargaFallo = false;
+          const vigente = res.find(l => l.estado !== 'ANULADA');
+          if (vigente) { this.liq = vigente; this.items.data = vigente.items || []; }
+        },
+        error: () => this.finiquitoNoCargado()
       });
   }
 
+  private finiquitoNoCargado() {
+    this.cargaFallo = true;
+    this.notificacion.notification$.next({
+      texto: 'No se pudo consultar el finiquito. Usá «Reintentar».',
+      color: NotificacionColor.warn, duracion: 5
+    });
+  }
+
   private aplicar(res: any) {
-    if (res != null) { this.liq = res; this.items.data = res.items || []; }
+    // Lo que devuelve una accion ya esta fresco: Aprobar se habilita sin pasar por «Reintentar».
+    if (res != null) { this.liq = res; this.items.data = res.items || []; this.cargaFallo = false; }
   }
 
   /** Regenerar reabre el diálogo de parámetros (prefilled) por si hay que cambiar

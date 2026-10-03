@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PenalizacionesPorFuncionarioYRangoGQL } from './graphql/PenalizacionesPorFuncionarioYRango';
 import { PenalizacionesPageGQL } from './graphql/PenalizacionesPage';
 import { SavePenalizacionGQL } from './graphql/SavePenalizacion';
@@ -30,7 +31,10 @@ export class PenalizacionService {
     return this.genericService.onCustomQuery(
       this.penalizacionesPorFuncionarioYRangoGQL,
       { funcionarioId, desde, hasta },
-      servidor
+      servidor,
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
     );
   }
 

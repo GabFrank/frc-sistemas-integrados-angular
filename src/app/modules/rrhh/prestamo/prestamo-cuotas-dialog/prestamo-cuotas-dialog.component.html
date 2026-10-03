@@ -43,6 +43,12 @@
     </table>
   </div>
 
+  <div *ngIf="cargaFallo" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>No se pudieron cargar las cuotas.</span>
+    <button mat-stroked-button (click)="cargarCuotas()">Reintentar</button>
+  </div>
+
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
     <button mat-raised-button color="primary" (click)="onCerrar()">Cerrar</button>
   </div>

@@ -211,9 +211,15 @@ export class LegajoFuncionarioComponent implements OnInit {
    */
   onRevertirEgreso() {
     // El snapshot se pide ANTES de abrir: si existe, el diálogo precarga el crédito en
-    // vez de pedirlo. Un egreso anterior al histórico devuelve null y se carga a mano.
-    this.legajoService.onGetEgresoVigente(this.funcionario.id)
-      .pipe(untilDestroyed(this)).subscribe(snap => this.abrirReversa(snap));
+    // vez de pedirlo. Un egreso anterior al histórico devuelve null y se carga a mano. Sin
+    // respuesta del servidor no se abre: el crédito a mano sería un dato inventado (#390).
+    this.legajoService.onGetEgresoVigente(this.funcionario.id).pipe(untilDestroyed(this)).subscribe({
+      next: snap => this.abrirReversa(snap),
+      error: () => this.notificacion.notification$.next({
+        texto: 'No se pudo consultar el egreso: el servidor no responde. Intentá de nuevo.',
+        color: NotificacionColor.warn, duracion: 5
+      })
+    });
   }
 
   private abrirReversa(snap: any) {
@@ -242,16 +248,29 @@ export class LegajoFuncionarioComponent implements OnInit {
     const nombre = this.funcionario.persona?.nombre || ('#' + this.funcionario.id);
     // Si ya hay un finiquito vigente, abre el tab directo; si no, primero el diálogo
     // de parámetros (motivo/fecha) y recién al generar se abre el tab con el detalle.
+    // Sin finiquito el backend responde una lista vacía, nunca null: null (error) o sin respuesta
+    // no se toman como «no hay», porque se ofrecería generar otro encima del vigente (#390).
     this.liquidacionFinalService.onGetPorFuncionario(this.funcionario.id).pipe(untilDestroyed(this))
-      .subscribe((res: any[]) => {
-        const vigente = (res || []).find(l => l.estado !== 'ANULADA');
-        if (vigente) { this.abrirTabFiniquito(nombre); return; }
-        this.dialog.open(LiquidacionFinalGenerarDialogComponent, {
-          data: { funcionarioId: this.funcionario.id, nombre, monedaId: null }, width: '640px', maxWidth: '95vw'
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe(generado => {
-          if (generado != null) { this.abrirTabFiniquito(nombre); }
-        });
+      .subscribe({
+        next: (res: any[]) => {
+          if (res == null) { this.avisarFiniquitoNoConsultado(); return; }
+          const vigente = res.find(l => l.estado !== 'ANULADA');
+          if (vigente) { this.abrirTabFiniquito(nombre); return; }
+          this.dialog.open(LiquidacionFinalGenerarDialogComponent, {
+            data: { funcionarioId: this.funcionario.id, nombre, monedaId: null }, width: '640px', maxWidth: '95vw'
+          }).afterClosed().pipe(untilDestroyed(this)).subscribe(generado => {
+            if (generado != null) { this.abrirTabFiniquito(nombre); }
+          });
+        },
+        error: () => this.avisarFiniquitoNoConsultado()
       });
+  }
+
+  private avisarFiniquitoNoConsultado() {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo consultar el finiquito del funcionario. Intentá de nuevo.',
+      color: NotificacionColor.warn, duracion: 5
+    });
   }
 
   private abrirTabFiniquito(nombre: string) {
