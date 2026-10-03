@@ -131,7 +131,8 @@ export class GastoService {
     return this.genericService.onSaveCustom(this.saveVuelto, data, servidor);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Gasto>> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true,
+                errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<Gasto>> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
@@ -141,7 +142,7 @@ export class GastoService {
       descripcion,
       page,
       size
-    }, servidor)
+    }, servidor, errorConf ?? null, undefined, contexto)
   }
 
   /** Va al central. `errorConf` y `contexto` son para el cierre de caja (#390); sin ellos queda como antes. */
