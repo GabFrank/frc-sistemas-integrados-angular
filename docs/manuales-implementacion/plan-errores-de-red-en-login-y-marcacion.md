@@ -153,3 +153,19 @@ Filial `:8080` congelado (`kill -STOP` + respaldo). **El login lo hace Franco** 
 | Login: `autenticarEnCentral` (3 s, fire-and-forget) podía escribir `token_central` después de que `noSeCargoElUsuario` limpiara la sesión | media | **aplicado**: se guarda su suscripción y se cancela antes de limpiar |
 | `if (res?.id != null)` muerto en el login | baja | quitado |
 | Cambiar de funcionario durante el `await` de la marcación aplica la respuesta tardía al nuevo | baja | preexistente; con el corte de 5 s es poco probable → #390 |
+
+## Resultado de la prueba de runtime (paso 9, 2026-10-03)
+
+Desktop `ng serve -c web` sobre `5a016b91`, filial `frc-filial` :8080, sesión con «mantener sesión»
+(`keepLogged = true`, usuario 410), manejado con la extensión de Chrome.
+
+| # | Resultado |
+|---|---|
+| 1 | ✅ filial normal: recargar la app entra solo con la sesión guardada |
+| 2 | ✅ filial congelado: recargar → a los ~20 s el arranque corta (`[Network error]` 08:03:23) y queda el login a la vista **con la sesión intacta** (`keepLogged`, token y `usuarioId` presentes). Al descongelar y recargar, **entra solo** |
+| 3 | **No reproducible a mano** (500 ms entre autenticar y cargar el usuario): verificado por código y auditoría |
+| 4 | **No verificado en runtime**: la extensión no puede bloquear solo la operación `getEstadoMarcacionUsuario`, y el caso requiere un funcionario con la entrada abierta y el flujo facial. Verificado por código y auditoría |
+| 5 | **No verificable** (horarios va al central compartido): verificado por código y auditoría |
+
+Visto en la prueba, preexistente y fuera de este PR: con el filial congelado, otras consultas del arranque dejan
+un «Cargando…» (con botón «Cerrar») encima del login.
