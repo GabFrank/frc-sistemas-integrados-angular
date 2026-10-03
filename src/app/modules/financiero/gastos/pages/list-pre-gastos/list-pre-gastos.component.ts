@@ -162,9 +162,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     }),
     tap(res => {
       this.cargandoSubject.next(false);
-      if (res) {
-        this.totalElements$.next(res.getTotalElements || 0);
-      }
+      // Sin respuesta la lista queda vacía: el paginador no conserva el total de la consulta anterior.
+      this.totalElements$.next(res ? (res.getTotalElements || 0) : 0);
     }),
     map(res => {
       const list = res?.getContent || [];

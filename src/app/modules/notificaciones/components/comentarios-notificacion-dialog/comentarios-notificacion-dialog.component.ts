@@ -498,7 +498,16 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     ).pipe(
       untilDestroyed(this),
       switchMap(() => {
-        return this.cargarComentarios(false);
+        // El comentario ya se guardó: si falla solo la recarga, no se trata como un envío fallido (se dejaba
+        // de ver un comentario que sí quedó guardado). Se conserva el temporal y el poll lo reemplaza (#390).
+        return this.cargarComentarios(false).pipe(
+          catchError(() => {
+            this.enviando = false;
+            this.notificacion.openWarn('Comentario enviado, pero no se pudieron recargar los comentarios.', 5);
+            this.cdr.markForCheck();
+            return of(null as NotificacionComentario[]);
+          })
+        );
       }),
       catchError(() => {
         this.comentarios = this.comentarios.filter(c => c.id !== -1);
@@ -510,7 +519,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     )
       .subscribe({
         next: (comentarios) => {
-          if (comentarios.length > 0) {
+          if (comentarios?.length > 0) {
             this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
             this.ultimoConteoComentarios = comentarios.length;
             this.enviando = false;

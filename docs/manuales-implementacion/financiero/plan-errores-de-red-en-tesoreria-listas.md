@@ -157,3 +157,34 @@ operaciones financieras, entradas varias, maletín, casos de retiro, tipos de ga
 | B | Conteo: `count || 0` borra el badge; el `catchError` devolvía 0 | baja | `count == null` conserva; `catchError` devuelve el último valor |
 | A | `preGastoFilter` ya tiene los parámetros (#396) | baja | tabla corregida |
 | A/B | Sin bucle de realimentación; `finalize` correcto; resto de suscriptores cubiertos; poll de comentarios sobrevive sin cambio | — | verificado |
+
+## Ajustes durante la implementación
+
+- `list-tipo-gastos` y `list-pre-gastos` no tienen leyenda de «no hay datos» en el template: alcanza el aviso (sin
+  flag nuevo); el total del paginador vuelve a 0 si la consulta falla.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (rama local de pruebas = `develop` 70f1429d, sin perfil, replicación apagada y verificada en
+*Negative matches*), congelado con `kill -STOP` y un respaldo `kill -CONT`. Desktop `ng serve -c web` a `:8081`.
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Notificaciones, central normal: tres disparos del refresco separados 2,5 s | **3 refrescos** (antes solo el primero de la sesión) |
+| 2 | Notificaciones, central congelado: disparo + otro durante el refresco | `isRefreshing` se libera a los ~21 s; el disparo pendiente se relanza una vez; el badge conserva su valor (no pasa a 0). Al descongelar el refresco sigue vivo y toma el conteo real |
+| 3 | Accesos de caja, recarga congelado | mientras carga «Agregar» deshabilitado; al fallar «No se pudieron cargar los accesos» + «Reintentar» (no «Nadie más tiene acceso»); «Reintentar» con el central normal recupera |
+| 4 | Lista de cajas, recarga congelado | aviso a los 60 s y sin spinner |
+| 5 | Tipos de gasto abierto congelado con el catálogo sin cachear | avisos del catálogo (59 s) y de la lista (62 s), sin traba; al descongelar «Buscar» carga (la lista siguió viva); el servicio cachea el catálogo real (13 módulos): el fallo **no** quedó guardado |
+
+**Verificado por código:** comentarios, bancos y cuentas, operaciones financieras, entradas varias, maletín, casos de
+retiro, pre-gastos, impresiones; y los casos `null` (error GraphQL).
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Suscriptores de todo lo que propaga en servicio; parámetros opcionales; estructura del código | — | verificado |
+| Comentarios: si el comentario se guardaba y fallaba solo la recarga, se lo sacaba de pantalla como si no se hubiera enviado | media | `catchError` propio de la recarga: conserva el comentario y avisa «enviado, no se pudieron recargar» |
+| Pre-gastos / tipos de gasto: el paginador conservaba el total anterior tras un fallo | baja | total a 0 |
+| `obtenerModulos` ignora `servidor` con caché (los 3 llamadores usan `true`) | baja | sin cambio (igual que antes) |
+| `list-tipo-gastos` queda sin etiquetas de módulo hasta reabrir si el catálogo falló | baja | aceptado (plan) |
