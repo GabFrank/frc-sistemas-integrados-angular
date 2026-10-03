@@ -78,11 +78,15 @@
             Cargando historial...
           </div>
 
+          <div *ngIf="!movCargando && movFallo" class="mensaje-estado">
+            No se pudo consultar el historial del lote.
+            <button mat-stroked-button type="button" (click)="reintentarMovimientos()">Reintentar</button>
+          </div>
           <div *ngIf="!movCargando && movSinResultados" class="mensaje-estado">
             Este lote no tiene movimientos con esos filtros.
           </div>
 
-          <div class="tabla-container" *ngIf="!movCargando && !movSinResultados">
+          <div class="tabla-container" *ngIf="!movCargando && !movSinResultados && !movFallo">
             <table mat-table [dataSource]="movimientos" class="mat-elevation-z8 tabla-historial">
 
               <ng-container matColumnDef="fecha">
@@ -155,11 +159,15 @@
             Cargando ventas...
           </div>
 
+          <div *ngIf="!cliCargando && cliFallo" class="mensaje-estado">
+            No se pudieron consultar los clientes del lote.
+            <button mat-stroked-button type="button" (click)="reintentarClientes()">Reintentar</button>
+          </div>
           <div *ngIf="!cliCargando && cliSinResultados" class="mensaje-estado">
             No hay ventas de este lote con ese filtro.
           </div>
 
-        <div class="tabla-container" *ngIf="!cliCargando && !cliSinResultados">
+        <div class="tabla-container" *ngIf="!cliCargando && !cliSinResultados && !cliFallo">
             <table mat-table [dataSource]="clientes" class="mat-elevation-z8 tabla-historial">
 
               <ng-container matColumnDef="cliente">

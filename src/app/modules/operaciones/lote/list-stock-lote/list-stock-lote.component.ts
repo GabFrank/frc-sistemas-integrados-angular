@@ -31,6 +31,8 @@ import {
 } from '../historial-lote/historial-lote.component';
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLote, StockLoteSucursal } from '../lote.model';
 import { LoteService } from '../lote.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
 /** Fila del desglose por sucursal que se abre al expandir un lote. */
 interface SucursalStockRow {
@@ -73,6 +75,8 @@ interface StockLoteRow {
   estadoDetalle: 'expanded' | 'collapsed';
   /** Null mientras no se pidió el desglose: es lo que dispara el spinner. */
   sucursales: SucursalStockRow[];
+  /** El desglose no se pudo leer: no se cachea como «sin sucursales», se ofrece reintentar (#390). */
+  errorSucursales?: boolean;
 }
 
 /** Opción de estado, con etiqueta, ícono y su color ya resueltos. Sirve al filtro y al menú. */
@@ -200,6 +204,9 @@ export class ListStockLoteComponent implements OnInit {
   totalElements = 0;
   sinResultados = false;
   isSearching = false;
+  /** La última búsqueda falló: la grilla queda vacía con «Reintentar», no «sin resultados» (#390). */
+  busquedaFallo = false;
+  private cargaBusqueda = 0;
 
   constructor(
     private loteService: LoteService,
@@ -273,9 +280,10 @@ export class ListStockLoteComponent implements OnInit {
    * ajuste abriría con COMPRAS fija.
    */
   private cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales()
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => this.notificacionService.openWarn('No se pudieron cargar las sucursales del filtro: el servidor no responde.', 4), next: (res) => {
         if (res) {
           this.sucursales = res.filter(
             (sucursal) =>
@@ -284,7 +292,7 @@ export class ListStockLoteComponent implements OnInit {
           );
           this.cdr.markForCheck();
         }
-      });
+      } });
   }
 
   /** Vuelve a la primera página y busca. Es lo que dispara el botón "Buscar" del listado. */
@@ -295,6 +303,7 @@ export class ListStockLoteComponent implements OnInit {
 
   onBuscar(silentLoad = false): void {
     const valores = this.filtros.value;
+    const carga = ++this.cargaBusqueda;
     this.isSearching = true;
     this.loteService
       .onBuscarStockPorLote(
@@ -315,6 +324,12 @@ export class ListStockLoteComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<StockLote>) => {
+          if (carga !== this.cargaBusqueda) return; // respuesta de una búsqueda anterior
+          if (res == null) {
+            this.marcarBusquedaFallida(); // error GraphQL: el servicio ya avisó
+            return;
+          }
+          this.busquedaFallo = false;
           const contenido = res?.getContent || [];
           this.totalElements = res?.getTotalElements || 0;
           // Las filas se reconstruyen, así que el desglose ya cargado se descarta con ellas.
@@ -328,11 +343,26 @@ export class ListStockLoteComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.isSearching = false;
-          this.notificacionService.openAlgoSalioMal('Error al consultar el stock por lotes');
-          this.cdr.markForCheck();
+          if (carga !== this.cargaBusqueda) return;
+          this.notificacionService.openWarn('No se pudo consultar el stock por lotes: el servidor no responde.', 4);
+          this.marcarBusquedaFallida();
         }
       });
+  }
+
+  /** Sin filas de otra búsqueda a la vista como si fueran de esta (#390). */
+  private marcarBusquedaFallida(): void {
+    this.isSearching = false;
+    this.busquedaFallo = true;
+    this.filaExpandida = null;
+    this.dataSource.data = [];
+    this.totalElements = 0;
+    this.sinResultados = false;
+    this.cdr.markForCheck();
+  }
+
+  reintentarBusqueda(): void {
+    this.onBuscar(true);
   }
 
   handlePageEvent(event: PageEvent): void {
@@ -617,18 +647,29 @@ export class ListStockLoteComponent implements OnInit {
       });
   }
 
+  reintentarSucursalesDelLote(fila: StockLoteRow, event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.cargarSucursalesDelLote(fila);
+  }
+
   private cargarSucursalesDelLote(fila: StockLoteRow): void {
+    fila.errorSucursales = false;
     this.loteService
       .onStockLotePorSucursal(fila.loteId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: StockLoteSucursal[]) => {
-          fila.sucursales = this.mapearSucursales(res || []);
+          if (res == null) {
+            // Error GraphQL: antes se cacheaba [] («No hay sucursales») y no se reintentaba (#390)
+            fila.errorSucursales = true;
+            this.cdr.markForCheck();
+            return;
+          }
+          fila.sucursales = this.mapearSucursales(res);
           this.cdr.markForCheck();
         },
         error: () => {
-          fila.sucursales = [];
-          this.notificacionService.openAlgoSalioMal('Error al consultar el stock por sucursal');
+          fila.errorSucursales = true;
           this.cdr.markForCheck();
         }
       });

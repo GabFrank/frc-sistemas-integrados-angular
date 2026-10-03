@@ -76,13 +76,14 @@ export class LoteService {
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
   onGetLotesPorProducto(productoId: number, servidor = true, errorConf?: QueryError,
                         contexto?: ContextoConsulta): Observable<Lote[]> {
+    // Propaga por defecto (#390); recepción pasa los suyos
     return this.genericService.onCustomQuery(
       this.lotesPorProductoGQL,
       { productoId },
       servidor,
-      errorConf,
+      errorConf ?? PROPAGAR_ERROR_DE_RED,
       undefined,
-      contexto
+      contexto ?? CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -167,8 +168,9 @@ export class LoteService {
         size
       },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -188,8 +190,9 @@ export class LoteService {
       this.stockLotePorSucursalGQL,
       { loteId },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 
@@ -219,8 +222,9 @@ export class LoteService {
         size
       },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -243,8 +247,9 @@ export class LoteService {
       this.clientesPorLoteGQL,
       { loteId, sucursalId: sucursalId ?? null, rastreable, page, size },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
