@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { TesoreriaReporteService } from '../tesoreria-dashboard/tesoreria-reporte.service';
 import { SaldoTesoreria, VencimientoTesoreria, AgingTesoreria } from '../tesoreria-dashboard/tesoreria-reporte.model';
 import { CajaVirtual } from '../caja-virtual/caja-virtual.model';
@@ -15,9 +18,12 @@ import { BancoComponent } from '../banco/banco.component';
 import { MonedaComponent } from '../moneda/moneda.component';
 import { ChequesDashboardComponent } from '../cheque/cheques-dashboard/cheques-dashboard.component';
 import { MainService } from '../../../main.service';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { DashRankingItem } from '../../../shared/components/dashboard/dash-ranking-list/dash-ranking-list.component';
 import { EChartsOption } from 'echarts';
 import { GRAFICO_COLORES, formatoEjeCompacto } from '../../../shared/utils/grafico-echarts.theme';
+
+const NO_DISPONIBLE = 'No disponible';
 
 interface KpiItem { icon: string; color: string; label: string; value: string; }
 interface AccesoItem { icon: string; title: string; color: string; accion: string; }
@@ -36,6 +42,9 @@ export class FinancieroDashboardComponent implements OnInit {
   kpis: KpiItem[] = [];
   vencimientoItems: DashRankingItem[] = [];
   cajaCards: CajaCard[] = [];
+  /** Fuentes que no cargaron: la sección dice «No disponible» en vez de «no hay» (#390). */
+  cajasNoCargadas = false;
+  vencimientosNoCargados = false;
 
   // Gráfico: saldo por moneda (efectivo vs banco)
   serieOpciones: EChartsOption | null = null;
@@ -56,7 +65,8 @@ export class FinancieroDashboardComponent implements OnInit {
     private tesoreriaReporteService: TesoreriaReporteService,
     private cajaVirtualService: CajaVirtualService,
     private tabService: TabService,
-    public mainService: MainService
+    public mainService: MainService,
+    private notificacion: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -65,18 +75,29 @@ export class FinancieroDashboardComponent implements OnInit {
 
   cargar() {
     this.cargando = true;
+    // Cada fuente falla por su cuenta (error de red o null): las demás se muestran, y lo que no cargó dice
+    // «No disponible» en vez de un 0 que parece real. Sin esto una sola fuente colgaba las cuatro (#390).
+    const fuente = <T>(o: Observable<T>) => o.pipe(catchError(() => of(null as T)));
     forkJoin({
-      saldo: this.tesoreriaReporteService.onGetSaldoConsolidado(),
-      vencimientos: this.tesoreriaReporteService.onGetProximosVencimientos(30),
-      aging: this.tesoreriaReporteService.onGetAgingCpp(),
-      cajas: this.cajaVirtualService.onGetActivas(),
+      saldo: fuente(this.tesoreriaReporteService.onGetSaldoConsolidado()),
+      vencimientos: fuente(this.tesoreriaReporteService.onGetProximosVencimientos(30)),
+      aging: fuente(this.tesoreriaReporteService.onGetAgingCpp()),
+      cajas: fuente(this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })),
     }).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargando = false;
       const saldos = res.saldo || [];
-      this.armarKpis(saldos, res.aging || new AgingTesoreria(), (res.cajas || []).length);
+      this.armarKpis(res.saldo, res.aging, res.cajas);
       this.vencimientoItems = (res.vencimientos || []).map(v => this.toRankingItem(v));
+      this.vencimientosNoCargados = res.vencimientos == null;
+      this.cajasNoCargadas = res.cajas == null;
       this.cajaCards = (res.cajas || []).map(c => ({ caja: c, saldoLabel: 'Gs. ' + this.fmt.format(c.saldoGs || 0) }));
       this.armarGrafico(saldos);
+      const faltan = [res.saldo == null ? 'saldos' : null, res.aging == null ? 'cuentas por pagar' : null,
+        res.vencimientos == null ? 'vencimientos' : null, res.cajas == null ? 'cajas' : null].filter(f => f != null);
+      if (faltan.length > 0) {
+        this.notificacion.openWarn('No se pudieron cargar: ' + faltan.join(', ') + '. Usá «Actualizar».', 5);
+      }
     });
   }
 
@@ -110,8 +131,11 @@ export class FinancieroDashboardComponent implements OnInit {
     };
   }
 
-  private armarKpis(saldos: SaldoTesoreria[], aging: AgingTesoreria, cajasActivas: number) {
-    const kpis: KpiItem[] = saldos.map(s => ({
+  /** null = esa fuente no cargó: se muestra «No disponible», no un 0. */
+  private armarKpis(saldos: SaldoTesoreria[] | null, aging: AgingTesoreria | null, cajas: CajaVirtual[] | null) {
+    const kpis: KpiItem[] = saldos == null
+      ? [{ icon: 'account_balance_wallet', color: 'warning', label: 'Saldos', value: NO_DISPONIBLE }]
+      : saldos.map(s => ({
       icon: 'account_balance_wallet',
       color: (s.total || 0) < 0 ? 'error' : 'primary',
       label: s.moneda,
@@ -119,15 +143,15 @@ export class FinancieroDashboardComponent implements OnInit {
     }));
     kpis.push({
       icon: 'warning',
-      color: (aging.vencido || 0) > 0 ? 'error' : 'success',
+      color: aging == null ? 'warning' : ((aging.vencido || 0) > 0 ? 'error' : 'success'),
       label: 'CPP Vencido',
-      value: this.fmt.format(aging.vencido || 0),
+      value: aging == null ? NO_DISPONIBLE : this.fmt.format(aging.vencido || 0),
     });
     kpis.push({
       icon: 'savings',
-      color: 'info',
+      color: cajas == null ? 'warning' : 'info',
       label: 'Cajas Activas',
-      value: String(cajasActivas),
+      value: cajas == null ? NO_DISPONIBLE : String(cajas.length),
     });
     this.kpis = kpis;
   }

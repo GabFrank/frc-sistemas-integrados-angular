@@ -174,6 +174,8 @@ export class PagarComprasDialogComponent implements OnInit {
   planTotal = 0;
 
   isLoading = false;
+  /** La última carga de pendientes falló: la lista está vacía a propósito, no porque no haya pendientes. */
+  cargaFallo = false;
   isSaving = false;
 
   // ── Modo GASTOS (mismo builder de pago; fuente = gastosPendientes + alta de gasto) ──
@@ -337,12 +339,29 @@ export class PagarComprasDialogComponent implements OnInit {
         : this.esGasto
           ? this.pagarComprasService.onGetGastosPendientes()
           : this.pagarComprasService.onGetPendientes();
-    fuente$.pipe(untilDestroyed(this)).subscribe(res => {
-      this.isLoading = false;
-      this.todas = (res || []).map((s: any) => this.esRrhh ? this.toRowRrhh(s)
-        : this.esVale ? this.toRowVale(s) : this.toRow(s));
-      this.aplicarFiltro();
+    fuente$.pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.isLoading = false;
+        if (res == null) { this.pendientesNoCargados(); return; }
+        this.cargaFallo = false;
+        this.todas = res.map((s: any) => this.esRrhh ? this.toRowRrhh(s)
+          : this.esVale ? this.toRowVale(s) : this.toRow(s));
+        this.aplicarFiltro();
+      },
+      error: () => { this.isLoading = false; this.pendientesNoCargados(); }
     });
+  }
+
+  /**
+   * La lista no cargó (también la recarga que sigue a crear un gasto o un vale): se vacía, con la
+   * selección, para que no quede nada pagable sobre datos viejos (#390).
+   */
+  private pendientesNoCargados() {
+    this.cargaFallo = true;
+    this.todas = [];
+    this.aplicarFiltro();
+    this.recomputarSeleccion();
+    this.notificacion.openWarn('No se pudieron cargar los pendientes de pago. Usá «Reintentar».', 5);
   }
 
   /** Fila del modo VALES: el "N°" es el id del vale y el tercero es el funcionario. */

@@ -84,10 +84,11 @@
              [matTooltip]="c.seleccionada ? 'Quitar filtro de moneda' : 'Ver solo movimientos de esta moneda'">
           <div class="saldo-card-top" [style.background-color]="c.color"></div>
           <div class="saldo-card-label">{{ c.saldo.moneda?.denominacion }}</div>
-          <div class="saldo-card-valor" [style.color]="c.saldo.saldo < 0 ? '#ff8a80' : c.color">
+          <div class="saldo-card-valor" *ngIf="!saldosNoDisponibles" [style.color]="c.saldo.saldo < 0 ? '#ff8a80' : c.color">
             {{ c.saldo.saldo | number:c.formato }}
             <span class="saldo-card-simbolo">{{ c.saldo.moneda?.simbolo }}</span>
           </div>
+          <div class="saldo-card-valor" *ngIf="saldosNoDisponibles">No disponible</div>
           <button mat-icon-button class="saldo-card-conteo" (click)="onConteo(c, $event)"
                   matTooltip="Conteo de efectivo">
             <mat-icon>calculate</mat-icon>
@@ -95,7 +96,11 @@
         </div>
       </div>
 
-      <div class="sin-saldos" *ngIf="!fuenteEsBanco && saldoCards.length === 0">Sin saldos en caja</div>
+      <div class="sin-saldos" *ngIf="!fuenteEsBanco && saldoCards.length === 0 && !saldosNoDisponibles">Sin saldos en caja</div>
+      <div class="sin-saldos" *ngIf="!fuenteEsBanco && saldosNoDisponibles">
+        No se pudieron cargar los saldos: no se puede ajustar un conteo hasta que carguen.
+        <button mat-button (click)="cargarSaldos()">Reintentar</button>
+      </div>
 
     <mat-card class="section-card">
       <mat-card-header class="movimientos-header">

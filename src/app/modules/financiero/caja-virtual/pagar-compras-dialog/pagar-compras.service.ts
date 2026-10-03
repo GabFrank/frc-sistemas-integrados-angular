@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { limpiarMensajeGraphQL } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { SolicitudesPagoPendientesGQL } from './graphql/solicitudesPagoPendientes';
 import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote';
@@ -75,6 +76,12 @@ export interface ValeParaPagoInput {
   observacion?: string;
 }
 
+/**
+ * Pendientes de pago y detalle de un pago: sin esto, con el central sin responder no emiten nada y el
+ * diálogo queda cargando o con filas pagables viejas (#390). Cada método tiene un solo suscriptor, con `error:`.
+ */
+const CONSULTA_PAGOS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+
 @Injectable({ providedIn: 'root' })
 export class PagarComprasService {
 
@@ -103,12 +110,14 @@ export class PagarComprasService {
    * El movimiento consolidado de caja no puede decirlo en su descripcion cuando son varios.
    */
   onGetDetalleDePago(pagoId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.detalleDePagoGQL, { pagoId }, servidor);
+    return this.genericService.onCustomQuery(this.detalleDePagoGQL, { pagoId }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /** Vales pagables (estado SOLICITADO) con su saldo. */
   onGetValesPendientes(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.valesPendientesGQL, {}, servidor);
+    return this.genericService.onCustomQuery(this.valesPendientesGQL, {}, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /** Crea un vale listo para pagar (queda SOLICITADO, sin mover plata). */
@@ -123,17 +132,20 @@ export class PagarComprasService {
 
   /** Liquidaciones mensuales APROBADAS todavia sin pagar. */
   onGetLiquidacionesPendientes(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.liquidacionesPendientesGQL, {}, servidor);
+    return this.genericService.onCustomQuery(this.liquidacionesPendientesGQL, {}, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /** Finiquitos APROBADOS todavia sin pagar. */
   onGetFiniquitosPendientes(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.finiquitosPendientesGQL, {}, servidor);
+    return this.genericService.onCustomQuery(this.finiquitosPendientesGQL, {}, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /** Aguinaldos APROBADOS todavia sin pagar. */
   onGetAguinaldosPendientes(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.aguinaldosPendientesGQL, {}, servidor);
+    return this.genericService.onCustomQuery(this.aguinaldosPendientesGQL, {}, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /**
@@ -146,7 +158,8 @@ export class PagarComprasService {
 
   /** Gastos pagables (SolicitudPago tipo GASTO en SOLICITADO/PARCIAL). */
   onGetGastosPendientes(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.gastosPendientesGQL, {}, servidor);
+    return this.genericService.onCustomQuery(this.gastosPendientesGQL, {}, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   /** Crea un gasto (PreGasto liviano) + su SolicitudPago GASTO en SOLICITADO. Devuelve la solicitud. */
@@ -160,7 +173,8 @@ export class PagarComprasService {
   }
 
   onGetPendientes(proveedorId?: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.pendientesGQL, { proveedorId: proveedorId || null }, servidor);
+    return this.genericService.onCustomQuery(this.pendientesGQL, { proveedorId: proveedorId || null }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PAGOS);
   }
 
   onPagarLote(cajaVirtualId: number, pagos: PagoLote[], servidor = true): Observable<any> {

@@ -57,9 +57,13 @@
           <mat-icon>account_balance_wallet</mat-icon>
           <span class="dash-section-title">Cajas</span>
         </div>
-        <div *ngIf="!cajaCards.length" class="dash-empty">
+        <div *ngIf="!cajaCards.length && !cajasNoCargadas" class="dash-empty">
           <mat-icon>info</mat-icon>
           <span>No hay cajas activas</span>
+        </div>
+        <div *ngIf="cajasNoCargadas" class="dash-empty">
+          <mat-icon>error_outline</mat-icon>
+          <span>No se pudieron cargar las cajas</span>
         </div>
         <div class="dash-ranking-list" *ngIf="cajaCards.length">
           <div
@@ -83,7 +87,7 @@
         icon="event"
         title="Próximos vencimientos (30 días)"
         [items]="vencimientoItems"
-        emptyText="Sin vencimientos próximos"
+        [emptyText]="vencimientosNoCargados ? 'No se pudieron cargar los vencimientos' : 'Sin vencimientos próximos'"
         maxAlto="300px"
       ></dash-ranking-list>
     </div>

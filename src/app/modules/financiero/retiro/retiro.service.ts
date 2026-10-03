@@ -12,7 +12,8 @@ import { Retiro } from "./retiro.model";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { environment } from "../../../../environments/environment";
-import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
@@ -55,7 +56,7 @@ export class RetiroService {
       desde: desde ?? null,
       hasta: hasta ?? null,
       page, size
-    }, servidor);
+    }, servidor, PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   // servidor = true: la mutation vive en el central, igual que la lista que se
@@ -88,7 +89,8 @@ export class RetiroService {
     }
   }
 
-  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number, servidor = true): Observable<PageInfo<Retiro>> {
+  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number, servidor = true,
+                 errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<Retiro>> {
     return this.crudService.onCustomQuery(
       this.filterRetiro, {
       id,
@@ -98,7 +100,7 @@ export class RetiroService {
       cajeroId,
       page,
       size
-    }, servidor)
+    }, servidor, errorConf, undefined, contexto)
   }
 
   onSave(retiro: Retiro, servidor = true, silentLoad: boolean = false): Observable<any> {

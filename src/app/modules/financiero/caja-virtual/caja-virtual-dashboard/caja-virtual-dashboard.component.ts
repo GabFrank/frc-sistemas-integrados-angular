@@ -115,6 +115,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   // Saldos por moneda: cards sobre la tabla (antes iban en el sidebar).
   saldos: CajaVirtualSaldoItem[] = [];
   saldoCards: SaldoCard[] = [];
+  /** La última carga de saldos falló: los montos de las cards no se muestran ni se usan para ajustar. */
+  saldosNoDisponibles = false;
+  /** Número de la última carga de saldos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
+  private saldosCargaId = 0;
   /** Moneda por la que se está filtrando la tabla (null = todas). La activa el click en la card. */
   monedaSelId: number = null;
 
@@ -247,13 +251,28 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   cargarSaldos() {
     if (!this.cajaVirtual?.id) return;
+    const id = ++this.saldosCargaId;
     this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id)
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) {
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (id !== this.saldosCargaId) return;
+          if (res == null) { this.saldosNoCargados(); return; }
+          this.saldosNoDisponibles = false;
           this.saldos = res;
           this.construirCards();
-        }
+        },
+        error: () => { if (id === this.saldosCargaId) { this.saldosNoCargados(); } }
       });
+  }
+
+  /**
+   * La recarga de saldos falló: las cards se conservan (moneda y filtro) pero sin el monto, que puede estar
+   * viejo, y el conteo se abre sin saldo del sistema para que no se postee un AJUSTE contra un saldo
+   * desactualizado (#390).
+   */
+  private saldosNoCargados() {
+    this.saldosNoDisponibles = true;
+    this.notificacion.openWarn('No se pudieron cargar los saldos de la caja: no se puede ajustar hasta recargar.', 5);
   }
 
   /** Arma las cards de saldo por moneda con su color estable y el estado de selección. */
@@ -290,7 +309,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const data: ConteoCajaDialogData = {
       cajaVirtual: this.cajaVirtual,
       moneda: card.saldo?.moneda,
-      saldoSistema: card.saldo?.saldo || 0,
+      saldoSistema: this.saldosNoDisponibles ? null : (card.saldo?.saldo || 0),
       color: card.color,
     };
     this.dialog.open(ConteoCajaDialogComponent, {
@@ -302,18 +321,33 @@ export class CajaVirtualDashboardComponent implements OnInit {
   cargarConfigYBancos() {
     if (!this.cajaVirtual?.id) return;
     this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
-      .pipe(untilDestroyed(this)).subscribe(cfg => {
-        this.config = cfg;
-        this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
-          .pipe(untilDestroyed(this)).subscribe(res => {
-            this.resumenBancario = res || [];
-            this.bancoCards = this.resumenBancario.map(r => ({
-              resumen: r,
-              formato: formatoDe(r.cuentaBancaria?.moneda),
-            }));
-            this.construirFuentes();
-          });
+      .pipe(untilDestroyed(this)).subscribe({
+        next: cfg => {
+          this.config = cfg;
+          this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
+            .pipe(untilDestroyed(this)).subscribe({
+              next: res => {
+                if (res == null) { this.bancosNoCargados(); return; }
+                this.resumenBancario = res;
+                this.bancoCards = this.resumenBancario.map(r => ({
+                  resumen: r,
+                  formato: formatoDe(r.cuentaBancaria?.moneda),
+                }));
+                this.construirFuentes();
+              },
+              error: () => this.bancosNoCargados()
+            });
+        },
+        error: () => { this.config = null; this.bancosNoCargados(); }
       });
+  }
+
+  /** Sin configuración o resumen no se muestran las cuentas de antes: solo Caja Mayor, con aviso (#390). */
+  private bancosNoCargados() {
+    this.resumenBancario = [];
+    this.bancoCards = [];
+    this.construirFuentes();
+    this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias de la caja.', 5);
   }
 
   /** Arma el selector de fuente: Caja Mayor + cada cuenta bancaria visible (banco - nº cuenta). */
@@ -368,13 +402,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
       soloActivos: f.soloActivos,
     }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isLoading = false;
-        if (res != null) {
-          this.selectedPageInfo = res;
-          const rows = (res.getContent || []).map(m => this.toRow(m));
-          this.marcarGruposOperacion(rows);
-          this.dataSource.data = rows;
+      .subscribe({
+        next: res => {
+          this.isLoading = false;
+          if (res != null) {
+            this.selectedPageInfo = res;
+            const rows = (res.getContent || []).map(m => this.toRow(m));
+            this.marcarGruposOperacion(rows);
+            this.dataSource.data = rows;
+          }
+        },
+        error: () => {
+          this.isLoading = false;
+          this.notificacion.openWarn('No se pudieron cargar los movimientos de la caja.', 5);
         }
       });
   }
@@ -672,6 +712,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
         catchError(e => throwError(() => Object.assign(e ?? {}, { avisadoPorOnSaveCustom: true }))));
       const obs: Observable<any> = esRetiro
         ? this.retiroVerificacionService.onGetVerificacion(mov.origenId, mov.origenSucursalId).pipe(
+            catchError(() => throwError(() => new Error('No se pudo consultar la verificación del retiro: el servidor no responde.'))),
             switchMap(v => v?.id
               ? yaAvisado(this.retiroVerificacionService.onAnular(v.id, undefined, sinExitoGenerico))
               : throwError(() => new Error('No se encontró la verificación de este retiro'))))
