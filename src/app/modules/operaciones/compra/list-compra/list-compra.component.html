@@ -377,9 +377,13 @@
                         <tr *ngIf="loadingSucursalesRecepcionadasMap[pedido.id]">
                           <td class="highlight-cell nombre-cell" colspan="3">Cargando...</td>
                         </tr>
+                        <tr *ngIf="!loadingSucursalesRecepcionadasMap[pedido.id] && fallaSucursalesRecepcionadasMap[pedido.id]">
+                          <td class="highlight-cell nombre-cell" colspan="3">No se pudo cargar: volvé a abrir la fila.</td>
+                        </tr>
                         <tr
                           *ngIf="
                             !loadingSucursalesRecepcionadasMap[pedido.id] &&
+                            !fallaSucursalesRecepcionadasMap[pedido.id] &&
                             (!sucursalesRecepcionadasMap[pedido.id] ||
                               sucursalesRecepcionadasMap[pedido.id].length === 0)
                           "
