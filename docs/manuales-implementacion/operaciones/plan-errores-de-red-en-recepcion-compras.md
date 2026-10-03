@@ -170,3 +170,49 @@ verificados por código.
 | B | Recuperación tras fallo de recarga de etapa | baja | aviso remite a «Actualizar» |
 | B | Avisos apilados con la red caída | baja | aceptado |
 | A/B | Llamadores de cada método, otros llamadores de cotización y lotes, `null` de duplicados, carrera de `distribute-nota-recepcion-item` fuera de alcance | — | verificado |
+
+## Implementación: desvíos respecto del plan (2026-10-03)
+
+- **Presentaciones**: un método nuevo `presentacion.onGetPresentacionesPorProductoIdParaDialogo` (20 s, propaga el
+  error de red) en vez de repetir `errorConf`/contexto en cada diálogo.
+- **Distribuciones en recepción**: los 4 llamadores pasan por `distribucionesDelItem$`, que manda el `null` al
+  `error:` existente (antes TypeError).
+- **Recargas del pedido**: las 5 se centralizan en `recargarPedidoYEtapa(trasAccion)`; la de la carga inicial
+  avisa «No se pudo cargar el estado del pedido» (no «la acción se registró»). Con el fallo no se llama a
+  `loadEtapaActual`: el estado saldría del `@Input pedido`, que puede venir viejo.
+- **Notas de la pantalla de recepción**: además del aviso, «No se pudieron cargar las notas» con «Reintentar» (en
+  vez de «No hay notas»), detectado en la prueba de runtime.
+- **Verificación de duplicado**: 20 s (consulta dentro de un diálogo), no 60.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (worktree de pruebas, sin perfil, `ReplicationPublicationSyncScheduler` y
+`ReplicationRefreshScheduler` en *Did not match*), congelado con `kill -STOP` + respaldo `kill -CONT`; desktop
+`ng serve -c web`; pedido 4 (recepción de notas, nota 6). No se guardó nada.
+
+| Caso | Resultado |
+|---|---|
+| Nota nueva, pedido en Gs, cambio a DOLAR (central vivo) | consulta y trae 5880 (antes quedaba en 1 sin consultar) |
+| Cambio a REAL congelado | a los 20 s aviso «ingresala a mano», cotización vacía, formulario inválido |
+| Guardar con la verificación de duplicado sin respuesta (dos `onSave` seguidos) | una sola confirmación «No se pudo verificar la nota… ¿Guardar igual?»; **Cancelar** → no se creó nota, flag liberado |
+| Rechazar el ítem 5 de la nota 6 | Guardar deshabilitado mientras carga; a los 20 s `distribucionesFallo`, avisos de presentaciones y distribuciones, «Reintentar distribuciones» |
+| Distribuir desde la nota | aviso, no se abre el diálogo |
+| Pantalla de recepción física (habilitada por código en el pedido 4) | sucursales: banner con «Reintentar», controles deshabilitados; avisos de notas y de estado del pedido; «Finalizar Recepción Física» deshabilitado |
+| Reanudar: «Reintentar» sucursales, notas, elegir la nota 6 | 1 sucursal, controles habilitados, 1 ítem |
+| Congelado: elegir otra nota | la tabla se vacía al instante; a los 60 s «Reintentar» (no «No hay ítems») |
+| «Recepcionar todo» congelado | aviso «No se recepcionó nada», sin confirmación ni recepción |
+
+No probado en runtime: verificar un ítem con control de lote (el producto del pedido 4 no lleva lote) — por
+código. Casos `null` (error GraphQL): por código.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Con las sucursales caídas se podía elegir una nota y verla «sin ítems» | media | elegir una nota pide reintentar las sucursales primero |
+| La carga inicial con el pedido fallido deja la etapa sin cargar hasta volver a entrar | media | aceptado (fail-safe: «Finalizar» deshabilitado); el aviso dice «volvé a entrar» |
+| Verificación de duplicado a 20 s y sin spinner | baja | aceptado: el resultado es la confirmación, que es segura |
+| Edición de nota con `null` en ítems muestra tabla vacía | baja | aceptado: el servicio ya avisa «Ups» |
+| Aviso de cotización aunque el usuario ya tipeó una | baja | solo avisa cuando la vacía |
+| Rechazo con presentaciones `null` sin reintento; doble clic en «Recepcionar todo» (previo) | baja | aceptado |
+| Suscriptores de todo lo que propaga, `null`, fallbacks, cotización, `onSave`, rechazo, recepción, verificar ítem | — | verificado sin hallazgos |

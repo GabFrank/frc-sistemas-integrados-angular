@@ -86,6 +86,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   loadingItems = false;
   /** Fallos de carga (#390): se muestra «No se pudo cargar» con «Reintentar», no «No hay…». */
   sucursalesFallo = false;
+  notasFallo = false;
   itemsFallo = false;
   /** Descarta la respuesta de una carga de ítems anterior (otra nota o página). */
   private cargaItems = 0;
@@ -539,6 +540,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     this.loadSucursales();
   }
 
+  reintentarNotas(): void {
+    this.loadNotasRecepcion();
+  }
+
   /**
    * Deshabilita los controles del formulario durante la carga inicial
    */
@@ -590,6 +595,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   }
 
   onSelectNotaRecepcion(nota: NotaRecepcion): void {
+    if (this.sucursalesFallo) {
+      // Sin sucursales la nota se vería «sin ítems» (#390)
+      this.notificacionService.openWarn('Primero hay que cargar las sucursales: usá «Reintentar».');
+      return;
+    }
     this.notaSeleccionada = nota;
 
     // Marcar como carga inicial para evitar interferencia del debounce
@@ -851,6 +861,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
   private loadNotasRecepcion(): void {
     this.loadingNotas = true;
+    this.notasFallo = false;
 
     this.pedidoService.onGetNotaRecepcionPorPedidoId(this.pedidoId)
       .pipe(untilDestroyed(this))
@@ -859,6 +870,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
           if (notas == null) {
             // Error GraphQL: el servicio ya avisó
             this.loadingNotas = false;
+            this.notasFallo = true;
             return;
           }
           // Filtrar notas de rechazo sin items activos (no aportan a la recepción física)
@@ -870,7 +882,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         error: (error) => {
           console.error('Error cargando notas de recepción:', error);
           this.loadingNotas = false;
-          this.notificacionService.openWarn('No se pudieron cargar las notas de recepción: el servidor no responde. Usá «Actualizar».', 6);
+          this.notasFallo = true;
+          this.notificacionService.openWarn('No se pudieron cargar las notas de recepción: usá «Reintentar».', 6);
         }
       });
   }

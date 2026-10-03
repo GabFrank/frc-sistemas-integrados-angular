@@ -338,9 +338,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private vaciarCotizacionSinLeer(): void {
     const actual = this.notaRecepcionForm.get('cotizacion')?.value;
     if (!actual || Number(actual) === 1) {
+      // Si el usuario ya tipeó una cotización se respeta y no se avisa
       this.notaRecepcionForm.patchValue({ cotizacion: null });
+      this.notificacionService.openWarn('No se pudo obtener la cotización: ingresala a mano.', 6);
     }
-    this.notificacionService.openWarn('No se pudo obtener la cotización: ingresala a mano.', 6);
   }
 
   ngOnInit(): void {
