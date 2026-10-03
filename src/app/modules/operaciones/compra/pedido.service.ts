@@ -446,7 +446,8 @@ export class PedidoService {
    * @returns Observable<NotaRecepcion[]>
    */
   onGetNotaRecepcionPorPedidoId(pedidoId: number): Observable<NotaRecepcion[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionPorPedidoIdGQL, { pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionPorPedidoIdGQL, { pedidoId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -589,7 +590,7 @@ export class PedidoService {
       size,
       filtroVerificacion,
       filtroTexto
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -628,7 +629,8 @@ export class PedidoService {
    * @returns Observable<Sucursal[]>
    */
   onGetSucursalesDisponiblesRecepcionFisica(pedidoId: number): Observable<Sucursal[]> {
-    return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   onGetPedidoRecepcionFisicaResumen(pedidoId: number): Observable<PedidoRecepcionFisicaResumen> {

@@ -84,6 +84,12 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   loading = false;
   loadingNotas = false;
   loadingItems = false;
+  /** Fallos de carga (#390): se muestra «No se pudo cargar» con «Reintentar», no «No hay…». */
+  sucursalesFallo = false;
+  itemsFallo = false;
+  /** Descarta la respuesta de una carga de ítems anterior (otra nota o página). */
+  private cargaItems = 0;
+  private notaIdItemsMostrados: number | null = null;
   loadingSucursales = false;
   isInitialLoadComplete = false; // Control para carga inicial
 
@@ -204,7 +210,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     this.loadNotasRecepcion(); // Cargar datos directamente
     // El @Input pedido puede venir desactualizado (p. ej. recién finalizada la conciliación, con
     // RECEPCION_MERCADERIA todavía PENDIENTE): el estado de la etapa se lee del backend.
-    this.recargarPedidoYEtapa();
+    this.recargarPedidoYEtapa(false);
     this.updateComputedProperties();
   }
 
@@ -485,6 +491,12 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (sucursales) => {
+          if (sucursales == null) {
+            // Error GraphQL: el servicio ya avisó. Sin sucursales no se habilita la pantalla.
+            this.marcarSucursalesFallidas();
+            return;
+          }
+          this.sucursalesFallo = false;
           this.sucursales = sucursales;
 
           // Preseleccionar todas las sucursales automáticamente
@@ -507,14 +519,24 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         },
         error: (error) => {
           console.error('Error cargando sucursales disponibles:', error);
-          this.sucursales = [];
-          this.sucursalesSeleccionadas = [];
-          this.isInitialLoadComplete = true;
-          this.enableFormControls();
-          this.loadingSucursales = false;
-          this.updateComputedProperties();
+          this.marcarSucursalesFallidas();
+          this.notificacionService.openWarn('No se pudieron cargar las sucursales de la recepción: usá «Reintentar».', 6);
         }
       });
+  }
+
+  /**
+   * Antes el error habilitaba la pantalla con la lista vacía y mostraba «No hay ítems»: sin sucursales los
+   * controles quedan deshabilitados y se ofrece reintentar (#390).
+   */
+  private marcarSucursalesFallidas(): void {
+    this.sucursalesFallo = true;
+    this.loadingSucursales = false;
+    this.updateComputedProperties();
+  }
+
+  reintentarSucursales(): void {
+    this.loadSucursales();
   }
 
   /**
@@ -596,6 +618,15 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
   private loadItemsNotaRecepcion(notaId: number): void {
     this.loadingItems = true;
+    this.itemsFallo = false;
+    const carga = ++this.cargaItems;
+    if (this.notaIdItemsMostrados !== notaId) {
+      // Al cambiar de nota no quedan a la vista (ni se pueden verificar) los ítems de la anterior (#390)
+      this.items = [];
+      this.itemsDataSource.data = [];
+      this.itemsTotalElements = 0;
+      this.notaIdItemsMostrados = notaId;
+    }
 
     // Obtener IDs de sucursales seleccionadas
     const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
@@ -624,6 +655,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (pageInfo) => {
+          if (carga !== this.cargaItems) {
+            return; // Respuesta de una nota o página pedida antes
+          }
+          if (pageInfo == null) {
+            // Error GraphQL: el servicio ya avisó; no es «sin ítems»
+            this.marcarItemsFallidos();
+            return;
+          }
           if (pageInfo && pageInfo.getContent && pageInfo.getContent.length > 0) {
             // Usar directamente los datos del backend, filtrando ítems rechazados documentalmente
             let items = pageInfo.getContent.filter((item: any) =>
@@ -655,20 +694,28 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         },
         error: (error) => {
           console.error('Error cargando items de nota de recepción:', error);
-          this.items = [];
-          // ✅ CORREGIDO: Mostrar todos los items normalmente, solo filtrar por recién verificados si es necesario
-          let itemsFiltrados = this.items;
-
-          // Si hay items recién verificados, asegurar que estén visibles
-          if (this.itemsRecienVerificados.size > 0) {
-            itemsFiltrados = this.items.filter(item => this.debeMostrarItemRecienVerificado(item));
+          if (carga !== this.cargaItems) {
+            return;
           }
-
-          this.itemsDataSource.data = itemsFiltrados;
-          this.loadingItems = false;
-          this.updateComputedProperties();
+          this.marcarItemsFallidos();
+          this.notificacionService.openWarn('No se pudieron cargar los ítems de la nota: usá «Reintentar».', 6);
         }
       });
+  }
+
+  private marcarItemsFallidos(): void {
+    this.items = [];
+    this.itemsDataSource.data = [];
+    this.itemsTotalElements = 0;
+    this.itemsFallo = true;
+    this.loadingItems = false;
+    this.updateComputedProperties();
+  }
+
+  reintentarItems(): void {
+    if (this.notaSeleccionada) {
+      this.loadItemsNotaRecepcion(this.notaSeleccionada.id);
+    }
   }
 
   /**
@@ -809,6 +856,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (notas) => {
+          if (notas == null) {
+            // Error GraphQL: el servicio ya avisó
+            this.loadingNotas = false;
+            return;
+          }
           // Filtrar notas de rechazo sin items activos (no aportan a la recepción física)
           this.notasRecepcion = notas.filter(n => !n.esNotaRechazo || (n.valorTotal && n.valorTotal > 0));
           this.notasDataSource.data = this.notasRecepcion;
@@ -818,7 +870,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         error: (error) => {
           console.error('Error cargando notas de recepción:', error);
           this.loadingNotas = false;
-          // Mantener datos mock en caso de error
+          this.notificacionService.openWarn('No se pudieron cargar las notas de recepción: el servidor no responde. Usá «Actualizar».', 6);
         }
       });
   }
@@ -975,18 +1027,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
                 // Recargar pedido y etapa actual
                 if (this.pedidoId) {
-                  this.pedidoService.onGetPedidoById(this.pedidoId)
-                    .pipe(untilDestroyed(this))
-                    .subscribe({
-                      next: (pedido) => {
-                        this.pedido = pedido;
-                        this.loadEtapaActual();
-                      },
-                      error: (error) => {
-                        console.error('Error al recargar pedido:', error);
-                        this.loadEtapaActual();
-                      }
-                    });
+                  this.recargarPedidoYEtapa();
                 } else {
                   this.loadEtapaActual();
                 }
@@ -1075,21 +1116,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
                   // Luego recargar etapa actual para actualizar el estado del botón "Finalizar Recepción Física"
                   // Esto es necesario porque el backend cambia la etapa a EN_PROCESO cuando se crea el primer item
                   if (this.pedidoId) {
-                    this.pedidoService.onGetPedidoById(this.pedidoId)
-                      .pipe(untilDestroyed(this))
-                      .subscribe({
-                        next: (pedido) => {
-                          this.pedido = pedido;
-                          // Después de recargar el pedido, cargar la etapa actual
-                          // Esto asegura que tenemos las etapas actualizadas
-                          this.loadEtapaActual();
-                        },
-                        error: (error) => {
-                          console.error('Error al recargar pedido:', error);
-                          // Intentar cargar etapa actual aunque falle la recarga del pedido
-                          this.loadEtapaActual();
-                        }
-                      });
+                    this.recargarPedidoYEtapa();
                   } else {
                     // Si no hay pedidoId, solo cargar etapa actual
                     this.loadEtapaActual();
@@ -2462,7 +2489,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
    * RECEPCION_MERCADERIA / EN_PROCESO, y de esas dos propiedades depende que se habilite el botón
    * "Finalizar Recepción Física".
    */
-  private recargarPedidoYEtapa(): void {
+  private recargarPedidoYEtapa(trasAccion = true): void {
     if (!this.pedidoId) {
       this.loadEtapaActual();
       return;
@@ -2471,14 +2498,31 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (pedido) => {
+          if (pedido == null) {
+            // Error GraphQL (el servicio ya avisó): no se pisa el pedido con null
+            this.marcarEtapaDesconocida();
+            return;
+          }
           this.pedido = pedido;
           this.loadEtapaActual();
         },
         error: (error) => {
           console.error('Error al recargar pedido:', error);
-          this.loadEtapaActual();
+          this.marcarEtapaDesconocida();
+          this.notificacionService.openWarn(trasAccion
+            ? 'La acción se registró, pero no se pudo recargar el pedido: usá «Actualizar» o volvé a entrar.'
+            : 'No se pudo cargar el estado del pedido: usá «Actualizar» o volvé a entrar.', 6);
         }
       });
+  }
+
+  /**
+   * Con el pedido sin recargar el estado de la etapa sería el viejo y «Finalizar Recepción Física» podía quedar
+   * mal habilitado: queda desconocido, lo que deshabilita el botón hasta poder recargar (#390).
+   */
+  private marcarEtapaDesconocida(): void {
+    this.etapaEstadoComputed = null;
+    this.updateComputedProperties();
   }
 
   /**
@@ -2685,9 +2729,13 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       return;
     }
 
+    // La nota se fija al iniciar: si se elige otra mientras se consulta, la respuesta se descarta para no
+    // confirmar los ítems de una nota y recepcionar otra (#390)
+    const notaId = this.notaSeleccionada.id;
+
     // Obtener todos los items de la nota (filtro 'TODOS' para ignorar el filtro de verificación)
     this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionIdYSucursales(
-      this.notaSeleccionada.id,
+      notaId,
       sucursalesIds,
       0, // Primera página
       9999, // Tamaño grande para obtener todos
@@ -2695,7 +2743,13 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       '' // Sin filtro de texto
     ).subscribe({
       next: (pageInfo) => {
-        if (!pageInfo || !pageInfo.getContent || pageInfo.getContent.length === 0) {
+        if (this.notaSeleccionada?.id !== notaId) {
+          return;
+        }
+        if (pageInfo == null) {
+          return; // Error GraphQL: el servicio ya avisó; no es «no hay items»
+        }
+        if (!pageInfo.getContent || pageInfo.getContent.length === 0) {
           this.notificacionService.openWarn('No hay items para recepcionar');
           return;
         }
@@ -2736,14 +2790,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
           'Recepcionar Todo',
           'Cancelar'
         ).subscribe(confirmed => {
-          if (confirmed) {
+          if (confirmed && this.notaSeleccionada?.id === notaId) {
             this.ejecutarRecepcionTodo(itemsRecepcionables);
           }
         });
       },
       error: (error) => {
         console.error('Error al obtener items de la nota:', error);
-        this.notificacionService.openAlgoSalioMal('Error al obtener los items de la nota');
+        this.notificacionService.openWarn('No se pudieron obtener los ítems de la nota: el servidor no responde. No se recepcionó nada.', 6);
       }
     });
   }
@@ -2861,15 +2915,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
         // Recargar pedido y etapa
         if (this.pedidoId) {
-          this.pedidoService.onGetPedidoById(this.pedidoId)
-            .pipe(untilDestroyed(this))
-            .subscribe({
-              next: (pedido) => {
-                this.pedido = pedido;
-                this.loadEtapaActual();
-              },
-              error: () => this.loadEtapaActual()
-            });
+          this.recargarPedidoYEtapa();
         } else {
           this.loadEtapaActual();
         }
@@ -2933,15 +2979,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
         // Recargar pedido y etapa
         if (this.pedidoId) {
-          this.pedidoService.onGetPedidoById(this.pedidoId)
-            .pipe(untilDestroyed(this))
-            .subscribe({
-              next: (pedido) => {
-                this.pedido = pedido;
-                this.loadEtapaActual();
-              },
-              error: () => this.loadEtapaActual()
-            });
+          this.recargarPedidoYEtapa();
         } else {
           this.loadEtapaActual();
         }
