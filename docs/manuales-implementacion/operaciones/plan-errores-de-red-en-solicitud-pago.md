@@ -160,3 +160,55 @@ se fuerzan congelando entre una mutación y la siguiente si es viable; si no, po
 | B | Cotización > 1 bloquearía editar detalles viejos sin cotización | baja | solo en altas; edición con aviso |
 | A | `onSave` con error GraphQL y `data` emite `next` | baja | se verifica al implementar |
 | A/B | Líneas citadas, mecánica de `onDelete`/`onCustomQuery`/`onCustomMutation`, `onGetAllEnSegundoPlano`, suscriptores, integración de cheques con el padre | — | verificado |
+
+## Implementación: desvíos respecto del plan (2026-10-03)
+
+- **Bloqueo común** (`accionBloqueada`): con un guardado en vuelo, una creación sin confirmar o la pantalla
+  desactualizada (una mutación sin confirmar y la recarga sin llegar) se bloquean guardar, agregar nota/forma,
+  quitar y editar; Guardar reemplaza notas y formas de pago con lo que se ve.
+- **Editar una forma de pago** también se bloquea sin monedas o formas de pago (el diálogo no mostraría la
+  cotización y el detalle volvería sin ella).
+- **Creación incierta**: un error de red, o la «Respuesta vacía del servidor», cuentan como inciertos; un error de
+  negocio (el servidor respondió que no) no.
+- **Cotización al editar un detalle existente**: no se consulta al abrir (se respeta la guardada; antes se pisaba
+  con la de hoy); se consulta si el usuario cambia la moneda.
+- **Cheques**: «Confirmar» no admite doble clic mientras se guardan en secuencia.
+- **Cotización con modal**: `getUltimoCambioPorMonedaId` sigue abriendo «Buscando…» (ahora hasta 25 s, no 300):
+  mientras tanto no se puede tocar el diálogo, lo que además evita confirmar con el valor de la moneda anterior.
+- **Listas y tablero**: al fallar se vacía la tabla y se avisa (sin botón «Reintentar»: se reintenta con
+  «Buscar»/«Filtrar»). En «Adicionar nota» la página sí avanza; la tabla queda vacía con aviso.
+- **Borrar una solicitud**: sin el confirm propio del genérico (había dos); un fallo recarga la lista.
+
+## Prueba de runtime (paso 9, 2026-10-03)
+
+Central local `:8081` (worktree de pruebas, sin perfil, `ReplicationPublicationSyncScheduler` y
+`ReplicationRefreshScheduler` en *Did not match*), congelado con `kill -STOP` + respaldo `kill -CONT`; desktop
+`ng serve -c web`. Con el central vivo se creó en la base local la solicitud **10** (pedido 3, una nota, efectivo
+60.000 Gs, PENDIENTE). No se pagó nada.
+
+| Caso | Resultado |
+|---|---|
+| Crear la solicitud de prueba (vivo) | se creó la 10 con la forma de pago; monedas 4, formas 5 |
+| Eliminar la forma de pago 1 congelado | a los 61 s aviso del link + «No se pudo confirmar que la forma de pago se eliminó»; la fila **queda**; recarga fallida → «no está al día», Guardar y Agregar bloqueados con aviso (antes: «éxito» y la fila desaparecía) |
+| Reanudar y reabrir | el detalle 1 sigue en el servidor; pantalla al día |
+| Forma de pago en DOLAR congelado | cotización vacía al instante, a los 20 s aviso «ingresala a mano», valor vacío, formulario inválido; cotización 1 → `cotizacionInvalida`; 5880 → válido (58.800 Gs) |
+| Lista filtrada (CONCLUIDO) congelado | tabla vacía (no quedó la fila PENDIENTE del filtro anterior) + aviso |
+| «Ver nota» congelado | aviso, no se abre una nota vacía |
+
+No probado en runtime (por código): editar = borrar + agregar con el agregar fallido, cheques en cuotas parciales,
+creación incierta, notas en lote, `solicitud-pago-compra` y tablero, casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-03)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Editar una forma de pago con monedas caídas la guardaba sin cotización | alta | «Editar» bloqueado sin monedas/formas |
+| Segunda creación posible mientras la primera estaba en vuelo | media | bloqueo con `saving` |
+| Recarga fallida dejaba Guardar activo con datos viejos (Guardar reemplaza notas y formas) | media | `pantallaDesactualizada` bloquea las acciones |
+| «Respuesta vacía del servidor» se tomaba como error de negocio al crear | media | cuenta como incierta |
+| El modal de cotización se redujo pero no se quitó | media | documentado (mitiga confirmar con el valor de la moneda anterior) |
+| Al abrir un detalle existente se pisaba su cotización con la de hoy | baja | no se consulta al abrir |
+| Respuesta tardía de cotización sin descartar con sugerido nulo | baja | el contador se incrementa siempre |
+| Doble clic en Confirmar durante las altas en secuencia | baja | flag `guardando` |
+| `edit-pago` (sin pantalla) falla mudo; doble aviso al fallar el borrado de solicitud; listas sin «Reintentar»; avisos repetidos de listas | baja | aceptado / documentado |
+| Suscriptores de todo lo que cambió, `null`, recarga, notas en lote, `creacionIncierta`, cotización, cheques, `finalize` | — | verificado sin hallazgos |
