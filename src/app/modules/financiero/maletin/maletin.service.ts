@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { AllMaletinsGQL } from './graphql/allMaletines';
 import { CountMaletinGQL } from './graphql/count-maletin';
@@ -65,12 +65,12 @@ export class MaletinService {
     return this.genericCrud.onGetAll(this.getAllMaletines, page, size, servidor)
   }
 
-  onGetPorId(id, sucursalId, servidor: boolean = true): Observable<any>{
-    return this.genericCrud.onCustomQuery(this.getMaletinPorId, {id, sucursalId}, servidor)
+  onGetPorId(id, sucursalId, servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<any>{
+    return this.genericCrud.onCustomQuery(this.getMaletinPorId, {id, sucursalId}, servidor, errorConf, undefined, contexto)
   }
 
-  onGetPorDescripcion(texto, servidor: boolean = true): Observable<any>{
-    return this.genericCrud.onGetByTexto(this.getMaletinPorDescripcion, texto, servidor)
+  onGetPorDescripcion(texto, servidor: boolean = true, errorConf?: QueryError): Observable<any>{
+    return this.genericCrud.onGetByTexto(this.getMaletinPorDescripcion, texto, servidor, undefined, errorConf)
   }
 
   onSave(input: MaletinInput, servidor: boolean = true): Observable<any>{

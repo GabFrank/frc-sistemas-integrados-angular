@@ -70,8 +70,9 @@ export class RetiroService {
     return this.crudService.onSaveCustom(this.ingresarRetiroACajaMayorGQL, { retiroId, sucId, cajaVirtualId }, servidor, opciones);
   }
 
-  onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {
-    return this.crudService.onGetById(this.retiroPorCajaId, id, null, null, servidor);
+  onGePorCajaSalidaId(id: number, servidor = true, silentLoad?: boolean, warningText?: string): Observable<Retiro[]> {
+    return this.crudService.onGetById(this.retiroPorCajaId, id, null, null, servidor, null, null, null, silentLoad, null,
+      warningText);
   }
 
   onReimprimirRetiro(id: number, sucId?: number, servidor = true): Observable<boolean> {

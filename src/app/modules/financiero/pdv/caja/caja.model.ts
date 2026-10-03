@@ -79,6 +79,15 @@ export  enum PdvCajaEstado {
     'Verificado y concluido con problema'='VERIFICADO_CONCLUIDO_CON_PROBLEMA'
 }
 
+/**
+ * El balance sirve para validar un gasto o un retiro contra lo que hay en caja solo si trae las diferencias como
+ * números: el filial devuelve un CajaBalance con todo en null si la caja no existe (#390).
+ */
+export function esBalanceVerificable(b: CajaBalance): boolean {
+  return b != null && typeof b.diferenciaGs === 'number' && typeof b.diferenciaRs === 'number'
+    && typeof b.diferenciaDs === 'number';
+}
+
 export class CajaBalance {
     cajaId: number;
     totalGeneral: number;
