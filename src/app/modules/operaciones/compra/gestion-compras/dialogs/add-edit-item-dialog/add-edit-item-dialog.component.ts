@@ -739,7 +739,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     this.buscadorComprasService
-      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .buscarProductosParaDialog(searchText, 0, 20, true, true)
       .pipe(take(1))
       .subscribe({
         next: (productos) => {
@@ -759,7 +759,8 @@ export class AddEditItemDialogComponent implements OnInit {
 
           this.abrirDialogoBusquedaProducto(searchText);
         },
-        error: () => this.abrirDialogoBusquedaProducto(searchText),
+        // El diálogo volvería a consultar y a esperar: se avisa y se puede reintentar (#390)
+        error: () => this.notificacionService.openWarn("No se pudo buscar el producto: el servidor no responde. Intentá de nuevo."),
       });
   }
 

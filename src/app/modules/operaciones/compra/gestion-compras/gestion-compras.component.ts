@@ -94,7 +94,7 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
@@ -125,6 +125,12 @@ import {
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+
+/** Panel de productos del proveedor: carga de fondo, 20 s sin el aviso del link (#390). */
+const CONSULTA_PRODUCTOS_PROVEEDOR: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
 
 interface PedidoHeader {
   id?: number;
@@ -2659,11 +2665,12 @@ export class GestionComprasComponent
     }
 
     this.buscadorComprasService
-      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .buscarProductosParaDialog(searchText, 0, 20, true, true)
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe({
         next: procesarResultados,
-        error: () => this.abrirDialogoBusquedaProducto(searchText),
+        // El diálogo volvería a consultar y a esperar: se avisa y se puede reintentar con Enter (#390)
+        error: () => this.notificacionService.openWarn("No se pudo buscar el producto: el servidor no responde. Intentá de nuevo."),
       });
   }
 
@@ -4270,21 +4277,32 @@ export class GestionComprasComponent
           searchText,
           this.productosProveedorPageIndex,
           this.productosProveedorPageSize,
-          pedidoId
+          pedidoId,
+          true,
+          PROPAGAR_ERROR_DE_RED,
+          CONSULTA_PRODUCTOS_PROVEEDOR
         )
       : this.productoProveedorService.getByProveedorId(
           proveedorId,
           "",
           this.productosProveedorPageIndex,
           this.productosProveedorPageSize,
-          pedidoId
+          pedidoId,
+          undefined,
+          PROPAGAR_ERROR_DE_RED,
+          CONSULTA_PRODUCTOS_PROVEEDOR
         );
 
     request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
+          if (!response) {
+            // Error GraphQL: el servicio ya avisó
+            this.productosProveedorLoading = false;
+            return;
+          }
+
           const productos = (response.getContent || []).map((pp: ProductoProveedor) => {
             const precioPrincipal = pp.producto?.precioPrincipal;
             

@@ -23,8 +23,9 @@ import {
 } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { Observable, of } from 'rxjs';
+import { EMPTY, Observable, of } from 'rxjs';
 import {
+  catchError,
   distinctUntilChanged,
   filter,
   finalize,
@@ -53,6 +54,7 @@ export interface ComprasSearchProductoResponse {
 }
 
 const PAGE_SIZE = 20;
+const MENSAJE_BUSQUEDA_SIN_RESPUESTA = 'No se pudo buscar: el servidor no responde. Intentá de nuevo.';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -143,6 +145,16 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
                 this.busquedaEnCurso = false;
               }
               this.cdr.markForCheck();
+            }),
+            // Dentro del switchMap: un error no mata la búsqueda al escribir, y se avisa en vez de
+            // mostrar «sin resultados» (#390)
+            catchError(() => {
+              if (generacion === this.generacionBusqueda) {
+                this.dataSource.data = [];
+                this.hayMasResultados = false;
+                this.notificacionService.openWarn(MENSAJE_BUSQUEDA_SIN_RESPUESTA);
+              }
+              return EMPTY;
             })
           );
         }),
@@ -158,7 +170,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
         error: () => {
           this.dataSource.data = [];
           this.hayMasResultados = false;
-          this.notificacionService.openWarn('Error al buscar productos');
+          this.notificacionService.openWarn(MENSAJE_BUSQUEDA_SIN_RESPUESTA);
           this.cdr.markForCheck();
         },
       });
@@ -178,6 +190,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
       termino,
       page,
       PAGE_SIZE,
+      true,
       true
     );
   }
@@ -284,7 +297,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
           if (!append) {
             this.dataSource.data = [];
           }
-          this.notificacionService.openWarn('Error al buscar productos');
+          this.notificacionService.openWarn(MENSAJE_BUSQUEDA_SIN_RESPUESTA);
           this.cdr.markForCheck();
         },
       });
