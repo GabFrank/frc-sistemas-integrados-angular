@@ -25,6 +25,23 @@
       </mat-error>
     </mat-form-field>
 
+    <!-- Fallos de carga (#390): sin estos datos leídos para la sucursal actual no se puede guardar -->
+    <div class="nota nota-alerta" *ngIf="sucursalesFallo">
+      <mat-icon class="nota-icono">error_outline</mat-icon>
+      No se pudieron cargar las sucursales.
+      <button mat-stroked-button type="button" (click)="reintentarSucursales()">Reintentar</button>
+    </div>
+    <div class="nota nota-alerta" *ngIf="existenciaFallo">
+      <mat-icon class="nota-icono">error_outline</mat-icon>
+      No se pudo cargar el stock del producto en esta sucursal.
+      <button mat-stroked-button type="button" (click)="reintentarExistencia()">Reintentar</button>
+    </div>
+    <div class="nota nota-alerta" *ngIf="loteFallo">
+      <mat-icon class="nota-icono">error_outline</mat-icon>
+      No se pudo leer el saldo del lote en esta sucursal.
+      <button mat-stroked-button type="button" (click)="reintentarLote()">Reintentar</button>
+    </div>
+
     <mat-spinner *ngIf="cargando" diameter="34" class="spinner"></mat-spinner>
 
     <ng-container *ngIf="selectedSucursal && !cargando">
@@ -98,7 +115,7 @@
 
       <!-- Lo único que se avisa: el estado del lote y cómo queda el stock del producto. Todo lo
            demás lo resuelve el backend y no cambia lo que el operador tiene que decidir. -->
-      <div class="nota" *ngIf="hayAjuste">
+      <div class="nota" *ngIf="hayAjuste && existenciaCargada">
         <mat-icon class="nota-icono">info</mat-icon>
         El stock del producto pasa de <strong>{{ existencia }}</strong>
         a <strong>{{ existenciaDespues }}</strong> unidades.

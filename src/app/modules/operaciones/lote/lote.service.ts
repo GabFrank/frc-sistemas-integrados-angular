@@ -4,7 +4,18 @@ import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
+
+/** Consultas de lotes: el error de red llega al llamador, que avisa (#390). 20 s en diálogos, 60 s en listados. */
+const CONSULTA_DIALOGO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+const CONSULTA_LISTADO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -275,8 +286,9 @@ export class LoteService {
       this.buscarLotesDeProductoGQL,
       { productoId, sucursalId: sucursalId ?? null, texto: texto || null, page, size },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 
@@ -352,8 +364,9 @@ export class LoteService {
       this.resumenStockLoteGQL,
       { productoId, sucursalId },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 

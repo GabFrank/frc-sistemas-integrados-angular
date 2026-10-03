@@ -16,6 +16,7 @@ import { PageInfo } from '../../../../app.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLotePresentacion } from '../../lote/lote.model';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { LoteService } from '../../lote/lote.service';
 import { EtapaAsignacionLote, TransferenciaItemLote } from '../transferencia.model';
 import { MainService } from '../../../../main.service';
@@ -130,6 +131,11 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   sinLotes = false;
   /** True cuando la búsqueda no trajo nada, para distinguirlo de "el producto no tiene lotes". */
   sinCoincidencias = false;
+  /**
+   * La última carga de lotes falló (#390): se vacían las filas (no quedan saldos viejos a la vista) y Confirmar
+   * se bloquea hasta reintentar; la selección se conserva.
+   */
+  cargaFallo = false;
 
   // Paginación server-side, con el mismo contrato que el resto de los listados del sistema.
   pageIndex = 0;
@@ -230,11 +236,17 @@ export class SeleccionarLotesDialogComponent implements OnInit {
         this.pageIndex,
         this.pageSize,
         true,
-        silentLoad
+        silentLoad,
+        TIMEOUT_CONSULTA_DE_FONDO_MS
       )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<StockLotePresentacion>) => {
+          if (res == null) {
+            this.marcarCargaFallida(); // error GraphQL: el servicio ya avisó
+            return;
+          }
+          this.cargaFallo = false;
           const lotes = res?.getContent || [];
           this.totalElementos = res?.getTotalElements || 0;
           this.tomarDatosDePresentacion(lotes);
@@ -247,12 +259,24 @@ export class SeleccionarLotesDialogComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.cargando = false;
-          this.cargandoInicial = false;
-          this.notificacionService.openAlgoSalioMal('Error al consultar los lotes disponibles');
-          this.cdr.markForCheck();
+          this.notificacionService.openWarn('No se pudieron consultar los lotes disponibles: usá «Reintentar».', 5);
+          this.marcarCargaFallida();
         }
       });
+  }
+
+  private marcarCargaFallida(): void {
+    this.cargando = false;
+    this.cargandoInicial = false;
+    this.cargaFallo = true;
+    this.filas = [];
+    this.sinLotes = false;
+    this.sinCoincidencias = false;
+    this.cdr.markForCheck();
+  }
+
+  reintentarCarga(): void {
+    this.cargarLotes();
   }
 
   /**
@@ -427,6 +451,10 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   }
 
   onConfirmar(): void {
+    if (this.cargaFallo) {
+      this.notificacionService.openWarn('No se pudo verificar el saldo de los lotes: usá «Reintentar» antes de confirmar.');
+      return;
+    }
     if (this.excedeRequerido) {
       this.notificacionService.openWarn(
         'No podés asignar más cantidad de la que se transfiere'

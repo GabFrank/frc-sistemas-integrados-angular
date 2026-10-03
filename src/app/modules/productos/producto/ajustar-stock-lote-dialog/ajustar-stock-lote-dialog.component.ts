@@ -28,6 +28,8 @@ import {
   ResumenStockLote
 } from '../../../operaciones/lote/lote.model';
 import { LoteService } from '../../../operaciones/lote/lote.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { Producto } from '../producto.model';
 
 /** Tolerancia al comparar cantidades en punto flotante, igual que en el backend. */
@@ -89,9 +91,23 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   guardando = false;
 
   // Todo precalculado para el template.
-  /** Stock del producto en la sucursal: todo lo que hay, con lote y sin lote. */
-  existencia = 0;
-  existenciaDespues = 0;
+  /** Stock del producto en la sucursal: todo lo que hay, con lote y sin lote. Null mientras no se leyó. */
+  existencia: number | null = null;
+  existenciaDespues: number | null = null;
+  /**
+   * Guardar exige la existencia y el saldo del lote leídos para la sucursal ACTUAL (#390): antes, si la relectura
+   * no respondía, quedaban los de la sucursal anterior (o una existencia de 0 con un error) y se podía guardar.
+   */
+  existenciaCargada = false;
+  saldoLoteVerificado = false;
+  releyendoLote = false;
+  /** Fallos con «Reintentar» en el template. */
+  sucursalesFallo = false;
+  existenciaFallo = false;
+  loteFallo = false;
+  /** Solo aplica la última respuesta: una tardía de la sucursal anterior se descarta. */
+  private cargaExistencia = 0;
+  private cargaLote = 0;
   saldoLote = 0;
   diferencia = 0;
   diferenciaLabel = '0';
@@ -165,9 +181,20 @@ export class AjustarStockLoteDialogComponent implements OnInit {
    * física que contar.
    */
   private cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales(true)
+    this.sucursalesFallo = false;
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => {
+        this.sucursalesFallo = true;
+        this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar».', 5);
+        this.cdr.markForCheck();
+      }, next: (res) => {
+        if (res == null) {
+          this.sucursalesFallo = true; // error GraphQL: el servicio ya avisó
+          this.cdr.markForCheck();
+          return;
+        }
         this.sucursales = (res || []).filter(
           (sucursal) =>
             sucursal.nombre !== 'SERVIDOR' &&
@@ -178,7 +205,23 @@ export class AjustarStockLoteDialogComponent implements OnInit {
           this.preseleccionarLote();
         }
         this.cdr.markForCheck();
-      });
+      } });
+  }
+
+  reintentarSucursales(): void {
+    this.cargarSucursales();
+  }
+
+  reintentarExistencia(): void {
+    this.cargarStockDelProducto();
+  }
+
+  reintentarLote(): void {
+    if (this.loteElegido != null) {
+      this.releerSaldoDelLote();
+    } else {
+      this.preseleccionarLote();
+    }
   }
 
   /**
@@ -191,21 +234,35 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     if (productoId == null || sucursalId == null) {
       return;
     }
+    const carga = ++this.cargaExistencia;
     this.cargando = true;
-    this.cdr.markForCheck();
+    this.existencia = null;
+    this.existenciaCargada = false;
+    this.existenciaFallo = false;
+    this.recalcular();
 
     this.loteService.onResumenStockLote(productoId, sucursalId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (resumen: ResumenStockLote) => {
-          this.existencia = resumen?.existencia || 0;
+          if (carga !== this.cargaExistencia) return; // respuesta de otra sucursal
           this.cargando = false;
+          if (resumen == null) {
+            // Error GraphQL (el servicio ya avisó): antes quedaba en 0 y se podía guardar
+            this.existenciaFallo = true;
+            this.recalcular();
+            return;
+          }
+          this.existencia = resumen.existencia || 0;
+          this.existenciaCargada = true;
           this.recalcular();
         },
         error: () => {
+          if (carga !== this.cargaExistencia) return;
           this.cargando = false;
-          this.notificacionService.openAlgoSalioMal('No se pudo cargar el stock del producto.');
-          this.cdr.markForCheck();
+          this.existenciaFallo = true;
+          this.notificacionService.openWarn('No se pudo cargar el stock del producto: usá «Reintentar».', 5);
+          this.recalcular();
         }
       });
   }
@@ -232,21 +289,41 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     if (productoId == null || sucursalId == null) {
       return;
     }
-    this.loteService.onBuscarLotesDeProducto(productoId, sucursalId, numeroLote, 0, 20)
+    const carga = ++this.cargaLote;
+    this.saldoLoteVerificado = false;
+    this.releyendoLote = true;
+    this.loteFallo = false;
+    this.recalcular();
+    // 50 filas: la búsqueda por número es parcial y un lote con saldo 0 puede quedar al final de la página
+    this.loteService.onBuscarLotesDeProducto(productoId, sucursalId, numeroLote, 0, 50)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (pagina) => {
-          const filas = pagina?.getContent || [];
+          if (carga !== this.cargaLote) return; // respuesta de otra sucursal o elección
+          this.releyendoLote = false;
+          if (pagina == null) {
+            this.loteFallo = true; // error GraphQL: el servicio ya avisó
+            this.recalcular();
+            return;
+          }
+          const filas = pagina.getContent || [];
           const encontrado = loteId != null
             ? filas.find((fila) => +fila.loteId === +loteId)
             : filas.find((fila) => fila.numeroLote === numeroLote);
           if (encontrado != null) {
             this.aplicarLote(encontrado);
+          } else {
+            // No se quita el lote: queda sin verificar hasta elegirlo de nuevo con el buscador
+            this.notificacionService.openWarn('No se encontró el saldo del lote en esta sucursal: elegilo de nuevo con el buscador.', 5);
+            this.recalcular();
           }
         },
         error: () => {
-          this.notificacionService.openAlgoSalioMal('No se pudo leer el saldo del lote.');
-          this.cdr.markForCheck();
+          if (carga !== this.cargaLote) return;
+          this.releyendoLote = false;
+          this.loteFallo = true;
+          this.notificacionService.openWarn('No se pudo leer el saldo del lote: usá «Reintentar».', 5);
+          this.recalcular();
         }
       });
   }
@@ -262,6 +339,10 @@ export class AjustarStockLoteDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((lote) => {
         if (lote != null) {
+          // Elegido en el buscador, con el saldo de esta sucursal: descarta una relectura en vuelo
+          this.cargaLote++;
+          this.releyendoLote = false;
+          this.loteFallo = false;
           this.aplicarLote(lote);
           this.enfocarCantidad();
         }
@@ -271,6 +352,7 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   private aplicarLote(lote: LoteDeProducto): void {
     this.loteElegido = lote;
     this.hayLote = true;
+    this.saldoLoteVerificado = true;
     this.saldoLote = lote.saldo || 0;
     this.loteNoLiberado = lote.estado != null && lote.estado !== EstadoLote.LIBERADO;
     this.loteEstadoLabel = ESTADO_LOTE_LABELS[lote.estado] || '';
@@ -285,6 +367,10 @@ export class AjustarStockLoteDialogComponent implements OnInit {
 
   /** Vuelve a dejar el lote sin elegir, para buscar otro. */
   onQuitarLote(): void {
+    this.cargaLote++;
+    this.releyendoLote = false;
+    this.loteFallo = false;
+    this.saldoLoteVerificado = false;
     this.loteElegido = null;
     this.hayLote = false;
     this.saldoLote = 0;
@@ -318,7 +404,7 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     this.colorDiferencia = this.diferencia > 0
       ? '#4caf50'
       : this.diferencia < 0 ? '#f44336' : '#ffffff';
-    this.existenciaDespues = this.existencia + this.diferencia;
+    this.existenciaDespues = this.existenciaCargada ? this.existencia + this.diferencia : null;
 
     // Se miran los controles y no formGroup.valid: recalcular() corre dentro del valueChanges de
     // un hijo, y ahi el estado del grupo todavia es el del ciclo anterior —Angular actualiza al
@@ -329,13 +415,18 @@ export class AjustarStockLoteDialogComponent implements OnInit {
       && this.cantidadControl.valid
       && !this.cargando
       && !this.guardando
+      && this.existenciaCargada
+      && this.saldoLoteVerificado
+      && !this.releyendoLote
       && this.hayAjuste;
     this.cdr.markForCheck();
   }
 
   onGuardar(): void {
     if (!this.puedeGuardar) {
-      this.notificacionService.openWarn('Elegí el lote y cargá la cantidad real.');
+      this.notificacionService.openWarn(!this.existenciaCargada || !this.saldoLoteVerificado || this.releyendoLote
+        ? 'Todavía no se leyó el stock o el saldo del lote en esta sucursal: esperá o usá «Reintentar».'
+        : 'Elegí el lote y cargá la cantidad real.');
       return;
     }
 
