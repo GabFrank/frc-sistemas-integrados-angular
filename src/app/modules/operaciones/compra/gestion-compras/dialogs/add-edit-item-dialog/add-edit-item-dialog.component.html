@@ -286,7 +286,8 @@
                         <mat-spinner diameter="20"></mat-spinner>
                       </div>
                       <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
-                      <div *ngIf="!item.stockActualLoading && !item.stockOculto" class="cantidad-display">
+                      <span *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual == null" matTooltip="No se pudo obtener el stock">—</span>
+                      <div *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual != null" class="cantidad-display">
                         <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.stockActual) | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.stockActual | number : "1.0-2" }} unidades)</div>
                       </div>
@@ -299,7 +300,8 @@
                     <td mat-cell *matCellDef="let item; let i = index">
                       <span *ngIf="item.cantidadSugeridaLoading">Calculando...</span>
                       <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
-                      <div *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto" class="cantidad-display">
+                      <span *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida == null" matTooltip="No disponible: falta el stock o el historial">—</span>
+                      <div *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida != null" class="cantidad-display">
                         <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.cantidadSugerida) | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.cantidadSugerida | number : "1.0-2" }} unidades)</div>
                       </div>
@@ -489,6 +491,9 @@
         <mat-button-toggle value="SIMPLIFICADA">Distribución Simplificada</mat-button-toggle>
       </mat-button-toggle-group>
     </div>
+    <button *ngIf="distribucionesFallo" mat-stroked-button color="warn" (click)="reintentarDistribuciones()">
+      Reintentar distribuciones
+    </button>
     <button
       mat-button
       #cancelarBtn

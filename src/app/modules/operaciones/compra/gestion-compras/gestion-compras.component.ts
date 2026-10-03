@@ -326,6 +326,8 @@ export class GestionComprasComponent
   // Cotización del pedido — fuente del prefill (mercado / manual / pedido guardado)
   cotizacionFromMercado = false;
   cotizacionRefreshing = false;
+  /** Descarta la respuesta de una consulta de cotización anterior (cambios rápidos de moneda). */
+  private cotizacionConsulta = 0;
 
   // Forms
   datosGeneralesForm: FormGroup;
@@ -2246,8 +2248,16 @@ export class GestionComprasComponent
     this.ensureDefaultFormaPago();
 
     const hadItems = this.itemsDataSource.data.length > 0;
-    this.prefillCotizacionFromMercado(moneda).subscribe(() => {
-      if (hadItems) {
+    // Mientras se consulta no queda a la vista la cotización de la moneda anterior (#390)
+    cotizacionCtrl.setValue(null, { emitEvent: false });
+    this.cotizacionFromMercado = false;
+    this.cotizacionRefreshing = true;
+    this.updateComputedProperties();
+    this.prefillCotizacionFromMercado(moneda).subscribe((ok) => {
+      this.cotizacionRefreshing = false;
+      if (!ok) {
+        this.notificacionService.openWarn("No se pudo obtener la cotización: el servidor no responde. Ingresala a mano.", 6);
+      } else if (hadItems) {
         this.notificacionService.openSucess(
           "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
         );
@@ -2260,12 +2270,18 @@ export class GestionComprasComponent
    * Llama al backend y prefilea el control cotización con el mejor valor disponible:
    * mercado compra → mercado venta → manual PDV → moneda.cambio → null.
    */
-  private prefillCotizacionFromMercado(moneda: Moneda): Observable<number | null> {
-    return new Observable<number | null>((observer) => {
-      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+  private prefillCotizacionFromMercado(moneda: Moneda): Observable<boolean> {
+    const consulta = ++this.cotizacionConsulta;
+    return new Observable<boolean>((observer) => {
+      this.cambioService.getUltimoCambioPorMonedaIdEnSegundoPlano(moneda.id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (cambio: any) => {
+            if (consulta !== this.cotizacionConsulta) {
+              // Respuesta de una moneda elegida antes: no pisa la actual
+              observer.complete();
+              return;
+            }
             const valor = cambio?.valorEnGsCompraMercado
               ?? cambio?.valorEnGsVentaMercado
               ?? cambio?.valorEnGs
@@ -2275,15 +2291,19 @@ export class GestionComprasComponent
             this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
             this.cotizacionFromMercado = fromMercado;
             this.updateComputedProperties();
-            observer.next(valor);
+            observer.next(true);
             observer.complete();
           },
           error: () => {
-            const fallback = moneda?.cambio ?? null;
-            this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
+            if (consulta !== this.cotizacionConsulta) {
+              observer.complete();
+              return;
+            }
+            // Vacía, no un valor heredado: el guardado exige cotización y el usuario la carga a mano
+            this.datosGeneralesForm.get("cotizacion")?.setValue(null, { emitEvent: false });
             this.cotizacionFromMercado = false;
             this.updateComputedProperties();
-            observer.next(fallback);
+            observer.next(false);
             observer.complete();
           }
         });
@@ -2306,9 +2326,11 @@ export class GestionComprasComponent
         // "actualizada" sobre un valor viejo lleva a pricear una compra con una cotización
         // stale creyendo que se acaba de refrescar.
         next: (ok) => {
-          this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+          this.prefillCotizacionFromMercado(moneda).subscribe((leida) => {
             this.cotizacionRefreshing = false;
-            if (ok) {
+            if (!leida) {
+              this.notificacionService.openWarn("No se pudo obtener la cotización: el servidor no responde. Ingresala a mano.", 6);
+            } else if (ok) {
               this.notificacionService.openSucess("Cotización de mercado actualizada");
             } else {
               this.notificacionService.openWarn(
@@ -2906,7 +2928,11 @@ export class GestionComprasComponent
     // Cargar distribuciones existentes del backend
     this.pedidoService.onGetPedidoItemDistribucionesByPedidoItemId(item.id).subscribe({
       next: (distribuciones) => {
-        
+        if (distribuciones == null) {
+          // Error GraphQL: el servicio ya avisó; no se abre con la lista vacía
+          return;
+        }
+
         const dialogData: DistributeItemDialogData = {
           item: item,
           distribuciones: distribuciones,
@@ -2951,50 +2977,8 @@ export class GestionComprasComponent
       },
       error: (error) => {
         console.error("Error cargando distribuciones:", error);
-        // Usar array vacío como fallback
-        const distribuciones: PedidoItemDistribucion[] = [];
-        
-        const dialogData: DistributeItemDialogData = {
-          item: item,
-          distribuciones: distribuciones,
-          sucursalesInfluencia: sucursalesInfluencia,
-          sucursalesEntrega: sucursalesEntrega,
-          title: `Distribuir: ${item.producto.descripcion}`
-        };
-
-        const dialogRef = this.dialog.open(DistributeItemDialogComponent, {
-          width: '80%',
-          height: '70%',
-          data: dialogData,
-          disableClose: true
-        });
-
-        dialogRef.afterClosed().subscribe(result => {
-          if (result?.success) {
-            // Solo recargar datos si la operación fue exitosa
-            // Marcar tab de ítems como no cargado para recargar en próxima visita
-            this.markTabAsUnloaded(1);
-            
-            // Si estamos en el tab de ítems, recargar inmediatamente
-            if (this.selectedTabIndex === 1) {
-              // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-            } else {
-              // Si no estamos en el tab 1, actualizar propiedades computadas
-              this.updateItemsComputedProperties();
-            }
-            
-            // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
-            this.markTabAsUnloaded(2);
-            
-            // Recargar resumen del pedido para actualizar header
-            if (this.isEditMode) {
-              this.loadPedidoResumen();
-            }
-            this.updateComputedProperties();
-          }
-        });
+        // Abrir el diálogo vacío y guardar pisaría las distribuciones reales (#390)
+        this.notificacionService.openWarn("No se pudieron cargar las distribuciones del ítem: el servidor no responde. Intentá de nuevo.", 5);
       }
     });
   }
@@ -4468,7 +4452,10 @@ export class GestionComprasComponent
     }
 
     this.productoService
-      .onGetStockPorSucursales(productoId)
+      .onGetStockPorSucursales(productoId, true, true, {
+        networkError: { propagate: true, show: false },
+        graphError: { propagate: true, show: false },
+      }, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (stockPorSucursal: PorSucursal<number>) => {
@@ -4479,11 +4466,10 @@ export class GestionComprasComponent
           this.recalcularStockTotal(producto);
         },
         error: () => {
-          producto.stockPorSucursal.forEach(entry => {
-            entry.stock = 0;
-            entry.loading = false;
-          });
-          this.recalcularStockTotal(producto);
+          // Sin stock la fila muestra «-» (stockTotal null), no un 0 inventado (#390)
+          producto.stockPorSucursal.forEach(entry => { entry.loading = false; });
+          producto.stockTotal = null;
+          producto.stockTotalLoading = false;
         }
       });
   }
