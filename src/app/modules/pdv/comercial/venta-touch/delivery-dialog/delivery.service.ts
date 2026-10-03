@@ -4,7 +4,7 @@ import { DeliverysUltimos10GQL } from "../../../../operaciones/delivery/graphql/
 import { DeliverysUltimos10SubGQL } from "../../../../operaciones/delivery/graphql/deliverysUltimos10Sub";
 
 import { UntilDestroy } from "@ngneat/until-destroy";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../../generics/generic-crud.service";
 import { PreciosDeliveryGQL } from "../../../../operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio";
 import { Observable } from "rxjs";
 import { map, tap } from "rxjs/operators";
@@ -60,8 +60,9 @@ export class DeliveryService {
       errorConf, silentLoad, contexto);
   }
 
-  onGetById(id, servidor: boolean = true): Observable<Delivery> {
-    return this.genericService.onGetById(this.deliveryById, id, null, null, servidor);
+  onGetById(id, servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Delivery> {
+    return this.genericService.onGetById(this.deliveryById, id, null, null, servidor, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onGetDeliverysByEstadoList(estadoList: DeliveryEstado[], sucId?: number, servidor: boolean = true) {
@@ -86,8 +87,13 @@ export class DeliveryService {
     }, servidor, errorConf, undefined, contexto);
   }
 
-  onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[]> {
-    return this.genericService.onGetAll(this.preciosDelivery, null, null, servidor);
+  /**
+   * El onGetAll genérico no emite si falla: el delivery quedaba sin tarifa y se guardaba así. Corta a los 10 s
+   * (el cajero espera de pie) y manda el error de red al llamador; un error GraphQL emite null (#390).
+   */
+  onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[] | null> {
+    return this.genericService.onCustomQuery(this.preciosDelivery, {}, servidor, PROPAGAR_ERROR_DE_RED, true,
+      { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true });
   }
 
   onSaveDeliveryEstado(id, estado, servidor: boolean = true): Observable<Delivery> {

@@ -127,6 +127,19 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   isVuelto = false;
   valorParcialPagado = 0
 
+  /** Precios de delivery (#390): sin tarifa cargada no se cobra ni se guarda. */
+  preciosFallo = false;
+  sinTarifas = false;
+  /** Una línea de cobro guardándose: un segundo Enter la duplicaría. */
+  private guardandoCobro = false;
+  /** Solo lo bajan la respuesta o el error: si el diálogo se cierra con la línea en vuelo, quedó sin confirmar. */
+  private cobroSinRespuesta = false;
+  /**
+   * Un delivery guardado sin tarifa no pudo reconstruir sus cobros ya guardados: aunque después cargue la tarifa,
+   * el saldo no los contaría y se podría cobrar de nuevo. Hay que volver a abrirlo (#390).
+   */
+  private cobrosSinReconstruir = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: EditDeliveryDialogData,
     private deliveryService: DeliveryService,
@@ -158,16 +171,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.deliveryService.onGetPreciosDelivery(false).subscribe(res => {
-      this.precioList = res;
-      if (this.precioList.length > 0) {
-        if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
-        this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
-        this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
-        this.calcularVueltoPara()
-        // this.calcularVuelto()
-      }
-    })
+    this.cargarPrecios();
 
     this.precioSub = this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.precioControl.dirty) {
@@ -200,8 +204,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         }
         if (res != null && res.length != 0) {
           this.clienteTimer = setTimeout(() => {
-            this.clienteService.onSearch(res).subscribe(clienteRes => {
-              this.filteredClienteList = clienteRes;
+            this.clienteService.onSearch(res, true, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+              this.notificacionSnackbar.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 4);
+            }, next: clienteRes => {
+              this.filteredClienteList = clienteRes ?? [];
               if (this.filteredClienteList.length == 1) {
                 this.onClienteSelect(this.filteredClienteList[0]);
                 this.onClienteAutocompleteClose();
@@ -209,7 +215,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
                 this.onClienteAutocompleteClose();
                 this.onClienteSelect(null);
               }
-            })
+            } })
           }, 500);
         } else {
           this.filteredClienteList = [];
@@ -218,7 +224,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     });
 
     setTimeout(() => {
-      this.monedaList = this.data?.monedaList;
+      this.monedaList = this.data?.monedaList ?? [];
+      if (this.monedaList.length === 0 || !(this.data?.formaPagoList?.length > 0)) {
+        this.notificacionSnackbar.openWarn('No se cargaron las monedas o formas de pago del POS: no se puede cobrar ni guardar el delivery.', 6);
+      }
       this.onMonedaVueltoSelect(this.monedaList[0])
       setTimeout(() => {
         this.onMonedaSelect(this.monedaList[0])
@@ -236,7 +245,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     }, 0);
 
     setTimeout(() => {
-      this.formaPagoList = this.data?.formaPagoList;
+      this.formaPagoList = this.data?.formaPagoList ?? [];
       this.onFormaPagoSelect(this.formaPagoList[0])
     }, 0);
 
@@ -326,6 +335,77 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.precioInput.nativeElement.select();
     }, 100);
+  }
+
+  /**
+   * Antes, si los precios no cargaban, el delivery se podía guardar sin tarifa de envío y cobrar daba error. Un
+   * delivery ya guardado con su tarifa la conserva aunque la consulta falle (#390).
+   */
+  private cargarPrecios(): void {
+    this.preciosFallo = false;
+    this.sinTarifas = false;
+    this.deliveryService.onGetPreciosDelivery(false).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        if (res == null) {
+          this.marcarPreciosFallidos(); // error GraphQL: el servicio ya avisó «Ups»
+          return;
+        }
+        this.precioList = res;
+        if (this.precioList.length > 0) {
+          if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
+          this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
+          this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
+          this.calcularVueltoPara()
+          // this.calcularVuelto()
+        } else if (this.selectedPrecio == null) {
+          this.sinTarifas = true;
+          this.notificacionSnackbar.openWarn('No hay tarifas de delivery configuradas: no se puede cobrar ni guardar el delivery.', 6);
+        }
+      },
+      error: () => {
+        this.marcarPreciosFallidos();
+        if (this.selectedPrecio == null) {
+          this.notificacionSnackbar.openWarn('No se pudieron cargar las tarifas de delivery: usá «Reintentar» antes de cobrar o guardar.', 6);
+        }
+      }
+    });
+  }
+
+  private marcarPreciosFallidos(): void {
+    this.preciosFallo = this.selectedPrecio == null;
+  }
+
+  reintentarPrecios(): void {
+    this.cargarPrecios();
+  }
+
+  /**
+   * Bloqueo de cobrar y guardar (#390): sin tarifa el saldo no se puede calcular y el delivery se guardaría sin
+   * ella; con un cobro sin confirmar, cobrar o guardar de nuevo podría duplicarlo.
+   */
+  private bloqueaCobroYGuardado(): boolean {
+    if (!(this.monedaList?.length > 0) || !(this.formaPagoList?.length > 0)) {
+      // El POS no cargó monedas o formas de pago: cobrar daba error o calculaba con cotización nula (#390)
+      this.notificacionSnackbar.openWarn('No se cargaron las monedas o formas de pago del POS: cerrá el delivery y reintentá.', 6);
+      return true;
+    }
+    if (this.selectedDelivery?.cobroIncierto) {
+      this.notificacionSnackbar.openWarn('Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista para verificarlo.', 6);
+      return true;
+    }
+    if (this.cobrosSinReconstruir) {
+      this.notificacionSnackbar.openWarn('No se pudieron cargar los cobros ya registrados de este delivery: cerrá y volvé a abrirlo.', 6);
+      return true;
+    }
+    if (this.selectedPrecio == null) {
+      this.notificacionSnackbar.openWarn(this.sinTarifas
+        ? 'No hay tarifas de delivery configuradas: no se puede cobrar ni guardar el delivery.'
+        : this.preciosFallo
+          ? 'Falta la tarifa de delivery: usá «Reintentar tarifas» antes de cobrar o guardar.'
+          : 'Elegí la tarifa de delivery antes de cobrar o guardar.', 6);
+      return true;
+    }
+    return false;
   }
 
   onPrecioSelect(e) {
@@ -489,6 +569,30 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   addCobroDetalle(selectedValor?: number, selectedItem?: CobroDetalle) {
+    const esLineaNueva = selectedItem?.id == null;
+    if (this.selectedPrecio == null) {
+      // Sin tarifa no se puede calcular el saldo (antes TypeError); una línea nueva además avisa
+      if (esLineaNueva) {
+        this.bloqueaCobroYGuardado();
+      } else {
+        this.cobrosSinReconstruir = true;
+      }
+      return;
+    }
+    if (esLineaNueva && (this.guardandoCobro || this.bloqueaCobroYGuardado())) {
+      return;
+    }
+    // Para revertir si la línea no se registra (antes quedaba sumada al saldo sin guardarse) (#390)
+    const previo = {
+      valorParcialPagado: this.valorParcialPagado,
+      vuelto: this.vueltoControl.value,
+      saldo: this.saldoControl.value,
+      isVuelto: this.isVuelto,
+      isDescuento: this.isDescuento,
+      isAumento: this.isAumento,
+      moneda: this.selectedMoneda,
+      formaPago: this.selectedFormaPago,
+    };
     let valor = selectedValor != null ? selectedValor : this.vueltoControl.value;
     let saldo = this.saldoControl.value;
     if (saldo == 0) {
@@ -515,6 +619,16 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       // Una línea ya guardada (replay al reabrir) usa la cotización con la que se cobró si su
       // moneda hoy no tiene cotización: con la actual en null la línea sumaba 0 al saldo.
       const cambio = this.selectedMoneda?.cambio || (selectedItem?.id != null ? selectedItem?.cambio : null)
+      if (!cambio && esLineaNueva) {
+        // Igual que pago-touch: una línea nueva en una moneda sin cotización sumaba valor * null (#390)
+        this.notificacionSnackbar.openWarn(`No hay cotización cargada para ${this.selectedMoneda?.denominacion || 'la moneda seleccionada'}: no se puede registrar el cobro en esa moneda.`, 5);
+        this.isVuelto = previo.isVuelto;
+        this.isDescuento = previo.isDescuento;
+        this.isAumento = previo.isAumento;
+        this.selectedMoneda = previo.moneda;
+        this.selectedFormaPago = previo.formaPago;
+        return;
+      }
       item.cambio = cambio
       this.valorParcialPagado += item.valor * cambio;
       this.vueltoControl
@@ -524,7 +638,15 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       );
       if (this.selectedDelivery?.id != null && item?.id == null) {
         item.cobro = this.selectedDelivery?.venta?.cobro
-        this.ventaService.onSaveCobroDetalle(item.toInput(), false).subscribe(cbRes => {
+        this.guardandoCobro = true;
+        this.cobroSinRespuesta = true;
+        this.ventaService.onSaveCobroDetalle(item.toInput(), false)
+          .pipe(finalize(() => (this.guardandoCobro = false)), untilDestroyed(this))
+          .subscribe({ error: (err) => {
+            this.cobroSinRespuesta = false;
+            this.cobroNoRegistrado(err, previo);
+          }, next: cbRes => {
+          this.cobroSinRespuesta = false;
           if (cbRes != null) {
             item.id = cbRes.id;
             this.cobroItemList.push(item);
@@ -551,8 +673,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
                 this.isDescuento = true
               }
             }
+          } else {
+            this.cobroNoRegistrado([], previo);
           }
-        })
+        } })
       } else {
         this.cobroItemList.push(item);
         this.isVuelto = false;
@@ -585,7 +709,41 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   }
 
+  /**
+   * La línea no quedó registrada: se devuelve el saldo a como estaba. Un error de negocio (array) no se aplicó y
+   * se puede reintentar; un error de red o un corte pudo haberse guardado igual en el filial, así que el delivery
+   * queda marcado y no se cobra ni se guarda hasta volver a leerlo de la lista (#390).
+   */
+  private cobroNoRegistrado(err: any, previo: {
+    valorParcialPagado: number; vuelto: any; saldo: any; isVuelto: boolean; isDescuento: boolean; isAumento: boolean;
+    moneda: Moneda; formaPago: FormaPago;
+  }): void {
+    this.valorParcialPagado = previo.valorParcialPagado;
+    this.vueltoControl.setValue(previo.vuelto);
+    this.saldoControl.setValue(previo.saldo);
+    this.isVuelto = previo.isVuelto;
+    this.isDescuento = previo.isDescuento;
+    this.isAumento = previo.isAumento;
+    this.selectedMoneda = previo.moneda;
+    this.selectedFormaPago = previo.formaPago;
+    if (Array.isArray(err)) {
+      this.notificacionSnackbar.openWarn('No se pudo registrar el cobro: reintentá.', 5);
+      return;
+    }
+    if (this.selectedDelivery) {
+      this.selectedDelivery.cobroIncierto = true;
+    }
+    this.notificacionSnackbar.openWarn('No se pudo confirmar el cobro: cerrá y abrí el delivery de nuevo desde la lista antes de seguir.', 8);
+  }
+
   onDeleteItem(item: CobroDetalle, i) {
+    if (this.guardandoCobro) return;
+    if (this.selectedPrecio == null || this.selectedDelivery?.cobroIncierto) {
+      this.bloqueaCobroYGuardado();
+      return;
+    }
+    // Vuelto en la moneda elegida; si no tiene cotización, la de la línea (antes dividía por null)
+    const cambioVuelto = this.selectedMoneda?.cambio || item.cambio || 1;
     if (item?.id != null) {
       this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId, false).subscribe(res => {
         if (res) {
@@ -595,7 +753,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
             ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
           );
           this.vueltoControl.setValue(
-            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / this.selectedMoneda.cambio
+            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / cambioVuelto
           );
           this.cobroItemList.splice(i, 1);
           this.formaPagoInput.nativeElement.select()
@@ -619,7 +777,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
       );
       this.vueltoControl.setValue(
-        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / this.selectedMoneda.cambio
+        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / cambioVuelto
       );
       this.cobroItemList.splice(i, 1);
       this.formaPagoInput.nativeElement.select()
@@ -642,7 +800,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   private guardando = false;
 
   onGuardar() {
-    if (this.guardando) return;
+    if (this.guardando || this.guardandoCobro) return;
+    if (this.bloqueaCobroYGuardado()) return;
     if (this.telefonoControl.valid) {
       let delivery = new Delivery()
       let venta = new Venta()
@@ -688,6 +847,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   calcularVueltoPara() {
+    if (this.selectedPrecio == null) return; // sin tarifa no hay total (antes TypeError)
     let total = this.selectedDelivery?.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado;
     let valor = this.vueltoParaControl.value;
     if (this.cobroItemList?.length == 0) {
@@ -726,6 +886,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     //   this.isAumento = false;
     //   this.addCobroDetalle();
     // }
+    if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let saldo = this.saldoControl.value;
 
@@ -752,6 +913,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onAumento() {
+    if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let valor =
       this.vueltoControl.value;
@@ -764,6 +926,9 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.cobroSinRespuesta && this.selectedDelivery) {
+      this.selectedDelivery.cobroIncierto = true;
+    }
     this.precioSub.unsubscribe()
     this.monedaSub.unsubscribe()
   }
