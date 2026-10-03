@@ -1,3 +1,4 @@
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Component, OnInit } from "@angular/core";
 import { PageEvent } from "@angular/material/paginator";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -35,7 +36,8 @@ export class HistorialColectasComponent implements OnInit {
     private etiquetasService: EtiquetasDevolucionService,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -54,6 +56,10 @@ export class HistorialColectasComponent implements OnInit {
     this.cargar();
   }
 
+  /** La última carga falló: se muestra el error con «Reintentar», no «No hay…». */
+  cargaFallo = false;
+  private paginaCargada = { pageIndex: 0, pageSize: 15 };
+
   cargar(): void {
     this.cargando = true;
     const fi = this.desde ? this.desde + " 00:00" : undefined;
@@ -61,13 +67,29 @@ export class HistorialColectasComponent implements OnInit {
     this.operacionService
       .onGetColectas(this.pageIndex, this.pageSize, fi, ff)
       .pipe(untilDestroyed(this))
-      .subscribe((res: any) => {
-        this.cargando = false;
-        if (res != null) {
+      .subscribe({
+        next: (res: any) => {
+          this.cargando = false;
+          if (res == null) { this.noCargo(); return; }
+          this.cargaFallo = false;
+          this.paginaCargada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
           this.totalElements = res.getTotalElements;
           this.operaciones = (res.getContent || []).map((op: any) => this.mapOp(op));
-        }
+        },
+        error: () => { this.cargando = false; this.noCargo(); }
       });
+  }
+
+  /**
+   * Sin respuesta: no se muestra «No hay…» ni datos viejos, y la página vuelve a la última que cargó (si no,
+   * «Reintentar» pediría la página a la que se intentó ir) (#390).
+   */
+  private noCargo(): void {
+    this.cargaFallo = true;
+    this.operaciones = [];
+    this.pageIndex = this.paginaCargada.pageIndex;
+    this.pageSize = this.paginaCargada.pageSize;
+    this.notificacionService.openWarn("No se pudieron cargar las colectas: el servidor no responde.", 5);
   }
 
   private mapOp(op: any): any {
@@ -96,11 +118,16 @@ export class HistorialColectasComponent implements OnInit {
     this.etiquetasService
       .onGetPdf(d.id)
       .pipe(untilDestroyed(this))
-      .subscribe((pdf: string) => {
-        if (pdf) {
-          this.reporteService.onAdd(`Etiquetas ${d.identificador || "#" + d.id}`, pdf);
-          this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
-        }
+      .subscribe({
+        next: (pdf: string) => {
+          if (pdf) {
+            this.reporteService.onAdd(`Etiquetas ${d.identificador || "#" + d.id}`, pdf);
+            this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
+          } else {
+            this.notificacionService.openWarn("No se pudieron generar las etiquetas.");
+          }
+        },
+        error: () => this.notificacionService.openWarn("No se pudieron generar las etiquetas: el servidor no responde.")
       });
   }
 

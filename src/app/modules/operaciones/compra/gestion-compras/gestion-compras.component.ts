@@ -94,6 +94,7 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -1922,56 +1923,62 @@ export class GestionComprasComponent
   onVerificarDevolucionesPendientes(proveedorId: number): void {
     if (proveedorId == null) return;
     this.devolucionService
-      .onGetDevolucionesPendientesPorProveedor(proveedorId)
+      .onGetDevolucionesPendientesPorProveedor(proveedorId, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
       .pipe(takeUntil(this.destroy$))
-      .subscribe((devoluciones) => {
-        const estadosEnEspera = [
-          DevolucionEstado.PENDIENTE,
-          DevolucionEstado.SEPARADO,
-          // COLECTADO también está a la espera de que el proveedor retire.
-          DevolucionEstado.COLECTADO,
-          ...(this.devolucionAlertaIncluyeRetirado
-            ? [DevolucionEstado.RETIRADO]
-            : []),
-        ];
-        const enEspera = (devoluciones || []).filter((d) =>
-          estadosEnEspera.includes(d.estado)
-        );
-        if (enEspera.length === 0) return;
-
-        const proveedorNombre =
-          this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
-
-        // No bloqueante: solo notifica y no interrumpe.
-        if (!this.devolucionAlertaBloqueante) {
-          this.notificacionService.openWarn(
-            `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
-            5
+      .subscribe({
+        // Fail-open (la compra sigue), pero ya no en silencio (#390).
+        error: () => this.notificacionService.openWarn(
+          "No se pudo verificar si el proveedor tiene devoluciones pendientes.", 5),
+        next: (devoluciones) => {
+          const estadosEnEspera = [
+            DevolucionEstado.PENDIENTE,
+            DevolucionEstado.SEPARADO,
+            // COLECTADO también está a la espera de que el proveedor retire.
+            DevolucionEstado.COLECTADO,
+            ...(this.devolucionAlertaIncluyeRetirado
+              ? [DevolucionEstado.RETIRADO]
+              : []),
+          ];
+          const enEspera = (devoluciones || []).filter((d) =>
+            estadosEnEspera.includes(d.estado)
           );
-          return;
-        }
+          if (enEspera.length === 0) return;
 
-        this.dialog
-          .open(DevolucionesPendientesDialogComponent, {
-            data: { proveedorNombre, devoluciones: enEspera },
-            disableClose: true,
-            width: "640px",
-          })
-          .afterClosed()
-          .pipe(takeUntil(this.destroy$))
-          .subscribe((res: DevolucionesPendientesDialogResult) => {
-            if (res?.accion === "ir") {
-              // Abre el retiro consolidado con el proveedor ya filtrado.
-              this.tabService.addTab(
-                new Tab(
-                  RetiroProveedorComponent,
-                  "Retiro de proveedor",
-                  new TabData(undefined, this.selectedProveedorComputed),
-                  null
-                )
-              );
-            }
-          });
+          const proveedorNombre =
+            this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
+
+          // No bloqueante: solo notifica y no interrumpe.
+          if (!this.devolucionAlertaBloqueante) {
+            this.notificacionService.openWarn(
+              `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
+              5
+            );
+            return;
+          }
+
+          this.dialog
+            .open(DevolucionesPendientesDialogComponent, {
+              data: { proveedorNombre, devoluciones: enEspera },
+              disableClose: true,
+              width: "640px",
+            })
+            .afterClosed()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((res: DevolucionesPendientesDialogResult) => {
+              if (res?.accion === "ir") {
+                // Abre el retiro consolidado con el proveedor ya filtrado.
+                this.tabService.addTab(
+                  new Tab(
+                    RetiroProveedorComponent,
+                    "Retiro de proveedor",
+                    new TabData(undefined, this.selectedProveedorComputed),
+                    null
+                  )
+                );
+              }
+            });
+        },
       });
   }
 

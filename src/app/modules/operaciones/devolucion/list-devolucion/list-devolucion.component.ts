@@ -1,3 +1,6 @@
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Component, Input, OnInit, ViewChild } from "@angular/core";
 import { Subscription } from "rxjs";
 import { FormControl, FormGroup } from "@angular/forms";
@@ -64,7 +67,8 @@ export class ListDevolucionComponent implements OnInit {
     private tabService: TabService,
     public mainService: MainService,
     private sucursalService: SucursalService,
-    private proveedorService: ProveedorService
+    private proveedorService: ProveedorService,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -78,8 +82,10 @@ export class ListDevolucionComponent implements OnInit {
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
 
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
+      // Con null (error del servidor) res.filter lanzaba TypeError (#390).
+      next: (res) => { this.sucursalList = (res ?? []).filter((s) => s.id != 0); },
+      error: () => this.notificacionService.openWarn("No se pudieron cargar las sucursales para el filtro.", 5),
     });
 
     setTimeout(() => {
@@ -143,14 +149,26 @@ export class ListDevolucionComponent implements OnInit {
         this.pageIndex,
         this.pageSize,
         true,
-        silencioso
+        silencioso,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<Devolucion>) => {
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
-        }
+      .subscribe({
+        next: (res: PageInfo<Devolucion>) => {
+          if (res != null) {
+            this.selectedPageInfo = res;
+            this.dataSource.data = res.getContent;
+          } else if (!silencioso) {
+            this.notificacionService.openWarn("No se pudieron cargar las devoluciones.", 5);
+          }
+        },
+        // En la recarga silenciosa (al volver a la pestaña) se conservan los datos y no se avisa.
+        error: () => {
+          if (!silencioso) {
+            this.notificacionService.openWarn("No se pudieron cargar las devoluciones: el servidor no responde.", 5);
+          }
+        },
       });
   }
 

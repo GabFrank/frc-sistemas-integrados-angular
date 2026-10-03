@@ -172,7 +172,8 @@ export class EditDevolucionComponent implements OnInit {
     this.selectedDevolucion.estado = DevolucionEstado.PENDIENTE;
 
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
+      // Con null (error del servidor) res.filter lanzaba TypeError (#390).
+      this.sucursalList = (res ?? []).filter((s) => s.id != 0);
       if (this.selectedDevolucion?.id == null) {
         let actual = this.sucursalList.find(
           (s) => s.id == this.mainService.sucursalActual?.id
