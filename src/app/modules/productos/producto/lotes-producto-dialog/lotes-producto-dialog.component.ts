@@ -51,6 +51,7 @@ export class LotesProductoDialogComponent implements OnInit {
 
   lotes: LoteRow[] = [];
   cargando = false;
+  cargaFallo = false;
   sinLotes = false;
   descripcionProducto = '';
 
@@ -94,22 +95,39 @@ export class LotesProductoDialogComponent implements OnInit {
       return;
     }
     this.cargando = true;
+    this.cargaFallo = false;
     this.loteService
       .onGetLotesPorProducto(productoId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
+          if (res == null) {
+            this.marcarCargaFallida(); // error GraphQL: el servicio ya avisó; no es «sin lotes»
+            return;
+          }
           this.lotes = (res || []).map((lote) => this.mapearFila(lote));
           this.sinLotes = this.lotes.length === 0;
           this.cargando = false;
           this.cdr.markForCheck();
         },
         error: () => {
-          this.cargando = false;
-          this.notificacionService.openAlgoSalioMal('Error al cargar los lotes del producto');
-          this.cdr.markForCheck();
+          this.notificacionService.openWarn('No se pudieron cargar los lotes del producto: el servidor no responde.', 4);
+          this.marcarCargaFallida();
         }
       });
+  }
+
+  /** Antes quedaba «cargando» para siempre o «sin lotes» falso (#390). */
+  private marcarCargaFallida(): void {
+    this.cargando = false;
+    this.cargaFallo = true;
+    this.lotes = [];
+    this.sinLotes = false;
+    this.cdr.markForCheck();
+  }
+
+  reintentarLotes(): void {
+    this.cargarLotes();
   }
 
   private mapearFila(lote: Lote): LoteRow {

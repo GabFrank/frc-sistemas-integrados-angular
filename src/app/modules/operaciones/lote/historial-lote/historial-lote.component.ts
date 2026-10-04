@@ -15,6 +15,8 @@ import {
 } from '../../venta/generic-list-venta/generic-list-venta.component';
 import { ClienteLote, MovimientoLote } from '../lote.model';
 import { LoteService } from '../lote.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
 /** Lo que el listado manda al abrir la solapa. */
 export interface HistorialLoteTabData {
@@ -126,6 +128,11 @@ export class HistorialLoteComponent implements OnInit {
   movPageSize = 20;
   movTotalElements = 0;
   movCargando = false;
+  /** Cargas fallidas (#390): tabla vacía con «Reintentar», no «sin resultados» ni filas del filtro anterior. */
+  movFallo = false;
+  cliFallo = false;
+  private cargaMov = 0;
+  private cargaCli = 0;
   movSinResultados = false;
 
   clientes: ClienteRow[] = [];
@@ -170,14 +177,15 @@ export class HistorialLoteComponent implements OnInit {
   }
 
   private cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales()
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => this.notificacionService.openWarn('No se pudieron cargar las sucursales del filtro: el servidor no responde.', 4), next: (res) => {
         if (res) {
           this.sucursales = res.filter((sucursal) => sucursal.activo !== false);
           this.cdr.markForCheck();
         }
-      });
+      } });
   }
 
   /** La sucursal recorta las dos solapas, así que las rehace a las tres consultas. */
@@ -215,7 +223,9 @@ export class HistorialLoteComponent implements OnInit {
     if (this.loteId == null) {
       return;
     }
+    const carga = ++this.cargaMov;
     this.movCargando = true;
+    this.movFallo = false;
     this.loteService
       .onMovimientosPorLote(
         this.loteId,
@@ -227,6 +237,11 @@ export class HistorialLoteComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<MovimientoLote>) => {
+          if (carga !== this.cargaMov) return; // respuesta de un filtro anterior
+          if (res == null) {
+            this.marcarMovFallido(); // error GraphQL: el servicio ya avisó
+            return;
+          }
           const contenido = res?.getContent || [];
           this.movTotalElements = res?.getTotalElements || 0;
           this.movimientos = contenido.map((item) => this.mapearMovimiento(item));
@@ -235,18 +250,33 @@ export class HistorialLoteComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.movCargando = false;
-          this.notificacionService.openAlgoSalioMal('Error al consultar el historial del lote');
-          this.cdr.markForCheck();
+          if (carga !== this.cargaMov) return;
+          this.notificacionService.openWarn('No se pudo consultar el historial del lote: el servidor no responde.', 4);
+          this.marcarMovFallido();
         }
       });
+  }
+
+  private marcarMovFallido(): void {
+    this.movCargando = false;
+    this.movFallo = true;
+    this.movimientos = [];
+    this.movTotalElements = 0;
+    this.movSinResultados = false;
+    this.cdr.markForCheck();
+  }
+
+  reintentarMovimientos(): void {
+    this.buscarMovimientos();
   }
 
   private buscarClientes(): void {
     if (this.loteId == null) {
       return;
     }
+    const carga = ++this.cargaCli;
     this.cliCargando = true;
+    this.cliFallo = false;
     this.loteService
       .onClientesPorLote(
         this.loteId,
@@ -258,6 +288,11 @@ export class HistorialLoteComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<ClienteLote>) => {
+          if (carga !== this.cargaCli) return; // respuesta de un filtro anterior
+          if (res == null) {
+            this.marcarCliFallido(); // error GraphQL: el servicio ya avisó
+            return;
+          }
           const contenido = res?.getContent || [];
           this.cliTotalElements = res?.getTotalElements || 0;
           this.clientes = contenido.map((item) => this.mapearCliente(item));
@@ -266,11 +301,24 @@ export class HistorialLoteComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.cliCargando = false;
-          this.notificacionService.openAlgoSalioMal('Error al consultar los clientes del lote');
-          this.cdr.markForCheck();
+          if (carga !== this.cargaCli) return;
+          this.notificacionService.openWarn('No se pudieron consultar los clientes del lote: el servidor no responde.', 4);
+          this.marcarCliFallido();
         }
       });
+  }
+
+  private marcarCliFallido(): void {
+    this.cliCargando = false;
+    this.cliFallo = true;
+    this.clientes = [];
+    this.cliTotalElements = 0;
+    this.cliSinResultados = false;
+    this.cdr.markForCheck();
+  }
+
+  reintentarClientes(): void {
+    this.buscarClientes();
   }
 
 

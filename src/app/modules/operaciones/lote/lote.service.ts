@@ -4,7 +4,14 @@ import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -34,6 +41,9 @@ import {
   StockLotePresentacion,
   StockLoteSucursal
 } from './lote.model';
+/** Consultas de lotes: el error de red llega al llamador, que avisa (#390). 20 s en diálogos, 60 s en listados. */
+const CONSULTA_DIALOGO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+const CONSULTA_LISTADO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 /**
  * Maestro de lotes: consulta y administración del estado.
@@ -65,13 +75,14 @@ export class LoteService {
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
   onGetLotesPorProducto(productoId: number, servidor = true, errorConf?: QueryError,
                         contexto?: ContextoConsulta): Observable<Lote[]> {
+    // Propaga por defecto (#390); recepción pasa los suyos
     return this.genericService.onCustomQuery(
       this.lotesPorProductoGQL,
       { productoId },
       servidor,
-      errorConf,
+      errorConf ?? PROPAGAR_ERROR_DE_RED,
       undefined,
-      contexto
+      contexto ?? CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -156,8 +167,9 @@ export class LoteService {
         size
       },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -177,8 +189,9 @@ export class LoteService {
       this.stockLotePorSucursalGQL,
       { loteId },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 
@@ -208,8 +221,9 @@ export class LoteService {
         size
       },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -232,8 +246,9 @@ export class LoteService {
       this.clientesPorLoteGQL,
       { loteId, sucursalId: sucursalId ?? null, rastreable, page, size },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_LISTADO_LOTE
     );
   }
 
@@ -275,8 +290,9 @@ export class LoteService {
       this.buscarLotesDeProductoGQL,
       { productoId, sucursalId: sucursalId ?? null, texto: texto || null, page, size },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 
@@ -352,8 +368,9 @@ export class LoteService {
       this.resumenStockLoteGQL,
       { productoId, sucursalId },
       servidor,
-      null,
-      silentLoad
+      PROPAGAR_ERROR_DE_RED,
+      silentLoad,
+      CONSULTA_DIALOGO_LOTE
     );
   }
 
