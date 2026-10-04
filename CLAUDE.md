@@ -215,6 +215,8 @@ El **único** menú lateral es `SideMiniVariantComponent` (`src/app/shared/compo
 
 **Agregar una entrada de menú = 3 ediciones en `side-mini-variant.component.ts`** (si falta una, el módulo queda inalcanzable): (1) `import` del componente entry; (2) item en el árbol de menú (`name`/`icon`/`action`/`visibilityRoles`) bajo el grupo correcto; (3) `case "<action>":` en `onItemClick()` con `this.openTabIfAuthorized(ROLES.X, Component, "Title")` (permite rol `X` o `ADMIN`).
 
+**El buscador global se deriva del menú** (#235): `SearchBarService` toma las pantallas visibles del árbol vía `NavegacionMenuService` y las abre con el mismo `onItemClick`. Una entrada de menú nueva aparece sola en el buscador — **no** agregarla a `componenteList` (`search-bar.service.ts`), que queda solo para pantallas que no están en el menú.
+
 ## Estructura de módulos (`src/app/modules/`)
 
 19 módulos por dominio funcional: `administrativo`, `configuracion`, `dashboard`, `empresarial`, `financiero`, `general`, `login`, `notificaciones`, `operaciones`, `pdv`, `personas`, `print`, `productos`, `reportes`, `sistema`, `transferencias`. Cada uno sigue el patrón list/edit/graphql descripto arriba.
