@@ -64,6 +64,9 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   cuponPendiente: DatosCupon = null;
   avisoCupon: string = null;
 
+  /** Desde `beforeClosed`: el dialogo se esta yendo y el foco ya no se pelea (ver `onBlurCodigo`). */
+  private cerrando = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
     private matDialogRef: MatDialogRef<ScanTerminalPosDialogComponent>,
@@ -90,6 +93,8 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.matDialogRef.beforeClosed().pipe(untilDestroyed(this)).subscribe(() => (this.cerrando = true));
+
     this.formGroup = new FormGroup({
       codigo: this.codigoControl
     });
@@ -312,7 +317,23 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       });
   }
 
-  /** Devuelve el foco al input para que el lector pueda disparar de nuevo sin tocar el mouse. */
+  /**
+   * Si el foco sale del input hacia FUERA del dialogo, vuelve.
+   *
+   * El lector es keyboard-wedge: escribe donde este el foco y termina con Enter. Si el foco quedaba
+   * en el cobro de atras --el campo «valor» de pago-touch se lo robaba al abrir--, el Enter
+   * finalizaba la venta sin terminal (farmacia filial 1: 116 de 631, 25 al 28/09/2026). Un foco que
+   * va a un boton del propio dialogo (Cancelar, Confirmar) se respeta: es el cajero eligiendo.
+   * Un click en el fondo del dialogo deja `relatedTarget` en null: tambien vuelve al input.
+   */
+  onBlurCodigo(event: FocusEvent): void {
+    if (this.cerrando) return;
+    const destino = event?.relatedTarget as HTMLElement | null;
+    const contenedor = document.querySelector('app-scan-terminal-pos-dialog');
+    if (destino && contenedor?.contains(destino)) return;
+    this.enfocarInput();
+  }
+
   /**
    * Deja el input listo para el proximo escaneo.
    *
@@ -322,8 +343,9 @@ export class ScanTerminalPosDialogComponent implements OnInit {
    */
   private enfocarInput(): void {
     setTimeout(() => {
+      // Si el dialogo ya se cerro, el input no existe y no hay nada que enfocar.
       const input = document.querySelector<HTMLInputElement>('app-scan-terminal-pos-dialog input');
-      if (input) { input.focus(); input.select(); }
+      if (input && document.activeElement !== input) { input.focus(); input.select(); }
     });
   }
 

@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
+import { map, tap } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { MainService } from "../../../main.service";
 import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";
@@ -8,6 +9,7 @@ import { VentaEstado } from "./enums/venta-estado.enums";
 import { CancelarVentaGQL } from "./graphql/cancelarVenta";
 import { ReimprimirVentaGQL } from "./graphql/reimprimirVenta";
 import { SaveVentaGQL } from "./graphql/saveVenta";
+import { SaveVentaClienteGQL } from "./graphql/saveVentaCliente";
 import { VentaPorIdGQL } from "./graphql/ventaPorId";
 import { VentaPorCajaIdGQL } from "./graphql/ventasPorCajaId";
 import { VentaItem, VentaItemInput } from "./venta-item.model";
@@ -37,6 +39,7 @@ import {
 } from "../../financiero/venta-credito/venta-credito.model";
 import { DeliveryInput } from "../delivery/graphql/delivery-input.model";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+import { ImpresionPosService } from "../../../shared/services/impresion-pos/impresion-pos.service";
 import { VentasGenericFilterGQL } from "./graphql/ventasGenericFilter";
 import { ReporteGenericVentasGQL } from "./graphql/reporteGenericVentas";
 import { ReporteGenericVentasDetalladoGQL } from "./graphql/reporteGenericVentasDetallado";
@@ -82,7 +85,9 @@ export class VentaService {
     private reporteService: ReporteService,
     private tabService: TabService,
     private lucroPorFuncionarioList: LucroPorFuncionarioListGQL,
-    private reporteLucroPorFuncionario: ReporteLucroPorFuncionarioGQL
+    private reporteLucroPorFuncionario: ReporteLucroPorFuncionarioGQL,
+    private saveVentaCliente: SaveVentaClienteGQL,
+    private impresionPos: ImpresionPosService
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -134,6 +139,25 @@ export class VentaService {
       cobroDetalleInputList.push(Object.assign(aux, e).toInput());
     });
 
+    if (this.impresionPos.porCliente(servidor)) {
+      // "Imprimir desde esta PC": misma venta, la filial devuelve el comprobante y se imprime acá.
+      // La impresión va aparte: la venta se entrega apenas se guardó, sin esperar el papel.
+      return this.genericService.onCustomMutation(this.saveVentaCliente, {
+        ventaInput: ventaInput,
+        ventaItemList: ventaItemInputList,
+        cobro: cobroInput,
+        cobroDetalleList: cobroDetalleInputList,
+        ticket,
+        facturar: isFactura,
+        local: this.configService?.getConfig()?.local,
+        pdvId: this.configService?.getConfig()?.pdvId,
+        ventaCreditoInput,
+        ventaCreditoCuotaInputList,
+      }, servidor).pipe(
+        tap((res: Venta) => this.impresionPos.imprimir(res?.ticketEscpos, "El comprobante de la venta").subscribe())
+      );
+    }
+
     return this.genericService.onCustomMutation(this.saveVenta, {
       ventaInput: ventaInput,
       ventaItemList: ventaItemInputList,
@@ -180,6 +204,12 @@ export class VentaService {
   }
 
   onReimprimirVenta(id, servidor = true): Observable<boolean> {
+    if (this.impresionPos.porCliente(servidor)) {
+      // null si no salió: quien llama solo avisa "Reimpreso con éxito" con un resultado no nulo.
+      return this.impresionPos
+        .imprimirTicket("VENTA", id, "La reimpresión de la venta")
+        .pipe(map((ok) => (ok ? true : null)));
+    }
     return this.genericService.onCustomMutation(
       this.reimprimirVenta,
       {

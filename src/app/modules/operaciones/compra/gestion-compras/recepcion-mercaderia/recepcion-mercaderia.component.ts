@@ -202,7 +202,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     this.loadSucursales();
     this.setupFormSubscriptions();
     this.loadNotasRecepcion(); // Cargar datos directamente
-    this.loadEtapaActual(); // Cargar etapa actual del proceso
+    // El @Input pedido puede venir desactualizado (p. ej. recién finalizada la conciliación, con
+    // RECEPCION_MERCADERIA todavía PENDIENTE): el estado de la etapa se lee del backend.
+    this.recargarPedidoYEtapa();
     this.updateComputedProperties();
   }
 
@@ -324,13 +326,12 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     // Control del botón de finalizar recepción
     // Solo habilitado si:
     // 1. Hay sucursales seleccionadas
-    // 2. No está cargando
-    // 3. No se ha finalizado
-    // 4. La etapa actual es RECEPCION_MERCADERIA con estado EN_PROCESO
+    // 2. No se ha finalizado
+    // 3. La etapa actual es RECEPCION_MERCADERIA con estado EN_PROCESO
+    // `loading` va directo en el template: acá quedaba congelado si se apagaba sin recalcular.
     const etapaCorrecta = this.etapaActualComputed === ProcesoEtapaTipo.RECEPCION_MERCADERIA;
     const estadoCorrecto = this.etapaEstadoComputed === ProcesoEtapaEstado.EN_PROCESO;
     this.botonFinalizarHabilitadoComputed = this.haySucursalesSeleccionadasComputed &&
-      !this.loading &&
       !this.recepcionFinalizadaComputed &&
       etapaCorrecta &&
       estadoCorrecto;

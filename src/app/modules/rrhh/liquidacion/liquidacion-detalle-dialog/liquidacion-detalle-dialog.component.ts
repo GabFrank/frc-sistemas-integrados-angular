@@ -1,5 +1,6 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../layouts/tab/tab.model';
@@ -13,6 +14,27 @@ import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+
+/** "2026-11", "11/2026" o "11-2026" → "2026-11"; cualquier otra cosa (o vacío) → null. */
+export function normalizarPeriodo(texto: string): string {
+  const t = (texto || '').trim();
+  let m = /^(\d{4})[-/](\d{1,2})$/.exec(t);
+  let anio: number, mes: number;
+  if (m) { anio = +m[1]; mes = +m[2]; } else {
+    m = /^(\d{1,2})[-/](\d{4})$/.exec(t);
+    if (!m) { return null; }
+    mes = +m[1]; anio = +m[2];
+  }
+  if (mes < 1 || mes > 12) { return null; }
+  return anio + '-' + String(mes).padStart(2, '0');
+}
+
+/** Vacío vale (se usa el periodo de la liquidación); si hay texto, tiene que ser un periodo. */
+function periodoValido(c: AbstractControl): ValidationErrors | null {
+  const v = (c.value || '').trim();
+  return v === '' || normalizarPeriodo(v) != null ? null : { periodo: true };
+}
 
 /**
  * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
@@ -42,6 +64,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   montoControl = new FormControl(0);
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
+  /**
+   * Periodo en que se aplica el item que se carga, tipeado (quien liquida lo prefiere a elegirlo
+   * de una lista): el de esta liquidacion (item manual, como siempre) o uno posterior, hasta 12
+   * meses (queda programado y entra solo en esa liquidacion). Acepta 2026-11, 11/2026 y 11-2026.
+   */
+  periodoControl = new FormControl(null, [periodoValido]);
+
+  /** Items programados PENDIENTES del funcionario (para cualquier periodo). */
+  programados = new MatTableDataSource<any>([]);
+  programadosColumns = ['periodo', 'descripcion', 'tipo', 'monto', 'estado', 'acciones'];
 
   /**
    * Operaciones elegibles al cargar un item a mano. El backend deriva el signo de
@@ -56,6 +88,19 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    */
   sinCatalogo = false;
   conceptoControl = new FormControl(null, [Validators.required]);
+  /**
+   * Operación, escrita o elegida de la lista: tipear el número fijo del catálogo (1 = AJUSTE (HABER))
+   * o parte del nombre filtra la lista; Enter toma la primera. Lo que se elige queda en conceptoControl.
+   */
+  operacionControl = new FormControl<any>('');
+  @ViewChild(MatAutocompleteTrigger) operacionTrigger: MatAutocompleteTrigger;
+  /** Precalculados para el template (el repo no llama funciones desde el HTML). */
+  conceptosFiltrados: any[] = [];
+  operacionInexistente = false;
+  /** Cómo se muestra la operación elegida en el input. */
+  displayOperacion = (c: any): string => c && typeof c === 'object'
+    ? (c.numero != null ? c.numero + ' · ' : '') + c.descripcion
+    : (c || '');
   /** Precalculado para el template (el repo no llama funciones desde el HTML). */
   signoConcepto = '';
 
@@ -78,7 +123,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     private dialogosService: DialogosService,
     private reporteService: ReporteService,
     public mainService: MainService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private impresionService: ImpresionService
   ) { }
 
   ngOnInit(): void {
@@ -88,6 +134,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.conceptos = res || [];
+        this.conceptosFiltrados = this.conceptos;
         this.sinCatalogo = this.conceptos.length === 0;
         if (this.sinCatalogo) { this.conceptoControl.clearValidators(); }
         this.conceptoControl.updateValueAndValidity();
@@ -95,6 +142,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
+    this.operacionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.filtrarOperaciones(v));
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
@@ -109,7 +157,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
     this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) { this.liq = res; this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0; }
+      if (res != null) {
+        this.liq = res;
+        this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+        this.cargarProgramados();
+      }
     });
     this.cargarItems(liqId);
   }
@@ -119,6 +171,27 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (liqId == null) { return; }
     this.liquidacionService.onGetItems(liqId)
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+  }
+
+
+  private cargarProgramados() {
+    const funcionarioId = this.liq?.funcionario?.id;
+    if (funcionarioId == null) { return; }
+    this.liquidacionService.onGetItemsProgramados(funcionarioId, 'PENDIENTE')
+      .pipe(untilDestroyed(this)).subscribe({ next: res => { this.programados.data = res || []; }, error: () => {} });
+  }
+
+  onAnularProgramado(p: any) {
+    this.dialogosService.confirm(
+      'Anular item programado',
+      '¿Anular "' + (p.descripcion || '') + '" programado para ' + p.periodo + '?',
+      'Si ya está en el borrador de ese periodo, se saca de ahí.', null, true, 'Sí', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(r => {
+      if (r === true) {
+        this.liquidacionService.onAnularItemProgramado(p.id).pipe(untilDestroyed(this))
+          .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
+      }
+    });
   }
 
   private aplicar(res: any) {
@@ -158,17 +231,38 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       });
       return;
     }
+    // Otro periodo: el item queda programado y entra solo en la liquidacion de ese mes. Vacio = el de
+    // esta liquidacion. El rango (posterior y hasta 12 meses) lo valida el backend con un mensaje claro.
+    if (this.editandoItemId == null && this.periodoControl.invalid) {
+      this.notificacion.notification$.next({
+        texto: 'Periodo inválido: escribilo como 2026-11 o 11/2026',
+        color: NotificacionColor.warn, duracion: 4
+      });
+      return;
+    }
+    const periodo = normalizarPeriodo(this.periodoControl.value) ?? this.liq.periodo;
+    const programar = this.editandoItemId == null && periodo !== this.liq.periodo;
     const obs = this.editandoItemId != null
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
-      : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
-          this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
+      : programar
+        ? this.liquidacionService.onProgramarItem(this.liq.id, periodo, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value)
+        : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (res != null) {
+          if (programar) {
+            this.notificacion.notification$.next({
+              texto: 'Programado: se aplicará en la liquidación de ' + periodo,
+              color: NotificacionColor.success, duracion: 4
+            });
+          }
           this.editandoItemId = null;
           this.descripcionControl.reset(); this.montoControl.setValue(0);
           this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
+          this.limpiarOperacion();
           this.recargar();
         }
       },
@@ -176,9 +270,66 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     });
   }
 
-  onConceptoChange() {
-    const c = this.conceptos.find(x => x.id === this.conceptoControl.value);
+  /**
+   * Número: primero la operación con ese número (queda elegida), después las que empiezan igual (1 → 10…).
+   * Texto: las que lo contienen en el nombre; queda elegida si el nombre coincide entero.
+   * Un objeto es una opción elegida de la lista.
+   */
+  private filtrarOperaciones(valor: any) {
+    if (valor && typeof valor === 'object') {
+      this.conceptosFiltrados = this.conceptos;
+      this.elegirOperacion(valor);
+      return;
+    }
+    const t = (valor || '').toString().trim().toUpperCase();
+    if (!t) {
+      this.conceptosFiltrados = this.conceptos;
+      this.elegirOperacion(null);
+      return;
+    }
+    let elegida = null;
+    if (/^\d+$/.test(t)) {
+      const exacta = this.conceptos.filter(c => c.numero === +t);
+      const empiezan = this.conceptos.filter(c => c.numero != null && c.numero !== +t && String(c.numero).startsWith(t));
+      this.conceptosFiltrados = [...exacta, ...empiezan];
+      elegida = exacta[0] ?? null;
+      // Número que no es el comienzo de otro (con 1..8, cualquiera): se completa el campo en el acto.
+      // Si hay más largos que empiezan igual (1 y 12), espera Enter o salir del campo.
+      if (elegida && empiezan.length === 0) {
+        this.operacionControl.setValue(elegida);
+        // El autocomplete reabre la lista al cambiar el valor: se cierra en el ciclo siguiente.
+        setTimeout(() => this.operacionTrigger?.closePanel());
+        return;
+      }
+    } else {
+      this.conceptosFiltrados = this.conceptos.filter(c => (c.descripcion || '').toUpperCase().includes(t));
+      elegida = this.conceptosFiltrados.find(c => (c.descripcion || '').toUpperCase() === t) ?? null;
+    }
+    this.elegirOperacion(elegida, this.conceptosFiltrados.length === 0);
+  }
+
+  /**
+   * Al salir del campo con texto escrito: si ya quedó elegida una operación (número exacto o nombre
+   * completo), se muestra; si no, y lo escrito deja una sola opción, se elige esa.
+   */
+  onOperacionBlur() {
+    const texto = this.operacionControl.value;
+    if (typeof texto !== 'string' || texto.trim() === '') { return; }
+    const elegida = this.conceptos.find(c => c.id === this.conceptoControl.value)
+      ?? (this.conceptosFiltrados.length === 1 ? this.conceptosFiltrados[0] : null);
+    if (elegida) { this.operacionControl.setValue(elegida); }
+  }
+
+  private elegirOperacion(c: any, inexistente = false) {
+    this.conceptoControl.setValue(c ? c.id : null);
     this.signoConcepto = c ? (c.esHaber ? 'Suma al total (HABER)' : 'Resta del total (DESCUENTO)') : '';
+    this.operacionInexistente = inexistente;
+  }
+
+  private limpiarOperacion() {
+    this.operacionControl.setValue('', { emitEvent: false });
+    this.conceptosFiltrados = this.conceptos;
+    this.operacionInexistente = false;
   }
 
   onEliminarItem(it: LiquidacionItem) {
@@ -254,11 +405,20 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     });
   }
 
+  /** Recibo de un solo item: PDF o ticket, con el dialogo oficial de impresion. */
+  onReciboItem(it: LiquidacionItem) {
+    this.impresionService.imprimir(
+      'Recibo ' + (it.descripcion || it.codigo || it.id) + ' - ' + (this.liq.funcionario?.persona?.nombre || this.liq.id),
+      (anchoMm, escpos) => this.liquidacionService.onImprimirReciboItem(it.id, anchoMm, escpos));
+  }
+
   onToggleAgregar() {
     this.mostrarAgregar = !this.mostrarAgregar;
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
     else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
-      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = ''; }
+      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = '';
+      this.limpiarOperacion();
+      this.periodoControl.setValue(this.liq?.periodo); }
   }
 
   onCerrar() {

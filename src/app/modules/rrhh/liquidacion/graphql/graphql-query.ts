@@ -50,7 +50,7 @@ export const agregarItemMutation = gql`
 // asi que la UI no pide tipo por separado.
 export const conceptosParaItemManualQuery = gql`
   query liquidacionConceptosParaItemManual {
-    data: liquidacionConceptosParaItemManual { id codigo descripcion esHaber }
+    data: liquidacionConceptosParaItemManual { id codigo descripcion esHaber numero }
   }
 `;
 export const editarItemMutation = gql`
@@ -77,8 +77,30 @@ export const imprimirReciboLiquidacionQuery = gql`
   query ($id: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboLiquidacion(id: $id, anchoMm: $anchoMm, escpos: $escpos) }
 `;
 
+export const imprimirReciboItemLiquidacionQuery = gql`
+  query ($itemId: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboItemLiquidacion(itemId: $itemId, anchoMm: $anchoMm, escpos: $escpos) }
+`;
+
 export const generarLoteMutation = gql`
   mutation generarLiquidacionesLote($funcionarioIds: [Int], $periodo: String!, $monedaId: ID) {
     data: generarLiquidacionesLote(funcionarioIds: $funcionarioIds, periodo: $periodo, monedaId: $monedaId)
   }
+`;
+
+// Items cargados desde una liquidacion para que se apliquen en la de otro periodo.
+const PROGRAMADO_FIELDS = `id periodo codigo descripcion monto tipo estado vencido liquidacionId origenLiquidacionId`;
+export const itemsProgramadosQuery = gql`
+  query ($funcionarioId: ID!, $estado: LiquidacionItemProgramadoEstado) {
+    data: itemsProgramadosPorFuncionario(funcionarioId: $funcionarioId, estado: $estado) { ${PROGRAMADO_FIELDS} }
+  }
+`;
+export const programarItemMutation = gql`
+  mutation programarItemLiquidacion($liquidacionId: ID!, $periodo: String!, $descripcion: String, $monto: Float!,
+                                    $tipo: LiquidacionItemTipo, $liquidacionConceptoId: ID) {
+    data: programarItemLiquidacion(liquidacionId: $liquidacionId, periodo: $periodo, descripcion: $descripcion,
+      monto: $monto, tipo: $tipo, liquidacionConceptoId: $liquidacionConceptoId) { ${PROGRAMADO_FIELDS} }
+  }
+`;
+export const anularItemProgramadoMutation = gql`
+  mutation anularItemProgramado($id: ID!) { data: anularItemProgramado(id: $id) { ${PROGRAMADO_FIELDS} } }
 `;

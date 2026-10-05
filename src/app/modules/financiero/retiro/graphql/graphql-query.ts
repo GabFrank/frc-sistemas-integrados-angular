@@ -129,6 +129,48 @@ export const saveRetiro = gql`
   }
 `;
 
+/**
+ * saveRetiro para "Imprimir desde esta PC": la filial guarda y no imprime; el ticket se pide con
+ * ticketEscpos(RETIRO). Documento aparte: el de arriba no cambia.
+ */
+export const saveRetiroCliente = gql`
+  mutation saveRetiroCliente(
+    $entity: RetiroInput!
+    $retiroDetalleInputList: [RetiroDetalleInput]
+    $local: String
+  ) {
+    data: saveRetiro(
+      retiro: $entity
+      retiroDetalleInputList: $retiroDetalleInputList
+      local: $local
+      imprimirEnCliente: true
+    ) {
+      id
+      responsable {
+        id
+      }
+      estado
+      observacion
+      cajaSalida {
+        id
+      }
+      cajaEntrada {
+        id
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      retiroGs
+      retiroRs
+      retiroDs
+    }
+  }
+`;
+
 export const reimprimirRetiro = gql`
   query reimprimirRetiro(
     $id: ID!

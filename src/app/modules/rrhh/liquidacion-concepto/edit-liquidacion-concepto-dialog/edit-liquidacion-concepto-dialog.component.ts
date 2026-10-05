@@ -33,6 +33,8 @@ export class EditLiquidacionConceptoDialogComponent implements OnInit {
   esRemunerativoControl = new FormControl(null, [Validators.required]);
   esCalculadoAutoControl = new FormControl(false);
   activoControl = new FormControl(true);
+  /** Número fijo para elegir la operación tipeando al cargar ítems. Vacío = sin número. */
+  numeroControl = new FormControl(null, [Validators.min(1), Validators.max(9999), Validators.pattern(/^\d+$/)]);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: LiquidacionConceptoDialogData,
@@ -50,7 +52,8 @@ export class EditLiquidacionConceptoDialogComponent implements OnInit {
       esHaber: this.esHaberControl,
       esRemunerativo: this.esRemunerativoControl,
       esCalculadoAuto: this.esCalculadoAutoControl,
-      activo: this.activoControl
+      activo: this.activoControl,
+      numero: this.numeroControl
     });
 
     if (this.selectedConcepto.id) {
@@ -60,6 +63,7 @@ export class EditLiquidacionConceptoDialogComponent implements OnInit {
       this.esRemunerativoControl.setValue(this.selectedConcepto.esRemunerativo);
       this.esCalculadoAutoControl.setValue(this.selectedConcepto.esCalculadoAuto === true);
       this.activoControl.setValue(this.selectedConcepto.activo !== false);
+      this.numeroControl.setValue(this.selectedConcepto.numero ?? null);
       this.formGroup.disable();
     } else {
       this.isEditting = true;
@@ -86,6 +90,7 @@ export class EditLiquidacionConceptoDialogComponent implements OnInit {
     aux.esRemunerativo = this.esRemunerativoControl.value;
     aux.esCalculadoAuto = this.esCalculadoAutoControl.value === true;
     aux.activo = this.activoControl.value === true;
+    aux.numero = this.numeroControl.value ? +this.numeroControl.value : null;
     aux.usuario = this.mainService.usuarioActual;
 
     this.liquidacionConceptoService.onSave(aux.toInput())

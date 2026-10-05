@@ -93,6 +93,23 @@ export const configuracionVentaTarjetaQuery = gql`
   }
 `;
 
+/**
+ * La perilla `terminalObligatoria`, en una query APARTE a propósito.
+ *
+ * graphql-java valida la selección entera antes de ejecutar: si este campo fuera en
+ * `configuracionVentaTarjetaQuery`, un desktop nuevo contra un filial que todavía no tiene V104.5
+ * perdería también `habilitado`, y con él todo el módulo de tarjetas. Así, si esta falla, el PDV
+ * toma `true` (el lado seguro) y `habilitado` sigue llegando como siempre.
+ */
+export const terminalObligatoriaVentaTarjetaQuery = gql`
+  {
+    data: configuracionVentaTarjeta {
+      id
+      terminalObligatoria
+    }
+  }
+`;
+
 export const saveConfiguracionVentaTarjeta = gql`
   mutation saveConfiguracionVentaTarjeta($entity: ConfiguracionVentaTarjetaInput!) {
     data: saveConfiguracionVentaTarjeta(input: $entity) {

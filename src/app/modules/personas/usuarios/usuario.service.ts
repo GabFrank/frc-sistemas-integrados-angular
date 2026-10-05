@@ -26,6 +26,7 @@ import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
 import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMarcacion";
 import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
+import { UsuariosSearchPaginatedPorRolesGQL } from "./graphql/usuarioSearchPaginatedPorRoles";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 
@@ -53,7 +54,8 @@ export class UsuarioService {
     private saveUsuarioImage: SaveUsuarioImageGQL,
     private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL,
     private incorporarEmbeddingMarcacion: IncorporarEmbeddingMarcacionGQL,
-    private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL
+    private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL,
+    private usuariosSearchPaginatedPorRolesGQL: UsuariosSearchPaginatedPorRolesGQL
 
   ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
@@ -153,7 +155,16 @@ export class UsuarioService {
     return this.genericService.onCustomQuery(this.usuariosSearchPaginatedGQL, { texto, page, size }, servidor);
   }
 
-  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Usuario>> {
+  onSearchUsuarioPaginatedPorRoles(texto: string, page: number, size: number, roleIds: number[], servidor: boolean = true): Observable<PageInfo<Usuario>> {
+    return this.genericService.onCustomQuery(this.usuariosSearchPaginatedPorRolesGQL, { texto, page, size, roleIds }, servidor);
+  }
+
+  // roleIds va despues de servidor para no correr el 4to parametro que comparte con ClienteService/SucursalService.
+  // Sin roles se usa la query de siempre: la de roles no existe en centrales viejos.
+  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true, roleIds?: number[]): Observable<PageInfo<Usuario>> {
+    if (roleIds?.length > 0) {
+      return this.onSearchUsuarioPaginatedPorRoles(texto, pageIndex, pageSize, roleIds, servidor);
+    }
     return this.onSearchUsuarioPaginated(texto, pageIndex, pageSize, servidor);
   }
 }

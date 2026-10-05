@@ -42,6 +42,7 @@ export const pdvCategoriaSearch = gql`
             combo
             promocion
             costo {
+              costoMedio
               ultimoPrecioCompra
             }
             envase {

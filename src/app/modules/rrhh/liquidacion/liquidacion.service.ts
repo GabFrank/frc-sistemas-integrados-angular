@@ -11,6 +11,9 @@ import { GenerarMesGQL } from './graphql/GenerarMes';
 import { GenerarLoteGQL } from './graphql/GenerarLote';
 import { ConceptosParaItemManualGQL } from './graphql/ConceptosParaItemManual';
 import { AgregarItemGQL } from './graphql/AgregarItem';
+import { ItemsProgramadosGQL } from './graphql/ItemsProgramados';
+import { ProgramarItemGQL } from './graphql/ProgramarItem';
+import { AnularItemProgramadoGQL } from './graphql/AnularItemProgramado';
 import { EditarItemGQL } from './graphql/EditarItem';
 import { EliminarItemGQL } from './graphql/EliminarItem';
 import { AprobarLiquidacionGQL } from './graphql/AprobarLiquidacion';
@@ -18,6 +21,7 @@ import { VolverBorradorGQL } from './graphql/VolverBorrador';
 import { PagarLiquidacionGQL } from './graphql/PagarLiquidacion';
 import { AnularLiquidacionGQL } from './graphql/AnularLiquidacion';
 import { ImprimirReciboLiquidacionGQL } from './graphql/ImprimirReciboLiquidacion';
+import { ImprimirReciboItemLiquidacionGQL } from './graphql/ImprimirReciboItemLiquidacion';
 
 /** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
 const TIMEOUT_GENERACION_MASIVA_MS = 300000;
@@ -36,6 +40,9 @@ export class LiquidacionService {
     private generarMesGQL: GenerarMesGQL,
     private generarLoteGQL: GenerarLoteGQL,
     private agregarItemGQL: AgregarItemGQL,
+    private itemsProgramadosGQL: ItemsProgramadosGQL,
+    private programarItemGQL: ProgramarItemGQL,
+    private anularItemProgramadoGQL: AnularItemProgramadoGQL,
     private conceptosParaItemManualGQL: ConceptosParaItemManualGQL,
     private editarItemGQL: EditarItemGQL,
     private eliminarItemGQL: EliminarItemGQL,
@@ -43,7 +50,8 @@ export class LiquidacionService {
     private volverBorradorGQL: VolverBorradorGQL,
     private pagarLiquidacionGQL: PagarLiquidacionGQL,
     private anularLiquidacionGQL: AnularLiquidacionGQL,
-    private imprimirReciboGQL: ImprimirReciboLiquidacionGQL
+    private imprimirReciboGQL: ImprimirReciboLiquidacionGQL,
+    private imprimirReciboItemGQL: ImprimirReciboItemLiquidacionGQL
   ) { }
 
   onGetById(id: number, servidor = true): Observable<any> {
@@ -102,6 +110,21 @@ export class LiquidacionService {
     return this.genericService.onCustomQuery(this.conceptosParaItemManualGQL, {}, servidor, null, true);
   }
 
+  /** Programa un item para la liquidacion de un periodo posterior (hasta 12 meses). */
+  onProgramarItem(liquidacionId: number, periodo: string, descripcion: string, monto: number, tipo: string,
+                  liquidacionConceptoId: number = null, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.programarItemGQL,
+      { liquidacionId, periodo, descripcion, monto, tipo, liquidacionConceptoId }, servidor);
+  }
+
+  onGetItemsProgramados(funcionarioId: number, estado: string = null, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.itemsProgramadosGQL, { funcionarioId, estado }, servidor, null, true);
+  }
+
+  onAnularItemProgramado(id: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.anularItemProgramadoGQL, { id }, servidor);
+  }
+
   onEditarItem(itemId: number, descripcion: string, monto: number, tipo: string, usuarioId: number, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.editarItemGQL, { itemId, descripcion, monto, tipo, usuarioId }, servidor);
   }
@@ -128,5 +151,10 @@ export class LiquidacionService {
 
   onImprimirRecibo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id, anchoMm, escpos }, servidor);
+  }
+
+  /** Recibo de un solo item (HABER: recibo; DESCUENTO: constancia). No en liquidacion ANULADA. */
+  onImprimirReciboItem(itemId: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboItemGQL, { itemId, anchoMm, escpos }, servidor);
   }
 }
