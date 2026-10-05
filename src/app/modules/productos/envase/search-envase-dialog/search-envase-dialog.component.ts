@@ -12,6 +12,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MainService } from "../../../../main.service";
 import { Producto } from "../../producto/producto.model";
 import { ProductoService } from "../../producto/producto.service";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 class Data {
   producto: Producto;
@@ -41,8 +42,12 @@ export class SearchEnvaseDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: Data,
     private dialogRef: MatDialogRef<SearchEnvaseDialogComponent>,
     private mainService: MainService,
-    private service: ProductoService
+    private service: ProductoService,
+    private notificacionService: NotificacionSnackbarService
   ) { }
+
+  /** Tanda vigente: la respuesta de un texto anterior se descarta. */
+  private busquedaId = 0;
 
   ngOnInit(): void {
     this.buscarField.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
@@ -59,8 +64,21 @@ export class SearchEnvaseDialogComponent implements OnInit {
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
+    const id = ++this.busquedaId;
     this.onSearchTimer = setTimeout(() => {
-      this.service.onEnvaseSearch(text, offset, true).pipe(untilDestroyed(this)).subscribe((res) => {
+      const fallo = () => {
+        if (id !== this.busquedaId) return;
+        this.isSearching = false;
+        // Primera página: no queda la lista de otra búsqueda. Al cargar más se conserva lo que hay.
+        if (offset == null) this.dataSource.data = [];
+        this.notificacionService.openWarn('No se pudo buscar: volvé a intentar.', 4);
+      };
+      this.service.onEnvaseSearch(text, offset, true).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
+        if (id !== this.busquedaId) return;
+        if (res == null) {
+          fallo();
+          return;
+        }
         if (offset == null) {
           this.dataSource.data = res;
         } else {
@@ -68,7 +86,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
           this.dataSource.data = arr;
         }
         this.isSearching = false;
-      });
+      } });
     }, 1000);
   }
 
