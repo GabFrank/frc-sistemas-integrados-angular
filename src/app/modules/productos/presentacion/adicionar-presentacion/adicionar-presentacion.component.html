@@ -47,6 +47,10 @@
                 {{ tipoPresentacion?.descripcion }}
               </mat-option>
             </mat-select>
+            <mat-hint *ngIf="tiposFallo">
+              No se pudieron cargar los tipos.
+              <a href="#" (click)="createTipoPresentacionSelect(); $event.preventDefault()">Reintentar</a>
+            </mat-hint>
           </mat-form-field>
         </div>
       </div>
@@ -62,6 +66,17 @@
           <mat-slide-toggle fxFlex formControlName="activo">{{
             activoControl.value == true ? "Si" : "No"
           }}</mat-slide-toggle>
+        </div>
+      </div>
+      <!-- Alta sin respuesta (#390): pudo haberse guardado; no se vuelve a guardar desde acá -->
+      <div *ngIf="altaSinConfirmar" fxLayout="column" fxLayoutGap="8px" style="padding: 10px; border: 1px solid #ffb74d; border-radius: 6px; margin-top: 10px">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>warning</mat-icon>
+          <span>No se pudo confirmar si la presentación se guardó. No vuelvas a cargarla sin revisar: cancelá y mirá las presentaciones del producto.</span>
+        </div>
+        <div *ngIf="textoVerificacion">{{ textoVerificacion }}</div>
+        <div fxLayout="row" fxLayoutAlign="end center">
+          <button mat-stroked-button type="button" [disabled]="verificando" (click)="onVerificar()">Verificar</button>
         </div>
       </div>
       <br />
@@ -82,7 +97,7 @@
             style="width: 70%"
             mat-raised-button
             color="accent"
-            [disabled]="!formGroup.valid"
+            [disabled]="!formGroup.valid || guardando || altaSinConfirmar"
             (click)="onSave()"
             type="button"
           >

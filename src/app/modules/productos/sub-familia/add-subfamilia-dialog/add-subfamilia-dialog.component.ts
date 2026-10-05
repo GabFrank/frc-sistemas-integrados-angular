@@ -16,6 +16,17 @@ export interface AddSubfamiliaData {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+
+/** Verificación de un alta sin respuesta: el error de red y el del servidor llegan acá («no se pudo verificar»). */
+const LECTURA_VERIFICACION: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_VERIFICACION: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+/** Cuántas subfamilias se piden al verificar; si hay más coincidencias que esto, no se concluye nada. */
+const TAMANO_VERIFICACION = 100;
+const normalizarNombre = (nombre: any): string => (nombre ?? '').toString().trim().replace(/\s+/g, ' ').toUpperCase();
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -49,6 +60,11 @@ export class AddSubfamiliaDialogComponent implements OnInit {
    * guardar la duplicaría. Guardar queda bloqueado en este diálogo (#390).
    */
   altaSinConfirmar = false;
+  /** Nombre que se mandó en el alta sin confirmar (Cancelar limpia el formulario). */
+  private nombreSinConfirmar = '';
+  verificando = false;
+  /** Resultado de la última verificación, para el cartel. Nunca afirma «no se guardó». */
+  textoVerificacion = '';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddSubfamiliaData,
@@ -119,6 +135,44 @@ export class AddSubfamiliaDialogComponent implements OnInit {
     this.dialogRef.close(null);
   }
 
+  /**
+   * Busca la subfamilia del alta sin confirmar. Solo concluye en positivo: si en esa familia hay EXACTAMENTE una
+   * con ese nombre, es la que se guardó y se cierra con ella. En cualquier otro caso Guardar sigue bloqueado: el
+   * servidor puede confirmar el alta después de esta búsqueda.
+   */
+  onVerificar() {
+    if (this.verificando || !this.altaSinConfirmar) return;
+    this.verificando = true;
+    this.textoVerificacion = '';
+    const noSePudo = () => {
+      this.verificando = false;
+      this.textoVerificacion = 'No se pudo verificar: volvé a intentar, o cerrá y revisá la lista.';
+    };
+    this.subfamiliaService
+      .onSearchSubfamilia(this.data.familiaId, this.nombreSinConfirmar, 0, TAMANO_VERIFICACION, true,
+        LECTURA_VERIFICACION, CONSULTA_VERIFICACION)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: noSePudo, next: (page: any) => {
+        if (page?.getContent == null) {
+          noSePudo();
+          return;
+        }
+        this.verificando = false;
+        const buscado = normalizarNombre(this.nombreSinConfirmar);
+        const iguales = page.getContent.filter((s: Subfamilia) => normalizarNombre(s?.nombre) === buscado);
+        const hayMasPaginas = (page.getTotalElements ?? 0) > page.getContent.length;
+        if (iguales.length === 1 && !hayMasPaginas) {
+          this.notificationBar.openSucess('La subfamilia ya estaba guardada.');
+          this.subfamiliaService.recargarListas();
+          this.dialogRef.close(iguales[0]);
+          return;
+        }
+        this.textoVerificacion = iguales.length > 1
+          ? 'Hay más de una subfamilia con ese nombre en la familia: cerrá y revisá la lista.'
+          : 'Todavía no aparece: puede estar procesándose. Cerrá y revisá la lista antes de volver a cargarla.';
+      } });
+  }
+
   onCancelar() {
     this.nombreControl.reset();
     this.descripcionControl.reset();
@@ -169,6 +223,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
         if (esAlta) {
           // Sin respuesta en un alta: pudo haberse guardado. No se reintenta a ciegas.
           this.altaSinConfirmar = true;
+          this.nombreSinConfirmar = this.subfamiliaInput.nombre;
           return;
         }
         // Edición: lleva su id, reintentar es inocuo. (Con respuesta vacía ya avisó el servicio; en el corte, el link.)

@@ -44,7 +44,9 @@
         <mat-icon>warning</mat-icon>
         <span>No se pudo confirmar si la subfamilia se guardó. No vuelvas a cargarla sin revisar: cerrá y buscala en la lista.</span>
       </div>
+      <div *ngIf="textoVerificacion">{{ textoVerificacion }}</div>
       <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+        <button mat-stroked-button type="button" [disabled]="verificando" (click)="onVerificar()">Verificar</button>
         <button mat-stroked-button type="button" (click)="onCerrar()">Cerrar</button>
       </div>
     </div>
