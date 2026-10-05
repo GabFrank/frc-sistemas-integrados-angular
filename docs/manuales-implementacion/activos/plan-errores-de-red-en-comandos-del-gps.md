@@ -216,3 +216,62 @@ el estado queda vacío.
 | B | El PR era grande; el borrado de código muerto en un fix | media | dividido en tres |
 | A | Lista, mapa, formulario, eliminar y nombres de la limpieza | media | corregido para sus PRs |
 | A/B | El diálogo ignora el resultado; el `timeout` de RxJS no cancela el pedido; `timeoutMs` del link sí; `gpsById` trae los campos; el websocket no pasa por el genérico | — | verificado |
+
+## Implementación: desvíos (2026-10-05)
+
+- La **copia del GPS** entró en la fase 1 (no en la 2): sin ella el resultado del comando seguía escribiendo en la
+  fila de la lista.
+- La etiqueta del interruptor de motor pasó a «A ENVIAR: ENCENDER / BLOQUEAR» y el botón a «ENVIAR»; el color de
+  corte de la tarjeta sale de lo que consta en el servidor, no del interruptor.
+- **Alertas sin dato se muestran apagadas** (antes velocidad, batería e ignición aparecían prendidas): el central
+  solo las emite si están en verdadero. El texto de ayuda aclara que cualquier botón guarda las cinco.
+- La lista se refresca al cerrar **solo si se envió o guardó algo**.
+- «Actualizar estado» **no limpia** los «sin confirmar» (leer no confirma nada): se limpian cuando un envío de ese
+  comando tiene respuesta.
+- Con el estado en «sin dato», la marca «sin enviar» aparece recién cuando el usuario toca el control.
+- Con un pedido en vuelo el diálogo no se cierra (ni Esc ni clic afuera).
+- No tocado: en «CONEXIÓN / RED» la opción «Otro…» y el campo de APN personalizado comparten control (al escribir,
+  el campo desaparece). Es previo y no es de red.
+
+## Prueba de runtime (2026-10-05)
+
+Central local :8081 (schedulers de replicación apagados, verificado), desktop servido en el navegador. La base
+local no tenía ningún GPS: se creó uno de prueba (id 1, IMEI 390000000000001, vehículo 3), que queda en la base
+local. No hay ningún equipo conectado: `true` y los rechazos se simularon reemplazando el método del servicio.
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| GPS con estado vacío | real | «En el servidor: sin dato» en motor, sueño e intervalo; alertas apagadas |
+| Comando con el GPS desconectado | real (el central responde `false`) | aviso «El servidor informó que no pudo enviar…»; el estado no cambia; la fila de la lista no se toca |
+| `true` | simulado | «Comando enviado al GPS»; «En el servidor: motor bloqueado» |
+| `false` con estado conocido | simulado | el interruptor vuelve a lo que consta |
+| Rechazo del servidor | simulado | sin aviso propio; no queda «sin confirmar» |
+| Central congelado al enviar | real (`kill -STOP`) | corte a los 20 s con el aviso del link, cartel «sin confirmar» y botón «Actualizar estado» |
+| Reenviar un comando sin confirmar | real + simulado | pide confirmación; «No» no envía; «Sí» envía una vez; doble clic abre un solo diálogo |
+| «Actualizar estado» con el central congelado | real | «No se pudo leer el estado del GPS»; el «sin confirmar» sigue |
+| Abrir con el central congelado | real | cartel «puede estar desactualizado» + Reintentar; al volver el central, Reintentar lo quita |
+| Error de red en un comando (APN) | simulado | «No se pudo confirmar si el comando llegó al GPS»; «sin confirmar» |
+| Guardar alertas | real | «Alertas guardadas»; quedan guardadas |
+| Alertas: `null` y error de red | simulado | aviso y los cinco controles vuelven a lo guardado |
+| Lectura que llega después de un envío | simulado | se descarta: no pisa el resultado del comando |
+| Cambiar de pestaña y volver | real | las etiquetas siguen al control |
+| Cerrar | real | la lista se refresca si hubo envíos |
+
+**Hallazgo del central, confirmado**: con las alertas guardadas (velocidad sí, límite 80, ignición sí), editar el
+GPS (`saveGps` con los seis campos del formulario) las dejó todas en vacío. Va al issue de central.
+
+Sin probar: un equipo real conectado (el `true` real y la confirmación del equipo).
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| La relectura al abrir podía llegar después de un envío y pisar su resultado | media | contador de envíos: esa lectura se descarta (probado) |
+| Las etiquetas quedaban con el valor de apertura al volver a la pestaña | media | `defer` en los observables del template (probado) |
+| «Actualizar estado» limpiaba los «sin confirmar» | baja | ya no los limpia |
+| Doble clic abría dos confirmaciones y podía enviar dos veces; el texto decía «de nuevo» | baja | una sola confirmación, se vuelve a mirar `loading`, texto corregido |
+| Cerrar con Esc con un pedido en vuelo perdía el resultado sin aviso | baja | no se cierra con un pedido en vuelo |
+| «El servidor no pudo enviar» afirmaba de más | baja | «El servidor informó que no pudo enviar» |
+| «sin enviar» aparecía al abrir con el estado vacío | baja | solo cuando el usuario toca el control |
+| Un control movido durante el envío quedaba como no tocado | baja | solo se marca así si coincide con lo enviado |
+| Alertas: tras un corte se muestran las anteriores aunque pudieron guardarse | baja | queda como en el plan; el aviso lo dice y reintentar es inocuo |
