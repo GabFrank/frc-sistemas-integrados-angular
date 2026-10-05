@@ -132,6 +132,14 @@
             <input matInput type="number" min="1" formControlName="cotizacionDolar" readonly>
           </mat-form-field>
         </div>
+        <!-- Sin cotización leída no se imprime en esa moneda (#390) -->
+        <div *ngIf="textoCotizaciones"
+             style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #ffb74d;">
+          <span>{{ textoCotizaciones }}</span>
+          <button mat-stroked-button type="button" *ngIf="cotizacionesEstado === 'error'" (click)="loadCotizaciones()">
+            Reintentar
+          </button>
+        </div>
 
         <!-- Vista previa etiqueta afiche -->
         <div class="afiche-preview-wrap">
@@ -338,7 +346,7 @@
     mat-raised-button 
     color="primary" 
     (click)="printLabel()" 
-    [disabled]="loading || printForm.invalid"
+    [disabled]="loading || printForm.invalid || faltaCotizacion"
   >
     <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
     <span *ngIf="!loading">
@@ -350,7 +358,7 @@
     color="accent"
     *ngIf="printForm.get('selectedLabelType').value === 'price'"
     (click)="printOfficeLabel()"
-    [disabled]="loading"
+    [disabled]="loading || faltaCotizacion"
   >
     <mat-icon style="transform: scale(1.5);">print</mat-icon>
     Imprimir Afiche A4
