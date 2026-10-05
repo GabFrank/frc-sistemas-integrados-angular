@@ -122,8 +122,11 @@ export class GpsService {
             }),
             catchError(error => {
                 if (esRechazoDelServidor(error)) {
-                    // El motivo del genérico es el texto técnico de la base: se agrega uno legible.
-                    this.notificacionService.openWarn('No se pudo eliminar el GPS (puede tener telemetría registrada)', 6);
+                    // Ante una restricción de la base el motivo del genérico es su texto técnico: se agrega uno
+                    // legible. Cualquier otro rechazo ya lo explicó el genérico.
+                    if (error.some(e => /constraint|foreign key|violates/i.test(e?.message || ''))) {
+                        this.notificacionService.openWarn('No se pudo eliminar el GPS (puede tener telemetría registrada)', 6);
+                    }
                 } else {
                     // Sin respuesta: pudo haberse eliminado. El corte del link y la respuesta vacía ya avisaron.
                     if (!esTimeoutDeLink(error) && !Array.isArray(error)) {

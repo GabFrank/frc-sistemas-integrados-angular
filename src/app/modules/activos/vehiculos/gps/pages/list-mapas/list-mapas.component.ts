@@ -39,6 +39,8 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** No se pudieron leer las últimas posiciones: el mapa solo muestra lo que llegue en vivo. */
   posicionesFallo = false;
+  /** Hay un cambio de filtro esperando respuesta: un reintento no lo descarta. */
+  private cambioDeFiltroEnVuelo = false;
 
   // Estado de conexión WebSocket
   wsConnected = false;
@@ -144,7 +146,8 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     // dos marcadores, uno quieto en la posición vieja.
     const gpsId = Number(telemetria.gpsId);
     let marker = this.markers.get(gpsId);
-    const fecha = Date.parse(telemetria.fechaGps) || 0;
+    // El central manda la fecha de la base como «yyyy-MM-dd HH:mm»: con la T la entiende cualquier navegador.
+    const fecha = Date.parse(String(telemetria.fechaGps || '').replace(' ', 'T')) || 0;
     // La última posición guardada puede ser anterior a la que ya llegó en vivo.
     if (desdeLaBase && marker && fecha <= (this.fechaMarcador.get(gpsId) ?? 0)) return;
     this.fechaMarcador.set(gpsId, desdeLaBase ? fecha : (fecha || Date.now()));
@@ -296,6 +299,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onReintentarPosiciones(): void {
+    if (this.cambioDeFiltroEnVuelo) return;
     this.cargarPosiciones(this.vehiculoSelected, true);
   }
 
@@ -307,6 +311,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   private cargarPosiciones(candidato: Vehiculo | null, silencioso: boolean): void {
     const lectura = ++this.lectura;
     const cambiaFiltro = Number(candidato?.id ?? 0) !== Number(this.vehiculoSelected?.id ?? 0);
+    this.cambioDeFiltroEnVuelo = cambiaFiltro;
     const consulta = candidato?.id
       ? this.gpsService.onGetByVehiculoId(candidato.id, LECTURA_GPS, CONSULTA_GPS, silencioso)
       : this.gpsService.onBuscar('', silencioso);
@@ -314,6 +319,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     consulta.pipe(take(1), untilDestroyed(this)).subscribe({
       next: (res) => {
         if (lectura !== this.lectura) return;
+        this.cambioDeFiltroEnVuelo = false;
         const gpsList = res || [];
         this.posicionesFallo = false;
         if (cambiaFiltro) {
@@ -329,6 +335,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => {
         if (lectura !== this.lectura) return;
+        this.cambioDeFiltroEnVuelo = false;
         if (cambiaFiltro) {
           this.notificacionService.openWarn(candidato
             ? 'No se pudo cargar la posición del vehículo: el mapa sigue como estaba'

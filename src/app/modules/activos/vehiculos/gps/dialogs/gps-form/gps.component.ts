@@ -139,7 +139,7 @@ export class GPSComponent implements OnInit {
                 // central devuelve el texto técnico de la base, así que se agrega uno legible.
                 if (esRechazoDelServidor(error)) {
                     if (error.some(e => /constraint/i.test(e?.message || ''))) {
-                        this.notificacionService.openWarn('El servidor rechazó el guardado: puede que ya exista un GPS con ese IMEI', 6);
+                        this.notificacionService.openWarn('El servidor rechazó el guardado por una restricción de la base: revisá que el IMEI no esté ya registrado', 6);
                     }
                     return;
                 }

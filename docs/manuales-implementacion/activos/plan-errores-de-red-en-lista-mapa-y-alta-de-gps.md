@@ -200,3 +200,61 @@ preparar en local (sin acceso a la base ni equipo): el rechazo se simula y queda
 | B | Los ids no dependen de la prueba y condicionan la fase del mapa | media | fase 1, confirmada leyendo |
 | A/B | Doble refresco al guardar; dos estados de lista; OnPush | baja | uno solo; un estado; `markForCheck` |
 | A | Hechos de red de las secciones 1 a 4 | — | verificados |
+
+## Implementación: desvíos (2026-10-05)
+
+- **Mapa**: al elegir un vehículo o quitar el filtro la lectura muestra el modal «Buscando…» (es una acción del
+  usuario y hasta que llega el campo sigue mostrando la selección anterior); la carga inicial y Reintentar son
+  silenciosas, como decía el plan.
+- **Lista**: el filtro con debounce usa el valor actual del campo, no el emitido: un texto que quedó esperando se
+  volvía a aplicar después de «Limpiar filtro» (apareció en la prueba).
+- **IMEI repetido**: el central devuelve el texto técnico de la base (ver la prueba). Ante un rechazo por
+  restricción se agrega un aviso legible que no afirma la causa. Lo mismo al eliminar.
+- `gpsService.onSearch` se quitó (quedó sin llamadores y no emitía ante errores).
+- No tocado: `GpsDialogService.onGuardar` / `onCancelar` (sin llamadores) quedan para el PR de limpieza. La
+  reconexión del websocket no recarga posiciones (previo).
+
+## Prueba de runtime (2026-10-05)
+
+Central local :8081 (schedulers de replicación apagados, verificado), desktop en el navegador. No hay equipo GPS
+ni acceso a la base local: las posiciones, la telemetría y los errores se simularon reemplazando métodos del
+servicio en el navegador, salvo donde dice «real».
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| Lista: búsqueda nueva con el central congelado | real (`kill -STOP`) | corte a los 20 s, tabla vacía, cartel «No se pudo cargar la lista de GPS» |
+| Lista: refresco fallido con filas | simulado | filas conservadas + «puede estar desactualizada» |
+| Lista: Reintentar, «Limpiar filtro» | real | una sola búsqueda, con el texto actual |
+| Lista: «Limpiar» con un texto esperando el debounce | real | el filtro queda vacío (falló en la primera pasada; corregido) |
+| Lista: respuesta vieja después de la nueva | simulado | se descarta |
+| Lista: página fuera de rango y filtro nuevo | simulado | vuelve a la primera página |
+| Mapa: posiciones iniciales fallidas | simulado | cartel + Reintentar; al reintentar aparecen los marcadores |
+| Mapa: ids | simulado | un marcador por GPS (clave numérica); la telemetría en vivo lo mueve |
+| Mapa: Reintentar con un marcador más nuevo | simulado | no retrocede |
+| Mapa: elegir vehículo con fallo | simulado | selección, campo y marcadores como estaban; aviso; la telemetría de otros vehículos sigue entrando |
+| Mapa: vehículo elegido | simulado | entra su telemetría, se descarta la de otros |
+| Mapa: dos selecciones seguidas | simulado | gana la última |
+| Mapa: quitar el filtro con fallo / bien | simulado | sigue el filtro + aviso / todos los marcadores |
+| Mapa: lectura de posiciones | real | sin error |
+| Alta: doble clic | simulado | un solo pedido; botón deshabilitado |
+| Alta sin respuesta | simulado | aviso, formulario abierto; Cancelar refresca la lista |
+| Alta | real | se guarda, un solo refresco |
+| Alta con IMEI repetido | real | el central responde «could not execute statement; … constraint [null]; … ConstraintViolationException»; se agrega el aviso legible |
+| Eliminar: cancelar | real | no llama al servidor ni deja modal |
+| Eliminar | real | «GPS eliminado», lista refrescada |
+| Eliminar: error de red y rechazo | simulado | «No se pudo confirmar…» + refresco / aviso de rechazo |
+
+Sin probar: un equipo real (telemetría real por websocket); eliminar un GPS con telemetría; el corte real de 20 s
+en el mapa y al guardar (se probó el de la lista); la edición sin respuesta (mismo camino que el alta).
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| El aviso por IMEI repetido salía ante cualquier restricción y afirmaba la causa | media | texto que no la afirma |
+| El aviso «puede tener telemetría» salía ante cualquier rechazo al eliminar | media | solo ante una restricción de la base |
+| Reintentar posiciones con un cambio de filtro en vuelo lo descartaba en silencio | baja | el reintento se ignora hasta que llegue |
+| La fecha «yyyy-MM-dd HH:mm» no se entiende en todos los navegadores | baja | se parsea con «T» |
+| El modal al elegir vehículo no era «en silencio» | baja | anotado como desvío |
+| Fecha del websocket que no se puede leer | baja | sin cambio: se toma la hora de llegada |
+| `GpsDialogService.onGuardar` sin llamadores | baja | PR de limpieza |
