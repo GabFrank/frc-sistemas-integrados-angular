@@ -2,7 +2,9 @@ import { AfterViewInit, ChangeDetectorRef, Component, inject, OnDestroy, OnInit 
 import { MatDialog } from '@angular/material/dialog';
 import * as L from 'leaflet';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GpsService } from '../../service/gps.service';
+import { take } from 'rxjs/operators';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { CONSULTA_GPS, GpsService, LECTURA_GPS } from '../../service/gps.service';
 import { VehiculoService } from '../../../vehiculo/service/vehiculo.service';
 import { Vehiculo } from '../../../vehiculo/models/vehiculo.model';
 import { VehiculoSearchPageGQL } from '../../../vehiculo/graphql/vehiculoSearchPage';
@@ -24,10 +26,19 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private matDialog = inject(MatDialog);
   private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
+  private notificacionService = inject(NotificacionSnackbarService);
 
   private map: L.Map | undefined;
   private markers: Map<number, L.Marker> = new Map();
   private initRetryCount = 0;
+  /** Fecha (ms) de la última posición aplicada a cada marcador: una carga desde la base no lo mueve hacia atrás. */
+  private fechaMarcador: Map<number, number> = new Map();
+  /** Solo se aplica la última carga de posiciones pedida (dos vehículos elegidos seguidos, reintentos). */
+  private lectura = 0;
+  private encuadrado = false;
+
+  /** No se pudieron leer las últimas posiciones: el mapa solo muestra lo que llegue en vivo. */
+  posicionesFallo = false;
 
   // Estado de conexión WebSocket
   wsConnected = false;
@@ -120,7 +131,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  private updateMarkerFromWs(telemetria: TelemetriaWsDTO): void {
+  private updateMarkerFromWs(telemetria: TelemetriaWsDTO, desdeLaBase = false): void {
     if (!this.map || !telemetria.latitud || !telemetria.longitud) return;
     if (telemetria.latitud === 0 && telemetria.longitud === 0) return;
 
@@ -133,6 +144,10 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     // dos marcadores, uno quieto en la posición vieja.
     const gpsId = Number(telemetria.gpsId);
     let marker = this.markers.get(gpsId);
+    const fecha = Date.parse(telemetria.fechaGps) || 0;
+    // La última posición guardada puede ser anterior a la que ya llegó en vivo.
+    if (desdeLaBase && marker && fecha <= (this.fechaMarcador.get(gpsId) ?? 0)) return;
+    this.fechaMarcador.set(gpsId, desdeLaBase ? fecha : (fecha || Date.now()));
 
     if (marker) {
       marker.setLatLng([lat, lng]);
@@ -277,22 +292,67 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private cargarPosicionesIniciales(): void {
-    this.gpsService.onSearch('')
-      .pipe(untilDestroyed(this))
-      .subscribe(gpsList => {
-        this.procesarDatosGpsIniciales(gpsList);
-      });
+    this.cargarPosiciones(this.vehiculoSelected, true);
   }
 
-  private procesarDatosGpsIniciales(gpsList: Gps[]): void {
-    const selectedVehiculo = this.vehiculoSelected;
-    let filteredList = gpsList;
+  onReintentarPosiciones(): void {
+    this.cargarPosiciones(this.vehiculoSelected, true);
+  }
 
-    if (selectedVehiculo && selectedVehiculo.id) {
-      filteredList = gpsList.filter(g => g.vehiculo?.id === selectedVehiculo.id);
+  /**
+   * Lee las últimas posiciones de `candidato` (o de todos, con `null`). El candidato pasa a ser el vehículo elegido
+   * —campo, filtro del websocket y marcadores— recién cuando su lectura llegó bien: si falla, nada cambió (#390).
+   * Antes el campo y el filtro cambiaban primero, y ante un error quedaban los marcadores de la selección anterior.
+   */
+  private cargarPosiciones(candidato: Vehiculo | null, silencioso: boolean): void {
+    const lectura = ++this.lectura;
+    const cambiaFiltro = Number(candidato?.id ?? 0) !== Number(this.vehiculoSelected?.id ?? 0);
+    const consulta = candidato?.id
+      ? this.gpsService.onGetByVehiculoId(candidato.id, LECTURA_GPS, CONSULTA_GPS, silencioso)
+      : this.gpsService.onBuscar('', silencioso);
+
+    consulta.pipe(take(1), untilDestroyed(this)).subscribe({
+      next: (res) => {
+        if (lectura !== this.lectura) return;
+        const gpsList = res || [];
+        this.posicionesFallo = false;
+        if (cambiaFiltro) {
+          this.vehiculoSelected = candidato;
+          this.actualizarVehiculoDescripcion();
+          this.markers.forEach(m => m.remove());
+          this.markers.clear();
+          this.fechaMarcador.clear();
+        }
+        this.updateMarkersFromGpsList(gpsList);
+        this.encuadrar(candidato, gpsList, cambiaFiltro);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        if (lectura !== this.lectura) return;
+        if (cambiaFiltro) {
+          this.notificacionService.openWarn(candidato
+            ? 'No se pudo cargar la posición del vehículo: el mapa sigue como estaba'
+            : 'No se pudieron cargar las posiciones: el filtro sigue como estaba', 5);
+        } else {
+          this.posicionesFallo = true;
+        }
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Reencuadra al cambiar el filtro o en la primera carga buena; un reintento no mueve el mapa del usuario. */
+  private encuadrar(candidato: Vehiculo | null, gpsList: Gps[], cambiaFiltro: boolean): void {
+    if (!cambiaFiltro && this.encuadrado) return;
+    this.encuadrado = true;
+    if (candidato?.id) {
+      const gps = gpsList[0];
+      const lat = gps?.ultimaLatitud || gps?.ultimaTelemetria?.latitud;
+      const lng = gps?.ultimaLongitud || gps?.ultimaTelemetria?.longitud;
+      if (lat && lng) this.map?.setView([lat, lng], 16);
+    } else {
+      this.fitBoundsToMarkers();
     }
-
-    this.updateMarkersFromGpsList(filteredList);
   }
 
   private updateMarkersFromGpsList(gpsList: Gps[]): void {
@@ -340,13 +400,8 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
         modeloTracker: gps.modeloTracker || ''
       };
 
-      this.updateMarkerFromWs(telemetria);
+      this.updateMarkerFromWs(telemetria, true);
     });
-
-
-    if (this.markers.size > 0) {
-      this.fitBoundsToMarkers();
-    }
   }
   private fitBoundsToMarkers(): void {
     if (!this.map || this.markers.size === 0) return;
@@ -396,48 +451,13 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
       width: '70%',
       height: '80%'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Vehiculo) => {
-      if (res) {
-        this.vehiculoSelected = res;
-        this.actualizarVehiculoDescripcion();
-        this.onVehiculoSelect();
-        this.cdr.markForCheck();
-      }
+      if (res) this.cargarPosiciones(res, false);
     });
   }
 
   onLimpiarVehiculo(event: Event): void {
     event.stopPropagation();
-    this.vehiculoSelected = null;
-    this.actualizarVehiculoDescripcion();
-    this.onVehiculoSelect();
-    this.cdr.markForCheck();
-  }
-
-  onVehiculoSelect(): void {
-    const selectedVehiculo = this.vehiculoSelected;
-
-    if (selectedVehiculo && selectedVehiculo.id) {
-
-      this.gpsService.onGetByVehiculoId(selectedVehiculo.id)
-        .pipe(untilDestroyed(this))
-        .subscribe(gpsList => {
-          this.markers.forEach(m => m.remove());
-          this.markers.clear();
-
-          this.updateMarkersFromGpsList(gpsList);
-
-          if (gpsList.length > 0) {
-            const gps = gpsList[0];
-            const lat = gps.ultimaLatitud || gps.ultimaTelemetria?.latitud;
-            const lng = gps.ultimaLongitud || gps.ultimaTelemetria?.longitud;
-            if (lat && lng) {
-              this.map?.setView([lat, lng], 16);
-            }
-          }
-        });
-    } else {
-      this.cargarPosicionesIniciales();
-    }
+    this.cargarPosiciones(null, false);
   }
 
   reconnectWebSocket(): void {

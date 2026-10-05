@@ -107,10 +107,6 @@ export class GpsService {
         );
     }
 
-    onSearch(texto: string): Observable<Gps[]> {
-        return this.genericService.onGetByTexto(this.gpsSearchGQL, texto);
-    }
-
     /**
      * Búsqueda de GPS con los errores propagados. `silencioso`: sin el modal «Buscando…» (el mapa).
      * No usa `onGetByTexto`: ante un error no emite nada y no admite corte propio.
@@ -181,8 +177,8 @@ export class GpsService {
         return this.genericService.onCustomQuery(this.gpsListGQL, { page, size });
     }
 
-    onGetByVehiculoId(vehiculoId: number): Observable<Gps[]> {
-        return this.genericService.onCustomQuery(this.gpsByVehiculoGQL, { vehiculoId });
+    onGetByVehiculoId(vehiculoId: number, errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<Gps[]> {
+        return this.genericService.onCustomQuery(this.gpsByVehiculoGQL, { vehiculoId }, true, errorConf, silentLoad, contexto);
     }
 
     onGetByImei(imei: string): Observable<Gps> {
