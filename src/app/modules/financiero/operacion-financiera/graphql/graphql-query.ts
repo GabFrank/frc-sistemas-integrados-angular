@@ -126,6 +126,9 @@ const movimientoBancarioFields = `
   descripcion
   anulado
   creadoEn
+  origenTipo
+  origenId
+  pagoId
   usuario {
     id
     persona {

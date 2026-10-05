@@ -102,4 +102,9 @@ export class MovimientoBancario {
   anulado: boolean;
   creadoEn: Date;
   usuario: Usuario;
+  /** Módulo dueño del movimiento (name de OrigenMovimientoTipo): dice desde dónde se anula. */
+  origenTipo: string;
+  origenId: number;
+  /** Evento de pago al que pertenece, o null. No es el origenId: el cheque al contado de un pago lo tiene nulo. */
+  pagoId: number;
 }
