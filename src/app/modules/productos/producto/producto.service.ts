@@ -16,7 +16,7 @@ import {
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
-import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -181,8 +181,14 @@ export class ProductoService {
       );
   }
 
-  onProductoDescripcionExists(descripcion: string, servidor = true) {
-    return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor);
+  /**
+   * El error de red y el del servidor llegan al llamador (20 s): un control de duplicado que no respondió no es
+   * «no existe» (#390).
+   */
+  onProductoDescripcionExists(descripcion: string, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } }, undefined,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
   /** `errorConf` y `contexto` son para el POS; el resto de las pantallas no los pasa y queda como antes. */
@@ -224,8 +230,10 @@ export class ProductoService {
     return this.genericService.onCustomMutation(this.saveProducto, {entity: input}, servidor);
   }
 
-  getProducto(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
+  /** Con `errorConf` el error llega al llamador; sin él, la consulta no emite nada si falla (#390). */
+  getProducto(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onImageSave(image: string, filename: string, servidor = true): Observable<any> {

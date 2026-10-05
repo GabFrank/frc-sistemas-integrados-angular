@@ -29,6 +29,15 @@ import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
 import { Subscription } from "rxjs";
+import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
+
+/** Carga del producto a editar: error de red y de servidor llegan a la pantalla, que avisa y bloquea el guardado. */
+const LECTURA_PRODUCTO: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_PRODUCTO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 import {
   CurrencyMask,
   updateDataSource,
@@ -348,11 +357,29 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
   }
 
+  reintentarCargaProducto(): void {
+    if (this.productoIdACargar != null) this.cargarProducto(this.productoIdACargar);
+  }
+
+  private marcarProductoSinCargar(texto: string): void {
+    this.productoCargaFallo = true;
+    this.notificacionService.openWarn(texto, 6);
+  }
+
   cargarProducto(id) {
+    this.productoIdACargar = id;
+    this.productoSinCargar = true;
+    this.productoCargaFallo = false;
     this.productoService
-      .getProducto(id)
+      .getProducto(id, true, LECTURA_PRODUCTO, CONSULTA_PRODUCTO)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => this.marcarProductoSinCargar('No se pudo cargar el producto: usá «Reintentar». No se puede guardar hasta cargarlo.'),
+      next: (res) => {
+        if (res == null) {
+          this.marcarProductoSinCargar('No se encontró el producto.');
+          return;
+        }
+        this.productoSinCargar = false;
         this.selectedProducto = res;
         if (this.selectedProducto.subfamilia != null) {
           console.log('log 4');
@@ -419,7 +446,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           this.stepper.next();
         }, 500);
-      });
+      } });
   }
 
   createForm() {
@@ -509,6 +536,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onProductoSave() {
+    if (this.productoSinCargar) {
+      // Se abrió para editar y el producto no cargó: guardar así crearía uno nuevo
+      this.notificacionService.openWarn('El producto no se pudo cargar: usá «Reintentar» antes de guardar.', 5);
+      return;
+    }
     let subfamiliaCambiada = false;
     if (this.selectedProducto?.subfamilia?.id != this.selectedSubfamilia?.id) {
       subfamiliaCambiada = true;
@@ -582,7 +614,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
       this.productoService
         .onSaveProducto(productoInput)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
+        .subscribe({ error: (error) => {
+          // Un rechazo del servidor (array) ya lo avisa el servicio; sin respuesta, pudo haberse guardado
+          if (!Array.isArray(error) && !esTimeoutDeLink(error)) {
+            this.notificacionService.openWarn(
+              'No se pudo confirmar el guardado del producto: pudo haberse guardado. Revisalo en la lista antes de reintentar.', 10);
+          }
+        }, next: (res) => {
           if (res != null) {
             this.selectedProducto = res;
             this.stepper.next();
@@ -593,7 +631,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
               this.nombreInput.nativeElement.focus();
             }, 100);
           }
-        });
+        } });
     }
   }
 
@@ -602,6 +640,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
     const descripcion: string = controlDescripcion.value;
 
     if (!descripcion || !this.datosGeneralesControl.valid) {
+      return;
+    }
+    if (this.productoSinCargar) {
+      this.notificacionService.openWarn('El producto no se pudo cargar: usá «Reintentar» antes de guardar.', 5);
       return;
     }
 
@@ -620,6 +662,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe(
         (exists: boolean) => {
+          if (exists == null) {
+            // Sin respuesta útil no se sabe si el nombre está repetido: no se guarda
+            this.notifiActionBar.openWarn("No se pudo validar el nombre del producto", 4);
+            return;
+          }
           if (exists === true) {
             this.matDialog.open(ProductoDuplicadoDialogComponent, {
               data: { descripcion: descripcionUpper },
@@ -992,6 +1039,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   selectedPresentacion: Presentacion | null;
   isPresentacionLoading = false;
+  presentacionesFallo = false;
+  /** Se abrió para editar y el producto todavía no cargó (o falló): no se guarda, para no crear uno nuevo (#390). */
+  productoSinCargar = false;
+  productoCargaFallo = false;
+  private productoIdACargar: number = null;
   codigoPrincipal: Codigo;
   expandedPresentacion: any;
   @ViewChild("presentacionTable") presentacionTable: MatTable<Presentacion>;
@@ -1000,14 +1052,36 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   getPresentacionPorProductoId(id) {
     this.isPresentacionLoading = true;
+    this.presentacionesFallo = false;
     this.presentacionService
-      .onGetPresentacionesPorProductoId(id)
+      .onGetPresentacionesPorProductoIdParaDialogo(id)
       .pipe(untilDestroyed(this))
-      .subscribe((data) => {
+      .subscribe({ error: () => {
+        this.marcarPresentacionesSinCargar();
+        this.notificacionService.openWarn('No se pudieron cargar las presentaciones: usá «Reintentar».', 5);
+      }, next: (data) => {
+        if (data == null) {
+          this.marcarPresentacionesSinCargar(); // error del servidor: ya se avisó
+          return;
+        }
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
-      });
+      } });
+  }
+
+  /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
+  private marcarPresentacionesSinCargar(): void {
+    this.isPresentacionLoading = false;
+    this.presentacionesFallo = true;
+    this.presentacionesList = [];
+    this.presentacionesDataSource.data = [];
+    this.expandedPresentacion = null;
+    this.selectedPresentacion = null;
+  }
+
+  reintentarPresentaciones(): void {
+    if (this.selectedProducto?.id != null) this.getPresentacionPorProductoId(this.selectedProducto.id);
   }
 
   onAdicionarPresentacion() {
@@ -1051,21 +1125,25 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onPresentacionSelect(row: Presentacion) {
     this.selectedPresentacion = row;
+    // Lo de la presentación anterior no queda si la consulta falla. (Las tablas a la vista salen de la consulta
+    // de presentaciones; estas dos fuentes son auxiliares, por eso un fallo acá no avisa.)
+    this.selectedPresentacionCodigoDataSource.data = [];
+    this.selectedPresentacionPrecioDataSource.data = [];
     if (row != null) {
       this.codigoService
-        .onGetCodigosPorPresentacionId(this.selectedPresentacion.id)
+        .onGetCodigosPorPresentacionId(row.id, true, PROPAGAR_ERROR_DE_RED, CONSULTA_PRODUCTO)
         .pipe(untilDestroyed(this))
-        .subscribe((res: Codigo[]) => {
-          this.selectedPresentacionCodigoDataSource.data = res;
+        .subscribe({ error: () => {}, next: (res: Codigo[]) => {
+          if (this.selectedPresentacion !== row) return; // ya se eligió otra
+          this.selectedPresentacionCodigoDataSource.data = res ?? [];
           this.precioPorSucursalService
-            .onGetPrecioPorSurursalPorPresentacionId(
-              this.selectedPresentacion.id
-            )
+            .onGetPrecioPorSurursalPorPresentacionId(row.id, true, PROPAGAR_ERROR_DE_RED, CONSULTA_PRODUCTO)
             .pipe(untilDestroyed(this))
-            .subscribe((res2: PrecioPorSucursal[]) => {
-              this.selectedPresentacionPrecioDataSource.data = res2;
-            });
-        });
+            .subscribe({ error: () => {}, next: (res2: PrecioPorSucursal[]) => {
+              if (this.selectedPresentacion !== row) return;
+              this.selectedPresentacionPrecioDataSource.data = res2 ?? [];
+            } });
+        } });
     }
   }
 
