@@ -98,7 +98,9 @@ export class InmuebleFormComponent implements OnInit {
         }
         this.inmueble = res;
         this.cargarDatos();
-        this.estado.actualizar({ bien: 'ok', eraPagando: this.situacionPagoControl.value === 'PAGANDO' });
+        const eraPagando = this.situacionPagoControl.value === 'PAGANDO';
+        // En el mismo paso: nunca queda «pagando» con las cuotas sin pedir y Guardar habilitado
+        this.estado.actualizar({ bien: 'ok', eraPagando, cuotas: eraPagando ? 'cargando' : 'sin-cargar' });
         this.cargarEnteYCuotas();
       },
     });
@@ -109,10 +111,14 @@ export class InmuebleFormComponent implements OnInit {
     const id = this.inmueble?.id;
     if (!id) return;
     const conCuotas = this.estado.eraPagando;
+    const lectura = ++this.estado.lectura;
     this.estado.actualizar({ cuotas: conCuotas ? 'cargando' : 'sin-cargar', enteFallo: false });
     this.enteService.cargarEnteYCuotas(TipoEnte.INMUEBLE, id, conCuotas).pipe(untilDestroyed(this)).subscribe({
-      error: () => this.estado.actualizar({ cuotas: 'error' }),
+      error: () => {
+        if (lectura === this.estado.lectura) this.estado.actualizar({ cuotas: 'error' });
+      },
       next: (resultado) => {
+        if (lectura !== this.estado.lectura) return; // hay una lectura más nueva
         this.enteId = resultado.enteId;
         // Las cuotas guardadas reemplazan siempre a las que hubiera (también una lista vacía)
         if (resultado.cuotas != null) this.cuotasDetalle = resultado.cuotas;
@@ -263,6 +269,7 @@ export class InmuebleFormComponent implements OnInit {
 
   onGuardar(): void {
     if (this.estado.guardarBloqueado) return;
+    const situacionEnviada = this.situacionPagoControl.value;
     const cerrar = !!this.inmueble?.id && this.registroGuardado;
     this.inmuebleDialogService.onGuardar(this.form, this.inmueble, this.dialogRef, this.cuotasDetalle, cerrar)
       .pipe(untilDestroyed(this))
@@ -271,8 +278,11 @@ export class InmuebleFormComponent implements OnInit {
         this.inmueble = { ...this.inmueble, ...res, id: res.id };
         this.registroGuardado = true;
         this.form.patchValue({ id: res.id });
-        // Recién guardado: su situación guardada es la que eligió
-        this.estado.actualizar({ bien: 'ok', eraPagando: this.situacionPagoControl.value === 'PAGANDO' });
+        // En una edición el diálogo ya se cerró: no hay nada que recargar
+        if (cerrar) return;
+        // Recién guardado: su situación guardada es la que se envió
+        const eraPagando = situacionEnviada === 'PAGANDO';
+        this.estado.actualizar({ bien: 'ok', eraPagando, cuotas: eraPagando ? 'cargando' : 'sin-cargar' });
         this.cargarEnteYCuotas();
         this.cdr.markForCheck();
       });

@@ -162,7 +162,7 @@
                             </div>
 
                             <app-cuotas-detalle-editor
-                                *ngIf="situacion === 'PAGANDO' && !estado.cuotasCargando"
+                                *ngIf="situacion === 'PAGANDO' && !estado.planBloqueado"
                                 [cantidadCuotas]="form.controls['cantidadCuotas'].value"
                                 [cantidadCuotasPagadas]="form.controls['cantidadCuotasPagadas'].value"
                                 [montoTotal]="form.controls['montoTotal'].value"

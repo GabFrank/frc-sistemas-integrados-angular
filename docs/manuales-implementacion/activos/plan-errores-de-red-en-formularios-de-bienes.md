@@ -203,3 +203,48 @@ y después de guardar sin tocar.
 | B | Tamaño | media | carga acá, guardado en 11f-2b, archivos en 11f-2c; lógica común en `shared/` |
 | A | Sin otras consultas de carga; `esPropio` del inmueble; diferencias de vehículo | baja | anotado |
 | A/B | Los 4 formularios abren igual; `form.id`, `cerrar` y `registroGuardado` como dice el plan; regla del central para las cuotas; sin unicidad en equipo, mueble e inmueble | — | verificado |
+
+## Implementación: desvíos
+
+- **Las dos fases quedaron en un commit**: la carga del bien y la de las cuotas comparten la misma clase de estado
+  (`shared/forms/estado-formulario-bien.ts`) y el mismo cartel (`app-bien-estado-carga`).
+- **El plan queda bloqueado también cuando las cuotas fallaron**, no solo mientras cargan (auditoría del diff): si
+  se pudiera editar, el recálculo pisaría la tabla y, al reintentar, las cuotas guardadas quedarían con una
+  cantidad y un monto distintos.
+- **Tras guardar una edición no se recarga nada** (el diálogo ya se cerró): antes se lanzaba igual la consulta del
+  ente, con su modal, sobre la lista.
+- `eraPagando` tras un alta se toma de la situación **enviada**, no del control al volver la respuesta; contador
+  para que una lectura vieja de ente y cuotas no pise a una nueva.
+- Sin aviso por snackbar en los fallos de carga: el cartel dentro del formulario alcanza (y queda fijo).
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. En la base local no hay equipos, muebles ni inmuebles: se probó
+sobre el único vehículo (id 3), abierto en **diálogo** desde la lista. Con el central vivo se lo pasó a «pagando»
+(4 cuotas, 400.000, 1 pagada) para tener un bien con plan — **ese cambio queda en la base local**.
+
+| Caso | Resultado |
+|---|---|
+| Abrir el bien cuando no era «pagando» | carga; no pide cuotas; no bloquea; ente cargado |
+| Abrir el bien «pagando», vivo | cuotas con su marca de pagada; Guardar habilitado |
+| Guardar sin tocar y reabrir | mismas cuotas (1:0 pagada, 3 × 100.000) y mismo monto total; tras guardar no se lanza ninguna consulta ni modal |
+| Cuotas con la consulta demorada y fallida (simulada) | «Cargando las cuotas…» con Guardar y los campos del plan deshabilitados y el editor oculto; después cartel «No se pudieron cargar las cuotas…», todo sigue bloqueado |
+| Con las cuotas fallidas, pasar a «pagado» | sigue bloqueado |
+| Reintentar | carga las 4 cuotas, vuelve el editor y se habilita |
+| Abrir con el central congelado | «Cargando los datos del bien…»; a los 20 s cartel «No se pudo cargar el bien»; con los obligatorios completados a mano, `onGuardar` no envía nada (0 guardados) y el id sigue vacío |
+| Reanudar + Reintentar | carga el bien real (pisa lo tipeado) y sus cuotas |
+
+**Sin probar en pantalla**: equipo, mueble e inmueble (sin datos locales; mismo código compartido y mismo parche);
+vehículo abierto en pestaña (desde el pre-registro); la recarga de ente y cuotas después de guardar un **alta**.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | Con las cuotas fallidas el editor y los campos del plan seguían activos: editar, recalcular y luego reintentar dejaba la tabla guardada con cantidad y monto distintos | el plan queda bloqueado también en error; probado |
+| media | Tras guardar una edición se recargaba ente y cuotas con el diálogo ya cerrado (modal sobre la lista) | no se recarga si el diálogo se cierra; probado |
+| baja | Un instante con «pagando» y las cuotas sin pedir; `eraPagando` leído del control tras el alta; lecturas solapadas | mismo paso, situación enviada, contador |
+| baja | Formato del cartel en los 4 HTML | reindentado |
+| baja | La consulta del ente abre el modal «Buscando…» (ya era así); bien inexistente queda en «no se pudo cargar» con Reintentar; borde de color fijo en el cartel | sin cambio, anotado |
+| — | Sin caminos para guardar un bien sin cargar ni un «pagando» con las cuotas sin leer; sin bloqueos permanentes con el central sano; los 4 formularios equivalentes; el mapeo de cuotas igual al anterior; módulos y reglas de HTML | sin hallazgos |

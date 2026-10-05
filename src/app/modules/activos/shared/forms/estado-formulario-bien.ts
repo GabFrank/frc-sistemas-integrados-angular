@@ -42,8 +42,13 @@ export class EstadoFormularioBien {
 
   /** Único dato que mira el botón Guardar (los templates no llaman funciones). */
   guardarBloqueado = false;
-  /** Las cuotas guardadas están llegando: no se edita el plan (una carga tardía pisaría lo cambiado). */
-  cuotasCargando = false;
+  /**
+   * Las cuotas guardadas están llegando o no se pudieron leer: no se edita el plan (ni los campos ni el editor).
+   * Si se editara, las cuotas que lleguen después pisarían la tabla dejándola distinta de la cantidad y el monto.
+   */
+  planBloqueado = false;
+  /** Contador de lecturas de ente y cuotas: solo aplica la última (reintentos, recarga tras guardar). */
+  lectura = 0;
 
   constructor(
     private form: () => FormGroup,
@@ -63,14 +68,14 @@ export class EstadoFormularioBien {
     const porPlan = this.planSinCalcular && this.situacionActual() === 'PAGANDO';
     this.guardarBloqueado = porBien || porCuotas || porPlan;
 
-    const cuotasCargando = this.cuotas === 'cargando';
-    if (cuotasCargando !== this.cuotasCargando) {
-      this.cuotasCargando = cuotasCargando;
+    const planBloqueado = this.cuotas === 'cargando' || (this.eraPagando && this.cuotas === 'error');
+    if (planBloqueado !== this.planBloqueado) {
+      this.planBloqueado = planBloqueado;
       const form = this.form();
       CAMPOS_DE_CUOTAS.forEach((campo) => {
         const control = form?.controls[campo];
         if (control == null) return;
-        if (cuotasCargando) control.disable({ emitEvent: false });
+        if (planBloqueado) control.disable({ emitEvent: false });
         else control.enable({ emitEvent: false });
       });
     }
