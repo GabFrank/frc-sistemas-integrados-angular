@@ -24,7 +24,7 @@ export class AdicionarPrecioPorSucursalData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { concat } from 'rxjs';
+import { concat, defer } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
@@ -280,7 +280,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
             updateInput.sucursalId = this.mainService?.sucursalActual?.id;
             updateInput.usuarioId = null;
             // Al central, como el alta: los precios se replican central → filial, una baja hecha en el filial se pierde
-            return this.precioService.onSave(updateInput).pipe(take(1));
+            // defer: onSave abre su modal «Guardando…» al llamarse; así una baja que no llega a correr no deja el suyo abierto
+            return defer(() => this.precioService.onSave(updateInput).pipe(take(1)));
           });
 
         if (bajas.length === 0) {
@@ -317,12 +318,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     }, error => {
       this.cargandoDialog.closeDialog(requestId);
       if (Array.isArray(error) && !seBajoElPrincipal) {
-        // El servidor respondió que no y no se tocó nada más: se puede corregir y reintentar acá mismo
-        this.notificacionSnackBar.notification$.next({
-          texto: "Error al guardar el precio",
-          color: NotificacionColor.warn,
-          duracion: 3
-        });
+        // El servidor respondió que no (ya lo avisó el servicio) y no se tocó nada más: se puede corregir y reintentar
         return;
       }
       if (Array.isArray(error)) {

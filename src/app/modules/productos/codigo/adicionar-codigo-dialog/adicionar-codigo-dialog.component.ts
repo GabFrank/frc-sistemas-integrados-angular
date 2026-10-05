@@ -381,10 +381,11 @@ export class AdicionarCodigoDialogComponent implements OnInit {
             }
             this.matDialogRef.close({ codigo: null, index: this.data.index, presentacionIndex: this.data.presentacionIndex });
           }, next: (res2) => {
-            this.guardando = false;
             if (res2 == null) {
+              this.guardando = false;
               return;
             }
+            // `guardando` sigue en true: el diálogo se cierra (tras imprimir, si corresponde)
             const closePayload = {
               codigo: res2,
               index: this.data.index,

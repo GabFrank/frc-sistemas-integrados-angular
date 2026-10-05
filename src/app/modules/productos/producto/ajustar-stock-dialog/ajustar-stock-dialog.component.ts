@@ -14,7 +14,7 @@ import { MovimientoStockService } from '../../../operaciones/movimiento-stock/mo
 import { MovimientoStock, MovimientoStockInput } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
 import { TipoMovimiento } from '../../../operaciones/movimiento-stock/movimiento-stock.enums';
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
-import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
 /** Stock actual: el error de red y el del servidor llegan al diálogo, que avisa; nunca un 0 inventado (#390). */
 const LECTURA_STOCK: QueryError = {
@@ -60,11 +60,12 @@ export class AjustarStockDialogComponent implements OnInit {
   /**
    * Un guardado quedó sin respuesta: pudo haberse aplicado (o aplicarse después). Se recuerda la base y la
    * diferencia enviadas para reconocerlo al releer, y no se permite otro intento a ciegas (duplicaría el ajuste).
-   * Es de UNA sucursal: cambiar a otra y volver no lo borra.
+   * Es de UNA sucursal: mientras exista no se puede cambiar de sucursal (un segundo pendiente pisaría a este).
    */
   ajusteSinConfirmar: { sucursalId: number; base: number; diferencia: number; avisado?: boolean } | null = null;
   /** El pendiente es de la sucursal elegida (para el template y el bloqueo). */
   pendienteEnSucursal = false;
+  private sucursalBloqueadaPorPendiente = false;
   guardando = false;
   /** Solo aplica la última lectura de stock (cambio de sucursal, reintentos). */
   private lecturaStock = 0;
@@ -192,7 +193,9 @@ export class AjustarStockDialogComponent implements OnInit {
 
   private marcarStockSinLeer(): void {
     this.stockFallo = true;
-    this.notificacionService.openWarn('No se pudo leer el stock actual: usá «Reintentar» antes de ajustar.', 5);
+    this.notificacionService.openWarn(this.pendienteEnSucursal
+      ? 'No se pudo confirmar el ajuste ni volver a leer el stock: pudo haberse aplicado. Usá «Reintentar» antes de ajustar de nuevo.'
+      : 'No se pudo leer el stock actual: usá «Reintentar» antes de ajustar.', this.pendienteEnSucursal ? 10 : 5);
   }
 
   private aplicarStockLeido(stock: number): void {
@@ -226,6 +229,10 @@ export class AjustarStockDialogComponent implements OnInit {
       // Releído a pedido del usuario: se parte del valor nuevo
       this.ajusteSinConfirmar = null;
       this.pendienteEnSucursal = false;
+      if (this.sucursalBloqueadaPorPendiente) {
+        this.sucursalBloqueadaPorPendiente = false;
+        this.sucursalControl.enable({ emitEvent: false });
+      }
     }
     this.stockCargado = true;
     this.cantidadControl.setValue(this.stockActual);
@@ -305,16 +312,18 @@ export class AjustarStockDialogComponent implements OnInit {
           this.cargandoService.closeDialog(requestId);
           this.guardando = false;
           if (Array.isArray(error)) {
-            // El servidor respondió que no: no se aplicó y se puede reintentar
-            this.notificacionService.openAlgoSalioMal('No se pudo guardar el ajuste de stock.');
+            // El servidor respondió que no (ya lo avisó el servicio): no se aplicó y se puede reintentar
             return;
           }
           // Sin respuesta: pudo haberse aplicado. Se relee el stock y se compara antes de permitir otro intento.
           this.ajusteSinConfirmar = { sucursalId: movimientoStockInput.sucursalId, base, diferencia };
-          this.stockCargado = false;
-          if (!esTimeoutDeLink(error)) {
-            this.notificacionService.openWarn('No se pudo confirmar el ajuste: se vuelve a leer el stock antes de reintentar.', 6);
+          this.pendienteEnSucursal = true;
+          if (this.sucursalControl.enabled) {
+            this.sucursalBloqueadaPorPendiente = true;
+            this.sucursalControl.disable({ emitEvent: false });
           }
+          this.stockCargado = false;
+          // Un solo aviso: lo da la relectura (se aplicó / todavía no se ve / cambió / no se pudo leer)
           this.cargarStockActual();
         }
       });

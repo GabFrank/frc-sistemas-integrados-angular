@@ -149,3 +149,57 @@ caso en la base local.
 | A | `ajustar-costo-dialog` sí tiene quien lo abra | baja | corregido |
 | B | `null` como fallo es seguro (el central devuelve 0.0, `[]` o Boolean) | — | verificado |
 | A/B | El ajuste suma la diferencia en el central; lectura y guardado van al central (sin lag de réplica) | — | verificado |
+
+## Implementación: desvíos
+
+- **Ajuste, pendiente por sucursal**: mientras hay un ajuste sin confirmar el selector de sucursal queda bloqueado
+  (un segundo pendiente en otra sucursal pisaría al primero). «Otro valor» pide una relectura explícita: la
+  primera avisa con los números, la segunda habilita partiendo del stock nuevo. Cancelar con un pendiente cierra
+  refrescando la lista.
+- **Ajuste, un solo aviso**: tras el guardado sin respuesta avisa la relectura (se aplicó / todavía no se ve /
+  cambió / no se pudo leer), no el guardado. En el corte por tiempo se suma el aviso del link (aceptado).
+- **`onGetPrecioPorSurursalPorPresentacionId`** quedó opt-in (`errorConf?`, `contexto?`, `silentLoad?`) en vez de
+  propagar por defecto: mismo resultado (los tres llamadores lo pasan) sin dejar un llamador sin `error:` entre fases.
+- **`onGetCodigoPorCodigo`** pasó de `onGetByTexto` a `onCustomQuery` (mismas variables y respuesta) para poder
+  darle el corte de 20 s; propaga también el error GraphQL.
+- **Códigos y precios de la presentación elegida** (`onPresentacionSelect`): esas dos fuentes no se muestran (las
+  tablas salen de la consulta de presentaciones); se limpian antes de pedir y un fallo no avisa.
+- **`onProductoSave`** ganó `error:` (no estaba en el plan): sin respuesta avisa «pudo haberse guardado».
+- **Bajas del principal**: en serie (`concat` + `defer`), al central. `adicionar-codigo-dialog` ganó el flag
+  `guardando` (Enter por `HostListener` relanzaba el guardado).
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. No se guardó ningún ajuste, precio, código ni producto.
+
+| Caso | Resultado |
+|---|---|
+| Ajuste, central vivo (COCA COLA 2LTS, suc. 1 y 3) | stock real (−208 / −429), Guardar según la diferencia |
+| Ajuste, cambio de sucursal congelado | a los 20 s «No se pudo leer el stock actual» + Reintentar; Guardar bloqueado, también por Enter (`onGuardar`) |
+| Ajuste, reanudar + Reintentar | lee el stock y habilita |
+| Guardado sin respuesta (mutation reemplazada por un error, no se envía nada) | pendiente, sucursal y Guardar bloqueados, «todavía no se ve aplicado»; un solo intento enviado |
+| Relectura con `stock == base + diferencia` | «Guardado con éxito», cierra con `true` |
+| Relectura con otro valor | aviso con los números; habilita recién en la segunda relectura |
+| Precio nuevo / precio principal, lecturas congeladas | «No se pudieron leer los precios…», 0 guardados, diálogo abierto, sin modal colgado |
+| Nombre del producto, congelado | «No se pudo validar el nombre del producto», 0 guardados |
+| Código: control de uso (doble Enter) y generar, congelado | un aviso cada uno, 0 guardados |
+| Abrir producto congelado | cartel «No se pudo cargar el producto» + Reintentar; `onProductoSave` y «Siguiente» bloqueados |
+| Reanudar + Reintentar | carga el producto y sus presentaciones |
+
+Sin probar en runtime: baja real del principal y guardado de precio/código/producto (escriben; cubierto por lectura
+de código y auditoría).
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | Las bajas del principal abrían su modal al crearse y `concat` solo suscribe de a una: con dos principales y la primera fallida quedaban modales abiertos | `defer` |
+| media | Con un error no-array que nunca llegó al servidor el ajuste queda bloqueado (`stock == base`) | es la regla del plan: Cancelar y reabrir relee y permite; documentado |
+| baja | Un único pendiente: otro en otra sucursal lo pisaba | selector de sucursal bloqueado mientras hay pendiente |
+| baja | Aviso doble en el rechazo del servidor (ajuste y precio) | se quitó el aviso propio |
+| baja | Recargas solapadas de presentaciones: una vieja fallida vaciaba la lista buena | contador de lectura |
+| baja | Código: Enter durante la impresión relanzaba el guardado | `guardando` sigue en `true` hasta cerrar |
+| baja | Diálogo de precio sin flag contra doble Guardar (ya era así; lo frena el modal) | anotado, sin cambio |
+| baja | Cartel del producto con `position: absolute` | verificado en pantalla, sin cambio |
+| — | Otros llamadores (`getProducto`, `onGetAllTipoPrecios` del POS, `onGetCodigoPorCodigo`), reglas de HTML y dark mode | sin hallazgos |

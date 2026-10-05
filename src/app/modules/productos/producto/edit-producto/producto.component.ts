@@ -1040,6 +1040,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   selectedPresentacion: Presentacion | null;
   isPresentacionLoading = false;
   presentacionesFallo = false;
+  private lecturaPresentaciones = 0;
   /** Se abrió para editar y el producto todavía no cargó (o falló): no se guarda, para no crear uno nuevo (#390). */
   productoSinCargar = false;
   productoCargaFallo = false;
@@ -1051,15 +1052,18 @@ export class ProductoComponent implements OnInit, OnDestroy {
   @ViewChild("precioTable") precioTable: MatTable<PrecioPorSucursalService>;
 
   getPresentacionPorProductoId(id) {
+    const lectura = ++this.lecturaPresentaciones; // solo aplica la última (recargas solapadas)
     this.isPresentacionLoading = true;
     this.presentacionesFallo = false;
     this.presentacionService
       .onGetPresentacionesPorProductoIdParaDialogo(id)
       .pipe(untilDestroyed(this))
       .subscribe({ error: () => {
+        if (lectura !== this.lecturaPresentaciones) return;
         this.marcarPresentacionesSinCargar();
         this.notificacionService.openWarn('No se pudieron cargar las presentaciones: usá «Reintentar».', 5);
       }, next: (data) => {
+        if (lectura !== this.lecturaPresentaciones) return;
         if (data == null) {
           this.marcarPresentacionesSinCargar(); // error del servidor: ya se avisó
           return;
