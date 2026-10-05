@@ -17,6 +17,7 @@ import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -51,6 +52,9 @@ import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
 import { LucroPorProductoListGQL } from "./graphql/lucroPorProductoList";
+
+/** Un reporte puede tardar: se mantiene el corte largo de las consultas (no el de 60 s). */
+export const TIMEOUT_REPORTE_MS = 300000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -133,8 +137,10 @@ export class ProductoService {
       size
     }, 
     servidor,
-    undefined,
-    silentLoad);
+    // El error de red y el del servidor llegan a la lista (60 s), que avisa una vez (#390)
+    { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } },
+    silentLoad,
+    { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true, errorConf?: QueryError,
@@ -171,6 +177,11 @@ export class ProductoService {
       .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, errorConf, silentLoad, contexto)
       .pipe(
         map((filas: StockPorSucursalRaw[]) => {
+          // El central nunca devuelve null acá ([] si no hay movimientos): para quien pidió el error, un null
+          // sin error es un fallo, no «sin stock en ninguna sucursal»
+          if (filas == null && errorConf?.graphError?.propagate === true) {
+            throw new Error('stockPorSucursales sin datos');
+          }
           const porSucursal = new PorSucursal<number>();
           (filas || []).forEach((fila) => {
             if (fila?.sucursalId == null) return;
@@ -253,8 +264,14 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.exportarReporte, {texto}, servidor);
   }
 
+  /**
+   * Propaga el error de red: sin eso quien llama no se entera y su modal «Generando reporte…» queda abierto (#390).
+   * Sin modal ni avisos propios (los pone quien llama); con error del servidor emite `null`.
+   */
   onExportarReporteConFiltros(parametros: any, servidor = true): Observable<string> {
-    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor);
+    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { show: false } }, true,
+      { timeoutMs: TIMEOUT_REPORTE_MS, silenciarAvisoTimeout: true });
   }
 
   onFindByPdvGrupoProductoId(id, servidor = true): Observable<Producto[]> {
