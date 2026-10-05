@@ -21,6 +21,8 @@ export interface AddFamiliaData {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GraphQLError } from 'graphql';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -46,6 +48,8 @@ export class AddFamiliaDialogComponent implements OnInit {
   isCancelar = true;
   isGuardar = true;
   isEditar = false;
+  /** Guardando: sin doble «Guardar» y sin cerrar el diálogo (Esc o clic afuera) hasta saber qué pasó. */
+  guardando = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddFamiliaData,
@@ -106,6 +110,7 @@ export class AddFamiliaDialogComponent implements OnInit {
   onEditar() {}
 
   onSave() {
+    if (this.guardando) return;
     this.familiaInput = new FamiliaInput();
     if(this.data?.familia!=null){
       this.familiaInput.id = this.data.familia.id;
@@ -118,16 +123,26 @@ export class AddFamiliaDialogComponent implements OnInit {
       this.descripcionControl.value?.toUpperCase();
     this.familiaInput.activo = true;
     this.familiaInput.icono = this.iconoControl.value;
-    this.familiaService.onSaveFamilia(this.familiaInput).subscribe({
+    this.guardando = true;
+    this.dialogRef.disableClose = true;
+    const fin = () => {
+      this.guardando = false;
+      this.dialogRef.disableClose = false;
+    };
+    this.familiaService.onSaveFamilia(this.familiaInput).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
-        if (res != null) {
-          this.dialogRef.close(res);
-          this.notificationBar.notification$.next({
-            texto: 'Guardado con éxito',
-            color: NotificacionColor.success,
-            duracion: 2,
-          });
-        }
+        fin();
+        // «Guardado con éxito» ya lo muestra el servicio
+        if (res != null) this.dialogRef.close(res);
+      },
+      error: (error) => {
+        fin();
+        // Rechazo del servidor o respuesta vacía: el servicio ya avisó. En el corte por tiempo avisa el link.
+        if (esRechazoDelServidor(error) || Array.isArray(error) || esTimeoutDeLink(error)) return;
+        // Sin respuesta: pudo haberse guardado. Reintentar es seguro: el nombre de la familia es único en el
+        // servidor (alta) y la edición lleva su id.
+        this.notificationBar.openWarn(
+          'No se pudo confirmar el guardado. Podés volver a intentar: si ya se guardó, el sistema lo va a indicar.', 8);
       }
     });
   }

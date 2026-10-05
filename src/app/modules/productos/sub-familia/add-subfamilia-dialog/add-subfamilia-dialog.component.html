@@ -38,10 +38,20 @@
         </mat-select>
       </mat-form-field>
     </div>
+    <!-- Alta sin respuesta (#390): pudo haberse guardado; no se vuelve a guardar desde acá -->
+    <div *ngIf="altaSinConfirmar" fxLayout="column" fxLayoutGap="8px" style="padding: 10px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+        <mat-icon>warning</mat-icon>
+        <span>No se pudo confirmar si la subfamilia se guardó. No vuelvas a cargarla sin revisar: cerrá y buscala en la lista.</span>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+        <button mat-stroked-button type="button" (click)="onCerrar()">Cerrar</button>
+      </div>
+    </div>
     <br>
     <div fxFlex fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="space-around center">
       <button fxFlex="30" *ngIf="isCancelar" mat-raised-button (click)="onCancelar()" color="primary">Cancelar</button>
-      <button [disabled]="!formGroup.valid" fxFlex="30" *ngIf="isGuardar" mat-raised-button (click)="onGuardar()" color="accent">Guardar</button>
+      <button [disabled]="!formGroup.valid || guardando || altaSinConfirmar" fxFlex="30" *ngIf="isGuardar" mat-raised-button (click)="onGuardar()" color="accent">Guardar</button>
       <button fxFlex="30" *ngIf="isEditar" mat-raised-button (click)="onEditar()" color="accent">Editar</button>
   </div>
   </form>

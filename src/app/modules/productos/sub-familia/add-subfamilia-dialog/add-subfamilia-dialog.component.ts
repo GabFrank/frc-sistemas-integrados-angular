@@ -14,6 +14,8 @@ export interface AddSubfamiliaData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -40,6 +42,13 @@ export class AddSubfamiliaDialogComponent implements OnInit {
   isCancelar = true;
   isGuardar = true;
   isEditar = false;
+  /** Guardando: sin doble «Guardar» y sin cerrar el diálogo (Esc o clic afuera) hasta saber qué pasó. */
+  guardando = false;
+  /**
+   * Un ALTA quedó sin respuesta: pudo haberse guardado y las subfamilias no tienen nombre único, así que volver a
+   * guardar la duplicaría. Guardar queda bloqueado en este diálogo (#390).
+   */
+  altaSinConfirmar = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddSubfamiliaData,
@@ -53,11 +62,17 @@ export class AddSubfamiliaDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.loadData();
-    this.subfamiliaService.onCountSubfamilia().pipe(untilDestroyed(this)).subscribe((res) => {
+    this.asegurarPosicionActual();
+    // La posición no ordena nada: si el conteo no llega, la lista queda con la posición actual y no se bloquea
+    this.subfamiliaService.onCountSubfamilia().pipe(untilDestroyed(this)).subscribe({ error: () => {}, next: (res) => {
+      if (res == null) return;
+      const posiciones: number[] = [];
       for (let index = 0; index < res + 1; index++) {
-        this.listPos.push(index + 1);
+        posiciones.push(index + 1);
       }
-    });
+      this.listPos = posiciones;
+      this.asegurarPosicionActual();
+    } });
   }
 
   createForm() {
@@ -93,6 +108,17 @@ export class AddSubfamiliaDialogComponent implements OnInit {
       });
   }
 
+  /** En edición, la posición guardada siempre está entre las opciones (si no, el select se ve en blanco). */
+  private asegurarPosicionActual(): void {
+    // El modelo la trae como texto: se deja tal cual (es el valor que tiene el control)
+    const actual: any = this.data?.subfamilia?.posicion;
+    if (actual != null && !this.listPos.some((p) => p === actual)) this.listPos = [...this.listPos, actual];
+  }
+
+  onCerrar() {
+    this.dialogRef.close(null);
+  }
+
   onCancelar() {
     this.nombreControl.reset();
     this.descripcionControl.reset();
@@ -107,6 +133,8 @@ export class AddSubfamiliaDialogComponent implements OnInit {
   onEditar() {}
 
   onSave() {
+    if (this.guardando || this.altaSinConfirmar) return;
+    const esAlta = this.data.subfamilia == null;
     this.subfamiliaInput = new SubfamiliaInput();
     if(this.data.subfamilia!=null){
       this.subfamiliaInput.id = this.data.subfamilia.id;
@@ -122,14 +150,31 @@ export class AddSubfamiliaDialogComponent implements OnInit {
       this.descripcionControl.value?.toUpperCase();
     this.subfamiliaInput.activo = true;
     this.subfamiliaInput.icono = this.iconoControl.value;
-    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.dialogRef.close(res);
-        this.notificationBar.notification$.next({
-          texto: 'Guardado con éxito',
-          color: NotificacionColor.success,
-          duracion: 2,
-        });
+    this.guardando = true;
+    this.dialogRef.disableClose = true;
+    const fin = () => {
+      this.guardando = false;
+      this.dialogRef.disableClose = false;
+    };
+    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        fin();
+        // «Guardado con éxito» ya lo muestra el servicio
+        if (res != null) this.dialogRef.close(res);
+      },
+      error: (error) => {
+        fin();
+        // Rechazo: el servidor dijo que no (ya avisó el servicio); se puede corregir y reintentar
+        if (esRechazoDelServidor(error)) return;
+        if (esAlta) {
+          // Sin respuesta en un alta: pudo haberse guardado. No se reintenta a ciegas.
+          this.altaSinConfirmar = true;
+          return;
+        }
+        // Edición: lleva su id, reintentar es inocuo. (Con respuesta vacía ya avisó el servicio; en el corte, el link.)
+        if (!Array.isArray(error) && !esTimeoutDeLink(error)) {
+          this.notificationBar.openWarn('No se pudo confirmar el guardado: podés volver a intentar.', 6);
+        }
       }
     });
   }

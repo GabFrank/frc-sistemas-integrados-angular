@@ -9,7 +9,7 @@ import { CountFamiliaGQL } from './graphql/countFamilia';
 import { MainService } from '../../../main.service';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { FamiliasSearchGQL } from './graphql/familiasSearch';
 
 @UntilDestroy({ checkProperties: true })
@@ -52,7 +52,8 @@ export class FamiliaService {
   }
 
   onSaveFamilia(familiaInput: FamiliaInput, servidor = true): Observable<any>{
-    return this.genericService.onSave(this.saveFamilia, familiaInput, null, null, servidor);  
+    // Propaga el error de red: sin eso el genérico se lo traga y quien guarda no se entera (#390)
+    return this.genericService.onSave(this.saveFamilia, familiaInput, null, null, servidor, PROPAGAR_ERROR_DE_RED);
   }
 
 

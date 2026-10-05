@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
+import { take, tap } from 'rxjs/operators';
 import { MainService } from '../../../main.service';
 import { FamiliaService } from '../familia/familia.service';
 import { AllSubfamiliasGQL } from './graphql/allFamilias';
@@ -10,7 +11,7 @@ import { SubfamiliaInput } from './graphql/subfamilia-input.model';
 import { Subfamilia } from './sub-familia.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 import { SubfamiliasSearchGQL } from './graphql/subfamiliasSearch';
 import { SearchSubfamiliaByDescripcionGQL } from './graphql/searchByDescripcion';
 
@@ -56,19 +57,26 @@ export class SubFamiliaService {
   onSaveSubfamilia(subfamiliaInput: SubfamiliaInput, servidor = true): Observable<any> {
     subfamiliaInput.usuarioId = this.mainService?.usuarioActual?.id
     subfamiliaInput.icono == null ? subfamiliaInput.icono = 'block' : null
-    return new Observable(obs => {
-      this.genericService.onSave(this.saveSubfamilia, subfamiliaInput, null, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) {
-          this.onGetSubfamilias()
-          this.familiaService.onGetFamilias()
-          obs.next(res)
-        }
+    // Sin el Observable envoltorio de antes (su subscribe interno no tenía `error:`: ante cualquier error no
+    // emitía ni completaba) y con el error de red propagado (#390). take(1): onSave puede emitir sin completar.
+    return this.genericService.onSave(this.saveSubfamilia, subfamiliaInput, null, null, servidor, PROPAGAR_ERROR_DE_RED).pipe(
+      take(1),
+      tap(res => {
+        if (res) this.recargarListas();
       })
-    })
+    );
   }
 
-  onSearchSubfamilia(familiaId, texto, page, size, servidor = true) {
-    return this.genericService.onCustomQuery(this.subfamiliaSearch, { familiaId, texto, page, size }, servidor);
+  /** Listas en memoria de familias y subfamilias, tras un cambio. */
+  recargarListas(): void {
+    this.onGetSubfamilias()
+    this.familiaService.onGetFamilias()
+  }
+
+  /** `errorConf` / `contexto`: para quien necesita enterarse del error; sin ellos queda como antes. */
+  onSearchSubfamilia(familiaId, texto, page, size, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta) {
+    return this.genericService.onCustomQuery(this.subfamiliaSearch, { familiaId, texto, page, size }, servidor,
+      errorConf, undefined, contexto);
   }
 
   onSearchSubfamiliaSinFamiliaId(texto, page, size, servidor = true) {
@@ -87,6 +95,7 @@ export class SubFamiliaService {
   }
 
   onCountSubfamilia(servidor = true): Observable<number> {
-    return this.genericService.onCustomQuery(this.countSubfamilia, null, servidor);
+    return this.genericService.onCustomQuery(this.countSubfamilia, null, servidor, PROPAGAR_ERROR_DE_RED, true,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 }
