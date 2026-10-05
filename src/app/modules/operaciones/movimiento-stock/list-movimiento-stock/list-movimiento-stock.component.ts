@@ -54,7 +54,28 @@ import { Venta } from "../../venta/venta.model";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { EditTransferenciaComponent } from "../../transferencia/edit-transferencia/edit-transferencia.component";
 import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
-import { forkJoin } from "rxjs";
+import { forkJoin, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import { ContextoConsulta, QueryError } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+
+/**
+ * Stock actual por sucursal para el resumen: el error de red y el del servidor llegan acá, sin aviso del servicio
+ * (la pantalla avisa una sola vez por bloque). 60 s y sin modal: son N consultas en paralelo (#390).
+ */
+const LECTURA_STOCK_RESUMEN: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_RESUMEN: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Marca de «esta sucursal no respondió» dentro de un forkJoin (para no cortar las demás). */
+const SIN_RESPUESTA = { sinRespuesta: true };
+
+/**
+ * Estado de un bloque del resumen. Un stock que no se pudo leer no se muestra como 0 ni como total parcial:
+ * mientras carga o si falla alguna sucursal, el total queda «—» (#390).
+ */
+export type EstadoResumen = 'sin-producto' | 'cargando' | 'ok' | 'no-disponible';
 
 export interface StockResumenView {
   tipoMovimiento: string;
@@ -121,13 +142,20 @@ export class ListMovimientoStockComponent implements OnInit {
   size = 20;
   selectedPageInfo: PageInfo<MovimientoStock>;
   
-  stockActualDesglose: { sucursal: string; stock: number }[] = [];
+  stockActualDesglose: { sucursal: string; stock: number | null }[] = [];
+  stockActualEstado: EstadoResumen = 'sin-producto';
+  stockPeriodoEstado: EstadoResumen = 'sin-producto';
+  /** Sucursales cuyo stock del período no se pudo leer (texto listo para el template). */
+  stockPeriodoSinRespuesta = '';
+  /** Descartan respuestas de un filtro anterior. Separados: paginar recarga la lista pero no el resumen. */
+  private cargaLista = 0;
+  private cargaResumen = 0;
   // Habilita el desglose por sucursal en el resumen. Depende de cuántas sucursales
   // se filtraron, no de cuántas devolvieron datos: un tipo de movimiento que solo
   // existe en una sucursal igual tiene que mostrar de cuál se trata.
   desgloseHabilitado = false;
-  stockTotal = 0;
-  stockPorRangoFecha = 0;
+  stockTotal: number | null = null;
+  stockPorRangoFecha: number | null = null;
   stockPorTipoMovimiento: StockResumenView[];
   totalRecibidoGs = 0;
   totalRecibido = 0;
@@ -219,86 +247,115 @@ export class ListMovimientoStockComponent implements OnInit {
 
     this.onGetMovimientos();
 
-    // if sucursalid list is not empty, get stock for each sucursal and sum itm add logs  
     if (sucursalIdList.length > 0 && !isPagination) {
-
-
-      this.stockTotal = 0;
-      this.stockPorRangoFecha = 0;
+      const carga = ++this.cargaResumen;
+      this.stockTotal = null;
+      this.stockPorRangoFecha = null;
       this.stockPorTipoMovimiento = [];
       this.stockActualDesglose = [];
+      this.stockPeriodoSinRespuesta = '';
       this.desgloseHabilitado = sucursalIdList.length > 1;
 
-      if (this.selectedProducto?.id) {
-        
-        const stockObservables = sucursalIdList.map(id => 
-          this.service.onGetStockPorProducto(this.selectedProducto.id, id)
+      if (!this.selectedProducto?.id) {
+        // Sin producto no se consulta nada: el central respondería null y parecería un fallo
+        this.stockActualEstado = 'sin-producto';
+        this.stockPeriodoEstado = 'sin-producto';
+        this.notificacionService.openWarn(
+          "Debe seleccionar un producto para realizar la búsqueda"
         );
+        return;
+      }
+      const productoId = this.selectedProducto.id;
+      const nombreDe = (index: number) =>
+        this.sucursalList.find(s => s.id === sucursalIdList[index])?.nombre ?? 'Desconocido';
 
-        forkJoin(stockObservables).subscribe((res: number[]) => {
-          res.forEach((stock, index) => {
-            this.stockTotal += stock;
-            
-            const sucursal = this.sucursalList.find(s => s.id === sucursalIdList[index]);
-            this.stockActualDesglose.push({
-              sucursal: sucursal ? sucursal.nombre : 'Desconocido',
-              stock: stock
+      // Stock actual: una consulta por sucursal; la que falla se marca, no corta a las demás
+      this.stockActualEstado = 'cargando';
+      const stockObservables = sucursalIdList.map(id =>
+        this.service.onGetStockPorProducto(productoId, id, true, LECTURA_STOCK_RESUMEN, CONSULTA_RESUMEN, true).pipe(
+          map((stock): any => stock == null ? SIN_RESPUESTA : stock),
+          catchError(() => of<any>(SIN_RESPUESTA))
+        )
+      );
+      forkJoin(stockObservables).pipe(untilDestroyed(this)).subscribe((res: any[]) => {
+        if (carga !== this.cargaResumen) return; // respuesta de un filtro anterior
+        this.stockActualDesglose = res.map((stock, index) => ({
+          sucursal: nombreDe(index),
+          stock: stock === SIN_RESPUESTA ? null : stock,
+        }));
+        if (res.some(stock => stock === SIN_RESPUESTA)) {
+          // Un total con sucursales faltantes sería parcial: no se muestra
+          this.stockTotal = null;
+          this.stockActualEstado = 'no-disponible';
+          this.notificacionService.openWarn('No se pudo leer el stock actual de todas las sucursales: volvé a filtrar.', 6);
+          return;
+        }
+        this.stockTotal = res.reduce((total, stock) => total + stock, 0);
+        this.stockActualEstado = 'ok';
+      });
+
+      // Stock del período por tipo de movimiento
+      this.stockPeriodoEstado = 'cargando';
+      const observables = sucursalIdList.map(id =>
+        this.service
+          .onGetStockPorTipoMovimiento(
+            dateToString(fechaInicial),
+            dateToString(fechaFin),
+            [id],
+            productoId,
+            this.tipoMovimientoControl.value,
+            this.selectedUsuario?.id
+          )
+          .pipe(
+            // Con producto y fechas el central devuelve [] si no hay movimientos: un null es un fallo
+            map((filas): any => Array.isArray(filas) ? filas : SIN_RESPUESTA),
+            catchError(() => of<any>(SIN_RESPUESTA))
+          )
+      );
+
+      forkJoin(observables).pipe(untilDestroyed(this)).subscribe((responses: any[]) => {
+        if (carga !== this.cargaResumen) return;
+        const sinRespuesta = responses
+          .map((resPorSucursal, index) => resPorSucursal === SIN_RESPUESTA ? nombreDe(index) : null)
+          .filter(nombre => nombre != null);
+        if (sinRespuesta.length > 0) {
+          this.stockPeriodoSinRespuesta = sinRespuesta.join(', ');
+          this.stockPorTipoMovimiento = [];
+          this.stockPorRangoFecha = null;
+          this.stockPeriodoEstado = 'no-disponible';
+          this.notificacionService.openWarn('No se pudo calcular el stock del período en todas las sucursales: volvé a filtrar.', 6);
+          return;
+        }
+
+        const agrupado: Map<string, StockResumenView> = new Map();
+        let total = 0;
+
+        responses.forEach((resPorSucursal: any[], index) => {
+          const nombreSucursal = nombreDe(index);
+          resPorSucursal.forEach((item) => {
+            const key = item.tipoMovimiento;
+            total += item.stock;
+
+            if (!agrupado.has(key)) {
+              agrupado.set(key, {
+                tipoMovimiento: key,
+                stock: 0,
+                expanded: []
+              });
+            }
+
+            const entry = agrupado.get(key);
+            entry.stock += item.stock;
+            entry.expanded.push({
+              sucursal: nombreSucursal,
+              stock: item.stock
             });
           });
         });
 
-      } else {
-        // Notificar que se requiere seleccionar un producto para esta métrica específica
-        this.notificacionService.openWarn(
-          "Debe seleccionar un producto para realizar la búsqueda"
-        );
-      }
-
-      const observables = sucursalIdList.map(id => {
-        return this.service
-        .onGetStockPorTipoMovimiento(
-          dateToString(fechaInicial),
-          dateToString(fechaFin),
-          [id],
-          this.selectedProducto?.id,
-          this.tipoMovimientoControl.value,
-          this.selectedUsuario?.id
-        );
-      });
-
-      forkJoin(observables).subscribe((responses : any[]) => {
-
-        const agrupado: Map<string, StockResumenView> = new Map();
-
-        responses.forEach((resPorSucursal, index) => {
-          const sucursalActual = this.sucursalList.find(s => s.id === sucursalIdList[index])
-          const nombreSucursal = sucursalActual ? sucursalActual.nombre : 'Desconocido';
-
-          if (Array.isArray(resPorSucursal)) {
-            resPorSucursal.forEach((item) => {
-              const key = item.tipoMovimiento;
-
-              this.stockPorRangoFecha += item.stock;
-            
-              if (!agrupado.has(key)) {
-                agrupado.set(key, {
-                  tipoMovimiento: key,
-                  stock: 0,
-                  expanded: []
-                });
-              }
-
-              const entry = agrupado.get(key);
-              entry.stock += item.stock;
-              entry.expanded.push({
-                sucursal: nombreSucursal,
-                stock: item.stock
-              });
-            });
-          }
-        });
-
+        this.stockPorRangoFecha = total;
         this.stockPorTipoMovimiento = Array.from(agrupado.values());
+        this.stockPeriodoEstado = 'ok';
       });
     }
   }
@@ -322,6 +379,7 @@ export class ListMovimientoStockComponent implements OnInit {
     fechaFin.setMinutes(horaFinal.getMinutes());
     fechaFin.setSeconds(horaFinal.getSeconds());
 
+    const carga = ++this.cargaLista;
     this.service
       .onGetMovimientoStockPorFiltros(
         dateToString(fechaInicial),
@@ -333,7 +391,15 @@ export class ListMovimientoStockComponent implements OnInit {
         this.page,
         this.size
       )
-      .subscribe((res) => {
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        if (carga !== this.cargaLista) return;
+        // Ni filas ni paginador del filtro anterior
+        this.selectedPageInfo = null;
+        this.dataSource.data = [];
+        this.notificacionService.openWarn('No se pudieron cargar los movimientos: volvé a filtrar.', 6);
+      }, next: (res) => {
+        if (carga !== this.cargaLista) return; // respuesta de un filtro o una página anterior
         if (!res) {
           this.selectedPageInfo = null;
           this.dataSource.data = [];
@@ -342,7 +408,7 @@ export class ListMovimientoStockComponent implements OnInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent || [];
         this.procesarDataDeAjustes();
-      });
+      } });
   }
   onReferenciaClick(movimiento: MovimientoStock) {
     console.log(movimiento);
@@ -605,8 +671,8 @@ export class ListMovimientoStockComponent implements OnInit {
   onFiltrar(isPagination: boolean = false) {
     this.dataSource.data = [];
     if (!isPagination) {
-      this.stockPorRangoFecha = 0;
-      this.stockTotal = 0;
+      this.stockPorRangoFecha = null;
+      this.stockTotal = null;
       this.stockPorTipoMovimiento = [];
     }
     this.onGetResumen(isPagination);
