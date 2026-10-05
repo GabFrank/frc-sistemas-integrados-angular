@@ -4,7 +4,7 @@ import { caracterDelLector, lecturasAProbar, rearmarComoLector, TeclaLector } fr
 
 /**
  * Las tres lecturas medidas el 2026-10-05 con el lector del PDV
- * (`frc-comercial/cupones-prueba/diagnostico-lector-teclado.html`): lo que el lector mandó y lo
+ * (`desktop/docs/utilitarios/diagnostico-lector-teclado.html`): lo que el lector mandó y lo
  * que tipeó Windows con el teclado en español latinoamericano.
  */
 const CUPON = 'FRCP1*CXF1**BRL*9455*E60701190202608271700DY5BCKNPMBQ*202608271401';
