@@ -46,16 +46,18 @@ import { ProductoComponent } from "../edit-producto/producto.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 import {
-  PROPAGAR_ERROR_DE_RED,
   QueryError,
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
-/** La búsqueda por descripción puede tardar más que un escaneo. */
+/** La búsqueda por descripción puede tardar más que un escaneo. Vale para todos los modos. */
 const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
-/** Detalle de un producto al expandirlo: el error de red y el del servidor llegan al diálogo, que avisa una vez. */
+/**
+ * Búsqueda y detalle: el error de red y el del servidor llegan al diálogo, que avisa una vez (antes solo en modo
+ * mostrador; en el resto la búsqueda quedaba «buscando» para siempre) (#390).
+ */
 const LECTURA_DETALLE: QueryError = {
   networkError: { propagate: true, show: false },
   graphError: { propagate: true, show: false },
@@ -148,7 +150,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   selectedTipoPrecio: TipoPrecio;
   isSearching = false;
   onSearchTimer;
-  /** Tanda vigente: una respuesta de una tanda anterior se descarta (modo mostrador). */
+  /** Tanda vigente: una respuesta de una tanda anterior se descarta. */
   private busquedaId = 0;
   private ultimoAvisoSinRespuesta = 0;
   productoDetailList: Producto[];
@@ -303,10 +305,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         const mostrador = this.data?.modoMostrador === true;
         const id = ++this.busquedaId;
         let fallo = false;
-        const errorConf: QueryError = mostrador ? PROPAGAR_ERROR_DE_RED : undefined;
-        const contexto: ContextoConsulta = mostrador
-          ? { timeoutMs: TIMEOUT_BUSQUEDA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
-          : undefined;
+        const errorConf: QueryError = LECTURA_DETALLE;
+        const contexto: ContextoConsulta = { timeoutMs: TIMEOUT_BUSQUEDA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
         const marcarFallo = () => {
           fallo = true;
           return of([]);
@@ -330,15 +330,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         forkJoin([busquedaDescripcion$, busquedaCodigo$])
           .pipe(untilDestroyed(this))
           .subscribe(([porDescripcion, porCodigo]: [Producto[], Producto[]]) => {
-            if (mostrador) {
-              // Otra tanda empezó después: esta respuesta ya no corresponde a lo que está escrito.
-              if (id !== this.busquedaId) return;
-              if (fallo) {
-                // No pisar la lista buena con [] ni simular "fin de lista" al paginar.
-                this.avisarSinRespuesta();
-                this.isSearching = false;
-                return;
+            // Otra tanda empezó después: esta respuesta ya no corresponde a lo que está escrito.
+            if (id !== this.busquedaId) return;
+            if (fallo) {
+              this.avisarSinRespuesta();
+              this.isSearching = false;
+              // Mostrador: no pisa la lista buena con []. Al paginar nunca se vacía (ni se simula «fin de lista»).
+              // En el resto, una primera página fallida no deja a la vista los resultados de otra búsqueda.
+              if (!mostrador && offset == null) {
+                this.dataSource.data = [];
+                this.expandedProducto = null;
+                this.limpiarSeleccionDePresentacion();
               }
+              return;
             }
             // Combinar resultados evitando duplicados (por id)
             const idsVistos = new Set<number>();
@@ -361,6 +365,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
             if (offset == null) {
               this.dataSource.data = combinados;
+              // Lista nueva: lo expandido y lo seleccionado eran de la anterior
+              this.expandedProducto = null;
+              this.limpiarSeleccionDePresentacion();
             } else {
               this.dataSource.data = [...this.dataSource.data, ...combinados];
             }
@@ -664,6 +671,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   limpiarBusqueda(): void {
     this.formGroup.get('buscarControl')?.setValue(null);
+    // La tanda en vuelo no repuebla la lista que se acaba de vaciar
+    this.busquedaId++;
+    this.isSearching = false;
+    this.expandedProducto = null;
+    this.limpiarSeleccionDePresentacion();
     this.dataSource.data = [];
     setTimeout(() => {
       this.buscarInput?.nativeElement?.focus();
