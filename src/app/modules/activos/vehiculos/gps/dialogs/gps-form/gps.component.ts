@@ -135,14 +135,20 @@ export class GPSComponent implements OnInit {
                 if (res) this.dialogRef.close(true);
             },
             error: error => {
-                // Rechazo: el servicio genérico ya mostró el motivo y no se guardó nada.
-                if (esRechazoDelServidor(error)) return;
+                // Rechazo: el servicio genérico ya mostró el motivo y no se guardó nada. Por un IMEI repetido el
+                // central devuelve el texto técnico de la base, así que se agrega uno legible.
+                if (esRechazoDelServidor(error)) {
+                    if (error.some(e => /constraint/i.test(e?.message || ''))) {
+                        this.notificacionService.openWarn('El servidor rechazó el guardado: puede que ya exista un GPS con ese IMEI', 6);
+                    }
+                    return;
+                }
                 if (esAlta) this.altaSinConfirmar = true;
                 // El corte del link y la respuesta vacía ya avisaron por su cuenta.
                 if (esTimeoutDeLink(error) || Array.isArray(error)) return;
                 // El IMEI es único en la base: repetir un alta no duplica el GPS.
                 this.notificacionService.openWarn(esAlta
-                    ? 'No se pudo confirmar si el GPS se guardó. Si al reintentar el servidor lo rechaza por un dato repetido, ya estaba guardado'
+                    ? 'No se pudo confirmar si el GPS se guardó. Si al reintentar el servidor lo rechaza por IMEI repetido, ya estaba guardado'
                     : 'No se pudo confirmar si se guardó. Probá de nuevo', 8);
             }
         });

@@ -44,8 +44,10 @@ export class ListGpsComponent implements OnInit {
     this.filtroControl.valueChanges.pipe(
       untilDestroyed(this),
       debounceTime(500)
-    ).subscribe(texto => {
-      this.gpsService.setSearchText(texto || '');
+    ).subscribe(() => {
+      // El valor actual, no el emitido: si en esos 500 ms se limpió el filtro o se buscó con Enter, el texto
+      // viejo que quedó esperando no vuelve a aplicarse.
+      this.gpsService.setSearchText(this.filtroControl.value || '');
     });
   }
 
