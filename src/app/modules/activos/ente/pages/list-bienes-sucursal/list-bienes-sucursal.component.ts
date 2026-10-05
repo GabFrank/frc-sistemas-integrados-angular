@@ -293,7 +293,10 @@ export class ListBienesSucursalComponent implements OnInit {
       estadoCuota,
       estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
       cuotaPagada,
-      cuotasSubtexto: cuotaPagada ? 'Pagado' : cuotasFaltantes == null ? 'Sin plan' : `Faltan: ${cuotasFaltantes}`,
+      cuotasSubtexto: cuotaPagada ? 'Pagado'
+        : cuotasFaltantes == null ? (cuotasTotales > 0 ? 'Sin datos de pago' : 'Sin plan')
+        : cuotasFaltantes <= 0 ? 'Sin cuotas pendientes'
+        : `Faltan: ${cuotasFaltantes}`,
       proveedor: ente.proveedorNombre || 'No definido',
       detalleGastos: [
         { concepto: 'Monto total comprometido', monto: montoTotal, moneda },

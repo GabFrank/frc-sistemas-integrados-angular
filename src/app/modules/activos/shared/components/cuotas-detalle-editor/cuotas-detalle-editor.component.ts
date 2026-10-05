@@ -185,7 +185,10 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
     this.cuotas = resultado.cuotas;
     this.actualizarTotalCuotas();
     this.emisionInterna = true;
-    this.omitirRecalculoMontoTotal = true;
+    // Solo si el formulario va a devolver un monto distinto por el @Input: si el central devuelve el mismo que ya
+    // estaba, no habrá ese cambio y el flag quedaría prendido, tragándose el próximo cambio real de monto (la
+    // tabla quedaría vieja con el plan «al día»).
+    this.omitirRecalculoMontoTotal = Number(resultado.montoTotal) !== Number(this.montoTotal);
     this.cuotasChange.emit(this.cuotas);
     this.montoTotalChange.emit(resultado.montoTotal);
     this.cdr.markForCheck();

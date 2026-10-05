@@ -204,3 +204,54 @@ No se guarda ningún bien ni ente con el central congelado.
 | A | `saveEnte` no devuelve la descripción | baja | se agrega a la selección |
 | B | Fases que tocaban dos veces el mismo componente | baja | reordenadas |
 | A/B | `enteByReferenciaId` devuelve `null` legítimo; con dos entes da error; `saveEnte` no deduplica; sin unicidad en la base; `calcularCuotasDetalle` nunca devuelve `null`; los llamadores del buscador toleran `undefined` | — | verificado |
+
+## Implementación: desvíos
+
+- **Las fases 1 y 2 quedaron en un solo commit**: las dos tocan `ente.service.ts`.
+- **El editor emite su estado también al crearse** (diferido): el formulario destruye y vuelve a crear el editor al
+  cambiar la situación de pago, y sin eso el bloqueo podía quedar de una instancia anterior.
+- **Cambio de monto que no recalculaba** (ya existía; lo encontró la auditoría del diff): si el central devolvía el
+  mismo monto total que ya estaba, un flag interno del editor quedaba prendido y se tragaba el siguiente cambio de
+  monto → tabla vieja con el plan «al día» y Guardar habilitado, justo lo que este PR bloquea. El flag ahora solo
+  se prende cuando el monto recalculado es distinto del que tenía el formulario.
+- **Subtexto de cuotas** en la lista: «Sin plan» (sin cuotas), «Sin datos de pago» (hay cuotas pero el central no
+  informa las faltantes), «Sin cuotas pendientes» (faltan 0 pero el bien no figura pagado), «Faltan: N».
+- **Avisos del buscador**: «No se pudo consultar el bien…» (falló la consulta del ente) y «No se pudo registrar el
+  bien…» (falló el alta por red); un error del servidor en el alta lo avisa el genérico.
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. No se guardó ningún bien ni ente. La base local tiene un solo
+ente (un vehículo), así que algunas filas se armaron a mano.
+
+| Caso | Resultado |
+|---|---|
+| Buscador de ente con la consulta del ente fallida (simulada) | aviso, devuelve `undefined`, **0 altas de ente** |
+| Buscador con un bien que ya tiene ente | lo devuelve, 0 altas |
+| Bienes por sucursal, vivo | lista con barra de progreso, sin modal |
+| Filtrar con el central congelado | barra mientras busca; a los 60 s lista y total vacíos + cartel «No se pudieron cargar los bienes» |
+| Reanudar + Reintentar, y un filtro nuevo | carga; el stream sigue vivo |
+| Fila sin monto ni plan (armada a mano) / fila con pendiente | «—», «Sin plan», sin «Pagado» / montos y «Faltan: 3» |
+| Editar y Retirar con la consulta de asignación fallida (simulada) | un aviso cada uno, sin TypeError, sin diálogo |
+| Plan de cuotas en un equipo nuevo, vivo | recalcula sin modal (4 × 100.000; 5 × 80.000 al cambiar la cantidad) |
+| **Cambiar el monto después de cambiar la cantidad** (tras el arreglo de la auditoría) | recalcula (5 × 200.000) |
+| Cálculo fallido (simulado) | la tabla conserva las cuotas, cartel + Reintentar, el formulario queda con `planSinCalcular`; Reintentar recalcula y lo libera |
+| Cambiar la situación a «pagado» | el bloqueo no queda pegado |
+
+**Sin probar en pantalla**: el botón Guardar deshabilitado *por* el plan sin recalcular (el equipo nuevo ya lo
+tenía deshabilitado por campos obligatorios; se comprobó la marca en el formulario, no el botón con un formulario
+válido); el alta de un ente desde el buscador (todos los bienes locales ya tienen ente); el cálculo con el central
+congelado de verdad (se simuló el error).
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| alta | Tras un recálculo que devuelve el mismo monto, el siguiente cambio de monto no recalculaba: tabla vieja con el plan «al día» y Guardar habilitado | el flag solo se prende si el monto cambió; probado en pantalla |
+| media | Sin la condición «faltan 0 ⇒ pagado», un bien con todas las cuotas pagadas y sin monto diría «Faltan: 0» | «Sin cuotas pendientes» (la regla coincide con el resumen del central) |
+| baja | «0 / 12 — Sin plan» cuando hay cuotas pero el central no informa las faltantes | «Sin datos de pago» |
+| baja | Formato roto en lo agregado a los 4 formularios | reformateado |
+| baja | Un monto total guardado en 0 con pendiente 0 sigue diciendo «Pagado» (igual que el central) | anotado |
+| baja | `onSave` puede lanzar de forma sincrónica sin sesión | ya era así; sin cambio |
+| — | El buscador no puede crear un ente tras un fallo ni dejar colgado a quien lo llama; el stream sigue vivo; `#sinDato` y la barra de progreso resuelven; sin caminos que dejen el bloqueo pegado con el central sano; los 4 formularios iguales y sin otra vía de guardado | sin hallazgos |
