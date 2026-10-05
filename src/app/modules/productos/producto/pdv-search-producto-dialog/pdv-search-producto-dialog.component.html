@@ -383,8 +383,19 @@
                       style="width: 100%"
                     >
                       <mat-spinner
-                        *ngIf="producto.presentaciones == null"
+                        *ngIf="producto.presentaciones == null && detalleFallidoId != producto.id"
                       ></mat-spinner>
+                      <div
+                        *ngIf="producto.presentaciones == null && detalleFallidoId == producto.id"
+                        fxLayout="row"
+                        fxLayoutAlign="center center"
+                        fxLayoutGap="10px"
+                      >
+                        <span>No se pudo cargar el producto.</span>
+                        <button mat-stroked-button type="button" (click)="reintentarDetalle(producto); $event.stopPropagation()">
+                          Reintentar
+                        </button>
+                      </div>
                     </div>
 
                     <br />

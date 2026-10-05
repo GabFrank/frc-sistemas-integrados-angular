@@ -46,14 +46,28 @@ import { ProductoComponent } from "../edit-producto/producto.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 import {
-  PROPAGAR_ERROR_DE_RED,
   QueryError,
   ContextoConsulta,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 /** La búsqueda por descripción puede tardar más que un escaneo. */
 const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
+/**
+ * Búsqueda y detalle: el error de red y el del servidor llegan al diálogo, que avisa una vez (antes solo en modo
+ * mostrador; en el resto la búsqueda quedaba «buscando» para siempre) (#390).
+ */
+const LECTURA_DETALLE: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const LECTURA_POR_CODIGO: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { show: false },
+};
+const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Un aviso por caída, no uno por cada pausa al tipear. */
 const INTERVALO_AVISO_SIN_RESPUESTA_MS = 10000;
 
@@ -141,7 +155,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   selectedTipoPrecio: TipoPrecio;
   isSearching = false;
   onSearchTimer;
-  /** Tanda vigente: una respuesta de una tanda anterior se descarta (modo mostrador). */
+  /** Tanda vigente: una respuesta de una tanda anterior se descarta. */
   private busquedaId = 0;
   private ultimoAvisoSinRespuesta = 0;
   productoDetailList: Producto[];
@@ -161,6 +175,10 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   existenciaOrigen: number = 0;
   existenciaDestino: number = 0;
   modoSeleccionMultiple = false;
+  /** Producto expandido cuyo detalle no se pudo cargar: en vez del spinner se ofrece reintentar (#390). */
+  detalleFallidoId: number | null = null;
+  /** Productos con el detalle pidiéndose (no se pide dos veces). */
+  private detalleEnCarga = new Set<number>();
   productosSeleccionadosMap = new Map<number, Producto>();
 
   constructor(
@@ -292,10 +310,12 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         const mostrador = this.data?.modoMostrador === true;
         const id = ++this.busquedaId;
         let fallo = false;
-        const errorConf: QueryError = mostrador ? PROPAGAR_ERROR_DE_RED : undefined;
-        const contexto: ContextoConsulta = mostrador
-          ? { timeoutMs: TIMEOUT_BUSQUEDA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
-          : undefined;
+        const errorConf: QueryError = LECTURA_DETALLE;
+        // Fuera del mostrador una búsqueda con filtro de stock puede tardar: 60 s en vez de 20
+        const contexto: ContextoConsulta = {
+          timeoutMs: mostrador ? TIMEOUT_BUSQUEDA_MOSTRADOR_MS : TIMEOUT_POR_DEFECTO_MS,
+          silenciarAvisoTimeout: true,
+        };
         const marcarFallo = () => {
           fallo = true;
           return of([]);
@@ -309,7 +329,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         // Si parece código de barras, buscar también por código en paralelo
         const busquedaCodigo$ = esCodigo
           ? this.productoService
-              .onGetProductoPorCodigo(text.trim(), this.data.servidor, false, errorConf, contexto)
+              // Un error del servidor en la búsqueda por código (p. ej. código repetido) no descarta los
+              // resultados por descripción: llega como null = «sin coincidencia por código»
+              .onGetProductoPorCodigo(text.trim(), this.data.servidor, false, LECTURA_POR_CODIGO, contexto)
               .pipe(
                 map((p: Producto) => (p ? [p] : [])),
                 catchError(marcarFallo)
@@ -319,29 +341,33 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         forkJoin([busquedaDescripcion$, busquedaCodigo$])
           .pipe(untilDestroyed(this))
           .subscribe(([porDescripcion, porCodigo]: [Producto[], Producto[]]) => {
-            if (mostrador) {
-              // Otra tanda empezó después: esta respuesta ya no corresponde a lo que está escrito.
-              if (id !== this.busquedaId) return;
-              if (fallo) {
-                // No pisar la lista buena con [] ni simular "fin de lista" al paginar.
-                this.avisarSinRespuesta();
-                this.isSearching = false;
-                return;
+            // Otra tanda empezó después: esta respuesta ya no corresponde a lo que está escrito.
+            if (id !== this.busquedaId) return;
+            if (fallo) {
+              this.avisarSinRespuesta();
+              this.isSearching = false;
+              // Mostrador: no pisa la lista buena con []. Al paginar nunca se vacía (ni se simula «fin de lista»).
+              // En el resto, una primera página fallida no deja a la vista los resultados de otra búsqueda.
+              if (!mostrador && offset == null) {
+                this.dataSource.data = [];
+                this.expandedProducto = null;
+                this.limpiarSeleccionDePresentacion();
               }
+              return;
             }
             // Combinar resultados evitando duplicados (por id)
             const idsVistos = new Set<number>();
             const combinados: Producto[] = [];
 
             // Primero agregar los del código (mayor prioridad)
-            for (const p of porCodigo) {
+            for (const p of porCodigo ?? []) {
               if (p?.id && !idsVistos.has(p.id)) {
                 idsVistos.add(p.id);
                 combinados.push(p);
               }
             }
             // Luego los de descripción
-            for (const p of porDescripcion) {
+            for (const p of porDescripcion ?? []) {
               if (p?.id && !idsVistos.has(p.id)) {
                 idsVistos.add(p.id);
                 combinados.push(p);
@@ -350,6 +376,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
             if (offset == null) {
               this.dataSource.data = combinados;
+              // Lista nueva: lo expandido y lo seleccionado eran de la anterior
+              this.expandedProducto = null;
+              this.limpiarSeleccionDePresentacion();
             } else {
               this.dataSource.data = [...this.dataSource.data, ...combinados];
             }
@@ -376,8 +405,20 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   highlight(index: number) {
     if (index >= 0 && index <= this.dataSource.data.length - 1) {
+      // Otra fila: la presentación y el precio elegidos eran del producto anterior
+      if (index !== this.selectedRowIndex) this.limpiarSeleccionDePresentacion();
       this.selectedRowIndex = index;
     }
+  }
+
+  /**
+   * La presentación y el precio seleccionados son de UNA fila. Si quedaran al cambiar de producto, Enter o una
+   * tecla numérica devolverían el producto nuevo con la presentación o el precio del anterior.
+   */
+  private limpiarSeleccionDePresentacion(): void {
+    this.selectedPresentacion = undefined;
+    this.selectedPrecio = undefined;
+    this.selectedPresentacionRowIndex = -1;
   }
 
   toggleSeleccion(producto: Producto, event?: Event): void {
@@ -416,60 +457,93 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   highlightPresentacion(index: number) {
-    if (index < 0) {
-      this.selectedPresentacionRowIndex++;
-    } else if (
-      index >
-      this.dataSource.data[this.selectedRowIndex]?.presentaciones?.length - 1
-    ) {
-      this.selectedPresentacionRowIndex--;
-    } else {
-      this.selectedPresentacionRowIndex = index;
-      if (this.dataSource.data != null) {
-        this.selectedPresentacion =
-          this.dataSource?.data[this.selectedRowIndex]?.presentaciones[index];
-        if (this.selectedPresentacion?.precios?.length > 0)
-          this.selectedPrecio = this.selectedPresentacion?.precios[0];
-      }
+    const presentaciones = this.dataSource.data?.[this.selectedRowIndex]?.presentaciones;
+    if (presentaciones == null || presentaciones.length === 0) {
+      // La fila resaltada no tiene presentaciones (sin cargar, o ninguna tras el filtro de precios)
+      this.limpiarSeleccionDePresentacion();
+      return;
     }
+    // Fuera de rango se queda en el borde
+    index = Math.min(Math.max(index, 0), presentaciones.length - 1);
+    this.selectedPresentacionRowIndex = index;
+    this.selectedPresentacion = presentaciones[index];
+    // Sin precios no queda el precio de la presentación anterior
+    this.selectedPrecio = this.selectedPresentacion?.precios?.length > 0
+      ? this.selectedPresentacion.precios[0]
+      : undefined;
   }
 
-  getProductoDetail(producto: Producto, index) {
-    if (producto?.presentaciones == null) {
-      this.productoService
-        .getProducto(producto.id, this.data.servidor)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (this.precios != null && this.modoPrecio == "ONLY") {
-            res.presentaciones = res.presentaciones.filter((p, index) => {
-              res.presentaciones[index].precios = p.precios?.filter((pre) =>
-                this.precios?.includes(pre?.tipoPrecio?.descripcion)
-              );
-              return res.presentaciones[index].precios?.length > 0;
-            });
-          }
-          if (this.precios != null && this.modoPrecio == "MIXTO") {
-            res.presentaciones = res.presentaciones.filter((p, index) => {
-              let foundPrecios = p.precios?.filter((pre) =>
-                this.precios?.includes(pre?.tipoPrecio?.descripcion)
-              );
-              if (foundPrecios.length > 0) {
-                res.presentaciones[index].precios = foundPrecios;
-              }
-              return true;
-            });
-          } else if (this.precios != null && this.modoPrecio == "NOT") {
-            res.presentaciones = res.presentaciones?.filter((p, index) => {
-              res.presentaciones[index].precios = p.precios?.filter(
-                (pre) => !this.precios?.includes(pre?.tipoPrecio?.descripcion)
-              );
-              return res.presentaciones[index].precios?.length > 0;
-            });
-          }
-          this.dataSource.data[index].presentaciones = res.presentaciones;
-          this.highlightPresentacion(0);
-        });
+  getProductoDetail(producto: Producto, index?) {
+    if (producto == null) return;
+    if (producto.presentaciones != null) {
+      // Ya cargado (segunda visita): se vuelve a seleccionar SU primera presentación
+      if (this.dataSource.data[this.selectedRowIndex] === producto) this.highlightPresentacion(0);
+      return;
     }
+    if (this.detalleEnCarga.has(producto.id)) return;
+    this.detalleEnCarga.add(producto.id);
+    if (this.detalleFallidoId === producto.id) this.detalleFallidoId = null;
+    const fallo = () => {
+      this.detalleEnCarga.delete(producto.id);
+      // Solo si el producto sigue a la vista y expandido
+      if (this.expandedProducto === producto && this.dataSource.data.includes(producto)) {
+        this.detalleFallidoId = producto.id;
+        this.notificacionSnackbar.openWarn("No se pudo cargar el producto: usá «Reintentar».", 5);
+      }
+    };
+    this.productoService
+      .getProducto(producto.id, this.data.servidor, LECTURA_DETALLE, CONSULTA_DETALLE)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: fallo, next: (res) => {
+        if (res == null) {
+          fallo();
+          return;
+        }
+        this.detalleEnCarga.delete(producto.id);
+        let presentaciones = res.presentaciones ?? [];
+        if (this.precios != null && this.modoPrecio == "ONLY") {
+          presentaciones = presentaciones.filter((p) => {
+            p.precios = p.precios?.filter((pre) =>
+              this.precios?.includes(pre?.tipoPrecio?.descripcion)
+            );
+            return p.precios?.length > 0;
+          });
+        }
+        if (this.precios != null && this.modoPrecio == "MIXTO") {
+          presentaciones.forEach((p) => {
+            const foundPrecios = p.precios?.filter((pre) =>
+              this.precios?.includes(pre?.tipoPrecio?.descripcion)
+            );
+            if (foundPrecios?.length > 0) {
+              p.precios = foundPrecios;
+            }
+          });
+        } else if (this.precios != null && this.modoPrecio == "NOT") {
+          presentaciones = presentaciones.filter((p) => {
+            p.precios = p.precios?.filter(
+              (pre) => !this.precios?.includes(pre?.tipoPrecio?.descripcion)
+            );
+            return p.precios?.length > 0;
+          });
+        }
+        // Al producto que se pidió, no al índice de entonces: la lista pudo cambiar mientras tanto
+        producto.presentaciones = presentaciones;
+        if (this.expandedProducto === producto && this.dataSource.data[this.selectedRowIndex] === producto) {
+          this.highlightPresentacion(0);
+        }
+      } });
+  }
+
+  reintentarDetalle(producto: Producto): void {
+    this.getProductoDetail(producto);
+    // El botón desaparece al reintentar: el foco vuelve a la tabla para seguir con el teclado
+    this.setFocustEvent();
+  }
+
+  /** La fila resaltada está desplegada y tiene sus presentaciones cargadas (lo que el usuario ve). */
+  private filaExpandidaConDetalle(): boolean {
+    const fila = this.dataSource.data?.[this.selectedRowIndex];
+    return fila != null && this.expandedProducto === fila && fila.presentaciones != null;
   }
 
   scroll(id) {
@@ -489,46 +563,49 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         this.expandedProducto = null;
         // this.highlightPresentacion(0);
         break;
-      case "Enter":
+      case "Enter": {
+        const fila = this.dataSource.data[index];
+        if (fila == null) break;
         if (this.expandedProducto == null) {
-          this.expandedProducto = this.dataSource.data[index];
-          this.getProductoDetail(this.expandedProducto, index);
-        } else {
+          this.expandedProducto = fila;
+          this.getProductoDetail(fila, index);
+        } else if (this.expandedProducto === fila) {
+          if (fila.presentaciones == null) {
+            // Todavía sin detalle: si falló, Enter reintenta; no hay nada que devolver
+            if (this.detalleFallidoId === fila.id) this.getProductoDetail(fila, index);
+            break;
+          }
           this.onPresentacionClick(
-            this.dataSource.data[index]?.presentaciones[
-            this.selectedPresentacionRowIndex
-            ],
-            this.dataSource.data[index],
+            fila.presentaciones[this.selectedPresentacionRowIndex],
+            fila,
             null
           );
         }
         break;
+      }
       case "ArrowRight":
-        if (this.selectedPresentacionRowIndex == -1) {
-          this.highlightPresentacion(0);
-        } else {
-          this.selectedPresentacionRowIndex++;
-          this.highlightPresentacion(this.selectedPresentacionRowIndex);
-        }
+        if (!this.filaExpandidaConDetalle()) break;
+        this.highlightPresentacion(
+          this.selectedPresentacionRowIndex == -1 ? 0 : this.selectedPresentacionRowIndex + 1
+        );
         break;
       case "ArrowLeft":
-        if (this.selectedPresentacionRowIndex == -1) {
-          this.highlightPresentacion(0);
-        } else {
-          this.selectedPresentacionRowIndex--;
-          this.highlightPresentacion(this.selectedPresentacionRowIndex);
-        }
+        if (!this.filaExpandidaConDetalle()) break;
+        this.highlightPresentacion(
+          this.selectedPresentacionRowIndex == -1 ? 0 : this.selectedPresentacionRowIndex - 1
+        );
         break;
       default:
-        if (!isNaN(+key)) {
-          let precio = this.selectedPresentacion.precios?.find(
-            (p) => p?.tipoPrecio?.id == key
+        // Tecla numérica = tipo de precio de la presentación seleccionada (+" " también es 0: se excluye)
+        if (typeof key === "string" && key.trim() !== "" && !isNaN(+key)) {
+          const fila = this.dataSource.data[this.selectedRowIndex];
+          const presentacion = this.selectedPresentacion;
+          // Solo con la fila resaltada desplegada y si la presentación seleccionada es suya
+          if (!this.filaExpandidaConDetalle() || presentacion == null || !fila.presentaciones.includes(presentacion)) break;
+          const precio = presentacion.precios?.find(
+            (p) => String(p?.tipoPrecio?.id) === key
           );
-          this.onPresentacionClick(
-            this.selectedPresentacion,
-            this.dataSource.data[this.selectedRowIndex],
-            precio
-          );
+          this.onPresentacionClick(presentacion, fila, precio);
         }
         break;
     }
@@ -613,6 +690,12 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   limpiarBusqueda(): void {
     this.formGroup.get('buscarControl')?.setValue(null);
+    // Ni la tanda en vuelo ni la que espera su pausa repueblan la lista que se acaba de vaciar
+    if (this.onSearchTimer != null) clearTimeout(this.onSearchTimer);
+    this.busquedaId++;
+    this.isSearching = false;
+    this.expandedProducto = null;
+    this.limpiarSeleccionDePresentacion();
     this.dataSource.data = [];
     setTimeout(() => {
       this.buscarInput?.nativeElement?.focus();
@@ -624,10 +707,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     producto?: Producto,
     precio?: PrecioPorSucursal
   ) {
-    presentacion.producto = producto;
-    if (precio == null && presentacion?.precios != null) {
+    if (presentacion == null || producto == null) return;
+    // La presentación tiene que ser de ese producto y el precio de esa presentación
+    if (producto.presentaciones != null && !producto.presentaciones.includes(presentacion)) return;
+    if (precio == null && presentacion.precios != null) {
       precio = this.selectedPrecio;
     }
+    if (precio != null && !presentacion.precios?.includes(precio)) return;
+    presentacion.producto = producto;
     const searchText = this.formGroup.controls.buscarControl.value || '';
     let response: PdvSearchProductoResponseData = {
       producto,
@@ -644,7 +731,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   onMostrarTipoPrecios(presentacion: Presentacion) {
     this.desplegarTipoPrecios = true;
-    this.selectedPresentacion = presentacion;
+    // Presentación, índice y precio quedan alineados: Enter y los números devuelven la que se marcó
+    const indice = this.dataSource.data?.[this.selectedRowIndex]?.presentaciones?.indexOf(presentacion) ?? -1;
+    if (indice >= 0) {
+      this.highlightPresentacion(indice);
+    } else {
+      this.selectedPresentacion = presentacion;
+    }
   }
 
   presentacionArrowRightEvent(index, el?) {
@@ -746,6 +839,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = [];
+          this.expandedProducto = null;
+          this.limpiarSeleccionDePresentacion();
           this.onSearchProducto(res.descripcion, 0);
         }
       });
