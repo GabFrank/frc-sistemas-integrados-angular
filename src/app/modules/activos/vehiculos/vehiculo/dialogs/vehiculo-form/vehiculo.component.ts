@@ -229,6 +229,17 @@ export class VehiculoComponent implements OnInit {
         });
     }
 
+    /**
+     * El editor de cuotas está recalculando o no pudo recalcular: no se guarda (se mandan las cuotas de la tabla
+     * tal cual y quedarían grabadas con la cantidad y el monto nuevos) (#390).
+     */
+    planSinCalcular = false;
+
+    onPlanSinCalcular(sinCalcular: boolean): void {
+        this.planSinCalcular = sinCalcular;
+        this.cdr.markForCheck();
+    }
+
     onCuotasChange(cuotas: CuotaDetalle[]): void {
         this.cuotasDetalle = cuotas;
     }
@@ -239,6 +250,7 @@ export class VehiculoComponent implements OnInit {
     }
 
     onGuardar(): void {
+        if (this.planSinCalcular && this.situacionPagoControl.value === 'PAGANDO') return;
         const cerrar = !!this.vehiculo?.id && this.registroGuardado;
         this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef, this.cuotasDetalle, cerrar)
             .pipe(untilDestroyed(this))

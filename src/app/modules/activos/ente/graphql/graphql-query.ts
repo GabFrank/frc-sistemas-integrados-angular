@@ -151,6 +151,7 @@ export const saveEnteMutation = gql`
       id
       tipoEnte
       referenciaId
+      descripcion
     }
   }
 `;
