@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   ContextoConsulta,
   GenericCrudService,
@@ -415,7 +416,9 @@ export class VentaTarjetaService {
     id?: number; ventaId?: number; sucursalId?: number; terminalDescripcion?: string; terminalCodigo?: string;
     estado?: string; fechaDesde?: string; fechaHasta?: string; page?: number; size?: number;
   }): Observable<PageInfo<VentaTarjeta>> {
-    return this.genericService.onCustomQuery(this.filtrarVentasTarjetaGQL, params, true, null, true);
+    // Su único suscriptor (la lista de ventas con tarjeta) maneja el error de red (#390).
+    return this.genericService.onCustomQuery(this.filtrarVentasTarjetaGQL, params, true, PROPAGAR_ERROR_DE_RED, true,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onImprimirReporteVentaTarjeta(params: {
@@ -425,11 +428,16 @@ export class VentaTarjetaService {
     this.genericService.onCustomQuery(this.imprimirReporteVentaTarjetaGQL, {
       ...params,
       usuarioResponsableId: this.mainService.usuarioActual?.id
-    }, servidor).subscribe(res => {
+    }, servidor, { networkError: { propagate: true, show: false } }).subscribe({ error: (err) => {
+      // Antes no pasaba nada; el corte por tiempo ya lo avisa el link (#390)
+      if (!esTimeoutDeLink(err)) {
+        this.notificacionSnackbar.openWarn('No se pudo generar el reporte: el servidor no responde. Intentá de nuevo.', 5);
+      }
+    }, next: res => {
       if (res != null) {
         this.reporteService.onAdd('Reporte de conciliación de cupones', res);
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaTarjetaComponent));
       }
-    });
+    } });
   }
 }

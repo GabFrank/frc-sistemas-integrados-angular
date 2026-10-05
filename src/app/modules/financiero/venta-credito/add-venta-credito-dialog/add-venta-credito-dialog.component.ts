@@ -9,6 +9,7 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
 import { DigitarContrasenaDialogComponent } from '../../../../shared/digitar-contrasena-dialog/digitar-contrasena-dialog.component';
 import { QrCodeComponent, QrData } from '../../../../shared/qr-code/qr-code.component';
@@ -86,7 +87,10 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
     this.nombreClienteControl.valueChanges.subscribe(res => {
       if (this.nombreClienteControl.dirty) {
-        if (res == "") this.onClienteSelect(null);
+        // Apenas se edita el texto deja de valer el cliente elegido (también durante la espera de 1 s) y
+        // cualquier búsqueda en vuelo (#390)
+        this.busquedaCliente++;
+        this.quitarClienteSeleccionado();
         if (this.searchTimer != null) {
           clearTimeout(this.searchTimer);
         }
@@ -144,16 +148,38 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     })
   }
 
+  /**
+   * Una búsqueda nueva deja de valer el cliente anterior: antes, si fallaba, quedaba seleccionado con su saldo y
+   * la venta a crédito se confirmaba contra él (#390).
+   */
+  /** Solo aplica la respuesta de la última búsqueda de cliente. */
+  private busquedaCliente = 0;
+
+  private quitarClienteSeleccionado(): void {
+    this.selectedCliente = null;
+    this.saldoEnCredito = null;
+  }
+
+  private busquedaDeClienteFallida(): void {
+    this.quitarClienteSeleccionado();
+    this.notificacionService.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 5);
+  }
+
   onSearch() {
     if (this.nombreClienteControl.valid) {
+      const busqueda = ++this.busquedaCliente;
+      this.quitarClienteSeleccionado();
       if (isNaN(this.nombreClienteControl.value) == false) {
-        this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value).subscribe(res => {
+        this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+          if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
+        }, next: res => {
+          if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
           if (res != null) {
             this.onClienteSelect(res)
           } else {
             this.onSearchByNombre()
           }
-        })
+        } })
       } else {
         this.onSearchByNombre()
       }
@@ -164,7 +190,12 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onSearchByNombre() {
-    this.clienteService.onSearchFromServer(this.nombreClienteControl.value).subscribe(res2 => {
+    const busqueda = ++this.busquedaCliente;
+    this.quitarClienteSeleccionado();
+    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+      if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
+    }, next: res2 => {
+      if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
       if (res2 != null) {
         if (res2.length == 1) {
           this.onClienteSelect(res2[0])
@@ -177,7 +208,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
           this.onClienteSelect(null);
         }
       }
-    })
+    } })
   }
 
   onClienteSelect(e) {
@@ -236,6 +267,10 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onConfirmVentaCredito() {
+    if (this.selectedCliente?.id == null) {
+      this.notificacionService.openWarn('Elegí el cliente antes de confirmar la venta a crédito.');
+      return;
+    }
     this.addItem(this.total)
     let ventaCredito = new VentaCredito()
     ventaCredito.cantidadCuotas = this.cuotasControl.value;

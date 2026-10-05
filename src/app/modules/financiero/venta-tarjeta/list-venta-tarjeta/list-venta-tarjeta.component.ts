@@ -15,6 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { MonedaService } from '../../moneda/moneda.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DecimalesPorMoneda } from '../qr-pos/qr-pos-parser';
 import { VentasTarjetaCajaDialogComponent } from '../ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component';
 
@@ -73,7 +74,8 @@ export class ListVentaTarjetaComponent implements OnInit {
     private terminalPosService: TerminalPosService,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private notificacionSnackbar: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -141,12 +143,20 @@ export class ListVentaTarjetaComponent implements OnInit {
 
     this.ventaTarjetaService.onFiltrar(params)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
+      .subscribe({ error: () => {
+        // Sin filas ni paginador del filtro anterior a la vista como si fueran del nuevo (#390)
+        this.selectedPageInfo = null;
+        this.dataSource.data = [];
+        this.notificacionSnackbar.openWarn('No se pudo cargar la lista de ventas con tarjeta: el servidor no responde. Intentá de nuevo.', 5);
+      }, next: res => {
         if (res) {
           this.selectedPageInfo = res;
           this.dataSource.data = (res.getContent ?? []).map(item => this.aFilaConMoneda(item));
+        } else {
+          this.selectedPageInfo = null;
+          this.dataSource.data = []; // error GraphQL: el servicio ya avisó
         }
-      });
+      } });
   }
 
   /**

@@ -28,7 +28,7 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { VentaService } from "../../../operaciones/venta/venta.service";
+import { ErrorCancelacionVenta, VentaService } from "../../../operaciones/venta/venta.service";
 import { FormControl, FormGroup } from "@angular/forms";
 import { ClienteService } from "../../../personas/clientes/cliente.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
@@ -330,15 +330,19 @@ export class ListVentaCreditoComponent implements OnInit {
   onClickRow(ventaCredito: VentaCredito, i) {
     this.loading = true;
     this.ventaService
-      .onGetPorId(ventaCredito?.venta?.id, ventaCredito?.sucursal?.id)
+      .onGetPorId(ventaCredito?.venta?.id, ventaCredito?.sucursal?.id, undefined, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => {
+        this.loading = false;
+        this.notificacionService.openWarn('No se pudo cargar el detalle de la venta: el servidor no responde.', 5);
+      }, next: (res) => {
         this.loading = false;
         if (res != null) {
           ventaCredito.venta = res;
           this.dataSource.data[i].venta.ventaItemList = res.ventaItemList;
         }
-      });
+      } });
   }
 
   onCancelar(ventaCredito: VentaCredito, index: number) {
@@ -346,10 +350,29 @@ export class ListVentaCreditoComponent implements OnInit {
       .confirm("Atención!!", "Realmente desea cancelar esta venta a crédito?")
       .subscribe((res) => {
         if (res) {
+          // El central ALTERNA: mandar esto sobre una venta que ya estaba cancelada la REACTIVARÍA, y esta pantalla
+          // no ofrece reactivar. Se relee del central y, si ya está cancelada, no se manda (#390).
           this.ventaService
-            .onCancelarVenta(ventaCredito.venta.id, ventaCredito.sucursal.id)
+            .onCancelarVentaVerificando(ventaCredito.venta.id, ventaCredito.sucursal.id, { soloCancelar: true })
             .pipe(untilDestroyed(this))
-            .subscribe((res1) => {
+            .subscribe({ error: (e: ErrorCancelacionVenta) => {
+              if (e?.fase === "lectura") {
+                this.notificacionService.openWarn(
+                  "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
+                return;
+              }
+              // Sin respuesta pudo haberse cancelado: se recarga la lista en vez de dejar reintentar a ciegas
+              this.notificacionService.openWarn(
+                "No se pudo confirmar si la venta a crédito se canceló: se recarga la lista. Revisala antes de reintentar.", 8);
+              this.onFiltrar();
+            }, next: (resultado) => {
+              if (resultado.tipo === "cambio") {
+                this.notificacionService.openWarn(
+                  "La venta ya estaba cancelada en el servidor: no se envió nada. Se recarga la lista.", 8);
+                this.onFiltrar();
+                return;
+              }
+              const res1 = resultado.tipo === "aplicada";
               if (res1) {
                 this.notificacionService.openSucess(
                   "Venta a crédito cancelada con éxito"
@@ -375,7 +398,7 @@ export class ListVentaCreditoComponent implements OnInit {
                   "Ups! No se pudo cancelar la venta a crédito. "
                 );
               }
-            });
+            } });
         }
       });
   }
@@ -394,6 +417,12 @@ export class ListVentaCreditoComponent implements OnInit {
             "Esta acción no se puede deshacer"
           )
           .subscribe((resConfirm) => {
+            if (resConfirm != true) {
+              // Sin confirmar también termina: si no, quien espera el resultado queda colgado (#390)
+              obs.next(null);
+              obs.complete();
+              return;
+            }
             if (resConfirm == true) {
               this.ventaCreditoService
                 .onFinalizarVentaCredito(
@@ -401,7 +430,10 @@ export class ListVentaCreditoComponent implements OnInit {
                   ventaCredito.sucursal.id
                 )
                 .pipe(untilDestroyed(this))
-                .subscribe((res) => {
+                .subscribe({ error: () => {
+                  obs.next(null);
+                  obs.complete();
+                }, next: (res) => {
                   if (res == true) {
                     ventaCredito.estado = EstadoVentaCredito.FINALIZADO;
                     if (index != null) {
@@ -415,15 +447,20 @@ export class ListVentaCreditoComponent implements OnInit {
                   } else {
                     obs.next(null);
                   }
+                  obs.complete();
                   this.verificarEstados();
-                });
+                } });
             }
           });
       } else {
         this.ventaCreditoService
           .onFinalizarVentaCredito(ventaCredito.id, ventaCredito.sucursal.id)
           .pipe(untilDestroyed(this))
-          .subscribe((res) => {
+          .subscribe({ error: () => {
+            // Sin respuesta pudo haberse finalizado: se informa como sin confirmar (null) y termina
+            obs.next(null);
+            obs.complete();
+          }, next: (res) => {
             if (res == true) {
               ventaCredito.estado = EstadoVentaCredito.FINALIZADO;
               if (index != null) {
@@ -437,8 +474,9 @@ export class ListVentaCreditoComponent implements OnInit {
             } else {
               obs.next(null);
             }
+            obs.complete();
             this.verificarEstados();
-          });
+          } });
       }
     });
   }
@@ -548,15 +586,22 @@ export class ListVentaCreditoComponent implements OnInit {
       )
       .subscribe((res) => {
         if (res == true) {
-          const observables = this.selection.selected.map((s: VentaCredito) =>
-            this.onFinalizar(s, null, false).subscribe(finalizarRes => {
-              if(finalizarRes){
-                
-              }
-            })
-          );
-          forkJoin(observables).subscribe((results) => {
-            this.verificarEstados();
+          // Antes se pasaban suscripciones al forkJoin (nunca terminaba) y un fallo no se veía: finalizar es
+          // irreversible, así que lo que no se confirmó se avisa y se recarga la lista del servidor (#390)
+          const seleccion: VentaCredito[] = [...this.selection.selected];
+          if (seleccion.length === 0) return;
+          forkJoin(seleccion.map((s) => this.onFinalizar(s, null, false))).subscribe((results) => {
+            const sinConfirmar = results.filter((r) => r == null).length;
+            if (sinConfirmar === 0) {
+              this.verificarEstados();
+              return;
+            }
+            this.notificacionService.openWarn(
+              `${sinConfirmar} de ${seleccion.length} venta(s) a crédito no se pudieron confirmar como finalizadas: se recarga la lista. Revisala antes de reintentar.`, 8);
+            this.onFiltrar().then(() => {
+              this.selection.clear();
+              this.verificarEstados();
+            });
           });
         }
       });
