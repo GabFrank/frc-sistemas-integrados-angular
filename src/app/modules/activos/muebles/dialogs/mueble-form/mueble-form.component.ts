@@ -111,6 +111,28 @@ export class MuebleFormComponent implements OnInit {
     });
   }
 
+  /**
+
+   * El editor de cuotas está recalculando o no pudo recalcular: no se guarda (se mandan las cuotas de la tabla tal
+
+   * cual y quedarían grabadas con la cantidad y el monto nuevos) (#390).
+
+   */
+
+  planSinCalcular = false;
+
+
+  onPlanSinCalcular(sinCalcular: boolean): void {
+
+  
+  this.planSinCalcular = sinCalcular;
+
+  
+  this.cdr.markForCheck();
+
+  }
+
+
   onCuotasChange(cuotas: CuotaDetalle[]): void {
     this.cuotasDetalle = cuotas;
   }
@@ -242,6 +264,9 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onGuardar(): void {
+
+  
+  if (this.planSinCalcular && this.situacionPagoControl.value === 'PAGANDO') return;
     const cerrar = !!this.mueble?.id && this.registroGuardado;
     this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef, this.cuotasDetalle, cerrar)
       .pipe(untilDestroyed(this))

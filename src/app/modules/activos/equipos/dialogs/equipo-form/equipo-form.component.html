@@ -337,7 +337,8 @@
                 [montoYaPagado]="form.controls['montoYaPagado'].value"
                 [cuotas]="cuotasDetalle"
                 (cuotasChange)="onCuotasChange($event)"
-                (montoTotalChange)="onMontoTotalCuotasChange($event)">
+                (montoTotalChange)="onMontoTotalCuotasChange($event)"
+                (planSinCalcular)="onPlanSinCalcular($event)">
               </app-cuotas-detalle-editor>
 
               <div *ngIf="situacion === 'PAGADO'">
@@ -381,7 +382,7 @@
     mat-raised-button
     color="primary"
     (click)="onGuardar()"
-    [disabled]="form.invalid"
+    [disabled]="form.invalid || (planSinCalcular && situacionPagoControl.value === 'PAGANDO')"
   >
     {{ registroGuardado ? 'GUARDAR' : 'REGISTRAR EQUIPO' }}
   </button>

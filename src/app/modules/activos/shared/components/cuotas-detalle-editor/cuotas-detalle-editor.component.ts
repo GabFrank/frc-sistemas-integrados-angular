@@ -1,8 +1,8 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { Subject } from 'rxjs';
-import { debounceTime, map, switchMap } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { catchError, debounceTime, map, switchMap } from 'rxjs/operators';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { CuotaDetalle, CuotasDetalleCalculado } from '../../models/cuota-detalle.model';
 import { CuotasDetalleService } from '../../services/cuotas-detalle.service';
@@ -28,6 +28,10 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
   private recalcVersion = 0;
   private emisionInterna = false;
   private omitirRecalculoMontoTotal = false;
+  /** El recálculo recién se escucha desde ngOnInit; un pedido anterior se pierde (ya era así). */
+  private escuchandoRecalculo = false;
+  /** Criterio del último pedido, para «Reintentar». */
+  private ultimoPreservarAjustes = false;
 
   @Input() cantidadCuotas = 1;
   @Input() cantidadCuotasPagadas = 0;
@@ -36,6 +40,13 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
   @Input() cuotas: CuotaDetalle[] = [];
   @Output() cuotasChange = new EventEmitter<CuotaDetalle[]>();
   @Output() montoTotalChange = new EventEmitter<number>();
+  /**
+   * `true` mientras el plan se está recalculando o si el cálculo falló: la tabla puede no coincidir con la
+   * cantidad y el monto cargados, y el formulario no debe guardar así (manda las cuotas de la tabla tal cual).
+   * Nunca se emite sincrónicamente desde ngOnChanges.
+   */
+  @Output() planSinCalcular = new EventEmitter<boolean>();
+  estadoPlan: 'al-dia' | 'calculando' | 'error' = 'al-dia';
 
   currencyMask = new CurrencyMask();
   cuotaEnEdicion: CuotaDetalle | null = null;
@@ -44,6 +55,10 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
   displayedColumns = ['numero', 'monto', 'estado', 'accion'];
 
   ngOnInit(): void {
+    this.escuchandoRecalculo = true;
+    // Un editor nuevo arranca al día: limpia el bloqueo que pudo dejar una instancia anterior (el formulario lo
+    // destruye y lo vuelve a crear al cambiar la situación de pago). Diferido: fuera de la detección de cambios.
+    Promise.resolve().then(() => this.planSinCalcular.emit(this.estadoPlan !== 'al-dia'));
     this.recalcular$.pipe(
       debounceTime(300),
       switchMap(({ preservarAjustes, version }) =>
@@ -54,15 +69,23 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
           montoYaPagado: this.montoYaPagado,
           cuotasDetalle: preservarAjustes ? this.cuotas : undefined,
         }).pipe(
-          map(resultado => ({ resultado, version }))
+          map(resultado => ({ resultado, version, fallo: false })),
+          // Dentro del switchMap: el recálculo sigue funcionando después de un fallo
+          catchError(() => of({ resultado: null as CuotasDetalleCalculado, version, fallo: true }))
         )
       ),
       untilDestroyed(this),
-    ).subscribe(({ resultado, version }) => {
+    ).subscribe(({ resultado, version, fallo }) => {
       if (version !== this.recalcVersion) {
+        return; // hay un pedido más nuevo (o llegaron cuotas del servidor): este resultado ya no aplica
+      }
+      if (fallo) {
+        // No se emite nada: las cuotas (y los ajustes hechos a mano) se conservan
+        this.marcarEstado('error');
         return;
       }
       this.emitir(resultado);
+      this.marcarEstado('al-dia');
     });
   }
 
@@ -76,6 +99,8 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
         this.recalcVersion++;
         this.actualizarTotalCuotas();
         this.cdr.markForCheck();
+        // Cuotas que llegan del formulario (las guardadas): mandan sobre un cálculo pendiente o fallido
+        this.marcarEstadoDiferido('al-dia');
         return;
       }
     }
@@ -97,7 +122,26 @@ export class CuotasDetalleEditorComponent implements OnInit, OnChanges {
 
   private solicitarRecalculo(preservarAjustes: boolean): void {
     const version = ++this.recalcVersion;
+    this.ultimoPreservarAjustes = preservarAjustes;
+    if (this.escuchandoRecalculo) this.marcarEstadoDiferido('calculando');
     this.recalcular$.next({ preservarAjustes, version });
+  }
+
+  /** «Reintentar» del cartel: repite el último pedido con el mismo criterio de conservar los ajustes. */
+  reintentarCalculo(): void {
+    this.solicitarRecalculo(this.ultimoPreservarAjustes);
+  }
+
+  private marcarEstado(estado: 'al-dia' | 'calculando' | 'error'): void {
+    if (this.estadoPlan === estado) return;
+    this.estadoPlan = estado;
+    this.planSinCalcular.emit(estado !== 'al-dia');
+    this.cdr.markForCheck();
+  }
+
+  /** Fuera del ciclo de detección de cambios en curso (se llama desde ngOnChanges). */
+  private marcarEstadoDiferido(estado: 'al-dia' | 'calculando' | 'error'): void {
+    Promise.resolve().then(() => this.marcarEstado(estado));
   }
 
   editarCuota(index: number): void {
