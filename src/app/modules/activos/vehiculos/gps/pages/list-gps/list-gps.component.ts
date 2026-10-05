@@ -5,7 +5,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Gps } from '../../models/gps.model';
 import { GpsService } from '../../service/gps.service';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
@@ -23,17 +23,27 @@ export class ListGpsComponent implements OnInit {
 
   filtroControl = new FormControl('');
 
+  /** No se pudo cargar: la tabla está vacía porque falló la lectura, no porque no haya GPS. */
+  listaError = false;
+  /** Falló un refresco: las filas son las de antes. */
+  listaDesactualizada = false;
+
   ngOnInit(): void {
-    this.gpsService.refrescar();
+    // El servicio es único y recuerda el texto de la vez anterior; el campo arranca vacío.
+    this.gpsService.refrescar('');
     this.initFiltros();
     this.initDataStream();
+    this.gpsService.estadoLista$.pipe(untilDestroyed(this)).subscribe(estado => {
+      this.listaError = estado === 'error';
+      this.listaDesactualizada = estado === 'desactualizada';
+      this.cdr.markForCheck();
+    });
   }
 
   private initFiltros(): void {
     this.filtroControl.valueChanges.pipe(
       untilDestroyed(this),
-      debounceTime(500),
-      distinctUntilChanged()
+      debounceTime(500)
     ).subscribe(texto => {
       this.gpsService.setSearchText(texto || '');
     });
@@ -50,7 +60,12 @@ export class ListGpsComponent implements OnInit {
     });
   }
 
+  /** Botón Buscar y Enter: con el texto escrito, sin esperar al debounce. */
   onFiltrar(): void {
+    this.gpsService.refrescar(this.filtroControl.value || '');
+  }
+
+  onReintentar(): void {
     this.gpsService.refrescar();
   }
 
@@ -77,8 +92,8 @@ export class ListGpsComponent implements OnInit {
   }
 
   resetFiltro(): void {
-    this.filtroControl.setValue('');
+    this.filtroControl.setValue('', { emitEvent: false });
     this.gpsService.updatePagination(0, 15);
-    this.gpsService.refrescar();
+    this.gpsService.refrescar('');
   }
 }

@@ -14,7 +14,20 @@ import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
 import { GuardarConfigAlertasGpsGQL } from '../graphql/guardarConfigAlertasGps';
 import { MatDialog } from '@angular/material/dialog';
 import { GpsDialogService } from './gps-dialog-service.service';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
+
+/**
+ * `error`: no se pudo cargar y no hay nada que mostrar. `desactualizada`: falló un refresco de la misma búsqueda y
+ * se conservan las filas que ya estaban.
+ */
+export type EstadoListaGps = 'cargando' | 'ok' | 'error' | 'desactualizada';
+
+/** Lecturas de GPS: el error de red y el del servidor llegan a quien llama, que es quien avisa (#390). */
+export const LECTURA_GPS: QueryError = {
+    networkError: { propagate: true, show: false },
+    graphError: { propagate: true, show: false },
+};
+export const CONSULTA_GPS: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
     providedIn: 'root'
@@ -37,6 +50,13 @@ export class GpsService {
 
     private loadingSubject = new BehaviorSubject<boolean>(false);
     public loading$ = this.loadingSubject.asObservable();
+
+    private estadoListaSubject = new BehaviorSubject<EstadoListaGps>('cargando');
+    public estadoLista$ = this.estadoListaSubject.asObservable();
+    /** Solo se aplica la última búsqueda pedida: una respuesta lenta de un texto anterior no pisa a la nueva. */
+    private lecturaLista = 0;
+    /** Texto de la última respuesta buena, que es lo que está en pantalla (`null`: nada). */
+    private textoMostrado: string | null = null;
 
     private _searchText$ = new BehaviorSubject<string>('');
     public searchText$ = this._searchText$.asObservable();
@@ -67,11 +87,8 @@ export class GpsService {
     }
 
     onSave(input: GpsInput): Observable<Gps> {
-        return (this.genericService.onSave(this.saveGpsGQL, input) as Observable<Gps>).pipe(
-            tap(res => {
-                if (res) this.refrescar();
-            })
-        );
+        // La lista la refresca el formulario al cerrar (`GpsDialogService.abrirFormulario`).
+        return this.genericService.onSave(this.saveGpsGQL, input) as Observable<Gps>;
     }
 
     onDelete(id: number): Observable<boolean> {
@@ -94,23 +111,58 @@ export class GpsService {
         return this.genericService.onGetByTexto(this.gpsSearchGQL, texto);
     }
 
-    refrescar(): void {
+    /**
+     * Búsqueda de GPS con los errores propagados. `silencioso`: sin el modal «Buscando…» (el mapa).
+     * No usa `onGetByTexto`: ante un error no emite nada y no admite corte propio.
+     */
+    onBuscar(texto: string, silencioso = false): Observable<Gps[]> {
+        return this.genericService.onCustomQuery(this.gpsSearchGQL, { texto }, true, LECTURA_GPS, silencioso, CONSULTA_GPS);
+    }
+
+    /**
+     * Carga la lista. Con `texto` cambia la búsqueda (y vuelve a la primera página); sin él repite la actual.
+     * Si falla un refresco de lo que ya está en pantalla se conservan las filas (`desactualizada`); si falla una
+     * búsqueda distinta se vacía (`error`): no se muestran resultados de otra búsqueda como si fueran de esta.
+     */
+    refrescar(texto?: string): void {
+        if (texto != null && texto !== this._searchText$.value) {
+            this._searchText$.next(texto);
+            this._paginationState$.next({ pageIndex: 0, pageSize: this._paginationState$.value.pageSize });
+        }
+        const buscado = this._searchText$.value;
+        const lectura = ++this.lecturaLista;
         this.loadingSubject.next(true);
-        const texto = this._searchText$.value;
-        this.onSearch(texto).subscribe({
+        this.estadoListaSubject.next('cargando');
+        this.onBuscar(buscado).pipe(take(1)).subscribe({
             next: (res) => {
-                this.gpsSubject.next(res || []);
+                if (lectura !== this.lecturaLista) return;
+                const lista = res || [];
+                const pag = this._paginationState$.value;
+                if (pag.pageIndex > 0 && pag.pageIndex * pag.pageSize >= lista.length) {
+                    this._paginationState$.next({ pageIndex: 0, pageSize: pag.pageSize });
+                }
+                this.textoMostrado = buscado;
+                this.gpsSubject.next(lista);
                 this.loadingSubject.next(false);
+                this.estadoListaSubject.next('ok');
             },
             error: () => {
+                if (lectura !== this.lecturaLista) return;
                 this.loadingSubject.next(false);
+                if (this.textoMostrado === buscado) {
+                    this.estadoListaSubject.next('desactualizada');
+                } else {
+                    this.textoMostrado = null;
+                    this.gpsSubject.next([]);
+                    this.estadoListaSubject.next('error');
+                }
             }
         });
     }
 
     setSearchText(texto: string): void {
-        this._searchText$.next(texto);
-        this.refrescar();
+        if (texto === this._searchText$.value) return;
+        this.refrescar(texto);
     }
 
     abrirFormulario(gps?: Gps): Observable<boolean | undefined> {

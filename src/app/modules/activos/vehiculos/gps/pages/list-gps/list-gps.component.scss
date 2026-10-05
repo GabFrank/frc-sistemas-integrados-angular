@@ -38,3 +38,16 @@
         }
     }
 }
+.aviso-lista {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  background: rgba(251, 146, 60, 0.12);
+  border-bottom: 1px solid rgba(251, 146, 60, 0.35);
+  color: #fdba74;
+  font-size: 0.9rem;
+
+  mat-icon {
+    color: #fb923c;
+  }
+}
