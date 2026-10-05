@@ -1,3 +1,11 @@
+<!-- Alta sin confirmar (#390): vale para cualquier estado de carga (un alta nunca cargó un bien) -->
+<div *ngIf="altaSinConfirmar" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+  style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
+  <mat-icon>warning</mat-icon>
+  <span fxFlex>{{ textoAltaSinConfirmar }}</span>
+  <button mat-stroked-button type="button" (click)="cerrar.emit()">Cerrar</button>
+</div>
+
 <div *ngIf="bien === 'cargando'" style="padding: 8px 0">Cargando los datos del bien…</div>
 
 <div *ngIf="bien === 'error'" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"

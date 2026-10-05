@@ -2,7 +2,7 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { Equipo } from '../models/equipo.model';
 import { EquipoInput } from '../models/equipo-input.model';
@@ -108,8 +108,9 @@ export class EquiposService {
     return this.injector.get(EquipoDialogService).abrirFormulario(equipo);
   }
 
+  /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
   onGuardar(input: EquipoInput): Observable<Equipo> {
-    return this.genericService.onSave(this.saveEquipoGQL, input).pipe(
+    return this.genericService.onSave(this.saveEquipoGQL, input, undefined, undefined, true, PROPAGAR_ERROR_DE_RED).pipe(
       tap((res) => {
         if (res) {
           this.refrescar();

@@ -2,7 +2,7 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Inmueble } from '../models/inmueble.model';
 import { InmuebleInput } from '../models/inmueble-input.model';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { InmuebleByIdGQL } from '../graphql/inmuebleById';
 import { SaveInmuebleGQL } from '../graphql/saveInmueble';
@@ -123,8 +123,9 @@ export class InmuebleService {
 
 
 
+  /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
   onGuardar(input: InmuebleInput): Observable<Inmueble> {
-    return this.genericService.onSave(this.saveInmuebleGQL, input).pipe(
+    return this.genericService.onSave(this.saveInmuebleGQL, input, undefined, undefined, true, PROPAGAR_ERROR_DE_RED).pipe(
       tap((res) => {
         if (res) this.refrescar();
       })
