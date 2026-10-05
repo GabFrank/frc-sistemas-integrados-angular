@@ -8,6 +8,10 @@
           <mat-option [value]="null">Todas</mat-option>
           <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.id }} - {{ s.nombre | titlecase }}</mat-option>
         </mat-select>
+        <mat-hint *ngIf="sucursalesFallo">
+          No se pudieron cargar.
+          <a href="#" (click)="cargarSucursales(); $event.preventDefault()">Reintentar</a>
+        </mat-hint>
       </mat-form-field>
       <mat-form-field appearance="outline" fxFlex="30%">
         <mat-label>Producto</mat-label>
@@ -17,6 +21,11 @@
     </div>
   </div>
   <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
+    <div *ngIf="listaFallo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 0">
+      <mat-icon>error_outline</mat-icon>
+      <span>No se pudieron cargar las promociones.</span>
+      <button mat-stroked-button type="button" (click)="onGetData()">Reintentar</button>
+    </div>
     <div fxFlex style="overflow: auto; min-height: 0">
       <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
         <ng-container matColumnDef="id"><th mat-header-cell *matHeaderCellDef class="centro">ID</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.id }}</td></ng-container>

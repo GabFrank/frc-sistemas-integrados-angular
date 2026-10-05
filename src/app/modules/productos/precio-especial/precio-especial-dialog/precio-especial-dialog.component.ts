@@ -4,6 +4,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -52,6 +54,15 @@ export class PrecioEspecialDialogComponent implements OnInit {
   sucursalList: Sucursal[] = [];
   filas: FilaEspecial[] = [];
   vigentes = 0;
+  /**
+   * Estado de la lista. Con `error` no se afirma «ninguna sucursal tiene promoción» ni se muestra el conteo de
+   * vigentes: si había filas se conservan, avisando que pueden no reflejar el último cambio (#390).
+   */
+  listaEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  /** Solo aplica la última lectura (al abrir, tras guardar, tras cortar). */
+  private lecturaLista = 0;
+  /** Sin sucursales no se puede cargar una promoción nueva (editar una existente sí). */
+  sucursalesFallo = false;
   /** Especial que se esta editando; null = alta. */
   editando: PrecioEspecialSucursal = null;
   editandoSucursal = '';
@@ -78,7 +89,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<PrecioEspecialDialogComponent>,
     private service: PrecioEspecialService,
     private sucursalService: SucursalService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -94,16 +106,47 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarResumenSucursales());
     this.actualizarComparador();
 
-    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.sucursalList = (res || []).filter((s) => Number(s.id) !== 0);
-    });
+    this.cargarSucursales();
     this.cargar();
   }
 
+  cargarSucursales(): void {
+    this.sucursalesFallo = false;
+    this.sucursalService
+      .onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.sucursalesFallo = true;
+        this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar».', 5);
+      }, next: (res) => {
+        if (res == null) {
+          this.sucursalesFallo = true; // error del servidor: ya se avisó
+          return;
+        }
+        this.sucursalList = res.filter((s) => Number(s.id) !== 0);
+      } });
+  }
+
   cargar(): void {
-    this.service.onPorPrecio(this.data.precio.id).pipe(untilDestroyed(this)).subscribe((res) => {
+    const lectura = ++this.lecturaLista;
+    if (this.listaEstado !== 'ok') this.listaEstado = 'cargando';
+    const fallo = () => {
+      if (lectura !== this.lecturaLista) return;
+      this.listaEstado = 'error';
+      this.notificacionService.openWarn(this.filas.length
+        ? 'No se pudo actualizar la lista de promociones: puede no reflejar el último cambio.'
+        : 'No se pudieron cargar las promociones de este precio.', 6);
+    };
+    this.service.onPorPrecio(this.data.precio.id).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
+      if (lectura !== this.lecturaLista) return; // respuesta de una lectura anterior
+      if (res == null) {
+        // El central devuelve [] cuando no hay: un null es un fallo, no «sin promociones»
+        fallo();
+        return;
+      }
+      this.listaEstado = 'ok';
       const hoy = new Date();
-      this.filas = (res || []).map((e) => {
+      this.filas = res.map((e) => {
         const estado = estadoPrecioEspecial(e, hoy);
         return {
           especial: e,
@@ -116,7 +159,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
         };
       });
       this.vigentes = this.filas.filter((f) => f.estado === 'VIGENTE').length;
-    });
+    } });
   }
 
   onEditar(fila: FilaEspecial): void {
@@ -148,7 +191,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
         'La sucursal vuelve al precio global desde el próximo escaneo.')
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
-        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.cargar(), error: () => {} });
+        // También en error: pudo haberse aplicado (onSaveCustom ya avisó), y la lista lo aclara
+        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.cargar(), error: () => this.cargar() });
       });
   }
 
@@ -187,8 +231,9 @@ export class PrecioEspecialDialogComponent implements OnInit {
           this.cargar();
         }
       },
-      // onSaveCustom ya mostro el error de negocio (superposicion, rol) en un snackbar.
-      error: () => {},
+      // onSaveCustom ya mostro el error (de negocio o de red) en un snackbar. Se relee igual: sin respuesta pudo
+      // haberse guardado, y un reintento que responde «ya tiene una promoción» significa que el primero entró.
+      error: () => this.cargar(),
     });
   }
 

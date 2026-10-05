@@ -64,6 +64,10 @@
           <mat-option [value]="null">Todas las sucursales</mat-option>
           <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.id }} · {{ s.nombre | titlecase }}</mat-option>
         </mat-select>
+        <mat-hint *ngIf="sucursalesFallo">
+          No se pudieron cargar las sucursales.
+          <a href="#" (click)="cargarSucursales(); $event.preventDefault()">Reintentar</a>
+        </mat-hint>
       </mat-form-field>
 
       <div class="pe-fila">
@@ -94,7 +98,7 @@
         </p>
         <div class="pe-botones">
           <button mat-button *ngIf="editando" (click)="onNuevo()">Cancelar edición</button>
-          <button mat-flat-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid">
+          <button mat-flat-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid || (sucursalesFallo && !editando)">
             <mat-icon>{{ editando ? 'save' : 'add' }}</mat-icon>
             {{ editando ? 'Guardar cambios' : 'Agregar' }}
           </button>
@@ -106,10 +110,21 @@
     <section class="pe-lista">
       <div class="pe-lista__cabecera">
         <h3>Sucursales con promoción</h3>
-        <span class="pe-lista__conteo" *ngIf="filas.length">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
+        <span class="pe-lista__conteo" *ngIf="filas.length && listaEstado !== 'error'">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
       </div>
 
-      <div class="pe-vacio" *ngIf="!filas.length">
+      <!-- La lista no se pudo leer (#390): no se afirma que no hay promociones -->
+      <div class="pe-vacio" *ngIf="listaEstado === 'error'">
+        <mat-icon>error_outline</mat-icon>
+        <span *ngIf="!filas.length">No se pudieron cargar las promociones de este precio.</span>
+        <span *ngIf="filas.length">La lista puede no reflejar el último cambio.</span>
+        <button mat-stroked-button type="button" (click)="cargar()">Reintentar</button>
+      </div>
+      <div class="pe-vacio" *ngIf="!filas.length && listaEstado === 'cargando'">
+        <span>Cargando promociones…</span>
+      </div>
+
+      <div class="pe-vacio" *ngIf="!filas.length && listaEstado === 'ok'">
         <mat-icon>local_offer</mat-icon>
         <span>Todavía ninguna sucursal tiene una promoción para este precio. Cargá la primera arriba.</span>
       </div>
