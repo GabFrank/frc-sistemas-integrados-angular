@@ -132,3 +132,44 @@ congelado (detalle con stock «—»), recuperar al reanudar. Solo lectura: no s
 | A | La grilla ya se vacía antes de pedir; `onGetVentaItemPorId` sin parámetros; constante con `graphError` | baja | corregido |
 | A | Otras consultas de la pantalla sin proteger | baja | anotadas, fuera de alcance |
 | A/B | Llamadores de cada método, líneas citadas, el diálogo de ajuste no lee estos valores | — | verificado |
+
+## Implementación: desvíos
+
+- **La lista conserva el modal «Buscando…»** (el plan decía sin modal): con el error propagado el modal se cierra
+  solo y evita un doble filtro; el resumen y el detalle sí son silenciosos.
+- **Un aviso para el resumen**, no uno por bloque: cuando no responde el servidor fallan los dos a la vez; cada
+  bloque muestra igual su cartel («No se pudo calcular», con las sucursales sin respuesta).
+- **Estado `inicial`** del resumen (antes de filtrar no se muestra «Elegí un producto»).
+- **Venta del movimiento**: `graphError.propagate` + `show: false` también en `onGetVentaItemPorId` / `onGetPorId`
+  (un error del servidor entra por `error:` y deja el detalle marcado para reintentar, sin el «Ups» duplicado).
+- **Transferencia**: si falla su detalle se escribe el básico marcado `noDisponible` (antes no quedaba nada).
+- **Reintento solo al desplegar**: el clic de la fila también la colapsa; el detalle marcado no se vuelve a pedir
+  al cerrarla ni dos veces a la vez.
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. Solo lectura. Producto COCA COLA 2LTS, sucursales 1, 3 y 4.
+
+| Caso | Resultado |
+|---|---|
+| Filtrar, central vivo | stock actual −510 con desglose, período −691 por tipo, 20 filas de 7425 |
+| Desplegar venta / ajustes de la página, vivo | stock anterior y final correctos (73 → 65; 25 → 21) |
+| Desplegar una venta, congelado | a los 20 s stock anterior y final «—», `noDisponible`, sin modal colgado |
+| Filtrar, congelado | stock actual y período «—» con cartel y sucursales sin respuesta; grilla vacía, paginador «0 of 0» |
+| Reanudar + filtrar | todo vuelve a cargar |
+| Una sola sucursal sin respuesta (consulta reemplazada por un error) | total «—», desglose con «sin respuesta» en esa sucursal; el período, que respondió, queda bien |
+| Ajustes de la página sin stock anterior (ídem) | filas con «(—)», un solo aviso para las 7; al desplegar una, reintenta y calcula |
+| Detalle fallido: doble clic, colapsar, volver a desplegar | una consulta y un aviso; al colapsar no reintenta; al desplegar recupera (44 → 43, con su venta) |
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | El clic que colapsa la fila también reintentaba el detalle fallido; doble clic = dos consultas y dos avisos | reintento solo al desplegar + guarda de «en carga» |
+| media | Venta del movimiento: un error del servidor daba «Ups» + aviso propio, o caía en «no encontrado» sin marca | `graphError.propagate` + `show: false` |
+| media | Transferencia: aviso doble con el stock sin leer y sin detalle marcado | mismo criterio que venta |
+| media | `onGetInventarioProductoItem` (ajustes por inventario) sigue con modal y sin `error:` | fuera de alcance (va con inventario), anotado |
+| baja | Avisos de filas que ya no están tras refiltrar o paginar | se verifica la fila antes de avisar |
+| baja | «Elegí un producto» antes de filtrar | estado `inicial` |
+| — | Stock no leído como 0 o parcial, contadores, identidad de fila, otros llamadores, reglas de HTML | sin hallazgos |

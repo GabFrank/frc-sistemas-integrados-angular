@@ -56,7 +56,7 @@ import { EditTransferenciaComponent } from "../../transferencia/edit-transferenc
 import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
-import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 /**
@@ -68,6 +68,8 @@ const LECTURA_STOCK_RESUMEN: QueryError = {
   graphError: { propagate: true, show: false },
 };
 const CONSULTA_RESUMEN: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Venta del movimiento: avisa la pantalla (una vez), no el servicio; el error del servidor también llega como error. */
+const LECTURA_VENTA: QueryError = LECTURA_STOCK_RESUMEN;
 const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Marca de «esta sucursal no respondió» dentro de un forkJoin (para no cortar las demás). */
 const SIN_RESPUESTA = { sinRespuesta: true };
@@ -76,7 +78,7 @@ const SIN_RESPUESTA = { sinRespuesta: true };
  * Estado de un bloque del resumen. Un stock que no se pudo leer no se muestra como 0 ni como total parcial:
  * mientras carga o si falla alguna sucursal, el total queda «—» (#390).
  */
-export type EstadoResumen = 'sin-producto' | 'cargando' | 'ok' | 'no-disponible';
+export type EstadoResumen = 'inicial' | 'sin-producto' | 'cargando' | 'ok' | 'no-disponible';
 
 export interface StockResumenView {
   tipoMovimiento: string;
@@ -144,8 +146,8 @@ export class ListMovimientoStockComponent implements OnInit {
   selectedPageInfo: PageInfo<MovimientoStock>;
   
   stockActualDesglose: { sucursal: string; stock: number | null }[] = [];
-  stockActualEstado: EstadoResumen = 'sin-producto';
-  stockPeriodoEstado: EstadoResumen = 'sin-producto';
+  stockActualEstado: EstadoResumen = 'inicial';
+  stockPeriodoEstado: EstadoResumen = 'inicial';
   /** Sucursales cuyo stock del período no se pudo leer (texto listo para el template). */
   stockPeriodoSinRespuesta = '';
   /** Descartan respuestas de un filtro anterior. Separados: paginar recarga la lista pero no el resumen. */
@@ -288,7 +290,7 @@ export class ListMovimientoStockComponent implements OnInit {
           // Un total con sucursales faltantes sería parcial: no se muestra
           this.stockTotal = null;
           this.stockActualEstado = 'no-disponible';
-          this.notificacionService.openWarn('No se pudo leer el stock actual de todas las sucursales: volvé a filtrar.', 6);
+          this.avisarResumenIncompleto(carga);
           return;
         }
         this.stockTotal = res.reduce((total, stock) => total + stock, 0);
@@ -324,7 +326,7 @@ export class ListMovimientoStockComponent implements OnInit {
           this.stockPorTipoMovimiento = [];
           this.stockPorRangoFecha = null;
           this.stockPeriodoEstado = 'no-disponible';
-          this.notificacionService.openWarn('No se pudo calcular el stock del período en todas las sucursales: volvé a filtrar.', 6);
+          this.avisarResumenIncompleto(carga);
           return;
         }
 
@@ -359,6 +361,14 @@ export class ListMovimientoStockComponent implements OnInit {
         this.stockPeriodoEstado = 'ok';
       });
     }
+  }
+
+  /** Un solo aviso por filtro aunque fallen los dos bloques del resumen (cada bloque muestra su propio cartel). */
+  private cargaConAvisoDeResumen = -1;
+  private avisarResumenIncompleto(carga: number): void {
+    if (this.cargaConAvisoDeResumen === carga) return;
+    this.cargaConAvisoDeResumen = carga;
+    this.notificacionService.openWarn('No se pudo calcular el resumen de stock en todas las sucursales: volvé a filtrar.', 6);
   }
 
   onGetMovimientos() {
@@ -439,7 +449,7 @@ export class ListMovimientoStockComponent implements OnInit {
       }
 
       this.ventaService
-        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE)
+        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true, true, LECTURA_VENTA, CONSULTA_DETALLE)
         .subscribe((venta) => {
 
           if (venta) {
@@ -787,6 +797,10 @@ export class ListMovimientoStockComponent implements OnInit {
 
     // Un detalle marcado `noDisponible` (no se pudo leer el stock o la venta) se vuelve a pedir al desplegar
     if (movimiento.data == null || movimiento.data.noDisponible === true) {
+      // El clic también colapsa la fila: el reintento de un detalle fallido solo corre al desplegarla, y de a uno
+      if (movimiento.data != null && this.expandedMovimiento !== movimiento) return;
+      if (this.detallesEnCarga.has(movimiento)) return;
+      this.detallesEnCarga.add(movimiento);
       if (movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
         this.obtenerStockAnteriorYProcesarMovimiento(movimiento, index);
       } else {
@@ -796,11 +810,13 @@ export class ListMovimientoStockComponent implements OnInit {
           this.formatearFechaParaBackend(movimiento.creadoEn)
         ).pipe(untilDestroyed(this)).subscribe({
           next: (stockPrevio) => {
-            if (stockPrevio == null) this.avisarStockAnteriorSinLeer();
+            this.detallesEnCarga.delete(movimiento);
+            if (stockPrevio == null) this.avisarStockAnteriorSinLeer(movimiento, index);
             this.procesarMovimientoConStock(movimiento, index, stockPrevio ?? null);
           },
           error: () => {
-            this.avisarStockAnteriorSinLeer();
+            this.detallesEnCarga.delete(movimiento);
+            this.avisarStockAnteriorSinLeer(movimiento, index);
             this.procesarMovimientoConStock(movimiento, index, null);
           }
         });
@@ -808,7 +824,11 @@ export class ListMovimientoStockComponent implements OnInit {
     }
   }
 
-  private avisarStockAnteriorSinLeer(): void {
+  /** Filas con el detalle pidiéndose (doble clic). */
+  private detallesEnCarga = new WeakSet<MovimientoStock>();
+
+  private avisarStockAnteriorSinLeer(movimiento: MovimientoStock, index: number): void {
+    if (this.dataSource.data[index] !== movimiento) return; // la fila ya no está (refiltro o paginación)
     this.notificacionService.openWarn(
       'No se pudo leer el stock anterior de este movimiento: volvé a desplegarlo para reintentar.', 6);
   }
@@ -836,11 +856,13 @@ export class ListMovimientoStockComponent implements OnInit {
       fechaFormateada
     ).pipe(untilDestroyed(this)).subscribe({
       next: (stockPrevio) => {
-        if (stockPrevio == null) this.avisarStockAnteriorSinLeer();
+        this.detallesEnCarga.delete(movimiento);
+        if (stockPrevio == null) this.avisarStockAnteriorSinLeer(movimiento, index);
         this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio ?? null);
       },
       error: () => {
-        this.avisarStockAnteriorSinLeer();
+        this.detallesEnCarga.delete(movimiento);
+        this.avisarStockAnteriorSinLeer(movimiento, index);
         this.procesarMovimientoConStockAnterior(movimiento, index, null);
       }
     });
@@ -857,11 +879,14 @@ export class ListMovimientoStockComponent implements OnInit {
       case TipoMovimiento.VENTA: {
         // Sin la venta se muestra igual el detalle básico (stock), marcado para reintentar al desplegar
         const sinVenta = () => {
-          this.notificacionService.openWarn('No se pudo cargar la venta de este movimiento: volvé a desplegarlo para reintentar.', 6);
+          // Si tampoco se leyó el stock ya se avisó: un aviso por despliegue
+          if (stockPrevio != null && this.dataSource.data[index] === movimiento) {
+            this.notificacionService.openWarn('No se pudo cargar la venta de este movimiento: volvé a desplegarlo para reintentar.', 6);
+          }
           this.escribirDetalle(movimiento, index, { ...stock, noDisponible: true });
         };
         this.ventaService
-          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE, true)
+          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId, true, LECTURA_VENTA, CONSULTA_DETALLE, true)
           .pipe(untilDestroyed(this))
           .subscribe({ error: sinVenta, next: (ventaItem) => {
             if (ventaItem?.venta?.id == null) {
@@ -870,7 +895,7 @@ export class ListMovimientoStockComponent implements OnInit {
               return;
             }
             this.ventaService
-              .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId, true, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE)
+              .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId, true, true, LECTURA_VENTA, CONSULTA_DETALLE)
               .pipe(untilDestroyed(this))
               .subscribe({ error: sinVenta, next: (venta) => {
                 if (venta == null) {
@@ -893,8 +918,13 @@ export class ListMovimientoStockComponent implements OnInit {
           .subscribe((res) => {
             this.escribirDetalle(movimiento, index, res != null ? { ...res, ...stock } : stock);
           },
-          // onGetTransferenciaItem ahora propaga el error de red (#390).
-          () => this.notificacionService.openWarn("No se pudo cargar el detalle de la transferencia.", 5));
+          // onGetTransferenciaItem propaga el error de red (#390): detalle básico, marcado para reintentar
+          () => {
+            if (stockPrevio != null && this.dataSource.data[index] === movimiento) {
+              this.notificacionService.openWarn("No se pudo cargar el detalle de la transferencia.", 5);
+            }
+            this.escribirDetalle(movimiento, index, { ...stock, noDisponible: true });
+          });
         break;
 
       case TipoMovimiento.COMPRA:
