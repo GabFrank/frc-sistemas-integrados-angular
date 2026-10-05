@@ -13,12 +13,24 @@ import { Presentacion } from "../presentacion.model";
 import { PresentacionInput } from "../presentacion.model-input";
 import { PresentacionService } from "../presentacion.service";
 
+/**
+ * Valor de cierre cuando un alta quedó sin confirmar: no trae la presentación, pero avisa a quien abrió el
+ * diálogo que recargue las presentaciones (pudo haberse guardado).
+ */
+export const PRESENTACION_SIN_CONFIRMAR = { sinConfirmar: true };
+
 export class AdicionarPresentacionData {
   presentacion: Presentacion;
   producto: Producto;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { finalize } from "rxjs/operators";
+import { esRechazoDelServidor } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
+import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+
+const CONSULTA_DE_FONDO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -32,6 +44,17 @@ export class AdicionarPresentacionComponent implements OnInit {
   selectedTipoPresentacion: TipoPresentacion = new TipoPresentacion();
   presentacionInput: PresentacionInput = new PresentacionInput();
   tipoPresentacionList: TipoPresentacion[];
+  /** Los tipos de presentación no cargaron: el select requerido queda vacío (#390). */
+  tiposFallo = false;
+  guardando = false;
+  /**
+   * Un ALTA quedó sin respuesta: pudo haberse guardado y las presentaciones no tienen unicidad, así que volver a
+   * guardar la duplicaría. Guardar queda bloqueado en este diálogo (#390).
+   */
+  altaSinConfirmar = false;
+  verificando = false;
+  /** Resultado de la última verificación, para el cartel. Nunca afirma «no se guardó». */
+  textoVerificacion = '';
   //form group and form controls
   formGroup: FormGroup;
   descripcionControl = new FormControl(null, Validators.required);
@@ -87,6 +110,8 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   onSave() {
+    if (this.guardando || this.altaSinConfirmar) return;
+    const esAlta = this.selectedPresentacion == null;
     if (this.selectedPresentacion != null) {
       this.presentacionInput.id = this.selectedPresentacion.id;
     }
@@ -100,18 +125,71 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionInput.cantidad = this.cantidadControl.value;
     this.presentacionInput.activo = this.activoControl.value;
     this.presentacionInput.principal = this.principalControl.value;
+    this.guardando = true;
     this.presentacionService
-      .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this), finalize(() => this.guardando = false))
+      .subscribe({ next: (res) => {
+        this.guardando = false;
         if (res != null) {
           this.matDialogRef.close(res);
         }
+      }, error: (error) => {
+        this.guardando = false;
+        // Rechazo: el servidor dijo que no (ya avisó el servicio); se puede corregir y reintentar
+        if (esRechazoDelServidor(error)) return;
+        if (esAlta) {
+          // Sin respuesta en un alta: pudo haberse guardado. No se reintenta a ciegas.
+          this.altaSinConfirmar = true;
+          return;
+        }
+        // Edición: lleva su id, reintentar es inocuo. (Con respuesta vacía ya avisó el servicio; en el corte, el link.)
+        if (!Array.isArray(error) && !esTimeoutDeLink(error)) {
+          this.notificacionSnackBar.openWarn('No se pudo confirmar el guardado: podés volver a intentar.', 6);
+        }
+      } });
+  }
 
-      });
+  /**
+   * Busca la presentación del alta sin confirmar entre las del producto. Solo concluye en positivo: si hay
+   * EXACTAMENTE una con esa descripción, cantidad y tipo, es la que se guardó y se cierra con ella. En cualquier
+   * otro caso Guardar sigue bloqueado: el servidor puede confirmar el alta después de esta búsqueda.
+   */
+  onVerificar() {
+    if (this.verificando || !this.altaSinConfirmar) return;
+    this.verificando = true;
+    this.textoVerificacion = '';
+    const noSePudo = () => {
+      this.verificando = false;
+      this.textoVerificacion = 'No se pudo verificar: volvé a intentar, o cancelá y revisá las presentaciones del producto.';
+    };
+    // Lo que se mandó (el servicio ya reemplazó la descripción vacía por la cantidad)
+    const enviado = this.presentacionInput;
+    const texto = (valor: any) => (valor ?? '').toString().trim().toUpperCase();
+    this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.selectedProducto.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: noSePudo, next: (presentaciones) => {
+        if (presentaciones == null) {
+          noSePudo();
+          return;
+        }
+        this.verificando = false;
+        const iguales = presentaciones.filter((p) =>
+          texto(p?.descripcion) === texto(enviado.descripcion)
+          && Number(p?.cantidad) === Number(enviado.cantidad)
+          && Number(p?.tipoPresentacion?.id) === Number(enviado.tipoPresentacionId));
+        if (iguales.length === 1) {
+          this.notificacionSnackBar.openSucess('La presentación ya estaba guardada.');
+          this.matDialogRef.close(iguales[0]);
+          return;
+        }
+        this.textoVerificacion = iguales.length > 1
+          ? 'Hay más de una presentación igual en el producto: cancelá y revisalas.'
+          : 'Todavía no aparece: puede estar procesándose. Cancelá y revisá las presentaciones antes de volver a cargarla.';
+      } });
   }
 
   onCancelar() {
-    this.matDialogRef.close(null);
+    this.matDialogRef.close(this.altaSinConfirmar ? PRESENTACION_SIN_CONFIRMAR : null);
   }
 
   cargarPresentacion() {
@@ -125,8 +203,15 @@ export class AdicionarPresentacionComponent implements OnInit {
 
   //tipo presentacion
   createTipoPresentacionSelect() {
-    this.tipoPresentacionService.onGetPresentaciones().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
+    this.tiposFallo = false;
+    this.tipoPresentacionService.onGetPresentaciones(true, PROPAGAR_ERROR_DE_RED, CONSULTA_DE_FONDO)
+      .pipe(untilDestroyed(this)).subscribe({ error: () => {
+        this.tiposFallo = true;
+      }, next: (res) => {
+        if (res == null) {
+          this.tiposFallo = true; // error del servidor: ya avisó el servicio
+          return;
+        }
         this.tipoPresentacionList = res.sort((a, b) => {
           if (a.id > b.id) {
             return 1;
@@ -134,9 +219,7 @@ export class AdicionarPresentacionComponent implements OnInit {
             return -1;
           }
         });
-      }
-
-    });
+      } });
   }
 
   onTipoPresentacionSelect(e) { }

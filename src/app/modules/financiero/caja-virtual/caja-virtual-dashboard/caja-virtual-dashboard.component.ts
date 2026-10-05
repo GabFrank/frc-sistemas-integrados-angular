@@ -34,6 +34,9 @@ import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-finan
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
 import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
+import { AccionAnularMovimientoBancario, PermisosAnulacionBancaria,
+         accionAnularMovimientoBancario } from '../../operacion-financiera/movimiento-bancario-anulacion';
+import { MovimientoBancarioAnulacionService } from '../../operacion-financiera/movimiento-bancario-anulacion.service';
 import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -72,6 +75,11 @@ interface SaldoCard {
   color: string;        // color de acento de la card (fondo del borde/valor)
   seleccionada: boolean;
   formato: string;      // digitsInfo del pipe number, según los decimales de la moneda
+}
+
+/** Movimiento bancario con lo que ofrece su menú, precalculado al cargar la página. */
+interface MovimientoBancarioRow extends MovimientoBancario {
+  _accion: AccionAnularMovimientoBancario;
 }
 
 /** Card de cuenta bancaria del sidebar, con el formato de su moneda precalculado. */
@@ -145,8 +153,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   fuenteSel = this.fuentes[0];
   fuenteEsBanco = false;
 
-  dataSourceBanco = new MatTableDataSource<MovimientoBancario>([]);
-  displayedColumnsBanco = ['creadoEn', 'responsableBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco'];
+  dataSourceBanco = new MatTableDataSource<MovimientoBancarioRow>([]);
+  displayedColumnsBanco = ['creadoEn', 'responsableBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco', 'accionesBanco'];
+  private permisosAnulacionBanco: PermisosAnulacionBancaria = { gestionar: false, pagarCpp: false };
 
   bancoTipoLabels: Record<string, string> = {
     ENTRADA_MANUAL: 'Entrada', SALIDA_MANUAL: 'Salida',
@@ -234,12 +243,17 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private retiroVerificacionService: RetiroVerificacionService,
     private notificacion: NotificacionSnackbarService,
     private impresionService: ImpresionService,
+    private movimientoBancarioAnulacionService: MovimientoBancarioAnulacionService,
     public mainService: MainService
   ) {}
 
   ngOnInit(): void {
     this.cajaVirtual = this.data?.tabData?.data as CajaVirtual;
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.permisosAnulacionBanco = {
+      gestionar: this.puedeGestionar,
+      pagarCpp: this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR]),
+    };
     this.recargar();
   }
 
@@ -433,7 +447,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: res => {
           this.isLoading = false;
           if (res == null) { this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta.', 5); return; }
-          this.dataSourceBanco.data = res.getContent || [];
+          // Clonar: Apollo congela los resultados (mismo motivo que toRow).
+          this.dataSourceBanco.data = (res.getContent || []).map(m => (
+            { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) }));
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         },
         error: () => {
@@ -740,6 +756,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
         }
       });
     });
+  }
+
+  /**
+   * Anular desde la fila de banco: un pago 100 % bancario no tiene fila de caja. No revierte el
+   * movimiento suelto: anula el pago o la operación a la que pertenece (ver accionAnularMovimientoBancario).
+   */
+  onAnularBanco(row: MovimientoBancarioRow) {
+    this.movimientoBancarioAnulacionService.anular(row, row._accion)
+      .pipe(untilDestroyed(this))
+      .subscribe(anulado => {
+        // Recarga todo: un pago mixto también movió la caja, y las cards de banco muestran el saldo.
+        if (anulado) this.recargar();
+      });
   }
 
   handlePageEvent(e: PageEvent) {
