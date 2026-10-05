@@ -37,6 +37,10 @@
           </mat-error>
         </mat-form-field>
       </div>
+      <div *ngIf="tiposPrecioFallo" fxLayout="row" fxLayoutAlign="space-between center" style="padding-bottom: 10px">
+        <span>No se pudieron cargar los tipos de precio.</span>
+        <button mat-stroked-button type="button" (click)="loadTipoPrecios()">Reintentar</button>
+      </div>
       <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
         <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
           <mat-label fxFlex="40">Principal</mat-label>
