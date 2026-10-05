@@ -110,7 +110,7 @@
     <section class="pe-lista">
       <div class="pe-lista__cabecera">
         <h3>Sucursales con promoción</h3>
-        <span class="pe-lista__conteo" *ngIf="filas.length && listaEstado !== 'error'">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
+        <span class="pe-lista__conteo" *ngIf="filas.length && listaEstado === 'ok'">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
       </div>
 
       <!-- La lista no se pudo leer (#390): no se afirma que no hay promociones -->

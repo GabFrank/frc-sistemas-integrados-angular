@@ -166,7 +166,9 @@ export class PrecioEspecialDialogComponent implements OnInit {
     const e = fila.especial;
     this.editando = e;
     this.editandoSucursal = fila.sucursal;
-    this.sucursalControl.setValue(this.sucursalList.filter((s) => Number(s.id) === Number(e.sucursal?.id)));
+    // Si las sucursales todavía no cargaron (o fallaron), se muestra igual la de la fila
+    const deLaLista = this.sucursalList.filter((s) => Number(s.id) === Number(e.sucursal?.id));
+    this.sucursalControl.setValue(deLaLista.length || e.sucursal == null ? deLaLista : [e.sucursal]);
     this.sucursalControl.disable();
     this.precioControl.setValue(e.precio);
     this.desdeControl.setValue(e.fechaDesde ? stringToLocalDate(e.fechaDesde) : null);

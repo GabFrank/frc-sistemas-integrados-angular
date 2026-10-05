@@ -88,7 +88,6 @@
         <tr class="mat-row" *matNoDataRow>
           <td class="mat-cell text-center" [attr.colspan]="displayedColumns.length">
             <span *ngIf="!loading && !listaFallo">No hay proveedores vinculados</span>
-              <span *ngIf="!loading && listaFallo">No se pudo cargar la lista.</span>
             <span *ngIf="loading">Cargando...</span>
           </td>
         </tr>

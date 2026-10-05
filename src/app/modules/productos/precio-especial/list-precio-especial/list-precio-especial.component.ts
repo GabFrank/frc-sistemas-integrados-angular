@@ -78,12 +78,21 @@ export class ListPrecioEspecialComponent implements OnInit {
       } });
   }
 
-  /** `paginando`: es un cambio de página; si falla se conserva la página a la vista en vez de vaciar. */
-  onGetData(paginando = false): void {
+  /**
+   * `filtro` (por defecto): si falla, la grilla se vacía (lo anterior ya no corresponde a los filtros a la vista).
+   * `pagina`: cambio de página; si falla se conserva la página a la vista. `releer`: tras cortar; si falla se
+   * conservan las filas con el cartel de que pueden no reflejar el cambio.
+   */
+  onGetData(modo: 'filtro' | 'pagina' | 'releer' = 'filtro'): void {
     const carga = ++this.carga;
     const fallo = () => {
       if (carga !== this.carga) return;
-      if (paginando && !this.listaFallo) {
+      if (modo === 'releer' && !this.listaFallo) {
+        this.listaFallo = true;
+        this.notificacionService.openWarn('No se pudo actualizar la lista: puede no reflejar el último cambio.', 6);
+        return;
+      }
+      if (modo === 'pagina' && !this.listaFallo) {
         this.pageIndex = this.paginaMostrada.pageIndex;
         this.pageSize = this.paginaMostrada.pageSize;
         if (this.paginator) {
@@ -142,7 +151,7 @@ export class ListPrecioEspecialComponent implements OnInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onGetData(true);
+    this.onGetData('pagina');
   }
 
   onCortar(fila: FilaPrecioEspecial): void {
@@ -153,7 +162,7 @@ export class ListPrecioEspecialComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
         // También en error: pudo haberse aplicado (onSaveCustom ya avisó), y la lista lo aclara
-        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.onGetData(true), error: () => this.onGetData(true) });
+        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.onGetData('releer'), error: () => this.onGetData('releer') });
       });
   }
 }

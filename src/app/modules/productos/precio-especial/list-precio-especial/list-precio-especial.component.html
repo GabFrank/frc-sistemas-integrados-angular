@@ -23,7 +23,8 @@
   <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
     <div *ngIf="listaFallo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 0">
       <mat-icon>error_outline</mat-icon>
-      <span>No se pudieron cargar las promociones.</span>
+      <span *ngIf="!dataSource.data.length">No se pudieron cargar las promociones.</span>
+      <span *ngIf="dataSource.data.length">No se pudo actualizar la lista: puede no reflejar el último cambio.</span>
       <button mat-stroked-button type="button" (click)="onGetData()">Reintentar</button>
     </div>
     <div fxFlex style="overflow: auto; min-height: 0">

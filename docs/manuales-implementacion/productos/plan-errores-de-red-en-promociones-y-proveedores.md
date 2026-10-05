@@ -223,3 +223,14 @@ congelado con `kill -STOP` + respaldo `kill -CONT`.
 | Productos de un proveedor, error simulado al paginar | filas, total y página conservados; Reintentar recupera |
 
 En la base local quedó la promoción de prueba (id 27) cortada.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | Lista de promociones: la relectura tras cortar usaba la rama de paginado; si fallaba avisaba «no se pudo cambiar de página» y la fila cortada seguía «vigente» sin señal | modo `releer`: conserva las filas con el cartel «puede no reflejar el último cambio» |
+| media | Editar una promoción con las sucursales sin cargar dejaba el selector vacío | se muestra la sucursal de la fila |
+| baja | Al reintentar, el conteo de vigentes reaparecía sobre filas viejas mientras cargaba | el conteo solo se muestra con la lista en `ok` |
+| baja | Producto-proveedor: «No se pudo cargar la lista» dos veces (fila vacía y cartel) | queda solo el cartel |
+| baja | Doble aviso al vincular / desvincular si también falla la relectura; enlace «Reintentar» dentro del `mat-hint` | aceptado |
+| — | Contadores de lectura, estados sin quedar colgados, otros llamadores de los servicios, paginadores, reglas de HTML | sin hallazgos |
