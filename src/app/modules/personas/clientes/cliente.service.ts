@@ -96,14 +96,15 @@ export class ClienteService {
     return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
-  onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
+  /** Sin `errorConf` no emite nada si falla (el llamador queda con lo que tenía): pasarlo para enterarse (#390). */
+  onGetByPersonaIdFromServer(id: number, errorConf?: QueryError): Observable<Cliente> {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
       "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 
-      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet");
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", errorConf);
   }
 
-  onSearchFromServer(texto: string): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
+  onSearchFromServer(texto: string, errorConf?: QueryError): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000, errorConf);
   }
 
   onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{

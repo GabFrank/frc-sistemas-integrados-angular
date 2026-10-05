@@ -10,7 +10,7 @@ import { CargandoDialogService } from "../../../../shared/components/cargando-di
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { Venta } from "../venta.model";
-import { VentaService } from "../venta.service";
+import { ErrorCancelacionVenta, VentaService } from "../venta.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
 
@@ -143,8 +143,17 @@ export class UltimasVentasDialogComponent implements OnInit {
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.ventaService.onCancelarVenta(venta.id, venta.sucursalId, true).pipe(untilDestroyed(this)).subscribe({
-            next: (res) => {
+          // La fila viene del filial, que puede ir atrasado: se relee del central y, si ya está cancelada, no se
+          // manda (el central ALTERNA y la reactivaría) (#390)
+          this.ventaService.onCancelarVentaVerificando(venta.id, venta.sucursalId, { soloCancelar: true }).pipe(untilDestroyed(this)).subscribe({
+            next: (resultado) => {
+              if (resultado.tipo === "cambio") {
+                venta.estado = VentaEstado.CANCELADA;
+                this.dataSource.data = updateDataSource(this.dataSource.data, venta, index);
+                this.notificacionSnackBar.openWarn("La venta " + venta.id + " ya estaba cancelada en el servidor: no se envió nada.", 6);
+                return;
+              }
+              const res = resultado.tipo === "aplicada";
               if (!res) {
                 this.notificacionSnackBar.openAlgoSalioMal("No se pudo cancelar la venta " + venta.id + ".");
                 return;
@@ -161,8 +170,16 @@ export class UltimasVentasDialogComponent implements OnInit {
               this.reimpresionVenta(venta.id);
             },
             // Antes no habia handler: si fallaba, el cajero no veia ni exito ni error.
-            error: (err) => this.notificacionSnackBar.openAlgoSalioMal(
-              mensajeDeError(err, "No se pudo cancelar la venta " + venta.id + ". Revisá la conexión con el servidor central.")),
+            error: (err: ErrorCancelacionVenta) => {
+              if (err?.fase === "lectura") {
+                this.notificacionSnackBar.openWarn(
+                  "No se pudo verificar la venta " + venta.id + " en el servidor central: no se envió nada. Intentá de nuevo.", 6);
+                return;
+              }
+              // Sin respuesta pudo haberse cancelado. Reintentar es seguro: se relee antes y no se reactiva.
+              this.notificacionSnackBar.openAlgoSalioMal(
+                mensajeDeError(err?.error, "No se pudo confirmar si la venta " + venta.id + " se canceló. Revisá la conexión con el servidor central y volvé a intentar."));
+            },
           });
         }
       });

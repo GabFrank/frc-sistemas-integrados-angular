@@ -1,7 +1,12 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, Observable } from "rxjs";
-import { map, tap } from "rxjs/operators";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { BehaviorSubject, Observable, of, throwError } from "rxjs";
+import { catchError, map, switchMap, tap } from "rxjs/operators";
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from "../../../generics/generic-crud.service";
 import { MainService } from "../../../main.service";
 import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";
 import { Cobro, CobroInput } from "./cobro/cobro.model";
@@ -49,6 +54,25 @@ import { Tab } from "../../../layouts/tab/tab.model";
 import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { LucroPorFuncionarioListGQL } from "./graphql/lucroPorFuncionarioList";
 import { ReporteLucroPorFuncionarioGQL } from "./graphql/reporteLucroPorFuncionario";
+
+/** Relectura de una venta antes de una acción: error de red al llamador, sin «Ups» propio (#390). */
+const RELECTURA_SILENCIOSA: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { show: false },
+};
+const CONSULTA_RELECTURA: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
+export type ResultadoCancelacionVenta =
+  /** Se mandó: `aplicada` si el central la alternó, `rechazada` si respondió que no. */
+  | { tipo: "aplicada" | "rechazada"; estadoAnterior: VentaEstado }
+  /** No se mandó: el central ya tiene otro estado (o ya estaba cancelada). */
+  | { tipo: "cambio"; estadoActual: VentaEstado };
+
+export interface ErrorCancelacionVenta {
+  /** `lectura`: no se mandó nada. `cancelacion`: pudo haberse aplicado. */
+  fase: "lectura" | "cancelacion";
+  error: any;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -238,6 +262,53 @@ export class VentaService {
     return this.genericService.onCustomMutation(this.cancelarVenta, { id, sucId }, servidor);
   }
 
+  /**
+   * Cancela (o reactiva) una venta verificando antes su estado en el CENTRAL.
+   *
+   * El central ALTERNA: una venta CANCELADA vuelve a CONCLUIDA y cualquier otra pasa a CANCELADA, con su caja y su
+   * stock. Mandarlo según el estado de una fila vieja —otro usuario ya la canceló, o un intento anterior se aplicó
+   * y se perdió la respuesta— hace lo contrario de lo que se confirmó (#390). Por eso se relee y solo se manda si
+   * el estado es el esperado.
+   *
+   * - `estadoEsperado`: el de la fila. Si el central tiene otro, no se manda (`tipo: 'cambio'`).
+   * - `soloCancelar`: para pantallas que no ofrecen reactivar; si ya está CANCELADA no se manda.
+   *
+   * Errores (por `error:`): `{ fase: 'lectura' }` = no se pudo leer, NO se mandó nada; `{ fase: 'cancelacion' }` =
+   * la mutación falló o no respondió: pudo haberse aplicado, hay que releer antes de reintentar.
+   */
+  onCancelarVentaVerificando(
+    id,
+    sucId,
+    opciones: { estadoEsperado?: VentaEstado; soloCancelar?: boolean } = {}
+  ): Observable<ResultadoCancelacionVenta> {
+    return this.onLeerEstadoEnCentral(id, sucId).pipe(
+      catchError((error) => throwError(() => ({ fase: "lectura", error } as ErrorCancelacionVenta))),
+      switchMap((estadoActual) => {
+        const cambio = opciones.estadoEsperado != null && estadoActual != opciones.estadoEsperado;
+        const yaCancelada = opciones.soloCancelar === true && estadoActual == VentaEstado.CANCELADA;
+        if (cambio || yaCancelada) {
+          return of({ tipo: "cambio", estadoActual } as ResultadoCancelacionVenta);
+        }
+        return this.onCancelarVenta(id, sucId, true).pipe(
+          map((ok) => ({ tipo: ok ? "aplicada" : "rechazada", estadoAnterior: estadoActual } as ResultadoCancelacionVenta)),
+          catchError((error) => throwError(() => ({ fase: "cancelacion", error } as ErrorCancelacionVenta)))
+        );
+      })
+    );
+  }
+
+  /**
+   * Estado de la venta en el central, sin modal ni avisos propios (el aviso lo da el llamador). Falla (por
+   * `error:`) si no responde o no se pudo leer: nunca devuelve un estado inventado.
+   */
+  onLeerEstadoEnCentral(id, sucId): Observable<VentaEstado> {
+    return this.onGetPorId(id, sucId, true, true, RELECTURA_SILENCIOSA, CONSULTA_RELECTURA).pipe(
+      switchMap((venta) =>
+        venta?.estado != null ? of(venta.estado) : throwError(() => new Error("No se pudo leer la venta"))
+      )
+    );
+  }
+
   onSearch(
     idVenta,
     idCaja,
@@ -402,7 +473,8 @@ export class VentaService {
       });
   }
 
-  onGetPorId(id, sucId?, silentLoad?, servidor = true): Observable<Venta> {
+  onGetPorId(id, sucId?, silentLoad?, servidor = true, errorConf?: QueryError,
+             contexto?: ContextoConsulta): Observable<Venta> {
     return this.genericService.onGetById(
       this.ventaPorId,
       id,
@@ -411,7 +483,11 @@ export class VentaService {
       sucId,
       null,
       null,
-      silentLoad
+      silentLoad,
+      null,
+      null,
+      errorConf,
+      contexto
     );
   }
 

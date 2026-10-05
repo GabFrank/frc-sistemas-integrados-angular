@@ -15,7 +15,7 @@ import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CajaPorIdGQL } from "../../../financiero/pdv/caja/graphql/cajaPorId";
 import { CobroDetalle } from "../cobro/cobro-detalle.model";
 import { Venta } from "../venta.model";
-import { VentaService } from "../venta.service";
+import { ErrorCancelacionVenta, VentaService } from "../venta.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { FormControl, FormGroup } from "@angular/forms";
@@ -368,42 +368,86 @@ export class ListVentaComponent implements OnInit {
     return total;
   }
 
+  /** Ventas cuya cancelación o reactivación quedó sin confirmar: bloqueadas hasta releerlas del central (#390). */
+  private ventasSinConfirmar = new Set<string>();
+
+  /**
+   * El central ALTERNA el estado (una venta cancelada se reactiva). Antes se mandaba según el estado de la fila,
+   * sin `error:`: con la fila vieja o un intento anterior aplicado sin respuesta, se hacía lo contrario de lo
+   * confirmado. Ahora se relee del central y solo se manda si el estado no cambió (#390).
+   */
   onCancelarVenta(venta: Venta, index: number) {
+    const clave = `${venta.id}-${venta.sucursalId}`;
+    if (this.ventasSinConfirmar.has(clave)) {
+      this.releerVentaSinConfirmar(venta, index, clave);
+      return;
+    }
+    const estabaCancelada = venta.estado == VentaEstado.CANCELADA;
+    const accion = estabaCancelada ? "reactivar" : "cancelar";
     this.dialogoService
-      .confirm("Atención!!", "Realmente desea cancelar esta venta?")
+      .confirm("Atención!!", `Realmente desea ${accion} esta venta?`)
       .subscribe((res) => {
-        if (res) {
-          const estabaCancelada = venta.estado == VentaEstado.CANCELADA;
-          this.ventaService
-            .onCancelarVenta(venta.id, venta.sucursalId)
-            .subscribe((res1) => {
-              if (res1) {
-                this.notificacionService.openSucess(
-                  "Venta cancelada con éxito"
-                );
-                if (estabaCancelada) {
-                  venta.estado = VentaEstado.CONCLUIDA;
-                } else {
-                  venta.estado = VentaEstado.CANCELADA;
-                  this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
-                    next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
-                    error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
-                  });
-                }
-                this.ventaDataSource.data = updateDataSource(
-                  this.ventaDataSource.data,
-                  venta,
-                  index
-                );
+        if (!res) return;
+        this.ventaService
+          .onCancelarVentaVerificando(venta.id, venta.sucursalId, { estadoEsperado: venta.estado })
+          .subscribe({
+            next: (resultado) => {
+              if (resultado.tipo === "cambio") {
+                // Otro usuario (o un intento anterior) ya la cambió: no se mandó nada
+                venta.estado = resultado.estadoActual;
+                this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+                this.notificacionService.openWarn(
+                  `La venta ya estaba ${resultado.estadoActual} en el servidor: no se envió nada. Revisá antes de volver a intentar.`, 8);
                 this.onGetBalance();
-              } else {
-                this.notificacionService.openAlgoSalioMal(
-                  "Ups! No se pudo cancelar la venta. "
-                );
+                return;
               }
-            });
-        }
+              if (resultado.tipo === "rechazada") {
+                this.notificacionService.openAlgoSalioMal(`Ups! No se pudo ${accion} la venta. `);
+                return;
+              }
+              this.notificacionService.openSucess(
+                estabaCancelada ? "Venta reactivada con éxito" : "Venta cancelada con éxito"
+              );
+              if (estabaCancelada) {
+                venta.estado = VentaEstado.CONCLUIDA;
+              } else {
+                venta.estado = VentaEstado.CANCELADA;
+                this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+                  next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
+                  error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                });
+              }
+              this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+              this.onGetBalance();
+            },
+            error: (e: ErrorCancelacionVenta) => {
+              if (e?.fase === "lectura") {
+                this.notificacionService.openWarn(
+                  "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
+                return;
+              }
+              // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.
+              this.ventasSinConfirmar.add(clave);
+              this.notificacionService.openWarn(
+                `No se pudo confirmar si la venta se llegó a ${accion}: se vuelve a leer del servidor antes de permitir otro intento.`, 8);
+              this.releerVentaSinConfirmar(venta, index, clave);
+            },
+          });
       });
+  }
+
+  private releerVentaSinConfirmar(venta: Venta, index: number, clave: string): void {
+    this.ventaService.onLeerEstadoEnCentral(venta.id, venta.sucursalId).subscribe({
+      next: (estado) => {
+        venta.estado = estado;
+        this.ventasSinConfirmar.delete(clave);
+        this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+        this.notificacionService.openWarn(`La venta ${venta.id} está ${estado} en el servidor.`, 6);
+        this.onGetBalance();
+      },
+      error: () => this.notificacionService.openWarn(
+        `No se pudo leer la venta ${venta.id}: la acción queda bloqueada hasta confirmar su estado. Intentá de nuevo en unos segundos.`, 8),
+    });
   }
 
   onResetFiltro() {
