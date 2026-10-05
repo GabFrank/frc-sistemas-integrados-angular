@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AllTiposPreciosGQL } from './graphql/allTiposPrecios';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +12,7 @@ export class TipoPrecioService {
     private genericService: GenericCrudService
   ) { }
 
-  onGetAllTipoPrecios(servidor: boolean = true){
-    return this.genericService.onCustomQuery(this.allTipoPrecios, null, servidor);
+  onGetAllTipoPrecios(servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta){
+    return this.genericService.onCustomQuery(this.allTipoPrecios, null, servidor, errorConf, undefined, contexto);
   }
 }

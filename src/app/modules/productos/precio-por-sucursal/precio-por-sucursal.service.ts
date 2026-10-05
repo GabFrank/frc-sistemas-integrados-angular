@@ -13,7 +13,7 @@ import { PrecioPorSucursalInput } from "./precio-por-sucursal-input.model";
 import { PrecioPorSucursal } from "./precio-por-sucursal.model";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -32,9 +32,13 @@ export class PrecioPorSucursalService {
     private genericService: GenericCrudService
   ) {}
 
+  /**
+   * Propaga el error de red (#390): sin eso el llamador no se entera y deja el modal colgado. Un error que llega
+   * como array es un rechazo del servidor (no se guardó); cualquier otro es incierto (pudo haberse guardado).
+   */
   onSave(input: PrecioPorSucursalInput, servidor = true): Observable<any> {
     input.usuarioId = this.mainService?.usuarioActual?.id;
-    return this.genericService.onSave(this.savePrecioPorSucursal, input, null, null, servidor);
+    return this.genericService.onSave(this.savePrecioPorSucursal, input, null, null, servidor, PROPAGAR_ERROR_DE_RED);
   }
 
   onDelete(precio: PrecioPorSucursal, servidor = true): Observable<boolean> {
@@ -42,7 +46,10 @@ export class PrecioPorSucursalService {
     return this.genericService.onDelete(this.deletePrecioPorSucursal, precio.id, "¿Eliminar precio por sucursal?", null, true, servidor, "¿Está seguro que desea eliminar este precio por sucursal?");
   }
 
-  onGetPrecioPorSurursalPorPresentacionId(id: number, servidor = true) {
-    return this.genericService.onGetById(this.getPrecioPorSucursalPorPresentacion, id, null, null, servidor);
+  /** Con `errorConf` el error llega al llamador; sin él, la consulta no emite nada si falla (#390). */
+  onGetPrecioPorSurursalPorPresentacionId(id: number, servidor = true, errorConf?: QueryError,
+                                          contexto?: ContextoConsulta, silentLoad?: boolean) {
+    return this.genericService.onGetById<PrecioPorSucursal[]>(this.getPrecioPorSucursalPorPresentacion, id, null, null,
+      servidor, null, null, null, silentLoad, null, null, errorConf, contexto);
   }
 }

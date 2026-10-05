@@ -17,6 +17,7 @@ import {
 } from "../../../configuracion/thermal-printer/thermal-printer.service";
 import { PrinterInfo } from "../../../../commons/core/electron/electron.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
 
 export class AdicionarCodigoData {
   codigo: Codigo;
@@ -45,6 +46,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   inputChanged = false;
   inputTimer: any = null;
   generating = false;
+  /** Verificando o guardando: Enter (HostListener) no vuelve a disparar el guardado mientras tanto. */
+  guardando = false;
   printing = false;
   downloading = false;
   barcodePreviewUrl: string | null = null;
@@ -271,6 +274,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
         },
         error: () => {
           this.generating = false;
+          this.notificacionSnackBar.openWarn("No se pudo generar el código: volvé a intentar.", 5);
         },
       });
   }
@@ -321,6 +325,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   }
 
   onSave() {
+    if (this.guardando) return;
+    this.guardando = true;
     this.codigoInput.codigo = this.codigoControl.value;
     this.codigoInput.activo = this.activoControl.value;
     this.codigoInput.principal = this.principalControl.value;
@@ -332,8 +338,9 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     this.codigoService
       .onGetCodigoPorCodigo(this.codigoInput.codigo)
       .pipe(untilDestroyed(this))
-      .subscribe((res: Codigo[]) => {
+      .subscribe({ error: () => this.avisarCodigoSinVerificar(), next: (res: Codigo[]) => {
         if (res == null) {
+          this.avisarCodigoSinVerificar();
           return;
         }
         switch (res.length) {
@@ -350,6 +357,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
         }
 
         if (isCodigoInUse) {
+          this.guardando = false;
           this.notificacionSnackBar.notification$.next({
             texto: "El código ya está en uso",
             duracion: 3,
@@ -361,10 +369,23 @@ export class AdicionarCodigoDialogComponent implements OnInit {
         this.codigoService
           .onSaveCodigo(this.codigoInput)
           .pipe(untilDestroyed(this))
-          .subscribe((res2) => {
+          .subscribe({ error: (error) => {
+            this.guardando = false;
+            if (Array.isArray(error)) {
+              return; // rechazo del servidor (ya se avisó): no se guardó, se puede corregir y reintentar
+            }
+            // Sin respuesta: pudo haberse guardado. Se cierra y quien abrió recarga los códigos.
+            if (!esTimeoutDeLink(error)) {
+              this.notificacionSnackBar.openWarn(
+                "No se pudo confirmar el guardado del código: pudo haberse guardado. Revisá los códigos antes de reintentar.", 10);
+            }
+            this.matDialogRef.close({ codigo: null, index: this.data.index, presentacionIndex: this.data.presentacionIndex });
+          }, next: (res2) => {
             if (res2 == null) {
+              this.guardando = false;
               return;
             }
+            // `guardando` sigue en true: el diálogo se cierra (tras imprimir, si corresponde)
             const closePayload = {
               codigo: res2,
               index: this.data.index,
@@ -388,8 +409,14 @@ export class AdicionarCodigoDialogComponent implements OnInit {
             } else {
               this.matDialogRef.close(closePayload);
             }
-          });
-      });
+          } });
+      } });
+  }
+
+  private avisarCodigoSinVerificar(): void {
+    this.guardando = false;
+    this.notificacionSnackBar.openWarn(
+      "No se pudo verificar si el código ya está en uso: no se guardó. Volvé a intentar.", 6);
   }
 
   onCancelar() {
