@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Gps } from '../../models/gps.model';
 import { GpsService } from '../../service/gps.service';
-import { take, timeout, startWith, map } from 'rxjs/operators';
+import { take, startWith, map } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, merge } from 'rxjs';
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.service';
@@ -35,9 +35,21 @@ interface EstadoServidor {
   intervaloReporte: number | null;
 }
 
+/** Las alertas tal como están guardadas: se mandan siempre las cinco juntas, y juntas se revierten. */
+interface AlertasGuardadas {
+  alertaVelocidad: boolean;
+  velocidadLimite: number;
+  alertaVibracion: boolean;
+  alertaBateriaBaja: boolean;
+  alertaAcc: boolean;
+}
+
+type ClaveAlerta = 'alertaVelocidad' | 'alertaVibracion' | 'alertaBateriaBaja' | 'alertaAcc';
+
 /** Corte de un comando al GPS: lo hace el link, que cancela la espera y avisa que pudo haberse aplicado. */
 const TIMEOUT_COMANDO_MS = 20000;
 const INTERVALO_POR_DEFECTO = 30;
+const VELOCIDAD_LIMITE_POR_DEFECTO = 100;
 
 const LECTURA_GPS: QueryError = {
   networkError: { propagate: true, show: false },
@@ -69,11 +81,13 @@ export class GpsConfigDialogComponent implements OnInit {
   motorEstadoControl = new FormControl(this.data.motorBloqueado !== true);
   sleepModeControl = new FormControl(this.data.modoSueno === true);
   reportIntervalControl = new FormControl(this.data.intervaloReporte || INTERVALO_POR_DEFECTO);
-  velocidadLimiteControl = new FormControl(this.data.velocidadLimite ?? 100);
-  alertaVelocidadControl = new FormControl(this.data.alertaVelocidad ?? true);
-  alertaVibracionControl = new FormControl(this.data.alertaVibracion ?? false);
-  alertaBateriaBajaControl = new FormControl(this.data.alertaBateriaBaja ?? true);
-  alertaAccControl = new FormControl(this.data.alertaAcc ?? true);
+  // Una alerta sin dato está apagada: el central solo las emite si están en verdadero.
+  alertas: AlertasGuardadas = this.alertasDe(this.data);
+  velocidadLimiteControl = new FormControl(this.alertas.velocidadLimite);
+  alertaVelocidadControl = new FormControl(this.alertas.alertaVelocidad);
+  alertaVibracionControl = new FormControl(this.alertas.alertaVibracion);
+  alertaBateriaBajaControl = new FormControl(this.alertas.alertaBateriaBaja);
+  alertaAccControl = new FormControl(this.alertas.alertaAcc);
   apnNameControl = new FormControl('internet');
 
   // Observables para el template
@@ -112,6 +126,10 @@ export class GpsConfigDialogComponent implements OnInit {
   sinConfirmar: Record<ClaveComando, boolean> = { motor: false, sleep: false, interval: false, apn: false };
   haySinConfirmar = false;
   actualizandoEstado = false;
+  /** La relectura al abrir falló: lo que se muestra es lo que traía la lista. */
+  lecturaFallo = false;
+  /** Se envió o guardó algo: al cerrar se refresca la lista (lo lee `GpsDialogService`). */
+  huboCambios = false;
 
   ngOnInit(): void {
     this.initForm();
@@ -123,6 +141,7 @@ export class GpsConfigDialogComponent implements OnInit {
         this.recalcular();
         this.cdr.markForCheck();
       });
+    this.leerGps(false);
   }
 
   initForm(): void {
@@ -178,6 +197,14 @@ export class GpsConfigDialogComponent implements OnInit {
 
   /** Relee el GPS. Lo leído es lo que consta en el servidor, no una confirmación del equipo. */
   onActualizarEstado(): void {
+    this.leerGps(true);
+  }
+
+  /**
+   * `pedidaPorElUsuario`: da por vistos los envíos sin confirmar y avisa el resultado. Al abrir es silenciosa: si
+   * falla queda el cartel de «puede estar desactualizado». Solo se alinean los controles que el usuario no tocó.
+   */
+  private leerGps(pedidaPorElUsuario: boolean): void {
     if (this.actualizandoEstado) return;
     this.actualizandoEstado = true;
     this.cdr.markForCheck();
@@ -186,20 +213,26 @@ export class GpsConfigDialogComponent implements OnInit {
       .subscribe({
         next: (gps) => {
           this.actualizandoEstado = false;
+          this.lecturaFallo = !gps;
           if (gps) {
             this.gps = { ...this.gps, ...gps };
             this.servidor = this.estadoDe(gps);
-            this.sinConfirmar = { motor: false, sleep: false, interval: false, apn: false };
+            this.alertas = this.alertasDe(gps);
+            this.alinearControlesSinTocar();
+            if (pedidaPorElUsuario) {
+              this.sinConfirmar = { motor: false, sleep: false, interval: false, apn: false };
+              this.notificacionService.openSucess('Estado leído del servidor: es lo último enviado, no una confirmación del GPS', 4);
+            }
             this.recalcular();
-            this.notificacionService.openSucess('Estado leído del servidor: es lo último enviado, no una confirmación del GPS', 4);
-          } else {
+          } else if (pedidaPorElUsuario) {
             this.notificacionService.openWarn('No se pudo leer el estado del GPS');
           }
           this.cdr.markForCheck();
         },
         error: () => {
           this.actualizandoEstado = false;
-          this.notificacionService.openWarn('No se pudo leer el estado del GPS');
+          this.lecturaFallo = true;
+          if (pedidaPorElUsuario) this.notificacionService.openWarn('No se pudo leer el estado del GPS');
           this.cdr.markForCheck();
         }
       });
@@ -223,6 +256,7 @@ export class GpsConfigDialogComponent implements OnInit {
 
   private ejecutar(clave: ClaveComando, tipo: string, valor: string | undefined, alEnviarse: () => void): void {
     this.loading[clave] = true;
+    this.huboCambios = true;
     this.cdr.markForCheck();
 
     this.gpsService.onEnviarComando(this.gps.id, tipo, valor, TIMEOUT_COMANDO_MS)
@@ -232,6 +266,7 @@ export class GpsConfigDialogComponent implements OnInit {
           this.loading[clave] = false;
           if (enviado === true) {
             alEnviarse();
+            this.controlDe(clave)?.markAsPristine();
             this.sinConfirmar[clave] = false;
             this.recalcular();
             this.notificacionService.openSucess('Comando enviado al GPS');
@@ -266,7 +301,48 @@ export class GpsConfigDialogComponent implements OnInit {
     if (clave === 'motor' && s.motorBloqueado != null) this.motorEstadoControl.setValue(!s.motorBloqueado);
     if (clave === 'sleep' && s.modoSueno != null) this.sleepModeControl.setValue(s.modoSueno);
     if (clave === 'interval' && s.intervaloReporte != null) this.reportIntervalControl.setValue(s.intervaloReporte);
+    this.controlDe(clave)?.markAsPristine();
     this.recalcular();
+  }
+
+  private controlDe(clave: ClaveComando): FormControl | null {
+    if (clave === 'motor') return this.motorEstadoControl;
+    if (clave === 'sleep') return this.sleepModeControl;
+    if (clave === 'interval') return this.reportIntervalControl;
+    return null;
+  }
+
+  private revertirAlertas(): void {
+    const a = this.alertas;
+    this.alertaVelocidadControl.reset(a.alertaVelocidad);
+    this.velocidadLimiteControl.reset(a.velocidadLimite);
+    this.alertaVibracionControl.reset(a.alertaVibracion);
+    this.alertaBateriaBajaControl.reset(a.alertaBateriaBaja);
+    this.alertaAccControl.reset(a.alertaAcc);
+  }
+
+  /** Tras releer: lo que el usuario no tocó pasa a mostrar lo leído; lo que tocó queda como «sin enviar». */
+  private alinearControlesSinTocar(): void {
+    const s = this.servidor;
+    const a = this.alertas;
+    if (this.motorEstadoControl.pristine && s.motorBloqueado != null) this.motorEstadoControl.setValue(!s.motorBloqueado);
+    if (this.sleepModeControl.pristine && s.modoSueno != null) this.sleepModeControl.setValue(s.modoSueno);
+    if (this.reportIntervalControl.pristine && s.intervaloReporte != null) this.reportIntervalControl.setValue(s.intervaloReporte);
+    if (this.alertaVelocidadControl.pristine) this.alertaVelocidadControl.setValue(a.alertaVelocidad);
+    if (this.velocidadLimiteControl.pristine) this.velocidadLimiteControl.setValue(a.velocidadLimite);
+    if (this.alertaVibracionControl.pristine) this.alertaVibracionControl.setValue(a.alertaVibracion);
+    if (this.alertaBateriaBajaControl.pristine) this.alertaBateriaBajaControl.setValue(a.alertaBateriaBaja);
+    if (this.alertaAccControl.pristine) this.alertaAccControl.setValue(a.alertaAcc);
+  }
+
+  private alertasDe(gps: Gps): AlertasGuardadas {
+    return {
+      alertaVelocidad: gps?.alertaVelocidad === true,
+      velocidadLimite: gps?.velocidadLimite ?? VELOCIDAD_LIMITE_POR_DEFECTO,
+      alertaVibracion: gps?.alertaVibracion === true,
+      alertaBateriaBaja: gps?.alertaBateriaBaja === true,
+      alertaAcc: gps?.alertaAcc === true
+    };
   }
 
   private estadoDe(gps: Gps): EstadoServidor {
@@ -291,33 +367,45 @@ export class GpsConfigDialogComponent implements OnInit {
     this.haySinConfirmar = Object.values(this.sinConfirmar).some(v => v);
   }
 
-  onGuardarAlerta(tipo: keyof LoadingState): void {
+  /** El central solo escribe en la base: repetir el guardado es inocuo. Se mandan las cinco alertas juntas. */
+  onGuardarAlerta(tipo: ClaveAlerta): void {
+    if (this.loading[tipo]) return;
     this.loading[tipo] = true;
+    this.huboCambios = true;
     this.cdr.markForCheck();
-    
+
     this.gpsService.onGuardarConfigAlertas(
       this.gps.id,
       !!this.alertaVelocidadControl.value,
-      this.velocidadLimiteControl.value || 100,
+      this.velocidadLimiteControl.value || VELOCIDAD_LIMITE_POR_DEFECTO,
       !!this.alertaVibracionControl.value,
       !!this.alertaBateriaBajaControl.value,
-      !!this.alertaAccControl.value
+      !!this.alertaAccControl.value,
+      TIMEOUT_COMANDO_MS
     )
-      .pipe(
-        take(1),
-        timeout(10000),
-        untilDestroyed(this)
-      )
+      .pipe(take(1), untilDestroyed(this))
       .subscribe({
         next: (gpsActualizado) => {
           this.loading[tipo] = false;
           if (gpsActualizado) {
             this.gps = { ...this.gps, ...gpsActualizado };
+            this.alertas = this.alertasDe(this.gps);
+            this.revertirAlertas();
+            this.notificacionService.openSucess('Alertas guardadas');
+          } else {
+            // El central devuelve vacío si el GPS ya no existe.
+            this.revertirAlertas();
+            this.notificacionService.openWarn('No se guardaron las alertas: el servidor no encontró el GPS', 5);
           }
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (error) => {
           this.loading[tipo] = false;
+          this.revertirAlertas();
+          // El rechazo, el corte del link y la respuesta vacía ya avisaron por su cuenta.
+          if (!esTimeoutDeLink(error) && !Array.isArray(error)) {
+            this.notificacionService.openWarn('No se pudo confirmar si las alertas se guardaron: se muestran las anteriores. Guardalas de nuevo', 6);
+          }
           this.cdr.markForCheck();
         }
       });

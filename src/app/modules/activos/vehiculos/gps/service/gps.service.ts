@@ -149,9 +149,9 @@ export class GpsService {
     }
 
     onGuardarConfigAlertas(id: number, alertaVelocidad: boolean, velocidadLimite: number,
-        alertaVibracion: boolean, alertaBateriaBaja: boolean, alertaAcc: boolean): Observable<Gps> {
+        alertaVibracion: boolean, alertaBateriaBaja: boolean, alertaAcc: boolean, timeoutMs?: number): Observable<Gps> {
         return this.genericService.onCustomMutation(this.guardarConfigAlertasGpsGQL, {
             id, alertaVelocidad, velocidadLimite, alertaVibracion, alertaBateriaBaja, alertaAcc
-        });
+        }, true, false, timeoutMs != null ? { timeoutMs } : undefined);
     }
 }

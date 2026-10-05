@@ -15,6 +15,15 @@
   </div>
 
   <form [formGroup]="configForm" class="content-form">
+    <div class="aviso-sin-confirmar" *ngIf="lecturaFallo && !haySinConfirmar" fxLayout="row"
+      fxLayoutAlign="start center" fxLayoutGap="15px">
+      <mat-icon>warning</mat-icon>
+      <span fxFlex>No se pudo leer el estado actual del GPS: lo que se muestra es lo que traía la lista y puede
+        estar desactualizado.</span>
+      <button mat-stroked-button type="button" (click)="onActualizarEstado()" [disabled]="actualizandoEstado">
+        REINTENTAR
+      </button>
+    </div>
     <div class="aviso-sin-confirmar" *ngIf="haySinConfirmar" fxLayout="row" fxLayoutAlign="start center"
       fxLayoutGap="15px">
       <mat-icon>warning</mat-icon>
@@ -111,8 +120,8 @@
         <div class="tab-body" fxLayout="column" fxLayoutGap="15px">
           <div class="info-box">
             <mat-icon>info</mat-icon>
-            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. Presiona el botón de guardar
-              junto a cada opción para persistir los cambios.</span>
+            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. El botón de guardar de
+              cualquier alerta guarda las cinco juntas.</span>
           </div>
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
