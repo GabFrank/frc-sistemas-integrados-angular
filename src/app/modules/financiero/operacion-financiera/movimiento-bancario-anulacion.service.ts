@@ -3,6 +3,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { Observable, of } from 'rxjs';
 import { catchError, defaultIfEmpty, finalize, map, switchMap, take, tap } from 'rxjs/operators';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { mensajeErrorTransporte } from '../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../shared/services/timeout-link';
 import { CargandoDialogService } from '../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { MotivoDialogComponent, MotivoDialogData } from '../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { PagarComprasService } from '../caja-virtual/pagar-compras-dialog/pagar-compras.service';
@@ -66,7 +68,11 @@ export class MovimientoBancarioAnulacionService {
         }
       }),
       catchError(err => {
-        if (esPago) this.avisar(err?.message || 'No se pudo anular', NotificacionColor.warn, 5);
+        // El timeout ya lo avisó el link de GraphQL; un error de red trae el texto crudo de Apollo.
+        if (esPago && !esTimeoutDeLink(err)) {
+          const texto = err?.networkError ? mensajeErrorTransporte(err) : (err?.message || 'No se pudo anular');
+          this.avisar(texto, NotificacionColor.warn, 5);
+        }
         return of(false);
       }),
       finalize(() => this.cargandoService.closeDialog(requestId)),

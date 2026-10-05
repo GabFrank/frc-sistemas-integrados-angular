@@ -1,8 +1,9 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { finalize } from 'rxjs/operators';
 import { MovimientoBancario } from '../operacion-financiera.model';
 import { OperacionFinancieraService } from '../operacion-financiera.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -39,6 +40,7 @@ export class ListMovimientosBancariosDialogComponent implements OnInit {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public cuentaBancaria: CuentaBancaria,
+    private dialogRef: MatDialogRef<ListMovimientosBancariosDialogComponent>,
     private operacionFinancieraService: OperacionFinancieraService,
     private notificacion: NotificacionSnackbarService,
     private movimientoBancarioAnulacionService: MovimientoBancarioAnulacionService,
@@ -76,8 +78,11 @@ export class ListMovimientosBancariosDialogComponent implements OnInit {
 
   /** No revierte el movimiento suelto: anula el pago o la operación a la que pertenece. */
   onAnular(row: MovimientoBancarioRow) {
+    // Sin ESC ni clic afuera mientras corre: si el diálogo se cerrara antes de la respuesta, quien lo
+    // abrió leería huboCambios en false y dejaría el saldo viejo en la lista de cuentas.
+    this.dialogRef.disableClose = true;
     this.movimientoBancarioAnulacionService.anular(row, row._accion)
-      .pipe(untilDestroyed(this))
+      .pipe(finalize(() => this.dialogRef.disableClose = false), untilDestroyed(this))
       .subscribe(anulado => {
         if (!anulado) return;
         this.huboCambios = true;

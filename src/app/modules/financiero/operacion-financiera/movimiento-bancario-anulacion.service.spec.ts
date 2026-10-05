@@ -84,6 +84,23 @@ describe('MovimientoBancarioAnulacionService', () => {
     expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
   });
 
+  it('no repite el timeout del pago, que ya avisó el link de GraphQL', () => {
+    const timeout: any = new Error('El servidor no respondió a tiempo');
+    timeout.esTimeout = true;
+    pagarCompras.onAnularPago.and.returnValue(throwError(() => timeout));
+    const r = anular(PAGO);
+    expect(r.emitidos).toEqual([false]);
+    expect(avisos).toEqual([]);
+    expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
+  });
+
+  it('no muestra el texto crudo de Apollo en un error de red del pago', () => {
+    pagarCompras.onAnularPago.and.returnValue(throwError(() => (
+      { message: 'Http failure response for http://x/graphql: 0 Unknown Error', networkError: { status: 0 } })));
+    anular(PAGO);
+    expect(avisos.map(a => a.texto)).toEqual(['Error de red']);
+  });
+
   it('no repite el error de la operación, que ya avisó onSaveCustom', () => {
     operaciones.onAnular.and.returnValue(throwError(() => ({ message: 'Saldo insuficiente en la cuenta bancaria' })));
     const r = anular(OPERACION);
