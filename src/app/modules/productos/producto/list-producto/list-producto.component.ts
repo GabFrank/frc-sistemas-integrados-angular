@@ -19,7 +19,7 @@ import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
@@ -37,6 +37,16 @@ import { MovimientoStockService } from '../../../operaciones/movimiento-stock/mo
 import { ThermalPrinterService } from '../../../configuracion/thermal-printer/thermal-printer.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PrintLabelDialogComponent } from './print-label-dialog/print-label-dialog.component';
+
+/**
+ * Stock por sucursal de la fila desplegada: el error de red y el del servidor llegan a la pantalla, que avisa una
+ * vez. Sin esto un error del servidor llegaba como «sin movimientos» y se pintaba stock 0 en todas las sucursales (#390).
+ */
+const LECTURA_STOCK: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_DE_FONDO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 interface ProductoDatasource {
   id: number;
@@ -140,6 +150,15 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   private service: ProductoService;
 
   sucursales: Sucursal[] = [];
+  /** Las sucursales no cargaron: no hay stock que mostrar ni sucursal que preseleccionar (#390). */
+  sucursalesFallo = false;
+  /**
+   * Stock de la fila desplegada. `error` = no se pudo leer: la columna muestra «—» (ni 0 ni el spinner de
+   * `cargando`). El estado vive acá y no en el modelo del producto, que comparten otras pantallas.
+   */
+  stockEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  /** Solo aplica la última lectura de stock (otra fila, reintentos). */
+  private lecturaStock = 0;
   loadingStock: { [key: number]: boolean } = {};
   stockPorSucursal: { [key: string]: number } = {};
   isSucursalSelectEnabled: boolean = false;
@@ -257,37 +276,53 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     if (!isCurrentlyExpanded) {
       this.selectedProducto = row;
 
+      // Siempre un arreglo: con las sucursales sin cargar (o la del filtro sin encontrar) queda vacío
+      let sucursalesDeLaFila: Sucursal[] = this.sucursales ?? [];
       if (this.sucursalFiltroControl.value) {
         // Hay sucursal seleccionada (ya sea con filtro positivo, negativo o todos)
-        const sucursalSeleccionada = this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
-        if (sucursalSeleccionada) {
-          const existencia = new ExistenciaCostoPorSucursal();
-          existencia.sucursal = sucursalSeleccionada;
-          existencia.existencia = null;
-          this.selectedProducto.sucursales = [existencia];
-        }
-      } else {
-      this.selectedProducto.sucursales = this.sucursales.map((s) => {
+        sucursalesDeLaFila = sucursalesDeLaFila.filter(s => s.id === this.sucursalFiltroControl.value);
+      }
+      this.selectedProducto.sucursales = sucursalesDeLaFila.map((s) => {
         const existencia = new ExistenciaCostoPorSucursal();
         existencia.sucursal = s;
         existencia.existencia = null;
         return existencia;
       });
-      }
 
-      // Un request por producto y no uno por sucursal: al expandir una fila sin filtro de sucursal
-      // esto eran 31 consultas para llenar la misma tabla. Las sucursales sin movimientos no
-      // vuelven en la respuesta —no hay filas que sumar— y se muestran en cero.
-      const sucursalesDeLaFila = this.selectedProducto.sucursales;
-      this.service
-        .onGetStockPorSucursales(this.selectedProducto.id)
-        .subscribe((stockPorSucursal: PorSucursal<number>) => {
-          sucursalesDeLaFila.forEach((existenciaSucursal) => {
-            existenciaSucursal.existencia =
-              stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;
-          });
-        });
+      this.cargarStockDeLaFila(this.selectedProducto);
     }
+  }
+
+  /**
+   * Un request por producto y no uno por sucursal: al expandir una fila sin filtro de sucursal
+   * esto eran 31 consultas para llenar la misma tabla. Las sucursales sin movimientos no
+   * vuelven en la respuesta —no hay filas que sumar— y se muestran en cero. Eso vale solo para una
+   * respuesta buena: si la consulta falla, la fila queda en «—» con «Reintentar».
+   */
+  private cargarStockDeLaFila(producto: Producto): void {
+    const sucursalesDeLaFila = producto?.sucursales;
+    const lectura = ++this.lecturaStock;
+    this.stockEstado = 'cargando';
+    if (producto?.id == null || !sucursalesDeLaFila?.length) return; // sin sucursales no hay nada que pedir
+    sucursalesDeLaFila.forEach((existenciaSucursal) => existenciaSucursal.existencia = null);
+    this.service
+      .onGetStockPorSucursales(producto.id, true, true, LECTURA_STOCK, CONSULTA_DE_FONDO)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        if (lectura !== this.lecturaStock) return; // ya se desplegó otra fila
+        this.stockEstado = 'error';
+        this.notificacionService.openWarn('No se pudo leer el stock del producto: usá «Reintentar».', 5);
+      }, next: (stockPorSucursal: PorSucursal<number>) => {
+        sucursalesDeLaFila.forEach((existenciaSucursal) => {
+          existenciaSucursal.existencia =
+            stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;
+        });
+        if (lectura === this.lecturaStock) this.stockEstado = 'ok';
+      } });
+  }
+
+  reintentarStock(): void {
+    if (this.expandedProducto != null) this.cargarStockDeLaFila(this.expandedProducto);
   }
 
   onEditProducto(producto, i) {
@@ -474,13 +509,25 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   cargarSucursales() {
-    this.sucursalService.onGetAllSucursales(true).subscribe(res => {
-      this.sucursales = res?.filter(sucursal => {
-        if (sucursal.nombre === 'SERVIDOR') return false;
-        if (sucursal.nombre === 'COMPRAS' && !this.puedeVerStockCompras) return false;
-        return true;
-      });
-    });
+    this.sucursalesFallo = false;
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, CONSULTA_DE_FONDO)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.sucursalesFallo = true;
+        this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar».', 5);
+      }, next: res => {
+        if (res == null) {
+          this.sucursalesFallo = true; // error del servidor: ya se avisó
+          return;
+        }
+        this.sucursales = res.filter(sucursal => {
+          if (sucursal.nombre === 'SERVIDOR') return false;
+          if (sucursal.nombre === 'COMPRAS' && !this.puedeVerStockCompras) return false;
+          return true;
+        });
+        // La fila que estaba desplegada sin sucursales se cierra: al abrirla de nuevo ya las tiene
+        if (this.expandedProducto != null && !this.expandedProducto.sucursales?.length) this.expandedProducto = null;
+      } });
   }
 
   onStockFiltroChange() {
@@ -510,6 +557,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
    * demás siguen por el camino de siempre, sin ningún cambio.
    */
   onAjustarStock(producto: Producto) {
+    if (this.sucursalesFallo && this.sucursalFiltroControl.value) {
+      // Con filtro de sucursal el diálogo abre fijo en esa sucursal: sin la lista no hay cuál pasarle
+      this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar» antes de ajustar el stock.', 5);
+      return;
+    }
     const sucursalPreseleccionada = this.getSucursalPreseleccionada();
     const permitirCambiarSucursal = this.stockFiltroControl.value === 'todos';
 
