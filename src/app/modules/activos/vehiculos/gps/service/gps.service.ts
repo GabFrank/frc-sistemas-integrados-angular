@@ -1,8 +1,12 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, combineLatest, of } from 'rxjs';
 import { Gps } from '../models/gps.model';
 import { GpsInput } from '../models/gps-input.model';
-import { map, tap, take } from 'rxjs/operators';
+import { catchError, map, switchMap, take } from 'rxjs/operators';
+import { esRechazoDelServidor } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { SaveGpsGQL } from '../graphql/saveGps';
 import { DeleteGpsGQL } from '../graphql/deleteGps';
 import { GpsByIdGQL } from '../graphql/gpsById';
@@ -45,6 +49,8 @@ export class GpsService {
     private guardarConfigAlertasGpsGQL = inject(GuardarConfigAlertasGpsGQL);
     private dialog = inject(MatDialog);
     private injector = inject(Injector);
+    private notificacionService = inject(NotificacionSnackbarService);
+    private dialogosService = inject(DialogosService);
     private gpsSubject = new BehaviorSubject<Gps[]>([]);
     public gps$ = this.gpsSubject.asObservable();
 
@@ -86,23 +92,46 @@ export class GpsService {
         return this.genericService.onGetById(this.gpsByIdGQL, id);
     }
 
-    onSave(input: GpsInput): Observable<Gps> {
+    /** Con `errorConf` de red propagada, quien llama se entera de que el guardado quedó sin respuesta. */
+    onSave(input: GpsInput, errorConf?: QueryError): Observable<Gps> {
         // La lista la refresca el formulario al cerrar (`GpsDialogService.abrirFormulario`).
-        return this.genericService.onSave(this.saveGpsGQL, input) as Observable<Gps>;
+        return this.genericService.onSave(this.saveGpsGQL, input, undefined, undefined, true, errorConf) as Observable<Gps>;
     }
 
     onDelete(id: number): Observable<boolean> {
-        return this.genericService.onDelete(
-            this.deleteGpsGQL,
-            id,
-            '¿Eliminar GPS?',
-            null,
-            true,
-            true,
-            '¿Está seguro que desea eliminar este GPS?'
-        ).pipe(
-            tap(res => {
-                if (res) this.refrescar();
+        // No usa el `onDelete` genérico: ante un error de red no avisa nada, y al cancelar la confirmación deja
+        // el modal «Eliminando…» abierto hasta que vence (#390).
+        return this.dialogosService.confirm('¿Eliminar GPS?', '¿Está seguro que desea eliminar este GPS?').pipe(
+            take(1),
+            switchMap(confirmado => confirmado === true ? this.eliminar(id) : EMPTY)
+        );
+    }
+
+    private eliminar(id: number): Observable<boolean> {
+        return this.genericService.onCustomMutation(this.deleteGpsGQL, { id }, true, false,
+            { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS }).pipe(
+            take(1),
+            map(eliminado => {
+                if (eliminado === true) {
+                    this.notificacionService.openSucess('GPS eliminado');
+                } else {
+                    this.notificacionService.openWarn('El servidor no eliminó el GPS', 5);
+                }
+                this.refrescar();
+                return eliminado === true;
+            }),
+            catchError(error => {
+                if (esRechazoDelServidor(error)) {
+                    // El motivo del genérico es el texto técnico de la base: se agrega uno legible.
+                    this.notificacionService.openWarn('No se pudo eliminar el GPS (puede tener telemetría registrada)', 6);
+                } else {
+                    // Sin respuesta: pudo haberse eliminado. El corte del link y la respuesta vacía ya avisaron.
+                    if (!esTimeoutDeLink(error) && !Array.isArray(error)) {
+                        this.notificacionService.openWarn('No se pudo confirmar si el GPS se eliminó', 5);
+                    }
+                    this.refrescar();
+                }
+                return of(false);
             })
         );
     }
@@ -161,7 +190,7 @@ export class GpsService {
         this.refrescar(texto);
     }
 
-    abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
+    abrirFormulario(gps?: Gps): Observable<boolean | string | undefined> {
         return this.injector.get(GpsDialogService).abrirFormulario(gps);
     }
 
