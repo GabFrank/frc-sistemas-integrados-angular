@@ -196,3 +196,30 @@ para ver la relectura; con el central congelado no se guarda nada (el error de g
 | A | La posición de subfamilia no ordena nada; el conteo es global | media | no se bloquea (plan 11e) |
 | A | Redacción: envases (spinner eterno), promociones (ya había «Ups») | baja | corregida |
 | A/B | Llamadores únicos de cada método, `getByProveedorId` de compras ya propaga, `preciosEspecialesPorPrecio` nunca `null`, crear promoción valida superposición, editar/cortar y vincular idempotentes | — | verificado |
+
+## Implementación: desvíos
+
+- **Cartel de la lista de promociones (pantalla general)**: además del aviso, un cartel con «Reintentar» sobre la
+  grilla cuando falló un filtro (la grilla vacía no significa «sin promociones»).
+- **Producto-proveedor**: el cartel distingue «No se pudo cargar la lista» (nunca cargó) de «puede no reflejar el
+  último cambio» (había filas).
+- **Buscar envase**: conserva el modal «Buscando…» del servicio (se cierra solo con el error propagado).
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`.
+
+| Caso | Resultado |
+|---|---|
+| Promociones de un precio, vivo: crear una (COCA COLA 2LTS, suc. 3, Gs. 15.000, base local) | aparece, «1 vigente de 1» |
+| Ídem, congelado con filas a la vista | filas conservadas, conteo oculto, «La lista puede no reflejar el último cambio» + Reintentar, sin modal |
+| Abrir el diálogo congelado | «No se pudieron cargar las promociones de este precio»; sin «Todavía ninguna sucursal…»; sucursales con aviso y «Agregar» deshabilitado |
+| Lista de promociones, congelado / al reanudar | cartel + Reintentar / carga las 23 |
+| Lista: paginado y filtro con error simulado | paginado conserva página y total; filtro vacía con cartel |
+| Cortar con error simulado / cortar de verdad (la promoción de prueba) | relee igual / sale de las vigentes (22) |
+| Buscar envase, congelado | aviso, deja de girar, lista vacía |
+| Proveedores de un producto, congelado | cartel + Reintentar en vez de «No hay proveedores vinculados» |
+| Productos de un proveedor, error simulado al paginar | filas, total y página conservados; Reintentar recupera |
+
+En la base local quedó la promoción de prueba (id 27) cortada.

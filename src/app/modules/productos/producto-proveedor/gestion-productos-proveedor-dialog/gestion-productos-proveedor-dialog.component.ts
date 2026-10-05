@@ -129,7 +129,9 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
       // El total no se toca (el paginador no colapsa) y se vuelve a la página que está a la vista
       this.pageIndex = this.paginaMostrada.pageIndex;
       this.pageSize = this.paginaMostrada.pageSize;
-      this.notificacionService.openWarn('No se pudo cargar la lista: puede no reflejar el último cambio. Usá «Reintentar».', 6);
+      this.notificacionService.openWarn(this.dataSource.data.length
+        ? 'No se pudo actualizar la lista: puede no reflejar el último cambio. Usá «Reintentar».'
+        : 'No se pudo cargar la lista: usá «Reintentar».', 6);
     };
     this.productoProveedorService
       .getByProveedorId(this.proveedor.id, this.searchText || null, this.pageIndex, this.pageSize, undefined, true,

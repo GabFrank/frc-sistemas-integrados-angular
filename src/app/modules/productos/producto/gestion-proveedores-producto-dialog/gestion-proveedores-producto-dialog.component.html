@@ -96,7 +96,8 @@
     </div>
     <div *ngIf="listaFallo && !loading" style="display: flex; align-items: center; gap: 10px; padding: 8px 0">
       <mat-icon>error_outline</mat-icon>
-      <span>No se pudo cargar la lista: puede no reflejar el último cambio.</span>
+      <span *ngIf="!dataSource.data.length">No se pudo cargar la lista.</span>
+      <span *ngIf="dataSource.data.length">No se pudo actualizar la lista: puede no reflejar el último cambio.</span>
       <button mat-stroked-button type="button" (click)="loadList()">Reintentar</button>
     </div>
     <mat-paginator
