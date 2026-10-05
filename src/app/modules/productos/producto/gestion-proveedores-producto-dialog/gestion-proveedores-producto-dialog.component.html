@@ -87,11 +87,17 @@
         <tr mat-row *matRowDef="let r; columns: displayedColumns"></tr>
         <tr class="mat-row" *matNoDataRow>
           <td class="mat-cell text-center" [attr.colspan]="displayedColumns.length">
-            <span *ngIf="!loading">No hay proveedores vinculados</span>
+            <span *ngIf="!loading && !listaFallo">No hay proveedores vinculados</span>
+              <span *ngIf="!loading && listaFallo">No se pudo cargar la lista.</span>
             <span *ngIf="loading">Cargando...</span>
           </td>
         </tr>
       </table>
+    </div>
+    <div *ngIf="listaFallo && !loading" style="display: flex; align-items: center; gap: 10px; padding: 8px 0">
+      <mat-icon>error_outline</mat-icon>
+      <span>No se pudo cargar la lista: puede no reflejar el último cambio.</span>
+      <button mat-stroked-button type="button" (click)="loadList()">Reintentar</button>
     </div>
     <mat-paginator
       [length]="totalElements"
