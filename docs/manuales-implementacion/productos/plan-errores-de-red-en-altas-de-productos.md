@@ -177,3 +177,58 @@ Las entidades de prueba quedan en la base local.
 | B | Comparaciones (ids como texto, descripción nula, dos coincidencias); listas en memoria | media | reglas explícitas |
 | B | Fase 1 muy cargada | baja | Verificar pasa a la fase 2 |
 | A/B | Formas de error, mensaje de respuesta vacía intacto, `subfamiliaSearch` filtra por familia y devuelve lo mismo que el guardado, campos de presentaciones, unicidad de familia, la posición no ordena, sin Enter en los formularios | — | verificado |
+
+## Implementación: desvíos
+
+- **Editar una subfamilia la dejaba sin familia: confirmado y arreglado acá** (decisión del usuario). El diálogo
+  manda `data.familiaId ?? data.subfamilia.familia.id`; si en una edición no se conoce la familia, no guarda y avisa.
+- **`producto.component` sí se toca** (dos líneas): los diálogos de subfamilia y presentación cierran con un
+  marcador `sinConfirmar` cuando el alta quedó sin respuesta, y la pantalla de producto recarga la lista de
+  subfamilias / las presentaciones (sin eso, el cartel «cerrá y revisá» mandaba a mirar una lista sin refrescar).
+  Con un alta de subfamilia sin confirmar el diálogo solo se cierra por «Cerrar».
+- **Familia**: el central responde «No se pudo guardar» al nombre repetido (no «Ya existe…»); el aviso del diálogo
+  lo dice sin citar el mensaje.
+- **Presentación**: la descripción se compara sin distinguir mayúsculas.
+- **Posición de la subfamilia**: el conteo nunca devolvió un valor utilizable (la consulta no trae el alias que el
+  genérico espera): el selector estaba vacío siempre. No se toca (la posición no ordena nada).
+- `finalize` en los tres guardados para que `guardando` / `disableClose` no queden trabados si algo falla dentro
+  del `next`.
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`.
+Los «sin respuesta» se simularon reemplazando el guardado por un error (no se envió nada); el resto contra el
+central vivo. Desde la edición de COCA COLA 2LTS (familia BEBIDAS), sin guardar el producto.
+
+| Caso | Resultado |
+|---|---|
+| Alta normal de subfamilia («PRUEBA390 SUB A») | guarda, cierra y queda seleccionada; un solo «Guardado con éxito»; no cerrable mientras guarda |
+| **Editar esa subfamilia (antes del arreglo)** | el servidor la devuelve con `familia: null` |
+| Editarla con el arreglo | el input lleva `familiaId` y vuelve con su familia |
+| Subfamilia: rechazo | queda abierto, Guardar habilitado |
+| Subfamilia: alta sin respuesta (error de red y respuesta vacía) | Guardar bloqueado, cartel + Verificar + Cerrar; un segundo Guardar no envía nada |
+| Verificar: sin coincidencia / búsqueda fallida / exactamente una igual | «Todavía no aparece…» / «No se pudo verificar…» (siguen bloqueados) / cierra seleccionándola |
+| Subfamilia: edición sin respuesta | aviso, reintento libre |
+| Familia: sin respuesta / nombre repetido (contra el central) | aviso y reintento / rechazo del servidor, queda abierto |
+| Presentación: alta sin respuesta; Verificar sin coincidencia y con una igual; edición sin respuesta | bloqueo + cartel; sigue bloqueado; cierra con ella; aviso y reintento |
+| Tipos de presentación con el central congelado | aviso con Reintentar, Guardar deshabilitado |
+
+Tras los arreglos de la auditoría se volvió a probar: alta de subfamilia sin respuesta → solo se cierra por
+«Cerrar» y la pantalla de producto vuelve a buscar las subfamilias (la selección de subfamilia se limpia, como en
+cualquier búsqueda); alta de presentación sin respuesta → «Cancelar» recarga las presentaciones.
+
+**Sin probar en pantalla**: Verificar de presentación con la lectura fallida; «Reintentar» de los tipos al
+reanudar; la guarda de edición sin familia conocida (hoy todas las fuentes traen la familia).
+
+En la base local quedó la subfamilia de prueba «PRUEBA390 SUB A» (id 85, familia BEBIDAS).
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | El cartel manda a revisar la lista, pero al cerrar con el alta sin confirmar la pantalla de producto no recargaba: no se vería la subfamilia / presentación guardada y se la volvería a cargar | cierre con marcador + recarga |
+| baja | En una edición sin familia conocida se seguiría guardando sin familia | no guarda y avisa |
+| baja | `guardando` / `disableClose` trabados si algo falla dentro del `next` | `finalize` |
+| baja | Verificar puede cerrar con una subfamilia o presentación igual que ya existía | aceptado (no se crea un duplicado); anotado |
+| baja | Un HTTP 4xx se trata como «sin respuesta» y bloquea el alta | lado conservador; sin cambio |
+| — | Sin caminos para duplicar dentro del diálogo, clasificación de errores, avisos sin duplicar, firma de `onSearchSubfamilia`, otros llamadores, reglas de HTML | sin hallazgos |

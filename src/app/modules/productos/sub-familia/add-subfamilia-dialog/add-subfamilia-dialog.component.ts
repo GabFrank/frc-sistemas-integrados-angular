@@ -8,12 +8,19 @@ import { SubfamiliaInput } from '../graphql/subfamilia-input.model';
 import { Subfamilia } from '../sub-familia.model';
 import { SubFamiliaService } from '../sub-familia.service';
 
+/**
+ * Valor de cierre cuando un alta quedó sin confirmar: no trae la subfamilia, pero avisa a quien abrió el diálogo
+ * que recargue su lista (pudo haberse guardado).
+ */
+export const SUBFAMILIA_SIN_CONFIRMAR = { sinConfirmar: true };
+
 export interface AddSubfamiliaData {
   familiaId: number;
   subfamilia: Subfamilia;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { finalize } from 'rxjs/operators';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
@@ -132,7 +139,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
   }
 
   onCerrar() {
-    this.dialogRef.close(null);
+    this.dialogRef.close(this.altaSinConfirmar ? SUBFAMILIA_SIN_CONFIRMAR : null);
   }
 
   /**
@@ -196,8 +203,15 @@ export class AddSubfamiliaDialogComponent implements OnInit {
     } else {
       this.subfamiliaInput.posicion = this.listPos.length+1;
     }
-    if(this.data.familiaId!=null){
-      this.subfamiliaInput.familiaId = this.data.familiaId
+    // En edición el diálogo se abre sin `familiaId`: se manda la familia de la propia subfamilia. Sin esto el
+    // servidor la guardaba sin familia (la sacaba de su familia al editarla).
+    const familiaId = this.data.familiaId ?? this.data.subfamilia?.familia?.id;
+    if(familiaId!=null){
+      this.subfamiliaInput.familiaId = familiaId
+    } else if (!esAlta) {
+      // Guardarla así la dejaría sin familia
+      this.notificationBar.openWarn('No se pudo determinar la familia de esta subfamilia: no se guardó. Cerrá y volvé a abrirla.', 6);
+      return;
     }
     this.subfamiliaInput.nombre = this.nombreControl.value?.toUpperCase();
     this.subfamiliaInput.descripcion =
@@ -208,9 +222,10 @@ export class AddSubfamiliaDialogComponent implements OnInit {
     this.dialogRef.disableClose = true;
     const fin = () => {
       this.guardando = false;
-      this.dialogRef.disableClose = false;
+      // Con un alta sin confirmar solo se sale por «Cerrar», que avisa a quien abrió que recargue
+      this.dialogRef.disableClose = this.altaSinConfirmar;
     };
-    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this)).subscribe({
+    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this), finalize(fin)).subscribe({
       next: (res) => {
         fin();
         // «Guardado con éxito» ya lo muestra el servicio

@@ -13,12 +13,19 @@ import { Presentacion } from "../presentacion.model";
 import { PresentacionInput } from "../presentacion.model-input";
 import { PresentacionService } from "../presentacion.service";
 
+/**
+ * Valor de cierre cuando un alta quedó sin confirmar: no trae la presentación, pero avisa a quien abrió el
+ * diálogo que recargue las presentaciones (pudo haberse guardado).
+ */
+export const PRESENTACION_SIN_CONFIRMAR = { sinConfirmar: true };
+
 export class AdicionarPresentacionData {
   presentacion: Presentacion;
   producto: Producto;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { finalize } from "rxjs/operators";
 import { esRechazoDelServidor } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
 import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
@@ -120,7 +127,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionInput.principal = this.principalControl.value;
     this.guardando = true;
     this.presentacionService
-      .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this))
+      .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this), finalize(() => this.guardando = false))
       .subscribe({ next: (res) => {
         this.guardando = false;
         if (res != null) {
@@ -157,7 +164,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     };
     // Lo que se mandó (el servicio ya reemplazó la descripción vacía por la cantidad)
     const enviado = this.presentacionInput;
-    const texto = (valor: any) => (valor ?? '').toString().trim();
+    const texto = (valor: any) => (valor ?? '').toString().trim().toUpperCase();
     this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.selectedProducto.id)
       .pipe(untilDestroyed(this))
       .subscribe({ error: noSePudo, next: (presentaciones) => {
@@ -182,7 +189,7 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   onCancelar() {
-    this.matDialogRef.close(null);
+    this.matDialogRef.close(this.altaSinConfirmar ? PRESENTACION_SIN_CONFIRMAR : null);
   }
 
   cargarPresentacion() {

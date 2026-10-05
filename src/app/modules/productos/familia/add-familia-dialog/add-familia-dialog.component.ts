@@ -21,6 +21,7 @@ export interface AddFamiliaData {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GraphQLError } from 'graphql';
+import { finalize } from 'rxjs/operators';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
@@ -129,7 +130,7 @@ export class AddFamiliaDialogComponent implements OnInit {
       this.guardando = false;
       this.dialogRef.disableClose = false;
     };
-    this.familiaService.onSaveFamilia(this.familiaInput).pipe(untilDestroyed(this)).subscribe({
+    this.familiaService.onSaveFamilia(this.familiaInput).pipe(untilDestroyed(this), finalize(fin)).subscribe({
       next: (res) => {
         fin();
         // «Guardado con éxito» ya lo muestra el servicio
@@ -142,7 +143,7 @@ export class AddFamiliaDialogComponent implements OnInit {
         // Sin respuesta: pudo haberse guardado. Reintentar es seguro: el nombre de la familia es único en el
         // servidor (alta) y la edición lleva su id.
         this.notificationBar.openWarn(
-          'No se pudo confirmar el guardado. Podés volver a intentar: si ya se guardó, el sistema lo va a indicar.', 8);
+          'No se pudo confirmar el guardado. Podés volver a intentar: si ya se había guardado, el servidor rechaza el nombre repetido.', 8);
       }
     });
   }
