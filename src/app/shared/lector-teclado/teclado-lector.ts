@@ -4,7 +4,7 @@
  *
  * El lector del PDV es keyboard-wedge: no manda caracteres, manda TECLAS según la tabla de teclado
  * que tiene configurada adentro, y el carácter final lo decide el idioma de Windows. Medido el
- * 2026-10-05 (`frc-comercial/cupones-prueba/diagnostico-lector-teclado.html`): la tabla del lector
+ * 2026-10-05 (`desktop/docs/utilitarios/diagnostico-lector-teclado.html`): la tabla del lector
  * es EE.UU. --el `|` llega como Shift+Backslash, que en ABNT2 estaría en IntlBackslash--, así que
  * con Windows en español el `*` del cupón FRCP1 llega como `(` y el `-` de la seña como `'`. En
  * portugués de Brasil el cupón pasaba y la seña no (`|` → `}`). El cajero veía «no corresponde a
@@ -33,7 +33,10 @@ const TABLA_EEUU: { [code: string]: string } = {
   Comma: ',<', Period: '.>', Slash: '/?',
 };
 
-/** El teclado numérico no cambia con el idioma ni con Shift. */
+/**
+ * El teclado numérico no cambia con el idioma ni con Shift. Con NumLock apagado esas teclas no
+ * escriben nada: el largo deja de coincidir y la directiva descarta la rearmada.
+ */
 const NUMPAD: { [code: string]: string } = {
   Numpad0: '0', Numpad1: '1', Numpad2: '2', Numpad3: '3', Numpad4: '4',
   Numpad5: '5', Numpad6: '6', Numpad7: '7', Numpad8: '8', Numpad9: '9',

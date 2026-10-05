@@ -253,10 +253,10 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       //
       // Si el formato NO la declara, no hay nada mal: ese proveedor simplemente no imprime de qué
       // punto salió, y pedir la terminal es el camino normal.
-      this.avisoCupon = declaraTerminal(datos?.formato)
+      this.esperarTerminal(declaraTerminal(datos?.formato)
         ? 'Este cupón no trae el identificador de la terminal que el formato declara. '
           + 'Puede ser de una versión anterior del cupón.'
-        : 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué aparato salió.';
+        : 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué aparato salió.');
       return;
     }
 
@@ -282,17 +282,32 @@ export class ScanTerminalPosDialogComponent implements OnInit {
           // Cero o mas de una: no se elige por el cajero. Dos con la misma serie exacta significa
           // que estan cargadas bajo proveedores distintos --el unico caso que los indices permiten--
           // y adivinar ahi es cobrar contra la maquina equivocada.
-          this.avisoCupon = resultados.length === 0
+          this.esperarTerminal(resultados.length === 0
             ? `Leí el cupón, y dice que salió de la máquina "${serie}", que no está registrada. `
               + 'Escaneá el código de la terminal.'
             : `Leí el cupón, pero "${serie}" coincide con más de una terminal. `
-              + 'Escaneá el código de la que corresponde.';
+              + 'Escaneá el código de la que corresponde.');
         },
         error: () => {
           this.buscando = false;
-          this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
+          this.esperarTerminal('Leí el cupón. Escaneá el código de la terminal para continuar.');
         },
       });
+  }
+
+  /**
+   * El cupón ya está leído y falta la terminal: el campo se vacía para el próximo escaneo.
+   *
+   * Antes quedaba con el texto del cupón, y el lector --keyboard-wedge, escribe donde está el
+   * cursor-- pegaba el código de la terminal atrás (`FRCP1*…*202608271401POS-001`): ni terminal ni
+   * cupón, y el cajero tenía que borrar a mano. Vacío, además, `LectorTecladoDirective` arranca un
+   * registro nuevo y puede rearmar el `-` de `POS-001` si Windows lo tipeó como `'` (auditoría del
+   * diff, 2026-10-05). `reset` y no `setValue('')`: ver `cerrarSiElCuponSirve`.
+   */
+  private esperarTerminal(aviso: string): void {
+    this.avisoCupon = aviso;
+    this.codigoControl.reset(null, { emitEvent: false });
+    this.enfocarInput();
   }
 
   /**
