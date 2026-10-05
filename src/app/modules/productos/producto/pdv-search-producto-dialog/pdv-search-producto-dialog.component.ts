@@ -50,9 +50,10 @@ import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
-/** La búsqueda por descripción puede tardar más que un escaneo. Vale para todos los modos. */
+/** La búsqueda por descripción puede tardar más que un escaneo. */
 const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
 /**
  * Búsqueda y detalle: el error de red y el del servidor llegan al diálogo, que avisa una vez (antes solo en modo
@@ -61,6 +62,10 @@ const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
 const LECTURA_DETALLE: QueryError = {
   networkError: { propagate: true, show: false },
   graphError: { propagate: true, show: false },
+};
+const LECTURA_POR_CODIGO: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { show: false },
 };
 const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Un aviso por caída, no uno por cada pausa al tipear. */
@@ -306,7 +311,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         const id = ++this.busquedaId;
         let fallo = false;
         const errorConf: QueryError = LECTURA_DETALLE;
-        const contexto: ContextoConsulta = { timeoutMs: TIMEOUT_BUSQUEDA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
+        // Fuera del mostrador una búsqueda con filtro de stock puede tardar: 60 s en vez de 20
+        const contexto: ContextoConsulta = {
+          timeoutMs: mostrador ? TIMEOUT_BUSQUEDA_MOSTRADOR_MS : TIMEOUT_POR_DEFECTO_MS,
+          silenciarAvisoTimeout: true,
+        };
         const marcarFallo = () => {
           fallo = true;
           return of([]);
@@ -320,7 +329,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         // Si parece código de barras, buscar también por código en paralelo
         const busquedaCodigo$ = esCodigo
           ? this.productoService
-              .onGetProductoPorCodigo(text.trim(), this.data.servidor, false, errorConf, contexto)
+              // Un error del servidor en la búsqueda por código (p. ej. código repetido) no descarta los
+              // resultados por descripción: llega como null = «sin coincidencia por código»
+              .onGetProductoPorCodigo(text.trim(), this.data.servidor, false, LECTURA_POR_CODIGO, contexto)
               .pipe(
                 map((p: Producto) => (p ? [p] : [])),
                 catchError(marcarFallo)
@@ -349,14 +360,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
             const combinados: Producto[] = [];
 
             // Primero agregar los del código (mayor prioridad)
-            for (const p of porCodigo) {
+            for (const p of porCodigo ?? []) {
               if (p?.id && !idsVistos.has(p.id)) {
                 idsVistos.add(p.id);
                 combinados.push(p);
               }
             }
             // Luego los de descripción
-            for (const p of porDescripcion) {
+            for (const p of porDescripcion ?? []) {
               if (p?.id && !idsVistos.has(p.id)) {
                 idsVistos.add(p.id);
                 combinados.push(p);
@@ -525,6 +536,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   reintentarDetalle(producto: Producto): void {
     this.getProductoDetail(producto);
+    // El botón desaparece al reintentar: el foco vuelve a la tabla para seguir con el teclado
+    this.setFocustEvent();
+  }
+
+  /** La fila resaltada está desplegada y tiene sus presentaciones cargadas (lo que el usuario ve). */
+  private filaExpandidaConDetalle(): boolean {
+    const fila = this.dataSource.data?.[this.selectedRowIndex];
+    return fila != null && this.expandedProducto === fila && fila.presentaciones != null;
   }
 
   scroll(id) {
@@ -565,13 +584,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         break;
       }
       case "ArrowRight":
-        if (this.dataSource.data[this.selectedRowIndex]?.presentaciones == null) break;
+        if (!this.filaExpandidaConDetalle()) break;
         this.highlightPresentacion(
           this.selectedPresentacionRowIndex == -1 ? 0 : this.selectedPresentacionRowIndex + 1
         );
         break;
       case "ArrowLeft":
-        if (this.dataSource.data[this.selectedRowIndex]?.presentaciones == null) break;
+        if (!this.filaExpandidaConDetalle()) break;
         this.highlightPresentacion(
           this.selectedPresentacionRowIndex == -1 ? 0 : this.selectedPresentacionRowIndex - 1
         );
@@ -581,8 +600,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         if (typeof key === "string" && key.trim() !== "" && !isNaN(+key)) {
           const fila = this.dataSource.data[this.selectedRowIndex];
           const presentacion = this.selectedPresentacion;
-          // Solo si la presentación seleccionada es de la fila resaltada
-          if (fila?.presentaciones == null || presentacion == null || !fila.presentaciones.includes(presentacion)) break;
+          // Solo con la fila resaltada desplegada y si la presentación seleccionada es suya
+          if (!this.filaExpandidaConDetalle() || presentacion == null || !fila.presentaciones.includes(presentacion)) break;
           const precio = presentacion.precios?.find(
             (p) => String(p?.tipoPrecio?.id) === key
           );
@@ -671,7 +690,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   limpiarBusqueda(): void {
     this.formGroup.get('buscarControl')?.setValue(null);
-    // La tanda en vuelo no repuebla la lista que se acaba de vaciar
+    // Ni la tanda en vuelo ni la que espera su pausa repueblan la lista que se acaba de vaciar
+    if (this.onSearchTimer != null) clearTimeout(this.onSearchTimer);
     this.busquedaId++;
     this.isSearching = false;
     this.expandedProducto = null;
@@ -711,7 +731,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   onMostrarTipoPrecios(presentacion: Presentacion) {
     this.desplegarTipoPrecios = true;
-    this.selectedPresentacion = presentacion;
+    // Presentación, índice y precio quedan alineados: Enter y los números devuelven la que se marcó
+    const indice = this.dataSource.data?.[this.selectedRowIndex]?.presentaciones?.indexOf(presentacion) ?? -1;
+    if (indice >= 0) {
+      this.highlightPresentacion(indice);
+    } else {
+      this.selectedPresentacion = presentacion;
+    }
   }
 
   presentacionArrowRightEvent(index, el?) {
@@ -813,6 +839,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = [];
+          this.expandedProducto = null;
+          this.limpiarSeleccionDePresentacion();
           this.onSearchProducto(res.descripcion, 0);
         }
       });

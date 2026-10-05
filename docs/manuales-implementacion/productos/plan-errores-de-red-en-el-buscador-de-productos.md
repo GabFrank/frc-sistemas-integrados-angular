@@ -214,3 +214,56 @@ Filial local `:8080` para el POS (modo mostrador) y central local `:8081` para u
 | B | Reiniciar la selección a −1 sin re-seleccionar rompería Enter en la segunda visita | media | re-selección siempre al expandir; casos de prueba |
 | A | `existencia = null` ya es «cargando»; nombres de métodos de promociones | baja | anotado para 11c / 11d |
 | A/B | Llamadores únicos de los métodos a propagar, `getProducto` ya con `errorConf`, el clic del mouse no cruza | — | verificado |
+
+## Implementación: desvíos
+
+- **Corte de la búsqueda**: 20 s solo en mostrador (como estaba); fuera del mostrador **60 s** (antes no tenía corte
+  propio y una búsqueda con filtro de stock puede tardar).
+- **Fallo en la primera página en modo mostrador**: se conserva la lista (decisión del PR del POS); solo fuera del
+  mostrador se vacía.
+- **Búsqueda por código**: un error del servidor en esa rama (p. ej. código repetido) no descarta los resultados
+  por descripción; el error de red sí hace fallar la tanda.
+- **Flechas izquierda/derecha y números** exigen además que la fila resaltada esté **desplegada** (no alcanza con
+  que tenga las presentaciones en memoria): no se devuelve algo que el usuario no ve.
+- **F1 + clic en una presentación** (`onMostrarTipoPrecios`): presentación, índice y precio quedan alineados (antes
+  Enter devolvía la del índice anterior).
+- `limpiarBusqueda` cancela también la búsqueda que espera su pausa; el botón «Reintentar» devuelve el foco a la tabla.
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. Buscador abierto desde Movimientos de stock (modo servidor).
+Solo lectura; el cierre del diálogo se capturó para ver qué devuelve.
+
+| Caso | Resultado |
+|---|---|
+| **Bug en `develop`, sin falla de red**: Enter sobre COCA LATA 350ML (472), flecha, Enter sobre COCA 250ML (801), flecha arriba, Enter | «1» devuelve 472 con presentación 1209 y precio 1150 (Gs. 3.500) **de la 801**; Enter devuelve 472 / 666 con el precio 1150 de la 801 |
+| Misma secuencia con el arreglo | 472 / 666 / 959 por «1» y por Enter |
+| Sin desplegar: flecha derecha, «1» | no devuelve nada |
+| Flechas derecha/izquierda (borde incluido), Enter; otra fila + «2» | siempre presentación y precio de la fila resaltada (472/667/7106; 801/1210/1151) |
+| Clic en tarjeta de precio | devuelve producto, presentación y precio de esa tarjeta |
+| Detalle con el central congelado | a los 20 s «No se pudo cargar el producto» + Reintentar; Enter, números y flechas no devuelven nada; sin modal colgado |
+| Reintento (detalle con error simulado, luego real) | Enter reintenta y carga |
+| Respuesta tardía del detalle (demorada) y búsqueda nueva | la lista nueva queda sin presentaciones ajenas ni selección |
+| Búsqueda congelada: «cargar más» / primera página | aviso, «buscando» liberado; conserva / vacía |
+| Mostrador (flag activado sobre el mismo diálogo, búsqueda con error simulado) | conserva la lista y avisa |
+| Código de barras inexistente | lista vacía, sin aviso de error |
+
+**Sin probar**: la pantalla del POS (`buscador.component`) contra el filial; el modo mostrador se probó activando
+el flag sobre el diálogo abierto desde una pantalla de servidor.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | F1 + clic dejaba presentación e índice desalineados (Enter y número devolvían distinto) | alineados |
+| media | 20 s para todos los modos cortaría búsquedas lentas legítimas | 60 s fuera del mostrador |
+| media | Un error del servidor en la búsqueda por código descartaba los resultados por descripción | esa rama no hace fallar la tanda |
+| media | Número con un tipo de precio que la presentación no tiene devuelve su primer precio, sin aviso | **ya era así**; sin cambio, anotado para decidir |
+| baja | `limpiarBusqueda` no cancelaba la pausa; `null` sin error rompía al combinar; alta de producto no limpiaba la selección; foco perdido tras Reintentar; flecha/número sobre fila no desplegada | corregidos |
+| baja | «Item no encontrado» + aviso propio si el producto no existe | aceptado |
+| — | Ninguna vía devuelve presentación ajena al producto ni precio ajeno a la presentación (3 `dialogRef.close`); filtros ONLY/MIXTO/NOT equivalentes; estado del detalle sin fugas | sin hallazgos |
+
+Ya existían y quedan anotados (no se tocan acá): las presentaciones y precios **inactivos** se ocultan pero cuentan
+para el índice y para «primer precio»; un producto encontrado por código trae sus presentaciones sin pasar por el
+filtro de precios de la configuración; en selección múltiple el teclado sigue devolviendo un solo producto.
