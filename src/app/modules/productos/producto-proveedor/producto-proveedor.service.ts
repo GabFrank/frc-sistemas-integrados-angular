@@ -31,13 +31,15 @@ export class ProductoProveedorService {
     );
   }
 
-  getByProductoId(productoId: number, page: number, size: number, silentLoad?: boolean): Observable<PageInfo<ProductoProveedor>> {
+  getByProductoId(productoId: number, page: number, size: number, silentLoad?: boolean,
+                  errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<ProductoProveedor>> {
     return this.genericService.onCustomQuery(
       this.productoProveedorPorProductoId,
       { id: productoId, page, size },
       true,
-      undefined,
-      silentLoad
+      errorConf,
+      silentLoad,
+      contexto
     );
   }
 

@@ -214,7 +214,10 @@ export class ProductoService {
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor);
+    // El error de red y el del servidor llegan al buscador (20 s), que avisa: sin esto quedaba «buscando» (#390)
+    return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } }, undefined,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
   onSearchLocal(texto: string) {
