@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { Component, Inject, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -10,6 +10,8 @@ import { FormatoTerminalPosService } from "../../venta-tarjeta/qr-pos/formato-te
 import { TIPO_WEB } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.model";
 import { VentaTarjetaService } from "../../venta-tarjeta/venta-tarjeta.service";
 import { DecimalesPorMoneda, ordenarPorProveedor, parsearCupon } from "../../venta-tarjeta/qr-pos/qr-pos-parser";
+import { LectorTecladoDirective } from "../../../../shared/lector-teclado/lector-teclado.directive";
+import { lecturasAProbar } from "../../../../shared/lector-teclado/teclado-lector";
 
 /**
  * Largo minimo antes de intentar la busqueda. El codigo mas corto en uso es del estilo
@@ -66,6 +68,12 @@ export class ScanTerminalPosDialogComponent implements OnInit {
 
   /** Desde `beforeClosed`: el dialogo se esta yendo y el foco ya no se pelea (ver `onBlurCodigo`). */
   private cerrando = false;
+
+  /**
+   * Las teclas fisicas de lo escaneado. Con Windows en español el lector (tabla EE.UU.) llega con
+   * el `*` del cupon como `(` y el `-` de `POS-001` como `'`: esto ofrece la cadena que mando.
+   */
+  @ViewChild(LectorTecladoDirective) private lector: LectorTecladoDirective;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
@@ -145,6 +153,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     if (this.buscando) return;
 
     const codigo = this.codigoControl.value?.trim();
+    const alternativa = this.lector?.alternativa();
 
     // ⚠️ PRIMERO SE PRUEBA COMO CUPON, Y EL ORDEN ES LO QUE LO HACE SEGURO.
     //
@@ -155,18 +164,31 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     //
     // Esto es lo que saca el peaje del primer dialogo: el cajero escanea lo que tenga a mano --el
     // aparato o el cupon-- y el sistema decide que era.
-    if (this.intentarComoCupon(codigo)) return;
+    if (this.intentarComoCupon(codigo, alternativa)) return;
 
     this.buscando = true;
     this.noEncontrado = false;
+    this.buscarTerminal(lecturasAProbar(codigo, alternativa));
+  }
 
+  /**
+   * Busca la terminal por la primera lectura y, si no aparece, por la siguiente. La segunda es la
+   * cadena rearmada desde las teclas fisicas: primero va lo que tipeo Windows, que es lo que tipea
+   * un cajero a mano.
+   */
+  private buscarTerminal(lecturas: string[]): void {
+    const [codigo, ...resto] = lecturas;
     // Los nulls del medio son `serie` y `sucursalId`: acá se busca por el codigo que el cajero
     // escanea, no por la serie del aparato ni por donde esté.
     this.terminalPosService.onFilter(null, codigo, null, null, true, 0, 1, false)
       .pipe(untilDestroyed(this))
       .subscribe((page: any) => {
-        this.buscando = false;
         const resultados = page?.getContent ?? page?.data?.getContent ?? [];
+        if (resultados.length === 0 && resto.length > 0) {
+          this.buscarTerminal(resto);
+          return;
+        }
+        this.buscando = false;
         if (resultados.length > 0) {
           this.selectedTerminalPos = resultados[0];
           // Si ya se habia escaneado el cupon y faltaba la terminal, salen los dos juntos y el
@@ -194,11 +216,17 @@ export class ScanTerminalPosDialogComponent implements OnInit {
    * Prueba la cadena como cupon. Devuelve `true` si lo era --y entonces ya se resolvio o se
    * informo-- y `false` si hay que seguir tratandola como codigo de terminal.
    */
-  private intentarComoCupon(cadena: string): boolean {
+  private intentarComoCupon(cadena: string, alternativa?: string | null): boolean {
     if (!this.formatos.length) return false;
 
-    const r = parsearCupon(cadena, this.formatos, this.data?.decimalesPorMoneda);
+    const r = parsearCupon(cadena, this.formatos, this.data?.decimalesPorMoneda, alternativa);
     if (!r.ok || !r.datos) return false;
+
+    // Si se leyo por la rearmada, el campo pasa a mostrarla: el cajero ve lo que se uso, no los
+    // `(` que tipeo Windows.
+    if (r.datos.qrCrudo !== cadena) {
+      this.codigoControl.setValue(r.datos.qrCrudo, { emitEvent: false });
+    }
 
     this.cuponPendiente = r.datos;
     this.resolverTerminalDelCupon(r.datos);

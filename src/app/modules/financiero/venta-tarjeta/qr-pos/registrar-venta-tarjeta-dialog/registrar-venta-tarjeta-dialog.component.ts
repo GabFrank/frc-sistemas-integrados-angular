@@ -1,4 +1,5 @@
-import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { LectorTecladoDirective } from '../../../../../shared/lector-teclado/lector-teclado.directive';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -110,6 +111,12 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
 export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
 
   cuponControl = new FormControl('');
+
+  /**
+   * Las teclas fisicas de lo escaneado. Con Windows en español el lector (tabla EE.UU.) tipea el
+   * `*` del cupon como `(`: esto ofrece la cadena que mando (ver `shared/lector-teclado`).
+   */
+  @ViewChild(LectorTecladoDirective) private lector: LectorTecladoDirective;
   formatos: FormatoQrPos[] = [];
   procesando = false;
   errorLectura: string = null;
@@ -257,10 +264,16 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     this.errorLectura = null;
 
     const ordenados = ordenarPorProveedor(this.formatos, this.data.proveedorServicioId);
-    const resultado = parsearCupon(cadena, ordenados, this.data.decimalesPorMoneda || {});
+    const resultado = parsearCupon(
+      cadena, ordenados, this.data.decimalesPorMoneda || {}, this.lector?.alternativa());
     if (!resultado.ok) {
       this.errorLectura = resultado.error;
       return;
+    }
+    // Si se leyo por la rearmada, el campo pasa a mostrarla: el cajero ve lo que se uso, no los
+    // `(` que tipeo Windows.
+    if (resultado.datos.qrCrudo !== cadena) {
+      this.cuponControl.setValue(resultado.datos.qrCrudo, { emitEvent: false });
     }
 
     const datos = resultado.datos;

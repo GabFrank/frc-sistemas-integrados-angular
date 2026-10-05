@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -19,6 +19,8 @@ import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { descodificarQr } from '../../../../shared/qr-code/qr-code.component';
+import { LectorTecladoDirective } from '../../../../shared/lector-teclado/lector-teclado.directive';
+import { lecturasAProbar } from '../../../../shared/lector-teclado/teclado-lector';
 import { debounceTime, filter, map } from 'rxjs/operators';
 import { mensajeDeError } from '../qr-pos/mensaje-error';
 import {
@@ -96,6 +98,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    * `ventaTarjetaId`, que es el unico dato que los separa.
    */
   qrControl = new FormControl(null);
+
+  /** Las teclas físicas de la seña escaneada: ver `onQrEscaneado`. */
+  @ViewChild(LectorTecladoDirective) private lector: LectorTecladoDirective;
   /** Lo que se le dice al cajero cuando el QR no sirve. null = nada que avisar. */
   avisoQr: string = null;
   buscandoQr = false;
@@ -329,16 +334,22 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   onQrEscaneado(): void {
     // El lector manda CR al final: sin esta guarda, el Enter dispara una segunda vuelta.
     if (this.modoLectura || this.buscandoQr) return;
-    const texto = (this.qrControl.value || '').trim();
-    if (!texto) return;
+    const tipeado = (this.qrControl.value || '').trim();
+    if (!tipeado) return;
 
     this.avisoQr = null;
-    const qr: any = descodificarQr(texto);
 
-    if (!texto.startsWith('frc-') || String(qr?.tipoEntidad) !== String(TipoEntidad.VENTA_TARJETA)) {
+    // Con Windows en español el lector (tabla EE.UU.) tipea `frc'24'VT'…654]32000]36'…`: los `-`
+    // llegan como `'` y los `|` como `]`. Se prueba primero lo que tipeó Windows y después la
+    // cadena rearmada desde las teclas físicas (ver `shared/lector-teclado`).
+    const esSena = (t: string) =>
+      t.startsWith('frc-') && String(descodificarQr(t)?.tipoEntidad) === String(TipoEntidad.VENTA_TARJETA);
+    const texto = lecturasAProbar(tipeado, this.lector?.alternativa()).find(esSena);
+    if (!texto) {
       this.rechazarQr('Ese código no es la seña de un cobro con tarjeta.');
       return;
     }
+    const qr: any = descodificarQr(texto);
 
     // `data` es posicional: cajaId|monto|ventaTarjetaId. Lo arma `onImprimirSena`.
     const partes = String(qr.data || '').split('|');
