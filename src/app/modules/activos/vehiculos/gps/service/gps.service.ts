@@ -14,7 +14,7 @@ import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
 import { GuardarConfigAlertasGpsGQL } from '../graphql/guardarConfigAlertasGps';
 import { MatDialog } from '@angular/material/dialog';
 import { GpsDialogService } from './gps-dialog-service.service';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../../generics/generic-crud.service';
 
 @Injectable({
     providedIn: 'root'
@@ -62,8 +62,9 @@ export class GpsService {
         })
     );
 
-    onGetById(id: number): Observable<Gps> {
-        return this.genericService.onGetById(this.gpsByIdGQL, id);
+    onGetById(id: number, errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<Gps> {
+        return this.genericService.onGetById(this.gpsByIdGQL, id, null, null, true, null, null, null, silentLoad, null, null,
+            errorConf, contexto);
     }
 
     onSave(input: GpsInput): Observable<Gps> {
@@ -137,8 +138,14 @@ export class GpsService {
         return this.genericService.onCustomQuery(this.gpsByImeiGQL, { imei });
     }
 
-    onEnviarComando(id: number, tipo: string, valor?: string): Observable<boolean> {
-        return this.genericService.onCustomMutation(this.enviarComandoGpsGQL, { id, tipo, valor });
+    /**
+     * `true`: el central escribió el comando hacia el equipo (no prueba que llegó). `false`: no lo envió, por
+     * cualquiera de varios motivos (GPS no conectado, inexistente, comando desconocido o una excepción).
+     * Los errores se propagan: sin respuesta, el comando pudo haber salido igual.
+     */
+    onEnviarComando(id: number, tipo: string, valor?: string, timeoutMs?: number): Observable<boolean> {
+        return this.genericService.onCustomMutation(this.enviarComandoGpsGQL, { id, tipo, valor }, true, false,
+            timeoutMs != null ? { timeoutMs } : undefined);
     }
 
     onGuardarConfigAlertas(id: number, alertaVelocidad: boolean, velocidadLimite: number,
