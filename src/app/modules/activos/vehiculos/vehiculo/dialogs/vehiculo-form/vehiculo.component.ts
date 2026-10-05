@@ -18,6 +18,8 @@ import { EnteService } from '../../../../ente/service/ente.service';
 import { TipoEnte } from '../../../../ente/enums/tipo-ente.enum';
 import { CuotaDetalle } from '../../../../shared/models/cuota-detalle.model';
 import { CONSULTA_BIEN, EstadoFormularioBien, LECTURA_BIEN } from '../../../../shared/forms/estado-formulario-bien';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { finalize } from 'rxjs/operators';
 import { ARCHIVOS_VEHICULO } from '../../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
@@ -33,6 +35,7 @@ export class VehiculoComponent implements OnInit {
     private vehiculoDialogService = inject(VehiculoDialogService);
     private tabService = inject(TabService);
     private cdr = inject(ChangeDetectorRef);
+    private notificacionService = inject(NotificacionSnackbarService);
     private enteService = inject(EnteService);
 
     enteId: number | null = null;
@@ -269,10 +272,19 @@ export class VehiculoComponent implements OnInit {
     onGuardar(): void {
         if (this.estado.guardarBloqueado) return;
         const situacionEnviada = this.situacionPagoControl.value;
+        // «Alta» es lo que ve el servidor: se envía sin id (se calcula antes de enviar)
+        const esAlta = !this.form.getRawValue().id;
+        const chapaCargada = !!this.form.getRawValue().chapa?.trim();
         const cerrar = !!this.vehiculo?.id && this.registroGuardado;
+        this.estado.actualizar({ guardando: true });
         this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef, this.cuotasDetalle, cerrar)
-            .pipe(untilDestroyed(this))
-            .subscribe((res) => {
+            // Se libera también en `next`: el genérico puede emitir sin completar
+            .pipe(untilDestroyed(this), finalize(() => this.estado.actualizar({ guardando: false })))
+            .subscribe({ error: (error) => {
+                const aviso = this.estado.alFallarElGuardado(error, esAlta, chapaCargada);
+                if (aviso) this.notificacionService.openWarn(aviso, 10);
+            }, next: (res) => {
+                this.estado.actualizar({ guardando: false });
                 if (!res?.id) return;
                 this.vehiculo = { ...this.vehiculo, ...res, id: res.id };
                 this.registroGuardado = true;
@@ -284,7 +296,7 @@ export class VehiculoComponent implements OnInit {
                 this.estado.actualizar({ bien: 'ok', eraPagando, cuotas: eraPagando ? 'cargando' : 'sin-cargar' });
                 this.cargarEnteYCuotas();
                 this.cdr.markForCheck();
-            });
+            } });
     }
 
     onBuscarModelo(): void {
@@ -337,7 +349,8 @@ export class VehiculoComponent implements OnInit {
     }
 
     onCancelar(): void {
-        this.vehiculoDialogService.onCancelar(this.dialogRef);
+        // Con un alta sin confirmar, cerrar refresca la lista: el bien pudo haberse guardado
+        this.vehiculoDialogService.onCancelar(this.dialogRef, this.estado.altaSinConfirmar);
     }
 
     private getProveedorNombre(proveedor: Proveedor | Persona): string {

@@ -16,6 +16,9 @@ export class BienEstadoCargaComponent {
   /** El bien estaba en «pagando» al cargarlo: solo entonces importan sus cuotas. */
   @Input() eraPagando = false;
   @Input() enteFallo = false;
+  /** Un alta quedó sin confirmar: no se guarda más desde el formulario. */
+  @Input() altaSinConfirmar = false;
+  @Output() cerrar = new EventEmitter<void>();
   @Output() reintentarBien = new EventEmitter<void>();
   @Output() reintentarCuotas = new EventEmitter<void>();
 }

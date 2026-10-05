@@ -1,5 +1,7 @@
 import { FormGroup } from '@angular/forms';
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 /**
  * Carga de un bien para editarlo: el error de red y el del servidor llegan al formulario, que bloquea el
@@ -10,6 +12,12 @@ export const LECTURA_BIEN: QueryError = {
   graphError: { propagate: true, show: false },
 };
 export const CONSULTA_BIEN: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
+export const AVISO_GUARDADO_SIN_CONFIRMAR = 'No se pudo confirmar el guardado: podés volver a intentar.';
+export const AVISO_ALTA_SIN_CONFIRMAR =
+  'No se pudo confirmar si el bien se guardó. No vuelvas a cargarlo sin revisar: cerrá y buscalo en la lista.';
+export const AVISO_ALTA_DE_VEHICULO_RECHAZADA =
+  'Si el error dice que la chapa ya existe, el vehículo pudo haberse guardado: cerrá y buscalo en la lista.';
 
 export type EstadoCargaBien = 'nuevo' | 'cargando' | 'ok' | 'error';
 export type EstadoCargaCuotas = 'sin-cargar' | 'cargando' | 'ok' | 'error';
@@ -39,6 +47,14 @@ export class EstadoFormularioBien {
   enteFallo = false;
   /** El editor de cuotas está recalculando o no pudo recalcular. */
   planSinCalcular = false;
+  /** Guardado en curso: sin doble «Guardar». */
+  guardando = false;
+  /**
+   * Un ALTA quedó sin confirmar: el bien pudo haberse guardado y volver a guardar crearía otro (equipo, mueble e
+   * inmueble no tienen ningún dato único; la chapa del vehículo no tiene restricción en la base). No se guarda
+   * más desde este formulario: se cierra y se revisa la lista.
+   */
+  altaSinConfirmar = false;
 
   /** Único dato que mira el botón Guardar (los templates no llaman funciones). */
   guardarBloqueado = false;
@@ -56,9 +72,35 @@ export class EstadoFormularioBien {
     private alCambiar: () => void
   ) {}
 
-  actualizar(cambios: Partial<Pick<EstadoFormularioBien, 'bien' | 'cuotas' | 'eraPagando' | 'enteFallo' | 'planSinCalcular'>>): void {
+  actualizar(cambios: Partial<Pick<EstadoFormularioBien,
+    'bien' | 'cuotas' | 'eraPagando' | 'enteFallo' | 'planSinCalcular' | 'guardando'>>): void {
     Object.assign(this, cambios);
     this.recalcular();
+  }
+
+  /**
+   * El guardado dio error. Devuelve el aviso que tiene que mostrar el formulario (o `null` si no hace falta).
+   *
+   * - Edición (se envió con id): reintentar es inocuo. Solo se avisa si no hubo respuesta; un rechazo o una
+   *   respuesta vacía ya los avisó el servicio genérico, y el corte por tiempo, el link.
+   * - Alta: el central guarda el bien, después el ente y después lo financiero por separado, y sus errores dicen
+   *   «No se pudo guardar…» aunque el bien ya esté guardado. Cualquier error deja el alta SIN CONFIRMAR.
+   *   Excepción (`altaReintentableSiRechaza`, vehículo con chapa): un rechazo se puede corregir y reintentar,
+   *   porque el central valida la chapa repetida.
+   */
+  alFallarElGuardado(error: any, esAlta: boolean, altaReintentableSiRechaza = false): string | null {
+    this.guardando = false;
+    let aviso: string | null;
+    if (!esAlta) {
+      aviso = Array.isArray(error) || esTimeoutDeLink(error) ? null : AVISO_GUARDADO_SIN_CONFIRMAR;
+    } else if (altaReintentableSiRechaza && esRechazoDelServidor(error)) {
+      aviso = AVISO_ALTA_DE_VEHICULO_RECHAZADA;
+    } else {
+      this.altaSinConfirmar = true;
+      aviso = AVISO_ALTA_SIN_CONFIRMAR;
+    }
+    this.recalcular();
+    return aviso;
   }
 
   /** También hay que llamarlo cuando cambia la situación de pago elegida. */
@@ -66,7 +108,7 @@ export class EstadoFormularioBien {
     const porBien = this.bien === 'cargando' || this.bien === 'error';
     const porCuotas = this.eraPagando && (this.cuotas === 'cargando' || this.cuotas === 'error');
     const porPlan = this.planSinCalcular && this.situacionActual() === 'PAGANDO';
-    this.guardarBloqueado = porBien || porCuotas || porPlan;
+    this.guardarBloqueado = porBien || porCuotas || porPlan || this.guardando || this.altaSinConfirmar;
 
     const planBloqueado = this.cuotas === 'cargando' || (this.eraPagando && this.cuotas === 'error');
     if (planBloqueado !== this.planBloqueado) {

@@ -148,7 +148,8 @@ export class EquipoDialogService {
     );
   }
 
-  onCancelar(dialogRef: MatDialogRef<unknown>): void {
-    dialogRef.close();
+  /** `refrescar`: quien abrió el formulario vuelve a cargar la lista (un alta quedó sin confirmar). */
+  onCancelar(dialogRef: MatDialogRef<unknown>, refrescar = false): void {
+    dialogRef.close(refrescar ? true : undefined);
   }
 }
