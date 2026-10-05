@@ -168,3 +168,49 @@ forma (práctica aceptada). Solo lectura: **no se imprime ninguna etiqueta** (se
 | B | `precio / null` → «∞» en tres cálculos; literal de la vista previa | media | helper único; «R$ —» solo en vista previa |
 | A | La plantilla vertical muestra R$ en modo `real` | baja | anotado |
 | A/B | Origen del stock 0, `?? 0` legítimo (el central no devuelve sucursales sin movimientos), llamadores únicos de búsqueda y exportación, modos de moneda (4), monedas en el filial por réplica | — | verificado |
+
+## Implementación: desvíos
+
+- **Sucursales**: con error del servidor avisa el servicio («Ups») y la lista solo marca el fallo; con error de red
+  avisa la lista. Al recuperarse, la fila que estaba desplegada sin sucursales se cierra (al abrirla ya las tiene).
+- **Fallo al cambiar de página**: se vuelve a la página **que está a la vista** (`paginaMostrada`), no a la del
+  cambio anterior, que puede seguir pendiente.
+- **`onGetStockPorSucursales`**: para quien pide el error (`graphError.propagate`), una respuesta `null` sin error
+  también es un fallo (antes se convertía en «sin stock en ninguna sucursal»).
+- **Reporte**: el modal propio dura lo que la consulta (305 s); antes se cerraba solo a los 65 s y dejaba pedir otro.
+- **Etiqueta**: el corte de la lectura de monedas pasa de 60 s a 20 s (consulta de fondo, sin modal). El cartel va
+  dentro de la fila de cotizaciones y usa un texto ya calculado (sin condición propia en el template).
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+congelado con `kill -STOP` + respaldo `kill -CONT`. No se imprimió ninguna etiqueta (los métodos que llegan a la
+impresora se reemplazaron) ni se generó ningún reporte.
+
+| Caso | Resultado |
+|---|---|
+| Desplegar un producto, vivo | stock real por sucursal (−208, −429, 127…), 0 solo en las 2 sucursales sin movimientos |
+| Desplegar, congelado | a los 20 s «—» en todas, cartel «No se pudo leer el stock» + Reintentar, sin 0 |
+| Error del servidor / `null` sin error (simulados) y Reintentar | «—»; al reintentar con la consulta real, carga |
+| Cambiar de página, congelado (y dos cambios seguidos fallidos) | se conserva la página a la vista, el paginador vuelve, aviso |
+| Buscar, congelado | grilla vacía, paginador «0 of 0», «Generar PDF» deshabilitado, aviso |
+| Exportar, congelado | el modal se cierra, un solo aviso |
+| Etiqueta, congelado | campos vacíos, vista previa «R$ —» / «D$ —», cartel + Reintentar; en modos con real/dólar los dos botones deshabilitados y `printLabel` / `printOfficeLabel` no llegan a la impresora; guaraníes imprime |
+| Etiqueta, al reanudar + Reintentar | real **1.150**, dólar **6.250** (los fijos eran 130 y 7.000): Gs. 15.500 = R$ 13,48 |
+| Etiqueta con una sola moneda sin cotización | bloquea solo los modos que la usan, con su texto |
+
+**Sin probar**: la lectura de monedas contra un filial (servido en el navegador, sin filial, la etiqueta leyó del
+central); el corte real de 300 s del reporte.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | Al quitar el modal del servicio, el del reporte se cerraba solo a los 65 s | dura 305 s |
+| baja | La página a restaurar podía ser la de un cambio todavía pendiente | `paginaMostrada` |
+| baja | Aviso de stock aunque la fila ya estuviera cerrada; un tope de avisos compartido entre paginar y buscar | corregidos |
+| baja | «Reintentar» de la etiqueta dejaba el texto de error mientras releía; condición con llamada en el `*ngIf` nuevo | corregidos |
+| baja | Un `null` sin error en el stock por sucursales volvería a pintar 0 | es fallo para quien pide el error |
+| baja | El cartel de stock se dibujaba también en filas colapsadas | limitado a la fila desplegada |
+| baja | Color fijo del cartel de la etiqueta; el reporte pierde el mensaje del servidor (queda el genérico) | aceptado |
+| — | Todas las rutas de impresión pasan por la guarda; código de barras y QR sin cotización; los otros dos llamadores de `onGetAllEnSegundoPlano` sin cambio; llamadores únicos de búsqueda y exportación | sin hallazgos |

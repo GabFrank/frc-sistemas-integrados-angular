@@ -133,7 +133,7 @@
           </mat-form-field>
         </div>
         <!-- Sin cotización leída no se imprime en esa moneda (#390) -->
-        <div *ngIf="textoCotizaciones && printForm.get('currencyMode').value !== 'guarani'"
+        <div *ngIf="textoCotizaciones"
              style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #ffb74d;">
           <span>{{ textoCotizaciones }}</span>
           <button mat-stroked-button type="button" *ngIf="cotizacionesEstado === 'error'" (click)="loadCotizaciones()">

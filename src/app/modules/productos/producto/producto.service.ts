@@ -18,9 +18,6 @@ import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
-
-/** Un reporte puede tardar: se mantiene el corte largo de las consultas (no el de 60 s). */
-const TIMEOUT_REPORTE_MS = 300000;
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -55,6 +52,9 @@ import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
 import { LucroPorProductoListGQL } from "./graphql/lucroPorProductoList";
+
+/** Un reporte puede tardar: se mantiene el corte largo de las consultas (no el de 60 s). */
+export const TIMEOUT_REPORTE_MS = 300000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -177,6 +177,11 @@ export class ProductoService {
       .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, errorConf, silentLoad, contexto)
       .pipe(
         map((filas: StockPorSucursalRaw[]) => {
+          // El central nunca devuelve null acá ([] si no hay movimientos): para quien pidió el error, un null
+          // sin error es un fallo, no «sin stock en ninguna sucursal»
+          if (filas == null && errorConf?.graphError?.propagate === true) {
+            throw new Error('stockPorSucursales sin datos');
+          }
           const porSucursal = new PorSucursal<number>();
           (filas || []).forEach((fila) => {
             if (fila?.sucursalId == null) return;

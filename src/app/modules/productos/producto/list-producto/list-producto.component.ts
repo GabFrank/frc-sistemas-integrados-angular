@@ -29,7 +29,7 @@ import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { ExistenciaCostoPorSucursal, Producto } from "../producto.model";
-import { ProductoService } from "../producto.service";
+import { ProductoService, TIMEOUT_REPORTE_MS } from "../producto.service";
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { MovimientoStock } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -227,6 +227,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   /** Evita un aviso por tecla: el campo de texto dispara una búsqueda en cada pausa. */
   private ultimoAvisoDeBusqueda = 0;
+  /** Página que está a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
+  private paginaMostrada = { pageIndex: 0, pageSize: 15 };
 
   /** `paginaAnterior`: la búsqueda es un cambio de página; si falla se vuelve a esa página en vez de vaciar. */
   onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false,
@@ -252,12 +254,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.dataSource.data = [];
         this.isGenerarPdfDisabled = true;
       }
+      if (paginaAnterior != null) {
+        this.notificacionService.openWarn('No se pudo cambiar de página: volvé a intentar.', 5);
+        return;
+      }
       const ahora = Date.now();
       if (ahora - this.ultimoAvisoDeBusqueda > 5000) {
         this.ultimoAvisoDeBusqueda = ahora;
-        this.notificacionService.openWarn(paginaAnterior != null
-          ? 'No se pudo cambiar de página: volvé a intentar.'
-          : 'No se pudieron buscar los productos: volvé a intentar.', 5);
+        this.notificacionService.openWarn('No se pudieron buscar los productos: volvé a intentar.', 5);
       }
     };
 
@@ -294,6 +298,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
+        this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
         this.isSearching = false;
         this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
 
@@ -346,7 +351,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       .subscribe({ error: () => {
         if (lectura !== this.lecturaStock) return; // ya se desplegó otra fila
         this.stockEstado = 'error';
-        this.notificacionService.openWarn('No se pudo leer el stock del producto: usá «Reintentar».', 5);
+        // Sin aviso si la fila ya se cerró (o se buscó otra cosa): al volver a desplegarla se pide de nuevo
+        if (this.expandedProducto === producto) {
+          this.notificacionService.openWarn('No se pudo leer el stock del producto: usá «Reintentar».', 5);
+        }
       }, next: (stockPorSucursal: PorSucursal<number>) => {
         sucursalesDeLaFila.forEach((existenciaSucursal) => {
           existenciaSucursal.existencia =
@@ -400,7 +408,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onVerMovimiento(producto: Producto, i) {}
 
   handlePageEvent(e: PageEvent) {
-    const paginaAnterior = { pageIndex: this.pageIndex, pageSize: this.pageSize };
+    // La que está a la vista, no `this.pageIndex`: otro cambio de página pendiente ya lo pudo mover
+    const paginaAnterior = { ...this.paginaMostrada };
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onSearchProducto(false, true, paginaAnterior);
@@ -724,7 +733,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
 
   ejecutarGeneracionReporte(parametrosReporte: any) {
-    const loadingRef = this.cargandoDialog.openDialog(false, 'Generando reporte de productos...');
+    // El modal dura lo que puede durar la consulta (sin esto se cierra solo a los 65 s y deja pedir otro reporte)
+    const loadingRef = this.cargandoDialog.openDialog(false, 'Generando reporte de productos...', TIMEOUT_REPORTE_MS + 5000);
 
     this.service.onExportarReporteConFiltros(parametrosReporte).subscribe({
       next: (response) => {

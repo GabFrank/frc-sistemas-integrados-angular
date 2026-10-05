@@ -114,6 +114,7 @@ export class PrintLabelDialogComponent implements OnInit {
 
   loadCotizaciones(): void {
     this.cotizacionesEstado = 'cargando';
+    this.actualizarFaltaCotizacion();
     const aplicar = (real: number | null, dolar: number | null, estado: 'ok' | 'error') => {
       this.cotizacionReal = real;
       this.cotizacionDolar = dolar;

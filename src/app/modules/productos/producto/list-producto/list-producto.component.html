@@ -406,8 +406,8 @@
                                {{ sucursal.existencia | number:'1.0-2' }}
                              </ng-container>
                              <ng-template #loadingTemplate>
-                               <mat-spinner *ngIf="stockEstado !== 'error'" diameter="24" style="margin: 0 auto;"></mat-spinner>
-                               <span *ngIf="stockEstado === 'error'">—</span>
+                               <mat-spinner *ngIf="stockEstado !== 'error' || producto !== expandedProducto" diameter="24" style="margin: 0 auto;"></mat-spinner>
+                               <span *ngIf="stockEstado === 'error' && producto === expandedProducto">—</span>
                              </ng-template>
                            </td>
                           </tr>
@@ -421,7 +421,7 @@
                             </ng-container>
                           </td>
                         </tr>
-                        <tr *ngIf="stockEstado === 'error' && producto?.sucursales?.length">
+                        <tr *ngIf="stockEstado === 'error' && producto === expandedProducto && producto?.sucursales?.length">
                           <td colspan="2" style="text-align: center; padding: 8px;">
                             No se pudo leer el stock.
                             <button mat-stroked-button type="button" (click)="reintentarStock(); $event.stopPropagation()">Reintentar</button>
