@@ -16,6 +16,8 @@ import { CajaPorIdGQL } from "../../../financiero/pdv/caja/graphql/cajaPorId";
 import { CobroDetalle } from "../cobro/cobro-detalle.model";
 import { Venta } from "../venta.model";
 import { ErrorCancelacionVenta, VentaService } from "../venta.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { FormControl, FormGroup } from "@angular/forms";
@@ -216,12 +218,20 @@ export class ListVentaComponent implements OnInit {
     this.cajaService
       .onCajaBalancePorIdAndSucursalId(
         this.selectedCaja.id,
-        this.selectedCaja?.sucursal?.id
+        this.selectedCaja?.sucursal?.id,
+        true,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
       )
-      .subscribe((res) => {
+      .subscribe({ error: () => {
+        // Sin balance leído no queda el total anterior (p. ej. el de antes de una cancelación) (#390)
+        this.isLoading = false;
+        if (this.selectedCaja) this.selectedCaja.balance = null;
+        this.notificacionService.openWarn('No se pudo actualizar el balance de la caja: el servidor no responde.', 5);
+      }, next: (res) => {
         this.isLoading = false;
         if (res != null) this.selectedCaja.balance = res;
-      });
+      } });
   }
 
   onFilterChange() {
@@ -244,10 +254,19 @@ export class ListVentaComponent implements OnInit {
         this.modoControl.value,
         this.monedaControl.value?.id,
         this.conDescuentoControl.value,
-        this.conAumentoControl.value
+        this.conAumentoControl.value,
+        true,
+        PROPAGAR_ERROR_DE_RED,
+        undefined,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => {
+        // Sin filas del filtro anterior a la vista como si fueran del nuevo (#390)
+        this.selectedPageInfo = null;
+        this.ventaDataSource.data = [];
+        this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
+      }, next: (res) => {
         // this.cargandoService.closeDialog()
         // this.isCargando = false;
         if (res != null) {
@@ -255,17 +274,24 @@ export class ListVentaComponent implements OnInit {
           let ventas: Venta[] = res.getContent;
           ventas = this.onObservado(ventas);
           this.ventaDataSource.data = ventas;
+        } else {
+          this.selectedPageInfo = null;
+          this.ventaDataSource.data = []; // error GraphQL: el servicio ya avisó
         }
-      });
+      } });
   }
 
   onClickRow(venta: Venta, index) {
     if (venta.ventaItemList == null) {
       this.loading = true;
       this.ventaService
-        .onGetPorId(venta.id, venta?.sucursalId, true)
+        .onGetPorId(venta.id, venta?.sucursalId, true, true, PROPAGAR_ERROR_DE_RED,
+          { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
+        .subscribe({ error: () => {
+          this.loading = false;
+          this.notificacionService.openWarn('No se pudo cargar el detalle de la venta: el servidor no responde.', 5);
+        }, next: (res) => {
           this.loading = false;
           if (res != null) {
             let selectedVenta = this.ventaDataSource.data[index];
@@ -280,7 +306,7 @@ export class ListVentaComponent implements OnInit {
             );
             this.getTotales(venta);
           }
-        });
+        } });
     } else {
       this.getTotales(venta);
     }

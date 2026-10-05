@@ -7,6 +7,7 @@ import {
   QueryError,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../generics/generic-crud.service";
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
 import { MainService } from "../../../main.service";
 import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";
 import { Cobro, CobroInput } from "./cobro/cobro.model";
@@ -61,6 +62,11 @@ const RELECTURA_SILENCIOSA: QueryError = {
   graphError: { show: false },
 };
 const CONSULTA_RELECTURA: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+/** Listas de ventas: 60 s sin el aviso genérico del link; el error de red llega al llamador, que avisa. */
+const PROPAGAR_RED_VENTAS: QueryError = { networkError: { propagate: true, show: false } };
+const CONSULTA_LISTA_VENTAS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Reportes: conservan su espera larga; solo se propaga el error para poder avisar. */
+const REPORTE_PROPAGA: QueryError = { networkError: { propagate: true, show: false } };
 
 export type ResultadoCancelacionVenta =
   /** Se mandó: `aplicada` si el central la alternó, `rechazada` si respondió que no. */
@@ -322,7 +328,10 @@ export class VentaService {
     monedaId?,
     conDescuento?,
     conAumento?,
-    servidor = true
+    servidor = true,
+    errorConf?: QueryError,
+    silentLoad?: boolean,
+    contexto?: ContextoConsulta
   ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
       idVenta,
@@ -337,7 +346,7 @@ export class VentaService {
       monedaId,
       conDescuento,
       conAumento
-    }, servidor);
+    }, servidor, errorConf, silentLoad, contexto);
   }
 
   onVentasFilter(
@@ -376,7 +385,7 @@ export class VentaService {
       clienteId,
       fechaInicio,
       fechaFin
-    }, servidor);
+    }, servidor, PROPAGAR_RED_VENTAS, true, CONSULTA_LISTA_VENTAS);
   }
 
   onReporteGenericVentas(
@@ -414,16 +423,17 @@ export class VentaService {
           fechaFin,
           usuarioId: this.mainService?.usuarioActual?.id
         },
-        servidor
+        servidor,
+        REPORTE_PROPAGA
       )
-      .subscribe((res: string) => {
+      .subscribe({ error: (err) => this.avisarReporteFallido(err), next: (res: string) => {
         if (res != null) {
           this.reporteService.onAdd('Reporte de Ventas ' + Date.now(), res);
           this.tabService.addTab(
             new Tab(ReportesComponent, 'Reportes', null, null)
           );
         }
-      });
+      } });
   }
 
   onReporteGenericVentasDetallado(
@@ -461,16 +471,23 @@ export class VentaService {
           fechaFin,
           usuarioId: this.mainService?.usuarioActual?.id
         },
-        servidor
+        servidor,
+        REPORTE_PROPAGA
       )
-      .subscribe((res: string) => {
+      .subscribe({ error: (err) => this.avisarReporteFallido(err), next: (res: string) => {
         if (res != null) {
           this.reporteService.onAdd('Reporte Detallado de Ventas ' + Date.now(), res);
           this.tabService.addTab(
             new Tab(ReportesComponent, 'Reportes', null, null)
           );
         }
-      });
+      } });
+  }
+
+  /** Un reporte que no responde: antes no pasaba nada. El corte por tiempo ya lo avisa el link (#390). */
+  private avisarReporteFallido(err: any): void {
+    if (esTimeoutDeLink(err)) return;
+    this.notificacionBar.openWarn('No se pudo generar el reporte: el servidor no responde. Intentá de nuevo.', 5);
   }
 
   onGetPorId(id, sucId?, silentLoad?, servidor = true, errorConf?: QueryError,
@@ -578,16 +595,17 @@ export class VentaService {
           subfamiliaId,
           familiaId
         },
-        servidor
+        servidor,
+        REPORTE_PROPAGA
       )
-      .subscribe((res) => {
+      .subscribe({ error: (err) => this.avisarReporteFallido(err), next: (res) => {
         if (res != null) {
           this.reporteService.onAdd("Lucro por funcionario " + Date.now(), res);
           this.tabService.addTab(
             new Tab(ReportesComponent, "Reportes", null, null)
           );
         }
-      });
+      } });
   }
 
   onGetLucroPorFuncionario(
@@ -612,6 +630,6 @@ export class VentaService {
       page,
       size,
       familiaId
-    }, servidor);
+    }, servidor, REPORTE_PROPAGA);
   }
 }

@@ -11,6 +11,10 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { Venta } from "../venta.model";
 import { ErrorCancelacionVenta, VentaService } from "../venta.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+
+/** Diálogo del POS contra la sucursal: el cajero espera de pie (#390). */
+const CONSULTA_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
 
@@ -83,14 +87,27 @@ export class UltimasVentasDialogComponent implements OnInit {
   cargarVentas() {
     this.isLoading = true;
     this.ventaService
-      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false, false).pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false, false,
+        PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_MOSTRADOR).pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.isLoading = false;
+        this.vaciarSinRespuesta('No se pudieron cargar las últimas ventas: la sucursal no responde. Intentá de nuevo.');
+      }, next: (res) => {
         this.isLoading = false;
         if (res != null) {
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
+        } else {
+          this.vaciarSinRespuesta(null); // error GraphQL: el servicio ya avisó
         }
-      });
+      } });
+  }
+
+  /** Sin el listado de otra página o búsqueda a la vista (y cancelable) como si fuera el pedido (#390). */
+  private vaciarSinRespuesta(aviso: string | null): void {
+    this.selectedPageInfo = null;
+    this.dataSource.data = [];
+    if (aviso) this.notificacionSnackBar.openWarn(aviso, 5);
   }
 
   handlePageEvent(e: PageEvent) {
@@ -102,8 +119,9 @@ export class UltimasVentasDialogComponent implements OnInit {
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {
       this.ventaService
-        .onGetPorId(this.codigoVentaControl.value, null, null, false).pipe(untilDestroyed(this))
-        .subscribe((res) => {
+        .onGetPorId(this.codigoVentaControl.value, null, null, false, PROPAGAR_ERROR_DE_RED, CONSULTA_MOSTRADOR).pipe(untilDestroyed(this))
+        .subscribe({ error: () => this.vaciarSinRespuesta('No se pudo buscar la venta: la sucursal no responde. Intentá de nuevo.'),
+        next: (res) => {
           if (res != null) {
             this.dataSource.data = [res];
           } else {
@@ -116,7 +134,7 @@ export class UltimasVentasDialogComponent implements OnInit {
               duracion: 3,
             });
           }
-        });
+        } });
     }
   }
 

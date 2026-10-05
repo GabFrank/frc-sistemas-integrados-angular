@@ -3,8 +3,13 @@ import { MatTableDataSource } from "@angular/material/table";
 import { LucroPorFuncionario } from "./lucro-por-funcionario.model";
 import { FormControl, FormGroup } from "@angular/forms";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable, forkJoin, of } from "rxjs";
-import { map, switchMap } from "rxjs/operators";
+import { EMPTY, Observable, forkJoin, of, throwError } from "rxjs";
+import { catchError, map, switchMap } from "rxjs/operators";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../../generics/generic-crud.service";
+import { esTimeoutDeLink } from "../../../../../shared/services/timeout-link";
+
+/** No se pudieron resolver todos los usuarios de los funcionarios elegidos: ya se avisó, no se consulta. */
+const FUNCIONARIOS_SIN_RESOLVER = new Error("funcionarios sin usuario");
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
 import {
@@ -217,9 +222,20 @@ export class LucroPorFuncionarioComponent implements OnInit {
               this.selectedFamilia?.id
             )
           ),
+          // Dentro del pipe: sin esto quedaba a la vista el reporte anterior bajo filtros nuevos (#390)
+          catchError((err) => {
+            this.vaciarReporte();
+            if (err !== FUNCIONARIOS_SIN_RESOLVER && !esTimeoutDeLink(err)) {
+              this.notificacionService.openWarn('No se pudo consultar el lucro por funcionario: el servidor no responde.', 5);
+            }
+            return EMPTY;
+          }),
           untilDestroyed(this)
         )
         .subscribe((res) => {
+          if (!res) {
+            this.vaciarReporte(); // error GraphQL: el servicio ya avisó
+          }
           if (res) {
             this.allRows = res.content || [];
             this.totalElements = res.totalElements || this.allRows.length;
@@ -232,6 +248,12 @@ export class LucroPorFuncionarioComponent implements OnInit {
           }
         });
     }
+  }
+
+  private vaciarReporte(): void {
+    this.allRows = [];
+    this.totalElements = 0;
+    this.dataSource.data = [];
   }
 
   private mostrarPagina() {
@@ -249,14 +271,20 @@ export class LucroPorFuncionarioComponent implements OnInit {
         this.resolveUsuarioIdFromFuncionario(funcionario)
       )
     ).pipe(
-      map((usuarioIds) => {
+      switchMap((usuarioIds) => {
         const validIds = usuarioIds.filter((id) => id != null) as number[];
         if (validIds.length < this.funcionarioList.length) {
+          // Antes se consultaba con los que quedaban y, si no quedaba ninguno, SIN filtro: el reporte de todos
+          // salía como si fuera el de los elegidos. Sin todos resueltos no se consulta (#390).
+          const sinUsuario = this.funcionarioList
+            .filter((_, i) => usuarioIds[i] == null)
+            .map((f) => f?.persona?.nombre || f?.id)
+            .join(", ");
           this.notificacionService.openWarn(
-            "Algunos funcionarios seleccionados no tienen un usuario asociado"
-          );
+            `No se pudo obtener el usuario de: ${sinUsuario}. Quitalos del filtro o intentá de nuevo: no se consultó el reporte.`, 8);
+          return throwError(() => FUNCIONARIOS_SIN_RESOLVER);
         }
-        return validIds;
+        return of(validIds);
       })
     );
   }
@@ -266,7 +294,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
   ): Observable<number | null> {
     if (funcionario?.persona?.id) {
       return this.usuarioService
-        .onGetUsuarioPorPersonaId(funcionario.persona.id)
+        .onGetUsuarioPorPersonaId(funcionario.persona.id, true, PROPAGAR_ERROR_DE_RED)
         .pipe(
           map((usuario) => {
             if (usuario?.id) {
@@ -375,7 +403,11 @@ export class LucroPorFuncionarioComponent implements OnInit {
     });
     this.resolveUsuarioIdList()
       .pipe(untilDestroyed(this))
-      .subscribe((usuarioIdList) => {
+      .subscribe({ error: (err) => {
+        if (err !== FUNCIONARIOS_SIN_RESOLVER && !esTimeoutDeLink(err)) {
+          this.notificacionService.openWarn('No se pudo preparar el reporte: el servidor no responde.', 5);
+        }
+      }, next: (usuarioIdList) => {
         this.ventaService.onImprimirReporteLucroPorFuncionario(
           fechaInicio,
           fechaFin,
@@ -386,7 +418,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
           true,
           this.selectedFamilia?.id
         );
-      });
+      } });
   }
 
   toSucursalesId(sucursales: Sucursal[]) {
