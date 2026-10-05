@@ -181,3 +181,46 @@ parámetro). Los cuatro ya refrescan su lista cuando hay respuesta.
 | B | Datos + error: el genérico ya avisó | media | sin aviso propio |
 | A | HTTP 400/401/403 bloquean un alta | media | riesgo conocido |
 | A/B | «Qué pasa hoy» en los cuatro; primer y segundo guardado de un alta; central no atómico; un llamador por servicio; tamaño (~250–300 líneas) | — | verificado |
+
+## Implementación: desvíos
+
+- **Las dos fases quedaron en un commit**: la clasificación del error vive en una sola función compartida
+  (`EstadoFormularioBien.alFallarElGuardado`), que usan los cuatro formularios.
+- **Avisos de un alta sin confirmar** (auditoría del diff): en el corte por tiempo no hay aviso propio (ya avisa
+  el link); tras un rechazo del servidor el aviso dice que el bien igual pudo haber quedado guardado; sin
+  respuesta, el texto del cartel. El cartel queda fijo en los tres casos.
+- El texto del cartel sale de la misma constante que el aviso.
+
+## Prueba de runtime (2026-10-05)
+
+Central local `:8081` sin perfil (replicación apagada; los dos schedulers en *Did not match*), `ng serve -c web`,
+vivo. Los errores de guardado se simularon reemplazando el `onGuardar` del servicio por un error (no se envió
+nada). Vehículo abierto en **diálogo**; las altas se probaron con ids inventados (la base local no tiene tipos ni
+modelos para armar un bien nuevo válido).
+
+| Caso | Resultado |
+|---|---|
+| Edición de vehículo sin respuesta | aviso «No se pudo confirmar el guardado…», Guardar habilitado |
+| Edición con rechazo | sin aviso propio; se puede corregir |
+| Doble Guardar (respuesta demorada) | un solo envío |
+| Alta de vehículo con rechazo | aviso con la pista de la chapa; no bloquea |
+| Alta de vehículo sin respuesta / con respuesta vacía | cartel + aviso, Guardar bloqueado; un segundo Guardar no envía |
+| Alta de vehículo con rechazo y chapa en blanco | bloquea |
+| Cerrar con el alta sin confirmar (botón del cartel y Cancelar) | cierra y refresca la lista una vez |
+| Datos + error sin completar | el formulario queda con id y Guardar habilitado (no queda «guardando») |
+| Alta de equipo con rechazo | cartel + aviso, bloqueado, un solo envío; cerrar refresca la lista |
+| Edición real de vehículo (central vivo) | guarda, cierra, un solo «Guardado con éxito», cuotas iguales |
+
+**Sin probar en pantalla**: mueble e inmueble (mismo código y mismo cambio que equipo); vehículo en pestaña (desde
+el pre-registro); un alta real completa (primer guardado que deja abierto, segundo que cierra); la X del título con
+un alta sin confirmar (va por el mismo `onCancelar()`); los textos de aviso ajustados tras la auditoría.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Sev. | Hallazgo | Qué se hizo |
+|---|---|---|
+| media | Alta cortada por tiempo: aviso del link + aviso propio | sin aviso propio en el corte |
+| media | Alta rechazada (equipo, mueble, inmueble): «Ups…» del genérico + «no se pudo confirmar…», que no aplicaba | aviso que explica que igual pudo haberse guardado |
+| baja | Texto del cartel duplicado a mano; import de `finalize` en línea aparte | constante única; import unido |
+| baja | Si la pestaña de vehículo se cierra con su propia X (del gestor de pestañas) con un alta sin confirmar, la lista no se refresca | anotado, sin cambio |
+| — | Ningún camino manda una segunda alta tras un error; `altaSinConfirmar` no se desbloquea; `guardando` no queda trabado; camino feliz intacto; los tres cierres pasan por `onCancelar()`; los 4 formularios equivalentes | sin hallazgos |

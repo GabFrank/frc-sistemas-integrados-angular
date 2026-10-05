@@ -2,7 +2,7 @@
 <div *ngIf="altaSinConfirmar" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
   style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
   <mat-icon>warning</mat-icon>
-  <span fxFlex>No se pudo confirmar si el bien se guardó. No vuelvas a cargarlo sin revisar: cerrá y buscalo en la lista.</span>
+  <span fxFlex>{{ textoAltaSinConfirmar }}</span>
   <button mat-stroked-button type="button" (click)="cerrar.emit()">Cerrar</button>
 </div>
 

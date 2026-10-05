@@ -16,6 +16,8 @@ export const CONSULTA_BIEN: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_
 export const AVISO_GUARDADO_SIN_CONFIRMAR = 'No se pudo confirmar el guardado: podés volver a intentar.';
 export const AVISO_ALTA_SIN_CONFIRMAR =
   'No se pudo confirmar si el bien se guardó. No vuelvas a cargarlo sin revisar: cerrá y buscalo en la lista.';
+export const AVISO_ALTA_RECHAZADA =
+  'El servidor informó un error, pero el bien pudo haber quedado guardado: cerrá y buscalo en la lista antes de volver a cargarlo.';
 export const AVISO_ALTA_DE_VEHICULO_RECHAZADA =
   'Si el error dice que la chapa ya existe, el vehículo pudo haberse guardado: cerrá y buscalo en la lista.';
 
@@ -97,7 +99,11 @@ export class EstadoFormularioBien {
       aviso = AVISO_ALTA_DE_VEHICULO_RECHAZADA;
     } else {
       this.altaSinConfirmar = true;
-      aviso = AVISO_ALTA_SIN_CONFIRMAR;
+      // Un aviso por flujo: en el corte por tiempo ya avisa el link («pudo haberse aplicado»); tras un rechazo
+      // (que ya mostró el servicio genérico) se aclara que igual pudo haberse guardado. El cartel queda fijo.
+      aviso = esTimeoutDeLink(error) ? null
+        : esRechazoDelServidor(error) ? AVISO_ALTA_RECHAZADA
+        : AVISO_ALTA_SIN_CONFIRMAR;
     }
     this.recalcular();
     return aviso;

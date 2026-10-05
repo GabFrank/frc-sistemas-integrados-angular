@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { EstadoCargaBien, EstadoCargaCuotas } from '../../forms/estado-formulario-bien';
+import { AVISO_ALTA_SIN_CONFIRMAR, EstadoCargaBien, EstadoCargaCuotas } from '../../forms/estado-formulario-bien';
 
 /**
  * Carteles de carga de un formulario de bien: el bien que no cargó, sus cuotas que no cargaron, o el ente (solo
@@ -19,6 +19,7 @@ export class BienEstadoCargaComponent {
   /** Un alta quedó sin confirmar: no se guarda más desde el formulario. */
   @Input() altaSinConfirmar = false;
   @Output() cerrar = new EventEmitter<void>();
+  readonly textoAltaSinConfirmar = AVISO_ALTA_SIN_CONFIRMAR;
   @Output() reintentarBien = new EventEmitter<void>();
   @Output() reintentarCuotas = new EventEmitter<void>();
 }

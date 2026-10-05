@@ -5,7 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
 import { MuebleDialogService } from '../../service/mueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { shareReplay, startWith } from 'rxjs/operators';
+import { finalize, shareReplay, startWith } from 'rxjs/operators';
 import { Mueble } from '../../models/mueble.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
@@ -16,7 +16,6 @@ import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
 import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
 import { CONSULTA_BIEN, EstadoFormularioBien, LECTURA_BIEN } from '../../../shared/forms/estado-formulario-bien';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
-import { finalize } from 'rxjs/operators';
 import { ARCHIVOS_MUEBLE_EQUIPO } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
