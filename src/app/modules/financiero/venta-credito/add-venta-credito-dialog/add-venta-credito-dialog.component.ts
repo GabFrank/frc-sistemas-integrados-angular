@@ -87,7 +87,10 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
     this.nombreClienteControl.valueChanges.subscribe(res => {
       if (this.nombreClienteControl.dirty) {
-        if (res == "") this.quitarClienteSeleccionado();
+        // Apenas se edita el texto deja de valer el cliente elegido (también durante la espera de 1 s) y
+        // cualquier búsqueda en vuelo (#390)
+        this.busquedaCliente++;
+        this.quitarClienteSeleccionado();
         if (this.searchTimer != null) {
           clearTimeout(this.searchTimer);
         }
@@ -149,6 +152,9 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
    * Una búsqueda nueva deja de valer el cliente anterior: antes, si fallaba, quedaba seleccionado con su saldo y
    * la venta a crédito se confirmaba contra él (#390).
    */
+  /** Solo aplica la respuesta de la última búsqueda de cliente. */
+  private busquedaCliente = 0;
+
   private quitarClienteSeleccionado(): void {
     this.selectedCliente = null;
     this.saldoEnCredito = null;
@@ -161,9 +167,13 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
   onSearch() {
     if (this.nombreClienteControl.valid) {
+      const busqueda = ++this.busquedaCliente;
       this.quitarClienteSeleccionado();
       if (isNaN(this.nombreClienteControl.value) == false) {
-        this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => this.busquedaDeClienteFallida(), next: res => {
+        this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+          if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
+        }, next: res => {
+          if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
           if (res != null) {
             this.onClienteSelect(res)
           } else {
@@ -180,8 +190,12 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onSearchByNombre() {
+    const busqueda = ++this.busquedaCliente;
     this.quitarClienteSeleccionado();
-    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => this.busquedaDeClienteFallida(), next: res2 => {
+    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+      if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
+    }, next: res2 => {
+      if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
       if (res2 != null) {
         if (res2.length == 1) {
           this.onClienteSelect(res2[0])

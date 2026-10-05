@@ -378,10 +378,13 @@ export class GenericListVentaComponent implements OnInit {
         // Sin balance leído no queda el total anterior (p. ej. el de antes de una cancelación) (#390)
         this.isLoading = false;
         if (this.selectedCaja) this.selectedCaja.balance = null;
+        this.balanceNoDisponible = true;
         this.notificacionService.openWarn('No se pudo actualizar el balance de la caja: el servidor no responde.', 5);
       }, next: (res) => {
         this.isLoading = false;
-        if (res != null) this.selectedCaja.balance = res;
+        // null = error GraphQL (el servicio ya avisó): tampoco queda el total anterior
+        this.selectedCaja.balance = res ?? null;
+        this.balanceNoDisponible = res == null;
       } });
   }
 
@@ -475,6 +478,9 @@ export class GenericListVentaComponent implements OnInit {
       })
   }
 
+  /** El balance de la caja no se pudo leer: se muestra «—», no el total anterior (#390). */
+  balanceNoDisponible = false;
+
   /** Ventas cuya cancelación o reactivación quedó sin confirmar: bloqueadas hasta releerlas del central (#390). */
   private ventasSinConfirmar = new Set<string>();
 
@@ -548,6 +554,13 @@ export class GenericListVentaComponent implements OnInit {
       next: (estado) => {
         venta.estado = estado;
         this.ventasSinConfirmar.delete(clave);
+        if (estado == VentaEstado.CANCELADA) {
+          // La cancelación sí se había aplicado: se cancela también su registro de tarjeta (escribe CANCELADO:
+          // repetirlo no cambia nada), igual que en el camino confirmado
+          this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+            error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+          });
+        }
         this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
         this.notificacionService.openWarn(`La venta ${venta.id} está ${estado} en el servidor.`, 6);
         this.onGetBalance();

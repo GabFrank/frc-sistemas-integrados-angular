@@ -153,3 +153,53 @@ de la base local, solo con el central vivo si hace falta para armar el caso.
 | B | Reactivar no revive factura/DE (central) | media | anotado para el issue de central |
 | B | Doble aviso; recarga de lista pisando la marca de fila | baja | un aviso por flujo; relectura solo de la fila |
 | A | Llamadores de cada método, clave compuesta `id + sucursalId`, `onCustomMutation` propaga, lista de crédito ya cubierta | — | verificado |
+
+## Implementación: desvíos respecto del plan (2026-10-05)
+
+- **Cancelación verificada en el servicio**: `ventaService.onCancelarVentaVerificando` (relee del central y manda
+  solo si el estado no cambió) y `onLeerEstadoEnCentral`; los cuatro llamadores la usan y ya ninguno llama a
+  `onCancelarVenta` directo. Sus errores distinguen `lectura` (no se mandó nada) de `cancelacion` (pudo haberse
+  aplicado).
+- **Búsqueda de cliente** (venta a crédito): `onGetByPersonaIdFromServer` y `onSearchFromServer` **no** propagaban
+  (el relevamiento decía que sí): reciben `errorConf?` y el diálogo lo pasa. `onClienteSelect(null)` no quitaba al
+  cliente: se agregó `quitarClienteSeleccionado`, que corre apenas se edita el texto, y un contador descarta la
+  respuesta de un texto anterior.
+- **Finalizar ventas a crédito**: en el menú de cada fila, «Finalizar» **no hace nada** (el método devuelve un
+  observable al que nadie se suscribe): es un bug previo y, por ser irreversible, **no se activó** en este PR. Sí se
+  corrigió la finalización de la selección (al `forkJoin` se le pasaban suscripciones): termina siempre, avisa lo
+  que no se confirmó y recarga la lista.
+- **Reportes** (ventas, lucro por funcionario, ventas con tarjeta): conservan su espera larga; solo se propaga el
+  error para avisar.
+- **Listas**: al fallar se vacían y avisan (se reintenta con «Buscar»); sin botón «Reintentar» propio.
+- **Balance de la caja**: «— (no se pudo leer el balance de la caja)» en `list-venta`; `generic-list-venta` no lo
+  muestra en su plantilla.
+
+## Prueba de runtime (paso 9, 2026-10-05)
+
+Central local `:8081` (worktree de pruebas, sin perfil, `ReplicationPublicationSyncScheduler` y
+`ReplicationRefreshScheduler` en *Did not match*), congelado con `kill -STOP` + respaldo `kill -CONT`; desktop
+`ng serve -c web`. No se canceló ni reactivó ninguna venta.
+
+| Caso | Resultado |
+|---|---|
+| Lista de ventas (vivo) | 15 filas |
+| Fila vieja: la pantalla dice CANCELADA y el central CONCLUIDA; «reactivar» | el confirm dice «reactivar»; **no se envió nada**; la fila pasa a CONCLUIDA con aviso «ya estaba CONCLUIDA en el servidor» (antes ese clic la habría cancelado) |
+| Cancelar con el central congelado | a los ~20 s «No se pudo verificar el estado… no se envió nada»; la fila no cambia |
+| Filtrar (estado CANCELADA) y abrir una fila, congelado | la lista se vacía (no quedan las CONCLUIDAS bajo el filtro nuevo) + avisos |
+| Reanudar y filtrar | 15 filas, estados sin cambios |
+
+No probado en runtime (por código): cancelación sin respuesta tras enviarla (bloqueo y relectura de la fila),
+cancelar desde ventas a crédito y «Últimas ventas», venta a crédito (cliente), finalizar la selección, balance,
+ventas con tarjeta, lucro por funcionario, reportes, casos `null`.
+
+## Auditoría del diff (paso 8, 2026-10-05)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Búsqueda de cliente: una respuesta vieja seleccionaba al cliente anterior, que además seguía elegido durante la espera de 1 s | media | contador de búsqueda + se quita al editar el texto |
+| Balance: con error GraphQL quedaba el valor viejo; con `null` el panel quedaba vacío sin «—» | media | `null` también limpia; «—» en la plantilla |
+| Cancelación incierta que sí se aplicó: el registro de tarjeta quedaba activo | media | al releer CANCELADA se cancela también el registro de tarjeta (idempotente) |
+| Fila sin `estado` se mandaría sin verificar | baja | aceptado: las dos listas lo piden |
+| Doble aviso en el corte de la mutación; error GraphQL definitivo tratado como incierto; índice de fila tras una recarga | baja | aceptado |
+| Lucro: un funcionario sin usuario bloquea el reporte | baja | aceptado (decisión del plan) |
+| Orden de operadores de la cancelación verificada, llamadores de `onGetPorId`/`onSearch`, finalizar, listas, reportes, tarjeta | — | verificado |
