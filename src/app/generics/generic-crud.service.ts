@@ -15,6 +15,7 @@ import {
   limpiarErroresGraphQL,
   limpiarMensajeGraphQL,
   mensajeErrorTransporte,
+  MENSAJE_RESPUESTA_VACIA,
 } from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { esTimeoutDeLink } from "../shared/services/timeout-link";
@@ -36,7 +37,7 @@ export interface QueryError {
 // (servidor que responde con cuerpo vacío, operación cortada, etc.).
 const RESPUESTA_VACIA = {
   data: null,
-  errors: [{ message: "Respuesta vacía del servidor" }],
+  errors: [{ message: MENSAJE_RESPUESTA_VACIA }],
 };
 
 /** Tiempo máximo de onCustomQuery (reportes, vistas previas pesadas); lo aplica el timeout link. */

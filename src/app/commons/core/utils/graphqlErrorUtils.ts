@@ -25,6 +25,21 @@ export function limpiarErroresGraphQL(errors: any): any {
   );
 }
 
+/** Mensaje del resultado sintético que GenericCrudService arma cuando el servidor corta sin cuerpo. */
+export const MENSAJE_RESPUESTA_VACIA = "Respuesta vacía del servidor";
+
+/**
+ * ¿El error de un guardado es un **rechazo** del servidor? Solo si llegó como arreglo de errores GraphQL y ninguno
+ * es la respuesta vacía: ahí el servidor dijo que no, no se guardó, y se puede corregir y reintentar.
+ * Cualquier otra cosa (error de red, corte por tiempo, respuesta vacía —que también llega como arreglo—) es un
+ * «sin respuesta»: la operación pudo haberse aplicado y un alta no se reintenta a ciegas (#390).
+ */
+export function esRechazoDelServidor(error: any): boolean {
+  return Array.isArray(error)
+    && error.length > 0
+    && !error.some((e) => e?.message === MENSAJE_RESPUESTA_VACIA);
+}
+
 /**
  * Texto para un error que llegó por la rama `error` de Apollo (no por `res.errors`). Sin
  * respuesta HTTP (status 0 o ausente: conexión caída, timeout del link) es un error de red.

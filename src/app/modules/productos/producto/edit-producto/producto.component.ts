@@ -875,6 +875,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
+        if (res?.sinConfirmar) {
+          // El alta quedó sin confirmar (pudo haberse guardado): se recarga la lista para que se vea si está
+          this.onSearchSubfamilia();
+          return;
+        }
         if (res != null) {
           setTimeout(() => {
             this.selectedSubfamilia = res;
@@ -1100,7 +1105,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res?.id != null) {
+        // `sinConfirmar`: el alta quedó sin respuesta y pudo haberse guardado
+        if (res?.id != null || res?.sinConfirmar) {
           // Recargar todas las presentaciones para asegurar sincronización completa
           this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
