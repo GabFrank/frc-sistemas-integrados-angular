@@ -22,7 +22,7 @@ import { SaveTipoVehiculoGQL } from '../graphql/saveTipoVehiculo';
 import { DeleteModeloGQL } from '../graphql/deleteModelo';
 import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../../generics/generic-crud.service';
 import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PageInfo } from '../../../../../app.component';
@@ -127,8 +127,10 @@ export class VehiculoService {
   private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
   public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
 
-  onBuscarPorId(id: number): Observable<Vehiculo> {
-    return this.genericService.onGetById(this.vehiculoByIdGQL, id);
+  /** Con `errorConf` el error llega a quien llama; sin él, la consulta no emite nada si falla (#390). */
+  onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Vehiculo> {
+    return this.genericService.onGetById(this.vehiculoByIdGQL, id, null, null, true, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onFiltrar(texto: string, page: number, size: number): Observable<Vehiculo[]> {

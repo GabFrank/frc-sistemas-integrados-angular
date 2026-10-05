@@ -4,7 +4,7 @@ import { MuebleSearchPageGQL } from '../graphql/muebleSearchPage';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Mueble } from '../models/mueble.model';
 import { MuebleInput } from '../models/mueble-input.model';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { MuebleByIdGQL } from '../graphql/muebleById';
 import { SaveMuebleGQL } from '../graphql/saveMueble';
@@ -61,8 +61,10 @@ export class MuebleService {
   });
   public paginationState$ = this._paginationState$.asObservable();
 
-  onBuscarPorId(id: number): Observable<Mueble> {
-    return this.genericService.onGetById(this.muebleByIdGQL, id);
+  /** Con `errorConf` el error llega a quien llama; sin él, la consulta no emite nada si falla (#390). */
+  onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Mueble> {
+    return this.genericService.onGetById(this.muebleByIdGQL, id, null, null, true, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onFiltrar(texto: string, page: number, size: number): Observable<PageInfo<Mueble>> {
