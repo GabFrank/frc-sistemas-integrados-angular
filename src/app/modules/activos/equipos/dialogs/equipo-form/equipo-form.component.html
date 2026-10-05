@@ -32,7 +32,8 @@
 
 <mat-dialog-content style="padding-top: 20px;">
   <app-bien-estado-carga [bien]="estado.bien" [cuotas]="estado.cuotas" [eraPagando]="estado.eraPagando"
-    [enteFallo]="estado.enteFallo" (reintentarBien)="cargarBien()" (reintentarCuotas)="cargarEnteYCuotas()">
+    [enteFallo]="estado.enteFallo" (reintentarBien)="cargarBien()" (reintentarCuotas)="cargarEnteYCuotas()"
+    [altaSinConfirmar]="estado.altaSinConfirmar" (cerrar)="onCancelar()">
   </app-bien-estado-carga>
   <form
     [formGroup]="form"

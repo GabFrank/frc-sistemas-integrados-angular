@@ -4,7 +4,7 @@ import { MuebleSearchPageGQL } from '../graphql/muebleSearchPage';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Mueble } from '../models/mueble.model';
 import { MuebleInput } from '../models/mueble-input.model';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { MuebleByIdGQL } from '../graphql/muebleById';
 import { SaveMuebleGQL } from '../graphql/saveMueble';
@@ -106,8 +106,9 @@ export class MuebleService {
     return this.injector.get(MuebleDialogService).abrirFormulario(mueble);
   }
 
+  /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
   onGuardar(input: MuebleInput): Observable<Mueble> {
-    return this.genericService.onSave(this.saveMuebleGQL, input).pipe(
+    return this.genericService.onSave(this.saveMuebleGQL, input, undefined, undefined, true, PROPAGAR_ERROR_DE_RED).pipe(
       tap((res) => {
         if (res) this.refrescar();
       })

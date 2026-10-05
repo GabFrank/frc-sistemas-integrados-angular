@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, 
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { shareReplay, startWith } from 'rxjs/operators';
+import { finalize, shareReplay, startWith } from 'rxjs/operators';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
@@ -15,6 +15,7 @@ import { EnteService } from '../../../ente/service/ente.service';
 import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
 import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
 import { CONSULTA_BIEN, EstadoFormularioBien, LECTURA_BIEN } from '../../../shared/forms/estado-formulario-bien';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ARCHIVOS_MUEBLE_EQUIPO } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
@@ -29,6 +30,7 @@ export class EquipoFormComponent implements OnInit {
   private equiposService = inject(EquiposService);
   private equipoDialogService = inject(EquipoDialogService);
   private cdr = inject(ChangeDetectorRef);
+  private notificacionService = inject(NotificacionSnackbarService);
   private enteService = inject(EnteService);
 
   enteId: number | null = null;
@@ -271,16 +273,25 @@ export class EquipoFormComponent implements OnInit {
   }
 
   onCancelar(): void {
-    this.equipoDialogService.onCancelar(this.dialogRef);
+    // Con un alta sin confirmar, cerrar refresca la lista: el bien pudo haberse guardado
+    this.equipoDialogService.onCancelar(this.dialogRef, this.estado.altaSinConfirmar);
   }
 
   onGuardar(): void {
     if (this.estado.guardarBloqueado) return;
     const situacionEnviada = this.situacionPagoControl.value;
+    // «Alta» es lo que ve el servidor: se envía sin id (se calcula antes de enviar)
+    const esAlta = !this.form.getRawValue().id;
     const cerrar = !!this.equipo?.id && this.registroGuardado;
+    this.estado.actualizar({ guardando: true });
     this.equipoDialogService.onGuardar(this.form, this.equipo, this.dialogRef, this.cuotasDetalle, cerrar)
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      // Se libera también en `next`: el genérico puede emitir sin completar
+      .pipe(untilDestroyed(this), finalize(() => this.estado.actualizar({ guardando: false })))
+      .subscribe({ error: (error) => {
+        const aviso = this.estado.alFallarElGuardado(error, esAlta);
+        if (aviso) this.notificacionService.openWarn(aviso, 10);
+      }, next: (res) => {
+        this.estado.actualizar({ guardando: false });
         if (!res?.id) return;
         this.equipo = { ...this.equipo, ...res, id: res.id };
         this.registroGuardado = true;
@@ -292,7 +303,7 @@ export class EquipoFormComponent implements OnInit {
         this.estado.actualizar({ bien: 'ok', eraPagando, cuotas: eraPagando ? 'cargando' : 'sin-cargar' });
         this.cargarEnteYCuotas();
         this.cdr.markForCheck();
-      });
+      } });
   }
 
   private nombreProveedor(proveedor: Proveedor | Persona): string {
