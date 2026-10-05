@@ -109,7 +109,9 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   private procesarTelemetriaWs(telemetria: TelemetriaWsDTO): void {
     const selectedVehiculo = this.vehiculoSelected;
 
-    if (selectedVehiculo && selectedVehiculo.id && telemetria.vehiculoId !== selectedVehiculo.id) {
+    // GraphQL entrega los ids como texto y el websocket como número: comparados tal cual nunca coinciden y se
+    // descartaba toda la telemetría del vehículo filtrado.
+    if (selectedVehiculo && selectedVehiculo.id && Number(telemetria.vehiculoId) !== Number(selectedVehiculo.id)) {
       return;
     }
 
@@ -127,7 +129,10 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const icon = this.getIconForTelemetria(telemetria);
 
-    let marker = this.markers.get(telemetria.gpsId);
+    // Clave siempre numérica: el mismo GPS llega con id de texto (lista) y de número (websocket), y quedaba con
+    // dos marcadores, uno quieto en la posición vieja.
+    const gpsId = Number(telemetria.gpsId);
+    let marker = this.markers.get(gpsId);
 
     if (marker) {
       marker.setLatLng([lat, lng]);
@@ -136,7 +141,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       marker = L.marker([lat, lng], { icon }).addTo(this.map!);
       this.updatePopupFromWs(marker, telemetria);
-      this.markers.set(telemetria.gpsId, marker);
+      this.markers.set(gpsId, marker);
     }
   }
 
@@ -317,9 +322,9 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       const telemetria: TelemetriaWsDTO = {
-        gpsId: gps.id,
+        gpsId: Number(gps.id),
         imei: gps.imei,
-        vehiculoId: gps.vehiculo?.id || null,
+        vehiculoId: gps.vehiculo?.id != null ? Number(gps.vehiculo.id) : null,
         vehiculoChapa: gps.vehiculo?.chapa || null,
         vehiculoModelo: gps.vehiculo?.modelo?.descripcion || null,
         vehiculoMarca: gps.vehiculo?.modelo?.marca?.descripcion || null,
