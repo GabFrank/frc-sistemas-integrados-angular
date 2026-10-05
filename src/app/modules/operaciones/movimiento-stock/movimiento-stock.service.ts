@@ -14,7 +14,7 @@ import { MovimientoStock } from "./movimiento-stock.model";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GetMovimientoStockPorFiltrosGQL } from "./graphql/getMovimientoStockByFilters";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
 
 /**
@@ -234,11 +234,15 @@ export class MovimientoStockService {
     }, servidor);
   }
 
+  /**
+   * Stock de un producto antes de una fecha (detalle de un movimiento). Sin modal, 20 s, y con el error de red y
+   * el del servidor al llamador: un stock anterior que no se pudo leer no es 0 (#390).
+   */
   onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, servidor = true): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockAntesDeFechaGQL, {
       productoId,
       sucursalId,
       fecha
-    }, servidor);
+    }, servidor, LECTURA_STOCK, true, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 }

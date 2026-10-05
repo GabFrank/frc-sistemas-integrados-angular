@@ -56,7 +56,7 @@ import { EditTransferenciaComponent } from "../../transferencia/edit-transferenc
 import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
-import { ContextoConsulta, QueryError } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 /**
@@ -68,6 +68,7 @@ const LECTURA_STOCK_RESUMEN: QueryError = {
   graphError: { propagate: true, show: false },
 };
 const CONSULTA_RESUMEN: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Marca de «esta sucursal no respondió» dentro de un forkJoin (para no cortar las demás). */
 const SIN_RESPUESTA = { sinRespuesta: true };
 
@@ -438,7 +439,7 @@ export class ListMovimientoStockComponent implements OnInit {
       }
 
       this.ventaService
-        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true)
+        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE)
         .subscribe((venta) => {
 
           if (venta) {
@@ -784,7 +785,8 @@ export class ListMovimientoStockComponent implements OnInit {
       }
     }
 
-    if (movimiento.data == null) {
+    // Un detalle marcado `noDisponible` (no se pudo leer el stock o la venta) se vuelve a pedir al desplegar
+    if (movimiento.data == null || movimiento.data.noDisponible === true) {
       if (movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
         this.obtenerStockAnteriorYProcesarMovimiento(movimiento, index);
       } else {
@@ -792,18 +794,38 @@ export class ListMovimientoStockComponent implements OnInit {
           movimiento.producto.id,
           movimiento.sucursalId,
           this.formatearFechaParaBackend(movimiento.creadoEn)
-        ).subscribe({
+        ).pipe(untilDestroyed(this)).subscribe({
           next: (stockPrevio) => {
-            console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
-            this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
+            if (stockPrevio == null) this.avisarStockAnteriorSinLeer();
+            this.procesarMovimientoConStock(movimiento, index, stockPrevio ?? null);
           },
-          error: (error) => {
-            console.error('Error al obtener stock anterior:', error);
-            this.procesarMovimientoConStock(movimiento, index, 0);
+          error: () => {
+            this.avisarStockAnteriorSinLeer();
+            this.procesarMovimientoConStock(movimiento, index, null);
           }
         });
       }
     }
+  }
+
+  private avisarStockAnteriorSinLeer(): void {
+    this.notificacionService.openWarn(
+      'No se pudo leer el stock anterior de este movimiento: volvé a desplegarlo para reintentar.', 6);
+  }
+
+  /** Stock final de un movimiento. Con el stock anterior sin leer (`null`) NO es «la cantidad»: tampoco se sabe (#390). */
+  private stockFinalDe(stockPrevio: number | null, movimiento: MovimientoStock): number | null {
+    return stockPrevio == null ? null : stockPrevio + movimiento.cantidad;
+  }
+
+  /**
+   * Escribe el detalle calculado de una fila. Las respuestas llegan tarde y por índice: si mientras tanto se
+   * refiltró o se cambió de página, en ese índice hay otro movimiento y no se toca.
+   */
+  private escribirDetalle(movimiento: MovimientoStock, index: number, data: any): void {
+    if (this.dataSource.data[index] !== movimiento) return;
+    movimiento.data = data;
+    this.dataSource.data = updateDataSource(this.dataSource.data, movimiento, index);
   }
 
   obtenerStockAnteriorYProcesarMovimiento(movimiento: MovimientoStock, index: number) {
@@ -812,77 +834,64 @@ export class ListMovimientoStockComponent implements OnInit {
       movimiento.producto.id,
       movimiento.sucursalId,
       fechaFormateada
-    ).subscribe({
+    ).pipe(untilDestroyed(this)).subscribe({
       next: (stockPrevio) => {
-        this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio || 0);
+        if (stockPrevio == null) this.avisarStockAnteriorSinLeer();
+        this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio ?? null);
       },
-      error: (error) => {
-        console.error('Error al obtener stock anterior para movimiento:', movimiento.tipoMovimiento, error);
-        this.procesarMovimientoConStockAnterior(movimiento, index, 0);
+      error: () => {
+        this.avisarStockAnteriorSinLeer();
+        this.procesarMovimientoConStockAnterior(movimiento, index, null);
       }
     });
   }
 
-  procesarMovimientoConStockAnterior(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+  procesarMovimientoConStockAnterior(movimiento: MovimientoStock, index: number, stockPrevio: number | null) {
+    // Base de todo detalle: con `stockPrevio` null los dos valores quedan null («—» en pantalla) y `noDisponible`
+    const stock = {
+      stockAnterior: stockPrevio,
+      stockFinal: this.stockFinalDe(stockPrevio, movimiento),
+      noDisponible: stockPrevio == null,
+    };
     switch (movimiento.tipoMovimiento) {
-      case TipoMovimiento.VENTA:
+      case TipoMovimiento.VENTA: {
+        // Sin la venta se muestra igual el detalle básico (stock), marcado para reintentar al desplegar
+        const sinVenta = () => {
+          this.notificacionService.openWarn('No se pudo cargar la venta de este movimiento: volvé a desplegarlo para reintentar.', 6);
+          this.escribirDetalle(movimiento, index, { ...stock, noDisponible: true });
+        };
         this.ventaService
-          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
-          .subscribe((ventaItem) => {
-            if (ventaItem != null) {
-              this.ventaService
-                .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
-                .subscribe((venta) => {
-                  movimiento.data = {
-                    venta: venta,
-                    totales: this.getTotales(venta),
-                    stockAnterior: stockPrevio,
-                    stockFinal: stockPrevio + movimiento.cantidad
-                  };
-                  console.log('Data de venta con stock anterior:', movimiento.data);
-                  this.dataSource.data = updateDataSource(
-                    this.dataSource.data,
-                    movimiento,
-                    index
-                  );
-                });
-            } else {
-              // Si no se encuentra el venta item, crear data básica
-              movimiento.data = {
-                stockAnterior: stockPrevio,
-                stockFinal: stockPrevio + movimiento.cantidad
-              };
-              this.dataSource.data = updateDataSource(
-                this.dataSource.data,
-                movimiento,
-                index
-              );
+          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE, true)
+          .pipe(untilDestroyed(this))
+          .subscribe({ error: sinVenta, next: (ventaItem) => {
+            if (ventaItem?.venta?.id == null) {
+              // No se encontró el ítem (o vino sin venta): data básica
+              this.escribirDetalle(movimiento, index, stock);
+              return;
             }
-          });
+            this.ventaService
+              .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId, true, true, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE)
+              .pipe(untilDestroyed(this))
+              .subscribe({ error: sinVenta, next: (venta) => {
+                if (venta == null) {
+                  sinVenta();
+                  return;
+                }
+                this.escribirDetalle(movimiento, index, {
+                  venta: venta,
+                  totales: this.getTotales(venta),
+                  ...stock,
+                });
+              } });
+          } });
         break;
+      }
 
       case TipoMovimiento.TRANSFERENCIA:
         this.transferenciaService
           .onGetTransferenciaItem(movimiento.referencia)
           .subscribe((res) => {
-            if (res != null) {
-              movimiento.data = {
-                ...res,
-                stockAnterior: stockPrevio,
-                stockFinal: stockPrevio + movimiento.cantidad
-              };
-              console.log('Data de transferencia con stock anterior:', movimiento.data);
-            } else {
-              movimiento.data = {
-                stockAnterior: stockPrevio,
-                stockFinal: stockPrevio + movimiento.cantidad
-              };
-            }
-            this.dataSource.data = updateDataSource(
-              this.dataSource.data,
-              movimiento,
-              index
-            );
+            this.escribirDetalle(movimiento, index, res != null ? { ...res, ...stock } : stock);
           },
           // onGetTransferenciaItem ahora propaga el error de red (#390).
           () => this.notificacionService.openWarn("No se pudo cargar el detalle de la transferencia.", 5));
@@ -894,30 +903,15 @@ export class ListMovimientoStockComponent implements OnInit {
       case TipoMovimiento.CALCULO:
       case TipoMovimiento.ENTRADA:
       case TipoMovimiento.SALIDA:
-        movimiento.data = {
+        this.escribirDetalle(movimiento, index, {
           tipo: movimiento.tipoMovimiento,
           referencia: movimiento.referencia,
-          stockAnterior: stockPrevio,
-          stockFinal: stockPrevio + movimiento.cantidad
-        };
-        console.log(`Data de ${movimiento.tipoMovimiento} con stock anterior:`, movimiento.data);
-        this.dataSource.data = updateDataSource(
-          this.dataSource.data,
-          movimiento,
-          index
-        );
+          ...stock,
+        });
         break;
 
       default:
-        movimiento.data = {
-          stockAnterior: stockPrevio,
-          stockFinal: stockPrevio + movimiento.cantidad
-        };
-        this.dataSource.data = updateDataSource(
-          this.dataSource.data,
-          movimiento,
-          index
-        );
+        this.escribirDetalle(movimiento, index, stock);
         break;
     }
   }
@@ -1010,84 +1004,61 @@ export class ListMovimientoStockComponent implements OnInit {
     });
   }
 
+  /** Carga de la lista en la que ya se avisó que faltan stocks anteriores (un aviso por carga, no uno por fila). */
+  private cargaConAvisoDeAjustes = -1;
+
   calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
+    const carga = this.cargaLista;
     const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    // Se dispara por cada ajuste de la página (hasta 100): la consulta es silenciosa
+    const sinStock = () => {
+      if (carga !== this.cargaLista) return;
+      // La fila queda marcada: muestra «—» y se reintenta al desplegarla
+      this.escribirDetalle(movimiento, index, { cantidadPrevia: null, cantidadFinal: null, noDisponible: true });
+      if (this.cargaConAvisoDeAjustes !== carga) {
+        this.cargaConAvisoDeAjustes = carga;
+        this.notificacionService.openWarn(
+          'No se pudo leer el stock anterior de algunos ajustes: desplegá la fila para reintentar.', 6);
+      }
+    };
     this.service.onGetStockAntesDeFecha(
       movimiento.producto.id,
       movimiento.sucursalId,
       fechaFormateada
-    ).subscribe({
+    ).pipe(untilDestroyed(this)).subscribe({
       next: (stockPrevio) => {
-        if (stockPrevio !== undefined && stockPrevio !== null) {
-          this.procesarMovimientoConStock(movimiento, index, stockPrevio);
+        if (carga !== this.cargaLista) return;
+        if (stockPrevio == null) {
+          sinStock();
+          return;
         }
+        this.procesarMovimientoConStock(movimiento, index, stockPrevio);
       },
-      error: (error) => {
-        console.error('Error al obtener stock antes de fecha:', error);
-      }
+      error: sinStock
     });
   }
 
-  procesarMovimientoConStock(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+  procesarMovimientoConStock(movimiento: MovimientoStock, index: number, stockPrevio: number | null) {
     // Convertir ambos a números para comparar correctamente
-    const referenciaNum = Number(movimiento.referencia);
-    const productoIdNum = Number(movimiento.producto?.id);
-    const esAjusteManual = referenciaNum === productoIdNum;
-    console.log('Procesando movimiento:', {
-      id: movimiento.id,
-      referencia: movimiento.referencia,
-      productoId: movimiento.producto?.id,
-      referenciaNum: referenciaNum,
-      productoIdNum: productoIdNum,
-      esAjusteManual: esAjusteManual,
-      stockPrevio: stockPrevio,
-      cantidad: movimiento.cantidad
-    });
+    const esAjusteManual = Number(movimiento.referencia) === Number(movimiento.producto?.id);
+    const cantidades = {
+      cantidadPrevia: stockPrevio,
+      cantidadFinal: this.stockFinalDe(stockPrevio, movimiento),
+      noDisponible: stockPrevio == null,
+    };
 
     if (esAjusteManual) {
-      movimiento.data = {
+      this.escribirDetalle(movimiento, index, {
         tipo: 'AJUSTE_MANUAL',
         producto: movimiento.producto,
         observacion: 'Ajuste manual de stock realizado desde la gestión de productos',
-        cantidadPrevia: stockPrevio,
-        cantidadFinal: stockPrevio + movimiento.cantidad
-      };
-      console.log('Data de ajuste manual creada:', movimiento.data);
-      this.dataSource.data = updateDataSource(
-        this.dataSource.data,
-        movimiento,
-        index
-      );
+        ...cantidades,
+      });
     } else {
       this.inventarioService.onGetInventarioProductoItem(movimiento.referencia)
         .subscribe((res) => {
-          if (res != null) {
-            movimiento.data = {
-              ...res,
-              tipo: 'AJUSTE_INVENTARIO',
-              cantidadPrevia: stockPrevio,
-              cantidadFinal: stockPrevio + movimiento.cantidad
-            };
-            console.log('Data de ajuste por inventario creada:', movimiento.data);
-            this.dataSource.data = updateDataSource(
-              this.dataSource.data,
-              movimiento,
-              index
-            );
-          } else {
-            console.warn('No se encontró inventario item para referencia:', movimiento.referencia);
-            // Crear data básica aunque no se encuentre el inventario
-            movimiento.data = {
-              tipo: 'AJUSTE_INVENTARIO',
-              cantidadPrevia: stockPrevio,
-              cantidadFinal: stockPrevio + movimiento.cantidad
-            };
-            this.dataSource.data = updateDataSource(
-              this.dataSource.data,
-              movimiento,
-              index
-            );
-          }
+          // Sin el inventario se arma igual la data básica
+          this.escribirDetalle(movimiento, index, { ...(res ?? {}), tipo: 'AJUSTE_INVENTARIO', ...cantidades });
         });
     }
   }

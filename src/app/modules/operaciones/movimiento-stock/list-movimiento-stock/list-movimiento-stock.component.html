@@ -282,7 +282,7 @@
               </span>
               <span *ngIf="movimiento?.data?.cantidadPrevia !== undefined" class="cantidad-previa"
                 [style.color]="movimiento?.cantidad === 0 ? '#4caf50' : ''">
-                ({{ movimiento?.data?.cantidadPrevia | number : "1.0-2" }})
+                ({{ movimiento?.data?.cantidadPrevia == null ? '—' : (movimiento?.data?.cantidadPrevia | number : '1.0-2') }})
               </span>
             </div>
           </td>
@@ -565,7 +565,7 @@
                           <div fxLayout="column" fxLayoutAlign="center center">
                             <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
                             <div style="color: #2196f3; font-weight: bold;">
-                              {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                              {{ movimiento?.data?.stockAnterior == null ? '—' : (movimiento?.data?.stockAnterior | number : '1.0-2') }}
                             </div>
                           </div>
                           <div fxLayout="column" fxLayoutAlign="center center">
@@ -578,7 +578,7 @@
                           <div fxLayout="column" fxLayoutAlign="center center">
                             <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
                             <div class="titulo" style="font-weight: bold;">
-                              {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
+                              {{ movimiento?.data?.stockFinal == null ? '—' : (movimiento?.data?.stockFinal | number : '1.0-2') }}
                             </div>
                           </div>
                         </ng-container>
@@ -623,7 +623,7 @@
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Stock Anterior:</div>
                         <div style="color: #2196f3;">
-                          {{ movimiento?.data?.stockAnterior | number : '1.0-2' }}
+                          {{ movimiento?.data?.stockAnterior == null ? '—' : (movimiento?.data?.stockAnterior | number : '1.0-2') }}
                         </div>
                       </div>
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
@@ -636,7 +636,7 @@
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
-                          {{ movimiento?.data?.stockFinal | number : '1.0-2' }}
+                          {{ movimiento?.data?.stockFinal == null ? '—' : (movimiento?.data?.stockFinal | number : '1.0-2') }}
                         </div>
                       </div>
                     </div>
@@ -680,7 +680,7 @@
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Stock Anterior:</div>
                         <div style="color: #2196f3;">
-                          {{ movimiento?.data?.cantidadPrevia | number : "1.0-2" }}
+                          {{ movimiento?.data?.cantidadPrevia == null ? '—' : (movimiento?.data?.cantidadPrevia | number : '1.0-2') }}
                         </div>
                       </div>
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
@@ -693,7 +693,7 @@
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
-                          {{ movimiento?.data?.cantidadFinal | number : "1.0-2" }}
+                          {{ movimiento?.data?.cantidadFinal == null ? '—' : (movimiento?.data?.cantidadFinal | number : '1.0-2') }}
                         </div>
                       </div>
                     </div>
@@ -763,7 +763,7 @@
                       <div fxLayout="column" fxLayoutAlign="center center">
                         <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
                         <div style="color: #2196f3; font-weight: bold;">
-                          {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                          {{ movimiento?.data?.stockAnterior == null ? '—' : (movimiento?.data?.stockAnterior | number : '1.0-2') }}
                         </div>
                       </div>
                       <div fxLayout="column" fxLayoutAlign="center center">
@@ -777,7 +777,7 @@
                       <div fxLayout="column" fxLayoutAlign="center center">
                         <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
                         <div class="titulo" style="font-weight: bold;">
-                          {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
+                          {{ movimiento?.data?.stockFinal == null ? '—' : (movimiento?.data?.stockFinal | number : '1.0-2') }}
                         </div>
                       </div>
                     </div>

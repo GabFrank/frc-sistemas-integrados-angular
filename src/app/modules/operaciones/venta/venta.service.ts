@@ -552,14 +552,23 @@ export class VentaService {
     );
   }
 
-  onGetVentaItemPorId(id, sucId, servidor = true): Observable<VentaItem> {
+  /** Con `errorConf` el error llega al llamador; sin él, la consulta no emite nada si falla (#390). */
+  onGetVentaItemPorId(id, sucId, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta,
+                      silentLoad?: boolean): Observable<VentaItem> {
     return this.genericService.onGetById(
       this.ventaItemPorId,
       id,
       null,
       null,
       servidor,
-      sucId
+      sucId,
+      null,
+      null,
+      silentLoad,
+      null,
+      null,
+      errorConf,
+      contexto
     );
   }
 
