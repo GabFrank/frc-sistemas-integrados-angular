@@ -17,6 +17,10 @@ import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
+
+/** Un reporte puede tardar: se mantiene el corte largo de las consultas (no el de 60 s). */
+const TIMEOUT_REPORTE_MS = 300000;
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -133,8 +137,10 @@ export class ProductoService {
       size
     }, 
     servidor,
-    undefined,
-    silentLoad);
+    // El error de red y el del servidor llegan a la lista (60 s), que avisa una vez (#390)
+    { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } },
+    silentLoad,
+    { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true, errorConf?: QueryError,
@@ -253,8 +259,14 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.exportarReporte, {texto}, servidor);
   }
 
+  /**
+   * Propaga el error de red: sin eso quien llama no se entera y su modal «Generando reporte…» queda abierto (#390).
+   * Sin modal ni avisos propios (los pone quien llama); con error del servidor emite `null`.
+   */
   onExportarReporteConFiltros(parametros: any, servidor = true): Observable<string> {
-    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor);
+    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { show: false } }, true,
+      { timeoutMs: TIMEOUT_REPORTE_MS, silenciarAvisoTimeout: true });
   }
 
   onFindByPdvGrupoProductoId(id, servidor = true): Observable<Producto[]> {

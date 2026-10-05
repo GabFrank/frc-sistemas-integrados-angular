@@ -225,11 +225,41 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   createForm() {}
 
-  onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false) {
+  /** Evita un aviso por tecla: el campo de texto dispara una búsqueda en cada pausa. */
+  private ultimoAvisoDeBusqueda = 0;
+
+  /** `paginaAnterior`: la búsqueda es un cambio de página; si falla se vuelve a esa página en vez de vaciar. */
+  onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false,
+                   paginaAnterior?: { pageIndex: number; pageSize: number }) {
     this.isSearching = true;
     this.expandedProducto = null;
     this.selectedProducto = new Producto();
     const seq = ++this.busquedaSeq;
+    const fallo = () => {
+      if (seq !== this.busquedaSeq) return;
+      this.isSearching = false;
+      if (paginaAnterior != null) {
+        // Cambio de página: la que estaba a la vista sigue siendo buena
+        this.pageIndex = paginaAnterior.pageIndex;
+        this.pageSize = paginaAnterior.pageSize;
+        if (this.paginator) {
+          this.paginator.pageIndex = paginaAnterior.pageIndex;
+          this.paginator.pageSize = paginaAnterior.pageSize;
+        }
+      } else {
+        // Búsqueda o filtro nuevo: los resultados anteriores ya no corresponden a los filtros a la vista
+        this.selectedPageInfo = null;
+        this.dataSource.data = [];
+        this.isGenerarPdfDisabled = true;
+      }
+      const ahora = Date.now();
+      if (ahora - this.ultimoAvisoDeBusqueda > 5000) {
+        this.ultimoAvisoDeBusqueda = ahora;
+        this.notificacionService.openWarn(paginaAnterior != null
+          ? 'No se pudo cambiar de página: volvé a intentar.'
+          : 'No se pudieron buscar los productos: volvé a intentar.', 5);
+      }
+    };
 
     this.service
       .onSearchWithFilters(
@@ -253,9 +283,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         true,
         silentLoad
       )
-      .subscribe((res) => {
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => fallo(), next: (res) => {
         // llego tarde: ya hay una busqueda mas nueva en curso o resuelta
         if (seq !== this.busquedaSeq) return;
+        if (res == null) {
+          fallo();
+          return;
+        }
 
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
@@ -269,7 +304,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         ) {
           this.notificacionService.openWarn('Producto no encontrado');
         }
-      });
+      } });
   }
 
   onRowClick(row, isCurrentlyExpanded: boolean) {
@@ -365,9 +400,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onVerMovimiento(producto: Producto, i) {}
 
   handlePageEvent(e: PageEvent) {
+    const paginaAnterior = { pageIndex: this.pageIndex, pageSize: this.pageSize };
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onSearchProducto(false, true);
+    this.onSearchProducto(false, true, paginaAnterior);
   }
 
   onFiltrar(mostrarAvisoSinResultados = true, silentLoad = false) {
