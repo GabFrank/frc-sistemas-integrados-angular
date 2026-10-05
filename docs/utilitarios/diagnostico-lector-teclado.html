@@ -1,0 +1,137 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Diagnóstico lector QR — layout de teclado</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 16px; background: #fafafa; color: #222; }
+  input { width: 100%; font: 18px monospace; padding: 8px; box-sizing: border-box; }
+  table { border-collapse: collapse; margin-top: 12px; font: 13px monospace; }
+  td, th { border: 1px solid #ccc; padding: 3px 8px; text-align: left; }
+  th { background: #eee; }
+  .mal { background: #fdd; }
+  .ok { background: #dfd; }
+  #recon td:first-child { font-family: system-ui; }
+  button { margin: 8px 8px 0 0; padding: 6px 12px; }
+</style>
+
+<h2>Diagnóstico del lector QR (keyboard-wedge)</h2>
+<p>1) Hacé clic en el campo. 2) Escaneá el QR del cupón de la terminal WEB. 3) Copiá el reporte
+y mandalo. No hace falta cambiar el idioma del sistema: la tabla de abajo calcula qué recibiría
+la caja con cada uno.</p>
+
+<details open style="margin:8px 0">
+  <summary>QR de prueba: cupón ValidaPix FRCP1 real (escanealo desde la pantalla)</summary>
+  <img src="data:image/png;base64,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" alt="QR FRCP1" style="width:260px;image-rendering:pixelated;display:block;margin:8px 0">
+  <code>FRCP1*CXF1**BRL*9455*E60701190202608271700DY5BCKNPMBQ*202608271401</code>
+</details>
+
+<input id="campo" autofocus placeholder="Escaneá acá…">
+<div>
+  <button id="limpiar">Limpiar</button>
+  <button id="copiar">Copiar reporte</button>
+  <span id="msg"></span>
+</div>
+
+<h3>Lo que recibiría la caja según el idioma del teclado de Windows</h3>
+<p>El lector manda teclas físicas; el carácter final lo pone el idioma del sistema. Con las teclas
+recibidas se calcula qué habría tipeado Windows en cada idioma, sin cambiar la configuración.
+Referencia: lo que el lector quiso mandar (su tabla interna es EE.UU.).</p>
+<table id="recon"><tr><th>Windows con teclado…</th><th>la caja recibe</th><th>¿igual a lo que mandó el lector?</th></tr></table>
+
+<h3>Teclas recibidas</h3>
+<table id="teclas">
+  <tr><th>#</th><th>ms</th><th>code (tecla física)</th><th>shift</th><th>alt</th><th>key (lo que tipeó Windows)</th></tr>
+</table>
+
+<script>
+// Carácter que produce cada tecla física en cada layout: [sin Shift, con Shift].
+// Sólo las teclas que importan para el charset del QR alfanumérico ($ % * + - . / : espacio).
+const L = {
+  'EE.UU. (US)': {
+    Digit1:'1!',Digit2:'2@',Digit3:'3#',Digit4:'4$',Digit5:'5%',Digit6:'6^',Digit7:'7&',Digit8:'8*',Digit9:'9(',Digit0:'0)',
+    Minus:'-_',Equal:'=+',BracketLeft:'[{',BracketRight:']}',Backslash:'\\|',Semicolon:';:',Quote:'\'"',
+    Backquote:'`~',Comma:',<',Period:'.>',Slash:'/?',IntlBackslash:'\\|'},
+  'Portugués Brasil (ABNT2)': {
+    Digit1:'1!',Digit2:'2@',Digit3:'3#',Digit4:'4$',Digit5:'5%',Digit6:'6¨',Digit7:'7&',Digit8:'8*',Digit9:'9(',Digit0:'0)',
+    Minus:'-_',Equal:'=+',BracketLeft:'´`',BracketRight:'[{',Backslash:']}',Semicolon:'çÇ',Quote:'~^',
+    Backquote:'\'"',Comma:',<',Period:'.>',Slash:';:',IntlRo:'/?',IntlBackslash:'\\|'},
+  'Español Latinoamérica': {
+    Digit1:'1!',Digit2:'2"',Digit3:'3#',Digit4:'4$',Digit5:'5%',Digit6:'6&',Digit7:'7/',Digit8:'8(',Digit9:'9)',Digit0:'0=',
+    Minus:'\'?',Equal:'¿¡',BracketLeft:'´¨',BracketRight:'+*',Backslash:'}]',Semicolon:'ñÑ',Quote:'{[',
+    Backquote:'|°',Comma:',;',Period:'.:',Slash:'-_',IntlBackslash:'<>'},
+  'Español España': {
+    Digit1:'1!',Digit2:'2"',Digit3:'3·',Digit4:'4$',Digit5:'5%',Digit6:'6&',Digit7:'7/',Digit8:'8(',Digit9:'9)',Digit0:'0=',
+    Minus:'\'?',Equal:'¡¿',BracketLeft:'`^',BracketRight:'+*',Backslash:'çÇ',Semicolon:'ñÑ',Quote:'´¨',
+    Backquote:'ºª',Comma:',;',Period:'.:',Slash:'-_',IntlBackslash:'<>'},
+};
+// Tabla interna del lector, medida el 2026-10-05: el '|' llega como Shift+Backslash y el '-' por Minus.
+const TABLA_LECTOR = 'EE.UU. (US)';
+const NUMPAD = {NumpadMultiply:'*',NumpadAdd:'+',NumpadSubtract:'-',NumpadDivide:'/',NumpadDecimal:'.',
+  Numpad0:'0',Numpad1:'1',Numpad2:'2',Numpad3:'3',Numpad4:'4',Numpad5:'5',Numpad6:'6',Numpad7:'7',Numpad8:'8',Numpad9:'9'};
+
+function caracter(layout, e) {
+  if (e.code.startsWith('Key')) { const c = e.code.slice(3); return e.shift ? c.toUpperCase() : c.toLowerCase(); }
+  if (e.code === 'Space') return ' ';
+  if (NUMPAD[e.code]) return NUMPAD[e.code];
+  const par = L[layout][e.code];
+  if (!par) return `⟨${e.code}⟩`;
+  return e.shift ? par[1] : par[0];
+}
+
+const campo = document.getElementById('campo');
+const tabla = document.getElementById('teclas');
+const recon = document.getElementById('recon');
+let eventos = [], ultimo = 0;
+
+campo.addEventListener('keydown', ev => {
+  if (['Shift','Alt','Control','AltGraph','CapsLock'].includes(ev.key) && ev.code.match(/Shift|Alt|Control|CapsLock/)) return;
+  const ahora = performance.now();
+  const e = { code: ev.code, key: ev.key, shift: ev.shiftKey, alt: ev.altKey, ctrl: ev.ctrlKey,
+              altgr: ev.getModifierState && ev.getModifierState('AltGraph'),
+              ms: ultimo ? Math.round(ahora - ultimo) : 0 };
+  ultimo = ahora;
+  if (ev.key === 'Enter') { pintar(); return; }
+  eventos.push(e);
+  const tr = tabla.insertRow();
+  [eventos.length, e.ms, e.code, e.shift ? 'sí' : '', (e.alt ? 'Alt ' : '') + (e.altgr ? 'AltGr' : ''), e.key]
+    .forEach(v => tr.insertCell().textContent = v);
+  pintar();
+});
+
+function pintar() {
+  while (recon.rows.length > 1) recon.deleteRow(1);
+  const enviada = eventos.map(e => caracter(TABLA_LECTOR, e)).join('');
+  for (const layout of Object.keys(L)) {
+    const s = eventos.map(e => caracter(layout, e)).join('');
+    const tr = recon.insertRow();
+    tr.insertCell().textContent = layout;
+    const td = tr.insertCell(); td.textContent = s;
+    const igual = s === enviada;
+    const v = tr.insertCell(); v.textContent = !eventos.length ? '' : igual ? 'sí' : 'NO';
+    if (eventos.length) td.className = v.className = igual ? 'ok' : 'mal';
+  }
+}
+
+function reporte() {
+  return [
+    'navegador: ' + navigator.userAgent,
+    'idioma navegador: ' + navigator.language,
+    ...Object.keys(L).map(l => 'como ' + l + ': ' + eventos.map(e => caracter(l, e)).join('')),
+    'valor del campo: ' + campo.value,
+    '',
+    'n\tms\tcode\tshift\talt\tkey',
+    ...eventos.map((e, i) => [i + 1, e.ms, e.code, e.shift ? 1 : 0, (e.alt ? 'Alt' : '') + (e.altgr ? 'AltGr' : ''), e.key].join('\t')),
+  ].join('\n');
+}
+
+document.getElementById('limpiar').onclick = () => {
+  eventos = []; ultimo = 0; campo.value = '';
+  while (tabla.rows.length > 1) tabla.deleteRow(1);
+  pintar(); campo.focus();
+};
+document.getElementById('copiar').onclick = async () => {
+  const msg = document.getElementById('msg');
+  try { await navigator.clipboard.writeText(reporte()); msg.textContent = 'Copiado.'; }
+  catch { msg.textContent = 'No se pudo copiar: seleccioná la tabla y Ctrl+C.'; }
+};
+pintar();
+</script>

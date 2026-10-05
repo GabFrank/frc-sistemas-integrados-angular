@@ -9,7 +9,7 @@ navegador; ningún backend la ve distinta de como la manda el desktop.
 El lector de QR del PDV es keyboard-wedge: no manda caracteres, manda **teclas físicas** según
 la tabla de teclado que tiene adentro, y el carácter final lo pone el idioma de teclado de Windows.
 
-Medido el 2026-10-05 con `frc-comercial/cupones-prueba/diagnostico-lector-teclado.html`, tres
+Medido el 2026-10-05 con `desktop/docs/utilitarios/diagnostico-lector-teclado.html`, tres
 escaneos (dos señas, un cupón ValidaPix FRCP1 real):
 
 - La tabla del lector es **EE.UU.**: `*` llega como `Shift+Digit8`, `|` como `Shift+Backslash`
@@ -142,3 +142,19 @@ Dos auditores por concern, sin verse (eje A contrato/propagación, eje B reversi
 | B4 | B | baja | Comentario «teclado es-LA» de `qr-pos-parser.ts:16` | Fase 3, no se recorta |
 | B5 | B | — | Rollback limpio: sin dato nuevo persistido, sin backend | Confirmado |
 | B6 | B | media | Faltan tests de concatenación y de alternativa divergente con dos formatos | Se agregan al spec de fase 1 (A1 + B2) |
+
+## 9. Auditoría del diff (paso 8)
+
+Fijo 1 (autorización) y Fijo 2 (esquema, migración, espejo): **N/A** — `git diff --name-only
+origin/develop...HEAD` no toca resolvers, `.graphqls` ni migraciones; es todo `src/app` y `docs`.
+Corrieron Fijo 3 (contrato con clientes) y una lente de corrección.
+
+| # | lente | sev. | hallazgo | decisión |
+|---|---|---|---|---|
+| D1 | Fijo 3 | — | `qrCrudo`: el filial lo compara por igualdad exacta (`findByQrCrudoEnVentasVigentes`); nunca se pudo guardar una cadena con `(` porque el patrón anclado no la aceptaba | Sin acción: confirma A3 |
+| D2 | Fijo 3 | — | Los «Probar» del ABM llaman `parsearCupon` sin el parámetro nuevo: comportamiento idéntico | Sin acción |
+| D3 | Fijo 3 | media | `scan-terminal`: cupón leído sin terminal deja el texto del cupón en el campo, y el escaneo de la terminal se le pega atrás | **Corregido** (`esperarTerminal`: vacía el campo con `reset`). Defecto previo, alcanzable ahora también en cajas en español |
+| D4 | corrección | baja | Con una pausa del lector mayor al debounce, la búsqueda por prefijo ahora prueba dos lecturas | Deuda, junto a B3. La segunda sólo corre si la primera no encontró nada: deja a una caja en español igual que una en inglés |
+| D5 | corrección | — | Bloq Mayús: la original sale en minúsculas, la rearmada usa el bit de Shift y la repara | Efecto deseado, sin acción |
+| D6 | corrección | — | Orden keydown→input→debounce, `HostListener` apilados, `ViewChild` en `*ngIf`, maxlength, numpad sin NumLock (comentario aclarado) | Verificados sin bug |
+
