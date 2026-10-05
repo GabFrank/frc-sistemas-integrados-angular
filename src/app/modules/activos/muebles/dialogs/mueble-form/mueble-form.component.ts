@@ -14,8 +14,7 @@ import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
 import { EnteService } from '../../../ente/service/ente.service';
 import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
 import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
-import { EnteCuotasByEnteIdGQL } from '../../../ente/graphql/enteCuotasByEnteId';
+import { CONSULTA_BIEN, EstadoFormularioBien, LECTURA_BIEN } from '../../../shared/forms/estado-formulario-bien';
 import { ARCHIVOS_MUEBLE_EQUIPO } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
@@ -31,8 +30,6 @@ export class MuebleFormComponent implements OnInit {
   private muebleDialogService = inject(MuebleDialogService);
   private cdr = inject(ChangeDetectorRef);
   private enteService = inject(EnteService);
-  private genericService = inject(GenericCrudService);
-  private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
 
   enteId: number | null = null;
   cuotasDetalle: CuotaDetalle[] = [];
@@ -80,46 +77,60 @@ export class MuebleFormComponent implements OnInit {
     this.mueble = this.data;
     this.inicializarFormulario();
 
+    this.situacionPagoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.estado.recalcular());
     if (this.mueble?.id) {
       this.registroGuardado = true;
-      this.muebleService.onBuscarPorId(this.mueble.id).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) {
-          this.mueble = res;
-          this.cargarDatos();
-          this.cargarEnteYCuotas(res.id);
-        }
-      });
+      this.cargarBien();
     } else {
       this.cargarDatos();
     }
   }
 
-  private cargarEnteYCuotas(referenciaId: number): void {
-    this.enteService.onGetByReferenciaId(TipoEnte.MUEBLE, referenciaId).pipe(untilDestroyed(this)).subscribe(ente => {
-      if (!ente?.id) return;
-      this.enteId = ente.id;
-      this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }).pipe(untilDestroyed(this)).subscribe(cuotas => {
-        if (cuotas?.length) {
-          this.cuotasDetalle = cuotas.map(c => ({
-            numeroCuota: c.numeroCuota || 0,
-            monto: c.monto || 0,
-            pagado: c.pagado,
-          }));
+  /**
+   * Estado de carga y regla de guardado (#390): no se guarda un bien que no cargó (crearía otro) ni un bien en
+   * «pagando» con sus cuotas sin leer (el central regeneraría o borraría el plan).
+   */
+  estado = new EstadoFormularioBien(() => this.form, () => this.situacionPagoControl.value, () => this.cdr.markForCheck());
+
+  /** También es el «Reintentar» del cartel. */
+  cargarBien(): void {
+    const id = this.mueble?.id;
+    if (!id) return;
+    this.estado.actualizar({ bien: 'cargando' });
+    this.muebleService.onBuscarPorId(id, LECTURA_BIEN, CONSULTA_BIEN).pipe(untilDestroyed(this)).subscribe({
+      error: () => this.estado.actualizar({ bien: 'error' }),
+      next: (res) => {
+        if (!res) {
+          this.estado.actualizar({ bien: 'error' });
+          return;
         }
-        this.cdr.markForCheck();
-      });
+        this.mueble = res;
+        this.cargarDatos();
+        this.estado.actualizar({ bien: 'ok', eraPagando: this.situacionPagoControl.value === 'PAGANDO' });
+        this.cargarEnteYCuotas();
+      },
     });
   }
 
-  /**
-   * El editor de cuotas está recalculando o no pudo recalcular: no se guarda (se mandan las cuotas de la tabla
-   * tal cual y quedarían grabadas con la cantidad y el monto nuevos) (#390).
-   */
-  planSinCalcular = false;
+  /** Ente (para los archivos) y, si el bien está en «pagando», sus cuotas guardadas. También es «Reintentar». */
+  cargarEnteYCuotas(): void {
+    const id = this.mueble?.id;
+    if (!id) return;
+    const conCuotas = this.estado.eraPagando;
+    this.estado.actualizar({ cuotas: conCuotas ? 'cargando' : 'sin-cargar', enteFallo: false });
+    this.enteService.cargarEnteYCuotas(TipoEnte.MUEBLE, id, conCuotas).pipe(untilDestroyed(this)).subscribe({
+      error: () => this.estado.actualizar({ cuotas: 'error' }),
+      next: (resultado) => {
+        this.enteId = resultado.enteId;
+        // Las cuotas guardadas reemplazan siempre a las que hubiera (también una lista vacía)
+        if (resultado.cuotas != null) this.cuotasDetalle = resultado.cuotas;
+        this.estado.actualizar({ cuotas: conCuotas ? 'ok' : 'sin-cargar', enteFallo: resultado.enteFallo });
+      },
+    });
+  }
 
   onPlanSinCalcular(sinCalcular: boolean): void {
-    this.planSinCalcular = sinCalcular;
-    this.cdr.markForCheck();
+    this.estado.actualizar({ planSinCalcular: sinCalcular });
   }
 
   onCuotasChange(cuotas: CuotaDetalle[]): void {
@@ -253,7 +264,7 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onGuardar(): void {
-    if (this.planSinCalcular && this.situacionPagoControl.value === 'PAGANDO') return;
+    if (this.estado.guardarBloqueado) return;
     const cerrar = !!this.mueble?.id && this.registroGuardado;
     this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef, this.cuotasDetalle, cerrar)
       .pipe(untilDestroyed(this))
@@ -262,7 +273,9 @@ export class MuebleFormComponent implements OnInit {
         this.mueble = { ...this.mueble, ...res, id: res.id };
         this.registroGuardado = true;
         this.form.patchValue({ id: res.id });
-        this.cargarEnteYCuotas(res.id);
+        // Recién guardado: su situación guardada es la que eligió
+        this.estado.actualizar({ bien: 'ok', eraPagando: this.situacionPagoControl.value === 'PAGANDO' });
+        this.cargarEnteYCuotas();
         this.cdr.markForCheck();
       });
   }

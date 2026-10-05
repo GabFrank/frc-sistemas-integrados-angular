@@ -12,6 +12,8 @@ import { DeleteEnteSucursalGQL } from '../graphql/deleteEnteSucursal';
 import { EntesSucursalesByEnteIdGQL } from '../graphql/entesSucursalesByEnteId';
 import { EnteByReferenciaIdGQL } from '../graphql/enteByReferenciaId';
 import { EnteSucursalSearchPageGQL } from '../graphql/enteSucursalSearchPage';
+import { EnteCuotasByEnteIdGQL } from '../graphql/enteCuotasByEnteId';
+import { CuotaDetalle } from '../../shared/models/cuota-detalle.model';
 import { Ente } from '../models/ente.model';
 import { TipoEnte } from '../enums/tipo-ente.enum';
 import { EnteSucursal } from '../models/ente-sucursal.model';
@@ -64,6 +66,7 @@ export class EnteService {
   private entesSucursalesByEnteIdGQL = inject(EntesSucursalesByEnteIdGQL);
   private enteByReferenciaIdGQL = inject(EnteByReferenciaIdGQL);
   private enteSucursalSearchPageGQL = inject(EnteSucursalSearchPageGQL);
+  private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
   private dialog = inject(MatDialog);
   private mainService = inject(MainService);
   private notificacionService = inject(NotificacionSnackbarService);
@@ -184,6 +187,41 @@ export class EnteService {
   }
 
 
+
+  /**
+   * Ente de un bien y, si `conCuotas`, sus cuotas guardadas (los cuatro formularios de bienes hacían esto por su
+   * cuenta, sin manejo de error). Resultados válidos: sin ente (`enteId` null) y sin cuotas (lista vacía).
+   * - `conCuotas = true` (el bien está en «pagando»): cualquier fallo es ERROR — con las cuotas sin leer, guardar
+   *   regeneraría o borraría el plan en el central.
+   * - `conCuotas = false`: el ente solo sirve para los archivos; si no se puede consultar se devuelve
+   *   `enteFallo` y no hay error.
+   */
+  cargarEnteYCuotas(tipoEnte: TipoEnte, referenciaId: number, conCuotas: boolean):
+    Observable<{ enteId: number | null; cuotas: CuotaDetalle[] | null; enteFallo: boolean }> {
+    const ente$ = this.onGetByReferenciaId(tipoEnte, referenciaId, LECTURA_ENTE, CONSULTA_ENTE);
+    if (!conCuotas) {
+      return ente$.pipe(
+        map(ente => ({ enteId: ente?.id ?? null, cuotas: null, enteFallo: false })),
+        catchError(() => of({ enteId: null, cuotas: null, enteFallo: true }))
+      );
+    }
+    return ente$.pipe(
+      switchMap(ente => {
+        if (!ente?.id) return of({ enteId: null, cuotas: [] as CuotaDetalle[], enteFallo: false });
+        return this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }, true, LECTURA_ENTE, true, CONSULTA_ENTE).pipe(
+          map((cuotas: any[]) => {
+            // El central devuelve [] cuando no hay cuotas: un null es un fallo
+            if (cuotas == null) throw new Error('Las cuotas del bien no llegaron');
+            return {
+              enteId: ente.id,
+              cuotas: cuotas.map(c => ({ numeroCuota: c.numeroCuota || 0, monto: c.monto || 0, pagado: c.pagado })),
+              enteFallo: false,
+            };
+          })
+        );
+      })
+    );
+  }
 
   onBuscarPagina(texto: string | null, sucursalId: number | null, page: number, size: number, tipoEnte: TipoEnte | null = null): Observable<PageInfo<Ente>> {
     return this.genericService.onCustomQuery(this.enteSearchWithSummaryGQL, { texto, sucursalId, tipoEnte, page, size }).pipe(

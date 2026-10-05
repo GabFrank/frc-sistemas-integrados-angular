@@ -2,7 +2,7 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { Equipo } from '../models/equipo.model';
 import { EquipoInput } from '../models/equipo-input.model';
@@ -63,8 +63,10 @@ export class EquiposService {
   });
   public paginationState$ = this._paginationState$.asObservable();
 
-  onBuscarPorId(id: number): Observable<Equipo> {
-    return this.genericService.onGetById(this.equipoByIdGQL, id);
+  /** Con `errorConf` el error llega a quien llama; sin él, la consulta no emite nada si falla (#390). */
+  onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Equipo> {
+    return this.genericService.onGetById(this.equipoByIdGQL, id, null, null, true, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onFiltrar(texto: string, page: number, size: number): Observable<PageInfo<Equipo>> {
