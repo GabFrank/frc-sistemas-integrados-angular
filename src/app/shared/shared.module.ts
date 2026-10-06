@@ -18,7 +18,6 @@ import { DialogosComponent } from './components/dialogos/dialogos.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { GenericListComponent } from './components/generic-list/generic-list.component';
 import { HeaderComponent } from './components/header/header.component';
-import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
 import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
@@ -93,7 +92,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ImprimirDialogComponent,
     ConfirmDialogComponent,
     TecladoNumericoComponent,
-    Imagebase64Component,
     QrCodeComponent,
     QrLectorDialogComponent,
     GrillaConteoComponent,
@@ -168,7 +166,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GenericListComponent,
     DialogosComponent,
     ConfirmDialogComponent,
-    Imagebase64Component,
     NgxCurrencyModule,
     NgxPanZoomModule,
     InnerDialogComponent,
