@@ -41,6 +41,8 @@ import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-veri
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MENSAJE_RESPUESTA_VACIA } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 
 /** Filtros con los que se cargó la tabla: el reporte imprime exactamente lo mismo. */
@@ -108,6 +110,8 @@ function fechaHoyArchivo(): string {
   return `${dd}-${mm}-${hoy.getFullYear()}`;
 }
 
+const SIN_CONFIRMAR_ANULACION = 'No se pudo confirmar la anulación: se vuelve a leer la caja para verificarla.';
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -145,6 +149,14 @@ export class CajaVirtualDashboardComponent implements OnInit {
   movimientosNoCargados = false;
   /** Número de la última lectura de movimientos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
   private movimientosCargaId = 0;
+  /**
+   * Operaciones con una anulación pedida: en vuelo (`null`) o terminada sin que la caja se haya vuelto a leer
+   * (número de la lectura vigente cuando terminó). No se pueden volver a anular hasta que una lectura de caja
+   * **posterior** termine bien: si la anulación quedó sin respuesta pudo haberse aplicado, y con la fila todavía
+   * «activa» un segundo intento postearía otro contra-movimiento (#390). Se guarda acá y no en la fila porque las
+   * filas se reconstruyen en cada lectura.
+   */
+  private anulacionesPendientes = new Map<string, number | null>();
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
@@ -428,6 +440,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
           // Un resultado vacío sin error tampoco es una lectura: antes dejaba las filas viejas sin avisar.
           this.movimientosNoCargados = res == null;
           if (res != null) {
+            this.liberarAnulacionesLeidas(carga);
             this.selectedPageInfo = res;
             const rows = (res.getContent || []).map(m => this.toRow(m));
             this.marcarGruposOperacion(rows);
@@ -514,9 +527,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       row._origenLabel = nav?.label;
       row._origenIcon = nav?.icon;
     }
-    row._anulable = this.puedeGestionar
-      && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
-      && m.activo !== false;
+    row._anulable = this.esAnulable(m);
     row._opGrupo = (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) ? m.referenciaId : null;
     return row;
   }
@@ -700,8 +711,40 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.origenNav[row.origenTipo as any]?.open(row);
   }
 
+  private esAnulable(m: MovimientoCajaVirtual): boolean {
+    return this.puedeGestionar
+      && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
+      && m.activo !== false
+      && !this.anulacionesPendientes.has(this.claveAnulacion(m));
+  }
+
+  /**
+   * Qué se anula al anular esta fila. Un pago, una operación financiera o la verificación de un retiro tienen
+   * varias patas (filas): todas comparten la clave y quedan bloqueadas juntas.
+   */
+  private claveAnulacion(m: MovimientoCajaVirtual): string {
+    if (m.origenTipo === 'RETIRO_CAJA' && m.origenId && m.origenSucursalId) return `RETIRO:${m.origenId}:${m.origenSucursalId}`;
+    if (m.esPagoConsolidado && m.referenciaId) return `PAGO:${m.referenciaId}`;
+    if (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) return `OPERACION:${m.referenciaId}`;
+    return `MOVIMIENTO:${m.id}`;
+  }
+
+  /** Vuelve a calcular «Anular» en las filas en pantalla (el bloqueo cambió sin que se releyera la tabla). */
+  private actualizarAnulables(): void {
+    this.dataSource.data.forEach(row => row._anulable = this.esAnulable(row));
+  }
+
+  /** Una lectura de caja que empezó después de terminar la anulación ya refleja su resultado: se desbloquea. */
+  private liberarAnulacionesLeidas(carga: number): void {
+    this.anulacionesPendientes.forEach((terminadaEn, clave) => {
+      if (terminadaEn != null && carga > terminadaEn) this.anulacionesPendientes.delete(clave);
+    });
+  }
+
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
+    const clave = this.claveAnulacion(mov);
+    if (this.anulacionesPendientes.has(clave)) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
     // El movimiento consolidado del pago lleva referenciaId = origenId = pago.id (el evento).
     //
@@ -736,7 +779,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.dialogosService.confirm(
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res !== true) return;
+      if (res !== true || this.anulacionesPendientes.has(clave)) return;
+      this.anulacionesPendientes.set(clave, null);
+      this.actualizarAnulables();
+      // Con cualquier resultado se relee la caja (movimientos y saldos): si se anuló hay que mostrarlo, un
+      // rechazo por «ya está anulado» significa que la tabla estaba vieja, y sin respuesta es la única forma de
+      // saber. La operación sigue bloqueada hasta que esa lectura termine bien.
+      const terminar = () => {
+        this.anulacionesPendientes.set(clave, this.movimientosCargaId);
+        this.recargar();
+      };
       // Tres ramas pasan por onSaveCustom: van sin su «Guardado con éxito» (el éxito lo avisa este
       // componente) y su error ya lo avisó onSaveCustom, así que se marca para no repetirlo. Todo
       // otro error —el pago a proveedor (Apollo directo, sin aviso genérico), la verificación que
@@ -759,13 +811,24 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: r => {
           if (r != null) {
             this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
-            this.recargar();
+          } else {
+            // Ni error ni resultado: nadie avisó y no se sabe si se anuló.
+            this.notificacion.openWarn(SIN_CONFIRMAR_ANULACION, 6);
           }
+          terminar();
         },
         error: err => {
-          if (err?.avisadoPorOnSaveCustom) return;
-          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
-          this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+          // onSaveCustom ya avisó el rechazo, el error de red y la respuesta vacía; el corte, el link.
+          if (!err?.avisadoPorOnSaveCustom && !esTimeoutDeLink(err)) {
+            // Pago a proveedor (Apollo directo): sin respuesta llega con networkError o como respuesta vacía;
+            // cualquier otro error trae el motivo del servidor.
+            const sinRespuesta = !!err?.networkError || err?.message === MENSAJE_RESPUESTA_VACIA;
+            const msg = sinRespuesta
+              ? SIN_CONFIRMAR_ANULACION
+              : (err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular');
+            this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: sinRespuesta ? 6 : 5 });
+          }
+          terminar();
         }
       });
     });
