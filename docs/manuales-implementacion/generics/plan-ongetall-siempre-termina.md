@@ -177,3 +177,53 @@ No se va a poder probar: el central «lento pero sano» al arrancar.
 | B | Confirmar vale y configuración de RRHH quedaban con un mensaje falso o en blanco | media | cartel |
 | B | Tamaño del PR | media | un PR, cuatro fases; `list-venta` fuera |
 | B | `null` y no `[]`; orden de fases | — | confirmado |
+
+## Implementación: desvíos
+
+- **Tres de los diálogos del relevamiento no tienen quién los abra** (código muerto): el diálogo de delivery viejo
+  (`delivery-dialog`; el flujo real usa `edit-delivery-dialog`), el alta de funcionario (`adicionar-funcionario-dialog`;
+  el alta vive en el legajo) y el detalle de pago (`pago-detalle-dialog`, solo lo abre `edit-pago`, que nadie abre).
+  Los cambios ahí quedan, son inocuos, pero no se pudieron probar. De las «5 pantallas colgadas» del plan, las
+  alcanzables son 4 (el detalle de pago no).
+- Un error GraphQL **no emite datos parciales**: `null` aunque haya venido algo (el plan decía «como onCustomQuery»,
+  que emite lo parcial; una lista a medias pasaría por completa).
+- Los `timeout` de 65 s de análisis de diferencia, gestión de compras y nota de recepción quedaron: ya no se
+  disparan (el genérico termina antes), no estorban.
+- El aviso de red del genérico es de color de advertencia, 4 s, con ventana de 5 s por texto.
+- Los tests del genérico (`generic-crud.on-get-all.spec.ts`) compilan pero no se ejecutaron: Karma no corre en el
+  repo (`require.context` en `src/test.ts`).
+
+## Prueba de runtime (paso 9, 2026-10-06)
+
+Central local `:8081` (replicación apagada, schedulers en «Negative matches»), filial local `:8080`, desktop con
+`ng serve -c web`. Fallas inyectadas en el navegador por consulta (red, HTTP 404, rechazo GraphQL) y una pasada con
+el central local realmente apagado.
+
+| Caso | Resultado |
+|---|---|
+| Configuración de RRHH sin red / central apagado | cartel «No se pudo cargar la configuración», un aviso, sin spinner |
+| Lista de personas: pedir más con falla y después bien | no avanza de página ni marca última página; el reintento trae la página que faltaba |
+| Confirmar vale sin red | cartel «No se pudieron cargar las cajas», un aviso |
+| Detalle de timbrado sin red / normal | abre con listas vacías, un aviso / 20 sucursales y 26 puntos de venta |
+| Alta de impresora: buscar dispositivos y colas sin red / normal | deja de buscar, un aviso / 10 dispositivos |
+| Observaciones de venta: red, HTTP 404, rechazo GraphQL | sin errores; «Error de red» / «El servidor rechazó la operación (HTTP 404)» / «Ups!…» (uno por consulta, como antes) |
+| Análisis de diferencia y gestión de compras sin red | solo su aviso propio, al instante |
+| PDV (filial local): abrir venta y cobro con monedas y formas de pago fallando | sin errores, un aviso; el delivery avisa que no se puede cobrar ni guardar (guarda que ya existía) |
+| PDV normal | 5 formas de pago, 4 monedas, EFECTIVO seleccionado |
+
+No probado: impresión de ticket (solo Electron), nota de recepción, los tres diálogos sin llamador, el corte del
+link a los 60 s, el central «lento pero sano» al arrancar, y los arreglos posteriores a la auditoría del diff
+(compilan; son guardas de una línea).
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| El diálogo de delivery pisaba con `null` las cotizaciones que le pasa venta-touch | media | se conservan; precios de delivery tolera `null` |
+| Listas de actualizaciones y de pre-registros se vaciaban si fallaba un refresco | baja/media | queda lo que había |
+| Servicios de observaciones publicaban `null` tras guardar si la relectura fallaba | baja | no publican |
+| Nota de recepción: ante un rechazo GraphQL faltaba su guía | baja | aviso propio |
+| El aviso de red podía salir después de haber terminado | baja | guarda |
+| Cartel de configuración de RRHH sin color de aviso; faltaba test de `graphError.propagate` | baja | agregados |
+| Consumidores restantes, `forkJoin`, forma del error propagado, reglas del HTML, spec | — | verificado, sin hallazgos |
+| Tres «Ups!» iguales ante un rechazo en una pantalla que pide tres listas | — | ya pasaba; no se toca |
