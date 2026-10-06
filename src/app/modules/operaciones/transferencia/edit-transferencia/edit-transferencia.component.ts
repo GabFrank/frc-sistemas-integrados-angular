@@ -384,7 +384,9 @@ export class EditTransferenciaComponent implements OnInit {
           this.transferenciaService
             .onSaveTransferencia(auxTransf.toInput())
             .pipe(untilDestroyed(this))
-            .subscribe((saveTransferenciaRes) => {
+            // El aviso lo da el genérico. Sin error: el error quedaba sin manejar (#390).
+            .subscribe({ error: () => {}, next: (saveTransferenciaRes) => {
+              if (saveTransferenciaRes == null) return;
               this.selectedTransferencia.sucursalOrigen =
                 saveTransferenciaRes.sucursalOrigen;
               this.selectedTransferencia.sucursalDestino =
@@ -399,7 +401,7 @@ export class EditTransferenciaComponent implements OnInit {
               this.tabService.changeCurrentTabName(
                 "Transferencia " + this.selectedTransferencia.id
               );
-            });
+            } });
           // }
         } else {
           this.dialogoService
@@ -829,7 +831,7 @@ export class EditTransferenciaComponent implements OnInit {
           if (this.selectedTransferencia?.id == null) {
             this.onSaveTransferencia().then(() => {
               this.onSaveTransferenciaItem(res["item"]);
-            });
+            }).catch(() => {});
           } else {
             this.onSaveTransferenciaItem(res["item"]);
           }
@@ -844,13 +846,17 @@ export class EditTransferenciaComponent implements OnInit {
         .onSaveTransferencia(this.selectedTransferencia.toInput())
         .pipe(untilDestroyed(this))
         .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedTransferencia = res;
-            resolve(res);
-          } else {
-            reject();
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedTransferencia = res;
+              resolve(res);
+            } else {
+              reject();
+            }
+          },
+          // Sin esto la promesa quedaba pendiente para siempre ante un error (#390). El aviso lo da el genérico.
+          error: () => reject(),
         });
     });
   }
@@ -1391,10 +1397,13 @@ export class EditTransferenciaComponent implements OnInit {
         .onSaveTransferencia(auxTransf.toInput())
         .pipe(untilDestroyed(this))
         .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedTransferencia.solicitante = res.solicitante;
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedTransferencia.solicitante = res.solicitante;
+            }
+          },
+          error: () => {},
         });
     });
   }
@@ -1967,7 +1976,7 @@ export class EditTransferenciaComponent implements OnInit {
           this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
           this.onClear();
         }
-      });
+      }).catch(() => {});
     }
   }
 }

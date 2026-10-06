@@ -12,6 +12,7 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../
 import { PersonaSearchPageGQL } from '../../../personas/persona/graphql/personaSearchPage';
 import { Vehiculo } from '../../../activos/vehiculos/vehiculo/models/vehiculo.model';
 import { VehiculoSearchPageGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearchPage';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /**
  * Vista precalculada de cada acompañante.
@@ -223,6 +224,12 @@ export class RutaHojaComponent implements OnInit {
         error: err => {
           console.error('Error al guardar la hoja de ruta:', err);
           this.isSaving = false;
+          if (erroresDeRechazo(err) == null) {
+            // Sin respuesta: la hoja pudo haberse guardado, y rehabilitar «Guardar» invitaba a crear otra
+            // (#390). El genérico ya avisó que hay que verificar: se cierra sin resultado.
+            this.dialogRef.close(null);
+            return;
+          }
           this.notificacionService.openWarn('No se pudo guardar la hoja de ruta');
           this.actualizarResumen();
         }

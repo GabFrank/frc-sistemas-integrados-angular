@@ -885,7 +885,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           item.activo = true;
           this.ventaService
             .onSaveVentaItem(item.toInput(), false)
-            .subscribe((ventaItemRes) => {
+            // El aviso lo da el genérico; sin error: el error quedaba sin manejar (#390).
+            .subscribe({ error: () => {}, next: (ventaItemRes) => {
               if (ventaItemRes != null) {
                 item.id = ventaItemRes.id;
                 item.sucursalId = ventaItemRes.sucursalId;
@@ -899,7 +900,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 venta.delivery = this.selectedDelivery;
                 this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
               }
-            });
+            } });
         } else {
           this.selectedItemList.push(item);
         }

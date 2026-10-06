@@ -25,6 +25,7 @@ import { Moneda } from '../../../moneda/moneda.model';
 import { MonedaService } from '../../../moneda/moneda.service';
 import { FilaMontoErrores } from '../../interface/fila-monto-errores.interface';
 import { FilaMontoVista } from '../../interface/fila-monto-vista.interface';
+import { erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
 export class RetiroPreGastoData {
   caja: PdvCaja;
@@ -202,6 +203,8 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
+    // Desde que se manda el registro, un error que no sea un rechazo deja la duda de si el gasto se guardó.
+    let enviado = false;
     forkJoin({
       responsable: this.funcionarioService.onGetFuncionarioPorPersona(personaResponsableId, true),
       autorizado: personaAutorizadorId
@@ -212,6 +215,7 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
         if (!responsable?.id) {
           throw new Error('No se encontró el funcionario responsable.');
         }
+        enviado = true;
         return this.gastoService.registrarRetiroPreGastoHibrido(
           this.seleccionada!,
           caja,
@@ -231,8 +235,15 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
         }
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err) => {
         this.cargandoRetiro = false;
+        if (enviado && !(err instanceof Error) && erroresDeRechazo(err) == null) {
+          // Sin respuesta: el gasto pudo haberse guardado. Dejar el botón habilitado invitaba a registrar
+          // otro gasto por el mismo retiro (#390): se cierra, y quien abrió relee los gastos de la caja.
+          this.notificacion.openWarn('No se pudo confirmar si el retiro se registró: revisá los gastos de la caja antes de repetirlo.', 8);
+          this.dialogRef.close(true);
+          return;
+        }
         this.notificacion.openAlgoSalioMal('No se pudo registrar el retiro en caja.');
         this.cdr.markForCheck();
       },

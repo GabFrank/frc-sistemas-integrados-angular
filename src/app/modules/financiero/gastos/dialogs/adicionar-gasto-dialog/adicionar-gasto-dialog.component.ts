@@ -12,7 +12,8 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { of, Subscription } from "rxjs";
-import { catchError, debounceTime, distinctUntilChanged, take, timeout } from 'rxjs/operators';
+import { erroresDeRechazo } from "../../../../../commons/core/utils/graphqlErrorUtils";
+import { catchError, debounceTime, distinctUntilChanged, finalize, take, timeout } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import {
   orderByIdDesc,
@@ -564,7 +565,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               this.gastoService
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
-                .subscribe((gastoResponse) => {
+                .subscribe({ next: (gastoResponse) => {
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
                     if (this.mainService.usuarioActual?.persona?.id) {
@@ -583,7 +584,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                     this.goTo("lista-gastos");
                   }
                   this.onCancelar();
-                });
+                },
+                // El formulario queda como está (no se pierde lo cargado). Sin respuesta, el gasto pudo
+                // haberse guardado: se relee la lista para que se vea antes de cargarlo de nuevo (#390).
+                error: (err) => {
+                  if (erroresDeRechazo(err) == null) this.cargarGastosDeCaja();
+                } });
             }
           });
       }
@@ -693,16 +699,16 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       newGasto.finalizado = true;
       this.gastoService
         .onSave(newGasto, false)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoDialog.closeDialog(requestId);
+        // En finalize: ante un error el spinner quedaba abierto, porque solo se cerraba en el next (#390).
+        .pipe(untilDestroyed(this), finalize(() => this.cargandoDialog.closeDialog(requestId)))
+        .subscribe({ error: () => {}, next: (res) => {
           if (res != null) {
             this.gastoList = replaceObject<Gasto>(this.gastoList, res);
             this.dataSource.data = this.gastoList;
             this.onCancelar();
             this.goTo("lista-gastos");
           }
-        });
+        } });
     }
   }
 

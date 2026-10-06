@@ -837,11 +837,19 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.cajaService
         .onSave(pdvCaja.toInput(), !this.isVentaTouch)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedCaja = res;
-            this.cajaService.selectedCaja = this.selectedCaja;
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedCaja = res;
+              this.cajaService.selectedCaja = this.selectedCaja;
+            }
+          },
+          // El stepper ya avanzó a la apertura sin caja: se vuelve al maletín (#390). El aviso lo da el genérico.
+          error: () => {
+            this.selectedMaletin = null;
+            this.descripcionMaletinControl.setValue(null);
+            this.goTo("maletin");
+          },
         });
     }, 1000);
   }
