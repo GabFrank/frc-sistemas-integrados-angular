@@ -138,7 +138,7 @@
   </mat-dialog-content>
 
   <mat-dialog-actions class="det-actions">
-    <button mat-button (click)="onCerrar()">Cerrar</button>
+    <button mat-button (click)="onCerrar()" [disabled]="guardando">Cerrar</button>
     <span class="spacer"></span>
     <button mat-raised-button color="primary" *ngIf="!esResuelto && data.puedeResolver"
             (click)="onResolver()" [disabled]="guardando">
