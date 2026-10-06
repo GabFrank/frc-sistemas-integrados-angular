@@ -30,7 +30,7 @@ import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link
 
 /** Cargas de la solicitud y sus listados: 60 s sin el aviso genérico del link; avisa el llamador (#390). */
 const CONSULTA_SOLICITUD: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
-/** Guardados: el error de red llega al llamador (el link ya avisa si se cortó por tiempo). */
+/** Guardados: el error de red llega al llamador, y el genérico avisa que no se pudo confirmar. */
 const GUARDADO_PROPAGA = { networkError: { propagate: true } };
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -231,7 +231,8 @@ export class SolicitudPagoService {
       undefined,
       undefined,
       true,
-      GUARDADO_PROPAGA
+      // El alta avisa por su cuenta («No se pudo confirmar si la solicitud se creó…»): sin aviso del genérico.
+      PROPAGAR_ERROR_DE_RED
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
