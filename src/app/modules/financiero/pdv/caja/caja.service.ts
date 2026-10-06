@@ -230,11 +230,11 @@ export class CajaService {
   /**
    * La caja abierta del usuario, para saber si un alta que quedó sin respuesta (o fue rechazada) dejó una caja
    * creada. A diferencia de {@link onGetByUsuarioIdAndAbierto}, termina siempre: `null` es «no tiene», y si no se
-   * pudo consultar falla (sin modal ni aviso; corte de mostrador) (#390).
+   * pudo consultar falla (sin aviso; corte de mostrador). Sin modal, salvo que se pida (#390).
    */
-  onGetAbiertaDelUsuario(usuarioId: number, servidor: boolean = true): Observable<PdvCaja | null> {
+  onGetAbiertaDelUsuario(usuarioId: number, servidor: boolean = true, conModal = false): Observable<PdvCaja | null> {
     return this.genericService.onGetById(
-      this.cajaPorUsuarioIdAndAbierto, usuarioId, null, null, servidor, null, null, null, true, null, null,
+      this.cajaPorUsuarioIdAndAbierto, usuarioId, null, null, servidor, null, null, null, !conModal, null, null,
       { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
       { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
     );

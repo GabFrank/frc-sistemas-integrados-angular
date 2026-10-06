@@ -85,10 +85,14 @@ export class PdvCategoriaService implements OnDestroy {
         if (gr.activo == true) {
           this.onGetGrupoProductosPorGrupoId(gr.id, false)
             .pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (res != null) {
-                gr.pdvGruposProductos = res;
-              }
+            .subscribe({
+              next: (res) => {
+                if (res != null) {
+                  gr.pdvGruposProductos = res;
+                }
+              },
+              // Una consulta por grupo: el aviso lo da el genérico, una sola vez (#390).
+              error: () => {},
             });
         }
       });

@@ -8,7 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -410,25 +410,43 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * Inicia la carga de caja después de que el PDV fue validado exitosamente.
    */
   private iniciarCargaDeCaja(): void {
+    // Con modal y corte de mostrador. `null` es «no tiene caja abierta» y ahí se ofrece abrir una; si la
+    // lectura falla NO se ofrece (podría tener una abierta) y no se sigue con la caja de una sesión anterior:
+    // las acciones de venta no miran si hay caja (#390).
     this.cajaService
-      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id, null, false)
+      .onGetAbiertaDelUsuario(this.mainService.usuarioActual.id, false, true)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        console.log('caja encontrada', res);
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.cajaService.selectedCaja = res;
 
-        if (res != null) {
-          this.cajaService.selectedCaja = res;
-
-          if (
-            this.cajaService.selectedCaja == null ||
-            this.cajaService.selectedCaja?.conteoApertura == null
-          ) {
+            if (
+              this.cajaService.selectedCaja == null ||
+              this.cajaService.selectedCaja?.conteoApertura == null
+            ) {
+              this.openSelectCajaDialog();
+            }
+          } else {
+            this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
-        } else {
+        },
+        error: () => {
           this.cajaService.selectedCaja = null;
-          this.openSelectCajaDialog();
-        }
+          this.dialogoService
+            .confirm(
+              'No se pudo leer la caja',
+              'No se pudo comprobar si tenés una caja abierta.',
+              'Para no abrir otra por error no se continuó. Revisá la conexión con el servidor y reintentá.',
+              null, true, 'Reintentar', 'Salir'
+            )
+            .pipe(untilDestroyed(this))
+            .subscribe((reintentar) => {
+              if (reintentar === true) this.iniciarCargaDeCaja();
+              else this.cerrarPestanaPropia();
+            });
+        },
       });
 
     setTimeout(() => {
@@ -716,7 +734,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // servidor filial antes de decidir. Con las queries al día este camino no se usa: es la red
     // que evita que una query nueva que olvide el campo vuelva a desactivar el control.
     this.productoService
-      .onGetProductoPorId(item.producto.id, false)
+      .onGetProductoPorId(item.producto.id, false, LECTURA_ESTRICTA, CONTEXTO_MOSTRADOR)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (producto) => {
@@ -728,12 +746,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }
         },
         error: () => {
-          // Sin respuesta no se puede saber si lleva lote. Se agrega igual para no trabar el
-          // mostrador, avisando que el ítem puede quedar sin lote asignado.
+          // Sin respuesta no se puede saber si lleva lote: no se agrega. Venderlo sin trazabilidad es peor
+          // que pedirle al cajero que lo escanee de nuevo (decidido el 2026-10-06, #390).
           this.notificacionSnackbar.openWarn(
-            "No se pudo verificar el control de lote del producto."
+            `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. No se agregó a la venta: escanealo de nuevo.`,
+            8
           );
-          this.addItem(item);
+          this.buscadorFocusSub.next();
         },
       });
   }
@@ -1742,17 +1761,26 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             case "edit":
               if (this.selectedDelivery != null) {
                 this.isDelivery = true;
+                const itemsAnteriores = this.selectedItemList;
                 this.selectedItemList = [];
                 if (this.selectedDelivery.venta != null) {
                   this.ventaService
                     .onGetPorId(this.selectedDelivery.venta.id, null, null, false)
-                    .subscribe((ventaRes) => {
-                      if (ventaRes != null) {
-                        this.selectedDelivery.venta = ventaRes;
-                        this.selectedItemList =
-                          this.selectedDelivery.venta.ventaItemList;
+                    .subscribe({
+                      next: (ventaRes) => {
+                        if (ventaRes != null) {
+                          this.selectedDelivery.venta = ventaRes;
+                          this.selectedItemList =
+                            this.selectedDelivery.venta.ventaItemList;
+                          this.calcularTotales();
+                        }
+                      },
+                      // El carrito ya se había vaciado: sin esto quedaba vacío y sin aviso (#390).
+                      error: () => {
+                        this.selectedItemList = itemsAnteriores;
                         this.calcularTotales();
-                      }
+                        this.notificacionSnackbar.openWarn('No se pudo leer la venta del delivery: volvé a abrirlo desde la lista.', 8);
+                      },
                     });
                 }
               }

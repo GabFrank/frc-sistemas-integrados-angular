@@ -54,6 +54,16 @@ export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
  * sigue llegando como `null` (#390).
  */
 export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
+/**
+ * Para una lectura de la que depende una decisión: el error del servidor y el de red llegan los dos al
+ * `error:` de quien llama (nunca un `null` que se confunda con «no existe»), sin aviso del genérico (#390).
+ */
+export const LECTURA_ESTRICTA: QueryError = {
+  graphError: { show: false, propagate: true },
+  networkError: { show: false, propagate: true },
+};
+/** Corte de mostrador para {@link LECTURA_ESTRICTA}: el aviso lo da quien llama. */
+export const CONTEXTO_MOSTRADOR: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 /** Para quien ya avisa por su cuenta cuando onGetAll le devuelve `null`: sin aviso del genérico. */
 export const SIN_AVISO_DEL_GENERICO: QueryError = { graphError: { show: false }, networkError: { show: false } };
 /** Contexto de onCustomQuery: timeout propio y si el link avisa al vencer. */

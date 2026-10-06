@@ -236,8 +236,9 @@ export class ProductoService {
 
   onSearchParaPdv() {}
 
-  onGetProductoPorId(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
+  onGetProductoPorId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onSaveProducto(input: ProductoInput, servidor = true): Observable<any> {
