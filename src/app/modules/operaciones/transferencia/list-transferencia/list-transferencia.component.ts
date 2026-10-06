@@ -43,6 +43,8 @@ import {
 } from "./../../../../notificacion-snackbar.service";
 import { SelectionModel } from "@angular/cdk/collections";
 import { RutaHojaComponent } from "../ruta-hoja/ruta-hoja.component";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -128,7 +130,8 @@ export class ListTransferenciaComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private usuarioSearch: UsuarioSearchGQL,
     private notaRemisionService: NotaRemisionService,
-    private impresionService: ImpresionService
+    private impresionService: ImpresionService,
+    private dialogosService: DialogosService
   ) { }
 
   /** Rol para emitir la nota de remisión del traslado; se calcula una vez, no en el HTML. */
@@ -249,6 +252,7 @@ export class ListTransferenciaComponent implements OnInit {
             if (res == null) { this.avisarListaNoCargada(); return; }
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent.map((t) => this.toView(t));
+            this.reseleccionarPendientesDeRuta();
             this.cargarNotasRemision();
           },
           error: () => this.avisarListaNoCargada()
@@ -507,72 +511,138 @@ export class ListTransferenciaComponent implements OnInit {
       });
   }
 
-  onAsignarRuta() {
-    if (this.selection.selected.length > 0) {
-      this.matDialog.open(RutaHojaComponent, {
-        width: '560px',
-        maxWidth: '95vw',
-        disableClose: true,
-        panelClass: 'custom-dialog-container'
-      }).afterClosed().subscribe(async (res) => {
-        if (res) {
-          const { requestId } = this.cargandoService.openDialog();
-          let count = 0;
-          const fallidas: number[] = [];
-          try {
-            for (let transferencia of this.selection.selected) {
-              const input = new TransferenciaInput();
-              input.id = transferencia.id;
-              input.sucursalOrigenId = transferencia.sucursalOrigen?.id;
-              input.sucursalDestinoId = transferencia.sucursalDestino?.id;
-              input.estado = transferencia.estado;
-              input.tipo = transferencia.tipo;
-              input.etapa = transferencia.etapa;
-              // saveTransferencia persiste con merge: todo campo ausente se guarda como
-              // null, por eso se reenvian los datos que ya tiene la transferencia.
-              input.observacion = transferencia.observacion;
-              input.isOrigen = transferencia.isOrigen;
-              input.isDestino = transferencia.isDestino;
-              input.hojaRutaId = res.id;
+  /**
+   * Hoja de ruta ya creada que no llegó a asignarse a todas las transferencias elegidas. Sin esto no había
+   * forma de reintentar con la misma hoja: el diálogo siempre crea una nueva, y la primera quedaba huérfana (#390).
+   */
+  private rutaPendiente: { hoja: any; ids: number[] } | null = null;
 
-              await new Promise<void>((resolve) => {
-                this.transferenciaService.onSaveTransferencia(input).subscribe({
-                  next: (result) => {
-                    if (result != null) {
-                      count++;
-                    } else {
-                      fallidas.push(transferencia.id);
-                    }
-                    resolve();
-                  },
-                  error: (err) => {
-                    console.error('Error al guardar transferencia:', err);
-                    fallidas.push(transferencia.id);
-                    resolve();
-                  }
-                });
-              });
-            }
-            if (fallidas.length > 0) {
-              this.notificacionService.openWarn(
-                'Ruta asignada a ' + count + ' transferencias. No se pudo asignar a: ' + fallidas.join(', ')
-              );
-            } else {
-              this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
-            }
-          } catch (error) {
-            console.error('Error en asignación de ruta:', error);
-            this.notificacionService.openWarn('Ocurrió un error durante la asignación');
-          } finally {
-            this.cargandoService.closeDialog(requestId);
-            this.selection.clear();
-            this.onFilter();
-          }
-        }
-      });
-    } else {
+  onAsignarRuta() {
+    if (this.selection.selected.length === 0) {
       this.notificacionService.openWarn('Debe seleccionar al menos una transferencia');
+      return;
     }
+    // La hoja pendiente se ofrece solo si entre las seleccionadas hay alguna de las que le quedaron sin asignar.
+    const pendiente = this.rutaPendiente;
+    const hayPendientes = pendiente != null
+      && this.selection.selected.some((t) => pendiente.ids.some((id) => id == t.id));
+    if (!hayPendientes) {
+      this.abrirNuevaHojaDeRuta();
+      return;
+    }
+    this.dialogosService.confirm(
+      'Hoja de ruta pendiente',
+      `La hoja #${pendiente.hoja.id} no llegó a asignarse a todas las transferencias. ¿Asignar las seleccionadas a esa misma hoja?`,
+      'Con «No» se crea una hoja nueva.',
+      null, true, 'Sí, usar la misma', 'No, crear otra',
+    ).pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res === true) {
+        this.asignarHojaALasSeleccionadas(pendiente.hoja);
+      } else if (res === false) {
+        this.rutaPendiente = null;
+        this.abrirNuevaHojaDeRuta();
+      }
+    });
+  }
+
+  private abrirNuevaHojaDeRuta() {
+    this.matDialog.open(RutaHojaComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      disableClose: true,
+      panelClass: 'custom-dialog-container'
+    }).afterClosed().subscribe((res) => {
+      if (res) this.asignarHojaALasSeleccionadas(res);
+    });
+  }
+
+  /**
+   * Asigna la hoja a las transferencias seleccionadas, una por una. Repetir una asignación es inocuo (actualiza
+   * la transferencia con la misma hoja); lo que no conviene es seguir intentando cuando el servidor dejó de
+   * responder: cada una esperaría su corte. Al primer «sin respuesta» se corta, y lo que falta queda
+   * seleccionado para reintentar con la misma hoja.
+   */
+  private async asignarHojaALasSeleccionadas(hoja: any) {
+    const seleccionadas = [...this.selection.selected];
+    const { requestId } = this.cargandoService.openDialog();
+    let count = 0;
+    const rechazadas: number[] = [];
+    const noIntentadas: number[] = [];
+    let sinConfirmar: number | null = null;
+    try {
+      for (let transferencia of seleccionadas) {
+        if (sinConfirmar != null) {
+          noIntentadas.push(transferencia.id);
+          continue;
+        }
+        const input = new TransferenciaInput();
+        input.id = transferencia.id;
+        input.sucursalOrigenId = transferencia.sucursalOrigen?.id;
+        input.sucursalDestinoId = transferencia.sucursalDestino?.id;
+        input.estado = transferencia.estado;
+        input.tipo = transferencia.tipo;
+        input.etapa = transferencia.etapa;
+        // saveTransferencia persiste con merge: todo campo ausente se guarda como
+        // null, por eso se reenvian los datos que ya tiene la transferencia.
+        input.observacion = transferencia.observacion;
+        input.isOrigen = transferencia.isOrigen;
+        input.isDestino = transferencia.isDestino;
+        input.hojaRutaId = hoja.id;
+
+        const resultado = await new Promise<'ok' | 'rechazada' | 'sin-confirmar'>((resolve) => {
+          this.transferenciaService.onSaveTransferencia(input).subscribe({
+            next: (result) => resolve(result != null ? 'ok' : 'rechazada'),
+            error: (err) => {
+              console.error('Error al guardar transferencia:', err);
+              resolve(erroresDeRechazo(err) != null ? 'rechazada' : 'sin-confirmar');
+            }
+          });
+        });
+        if (resultado === 'ok') count++;
+        else if (resultado === 'rechazada') rechazadas.push(transferencia.id);
+        else sinConfirmar = transferencia.id;
+      }
+      // Una rechazada no queda pendiente: repetirla daría el mismo rechazo, y la hoja quedaría ofrecida para siempre.
+      const pendientes = [...(sinConfirmar != null ? [sinConfirmar] : []), ...noIntentadas];
+      this.rutaPendiente = pendientes.length > 0 ? { hoja, ids: pendientes } : null;
+      if (pendientes.length === 0 && rechazadas.length === 0) {
+        this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+      } else {
+        const partes = [`Hoja #${hoja.id}: asignada a ${count} transferencias.`];
+        if (sinConfirmar != null) partes.push(`Sin confirmar: ${sinConfirmar} (pudo haberse asignado).`);
+        if (noIntentadas.length > 0) partes.push(`Sin intentar: ${noIntentadas.join(', ')}.`);
+        if (rechazadas.length > 0) partes.push(`No se pudo asignar a: ${rechazadas.join(', ')}.`);
+        if (pendientes.length > 0) {
+          partes.push('Quedaron seleccionadas: volvé a asignar para usar la misma hoja (repetir es seguro).');
+        }
+        this.notificacionService.openWarn(partes.join(' '), 15);
+      }
+    } catch (error) {
+      console.error('Error en asignación de ruta:', error);
+      this.notificacionService.openWarn('Ocurrió un error durante la asignación');
+    } finally {
+      this.cargandoService.closeDialog(requestId);
+      this.selection.clear();
+      this.onFilter();
+    }
+  }
+
+  /** Tras releer, vuelve a marcar las transferencias que quedaron sin asignar a la hoja pendiente. */
+  private reseleccionarPendientesDeRuta() {
+    const pendiente = this.rutaPendiente;
+    if (pendiente == null) return;
+    // La que al releer ya trae hoja se asignó (era la «sin confirmar»): deja de estar pendiente.
+    const yaAsignadas = this.dataSource.data.filter((t) => t.hojaRuta != null).map((t) => t.id);
+    pendiente.ids = pendiente.ids.filter((id) => !yaAsignadas.some((a) => a == id));
+    if (pendiente.ids.length === 0) {
+      this.rutaPendiente = null;
+      return;
+    }
+    // Cada relectura crea filas nuevas: se sacan las anteriores de la selección para no duplicarlas.
+    const viejas = this.selection.selected.filter((t) => pendiente.ids.some((id) => id == t.id));
+    if (viejas.length > 0) this.selection.deselect(...viejas);
+    const filas = this.dataSource.data.filter((t) => t.hojaRuta == null && pendiente.ids.some((id) => id == t.id));
+    if (filas.length > 0) this.selection.select(...filas);
   }
 
   handlePageEvent(e: PageEvent) {
