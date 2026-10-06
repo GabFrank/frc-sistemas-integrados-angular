@@ -36,6 +36,7 @@ import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
 import { Inmueble } from '../../inmueble/models/inmueble.model';
 import { Equipo } from '../../equipos/models/equipo.model';
 import { EnteVinculacionDialogComponent, EnteVinculacionDialogData } from '../dialogs/ente-vinculacion-dialog/ente-vinculacion-dialog.component';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /**
  * Lecturas donde un error NO puede confundirse con «no existe» o «no hay»: el error de red y el del servidor
@@ -344,8 +345,9 @@ export class EnteService {
               return this.genericService.onSave<Ente>(this.saveEnteGQL, input, null, null, true, PROPAGAR_ERROR_DE_RED).pipe(
                 take(1),
                 catchError((error) => {
-                  // Un error del servidor ya lo avisó el genérico; en el corte por tiempo, el link
-                  if (!Array.isArray(error) && !esTimeoutDeLink(error)) {
+                  // Un rechazo del servidor ya lo avisó el genérico; en el corte por tiempo, el link. La respuesta
+                  // vacía llega como arreglo pero el genérico solo la nombra: se avisa igual.
+                  if (!esRechazoDelServidor(error) && !esTimeoutDeLink(error)) {
                     this.notificacionService.openWarn('No se pudo registrar el bien: no se seleccionó. Volvé a buscarlo.', 6);
                   }
                   return of(undefined);
