@@ -61,12 +61,12 @@ describe('GenericCrudService.onSave', () => {
     expect(r.valores).toEqual([]);
     expect(erroresDeRechazo(r.error)).toBeNull();
     expect(cerrados).toEqual([7]);
-    expect(avisos).toEqual(['No se pudo confirmar si se guardó (Error de red): pudo haberse aplicado, verificá antes de repetir.']);
+    expect(avisos).toEqual(['No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir.']);
   });
 
   it('con un status HTTP lo dice en el aviso', () => {
     leer(service.onSave(mutation(throwError(() => ({ networkError: { status: 500 } }))), {}));
-    expect(avisos[0]).toContain('HTTP 500');
+    expect(avisos).toEqual(['No se pudo confirmar si se guardó: el servidor respondió HTTP 500. Verificá antes de repetir.']);
   });
 
   it('con networkError.show = false falla sin avisar', () => {

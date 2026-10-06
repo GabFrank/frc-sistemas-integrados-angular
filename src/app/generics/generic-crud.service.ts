@@ -647,12 +647,12 @@ export class GenericCrudService {
             // cliente corte), así que se dice eso y no «no se guardó». Calla quien avisa por su cuenta
             // (`show: false`); el corte por tiempo ya lo avisó el link.
             if (errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
-              this.avisarErrorSinRepetir(
-                gql,
-                "No se pudo confirmar si se guardó (" + mensajeErrorTransporte(error)
-                  + "): pudo haberse aplicado, verificá antes de repetir.",
-                8
-              );
+              // Con un status HTTP el servidor respondió: se dice cuál, sin «pudo haberse aplicado».
+              const status = error?.networkError?.status ?? error?.status;
+              const texto = typeof status === "number" && status > 0
+                ? `No se pudo confirmar si se guardó: el servidor respondió HTTP ${status}. Verificá antes de repetir.`
+                : "No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir.";
+              this.avisarErrorSinRepetir(gql, texto, 8);
             }
             obs.error(error);
           },
