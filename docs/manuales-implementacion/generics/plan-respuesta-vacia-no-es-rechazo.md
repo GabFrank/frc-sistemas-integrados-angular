@@ -123,3 +123,48 @@ error de red). Va a un PR propio del #390.
 | A | Diálogos de financiero reintentables ante cualquier error | media | anotado para un PR propio |
 | A | La respuesta vacía llega como arreglo con el texto exacto por los seis caminos | — | verificado |
 | B | Doble aviso en la rama incierta | baja | se mantiene (el del genérico no dice qué hacer) |
+
+## Implementación: desvíos (2026-10-06)
+
+- **Fase 3 acotada a producto, familia y ente.** Subfamilia y presentación ya tratan la respuesta vacía en el alta
+  (cartel de «alta sin confirmar»); el `Array.isArray` que les queda es de la rama de edición, donde reintentar es
+  inocuo.
+- **Precio con el principal ya bajado**: el aviso nuevo sale ante cualquier «sin respuesta» (respuesta vacía, red
+  o corte), no solo ante la respuesta vacía. En el corte se suma al aviso del link: el link no sabe que el principal
+  ya se quitó.
+- No tocado (previo): en el cobro de un delivery, cuando el filial no registra la línea (descuento único) el
+  servicio genérico muestra antes «Guardado con éxito»; y en la venta, un resultado sin id y sin error solo dice
+  «Ocurrió un problema al guardar», sin pedir verificar. Quedan anotados.
+
+## Prueba de runtime (2026-10-06)
+
+Central local :8081 (schedulers de replicación apagados, verificado), desktop en el navegador.
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| Ajuste de stock con **cuerpo HTTP vacío real** | la petición `saveMovimientoStock` se desvió en el navegador a una respuesta 200 sin cuerpo | pasa por el link y el genérico («Ups… Respuesta vacía del servidor») y queda **sin confirmar**: bloquea la sucursal, relee y avisa «todavía no se ve aplicado» |
+| Ajuste de stock: rechazo | servicio reemplazado | sigue reintentable, sin pendiente |
+| Precio: respuesta vacía | servicio reemplazado | cierra con «No se pudo confirmar el guardado…» |
+| Precio: respuesta vacía o red con el principal ya bajado | servicio reemplazado | cierra con «…el principal anterior ya se había quitado…» |
+| Precio: rechazo (sin y con principal bajado) | servicio reemplazado | queda abierto / «No se guardó… quedó sin precio principal» |
+| Código: respuesta vacía / rechazo | servicio reemplazado | cierra y recarga con aviso / queda abierto |
+
+**Sin probar en pantalla**:
+- **PDV (venta y cobro de delivery, fase 1)**: la pantalla de venta no abre en el desktop servido por web de esta
+  sesión («No se pudo abrir VentaTouchComponent»). Queda verificado por lectura (auditoría del diff, con tabla de
+  verdad por lugar) y por `npm run check`.
+- **Fase 3** (producto, familia, ente): no se llegó a disparar el guardado; es una condición por lugar.
+
+En la prueba no se guardó nada: el stock del producto usado quedó igual.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+Sin hallazgos medios ni altos. Verificó los cuatro llamadores de los dos manejadores de cobro (orden y tipos), los
+imports y una tabla de verdad de los nueve lugares por rechazo / respuesta vacía / red / corte: solo cambia la
+respuesta vacía, más el texto del `null` del cobro y el caso del principal ya bajado.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Cobro: el `null` del filial llega después de un «Guardado con éxito» del genérico | baja | previo; anotado |
+| Precio: la rama nueva también toma la red y el corte | baja | aceptado; anotado como desvío |
+| Venta: tras el aviso nada impide volver a guardar | — | mismo diseño que ya tenían la red y el corte; fuera de este PR |
