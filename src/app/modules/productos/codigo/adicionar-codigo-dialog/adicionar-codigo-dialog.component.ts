@@ -18,6 +18,7 @@ import {
 import { PrinterInfo } from "../../../../commons/core/electron/electron.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
+import { esRechazoDelServidor } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 export class AdicionarCodigoData {
   codigo: Codigo;
@@ -371,10 +372,10 @@ export class AdicionarCodigoDialogComponent implements OnInit {
           .pipe(untilDestroyed(this))
           .subscribe({ error: (error) => {
             this.guardando = false;
-            if (Array.isArray(error)) {
+            if (esRechazoDelServidor(error)) {
               return; // rechazo del servidor (ya se avisó): no se guardó, se puede corregir y reintentar
             }
-            // Sin respuesta: pudo haberse guardado. Se cierra y quien abrió recarga los códigos.
+            // Sin respuesta (red, corte o respuesta vacía, que también llega como arreglo): pudo haberse guardado. Se cierra y quien abrió recarga los códigos.
             if (!esTimeoutDeLink(error)) {
               this.notificacionSnackBar.openWarn(
                 "No se pudo confirmar el guardado del código: pudo haberse guardado. Revisá los códigos antes de reintentar.", 10);

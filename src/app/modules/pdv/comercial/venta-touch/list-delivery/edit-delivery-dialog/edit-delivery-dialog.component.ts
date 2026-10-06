@@ -26,6 +26,7 @@ import { ClienteService } from '../../../../../personas/clientes/cliente.service
 import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/descuento-dialog/descuento-dialog.component';
 import { VentaService } from '../../../../../operaciones/venta/venta.service';
 import { Venta } from '../../../../../operaciones/venta/venta.model';
+import { esRechazoDelServidor } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface EditDeliveryDialogData {
   delivery: Delivery;
@@ -644,7 +645,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
           .pipe(finalize(() => (this.guardandoCobro = false)), untilDestroyed(this))
           .subscribe({ error: (err) => {
             this.cobroSinRespuesta = false;
-            this.cobroNoRegistrado(err, previo);
+            this.cobroNoRegistrado(esRechazoDelServidor(err), previo);
           }, next: cbRes => {
           this.cobroSinRespuesta = false;
           if (cbRes != null) {
@@ -674,7 +675,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
               }
             }
           } else {
-            this.cobroNoRegistrado([], previo);
+            // El filial responde vacío sin guardar nada (p. ej. ya hay un descuento en el cobro)
+            this.cobroNoRegistrado(true, previo, true);
           }
         } })
       } else {
@@ -710,14 +712,15 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * La línea no quedó registrada: se devuelve el saldo a como estaba. Un error de negocio (array) no se aplicó y
-   * se puede reintentar; un error de red o un corte pudo haberse guardado igual en el filial, así que el delivery
-   * queda marcado y no se cobra ni se guarda hasta volver a leerlo de la lista (#390).
+   * La línea no quedó registrada: se devuelve el saldo a como estaba. Un rechazo del servidor no se aplicó y se
+   * puede reintentar; sin respuesta (red, corte o respuesta vacía, que también llega como arreglo) pudo haberse
+   * guardado igual en el filial, así que el delivery queda marcado y no se cobra ni se guarda hasta volver a leerlo
+   * de la lista (#390). `sinMotivo`: el servidor no dio error ni resultado; el aviso es el único que ve el cajero.
    */
-  private cobroNoRegistrado(err: any, previo: {
+  private cobroNoRegistrado(rechazado: boolean, previo: {
     valorParcialPagado: number; vuelto: any; saldo: any; isVuelto: boolean; isDescuento: boolean; isAumento: boolean;
     moneda: Moneda; formaPago: FormaPago;
-  }): void {
+  }, sinMotivo = false): void {
     this.valorParcialPagado = previo.valorParcialPagado;
     this.vueltoControl.setValue(previo.vuelto);
     this.saldoControl.setValue(previo.saldo);
@@ -726,8 +729,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     this.isAumento = previo.isAumento;
     this.selectedMoneda = previo.moneda;
     this.selectedFormaPago = previo.formaPago;
-    if (Array.isArray(err)) {
-      this.notificacionSnackbar.openWarn('No se pudo registrar el cobro: reintentá.', 5);
+    if (rechazado) {
+      this.notificacionSnackbar.openWarn(sinMotivo
+        ? 'El servidor no registró la línea (¿ya hay un descuento en este cobro?)'
+        : 'No se pudo registrar el cobro: reintentá.', 5);
       return;
     }
     if (this.selectedDelivery) {

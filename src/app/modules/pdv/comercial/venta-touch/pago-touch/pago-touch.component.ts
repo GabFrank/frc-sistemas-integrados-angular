@@ -109,6 +109,7 @@ import {
   TIMEOUT_CONSULTA_DE_FONDO_MS,
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
 } from "../../../../../generics/generic-crud.service";
+import { esRechazoDelServidor } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -725,12 +726,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 this.cobroDetalleList.push(item);
                 if (esLineaNueva) this.escanearSiEsTarjeta(item);
               } else {
-                this.cobroDeliveryNoRegistrado([], pagadoAntes, cambio);
+                // El filial responde vacío sin guardar nada (p. ej. ya hay un descuento en el cobro)
+                this.cobroDeliveryNoRegistrado(true, pagadoAntes, cambio, true);
               }
             },
             error: (err) => {
               this.cobroDeliveryEnVuelo = false;
-              this.cobroDeliveryNoRegistrado(err, pagadoAntes, cambio);
+              this.cobroDeliveryNoRegistrado(esRechazoDelServidor(err), pagadoAntes, cambio);
             }
           });
       } else {
@@ -1381,16 +1383,19 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * La línea del delivery no quedó registrada: se devuelve lo sumado. Un error de negocio (array) no se aplicó;
-   * uno de red o un corte pudo haberse guardado en el filial: el delivery queda marcado y no se cierra hasta
-   * volver a leerlo de la lista (#390).
+   * La línea del delivery no quedó registrada: se devuelve lo sumado. Un rechazo del servidor no se aplicó; sin
+   * respuesta (red, corte o respuesta vacía, que también llega como arreglo) pudo haberse guardado en el filial:
+   * el delivery queda marcado y no se cierra hasta volver a leerlo de la lista (#390).
+   * `sinMotivo`: el servidor no dio error ni resultado, así que el aviso es el único que ve el cajero.
    */
-  private cobroDeliveryNoRegistrado(err: any, pagadoAntes: number, cambio: number): void {
+  private cobroDeliveryNoRegistrado(rechazado: boolean, pagadoAntes: number, cambio: number, sinMotivo = false): void {
     this.valorParcialPagado = pagadoAntes;
     this.formGroup.get("valor").setValue((this.data.valor - this.valorParcialPagado) / (cambio || 1));
     this.formGroup.controls.saldo.setValue(this.data.valor - this.valorParcialPagado);
-    if (Array.isArray(err)) {
-      this.notificacionSnackbar.openWarn('No se pudo registrar el cobro: reintentá.', 5);
+    if (rechazado) {
+      this.notificacionSnackbar.openWarn(sinMotivo
+        ? 'El servidor no registró la línea (¿ya hay un descuento en este cobro?)'
+        : 'No se pudo registrar el cobro: reintentá.', 5);
       return;
     }
     if (this.data?.delivery) {

@@ -138,9 +138,9 @@ export class AddFamiliaDialogComponent implements OnInit {
       },
       error: (error) => {
         fin();
-        // Rechazo del servidor o respuesta vacía: el servicio ya avisó. En el corte por tiempo avisa el link.
-        if (esRechazoDelServidor(error) || Array.isArray(error) || esTimeoutDeLink(error)) return;
-        // Sin respuesta: pudo haberse guardado. Reintentar es seguro: el nombre de la familia es único en el
+        // Rechazo del servidor: el servicio ya avisó. En el corte por tiempo avisa el link.
+        if (esRechazoDelServidor(error) || esTimeoutDeLink(error)) return;
+        // Sin respuesta (también la respuesta vacía, que el servicio solo nombra): pudo haberse guardado. Reintentar es seguro: el nombre de la familia es único en el
         // servidor (alta) y la edición lleva su id.
         this.notificationBar.openWarn(
           'No se pudo confirmar el guardado. Podés volver a intentar: si ya se había guardado, el servidor rechaza el nombre repetido.', 8);
