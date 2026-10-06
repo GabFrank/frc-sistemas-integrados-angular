@@ -28,6 +28,7 @@ import { concat, defer } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
 import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Lectura de precios antes de guardar: error de red y de servidor llegan acá (un solo aviso, el del diálogo). */
 const LECTURA_PRECIOS: QueryError = {
@@ -317,13 +318,19 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       }
     }, error => {
       this.cargandoDialog.closeDialog(requestId);
-      if (Array.isArray(error) && !seBajoElPrincipal) {
+      // Una respuesta vacía también llega como arreglo, pero no es un rechazo: pudo haberse guardado
+      const rechazado = esRechazoDelServidor(error);
+      if (rechazado && !seBajoElPrincipal) {
         // El servidor respondió que no (ya lo avisó el servicio) y no se tocó nada más: se puede corregir y reintentar
         return;
       }
-      if (Array.isArray(error)) {
+      if (rechazado) {
         this.notificacionSnackBar.openWarn(
           'No se guardó el precio nuevo y el principal anterior ya se había quitado: la presentación quedó sin precio principal. Revisá sus precios.', 12);
+      } else if (seBajoElPrincipal) {
+        // Se avisa siempre (también tras el corte por tiempo): el link no sabe que el principal ya se quitó
+        this.notificacionSnackBar.openWarn(
+          'No se pudo confirmar si el precio nuevo se guardó y el principal anterior ya se había quitado: la presentación pudo quedar sin precio principal. Revisá sus precios.', 12);
       } else if (!esTimeoutDeLink(error)) {
         // Sin respuesta: pudo haberse guardado (en el corte por tiempo ya avisa el link)
         this.notificacionSnackBar.openWarn(

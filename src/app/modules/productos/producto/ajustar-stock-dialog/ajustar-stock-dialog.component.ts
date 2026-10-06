@@ -15,6 +15,7 @@ import { MovimientoStock, MovimientoStockInput } from '../../../operaciones/movi
 import { TipoMovimiento } from '../../../operaciones/movimiento-stock/movimiento-stock.enums';
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Stock actual: el error de red y el del servidor llegan al diálogo, que avisa; nunca un 0 inventado (#390). */
 const LECTURA_STOCK: QueryError = {
@@ -311,11 +312,11 @@ export class AjustarStockDialogComponent implements OnInit {
         error: (error) => {
           this.cargandoService.closeDialog(requestId);
           this.guardando = false;
-          if (Array.isArray(error)) {
+          if (esRechazoDelServidor(error)) {
             // El servidor respondió que no (ya lo avisó el servicio): no se aplicó y se puede reintentar
             return;
           }
-          // Sin respuesta: pudo haberse aplicado. Se relee el stock y se compara antes de permitir otro intento.
+          // Sin respuesta (red, corte o respuesta vacía, que también llega como arreglo): pudo haberse aplicado. Se relee el stock y se compara antes de permitir otro intento.
           this.ajusteSinConfirmar = { sucursalId: movimientoStockInput.sucursalId, base, diferencia };
           this.pendienteEnSucursal = true;
           if (this.sucursalControl.enabled) {
@@ -323,7 +324,7 @@ export class AjustarStockDialogComponent implements OnInit {
             this.sucursalControl.disable({ emitEvent: false });
           }
           this.stockCargado = false;
-          // Un solo aviso: lo da la relectura (se aplicó / todavía no se ve / cambió / no se pudo leer)
+          // El aviso propio lo da la relectura (se aplicó / todavía no se ve / cambió / no se pudo leer)
           this.cargarStockActual();
         }
       });

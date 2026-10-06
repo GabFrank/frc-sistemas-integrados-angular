@@ -48,7 +48,7 @@ export class CodigoService {
   onSaveCodigo(input: CodigoInput, servidor = true): Observable<any> {
     if(input.usuarioId==null) input.usuarioId = this.mainService?.usuarioActual?.id;
     if(input.principal==false) input.principal = null;
-    // Propaga el error de red (#390): un error en array es un rechazo del servidor; cualquier otro, incierto
+    // Propaga el error de red (#390): rechazo o incierto lo decide esRechazoDelServidor (la respuesta vacía es incierta)
     return this.genericService.onSave(this.saveCodigo, input, null, null, servidor, PROPAGAR_ERROR_DE_RED);
   }
 

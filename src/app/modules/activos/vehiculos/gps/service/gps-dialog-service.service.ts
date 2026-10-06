@@ -18,7 +18,8 @@ export class GpsDialogService {
   private dialog = inject(MatDialog);
   private assetCommonDialogService = inject(AssetCommonDialogService);
 
-  abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
+  /** Emite `true` si se guardó y `'sin-confirmar'` si un alta quedó sin respuesta: en los dos casos refresca. */
+  abrirFormulario(gps?: Gps): Observable<boolean | string | undefined> {
     const dialogRef = this.dialog.open(GPSComponent, {
       width: '800px',
       data: gps,
@@ -35,12 +36,17 @@ export class GpsDialogService {
   }
 
   abrirConfiguracion(gps: Gps): void {
-    this.dialog.open(GpsConfigDialogComponent, {
+    const dialogRef = this.dialog.open(GpsConfigDialogComponent, {
       width: '900px',
       data: gps,
       disableClose: false,
       autoFocus: false,
       panelClass: 'modern-dialog'
+    });
+    // El diálogo trabaja sobre una copia: la lista se relee si se envió o guardó algo (también al cerrar con Esc).
+    const dialogo = dialogRef.componentInstance;
+    dialogRef.afterClosed().pipe(take(1)).subscribe(() => {
+      if (dialogo.huboCambios) this.gpsService.refrescar();
     });
   }
 

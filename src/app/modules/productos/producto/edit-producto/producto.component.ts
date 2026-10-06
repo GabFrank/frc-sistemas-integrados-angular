@@ -108,6 +108,7 @@ import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.c
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -615,8 +616,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
         .onSaveProducto(productoInput)
         .pipe(untilDestroyed(this))
         .subscribe({ error: (error) => {
-          // Un rechazo del servidor (array) ya lo avisa el servicio; sin respuesta, pudo haberse guardado
-          if (!Array.isArray(error) && !esTimeoutDeLink(error)) {
+          // Un rechazo del servidor ya lo avisa el servicio; sin respuesta (también la respuesta vacía, que llega
+          // como arreglo y el servicio solo nombra) pudo haberse guardado
+          if (!esRechazoDelServidor(error) && !esTimeoutDeLink(error)) {
             this.notificacionService.openWarn(
               'No se pudo confirmar el guardado del producto: pudo haberse guardado. Revisalo en la lista antes de reintentar.', 10);
           }
