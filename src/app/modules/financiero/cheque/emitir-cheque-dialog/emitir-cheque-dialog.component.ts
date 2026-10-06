@@ -45,10 +45,15 @@ export class EmitirChequeDialogComponent implements OnInit {
       conceptoControl: this.conceptoControl,
     });
 
-    this.chequeraService.onGetChequeras(0, 200).pipe(untilDestroyed(this)).subscribe(res => {
-      // Solo chequeras activas con hojas disponibles.
-      this.chequeras = (res || []).filter(
-        c => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles == null || c.hojasDisponibles > 0));
+    const sinChequeras = () => this.notificacion.openWarn('No se pudieron cargar las chequeras: cerrá y volvé a abrir para reintentar.', 6);
+    this.chequeraService.onLeerChequeras(0, 200).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { sinChequeras(); return; }
+        // Solo chequeras activas con hojas disponibles.
+        this.chequeras = res.filter(
+          c => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles == null || c.hojasDisponibles > 0));
+      },
+      error: sinChequeras,
     });
   }
 
