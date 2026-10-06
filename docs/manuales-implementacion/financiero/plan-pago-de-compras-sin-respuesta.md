@@ -171,3 +171,53 @@ las filas y cartel con los montos; filtro precargado tras el alta sin respuesta.
 | B | El usuario no reconoce el gasto recién creado en la lista | media | lista filtrada por lo enviado |
 | A | `cargar()` sin contador; chequeras viejas; devolver repetido | media | contador; se releen; se relee ante el rechazo |
 | B | Idempotencia del pago en el central | baja | anotado |
+
+## Implementación: desvíos (2026-10-06)
+
+- **Rechazo del pago**: la relectura **conserva lo armado** (selección, montos, formas de pago, plan de cheques) si
+  las mismas solicitudes siguen con el mismo saldo; si algo cambió, se suelta y se avisa «La lista de pendientes
+  cambió». Evita rehacer todo ante un rechazo corregible (p. ej. saldo insuficiente en la caja).
+- **Alta sin respuesta**: «Guardar» queda deshabilitado hasta tocar «Entendido» en el cartel (que se ve también
+  dentro del formulario): sin eso se podía reenviar antes de mirar la lista.
+- El cartel y las marcas del pago sin confirmar duran hasta cerrar el diálogo (un pago confirmado lo cierra).
+- El cartel del alta sin confirmar no cierra con valor ni bloquea Esc: no mueve plata.
+- Sin tocar (previo): tras devolver una solicitud con éxito no se recalcula la selección.
+
+## Prueba de runtime (2026-10-06)
+
+Central local :8081 (replicación apagada, schedulers verificados), caja mayor local, gasto de prueba «PRUEBA390 13B
+GASTO» por 10.000 creado desde el diálogo.
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| Alta de gasto con cuerpo HTTP vacío | real (petición desviada en el navegador) | aviso, cartel, vuelve a la lista filtrada por la descripción, formulario conservado |
+| Alta de gasto rechazada | servicio reemplazado | queda en el formulario con el mensaje |
+| Alta de gasto / reenvío tras sin respuesta | real / servicio reemplazado | se crea / «Guardar» deshabilitado hasta «Entendido» |
+| Alta de vale con cuerpo vacío | real | igual que el gasto, filtrada por el funcionario |
+| **Pago parcial (4.000) que no llega al servidor** | real, cuerpo vacío | selección y líneas sueltas de inmediato, primer paso, cartel «SP-000012: se pagaban 4.000 (saldo antes 10.000)», fila marcada, saldo releído 10.000 |
+| **Pago parcial que SÍ llega y se pierde la respuesta** | real: la petición se envía y la respuesta se descarta en el navegador | el central registró el pago; el diálogo muestra el cartel y el saldo releído **6.000** |
+| Pago total rechazado por lista vieja | real: el mismo pago entra antes por fuera | «La solicitud #15 ya está CONCLUIDO», se relee, la fila ya no está y la selección se suelta |
+| Rechazo sin cambios en la lista | servicio reemplazado | mensaje; selección, monto y línea conservados |
+| Sin respuesta («central offline») y la relectura falla | servicio reemplazado | lista vacía, nada pagable, cartel acumulado; Reintentar la trae con la fila marcada |
+| «Confirmar» durante una relectura lenta | servicio reemplazado | deshabilitado |
+| Cerrar con Cancelar tras un pago sin confirmar | real | se cierran los dos diálogos y la caja se refresca (saldo actualizado) |
+| Devolver a compras: sin respuesta / rechazo | servicio y diálogo de motivo reemplazados | aviso y relectura en los dos |
+
+Los dos pagos de prueba se anularon; la caja local quedó en su saldo original. Queda en la base local el gasto de
+prueba, pendiente.
+
+Sin probar: los modos de liquidación, finiquito y aguinaldo, y el pago de compras con datos reales (comparten el
+mismo camino que el gasto); el plan de cheques conservado tras un rechazo; Esc con el diálogo bloqueado (solo se
+verificó que queda deshabilitado).
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+Sin hallazgos altos; no encontró ningún camino de doble pago.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Tras un alta sin respuesta se podía reabrir el formulario y reenviar antes de mirar la lista | media | cartel visible en el formulario; «Guardar» deshabilitado hasta «Entendido» (probado) |
+| Rechazo con el plan de cheques ya generado: el botón reaparecía y duplicaba las líneas | media | el plan sigue generado si la selección se conserva |
+| Dos avisos seguidos tras un rechazo con la lista cambiada | media | se dejan: salen en cola, uno explica el motivo y el otro qué hacer |
+| El filtro por funcionario podría no coincidir con el nombre de la fila | baja | se deja; el cartel dice que la lista quedó filtrada |
+| Selección, stepper, cierre, respuesta tardía, helper y consumidores de `mutar` | — | verificado |

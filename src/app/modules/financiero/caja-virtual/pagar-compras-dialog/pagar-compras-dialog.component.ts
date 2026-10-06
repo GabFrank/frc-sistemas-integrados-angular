@@ -401,7 +401,15 @@ export class PagarComprasDialogComponent implements OnInit {
         this.aplicarFiltro();
         // Las filas son nuevas: sin esto quedaban las líneas, el balance y el proveedor de la selección
         // anterior, con «Confirmar» habilitado sobre notas que ya no estaban tildadas.
+        const planYaGenerado = this.planGenerado;
+        const chequeraDelPlan = this.planChequeraSel;
         this.recomputarSeleccion();
+        // Si la selección se conservó, sus líneas de cheque siguen ahí: el plan sigue generado (si no, el botón
+        // volvería a aparecer y duplicaría las líneas).
+        if (this.haySeleccion && planYaGenerado) {
+          this.planGenerado = true;
+          this.planChequeraSel = chequeraDelPlan;
+        }
         if (!this.haySeleccion) this.volverAlPrimerPaso();
       },
       error: () => {

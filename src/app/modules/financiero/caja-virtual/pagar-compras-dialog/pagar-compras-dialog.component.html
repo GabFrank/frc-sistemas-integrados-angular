@@ -46,7 +46,7 @@
     </div>
     <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
       <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="crearVale()" [disabled]="creandoGasto">
+      <button mat-raised-button color="primary" (click)="crearVale()" [disabled]="creandoGasto || isLoading || altaSinConfirmar != null">
         <mat-icon>save</mat-icon> Guardar vale
       </button>
     </div>
@@ -99,7 +99,7 @@
     </div>
     <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
       <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="crearGasto()" [disabled]="creandoGasto">
+      <button mat-raised-button color="primary" (click)="crearGasto()" [disabled]="creandoGasto || isLoading || altaSinConfirmar != null">
         <mat-icon>save</mat-icon> Guardar gasto
       </button>
     </div>
@@ -117,11 +117,12 @@
     </div>
   </div>
 
-  <div class="aviso-sin-confirmar" *ngIf="altaSinConfirmar && !vistaNuevoGasto">
+  <div class="aviso-sin-confirmar" *ngIf="altaSinConfirmar">
     <mat-icon>warning</mat-icon>
     <div class="aviso-texto">
       <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b> Pudo haberse creado: fijate si figura en la
-      lista (quedó filtrada) antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario.
+      lista (quedó filtrada) antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario; para volver a
+      enviarlo, primero tocá «Entendido».
     </div>
     <button mat-stroked-button type="button" (click)="altaSinConfirmar = null">Entendido</button>
   </div>
