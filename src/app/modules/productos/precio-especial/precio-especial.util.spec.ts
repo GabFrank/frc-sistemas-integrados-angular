@@ -1,4 +1,6 @@
-import { estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, textoVigencia } from './precio-especial.util';
+import {
+  detalleAlCortar, esPrecioInactivo, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, precioPromocionalInicial, textoVigencia,
+} from './precio-especial.util';
 
 describe('precio-especial.util', () => {
   const hoy = new Date(2026, 9, 10, 15, 30);
@@ -34,5 +36,28 @@ describe('precio-especial.util', () => {
     expect(textoVigencia({ fechaDesde: '2026-10-01 00:00' })).toBe('Desde el 01/10/2026');
     expect(textoVigencia({ fechaHasta: '2026-10-31 00:00' })).toBe('Hasta el 31/10/2026');
     expect(textoVigencia({ fechaDesde: '2026-10-01 00:00', fechaHasta: '2026-10-31 00:00' })).toBe('01/10/2026 al 31/10/2026');
+  });
+
+  it('solo activo=false es inactivo: null o sin dato se tratan como activo', () => {
+    expect(esPrecioInactivo({ activo: false })).toBeTrue();
+    expect(esPrecioInactivo({ activo: true })).toBeFalse();
+    expect(esPrecioInactivo({ activo: null })).toBeFalse();
+    expect(esPrecioInactivo({})).toBeFalse();
+    expect(esPrecioInactivo(null)).toBeFalse();
+  });
+
+  it('la promoción de un precio inactivo arranca con su valor; la de uno activo, vacía', () => {
+    expect(precioPromocionalInicial({ activo: false, precio: 5000 })).toBe(5000);
+    expect(precioPromocionalInicial({ activo: true, precio: 5000 })).toBeNull();
+    expect(precioPromocionalInicial({ precio: 5000 })).toBeNull();
+    expect(precioPromocionalInicial({ activo: false, precio: 0 })).toBeNull();
+    expect(precioPromocionalInicial({ activo: false, precio: null })).toBeNull();
+    expect(precioPromocionalInicial({ activo: false })).toBeNull();
+    expect(precioPromocionalInicial(null)).toBeNull();
+  });
+
+  it('cortar un precio inactivo no promete volver al precio global', () => {
+    expect(detalleAlCortar(true)).toContain('inactivo');
+    expect(detalleAlCortar(false)).toContain('precio global');
   });
 });

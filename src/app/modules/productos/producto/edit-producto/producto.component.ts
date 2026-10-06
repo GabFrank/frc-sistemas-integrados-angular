@@ -1102,6 +1102,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .open(AdicionarPresentacionComponent, {
         data,
         width: "25%",
+        minWidth: "480px", // los tres toggles (Principal, Activo, Es promoción) en una fila
         disableClose: true,
       })
       .afterClosed()
@@ -1112,6 +1113,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
           // Recargar todas las presentaciones para asegurar sincronización completa
           this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
+        // Presentación de promoción: sigue con su precio. Va con el objeto guardado: la tabla todavía recarga
+        if (res?.id != null && res.promocion === true) this.abrirPrecio(res, null, true);
       });
   }
 
@@ -1282,15 +1285,21 @@ export class ProductoComponent implements OnInit, OnDestroy {
       return;
     }
     
+    this.abrirPrecio(presentacion, index === null ? null : this.selectedPrecio);
+  }
+
+  /** `promocion`: el alta llega marcada como precio de promoción (viene del alta de una presentación promo). */
+  private abrirPrecio(presentacion: Presentacion, precio: PrecioPorSucursal, promocion = false) {
     let data = new AdicionarPrecioPorSucursalData();
-    data.precio = index === null ? null : this.selectedPrecio;
+    data.precio = precio;
     data.presentacion = presentacion;
+    data.promocion = promocion;
     // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,
-        minWidth: '400px',
+        minWidth: '480px', // los tres toggles (Principal, Activo, Es promoción) en una fila
         disableClose: true,
       })
       .afterClosed()
@@ -1301,6 +1310,18 @@ export class ProductoComponent implements OnInit, OnDestroy {
         if (res != null) {
           this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
+        if (res?.id != null && res.promocion === true) {
+          // Precio de promoción guardado inactivo: falta decir en qué sucursales vale
+          if (this.puedeGestionarPrecios) {
+            this.abrirPromociones(res, presentacion);
+          } else {
+            this.notificacionService.openWarn(
+              'El precio quedó inactivo: alguien con permiso de precios tiene que cargarle las sucursales (ícono de promociones).', 10);
+          }
+        } else if (promocion && res == null) {
+          this.notificacionService.openWarn(
+            'La presentación quedó guardada como promoción, sin precio: agregáselo desde la fila cuando quieras.', 8);
+        }
       });
   }
 
@@ -1310,9 +1331,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onPrecioEspecial(precio: PrecioPorSucursal, presentacionIndex: number) {
+    this.abrirPromociones(precio, this.presentacionesDataSource.data[presentacionIndex]);
+  }
+
+  private abrirPromociones(precio: PrecioPorSucursal, presentacion: Presentacion) {
     const data = new PrecioEspecialDialogData();
     data.precio = precio;
-    data.presentacion = this.presentacionesDataSource.data[presentacionIndex];
+    data.presentacion = presentacion;
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
     data.productoDescripcion = this.selectedProducto?.descripcion;
     this.matDialog.open(PrecioEspecialDialogComponent, { data, disableClose: true, panelClass: 'precio-especial-panel' });

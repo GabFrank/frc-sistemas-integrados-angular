@@ -6,6 +6,7 @@
         <span class="pe-chip">{{ presentacionTexto }}</span>
         <span class="pe-chip" *ngIf="tipoPrecioTexto">{{ tipoPrecioTexto | titlecase }}</span>
         <span class="pe-chip pe-chip--tenue" *ngIf="!esPrincipal">No es el precio principal</span>
+        <span class="pe-chip pe-chip--tenue" *ngIf="precioInactivo">Precio inactivo</span>
       </div>
     </div>
     <button mat-icon-button class="pe-cerrar" (click)="onCerrar()" matTooltip="Cerrar" aria-label="Cerrar">
@@ -17,11 +18,12 @@
     <!-- Comparador: la etiqueta de precio -->
     <section class="pe-etiqueta" [class.pe-etiqueta--activa]="precioEspecial != null" aria-live="polite">
       <div class="pe-etiqueta__lado">
-        <span class="pe-etiqueta__rotulo">Precio actual</span>
-        <span class="pe-etiqueta__actual" [class.pe-tachado]="precioEspecial != null">
+        <span class="pe-etiqueta__rotulo">{{ rotuloPrecioGlobal }}</span>
+        <span class="pe-etiqueta__actual" [class.pe-tachado]="precioEspecial != null && !precioInactivo"
+          [class.pe-etiqueta__actual--inactivo]="precioInactivo">
           {{ precioGlobal | number: '1.0-0' }}
         </span>
-        <span class="pe-etiqueta__nota">Lo cobran todas las demás sucursales</span>
+        <span class="pe-etiqueta__nota">{{ notaPrecioGlobal }}</span>
       </div>
 
       <div class="pe-etiqueta__troquel" aria-hidden="true">
@@ -92,8 +94,11 @@
 
       <div class="pe-acciones">
         <p class="pe-ayuda">
-          Las fechas son opcionales y se cuentan completas. Si el precio actual está inactivo (una promo 2x1),
-          la promoción lo habilita solo en estas sucursales.
+          Las fechas son opcionales y se cuentan completas.
+          <ng-container *ngIf="!precioInactivo">Si el precio actual está inactivo (una promo 2x1),
+          la promoción lo habilita solo en estas sucursales.</ng-container>
+          <ng-container *ngIf="precioInactivo">Este precio está inactivo: la promoción lo habilita solo en estas
+          sucursales. El precio promocional viene del precio cargado: cambialo si la sucursal cobra otro valor.</ng-container>
           <ng-container *ngIf="!esPrincipal"> Las cajas sin tipos de precio configurados cobran solo el principal.</ng-container>
         </p>
         <div class="pe-botones">
@@ -142,7 +147,7 @@
               <button mat-icon-button matTooltip="Editar" aria-label="Editar" (click)="onEditar(f)">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button class="pe-cortar" matTooltip="Cortar: vuelve al precio actual" aria-label="Cortar" (click)="onCortar(f)">
+              <button mat-icon-button class="pe-cortar" [matTooltip]="tooltipCortar" aria-label="Cortar" (click)="onCortar(f)">
                 <mat-icon>block</mat-icon>
               </button>
             </ng-container>
