@@ -203,8 +203,6 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    // Desde que se manda el registro, un error que no sea un rechazo deja la duda de si el gasto se guardó.
-    let enviado = false;
     forkJoin({
       responsable: this.funcionarioService.onGetFuncionarioPorPersona(personaResponsableId, true),
       autorizado: personaAutorizadorId
@@ -215,7 +213,6 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
         if (!responsable?.id) {
           throw new Error('No se encontró el funcionario responsable.');
         }
-        enviado = true;
         return this.gastoService.registrarRetiroPreGastoHibrido(
           this.seleccionada!,
           caja,
@@ -237,9 +234,14 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.cargandoRetiro = false;
-        if (enviado && !(err instanceof Error) && erroresDeRechazo(err) == null) {
-          // Sin respuesta: el gasto pudo haberse guardado. Dejar el botón habilitado invitaba a registrar
-          // otro gasto por el mismo retiro (#390): se cierra, y quien abrió relee los gastos de la caja.
+        // Dejar el botón habilitado invitaba a registrar otro gasto por el mismo retiro (#390). Se cierra, y
+        // quien abrió relee los gastos de la caja, en los dos casos en que el gasto está o puede estar guardado:
+        if (err?.etapa === 'RETIRO') {
+          this.notificacion.openWarn('El gasto quedó registrado en la caja, pero no se pudo confirmar el retiro: revisá los gastos antes de repetirlo.', 10);
+          this.dialogRef.close(true);
+          return;
+        }
+        if (err?.etapa === 'GASTO' && erroresDeRechazo(err.causa) == null) {
           this.notificacion.openWarn('No se pudo confirmar si el retiro se registró: revisá los gastos de la caja antes de repetirlo.', 8);
           this.dialogRef.close(true);
           return;

@@ -34,6 +34,7 @@ describe('GenericCrudService.onSave', () => {
     const r = leer(service.onSave(mutation(of({ data: { data: { id: 5 } } })), {}));
     expect(r.valores).toEqual([{ id: 5 }]);
     expect(r.completo).toBeTrue();
+    expect(r.fallo).toBeFalse();
     expect(cerrados).toEqual([7]);
     expect(avisos).toEqual(['Guardado con éxito']);
   });
@@ -106,6 +107,14 @@ describe('GenericCrudService.onSave', () => {
     const r = leer(service.onSave(mutation(of(null)), {}));
     expect(r.fallo).toBeTrue();
     expect(esRechazoDelServidor(r.error)).toBeFalse();
+  });
+
+  it('una respuesta sin data ni errores falla como respuesta vacía', () => {
+    const r = leer(service.onSave(mutation(of({})), {}));
+    expect(r.fallo).toBeTrue();
+    expect(r.valores).toEqual([]);
+    expect(esRechazoDelServidor(r.error)).toBeFalse();
+    expect(avisos.length).toBe(1);
   });
 
   it('completa el usuarioId del input cuando viene vacío', () => {

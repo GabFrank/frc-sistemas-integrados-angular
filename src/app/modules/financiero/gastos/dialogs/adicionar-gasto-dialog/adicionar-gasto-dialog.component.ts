@@ -462,8 +462,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             this.tipoGastoControl.setValue(null);
           }
         },
-        error: () => {
+        error: (err) => {
           this.cargandoDialog.closeDialog(requestId);
+          // Sin respuesta pudo haberse registrado: el genérico ya avisó que hay que verificar (#390).
+          if (erroresDeRechazo(err) == null) return;
           this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
         }
       });

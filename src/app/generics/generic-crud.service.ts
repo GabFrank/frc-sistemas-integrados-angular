@@ -616,6 +616,8 @@ export class GenericCrudService {
         .subscribe({
           next: (res) => {
             if (!cerrar()) return;
+            // Ni errores ni data: no se puede decir que guardó (y leer `data` de ahí rompía sin terminar).
+            if (res.errors == null && res.data == null) res = RESPUESTA_VACIA;
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
@@ -658,7 +660,9 @@ export class GenericCrudService {
           },
           // La mutation terminó sin emitir nada: para quien llama es una respuesta vacía.
           complete: () => {
-            if (cerrar()) obs.error(limpiarErroresGraphQL(RESPUESTA_VACIA.errors));
+            if (!cerrar()) return;
+            this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + MENSAJE_RESPUESTA_VACIA, 5);
+            obs.error(limpiarErroresGraphQL(RESPUESTA_VACIA.errors));
           },
         });
     });

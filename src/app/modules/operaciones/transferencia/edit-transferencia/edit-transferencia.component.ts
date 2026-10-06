@@ -831,7 +831,7 @@ export class EditTransferenciaComponent implements OnInit {
           if (this.selectedTransferencia?.id == null) {
             this.onSaveTransferencia().then(() => {
               this.onSaveTransferenciaItem(res["item"]);
-            }).catch(() => {});
+            }, () => {});
           } else {
             this.onSaveTransferenciaItem(res["item"]);
           }
@@ -1976,7 +1976,7 @@ export class EditTransferenciaComponent implements OnInit {
           this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
           this.onClear();
         }
-      }).catch(() => {});
+      }, () => {});
     }
   }
 }
