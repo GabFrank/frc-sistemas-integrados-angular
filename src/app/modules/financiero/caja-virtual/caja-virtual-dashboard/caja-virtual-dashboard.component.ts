@@ -345,7 +345,13 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.dialog.open(ConteoCajaDialogComponent, {
       // Sin ancho fijo: la grilla de denominaciones define el tamaño (1 columna o varias).
       maxWidth: '96vw', maxHeight: '92vh', autoFocus: false, data,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res) return;
+      // Hasta que vuelvan los saldos el conteo no tiene contra qué ajustar: reabrirlo ya, con el saldo de
+      // antes, repetiría un ajuste que pudo haberse registrado (#390).
+      this.saldosNoDisponibles = true;
+      this.recargar();
+    });
   }
 
   cargarConfigYBancos() {
