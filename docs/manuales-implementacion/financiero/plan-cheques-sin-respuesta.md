@@ -165,3 +165,51 @@ cheque al día** para que figure en el dashboard; el filial no tiene el módulo 
 | A | Reintentar una edición manda el «siguiente número» viejo | media | aviso; al central |
 | B | Dos avisos en el éxito de la chequera | baja | se deja, anotado |
 | A | Emitir duplica; cobrar rechaza; quién abre y relee | — | verificado |
+
+## Implementación: desvíos (2026-10-06)
+
+- La lectura nueva de chequeras (`onLeerChequeras`) lleva el corte de 60 s y silencia el aviso del link: el aviso lo
+  da quien llama.
+- `onGetChequeras` (la lectura que no emite ante un error) queda con un solo llamador, `pagar-compras-dialog`: no se
+  tocó acá.
+- Sin tocar: si la relectura falla justo después de cobrar o anular, la fila queda sin acciones hasta «Reintentar»;
+  un 401 / 403 se trata como «sin respuesta».
+
+## Prueba de runtime (2026-10-06)
+
+Central local :8081 (replicación apagada, schedulers verificados), desktop en :4200 con **servidor local = filial
+:8080** y central = :8081. Cuenta bancaria local «000-REPORTE» y una chequera de prueba (rango 390001–390010).
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| Enrutado con servidor local | real | las tres lecturas del dashboard y `emitirCheque` salen a :8081; la misma lectura contra el filial :8080 responde «Field 'chequesSaldosPorChequera' … is undefined» |
+| Alta de chequera con cuerpo HTTP vacío | real | se cierra, aviso, la lista se relee (sin la chequera) |
+| Alta de chequera con error de red / rechazo / mientras guarda | servicio reemplazado | se cierra con aviso (antes quedaba colgada) / queda abierta sin aviso propio / no cerrable, «Cancelar» deshabilitado |
+| Alta de chequera | real | «Chequera creada» |
+| Edición de chequera sin respuesta | servicio reemplazado | queda abierta con «…Revisá el siguiente número…» |
+| Emitir diferido que **llega al central** y se pierde la respuesta | real | se cierra con «…cheque Nº 390001 (PRUEBA390 13E, Gs. 5.000): fijate en Chequeras si el próximo número avanzó…»; el cheque existe y el próximo número pasó a 390002 |
+| Emitir al día con cuerpo vacío (no llega) | real | se cierra; el aviso agrega «y en los movimientos de la cuenta» |
+| Emitir al día por más que el saldo (rechazo real) | real | «Saldo insuficiente en la cuenta bancaria»; queda abierto |
+| Emitir mientras guarda | servicio reemplazado | no cerrable |
+| Cobrar con la respuesta perdida | real | sin acciones mientras dura; al releer figura COBRADO |
+| Cobrar desde una fila vieja | real | «El cheque ya está cobrado» y relectura |
+| Anular con la respuesta perdida; anular otra vez | real | figura ANULADO; la segunda responde «Cheque anulado» sin mover plata |
+| Lectura del dashboard fallida | servicio reemplazado | cartel con Reintentar, sin quedar cargando; Reintentar lo quita |
+| Desactivar chequera con cuerpo vacío / lista ilegible / desactivar normal | real / servicio reemplazado / real | aviso y relectura / aviso, filas conservadas / «Chequera desactivada» |
+
+El cheque cobrado en la prueba se compensó con un ajuste: la cuenta local quedó en 3.300.000 sin reservas. Quedan en
+la base local la chequera de prueba (desactivada) y sus dos cheques (uno cobrado, uno anulado).
+
+Sin probar: Esc y clic afuera mientras guarda (solo se verificó que queda no cerrable); el corte real de 60 s; el
+modo web (`isLocal: false`), donde el enrutado no cambia.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+Sin hallazgos altos. Verificó que las seis operaciones van al central, los caminos de estado y los avisos por caso.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| La lectura nueva de chequeras esperaba 5 minutos (antes 60 s) con el modal abierto | media | corte de 60 s |
+| Doble aviso (link + propio) al fallar por tiempo la lectura de chequeras | baja | el link se silencia en esa lectura |
+| Fila sin acciones si la relectura falla tras cobrar o anular | baja | se deja: «Reintentar» la recupera |
+| 401 / 403 como «sin respuesta»; dos avisos en el éxito de la chequera | baja | se dejan |

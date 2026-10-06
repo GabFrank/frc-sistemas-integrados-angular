@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Chequera, ChequeraInput } from './chequera.model';
 import { GetChequeraGQL } from './graphql/getChequera';
 import { GetChequerasGQL } from './graphql/getChequeras';
@@ -13,6 +14,9 @@ const LECTURA_CHEQUERAS: QueryError = {
   networkError: { propagate: true, show: false },
   graphError: { propagate: true, show: false },
 };
+
+/** Mismo corte que tenía la lectura anterior (sin esto `onCustomQuery` espera 5 minutos); el aviso lo da quien llama. */
+const CONSULTA_CHEQUERAS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -53,7 +57,8 @@ export class ChequeraService {
    * nada ante un error: la pantalla quedaba con la lista vieja o vacía, sin aviso) (#390).
    */
   onLeerChequeras(page: number = 0, size: number = 10): Observable<Chequera[]> {
-    return this.genericService.onCustomQuery(this.getChequerasGQL, { page, size }, true, LECTURA_CHEQUERAS);
+    return this.genericService.onCustomQuery(this.getChequerasGQL, { page, size }, true, LECTURA_CHEQUERAS, undefined,
+      CONSULTA_CHEQUERAS);
   }
 
   /**
