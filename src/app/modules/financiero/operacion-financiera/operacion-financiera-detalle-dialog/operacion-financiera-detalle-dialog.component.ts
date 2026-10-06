@@ -70,7 +70,11 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
       next: op => {
         this.isLoading = false;
         this.isAnulando = false;
-        if (!op) return;
+        if (!op) {
+          // Relectura sin dato (la consulta falló y el genérico ya avisó): mismo criterio que su error.
+          if (!inicial) this.dialogRef.close(true);
+          return;
+        }
         this.op = op;
         this.tipoLabel = this.tipoLabels[op.tipoOperacion as any] || op.tipoOperacion;
         this.origenLabel = this.fuenteLabel(op.cajaMayorOrigen, op.cuentaBancariaOrigen);
