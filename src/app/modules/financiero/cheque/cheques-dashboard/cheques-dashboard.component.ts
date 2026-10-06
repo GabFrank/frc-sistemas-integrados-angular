@@ -65,6 +65,14 @@ export class ChequesDashboardComponent implements OnInit {
   dataSource = new MatTableDataSource<ChequeRow>([]);
   displayedColumns = ['numero', 'chequera', 'beneficiario', 'fechaEmision', 'fechaPago', 'estado', 'monto', 'acciones'];
   isLoading = false;
+  /**
+   * Alguna de las tres lecturas (lista, resumen, saldos) falló: lo que se ve puede ser de antes. Antes quedaba
+   * «cargando» con los datos viejos y sin aviso (#390).
+   */
+  lecturaFallo = false;
+  private fallos = { lista: false, resumen: false, saldos: false };
+  /** Número de la última lectura de cada tipo: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
+  private seq = { lista: 0, resumen: 0, saldos: 0 };
 
   // ── Gráfico (monto por día de pago) ──
   chartOptions: EChartsOption | null = null;
@@ -176,38 +184,65 @@ export class ChequesDashboardComponent implements OnInit {
   cargarSaldos() {
     // Los cards del sidebar muestran siempre los DIFERIDO pendientes (compromiso futuro),
     // independiente del estado filtrado en la tabla.
+    const n = ++this.seq.saldos;
     this.chequeService.onGetSaldosPorChequera(this.hastaStr, EstadoCheque.DIFERIDO)
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        this.saldos = res || [];
-        this.chequeraOpciones = this.saldos
-          .filter(s => s.chequera)
-          .map(s => ({ id: s.chequera.id, label: s.chequera.nombre || ('Chequera #' + s.chequera.id) }));
-        this.consolidar();
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (n !== this.seq.saldos) return;
+          this.marcarLectura('saldos', false);
+          this.saldos = res || [];
+          this.chequeraOpciones = this.saldos
+            .filter(s => s.chequera)
+            .map(s => ({ id: s.chequera.id, label: s.chequera.nombre || ('Chequera #' + s.chequera.id) }));
+          this.consolidar();
+        },
+        error: () => { if (n === this.seq.saldos) this.marcarLectura('saldos', true); },
       });
+  }
+
+  private marcarLectura(cual: 'lista' | 'resumen' | 'saldos', fallo: boolean) {
+    this.fallos[cual] = fallo;
+    this.lecturaFallo = this.fallos.lista || this.fallos.resumen || this.fallos.saldos;
   }
 
   cargarLista() {
     this.isLoading = true;
+    const n = ++this.seq.lista;
     this.chequeService.onGetChequesDashboard({
       desde: this.desdeStr, hasta: this.hastaStr,
       chequeraId: this.chequeraSel || undefined,
       estado: (this.estadoSel as EstadoCheque) || null,
-    }).pipe(untilDestroyed(this)).subscribe(res => {
-      this.isLoading = false;
-      this.chequesFull = (res || []).map(c => this.toRow(c));
-      this.aplicarFocoALista();
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (n !== this.seq.lista) return;
+        this.isLoading = false;
+        this.marcarLectura('lista', false);
+        this.chequesFull = (res || []).map(c => this.toRow(c));
+        this.aplicarFocoALista();
+      },
+      error: () => {
+        if (n !== this.seq.lista) return;
+        this.isLoading = false;
+        this.marcarLectura('lista', true);
+      },
     });
   }
 
   cargarResumen() {
+    const n = ++this.seq.resumen;
     this.chequeService.onGetResumenPorDia({
       desde: this.desdeStr, hasta: this.hastaStr,
       chequeraId: this.chequeraSel || undefined,
       estado: (this.estadoSel as EstadoCheque) || null,
-    }).pipe(untilDestroyed(this)).subscribe(res => {
-      this.resumen = res || [];
-      this.recalcularKpi();
-      this.construirGrafico();
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (n !== this.seq.resumen) return;
+        this.marcarLectura('resumen', false);
+        this.resumen = res || [];
+        this.recalcularKpi();
+        this.construirGrafico();
+      },
+      error: () => { if (n === this.seq.resumen) this.marcarLectura('resumen', true); },
     });
   }
 
