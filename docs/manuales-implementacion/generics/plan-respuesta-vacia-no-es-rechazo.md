@@ -176,8 +176,11 @@ bajado). Los errores se simularon reemplazando el método del servicio; no se gu
 En producto, familia y ente se probó además el rechazo (sin aviso propio) y el error de red (aviso propio),
 reemplazando el servicio. En el ente, el buscador y la consulta previa se reemplazaron por respuestas fijas.
 
-**Sin probar**: una respuesta vacía real al guardar la **venta** (haría falta armar una venta completa); su
-manejador se probó reemplazando el servicio y usa el mismo camino genérico que el ajuste de stock, probado real.
+**Tercera pasada: venta completa con respuesta vacía real.** En el PDV (filial local :8080, caja abierta) se cargó
+un producto por código (COCA COLA 1.5 L, 10.000 Gs) y se hizo el cobro rápido con la petición `saveVenta` desviada
+a un cuerpo vacío: salió «Ups… Respuesta vacía del servidor» y después «No se pudo guardar la venta. Verifique
+antes de continuar.»; el carrito quedó intacto y los botones habilitados. La venta no llegó al filial; después se
+vació el carrito sin guardar.
 
 En la prueba no se guardó nada: el stock del producto usado quedó igual.
 
