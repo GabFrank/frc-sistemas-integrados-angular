@@ -2,7 +2,7 @@ import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
   PdvCaja,
@@ -224,6 +224,19 @@ export class CajaService {
       null,
       null, servidor,
       sucId
+    );
+  }
+
+  /**
+   * La caja abierta del usuario, para saber si un alta que quedó sin respuesta (o fue rechazada) dejó una caja
+   * creada. A diferencia de {@link onGetByUsuarioIdAndAbierto}, termina siempre: `null` es «no tiene», y si no se
+   * pudo consultar falla (sin modal ni aviso; corte de mostrador) (#390).
+   */
+  onGetAbiertaDelUsuario(usuarioId: number, servidor: boolean = true): Observable<PdvCaja | null> {
+    return this.genericService.onGetById(
+      this.cajaPorUsuarioIdAndAbierto, usuarioId, null, null, servidor, null, null, null, true, null, null,
+      { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
+      { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
     );
   }
 

@@ -209,6 +209,49 @@ export class AdicionarCajaDialogComponent implements OnInit {
     }, 1000);
   }
 
+  /**
+   * El alta de la caja falló o quedó sin respuesta, pero la caja pudo haberse creado (o existir de un intento
+   * anterior): el filial rechaza una segunda caja abierta del mismo usuario, así que volver a elegir el maletín
+   * dejaba al cajero trabado. Si su caja abierta es la de este maletín y todavía no tiene apertura, se sigue
+   * con esa. Solo en el PDV (contra el filial), que es donde se crean cajas desde acá.
+   */
+  private adoptarCajaAbiertaOVolverAlMaletin(): void {
+    const maletin = this.selectedMaletin;
+    const usuarioId = this.mainService.usuarioActual?.id;
+    if (!this.isVentaTouch || maletin?.id == null || usuarioId == null) {
+      this.volverAlMaletin();
+      return;
+    }
+    this.cajaService.onGetAbiertaDelUsuario(usuarioId, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (caja) => {
+          if (caja?.id == null) {
+            this.volverAlMaletin();
+            return;
+          }
+          const esLaDeEsteIntento = caja.maletin?.id == maletin.id && caja.conteoApertura == null
+            && caja.fechaCierre == null;
+          if (!esLaDeEsteIntento) {
+            this.volverAlMaletin(`Ya tenés otra caja abierta (#${caja.id}): revisala antes de abrir una nueva.`);
+            return;
+          }
+          this.selectedCaja = caja;
+          this.cajaService.selectedCaja = caja;
+          this.notificacionBar.openWarn(`La caja ya había quedado abierta (#${caja.id}): se continúa con esa.`, 6);
+        },
+        error: () => this.volverAlMaletin(
+          'No se pudo verificar si la caja quedó abierta: revisá la lista de cajas antes de abrir otra.'),
+      });
+  }
+
+  private volverAlMaletin(aviso?: string): void {
+    this.selectedMaletin = null;
+    this.descripcionMaletinControl.setValue(null);
+    this.goTo("maletin");
+    if (aviso) this.notificacionBar.openWarn(aviso, 8);
+  }
+
   // cargarMonedas() {
   //   this.monedaService.onGetAll().subscribe((res) => {
   //     if (res != null) {
@@ -844,12 +887,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
               this.cajaService.selectedCaja = this.selectedCaja;
             }
           },
-          // El stepper ya avanzó a la apertura sin caja: se vuelve al maletín (#390). El aviso lo da el genérico.
-          error: () => {
-            this.selectedMaletin = null;
-            this.descripcionMaletinControl.setValue(null);
-            this.goTo("maletin");
-          },
+          // El stepper ya avanzó a la apertura sin caja. El aviso del error lo da el genérico (#390).
+          error: () => this.adoptarCajaAbiertaOVolverAlMaletin(),
         });
     }, 1000);
   }
