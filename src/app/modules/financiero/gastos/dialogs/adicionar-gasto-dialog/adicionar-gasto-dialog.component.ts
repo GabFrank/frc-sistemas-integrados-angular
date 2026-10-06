@@ -53,6 +53,27 @@ import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple
 import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 import { RetiroPreGastoData, RetiroPreGastoDialogComponent } from "../retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component";
+/** Monto como número, venga como número o como texto del control. */
+function monto(valor: any): number {
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** El filial guarda la observación recortada y en mayúsculas. */
+function observacionNormalizada(texto: any): string {
+  return (texto ?? '').toString().trim().toUpperCase();
+}
+
+/** ¿El gasto leído de la caja es el que se envió? Responsable, tipo, los tres retiros y la observación. */
+export function esElMismoGasto(leido: Gasto, enviado: Gasto): boolean {
+  return Number(leido?.responsable?.id) === Number(enviado?.responsable?.id)
+    && (leido?.tipoGasto?.id ?? null) == (enviado?.tipoGasto?.id ?? null)
+    && monto(leido?.retiroGs) === monto(enviado?.retiroGs)
+    && monto(leido?.retiroRs) === monto(enviado?.retiroRs)
+    && monto(leido?.retiroDs) === monto(enviado?.retiroDs)
+    && observacionNormalizada(leido?.observacion) === observacionNormalizada(enviado?.observacion);
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -143,6 +164,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   autorizado = true;
 
   gastoList: Gasto[] = [];
+  /** La lista de gastos de la caja se leyó al menos una vez: sin eso no se puede saber qué gasto es nuevo. */
+  private gastosCargados = false;
+  /** Un alta quedó sin respuesta y todavía no se sabe si el gasto se guardó: no se puede guardar de nuevo (#390). */
+  guardadoEnDuda = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
@@ -512,6 +537,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onGuardar() {
+    if (this.guardadoEnDuda) return;
     if (this.isVuelto == false) {
       const observacion = (this.observacionControl.value ?? "").toString().trim();
       if (observacion.length == 0) {
@@ -564,33 +590,29 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               } else {
                 gasto.finalizado = false;
               }
+              // Los gastos que ya estaban antes de enviar: si queda sin respuesta, uno nuevo e igual es este.
+              const esAlta = gasto.id == null;
+              const idsAntes = this.gastosCargados ? new Set(this.gastoList.map((g) => Number(g.id))) : null;
               this.gastoService
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
                 .subscribe({ next: (gastoResponse) => {
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
-                    if (this.mainService.usuarioActual?.persona?.id) {
-                      this.notificationHttpService.sendGastoNotification(
-                        gasto.id,
-                        this.mainService.sucursalActual.id,
-                        this.mainService.usuarioActual.persona.id,
-                        gasto.retiroGs,
-                        this.mainService.usuarioActual.persona.nombre,
-                        this.mainService.sucursalActual.nombre
-                      ).subscribe();
-                    }
-
+                    this.notificarGastoGuardado(gasto);
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
                   }
                   this.onCancelar();
                 },
-                // El formulario queda como está (no se pierde lo cargado). Sin respuesta, el gasto pudo
-                // haberse guardado: se relee la lista para que se vea antes de cargarlo de nuevo (#390).
+                // El formulario queda como está (no se pierde lo cargado). Un rechazo no guardó nada. Sin
+                // respuesta, el gasto pudo haberse guardado (y el ticket impreso): un alta no se puede repetir
+                // hasta ver si ya figura; una edición se puede repetir, alcanza con releer (#390).
                 error: (err) => {
-                  if (erroresDeRechazo(err) == null) this.cargarGastosDeCaja();
+                  if (erroresDeRechazo(err) != null) return;
+                  if (esAlta) this.verificarGastoEnDuda(gasto, idsAntes);
+                  else this.cargarGastosDeCaja();
                 } });
             }
           });
@@ -731,14 +753,68 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onGastoClick(gasto: Gasto) { }
 
+  private notificarGastoGuardado(gasto: Gasto): void {
+    if (!this.mainService.usuarioActual?.persona?.id) return;
+    this.notificationHttpService.sendGastoNotification(
+      gasto.id,
+      this.mainService.sucursalActual.id,
+      this.mainService.usuarioActual.persona.id,
+      gasto.retiroGs,
+      this.mainService.usuarioActual.persona.nombre,
+      this.mainService.sucursalActual.nombre
+    ).subscribe();
+  }
+
+  /**
+   * Un alta quedó sin respuesta. Se relee la lista de la caja con «Guardar» deshabilitado: si aparece un gasto
+   * que no estaba antes e igual al enviado, es ese y se da por guardado; si no aparece, se puede guardar de
+   * nuevo; si no se puede saber (la lista no se lee, o no se había leído antes), queda deshabilitado (#390).
+   */
+  private verificarGastoEnDuda(enviado: Gasto, idsAntes: Set<number> | null): void {
+    this.guardadoEnDuda = true;
+    this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .subscribe((gastos: Gasto[]) => {
+        if (gastos == null || idsAntes == null) {
+          if (gastos != null) this.mostrarGastos(gastos);
+          this.notificacionService.openWarn(
+            'No se pudo verificar si el gasto se guardó: cerrá y volvé a abrir Gastos antes de cargar otro.', 10);
+          return;
+        }
+        this.mostrarGastos(gastos);
+        const candidatos = gastos.filter((g) => !idsAntes.has(Number(g.id)) && esElMismoGasto(g, enviado));
+        this.guardadoEnDuda = false;
+        if (candidatos.length === 0) {
+          this.notificacionService.openWarn('El gasto no figura en la lista: podés guardarlo de nuevo.', 8);
+          return;
+        }
+        if (candidatos.length > 1) {
+          // No debería pasar; si pasa, que lo mire el cajero antes de hacer nada más.
+          this.notificacionService.openWarn('Hay más de un gasto igual en la lista: revisala antes de guardar otro.', 10);
+          this.goTo("lista-gastos");
+          return;
+        }
+        enviado.id = candidatos[0].id;
+        this.notificarGastoGuardado(enviado);
+        this.notificacionService.openWarn(`El gasto ya figura en la lista (#${enviado.id}): no hace falta cargarlo de nuevo.`, 8);
+        this.goTo("lista-gastos");
+        this.onCancelar();
+      });
+  }
+
+  private mostrarGastos(gastos: Gasto[]): void {
+    this.gastoList = orderByIdDesc<Gasto>(gastos);
+    this.dataSource.data = this.gastoList;
+    this.gastosCargados = true;
+  }
+
   /** La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo gasto. */
   private cargarGastosDeCaja(): void {
     this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
       .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
       .subscribe((gastos) => {
         if (gastos != null) {
-          this.gastoList = orderByIdDesc<Gasto>(gastos);
-          this.dataSource.data = this.gastoList;
+          this.mostrarGastos(gastos);
         } else {
           this.notificacionService.openWarn(AVISO_GASTOS_CAJA, 5);
         }
