@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Chequera, ChequeraInput } from './chequera.model';
 import { GetChequeraGQL } from './graphql/getChequera';
 import { GetChequerasGQL } from './graphql/getChequeras';
@@ -8,6 +9,14 @@ import { GetChequerasSearchGQL } from './graphql/getChequerasSearch';
 import { GetCountChequeraGQL } from './graphql/getCountChequera';
 import { SaveChequeraGQL } from './graphql/saveChequera';
 import { DeleteChequeraGQL } from './graphql/deleteChequera';
+
+const LECTURA_CHEQUERAS: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+
+/** Mismo corte que tenía la lectura anterior (sin esto `onCustomQuery` espera 5 minutos); el aviso lo da quien llama. */
+const CONSULTA_CHEQUERAS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -44,6 +53,15 @@ export class ChequeraService {
   }
 
   /**
+   * Igual que `onGetChequeras`, pero el error de red y el del servidor llegan a quien llama (`onGetAll` no emite
+   * nada ante un error: la pantalla quedaba con la lista vieja o vacía, sin aviso) (#390).
+   */
+  onLeerChequeras(page: number = 0, size: number = 10): Observable<Chequera[]> {
+    return this.genericService.onCustomQuery(this.getChequerasGQL, { page, size }, true, LECTURA_CHEQUERAS, undefined,
+      CONSULTA_CHEQUERAS);
+  }
+
+  /**
    * Busca chequeras por texto
    * @param texto Texto para búsqueda
    * @returns Observable de lista de Chequeras
@@ -65,11 +83,13 @@ export class ChequeraService {
    * @param entity Datos de la chequera a guardar
    * @returns Observable de la Chequera guardada
    */
-  onSaveChequera(entity: ChequeraInput): Observable<Chequera> {
+  onSaveChequera(entity: ChequeraInput, errorConf?: QueryError): Observable<Chequera> {
     // onSave() ya envuelve su argumento como { entity: input }; pasar { entity }
     // producía un doble-wrap ({ entity: { entity } }) que el backend rechazaba
     // con ValidationError. Se pasa el entity crudo, como el resto de los services.
-    return this.genericService.onSave(this.saveChequeraGQL, entity);
+    // Con `errorConf` de red propagada quien llama se entera de un guardado sin respuesta: sin eso el genérico no
+    // emite nada y el diálogo quedaba guardando para siempre (#390).
+    return this.genericService.onSave(this.saveChequeraGQL, entity, undefined, undefined, true, errorConf);
   }
 
   /**
