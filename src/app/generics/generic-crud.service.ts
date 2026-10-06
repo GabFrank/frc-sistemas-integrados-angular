@@ -100,13 +100,26 @@ export class GenericCrudService {
     });
   }
 
+  // Un diálogo suele pedir varias listas a la vez (monedas, formas de pago…): si el servidor no
+  // responde fallan todas juntas, y alcanza con decirlo una vez. Reloj monotónico, como abajo.
+  private ultimoAvisoLectura: { texto: string; en: number } = null;
+
+  private avisarLecturaFallida(texto: string): void {
+    const ahora = performance.now();
+    if (this.ultimoAvisoLectura?.texto === texto && ahora - this.ultimoAvisoLectura.en < 5000) return;
+    this.ultimoAvisoLectura = { texto, en: ahora };
+    this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.warn, duracion: 4 });
+  }
+
   /**
    * Siempre termina (#390). Ante una falla emite `null` y completa: antes no emitía ni completaba, y
    * quien llamaba quedaba esperando para siempre (spinner propio encendido, `forkJoin` que no cerraba).
    * `null` es «no se pudo leer»; una lista vacía sigue siendo `[]`.
    *
-   * @param errorConf opcional. `graphError.show = false` apaga el «Ups!…» (para quien avisa por su
-   * cuenta). Con `propagate` la falla llega al `error:` del que llama en vez de `null`: el error de
+   * Ante un error de red avisa «No se pudo cargar: …», una vez aunque fallen varias lecturas juntas.
+   *
+   * @param errorConf opcional. `graphError.show = false` y `networkError.show = false` apagan los
+   * avisos (para quien avisa por su cuenta). Con `propagate` la falla llega al `error:` del que llama en vez de `null`: el error de
    * red tal cual, y el GraphQL como `{ message, errors }` (igual que onCustomQuery).
    */
   onGetAll(gql: Query, page?, size?, servidor: boolean = true, errorConf?: QueryError): Observable<any> {
@@ -180,6 +193,11 @@ export class GenericCrudService {
             if (errorConf?.networkError?.propagate === true) {
               fallar(error);
               return;
+            }
+            // Nadie más lo dice (el central offline y el servidor caído no avisan), y sin esto la
+            // pantalla queda vacía sin explicación. El corte por tiempo ya lo avisó el link.
+            if (errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
+              this.avisarLecturaFallida("No se pudo cargar: " + mensajeErrorTransporte(error));
             }
             terminar(null);
           },

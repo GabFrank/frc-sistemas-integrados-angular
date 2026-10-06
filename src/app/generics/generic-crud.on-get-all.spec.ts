@@ -62,6 +62,23 @@ describe('GenericCrudService.onGetAll', () => {
     expect(r.valores).toEqual([null]);
     expect(r.completo).toBeTrue();
     expect(cerrados).toEqual([7]);
+    expect(avisos).toEqual(['No se pudo cargar: Error de red']);
+  });
+
+  it('varias lecturas que fallan juntas avisan una sola vez', () => {
+    leer(service.onGetAll(consulta(throwError(() => ({ networkError: true })))));
+    leer(service.onGetAll(consulta(throwError(() => ({ networkError: true })))));
+    expect(avisos.length).toBe(1);
+  });
+
+  it('con un status HTTP no dice «Error de red»', () => {
+    leer(service.onGetAll(consulta(throwError(() => ({ networkError: { status: 500 } })))));
+    expect(avisos).toEqual(['No se pudo cargar: El servidor rechazó la operación (HTTP 500)']);
+  });
+
+  it('el corte por tiempo del link no suma aviso', () => {
+    leer(service.onGetAll(consulta(throwError(() => ({ esTimeout: true })))));
+    expect(avisos).toEqual([]);
   });
 
   it('si la consulta completa sin emitir, emite null y completa', () => {
