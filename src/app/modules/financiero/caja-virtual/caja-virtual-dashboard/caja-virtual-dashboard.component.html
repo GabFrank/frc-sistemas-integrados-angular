@@ -155,6 +155,11 @@
       </div>
 
       <mat-card-content>
+        <div class="movimientos-no-cargados" *ngIf="movimientosNoCargados">
+          <mat-icon>warning</mat-icon>
+          <span>No se pudieron leer los movimientos: la tabla muestra lo que había antes y puede estar desactualizada.</span>
+          <button mat-stroked-button type="button" (click)="cargarMovimientos()">Reintentar</button>
+        </div>
         <!-- Tabla CAJA MAYOR -->
         <div class="movimientos-scroll" *ngIf="!fuenteEsBanco">
           <table mat-table [dataSource]="dataSource" style="width: 100%;">
