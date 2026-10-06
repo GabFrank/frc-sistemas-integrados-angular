@@ -368,3 +368,30 @@ h2[mat-dialog-title] { flex-shrink: 0; margin-bottom: 8px; }
   background: rgba(230, 81, 0, 0.22);
   color: #ffb74d;
 }
+
+/* ── Pago sin confirmar (#390) ── */
+.aviso-sin-confirmar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(251, 146, 60, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  color: #fdba74;
+  font-size: 13px;
+  flex-shrink: 0;
+
+  mat-icon { color: #fb923c; }
+  .aviso-texto { flex: 1; }
+  .aviso-item { opacity: 0.9; margin-top: 2px; }
+}
+
+.chip-sin-confirmar {
+  color: #fb923c;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}

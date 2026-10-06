@@ -41,6 +41,21 @@ export function esRechazoDelServidor(error: any): boolean {
 }
 
 /**
+ * Los errores de un **rechazo** del servidor, en cualquiera de las formas en que llegan: el arreglo de `onSave` /
+ * `onCustomMutation`, o un objeto con `graphQLErrors` (`onSaveCustom`, `PagarComprasService`). `null` si no es un
+ * rechazo sino un «sin respuesta» (error de red, corte por tiempo, central offline, respuesta vacía): ahí la
+ * operación pudo haberse aplicado (#390). Si el error trae `networkError` manda eso, aunque traiga también
+ * errores GraphQL: el lado seguro es tratarlo como incierto.
+ */
+export function erroresDeRechazo(error: any): any[] | null {
+  if (error == null || error.networkError) return null;
+  const errores = Array.isArray(error) ? error : error.graphQLErrors;
+  if (!Array.isArray(errores) || errores.length === 0) return null;
+  if (errores.some((e) => e?.message === MENSAJE_RESPUESTA_VACIA)) return null;
+  return errores;
+}
+
+/**
  * Texto para un error que llegó por la rama `error` de Apollo (no por `res.errors`). Sin
  * respuesta HTTP (status 0 o ausente: conexión caída, timeout del link) es un error de red.
  * Con un status real (401, 403, 500…) el servidor sí respondió: decir «Error de red» mentiría.

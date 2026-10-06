@@ -27,6 +27,8 @@ import { FuncionarioService } from '../../../personas/funcionarios/funcionario.s
 import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
 import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { MatStepper } from '@angular/material/stepper';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -68,6 +70,16 @@ interface SolicitudRow {
   _bloqueado?: boolean;         // no se puede pagar (dato incompleto); nunca seleccionable
   _bloqueoMotivo?: string;
   _devolvible?: boolean;        // compra en SOLICITADO: tesorería puede devolverla a compras
+  _sinConfirmar?: boolean;      // estaba en un pago que quedó sin respuesta: su saldo puede haber cambiado
+}
+
+/** Lo que se estaba pagando de una solicitud en un pago que quedó sin respuesta (para el cartel). */
+interface PagoSinConfirmarItem {
+  numero: string;
+  tercero: string;
+  simbolo: string;
+  monto: number;
+  saldoAntes: number;
 }
 
 interface PagoLinea {
@@ -173,6 +185,22 @@ export class PagarComprasDialogComponent implements OnInit {
   planChequeraSel: any = null;
   planGenerado = false;
   planTotal = 0;
+
+  @ViewChild('stepper') stepper?: MatStepper;
+  /** Número de la última lectura de pendientes: una respuesta vieja (dos lecturas seguidas) no pisa a la nueva. */
+  private cargaSeq = 0;
+  /**
+   * Un pago quedó sin respuesta (red, corte, central offline, respuesta vacía): pudo haberse registrado. Se
+   * muestra qué se estaba pagando y con qué saldo, para compararlo con la lista releída antes de volver a pagar:
+   * repetir a ciegas un pago parcial lo paga dos veces y emite cheques nuevos (#390).
+   */
+  pagoSinConfirmar: PagoSinConfirmarItem[] | null = null;
+  /**
+   * El alta de un gasto o de un vale quedó sin respuesta: pudo haberse creado, y el central no impide crear otro
+   * igual. Texto de lo enviado, para buscarlo en la lista antes de cargarlo de nuevo.
+   */
+  altaSinConfirmar: string | null = null;
+  private idsSinConfirmar = new Set<number>();
 
   isLoading = false;
   /** La última carga de pendientes falló: la lista está vacía a propósito, no porque no haya pendientes. */
@@ -328,15 +356,28 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: () => this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5)
     });
-    // Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud).
-    this.chequeraService.onGetChequeras(0, 200).pipe(untilDestroyed(this)).subscribe(res => {
-      this.chequerasActivas = (res || []).filter((c: any) => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles || 0) > 0);
-    });
+    this.cargarChequerasActivas();
     this.cargar();
     this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
   }
 
-  cargar() {
+  /** Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud). */
+  private cargarChequerasActivas() {
+    this.chequeraService.onGetChequeras(0, 200).pipe(untilDestroyed(this)).subscribe(res => {
+      this.chequerasActivas = (res || []).filter((c: any) => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles || 0) > 0);
+    });
+  }
+
+  /**
+   * Lee los pendientes. `conservarSeleccion`: tras un rechazo del servidor se relee por si la lista estaba vieja,
+   * pero sin tirar lo que el usuario armó si nada de lo elegido cambió.
+   */
+  cargar(conservarSeleccion = false) {
+    const carga = ++this.cargaSeq;
+    const elegidas = new Map<number, { monto: number; saldo: number }>();
+    if (conservarSeleccion) {
+      this.todas.filter(r => r._sel).forEach(r => elegidas.set(r.id, { monto: r._montoAPagar, saldo: r.saldoPendiente }));
+    }
     this.isLoading = true;
     const fuente$ = this.esRrhh
       ? (this.conceptoRrhh === 'LIQUIDACION' ? this.pagarComprasService.onGetLiquidacionesPendientes()
@@ -349,15 +390,51 @@ export class PagarComprasDialogComponent implements OnInit {
           : this.pagarComprasService.onGetPendientes();
     fuente$.pipe(untilDestroyed(this)).subscribe({
       next: res => {
+        if (carga !== this.cargaSeq) return;
         this.isLoading = false;
         if (res == null) { this.pendientesNoCargados(); return; }
         this.cargaFallo = false;
         this.todas = res.map((s: any) => this.esRrhh ? this.toRowRrhh(s)
           : this.esVale ? this.toRowVale(s) : this.toRow(s));
+        this.todas.forEach(r => r._sinConfirmar = this.idsSinConfirmar.has(r.id));
+        this.reaplicarSeleccion(elegidas);
         this.aplicarFiltro();
+        // Las filas son nuevas: sin esto quedaban las líneas, el balance y el proveedor de la selección
+        // anterior, con «Confirmar» habilitado sobre notas que ya no estaban tildadas.
+        const planYaGenerado = this.planGenerado;
+        const chequeraDelPlan = this.planChequeraSel;
+        this.recomputarSeleccion();
+        // Si la selección se conservó, sus líneas de cheque siguen ahí: el plan sigue generado (si no, el botón
+        // volvería a aparecer y duplicaría las líneas).
+        if (this.haySeleccion && planYaGenerado) {
+          this.planGenerado = true;
+          this.planChequeraSel = chequeraDelPlan;
+        }
+        if (!this.haySeleccion) this.volverAlPrimerPaso();
       },
-      error: () => { this.isLoading = false; this.pendientesNoCargados(); }
+      error: () => {
+        if (carga !== this.cargaSeq) return;
+        this.isLoading = false;
+        this.pendientesNoCargados();
+      }
     });
+  }
+
+  /** Vuelve a tildar lo elegido solo si todo sigue igual (mismas solicitudes, mismo saldo); si no, avisa. */
+  private reaplicarSeleccion(elegidas: Map<number, { monto: number; saldo: number }>) {
+    if (elegidas.size === 0) return;
+    const filas = this.todas.filter(r => elegidas.has(r.id));
+    const sinCambios = filas.length === elegidas.size
+      && filas.every(r => !r._bloqueado && r.saldoPendiente === elegidas.get(r.id).saldo);
+    if (!sinCambios) {
+      this.notificacion.openWarn('La lista de pendientes cambió: volvé a seleccionar lo que vas a pagar.', 6);
+      return;
+    }
+    filas.forEach(r => { r._sel = true; r._montoAPagar = elegidas.get(r.id).monto; });
+  }
+
+  private volverAlPrimerPaso() {
+    if (this.stepper && this.stepper.selectedIndex !== 0) this.stepper.selectedIndex = 0;
   }
 
   /**
@@ -369,6 +446,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.todas = [];
     this.aplicarFiltro();
     this.recomputarSeleccion();
+    this.volverAlPrimerPaso();
     this.notificacion.openWarn('No se pudieron cargar los pendientes de pago. Usá «Reintentar».', 5);
   }
 
@@ -538,6 +616,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.pagarComprasService.onCrearGasto(input).pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
+        this.altaSinConfirmar = null;
         this.notificacion.openSucess('Gasto creado');
         this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
         this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
@@ -546,7 +625,13 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: (err) => {
         this.creandoGasto = false;
-        this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
+        if (erroresDeRechazo(err)) {
+          this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
+          return;
+        }
+        this.altaSinRespuesta(err, `gasto «${desc}» por ${monto}`, 'gasto');
+        // La lista vuelve filtrada por la descripción enviada: si el gasto se creó, es el que aparece.
+        this.filtroDescripcionControl.setValue(desc, { emitEvent: false });
       }
     });
   }
@@ -585,6 +670,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.pagarComprasService.onCrearVale(input).pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
+        this.altaSinConfirmar = null;
         this.notificacion.openSucess('Vale registrado (pendiente de pago)');
         this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();
         this.nvMontoControl.reset(); this.nvObservacionControl.reset('');
@@ -594,9 +680,29 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: (err) => {
         this.creandoGasto = false;
-        this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+        if (erroresDeRechazo(err)) {
+          this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+          return;
+        }
+        const nombre = this.displayFuncionario(funcionario);
+        this.altaSinRespuesta(err, `vale de ${nombre} por ${monto}`, 'vale');
+        // La lista vuelve filtrada por el funcionario: si el vale se creó, es el que aparece.
+        this.filtroProveedorControl.setValue(nombre, { emitEvent: false });
       }
     });
+  }
+
+  /**
+   * El alta pudo haberse creado. Se vuelve a la lista y se relee para verlo; el formulario **no** se limpia: si
+   * no figura, se puede enviar de nuevo sin retipear.
+   */
+  private altaSinRespuesta(err: any, resumen: string, que: 'gasto' | 'vale') {
+    this.altaSinConfirmar = resumen;
+    if (!esTimeoutDeLink(err)) {
+      this.notificacion.openWarn(`No se pudo confirmar si el ${que} se creó: revisá la lista antes de cargarlo de nuevo.`, 8);
+    }
+    this.vistaNuevoGasto = false;
+    this.cargar();
   }
 
   // ── Devolver a compras: tesorería no cancela, devuelve lo que no va a pagar con un motivo ──
@@ -619,7 +725,16 @@ export class PagarComprasDialogComponent implements OnInit {
             this.todas = this.todas.filter(r => r.id !== row.id);
             this.aplicarFiltro();
           },
-          error: (err) => this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud'),
+          error: (err) => {
+            // Rechazo: el motivo del servidor (si ya estaba devuelta, la lista estaba vieja). Sin respuesta:
+            // pudo haberse devuelto. En los dos casos la lista se relee; el corte por tiempo ya lo avisó el link.
+            if (erroresDeRechazo(err)) {
+              this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud');
+            } else if (!esTimeoutDeLink(err)) {
+              this.notificacion.openWarn(`No se pudo confirmar si ${row.numeroSolicitud} se devolvió a compras: se vuelve a leer la lista.`, 6);
+            }
+            this.cargar(true);
+          },
         });
       });
   }
@@ -982,16 +1097,53 @@ export class PagarComprasDialogComponent implements OnInit {
     pago$.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;
-        if (res != null) { this.notificacion.openSucess('Pago registrado correctamente'); this.dialogRef.close(res); }
+        if (res != null) {
+          this.notificacion.openSucess('Pago registrado correctamente');
+          this.dialogRef.close(res);
+        } else {
+          // Ni error ni resultado: no se sabe si se registró.
+          this.pagoSinRespuesta(sel, true);
+        }
       },
       error: err => {
         this.isSaving = false;
-        // Un corte por timeout ya lo avisó el link (con la advertencia de que el pago pudo aplicarse).
-        if (esTimeoutDeLink(err)) return;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al registrar el pago';
-        this.notificacion.openWarn(msg, 6);
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          // El servidor dijo que no y no registró nada. Se relee por si la lista estaba vieja (p. ej. «ya
+          // está CONCLUIDO»), conservando lo armado si nada de lo elegido cambió.
+          this.notificacion.openWarn(rechazo[0]?.message || err?.message || 'Error al registrar el pago', 6);
+          this.cargar(true);
+          return;
+        }
+        // Sin respuesta. El corte por tiempo ya lo avisó el link; el resto (red, central offline, respuesta
+        // vacía) no lo avisa nadie.
+        this.pagoSinRespuesta(sel, !esTimeoutDeLink(err));
       }
     });
+  }
+
+  /**
+   * El pago pudo haberse registrado. La selección y las formas de pago se sueltan **ya** (no al terminar la
+   * relectura, que puede tardar): con ellas armadas, otro clic en «Confirmar» repetiría el mismo pedido.
+   */
+  private pagoSinRespuesta(sel: SolicitudRow[], avisar: boolean) {
+    const items = sel.map(r => ({
+      numero: r.numeroSolicitud, tercero: r.proveedorNombre, simbolo: r.monedaSimbolo,
+      monto: r._montoAPagar, saldoAntes: r.saldoPendiente,
+    }));
+    this.pagoSinConfirmar = [...(this.pagoSinConfirmar || []), ...items];
+    sel.forEach(r => this.idsSinConfirmar.add(r.id));
+    // Esc o un clic afuera cerrarían sin que quien abrió el diálogo refresque la caja.
+    this.dialogRef.disableClose = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si el pago se registró: revisá los saldos antes de volver a pagar.', 8);
+    }
+    this.todas.forEach(r => { r._sel = false; r._sinConfirmar = this.idsSinConfirmar.has(r.id); });
+    this.recomputarSeleccion();
+    this.volverAlPrimerPaso();
+    this.cargar();
+    // Si el pago entró con cheques, los números y las hojas disponibles ya no son los que había.
+    this.cargarChequerasActivas();
   }
 
   /** Reparte las líneas (en la moneda de la deuda) entre las notas en orden (FIFO). Una línea puede partirse. */
@@ -1077,5 +1229,6 @@ export class PagarComprasDialogComponent implements OnInit {
   }
 
   private err(msg: string) { this.notificacion.openAlgoSalioMal(msg); }
-  onCancel() { this.dialogRef.close(null); }
+  /** Con un pago sin confirmar se cierra con un valor: quien abrió el diálogo refresca la caja con cualquier valor. */
+  onCancel() { this.dialogRef.close(this.pagoSinConfirmar ? { sinConfirmar: true } : null); }
 }
