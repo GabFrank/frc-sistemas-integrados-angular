@@ -72,17 +72,25 @@ export class CreateInventarioDialogComponent implements OnInit {
       });
   }
 
+  /** No se pudo verificar si la sucursal ya tiene un inventario abierto: no se deja crear otro a ciegas (#390). */
+  private verificacionFallida = false;
+
   verificarInventarioAbierto(sucursalId: number): void {
+    this.verificacionFallida = false;
     this.inventarioService.onGetInventarioAbiertoPorSucursal(sucursalId)
       .pipe(untilDestroyed(this))
-      .subscribe((inventariosAbiertos: Inventario[]) => {
-        if (inventariosAbiertos && inventariosAbiertos.length > 0) {
-          this.notificacionService.notification$.next({
-            texto: `Hay un inventario abierto en la sucursal ${this.selectedSucursal.nombre}. Por favor, finalícelo antes de crear uno nuevo.`,
-            color: NotificacionColor.warn,
-            duracion: 5
-          });
-        }
+      .subscribe({
+        next: (inventariosAbiertos: Inventario[]) => {
+          if (inventariosAbiertos && inventariosAbiertos.length > 0) {
+            this.notificacionService.notification$.next({
+              texto: `Hay un inventario abierto en la sucursal ${this.selectedSucursal.nombre}. Por favor, finalícelo antes de crear uno nuevo.`,
+              color: NotificacionColor.warn,
+              duracion: 5
+            });
+          }
+        },
+        // El aviso del error lo da el genérico.
+        error: () => this.verificacionFallida = true,
       });
   }
 
@@ -93,6 +101,15 @@ export class CreateInventarioDialogComponent implements OnInit {
         color: NotificacionColor.warn,
         duracion: 3
       });
+      return;
+    }
+    if (this.verificacionFallida) {
+      this.notificacionService.notification$.next({
+        texto: 'No se pudo verificar si la sucursal ya tiene un inventario abierto. Se vuelve a consultar: intentá de nuevo en unos segundos.',
+        color: NotificacionColor.warn,
+        duracion: 6
+      });
+      this.verificarInventarioAbierto(this.selectedSucursal.id);
       return;
     }
     this.dialogoService.confirm('Atención!!', 'Estás iniciando un nuevo inventario. ¿Deseas continuar?').subscribe(resConf => {
