@@ -126,3 +126,46 @@ desde el dashboard; entrada varia abierta desde el selector de ingresos; doble c
 | A | La lista de operaciones conserva la página al volver del alta | baja | vuelve a la primera |
 | A | Diálogos de caja «sin cubrir» | — | son los del #426 |
 | A | Duplicado en las tres, atomicidad, quién relee con qué valor | — | verificado |
+
+## Implementación: desvíos (2026-10-06)
+
+- El paginador de la lista de operaciones no enlazaba la página: se enlaza, para que volver a la primera se vea.
+- El aviso de un cambio de divisa sin confirmar muestra también el monto de destino.
+- `onSave` de operación y de entrada varia ignora un segundo llamado mientras guarda.
+- Sin tocar: si la relectura de la lista de operaciones falla tras un alta, quedan las filas de la página anterior
+  bajo el índice 1 (previo, raro); un 401 / 403 se trata como «sin respuesta» (lado seguro).
+
+## Prueba de runtime (2026-10-06)
+
+Desktop en :4200 contra el central local de :8081 (perfil `dev`, levantado por otra sesión; no se congeló ni se
+bajó). Caja mayor local «RRHH» y cuenta bancaria local «000-REPORTE». Todo con datos reales salvo donde se indica.
+
+| Caso | Resultado |
+|---|---|
+| Ingreso vario que **llega al central** y se pierde la respuesta | se cierra con «No se pudo confirmar si el ingreso de Gs. 1.500 se registró…»; la caja releída lo muestra |
+| Ingreso vario desde el selector de ingresos, con cuerpo HTTP vacío (no llega) | se cierran el diálogo y el selector, aviso, la caja se relee sin cambios |
+| Egreso vario en reales sin saldo (rechazo real) | «Saldo insuficiente en la caja virtual»; queda abierto y se puede cancelar |
+| Entrada varia mientras guarda (servicio reemplazado, lento) | no cerrable y «Cancelar» deshabilitado |
+| Ajuste de saldo: doble clic en «Guardar» | una sola confirmación |
+| Ajuste de + 1.000 que llega y se pierde la respuesta | se cierra con «…El saldo que se veía era Gs. 3.300.000…»; la cuenta releída muestra 3.301.000 |
+| Ajuste negativo mayor que el saldo (rechazo real) | «Saldo insuficiente en la cuenta bancaria»; queda abierto |
+| Ajuste normal (el que compensa el de la prueba) | «Saldo ajustado» |
+| Depósito de caja a banco desde el dashboard que llega y se pierde la respuesta | se cierra con «…(Depósito Bancario, Gs. 2.000): buscala en Operaciones financieras…»; la caja releída muestra el egreso |
+| Depósito mayor que el saldo de la caja, desde la lista (rechazo real) | queda abierto |
+| Operación sin respuesta desde la lista (servicio reemplazado) | se cierra; la lista vuelve a la primera página |
+
+La operación y la entrada de prueba se anularon y el ajuste se compensó: caja en 8.300.000 y cuenta en 3.300.000.
+
+Sin probar: Esc y clic afuera mientras guarda (solo se verificó que el diálogo queda no cerrable); el corte real
+de 60 s; el aviso de un cambio de divisa (ajuste posterior a la prueba).
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+Sin hallazgos altos ni medios. Verificó estados y cierre en todos los caminos, quiénes abren cada diálogo y los
+avisos por caso.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| El aviso de un cambio de divisa solo mostraba el origen | baja | muestra también el destino |
+| `onSave` no miraba `isSaving` al entrar | baja | lo mira |
+| Formato de decimales en los avisos; dos avisos seguidos en la respuesta vacía; 401 / 403 como sin respuesta | baja | se dejan |

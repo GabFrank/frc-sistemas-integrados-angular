@@ -572,7 +572,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid) return;
+    if (this.formGroup.invalid || this.isSaving) return;
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
 
     // Operaciones de monto único (depósito/retiro/transf. entre cajas): el destino espeja al
@@ -653,7 +653,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   private sinConfirmar(operacion: OperacionFinanciera, avisar: boolean) {
     if (avisar) {
       const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
-      const monto = `${operacion.monedaOrigen?.simbolo || ''} ${(operacion.montoOrigen || 0).toLocaleString('es-PY')}`.trim();
+      const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
+      let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
+      // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
+      if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
       this.notificacion.openWarn(
         `No se pudo confirmar si la operación se registró (${tipo}, ${monto}): buscala en Operaciones financieras antes de repetirla.`, 10);
     }

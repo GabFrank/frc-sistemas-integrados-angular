@@ -93,7 +93,7 @@ export class AddEntradaVariaDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid) return;
+    if (this.formGroup.invalid || this.isSaving) return;
 
     const entradaVaria = new EntradaVaria();
     entradaVaria.descripcion = this.descripcionControl.value;
