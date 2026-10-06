@@ -124,6 +124,7 @@ import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -1667,11 +1668,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
             // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
             // que necesita el caso caro de abajo.
-            // El discriminador es la forma de lo que emite GenericCrudService.onCustomMutation:
-            // un array de errores GraphQL si el servidor rechazó, el error crudo si fue transporte.
+            // El discriminador es esRechazoDelServidor: un array de errores GraphQL si el servidor rechazó.
+            // La respuesta vacía también llega como array pero es un «sin respuesta» (la venta pudo
+            // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
             // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
             // venta asociada, con el timbrado consumido y el stock sin descontar.
-            const rechazoDelServidor = Array.isArray(err);
+            const rechazoDelServidor = esRechazoDelServidor(err);
             if (!rechazoDelServidor || facturaLegalId != null) {
               this.notificacionSnackbar.notification$.next({
                 color: NotificacionColor.danger,
