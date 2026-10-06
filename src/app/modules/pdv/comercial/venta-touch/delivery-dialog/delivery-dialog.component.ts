@@ -202,7 +202,9 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     })
 
     this.monedaService.onGetAll().subscribe(res => {
-      this.monedaList = res;
+      // null = no se pudieron leer las monedas (#390): se sigue igual, para no dejar sin pedir los
+      // precios de delivery, que cuelgan de acá.
+      this.monedaList = res ?? [];
       this.cambioRs = this.monedaList.find(
         (m) => m.denominacion == "REAL"
       )?.cambio ?? null;
@@ -234,7 +236,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     })
 
     this.formaPagoService.onGetAllFormaPago().subscribe(res => {
-      this.formaPagoList = res;
+      this.formaPagoList = res ?? [];
       this.formaPagoControl.setValue(this.formaPagoList[0])
       this.loadingItens++;
     })

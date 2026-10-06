@@ -24,6 +24,8 @@ export class FormaPagoService {
     private mainService: MainService
   ) {
     this.onGetAllFormaPago(!this.mainService.isLocal()).pipe(untilDestroyed(this)).subscribe(res => {
+      // null = no se pudieron leer (#390): la lista queda vacía, como nace, en vez de null (venta-touch la recorre).
+      if (res == null) return;
       this.formaPagoList = res;
       this.formaPagoSub.next(res);
     })
