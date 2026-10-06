@@ -198,3 +198,48 @@ Abrir una caja y guardar un gasto reales imprime en el filial local; lo creado s
 - El alta de funcionario desde un pre-registro ya no se usa: no se hace la reescritura (14d). Queda anotado, sin
   fecha, el arreglo de sueldo y sucursal de esa pantalla.
 - Los funcionarios con sueldo y sucursal mal cargados ya están resueltos en producción: no se revisan.
+
+## Implementación: desvíos
+
+- **Abrir caja**: la adopción se intenta ante **cualquier** error del alta (no se compara el texto «Ya existe una caja
+  abierta»): si el usuario no tiene caja abierta, vuelve al maletín como antes. No se valida la antigüedad de la caja
+  adoptada (una del mismo maletín sin apertura de un día anterior se adopta: es justo la que dejaba trabado al cajero).
+- **Gasto**: si el gasto ya figura pero el cajero empezó a cargar otro mientras se verificaba, no se le limpia el
+  formulario. Si la verificación no se puede hacer, «Guardar» queda deshabilitado hasta cerrar y reabrir (sin reintento).
+  No se reimprime el ticket al dar el gasto por guardado.
+- **Asignar ruta**: las rechazadas no quedan como pendientes de la hoja; la hoja pendiente se ofrece solo si entre
+  las seleccionadas hay alguna suya; lo pendiente no sobrevive a cerrar la pestaña.
+- Se verificó con `npm run check` el estado final, no cada commit por separado.
+
+## Prueba de runtime (paso 9, 2026-10-06)
+
+Central local `:8081` (replicación apagada, schedulers en «Negative matches»), filial local `:8080`, desktop con
+`ng serve -c web`.
+
+| Caso | Resultado |
+|---|---|
+| Gasto de caja contra el filial, el pedido no llega | «No figura en la lista…», «Guardar» se rehabilita, formulario intacto |
+| Gasto de caja contra el filial, **el gasto se guarda y se pierde la respuesta** | guardado una sola vez (#108); «El gasto ya figura (#108)», notificación enviada una vez, formulario limpio |
+| Consulta de la caja abierta del usuario contra el filial: normal / sin red | devuelve la caja con su maletín y apertura / falla sin colgarse |
+| Abrir caja (consulta reemplazada): mismo maletín sin apertura / otro maletín / ya con apertura / sin caja / consulta falla | se adopta y sigue en la apertura / vuelve al maletín nombrando la caja / ídem / vuelve al maletín / vuelve con «no se pudo verificar…» |
+| Asignar ruta a cuatro (servicio reemplazado, error con la forma real de Apollo): corte en la segunda, que sí se había guardado | no intenta la tercera ni la cuarta; al releer, la segunda deja de estar pendiente; quedan seleccionadas las dos que faltan, sin duplicarse tras dos relecturas |
+| Asignar con una selección ajena / con las pendientes | abre una hoja nueva sin preguntar / pregunta y usa la misma hoja |
+| Asignar con un rechazo en la segunda | sigue con las demás; no queda hoja pendiente |
+| Impresoras (servicio reemplazado): corte en la segunda de tres / rechazo en la segunda | diálogo abierto, las dos enviadas desmarcadas, la tercera seleccionada / sigue y cierra releyendo |
+
+No probado: una apertura de caja real con la respuesta perdida (habría que cerrar la caja abierta de la base local);
+la reimpresión del ticket; el corte del link a los 60 s.
+Quedó en la base del filial local el gasto de prueba #108 (1.000 Gs, caja 3009): el filial no tiene cómo cancelarlo.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Asignar ruta: una rechazada dejaba la hoja pendiente para siempre | media | no queda pendiente |
+| Asignar ruta: la reselección duplicaba filas en cada relectura | media | se deseleccionan las anteriores |
+| Asignar ruta: la hoja pendiente se ofrecía en asignaciones sin relación, y la «sin confirmar» ya guardada seguía pendiente | media | solo si hay intersección; se poda al releer |
+| Gasto: al darlo por guardado se borraba lo que el cajero estuviera cargando | media | no se limpia si el formulario cambió |
+| Gasto: «no figura» puede ser prematuro si el filial todavía está procesando | baja | el aviso pide mirar la lista si salió el ticket |
+| Gasto: sin reintento de la verificación; ticket no reimpreso | baja | se deja, anotado |
+| Caja: sin tope de antigüedad; dos avisos si la consulta falla | baja | se deja, anotado |
+| Argumentos de la consulta de caja, `sucId` nulo en el filial, montos del gasto, specs | — | verificado, sin hallazgos |
