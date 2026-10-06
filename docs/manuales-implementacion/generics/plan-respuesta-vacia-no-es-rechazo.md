@@ -149,11 +149,22 @@ Central local :8081 (schedulers de replicación apagados, verificado), desktop e
 | Precio: rechazo (sin y con principal bajado) | servicio reemplazado | queda abierto / «No se guardó… quedó sin precio principal» |
 | Código: respuesta vacía / rechazo | servicio reemplazado | cierra y recarga con aviso / queda abierto |
 
-**Sin probar en pantalla**:
-- **PDV (venta y cobro de delivery, fase 1)**: la pantalla de venta no abre en el desktop servido por web de esta
-  sesión («No se pudo abrir VentaTouchComponent»). Queda verificado por lectura (auditoría del diff, con tabla de
-  verdad por lugar) y por `npm run check`.
-- **Fase 3** (producto, familia, ente): no se llegó a disparar el guardado; es una condición por lugar.
+**PDV (fase 1)**, con el desktop apuntado al filial local :8080 (PDV 3, SUC. CALLE 10) y el delivery de prueba 7.
+En la primera pasada no abría: el servidor local estaba configurado en el puerto 8081 (el central de prueba, ya
+bajado). Los errores se simularon reemplazando el método del servicio; no se guardó ningún cobro ni venta.
+
+| Caso | Resultado |
+|---|---|
+| Venta: respuesta vacía / red | «No se pudo guardar la venta. Verifique antes de continuar.» |
+| Venta: rechazo | sin aviso propio (antes y ahora) |
+| Venta con factura ya emitida: respuesta vacía / rechazo | «…la factura ya fue emitida. Avise al encargado…» |
+| Cobro de delivery (los dos diálogos): rechazo | saldo devuelto, «No se pudo registrar el cobro: reintentá.», reintentable |
+| Cobro: el servidor responde sin error ni resultado | saldo devuelto, «El servidor no registró la línea (¿ya hay un descuento en este cobro?)», reintentable |
+| Cobro: respuesta vacía | saldo devuelto, **cobro incierto**, «No se pudo confirmar el cobro: cerrá y abrí el delivery…» |
+| Cobro: otro intento con el cobro incierto | no llama al servidor; pide abrir el delivery de nuevo |
+
+**Sin probar en pantalla**: la fase 3 (producto, familia, ente): no se llegó a disparar el guardado; es una
+condición por lugar. Tampoco una respuesta vacía real en el PDV (se probó real solo en el ajuste de stock).
 
 En la prueba no se guardó nada: el stock del producto usado quedó igual.
 
