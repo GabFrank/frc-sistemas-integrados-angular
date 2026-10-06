@@ -458,7 +458,13 @@ export class CajaVirtualDashboardComponent implements OnInit {
   /** Carga los movimientos de la cuenta bancaria seleccionada como fuente. */
   private cargarMovimientosBancarios() {
     const cuentaId = this.fuenteSel.cuentaId;
-    if (!cuentaId) { this.dataSourceBanco.data = []; this.movimientosNoCargados = false; return; }
+    if (!cuentaId) {
+      // También cuenta como lectura: una respuesta bancaria anterior todavía en vuelo no debe llenar la tabla.
+      ++this.movimientosCargaId;
+      this.dataSourceBanco.data = [];
+      this.movimientosNoCargados = false;
+      return;
+    }
     this.isLoading = true;
     const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
@@ -820,8 +826,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
         error: err => {
           // onSaveCustom ya avisó el rechazo, el error de red y la respuesta vacía; el corte, el link.
           if (!err?.avisadoPorOnSaveCustom && !esTimeoutDeLink(err)) {
-            // Pago a proveedor (Apollo directo): sin respuesta llega con networkError o como respuesta vacía;
-            // cualquier otro error trae el motivo del servidor.
+            // Pago a proveedor (Apollo directo): sin respuesta llega con networkError (una respuesta vacía llega
+            // como resultado nulo, arriba; se mira igual el mensaje por si cambia); cualquier otro error trae el
+            // motivo del servidor.
             const sinRespuesta = !!err?.networkError || err?.message === MENSAJE_RESPUESTA_VACIA;
             const msg = sinRespuesta
               ? SIN_CONFIRMAR_ANULACION
