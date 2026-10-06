@@ -163,8 +163,21 @@ bajado). Los errores se simularon reemplazando el método del servicio; no se gu
 | Cobro: respuesta vacía | saldo devuelto, **cobro incierto**, «No se pudo confirmar el cobro: cerrá y abrí el delivery…» |
 | Cobro: otro intento con el cobro incierto | no llama al servidor; pide abrir el delivery de nuevo |
 
-**Sin probar en pantalla**: la fase 3 (producto, familia, ente): no se llegó a disparar el guardado; es una
-condición por lugar. Tampoco una respuesta vacía real en el PDV (se probó real solo en el ajuste de stock).
+**Segunda pasada**, con cuerpo HTTP vacío real (la petición se desvía en el navegador y no llega al servidor):
+
+| Caso | Resultado |
+|---|---|
+| Cobro de delivery, diálogo del delivery (`saveCobroDetalle`) | «Ups… Respuesta vacía del servidor» + «No se pudo confirmar el cobro…»; saldo devuelto, cobro incierto |
+| Cobro de delivery, diálogo de pago | igual |
+| Producto (`saveProducto`) | «Ups…» + «No se pudo confirmar el guardado del producto: pudo haberse guardado…» |
+| Familia (`saveFamilia`) | «Ups…» + «No se pudo confirmar el guardado. Podés volver a intentar…»; el diálogo sigue abierto |
+| Alta de ente al elegir un bien (`saveEnte`) | «Ups…» + «No se pudo registrar el bien: no se seleccionó. Volvé a buscarlo.» |
+
+En producto, familia y ente se probó además el rechazo (sin aviso propio) y el error de red (aviso propio),
+reemplazando el servicio. En el ente, el buscador y la consulta previa se reemplazaron por respuestas fijas.
+
+**Sin probar**: una respuesta vacía real al guardar la **venta** (haría falta armar una venta completa); su
+manejador se probó reemplazando el servicio y usa el mismo camino genérico que el ajuste de stock, probado real.
 
 En la prueba no se guardó nada: el stock del producto usado quedó igual.
 
