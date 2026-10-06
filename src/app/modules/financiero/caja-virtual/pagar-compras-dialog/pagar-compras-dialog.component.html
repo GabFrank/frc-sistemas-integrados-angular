@@ -46,7 +46,7 @@
     </div>
     <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
       <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="crearVale()" [disabled]="creandoGasto">
+      <button mat-raised-button color="primary" (click)="crearVale()" [disabled]="creandoGasto || isLoading || altaSinConfirmar != null">
         <mat-icon>save</mat-icon> Guardar vale
       </button>
     </div>
@@ -99,10 +99,32 @@
     </div>
     <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
       <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="crearGasto()" [disabled]="creandoGasto">
+      <button mat-raised-button color="primary" (click)="crearGasto()" [disabled]="creandoGasto || isLoading || altaSinConfirmar != null">
         <mat-icon>save</mat-icon> Guardar gasto
       </button>
     </div>
+  </div>
+
+  <div class="aviso-sin-confirmar" *ngIf="pagoSinConfirmar">
+    <mat-icon>warning</mat-icon>
+    <div class="aviso-texto">
+      <div><b>Un pago quedó sin confirmar: pudo haberse registrado.</b> Compará el saldo de antes con el de la lista
+        antes de volver a pagar.</div>
+      <div class="aviso-item" *ngFor="let p of pagoSinConfirmar">
+        {{ p.numero }} · {{ p.tercero }}: se pagaban {{ p.simbolo }} {{ p.monto | number:'1.0-2' }}
+        (saldo antes: {{ p.simbolo }} {{ p.saldoAntes | number:'1.0-2' }})
+      </div>
+    </div>
+  </div>
+
+  <div class="aviso-sin-confirmar" *ngIf="altaSinConfirmar">
+    <mat-icon>warning</mat-icon>
+    <div class="aviso-texto">
+      <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b> Pudo haberse creado: fijate si figura en la
+      lista (quedó filtrada) antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario; para volver a
+      enviarlo, primero tocá «Entendido».
+    </div>
+    <button mat-stroked-button type="button" (click)="altaSinConfirmar = null">Entendido</button>
   </div>
 
   <div *ngIf="!vistaNuevoGasto" class="stepper-wrap">
@@ -222,7 +244,10 @@
             </ng-container>
             <ng-container matColumnDef="numero">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Solicitud</th>
-              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">{{ row.numeroSolicitud }}</td>
+              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">
+                {{ row.numeroSolicitud }}
+                <div class="chip-sin-confirmar" *ngIf="row._sinConfirmar">pago sin confirmar</div>
+              </td>
             </ng-container>
             <ng-container matColumnDef="moneda">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Moneda</th>
@@ -524,7 +549,7 @@
       </ng-container>
       <ng-container *ngSwitchCase="2">
         <button mat-stroked-button (click)="stepper.previous()"><mat-icon>arrow_back</mat-icon> Atrás</button>
-        <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving || !balanceOk">
+        <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving || isLoading || !balanceOk">
           <mat-icon>payments</mat-icon> Confirmar pago
         </button>
       </ng-container>

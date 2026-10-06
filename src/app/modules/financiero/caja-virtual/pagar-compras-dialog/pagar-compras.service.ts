@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
-import { limpiarMensajeGraphQL } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { limpiarMensajeGraphQL, limpiarErroresGraphQL } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { SolicitudesPagoPendientesGQL } from './graphql/solicitudesPagoPendientes';
 import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote';
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
@@ -201,14 +201,21 @@ export class PagarComprasService {
     return this.mutar(this.devolverGQL, { id, motivo }, servidor);
   }
 
-  /** Ejecuta una mutation y emite `next` con el dato o `error` con un mensaje saneado. */
+  /**
+   * Ejecuta una mutation y emite `next` con el dato o `error` con un mensaje saneado. El error de un rechazo
+   * lleva además `graphQLErrors` (ya limpios), para que quien llama lo distinga de un «sin respuesta» con
+   * `erroresDeRechazo` (#390).
+   */
   private mutar(gql: any, variables: any, servidor: boolean): Observable<any> {
     return gql.mutate(variables, {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all',
       context: { clientName: servidor == null || servidor ? 'servidor' : null },
     }).pipe(map((res: any) => {
-      if (res?.errors?.length) throw new Error(this.limpiarError(res.errors[0].message));
+      if (res?.errors?.length) {
+        throw Object.assign(new Error(this.limpiarError(res.errors[0].message)),
+          { graphQLErrors: limpiarErroresGraphQL(res.errors) });
+      }
       return res?.data?.data;
     }));
   }
