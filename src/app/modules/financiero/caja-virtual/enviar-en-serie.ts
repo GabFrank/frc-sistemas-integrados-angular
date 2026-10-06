@@ -1,5 +1,5 @@
 import { Observable, defer, from, of } from 'rxjs';
-import { catchError, concatMap, map, take, takeWhile, toArray } from 'rxjs/operators';
+import { catchError, concatMap, defaultIfEmpty, map, take, takeWhile, toArray } from 'rxjs/operators';
 import { erroresDeRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
 
 /**
@@ -30,6 +30,8 @@ export function enviarEnSerie<T>(items: T[], enviar: (item: T) => Observable<any
     concatMap(item => defer(() => enviar(item)).pipe(
       take(1),
       map((): ResultadoDeEnvio<T> => ({ item, estado: 'ok' })),
+      // Terminó sin emitir nada: no se sabe si se registró, y no se sigue con los demás.
+      defaultIfEmpty<ResultadoDeEnvio<T>, ResultadoDeEnvio<T>>({ item, estado: 'sinRespuesta' }),
       catchError((error): Observable<ResultadoDeEnvio<T>> =>
         of({ item, estado: erroresDeRechazo(error) ? 'rechazo' : 'sinRespuesta', error })),
     )),

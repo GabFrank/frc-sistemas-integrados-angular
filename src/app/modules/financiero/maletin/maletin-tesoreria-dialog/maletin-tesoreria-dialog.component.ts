@@ -193,7 +193,8 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
   private sinConfirmar(avisar: boolean) {
     if (avisar) {
       const operacion = this.esEgreso ? 'EGRESO' : 'INGRESO';
-      const codigo = this.maletinControl.value?.descripcion || '';
+      // El central lo describe con el código del maletín, o con su id si no tiene.
+      const codigo = this.maletinControl.value?.descripcion || `#${this.maletinControl.value?.id}`;
       this.notificacion.openWarn(
         `No se pudo confirmar si se registró: buscá «${operacion} MALETIN ${codigo}» en los movimientos de la caja antes de repetirlo.`, 10);
     }

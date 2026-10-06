@@ -162,3 +162,50 @@ rechazar si no coincide; el límite de caja chica no se valida en el servidor.
 | B | Dependencia del #425 | baja | apilar si no está mergeado |
 | A | «Resultado vacío sin error» no es un caso real | baja | queda como defensa |
 | A | Duplicados en el central, atomicidad, avisos por caso | — | verificado |
+
+## Implementación: desvíos (2026-10-06)
+
+- El #425 ya estaba en `develop` al arrancar: la rama parte de `develop`, sin apilar.
+- **Conteo**: en vez de marcar los saldos como «no disponibles» durante la relectura (eso mostraba además el cartel
+  de lectura fallida), el dashboard usa una marca propia: mientras vuelven los saldos el conteo se abre sin saldo
+  del sistema, sin cartel falso.
+- El envío en serie y el resumen del lote quedaron en `caja-virtual/enviar-en-serie.ts`, compartido por los dos
+  diálogos.
+- Sin tocar (previo): en el conteo, «Limpiar», «Copiar» y la grilla siguen habilitados mientras se guarda.
+
+## Prueba de runtime (2026-10-06)
+
+Desktop servido en :4200 contra un central local en :8081 con perfil `dev` (replicación apagada por el perfil)
+que **ya estaba levantado por otra sesión**; se usó sin congelarlo ni bajarlo. Caja mayor local «RRHH» (solo tiene
+saldo en guaraníes). No hay una segunda caja local.
+
+| Caso | Cómo | Resultado |
+|---|---|---|
+| Egreso en guaraníes y reales, reales sin saldo | real | el egreso en guaraníes se registró; aviso «Se registró: GUARANI. Rechazado: REAL (Saldo insuficiente en la caja virtual)…»; el diálogo se cerró y la caja se releyó |
+| Egreso en reales y dólares, la primera sin saldo | real | un solo pedido enviado, nada registrado, el diálogo queda abierto con los montos |
+| Egreso en tres monedas, la segunda sin respuesta | real, cuerpo HTTP vacío en ese pedido | «Se registró: GUARANI. Sin confirmar: REAL. No se envió: DOLAR…»; se cierra y relee |
+| Ingreso que llega al central y se pierde la respuesta | real: la petición se envía y la respuesta se descarta en el navegador | se cierra con el aviso; la caja releída muestra el ingreso |
+| Mientras guarda | servicio reemplazado (lento) | no se puede cerrar y «Cancelar» está deshabilitado; el segundo pedido se crea recién al terminar el primero |
+| Rechazo de un único movimiento | servicio reemplazado | queda abierto y se puede cancelar |
+| Transferencia: guaraníes bien, reales rechazados, dólares sin enviar | servicio reemplazado (no hay segunda caja) | dos pedidos, aviso con el detalle, se cierra |
+| Ajuste por conteo que llega y se pierde la respuesta | real | se cierra con «El conteo sigue guardado…»; el saldo releído ya incluye el ajuste |
+| Reabrir el conteo mientras vuelven los saldos | servicio reemplazado (lento) | se abre sin saldo del sistema: no se puede ajustar; al volver, normal |
+| Maletín: ingreso y egreso sin respuesta / rechazo | servicio reemplazado | se cierra con «buscá INGRESO (EGRESO) MALETIN M-PRUEBA…» / queda abierto |
+
+Los cuatro movimientos de prueba se anularon; la caja local quedó en su saldo original.
+
+Sin probar: una transferencia real y un maletín real (no hay segunda caja ni maletín con cierre en la base local);
+Esc y clic afuera mientras guarda (solo se verificó que el diálogo queda marcado como no cerrable); el corte real
+de 60 s del link.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+Sin hallazgos altos. Probó `enviarEnSerie` aparte: tras un fallo no se crea ni se envía el pedido siguiente.
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Un pedido que termina sin emitir nada desaparecía del resultado y el lote no se cortaba | media | cuenta como «sin confirmar» y corta |
+| El conteo mostraba el cartel de «no se pudieron cargar los saldos» mientras se releían | baja | marca propia, sin cartel (re-probado) |
+| El aviso del maletín quedaba sin código si el maletín no tiene descripción | baja | usa su id |
+| Con el aviso de límite de caja chica antes, el del lote llega más tarde | baja | se deja: salen en cola |
+| Cierre hasta la relectura, restauración de estados, avisos por caso | — | verificado |
