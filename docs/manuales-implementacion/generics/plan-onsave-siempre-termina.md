@@ -167,3 +167,52 @@ PDV (un solo aviso); central offline con un guardado que sí llega; HTTP 4xx/5xx
 | B | Central offline: decir que pudo haberse aplicado | media | en el texto |
 | B | `error: () => {}` en los ~50 | — | no |
 | B | Tamaño | media | dos PRs |
+
+## Implementación: desvíos
+
+- **Ítem de un delivery en el PDV**: quedó sin aviso propio (el plan lo pedía). Solo deja de quedar el error sin
+  manejar; el aviso lo da el genérico.
+- **Texto del aviso**: con un status HTTP dice «el servidor respondió HTTP N» en vez de «pudo haberse aplicado».
+- **Retiro de pre-gasto**: además de lo planeado, el servicio informa en cuál de los dos guardados falló. Si falló
+  el retiro en el central (rechazo o red), el gasto del filial ya está guardado y el diálogo se cierra con ese aviso:
+  esto ya pasaba hoy ante un rechazo y permitía duplicar el gasto.
+- **Hoja de ruta**: se cierra ante un «sin respuesta» solo en un alta; una edición queda abierta (repetirla es inocuo).
+- **Solicitud de gasto** (`preGastoGuardar`): no estaba en el plan; su `error:` decía «No se pudo registrar» también
+  sin respuesta.
+- Una respuesta sin `data` ni `errors` se trata como respuesta vacía (antes rompía dentro del genérico y no terminaba).
+- El alta de cliente conserva su `propagate` y solo deja de pedir silencio.
+- Se verificó con `npm run check` el estado final, no cada commit intermedio por separado.
+
+## Prueba de runtime (paso 9, 2026-10-06)
+
+Central local `:8081` (replicación apagada, schedulers en «Negative matches»), filial local `:8080`, desktop con
+`ng serve -c web`. Fallas inyectadas en el navegador por operación (red, HTTP 404, rechazo, cuerpo vacío).
+
+| Caso | Resultado |
+|---|---|
+| Guardar un feriado: red / HTTP / rechazo / vacío / normal | aviso «No se pudo confirmar si se guardó…» y diálogo abierto / ídem con el status / «Ups!…» / «Ups!… Respuesta vacía» / guarda y cierra |
+| Registro de sesión con error de red | el error llega a quien llama, sin aviso |
+| Gasto de caja (filial), guardar: red / rechazo | no pierde lo cargado, relee la lista / no relee |
+| Gasto de caja, finalizar: red / rechazo | sin spinner colgado |
+| Abrir caja (filial) con error de red | vuelve al maletín; la caja abierta no se toca |
+| Retiro de pre-gasto (servicio reemplazado, con la forma real del error de Apollo): gasto sin respuesta / gasto rechazado / retiro rechazado o sin red / error previo | cierra y relee / queda abierto / cierra «el gasto quedó registrado…» y relee / queda abierto |
+| Hoja de ruta (alta): rechazo / red | queda abierta / se cierra sin resultado |
+
+No probado en runtime: edición de transferencia y devolución, alta de cliente, solicitud de pago, cobro del PDV,
+solicitud de gasto, edición de hoja de ruta; un guardado real de gasto o de apertura de caja (para no crear datos ni
+imprimir); un cierre de sesión real sin red; el corte del link a los 60 s y el de «central offline».
+Tests: `generic-crud.on-save.spec.ts`, 13 de 13.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Retiro de pre-gasto: el error de red de Apollo es `instanceof Error` y la rama «sin confirmar» no se activaba (la prueba había usado un objeto plano) | alta | el servicio marca la etapa; reprobado con la forma real |
+| Retiro de pre-gasto: un rechazo del retiro en el central deja el gasto guardado y el botón habilitado | media | se cierra con aviso |
+| Solicitud de gasto: «No se pudo registrar» ante un sin respuesta | media | no lo dice |
+| `onSave` no terminaba con una respuesta sin `data` ni `errors` | media | respuesta vacía |
+| La mutation que termina sin emitir fallaba sin aviso | baja | avisa |
+| Hoja de ruta: cerrar también en una edición | baja | solo en alta |
+| `.catch` que tragaba errores propios del `then` | baja | segundo argumento del `then` |
+| Gasto de caja: tras un sin respuesta el botón queda habilitado (relee, no bloquea) | media | queda para el 14c |
+| Sesión, cobro, solicitud de pago, cliente: quién avisa en cada camino; specs existentes | — | verificado, sin hallazgos |
