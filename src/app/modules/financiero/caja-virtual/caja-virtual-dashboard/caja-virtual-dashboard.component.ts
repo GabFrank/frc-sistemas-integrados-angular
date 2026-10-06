@@ -664,9 +664,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
+  /** Anular una entrada varia ahí adentro mueve el saldo de esta caja: al cerrarse, se relee. */
   onVerEntradasVarias() {
-    this.dialog.open(ListEntradasVariasDialogComponent, {
+    const ref = this.dialog.open(ListEntradasVariasDialogComponent, {
       width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
+    });
+    // Se captura acá: el diálogo se cierra con Esc o clic afuera, y después componentInstance es null.
+    const entradas = ref.componentInstance;
+    ref.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+      if (entradas.huboCambios) this.recargar();
     });
   }
 
@@ -688,9 +694,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   private origenNav: Record<string, { label: string; icon: string; open: (row: MovimientoRow) => void }> = {
     ENTRADA_VARIA: {
       label: 'Ver entradas/salidas varias', icon: 'receipt_long',
-      open: () => this.dialog.open(ListEntradasVariasDialogComponent, {
-        width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
-      }),
+      open: () => this.onVerEntradasVarias(),
     },
     RRHH_VALE: {
       label: 'Ir a Vales (RRHH)', icon: 'payments',
