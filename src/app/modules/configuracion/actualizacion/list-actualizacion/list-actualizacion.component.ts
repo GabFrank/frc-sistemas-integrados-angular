@@ -66,7 +66,7 @@ export class ListActualizacionComponent implements OnInit {
     this.actualizacionService.onGetAll()
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        this.dataSource.data = res;
+        this.dataSource.data = res ?? [];
       })
   }
 

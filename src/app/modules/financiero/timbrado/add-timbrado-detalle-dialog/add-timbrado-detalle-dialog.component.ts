@@ -1,5 +1,6 @@
-import { forkJoin } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError, debounceTime } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TimbradoDetalle } from '../timbrado.modal';
 import { TimbradoService } from '../timbrado.service';
 import { MainService } from '../../../../main.service';
@@ -120,7 +121,8 @@ export class AddTimbradoDetalleDialogComponent implements OnInit {
 
   loadInitialData() {
     forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales(true),
+      // Con PROPAGAR + catchError la pata termina aunque el central no responda (#390).
+      sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED).pipe(catchError(() => of(null))),
       puntoDeVentas: this.puntoDeVentaService.onGetAllPuntoDeVentas(true)
     }).pipe(untilDestroyed(this)).subscribe({
       next: ({ sucursales, puntoDeVentas }) => {

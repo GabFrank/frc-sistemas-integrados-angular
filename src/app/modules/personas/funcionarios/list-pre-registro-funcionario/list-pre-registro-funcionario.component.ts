@@ -48,7 +48,7 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
     this.funcionarioService.onGetAllPreRegistroFuncionarios(this.page)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        this.dataSource.data = res;
+        this.dataSource.data = res ?? [];
       })
   }
 
@@ -76,6 +76,8 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
     this.funcionarioService.onGetAllPreRegistroFuncionarios(this.page)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
+        // null = la página no se pudo leer (#390): se vuelve atrás, sin dar la lista por terminada.
+        if (res == null) { this.page--; return; }
         if (res.length == 0) this.isLastPage = true;
         this.dataSource.data = this.dataSource.data.concat(res)
       })
