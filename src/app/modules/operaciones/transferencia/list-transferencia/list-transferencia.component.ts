@@ -521,8 +521,11 @@ export class ListTransferenciaComponent implements OnInit {
       this.notificacionService.openWarn('Debe seleccionar al menos una transferencia');
       return;
     }
+    // La hoja pendiente se ofrece solo si entre las seleccionadas hay alguna de las que le quedaron sin asignar.
     const pendiente = this.rutaPendiente;
-    if (pendiente == null) {
+    const hayPendientes = pendiente != null
+      && this.selection.selected.some((t) => pendiente.ids.some((id) => id == t.id));
+    if (!hayPendientes) {
       this.abrirNuevaHojaDeRuta();
       return;
     }
@@ -598,17 +601,19 @@ export class ListTransferenciaComponent implements OnInit {
         else if (resultado === 'rechazada') rechazadas.push(transferencia.id);
         else sinConfirmar = transferencia.id;
       }
-      const pendientes = [...(sinConfirmar != null ? [sinConfirmar] : []), ...noIntentadas, ...rechazadas];
-      if (pendientes.length === 0) {
-        this.rutaPendiente = null;
+      // Una rechazada no queda pendiente: repetirla daría el mismo rechazo, y la hoja quedaría ofrecida para siempre.
+      const pendientes = [...(sinConfirmar != null ? [sinConfirmar] : []), ...noIntentadas];
+      this.rutaPendiente = pendientes.length > 0 ? { hoja, ids: pendientes } : null;
+      if (pendientes.length === 0 && rechazadas.length === 0) {
         this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
       } else {
-        this.rutaPendiente = { hoja, ids: pendientes };
         const partes = [`Hoja #${hoja.id}: asignada a ${count} transferencias.`];
         if (sinConfirmar != null) partes.push(`Sin confirmar: ${sinConfirmar} (pudo haberse asignado).`);
         if (noIntentadas.length > 0) partes.push(`Sin intentar: ${noIntentadas.join(', ')}.`);
         if (rechazadas.length > 0) partes.push(`No se pudo asignar a: ${rechazadas.join(', ')}.`);
-        partes.push('Quedaron seleccionadas: volvé a asignar para usar la misma hoja (repetir es seguro).');
+        if (pendientes.length > 0) {
+          partes.push('Quedaron seleccionadas: volvé a asignar para usar la misma hoja (repetir es seguro).');
+        }
         this.notificacionService.openWarn(partes.join(' '), 15);
       }
     } catch (error) {
@@ -623,9 +628,19 @@ export class ListTransferenciaComponent implements OnInit {
 
   /** Tras releer, vuelve a marcar las transferencias que quedaron sin asignar a la hoja pendiente. */
   private reseleccionarPendientesDeRuta() {
-    const ids = this.rutaPendiente?.ids;
-    if (!ids?.length) return;
-    const filas = this.dataSource.data.filter((t) => t.hojaRuta == null && ids.some((id) => id == t.id));
+    const pendiente = this.rutaPendiente;
+    if (pendiente == null) return;
+    // La que al releer ya trae hoja se asignó (era la «sin confirmar»): deja de estar pendiente.
+    const yaAsignadas = this.dataSource.data.filter((t) => t.hojaRuta != null).map((t) => t.id);
+    pendiente.ids = pendiente.ids.filter((id) => !yaAsignadas.some((a) => a == id));
+    if (pendiente.ids.length === 0) {
+      this.rutaPendiente = null;
+      return;
+    }
+    // Cada relectura crea filas nuevas: se sacan las anteriores de la selección para no duplicarlas.
+    const viejas = this.selection.selected.filter((t) => pendiente.ids.some((id) => id == t.id));
+    if (viejas.length > 0) this.selection.deselect(...viejas);
+    const filas = this.dataSource.data.filter((t) => t.hojaRuta == null && pendiente.ids.some((id) => id == t.id));
     if (filas.length > 0) this.selection.select(...filas);
   }
 

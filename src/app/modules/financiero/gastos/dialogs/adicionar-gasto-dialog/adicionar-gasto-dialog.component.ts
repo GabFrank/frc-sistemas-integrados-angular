@@ -785,7 +785,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         const candidatos = gastos.filter((g) => !idsAntes.has(Number(g.id)) && esElMismoGasto(g, enviado));
         this.guardadoEnDuda = false;
         if (candidatos.length === 0) {
-          this.notificacionService.openWarn('El gasto no figura en la lista: podés guardarlo de nuevo.', 8);
+          this.notificacionService.openWarn(
+            'El gasto no figura en la lista. Si salió el ticket, esperá unos segundos y mirá la lista antes de guardarlo de nuevo.', 10);
           return;
         }
         if (candidatos.length > 1) {
@@ -797,9 +798,23 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         enviado.id = candidatos[0].id;
         this.notificarGastoGuardado(enviado);
         this.notificacionService.openWarn(`El gasto ya figura en la lista (#${enviado.id}): no hace falta cargarlo de nuevo.`, 8);
+        // Si mientras tanto el cajero empezó a cargar otra cosa, no se le borra.
+        if (!this.formularioEsDe(enviado)) return;
         this.goTo("lista-gastos");
         this.onCancelar();
       });
+  }
+
+  /** ¿El formulario sigue con los datos del gasto que se envió? */
+  private formularioEsDe(enviado: Gasto): boolean {
+    return esElMismoGasto({
+      responsable: this.selectedResponsable,
+      tipoGasto: this.selectedTipoGasto,
+      retiroGs: this.guaraniControl.value,
+      retiroRs: this.realControl.value,
+      retiroDs: this.dolarControl.value,
+      observacion: this.observacionControl.value,
+    } as Gasto, enviado);
   }
 
   private mostrarGastos(gastos: Gasto[]): void {
