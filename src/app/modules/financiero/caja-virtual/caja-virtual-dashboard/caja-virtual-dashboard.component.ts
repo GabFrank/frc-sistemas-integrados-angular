@@ -131,6 +131,11 @@ export class CajaVirtualDashboardComponent implements OnInit {
   saldosNoDisponibles = false;
   /** Número de la última carga de saldos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
   private saldosCargaId = 0;
+  /**
+   * Los saldos se están releyendo después de un conteo: hasta que vuelvan, el conteo se abre sin saldo del
+   * sistema (no se puede ajustar). No es `saldosNoDisponibles`, que además muestra el cartel de lectura fallida.
+   */
+  private saldosEnRelectura = false;
   /** Moneda por la que se está filtrando la tabla (null = todas). La activa el click en la card. */
   monedaSelId: number = null;
 
@@ -286,12 +291,13 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe({
         next: res => {
           if (id !== this.saldosCargaId) return;
+          this.saldosEnRelectura = false;
           if (res == null) { this.saldosNoCargados(); return; }
           this.saldosNoDisponibles = false;
           this.saldos = res;
           this.construirCards();
         },
-        error: () => { if (id === this.saldosCargaId) { this.saldosNoCargados(); } }
+        error: () => { if (id === this.saldosCargaId) { this.saldosEnRelectura = false; this.saldosNoCargados(); } }
       });
   }
 
@@ -339,13 +345,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const data: ConteoCajaDialogData = {
       cajaVirtual: this.cajaVirtual,
       moneda: card.saldo?.moneda,
-      saldoSistema: this.saldosNoDisponibles ? null : (card.saldo?.saldo || 0),
+      saldoSistema: (this.saldosNoDisponibles || this.saldosEnRelectura) ? null : (card.saldo?.saldo || 0),
       color: card.color,
     };
     this.dialog.open(ConteoCajaDialogComponent, {
       // Sin ancho fijo: la grilla de denominaciones define el tamaño (1 columna o varias).
       maxWidth: '96vw', maxHeight: '92vh', autoFocus: false, data,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res) return;
+      // Hasta que vuelvan los saldos el conteo no tiene contra qué ajustar: reabrirlo ya, con el saldo de
+      // antes, repetiría un ajuste que pudo haberse registrado (#390).
+      this.saldosEnRelectura = true;
+      this.recargar();
+    });
   }
 
   cargarConfigYBancos() {

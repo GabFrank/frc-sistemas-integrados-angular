@@ -64,6 +64,11 @@ export class AdicionarPresentacionComponent implements OnInit {
   productoControl = new FormControl(null);
   tipoPresentacionControl = new FormControl(null, Validators.required);
   imagenPrincipalControl = new FormControl(null);
+  /**
+   * Solo en el alta: la presentación es una promo (2x1, 3x2…). Nace inactiva y no principal: una promoción por
+   * sucursal la habilita donde corresponda. Fuera del formGroup: es una decisión del alta, no un dato que se guarda.
+   */
+  promocionControl = new FormControl(false);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarPresentacionData,
@@ -123,15 +128,17 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionInput.tipoPresentacionId =
       this.tipoPresentacionControl.value;
     this.presentacionInput.cantidad = this.cantidadControl.value;
-    this.presentacionInput.activo = this.activoControl.value;
-    this.presentacionInput.principal = this.principalControl.value;
+    // El toggle manda: no depende de que los toggles sigan bloqueados
+    const promocion = esAlta && this.promocionControl.value === true;
+    this.presentacionInput.activo = promocion ? false : this.activoControl.value;
+    this.presentacionInput.principal = promocion ? false : this.principalControl.value;
     this.guardando = true;
     this.presentacionService
       .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this), finalize(() => this.guardando = false))
       .subscribe({ next: (res) => {
         this.guardando = false;
         if (res != null) {
-          this.matDialogRef.close(res);
+          this.matDialogRef.close(this.conPromocion(res));
         }
       }, error: (error) => {
         this.guardando = false;
@@ -179,7 +186,7 @@ export class AdicionarPresentacionComponent implements OnInit {
           && Number(p?.tipoPresentacion?.id) === Number(enviado.tipoPresentacionId));
         if (iguales.length === 1) {
           this.notificacionSnackBar.openSucess('La presentación ya estaba guardada.');
-          this.matDialogRef.close(iguales[0]);
+          this.matDialogRef.close(this.conPromocion(iguales[0]));
           return;
         }
         this.textoVerificacion = iguales.length > 1
@@ -190,6 +197,28 @@ export class AdicionarPresentacionComponent implements OnInit {
 
   onCancelar() {
     this.matDialogRef.close(this.altaSinConfirmar ? PRESENTACION_SIN_CONFIRMAR : null);
+  }
+
+  onPromocionChange() {
+    if (this.promocionControl.value === true) {
+      this.activoControl.setValue(false);
+      this.principalControl.setValue(false);
+      this.activoControl.disable();
+      this.principalControl.disable();
+    } else {
+      this.activoControl.enable();
+      this.principalControl.enable();
+      this.activoControl.setValue(true);
+    }
+  }
+
+  /**
+   * Valor de cierre: la presentación, con `promocion` si se marcó como promo Y quedó inactiva. Lo segundo cubre
+   * «Verificar», que puede encontrar una presentación igual que ya existía activa: sobre esa no se sigue.
+   */
+  private conPromocion(presentacion: Presentacion): Presentacion & { promocion?: boolean } {
+    const promocion = this.promocionControl.value === true && presentacion?.activo === false;
+    return promocion ? { ...presentacion, promocion } : presentacion;
   }
 
   cargarPresentacion() {

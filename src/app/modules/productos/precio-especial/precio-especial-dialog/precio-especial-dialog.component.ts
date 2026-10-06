@@ -15,7 +15,8 @@ import { PrecioPorSucursal } from '../../precio-por-sucursal/precio-por-sucursal
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
 import {
-  ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, textoVigencia,
+  detalleAlCortar, ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, esPrecioInactivo, estadoPrecioEspecial, fechaParam,
+  idsSucursalesSeleccionadas, precioPromocionalInicial, textoVigencia,
 } from '../precio-especial.util';
 
 export class PrecioEspecialDialogData {
@@ -73,6 +74,11 @@ export class PrecioEspecialDialogComponent implements OnInit {
   tipoPrecioTexto = '';
   esPrincipal = false;
   precioGlobal: number = null;
+  /** Precio global inactivo (una promo 2x1): no rige en ninguna sucursal hasta que una promoción lo habilite. */
+  precioInactivo = false;
+  rotuloPrecioGlobal = 'Precio actual';
+  notaPrecioGlobal = 'Lo cobran todas las demás sucursales';
+  tooltipCortar = 'Cortar: vuelve al precio actual';
 
   // Comparador: se recalcula con cada cambio del precio.
   precioEspecial: number = null;
@@ -101,9 +107,17 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.tipoPrecioTexto = this.data.precio?.tipoPrecio?.descripcion || '';
     this.esPrincipal = !!this.data.precio?.principal;
     this.precioGlobal = this.data.precio?.precio ?? null;
+    this.precioInactivo = esPrecioInactivo(this.data.precio);
+    if (this.precioInactivo) {
+      this.rotuloPrecioGlobal = 'Precio cargado';
+      this.notaPrecioGlobal = 'Inactivo: no se cobra en ninguna sucursal';
+      this.tooltipCortar = 'Cortar: el precio vuelve a quedar inactivo en la sucursal';
+    }
 
     this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarComparador());
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarResumenSucursales());
+    // Después de suscribir: el reset emite y el comparador arranca con el valor precargado
+    this.precioControl.reset(precioPromocionalInicial(this.data.precio));
     this.actualizarComparador();
 
     this.cargarSucursales();
@@ -181,7 +195,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.sucursalControl.enable();
     // reset y no setValue: deja los campos sin tocar, sin el borde de error despues de guardar.
     this.sucursalControl.reset([]);
-    this.precioControl.reset(null);
+    this.precioControl.reset(precioPromocionalInicial(this.data.precio));
     this.desdeControl.reset(null);
     this.hastaControl.reset(null);
   }
@@ -190,7 +204,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
     const e = fila.especial;
     this.dialogosService
       .confirm('Cortar promoción', `¿Cortar la promoción de ${fila.sucursal}?`,
-        'La sucursal vuelve al precio global desde el próximo escaneo.')
+        detalleAlCortar(this.precioInactivo))
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
         // También en error: pudo haberse aplicado (onSaveCustom ya avisó), y la lista lo aclara
@@ -246,7 +260,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
   private actualizarComparador(): void {
     const valor = Number(this.precioControl.value);
     this.precioEspecial = valor > 0 ? valor : null;
-    this.descuentoPorcentaje = this.precioEspecial != null && this.precioGlobal > 0
+    // Contra un precio inactivo no hay diferencia que mostrar: ese precio no rige en ninguna sucursal
+    this.descuentoPorcentaje = this.precioEspecial != null && this.precioGlobal > 0 && !this.precioInactivo
       ? ((this.precioEspecial - this.precioGlobal) / this.precioGlobal) * 100
       : null;
     const evaluacion = this.precioEspecial != null
