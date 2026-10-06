@@ -141,6 +141,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   // Movimientos (tabla)
   dataSource = new MatTableDataSource<MovimientoRow>([]);
   isLoading = false;
+  /** La última lectura de movimientos (de caja o de banco) falló: la tabla muestra lo que había antes. */
+  movimientosNoCargados = false;
+  /** Número de la última lectura de movimientos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
+  private movimientosCargaId = 0;
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
@@ -407,6 +411,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;
+    const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
     this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
       desde: f.desde,
@@ -418,7 +423,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
+          // Un resultado vacío sin error tampoco es una lectura: antes dejaba las filas viejas sin avisar.
+          this.movimientosNoCargados = res == null;
           if (res != null) {
             this.selectedPageInfo = res;
             const rows = (res.getContent || []).map(m => this.toRow(m));
@@ -427,8 +435,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
           }
         },
         error: () => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los movimientos de la caja.', 5);
+          this.movimientosNoCargados = true;
         }
       });
   }
@@ -436,8 +445,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   /** Carga los movimientos de la cuenta bancaria seleccionada como fuente. */
   private cargarMovimientosBancarios() {
     const cuentaId = this.fuenteSel.cuentaId;
-    if (!cuentaId) { this.dataSourceBanco.data = []; return; }
+    if (!cuentaId) { this.dataSourceBanco.data = []; this.movimientosNoCargados = false; return; }
     this.isLoading = true;
+    const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
     this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize, {
       desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
@@ -445,16 +455,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta.', 5); return; }
+          this.movimientosNoCargados = res == null;
+          if (res == null) return;
           // Clonar: Apollo congela los resultados (mismo motivo que toRow).
           this.dataSourceBanco.data = (res.getContent || []).map(m => (
             { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) }));
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         },
         error: () => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta: el servidor no responde.', 5);
+          this.movimientosNoCargados = true;
         }
       });
   }
