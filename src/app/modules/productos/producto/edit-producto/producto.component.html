@@ -34,7 +34,7 @@
         >
           <img
             [src]="imagenPrincipal"
-            [frcPrevisualizarImagen]="imagenPrincipal"
+            [frcPrevisualizarImagen]="imagenPrincipalGrande || imagenPrincipal"
             matTooltip="Ver imagen"
             alt="imagen principal mini"
             style="width: 100px; height: 100px; object-fit: contain; border-radius: 50%; cursor: pointer;"
@@ -1740,8 +1740,8 @@
             <div style="text-align: center">Imagen principal</div>
             <div style="background-color: black; width: 350px; height: 350px">
               <img
-                *ngIf="imagenPrincipal != null"
-                [src]="imagenPrincipal"
+                *ngIf="(imagenPrincipalGrande || imagenPrincipal) != null"
+                [src]="imagenPrincipalGrande || imagenPrincipal"
                 alt="imgPrincipal"
                 style="width: 350px; height: 350px; object-fit: contain"
               />

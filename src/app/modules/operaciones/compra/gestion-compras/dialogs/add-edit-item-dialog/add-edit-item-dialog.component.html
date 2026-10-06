@@ -46,8 +46,8 @@
           <div class="product-sidebar" *ngIf="productoSelectedComputed">
             <div class="sidebar-image-container">
               <img
-                [src]="selectedProducto?.imagenPrincipal || 'assets/no-image.png'"
-                [frcPrevisualizarImagen]="selectedProducto?.imagenPrincipal || 'assets/no-image.png'"
+                [src]="selectedProducto?.imagenPrincipalMiniatura || 'assets/no-image.png'"
+                [frcPrevisualizarImagen]="selectedProducto?.imagenPrincipalMediana || selectedProducto?.imagenPrincipalMiniatura || 'assets/no-image.png'"
                 class="sidebar-product-image"
                 matTooltip="Ver imagen"
               />
