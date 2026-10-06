@@ -89,7 +89,10 @@ export class ListOperacionFinancieraComponent implements OnInit {
       maxHeight: '92vh',
       data: null
     }).afterClosed().subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res == null) return;
+      // La operación nueva (o la que pudo haberse registrado) queda arriba de todo: se vuelve a la primera página.
+      this.pageIndex = 0;
+      this.onFiltrar();
     });
   }
 
