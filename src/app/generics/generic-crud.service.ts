@@ -561,6 +561,15 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Siempre termina (#390): emite lo guardado y completa, o falla.
+   * - Rechazo del servidor: avisa «Ups!…» y falla con el arreglo de errores (`esRechazoDelServidor`).
+   * - Error de red (sin conexión, central offline, HTTP 4xx/5xx): avisa «No se pudo confirmar si se
+   *   guardó…» y falla con el error tal cual. **No es un «no se guardó»**: quien lo maneja no debe
+   *   invitar a repetir a ciegas (`erroresDeRechazo(err) == null` lo distingue).
+   *
+   * @param errorConf `networkError.show = false` apaga ese aviso, para quien dice lo suyo.
+   */
   onSave<T>(
     gql: Mutation,
     input,
@@ -583,6 +592,15 @@ export class GenericCrudService {
       "Guardando..."
     );
     return new Observable((obs) => {
+      // Una sola salida, pase lo que pase (#390).
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.isLoading = false;
+        this.cargandoService.closeDialog(requestId);
+        return true;
+      };
       gql
         .mutate(
           { entity: input, printerName, local },
@@ -597,8 +615,7 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
-            this.isLoading = false;
-            this.cargandoService.closeDialog(requestId);
+            if (!cerrar()) return;
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
@@ -615,26 +632,33 @@ export class GenericCrudService {
                 duracion: 5,
               });
               if (res?.data != null && res?.data["data"] != null) {
+                // Se guardó, y falló algo al armar la respuesta. Antes emitía sin completar.
                 obs.next(res.data["data"]);
+                obs.complete();
               } else {
                 obs.error(limpiarErroresGraphQL(res.errors));
               }
             }
           },
           error: (error) => {
-            this.isLoading = false;
-            this.cargandoService.closeDialog(requestId);
-            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Error de red",
-                color:
-                  errorConf?.networkError?.color || NotificacionColor.danger,
-                duracion: 3,
-              });
+            if (!cerrar()) return;
+            // Antes, sin `errorConf`, acá no pasaba nada: ni aviso ni error, y quien llamaba quedaba
+            // esperando para siempre. El guardado pudo haberse aplicado (el servidor sigue aunque el
+            // cliente corte), así que se dice eso y no «no se guardó». Calla quien avisa por su cuenta
+            // (`show: false`); el corte por tiempo ya lo avisó el link.
+            if (errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
+              this.avisarErrorSinRepetir(
+                gql,
+                "No se pudo confirmar si se guardó (" + mensajeErrorTransporte(error)
+                  + "): pudo haberse aplicado, verificá antes de repetir.",
+                8
+              );
             }
-            if (errorConf?.networkError?.propagate == true) {
-              obs.error(error);
-            }
+            obs.error(error);
+          },
+          // La mutation terminó sin emitir nada: para quien llama es una respuesta vacía.
+          complete: () => {
+            if (cerrar()) obs.error(limpiarErroresGraphQL(RESPUESTA_VACIA.errors));
           },
         });
     });
