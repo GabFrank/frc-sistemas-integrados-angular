@@ -195,6 +195,11 @@ export class PagarComprasDialogComponent implements OnInit {
    * repetir a ciegas un pago parcial lo paga dos veces y emite cheques nuevos (#390).
    */
   pagoSinConfirmar: PagoSinConfirmarItem[] | null = null;
+  /**
+   * El alta de un gasto o de un vale quedó sin respuesta: pudo haberse creado, y el central no impide crear otro
+   * igual. Texto de lo enviado, para buscarlo en la lista antes de cargarlo de nuevo.
+   */
+  altaSinConfirmar: string | null = null;
   private idsSinConfirmar = new Set<number>();
 
   isLoading = false;
@@ -603,6 +608,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.pagarComprasService.onCrearGasto(input).pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
+        this.altaSinConfirmar = null;
         this.notificacion.openSucess('Gasto creado');
         this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
         this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
@@ -611,7 +617,13 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: (err) => {
         this.creandoGasto = false;
-        this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
+        if (erroresDeRechazo(err)) {
+          this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
+          return;
+        }
+        this.altaSinRespuesta(err, `gasto «${desc}» por ${monto}`, 'gasto');
+        // La lista vuelve filtrada por la descripción enviada: si el gasto se creó, es el que aparece.
+        this.filtroDescripcionControl.setValue(desc, { emitEvent: false });
       }
     });
   }
@@ -650,6 +662,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.pagarComprasService.onCrearVale(input).pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
+        this.altaSinConfirmar = null;
         this.notificacion.openSucess('Vale registrado (pendiente de pago)');
         this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();
         this.nvMontoControl.reset(); this.nvObservacionControl.reset('');
@@ -659,9 +672,29 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: (err) => {
         this.creandoGasto = false;
-        this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+        if (erroresDeRechazo(err)) {
+          this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+          return;
+        }
+        const nombre = this.displayFuncionario(funcionario);
+        this.altaSinRespuesta(err, `vale de ${nombre} por ${monto}`, 'vale');
+        // La lista vuelve filtrada por el funcionario: si el vale se creó, es el que aparece.
+        this.filtroProveedorControl.setValue(nombre, { emitEvent: false });
       }
     });
+  }
+
+  /**
+   * El alta pudo haberse creado. Se vuelve a la lista y se relee para verlo; el formulario **no** se limpia: si
+   * no figura, se puede enviar de nuevo sin retipear.
+   */
+  private altaSinRespuesta(err: any, resumen: string, que: 'gasto' | 'vale') {
+    this.altaSinConfirmar = resumen;
+    if (!esTimeoutDeLink(err)) {
+      this.notificacion.openWarn(`No se pudo confirmar si el ${que} se creó: revisá la lista antes de cargarlo de nuevo.`, 8);
+    }
+    this.vistaNuevoGasto = false;
+    this.cargar();
   }
 
   // ── Devolver a compras: tesorería no cancela, devuelve lo que no va a pagar con un motivo ──
@@ -684,7 +717,16 @@ export class PagarComprasDialogComponent implements OnInit {
             this.todas = this.todas.filter(r => r.id !== row.id);
             this.aplicarFiltro();
           },
-          error: (err) => this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud'),
+          error: (err) => {
+            // Rechazo: el motivo del servidor (si ya estaba devuelta, la lista estaba vieja). Sin respuesta:
+            // pudo haberse devuelto. En los dos casos la lista se relee; el corte por tiempo ya lo avisó el link.
+            if (erroresDeRechazo(err)) {
+              this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud');
+            } else if (!esTimeoutDeLink(err)) {
+              this.notificacion.openWarn(`No se pudo confirmar si ${row.numeroSolicitud} se devolvió a compras: se vuelve a leer la lista.`, 6);
+            }
+            this.cargar(true);
+          },
         });
       });
   }

@@ -117,6 +117,15 @@
     </div>
   </div>
 
+  <div class="aviso-sin-confirmar" *ngIf="altaSinConfirmar && !vistaNuevoGasto">
+    <mat-icon>warning</mat-icon>
+    <div class="aviso-texto">
+      <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b> Pudo haberse creado: fijate si figura en la
+      lista (quedó filtrada) antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario.
+    </div>
+    <button mat-stroked-button type="button" (click)="altaSinConfirmar = null">Entendido</button>
+  </div>
+
   <div *ngIf="!vistaNuevoGasto" class="stepper-wrap">
   <mat-stepper #stepper class="pagar-stepper">
 
