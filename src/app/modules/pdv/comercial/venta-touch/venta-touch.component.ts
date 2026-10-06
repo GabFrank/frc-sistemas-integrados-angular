@@ -411,8 +411,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private iniciarCargaDeCaja(): void {
     // Con modal y corte de mostrador. `null` es «no tiene caja abierta» y ahí se ofrece abrir una; si la
-    // lectura falla NO se ofrece (podría tener una abierta) y no se sigue con la caja de una sesión anterior:
-    // las acciones de venta no miran si hay caja (#390).
+    // lectura falla NO se ofrece (podría tener una abierta) ni se sigue: las acciones de venta no miran si
+    // hay caja (#390).
     this.cajaService
       .onGetAbiertaDelUsuario(this.mainService.usuarioActual.id, false, true)
       .pipe(untilDestroyed(this))
@@ -433,7 +433,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }
         },
         error: () => {
-          this.cajaService.selectedCaja = null;
+          // No se toca `selectedCaja` (es compartida con otra pestaña de venta): este diálogo solo deja
+          // reintentar o salir, así que no se sigue vendiendo con la que hubiera.
           this.dialogoService
             .confirm(
               'No se pudo leer la caja',
@@ -738,23 +739,32 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (producto) => {
-          item.producto.lote = producto?.lote === true;
+          // El filial no devolvió el producto: tampoco se sabe si lleva lote.
+          if (producto == null) {
+            this.avisarLoteSinComprobar(item);
+            return;
+          }
+          item.producto.lote = producto.lote === true;
           if (item.producto.lote) {
             this.abrirSelectorDeLote(item);
           } else {
             this.addItem(item);
           }
         },
-        error: () => {
-          // Sin respuesta no se puede saber si lleva lote: no se agrega. Venderlo sin trazabilidad es peor
-          // que pedirle al cajero que lo escanee de nuevo (decidido el 2026-10-06, #390).
-          this.notificacionSnackbar.openWarn(
-            `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. No se agregó a la venta: escanealo de nuevo.`,
-            8
-          );
-          this.buscadorFocusSub.next();
-        },
+        error: () => this.avisarLoteSinComprobar(item),
       });
+  }
+
+  /**
+   * No se pudo saber si el producto lleva lote: no se agrega. Venderlo sin trazabilidad es peor que pedirle
+   * al cajero que lo escanee de nuevo (decidido el 2026-10-06, #390).
+   */
+  private avisarLoteSinComprobar(item: VentaItem): void {
+    this.notificacionSnackbar.openWarn(
+      `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. No se agregó a la venta: escanealo de nuevo.`,
+      8
+    );
+    this.buscadorFocusSub.next();
   }
 
   /** Abre el selector de lote y agrega el ítem con lo elegido. Cancelar no agrega el ítem. */
@@ -1761,7 +1771,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             case "edit":
               if (this.selectedDelivery != null) {
                 this.isDelivery = true;
-                const itemsAnteriores = this.selectedItemList;
                 this.selectedItemList = [];
                 if (this.selectedDelivery.venta != null) {
                   this.ventaService
@@ -1775,10 +1784,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                           this.calcularTotales();
                         }
                       },
-                      // El carrito ya se había vaciado: sin esto quedaba vacío y sin aviso (#390).
+                      // La pantalla ya había pasado a modo delivery con el carrito vacío: se vuelve al
+                      // carrito de antes, sin el delivery, en vez de quedar a medias y sin aviso (#390).
                       error: () => {
-                        this.selectedItemList = itemsAnteriores;
-                        this.calcularTotales();
+                        this.volverAlCarritoActivo();
                         this.notificacionSnackbar.openWarn('No se pudo leer la venta del delivery: volvé a abrirlo desde la lista.', 8);
                       },
                     });
