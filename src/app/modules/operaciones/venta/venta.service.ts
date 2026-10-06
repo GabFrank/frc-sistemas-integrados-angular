@@ -4,6 +4,7 @@ import { catchError, map, switchMap, tap } from "rxjs/operators";
 import {
   ContextoConsulta,
   GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
   QueryError,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../generics/generic-crud.service";
@@ -536,7 +537,8 @@ export class VentaService {
       null,
       null,
       servidor,
-      { networkError: { propagate: true } }
+      // Sin aviso del genérico: los dos llamadores dicen lo suyo («No se pudo confirmar el cobro…»).
+      PROPAGAR_ERROR_DE_RED
     );
   }
 

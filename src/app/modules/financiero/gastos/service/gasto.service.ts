@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
@@ -48,6 +48,12 @@ import { CancelarGastoGQL } from '../graphql/cancelarGasto';
  * responder no emiten nada y el diálogo queda con su spinner; los `error:` ya están escritos (#390).
  */
 const RETIRO_PRE_GASTO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
+/** En cuál de los dos guardados del retiro de pre-gasto falló, y con qué error. */
+export interface ErrorRetiroPreGasto {
+  etapa: 'GASTO' | 'RETIRO';
+  causa: any;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -281,6 +287,10 @@ export class GastoService {
     return this.genericService.onCustomMutation(this.ejecutarRetiroPreGastoGQL, { input });
   }
 
+  /**
+   * Falla con un {@link ErrorRetiroPreGasto} si el error vino de uno de los dos guardados; con un `Error`
+   * común si se cortó antes de guardar nada.
+   */
   registrarRetiroPreGastoHibrido(
     preGasto: PreGasto,
     caja: PdvCaja,
@@ -313,7 +323,10 @@ export class GastoService {
         gasto.activo = true;
         gasto.finalizado = false;
 
+        // Son dos guardados (gasto en el filial, retiro en el central). El error dice en cuál falló, porque
+        // de eso depende si se puede repetir: un fallo en el segundo deja el gasto ya guardado (#390).
         return this.onSave(gasto, false).pipe(
+          catchError((causa) => throwError(() => ({ etapa: 'GASTO', causa } as ErrorRetiroPreGasto))),
           switchMap((gastoGuardado) => {
             if (!gastoGuardado?.id) {
               return throwError(() => new Error('No se pudo registrar el gasto en la caja local.'));
@@ -326,7 +339,7 @@ export class GastoService {
               usuarioId,
               gastoRegistroId: gastoGuardado.id,
               lineas,
-            });
+            }).pipe(catchError((causa) => throwError(() => ({ etapa: 'RETIRO', causa } as ErrorRetiroPreGasto))));
           })
         );
       })

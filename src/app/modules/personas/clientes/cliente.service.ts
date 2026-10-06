@@ -39,9 +39,9 @@ export class ClienteService {
   }
 
   onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
+    // Sin `show: false`: su único llamador no avisa nada, así que el aviso lo da el genérico (#390).
     let errorConf: QueryError = {
       networkError: {
-        show: false,
         propagate: true
       }
     }

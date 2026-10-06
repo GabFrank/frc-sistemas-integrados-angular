@@ -527,7 +527,7 @@ export class EditDevolucionComponent implements OnInit {
 
   onAddItem() {
     if (this.selectedDevolucion?.id == null) {
-      this.onGuardarCabecera().then(() => this.abrirBusquedaProducto());
+      this.onGuardarCabecera().then(() => this.abrirBusquedaProducto(), () => {});
     } else {
       this.abrirBusquedaProducto();
     }
