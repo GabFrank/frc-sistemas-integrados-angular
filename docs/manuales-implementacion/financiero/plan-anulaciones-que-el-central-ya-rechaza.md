@@ -135,3 +135,48 @@ dashboard, no por la lista.
 | B | Detalle de operación: releer adentro y avisar al cerrar | media | definido |
 | A | Anulaciones sin bloqueo del documento en el central; cancelar retiro / gasto son interruptores | media | anotado |
 | A | Qué hace hoy cada acción y qué responde el central al repetirla | — | verificado |
+
+## Implementación: desvíos
+
+- **El test del servicio de anulación bancaria no se pudo ejecutar.** El spec está actualizado al contrato nuevo y
+  compila (`tsc -p src/tsconfig.spec.json`), pero Karma falla antes de correr cualquier test
+  (`__webpack_require__(...).context is not a function` en `src/test.ts:18`), igual que en `develop`. Arreglar la
+  infraestructura de tests queda fuera de este PR.
+- **Resolver un caso sin respuesta suma un aviso propio** al cerrar («No se pudo confirmar si el caso quedó
+  resuelto…»): el plan decía «solo se relee», pero cerrar un diálogo con texto escrito sin decir por qué confunde.
+  En el corte del link no se suma.
+- **Detalle de operación y detalle de caso: después de un intento, Esc y el clic afuera quedan deshabilitados** y
+  se sale por «Cerrar», que es lo que hace releer a quien abrió.
+- Si la relectura dentro del detalle de operación falla o no trae dato, el detalle se cierra y el dashboard relee.
+- Tomar y soltar un caso releen también con resultado vacío.
+
+## Prueba de runtime (paso 9, 2026-10-06)
+
+Central local `:8081` (worktree de pruebas adelantado a `develop`; replicación apagada, los dos schedulers en
+«Negative matches»; sin migraciones nuevas), desktop con `ng serve -c web`, caja «RRHH» y cuenta «000-REPORTE».
+
+| Caso | Resultado |
+|---|---|
+| Entrada varia anulada por fuera, después desde la lista vieja | rechazo «ya está anulada», lista releída |
+| Entrada varia, la anulación llega y se pierde la respuesta | lista releída, figura anulada |
+| Cerrar la lista de entradas varias tras un intento (botón y menú de la fila) / sin intento | el dashboard relee / no relee |
+| Operación financiera desde la lista: rechazo por lista vieja y respuesta perdida | relee en los dos |
+| Detalle de operación (desde la fila de caja): rechazo y respuesta perdida | queda abierto mostrando «Anulada», sin «Anular»; al cerrar, el dashboard relee |
+| Detalle: la relectura falla o no trae dato | se cierra y el dashboard relee |
+| Fila de banco del dashboard: cancelar el motivo / respuesta perdida | no relee / relee |
+| Movimientos de la cuenta bancaria: cancelar / rechazo por lista vieja | no marca cambios / relee y la lista de cuentas relee al cerrar; no se cierra mientras anula |
+| Anulación de un pago (servicio reemplazado): sin red / rechazo | «No se pudo confirmar la anulación…» / mensaje del servidor; relee |
+| Casos de retiro (servicio reemplazado; la base local no tiene casos): tomar y soltar con error | releen |
+| Resolver: rechazo / sin red / resultado vacío / rechazo con anulación de verificación pedida / éxito | queda abierto y al cerrar relee / los otros cierran con aviso y relectura / cierra y relee |
+
+No probado: el corte del link (60 s) y el de «central offline» sobre estas acciones; casos de retiro reales.
+Lo creado (entradas varias 3 y 4, operaciones 4 a 10) quedó anulado; la caja volvió a 8.300.000.
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Detalle de operación: si la relectura no trae dato, «Anular» vuelve a quedar ofrecido sobre el estado viejo | media | se cierra con relectura, como ante el error; reprobado |
+| Resolver con anulación de verificación pedida: un rechazo común también cierra y se pierde lo escrito | media | se deja: el desktop no puede distinguir ese rechazo del fallo parcial del central; anotado |
+| Tras un intento, Esc y clic afuera quedan deshabilitados en los dos detalles | baja | intencional: «Cerrar» es lo que hace releer |
+| Otros llamadores, caché de la relectura (`no-cache`), reglas del HTML, coherencia del spec | — | verificado, sin hallazgos |
