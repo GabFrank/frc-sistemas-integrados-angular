@@ -16,6 +16,8 @@ import { EChartsOption } from 'echarts';
 import { GRAFICO_COLORES, formatoEjeCompacto } from '../../../../shared/utils/grafico-echarts.theme';
 import { ChequeService } from '../cheque.service';
 import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../cheque.model';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 // Fila de la tabla con campos de display precalculados (sin funciones en el template).
 interface ChequeRow extends Cheque {
@@ -73,6 +75,8 @@ export class ChequesDashboardComponent implements OnInit {
   private fallos = { lista: false, resumen: false, saldos: false };
   /** Número de la última lectura de cada tipo: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
   private seq = { lista: 0, resumen: 0, saldos: 0 };
+  /** Cheques con un cobro o una anulación en curso: sin acciones hasta que termine (las filas se rearman al releer). */
+  private chequesEnCurso = new Set<number>();
 
   // ── Gráfico (monto por día de pago) ──
   chartOptions: EChartsOption | null = null;
@@ -250,8 +254,9 @@ export class ChequesDashboardComponent implements OnInit {
     // Apollo congela los resultados (dev): clonar antes de agregar props de display,
     // si no, asignar sobre el objeto congelado lanza TypeError en modo estricto.
     const row = { ...c } as ChequeRow;
-    row._cobrable = this.puedeGestionar && c.estado === EstadoCheque.DIFERIDO;
-    row._anulable = this.puedeGestionar && (c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO);
+    const libre = !this.chequesEnCurso.has(c.id);
+    row._cobrable = libre && this.puedeGestionar && c.estado === EstadoCheque.DIFERIDO;
+    row._anulable = libre && this.puedeGestionar && (c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO);
     row._monedaSimbolo = c.moneda?.simbolo || '';
     const banco = c.cuentaBancaria?.banco?.nombre || '';
     row._cuentaLabel = banco ? (banco + ' · ' + (c.cuentaBancaria?.numero || '')) : '';
@@ -415,7 +420,7 @@ export class ChequesDashboardComponent implements OnInit {
       null, true, 'Sí, cobrar', 'No',
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      this.ejecutar(this.chequeService.onCobrar(cheque.id), 'Cheque cobrado');
+      this.ejecutar(cheque.id, this.chequeService.onCobrar(cheque.id), 'Cheque cobrado');
     });
   }
 
@@ -428,22 +433,50 @@ export class ChequesDashboardComponent implements OnInit {
       null, true, 'Sí, anular', 'No',
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      this.ejecutar(this.chequeService.onAnular(cheque.id, 'Anulado desde dashboard'), 'Cheque anulado');
+      this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, 'Anulado desde dashboard'), 'Cheque anulado');
     });
   }
 
-  private ejecutar(obs: Observable<any>, exito: string) {
+  /**
+   * Cobra o anula y **relee siempre**: si se aplicó hay que mostrarlo, un rechazo («ya está cobrado») significa que
+   * la lista estaba vieja, y sin respuesta es la única forma de saber (#390). Mientras dura, el cheque no ofrece
+   * acciones.
+   */
+  private ejecutar(chequeId: number, obs: Observable<any>, exito: string) {
+    if (this.chequesEnCurso.has(chequeId)) return;
+    this.chequesEnCurso.add(chequeId);
+    this.dataSource.data.forEach(r => { if (r.id === chequeId) { r._cobrable = false; r._anulable = false; } });
+    const terminar = () => {
+      this.chequesEnCurso.delete(chequeId);
+      this.recargar();
+    };
     obs.pipe(untilDestroyed(this)).subscribe({
       next: r => {
         if (r != null) {
           this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
-          this.recargar();
+        } else {
+          this.avisarSinConfirmar();
         }
+        terminar();
       },
       error: err => {
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo completar la operación';
-        this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          const msg = rechazo[0]?.message || err?.message || 'No se pudo completar la operación';
+          this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+        } else if (!esTimeoutDeLink(err)) {
+          // El corte del link ya avisó que pudo haberse aplicado.
+          this.avisarSinConfirmar();
+        }
+        terminar();
       },
+    });
+  }
+
+  private avisarSinConfirmar() {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo confirmar la operación: se vuelve a leer la lista de cheques para verificarla.',
+      color: NotificacionColor.warn, duracion: 6,
     });
   }
 }
