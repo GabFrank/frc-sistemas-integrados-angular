@@ -245,7 +245,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
   btnEditarPrecio = false;
   btnGuardarPrecio = false;
   btnNuevoPrecio = false;
+  /** La miniatura, para el circulo de 100 px. */
   imagenPrincipal = null;
+  /** La mediana, para lo que se ve grande: la previsualizacion y el recuadro de 350 px. */
+  imagenPrincipalGrande = null;
   selectedEnvase: Producto;
   isEnvaseSub: Subscription;
 
@@ -832,6 +835,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         let objectUrl = URL.createObjectURL(res);
         this.imagenPrincipal = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
+        this.imagenPrincipalGrande = this.imagenPrincipal;
         var reader = new FileReader();
         reader.readAsDataURL(res);
         reader.onloadend = () => {
@@ -951,9 +955,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
                     this.presentacionesDataSource.data.findIndex(
                       (p) => p.id == this.selectedPresentacion.id
                     );
+                  // res2 es el Boolean de la mutation: la foto es la que se acaba de subir.
                   this.presentacionesDataSource.data[
                     presentacionIndex
-                  ].imagenPrincipal = res2;
+                  ].imagenPrincipal = res;
+                  if (this.selectedPresentacion?.principal == true) {
+                    this.imagenPrincipal = res;
+                    this.imagenPrincipalGrande = res;
+                  }
                 }
               });
           }
@@ -963,11 +972,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   loadImagenPrincipal() {
-    this.selectedProducto?.presentaciones?.forEach((p) => {
-      if (p.principal == true) {
-        this.imagenPrincipal = p?.imagenPrincipal;
-      }
-    });
+    // La de la presentacion principal, que es la que resuelve el backend. No se toma de
+    // presentaciones[].imagenPrincipal: sin foto el central manda ahi un relleno gris.
+    this.imagenPrincipal = this.selectedProducto?.imagenPrincipalMiniatura ?? null;
+    this.imagenPrincipalGrande =
+      this.selectedProducto?.imagenPrincipalMediana ?? this.imagenPrincipal;
   }
 
   // @HostListener("window:keyup", ["$event"])
