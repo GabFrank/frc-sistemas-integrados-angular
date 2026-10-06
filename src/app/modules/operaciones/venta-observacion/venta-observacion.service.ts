@@ -49,7 +49,7 @@ export class VentaObservacionService {
         return this.genericService.onSave(this.saveVentaObservacion, ventaObservacionInput).pipe(
             tap((res: any) => {
                 this.onGetVentasObservaciones().subscribe((updatedObservations) => {
-                    this.ventaObservacionBS.next(updatedObservations);
+                    if (updatedObservations != null) this.ventaObservacionBS.next(updatedObservations);
                 });
             })
         );

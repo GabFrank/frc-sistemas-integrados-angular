@@ -53,8 +53,8 @@ export class ChequeraService {
   }
 
   /**
-   * Igual que `onGetChequeras`, pero el error de red y el del servidor llegan a quien llama (`onGetAll` no emite
-   * nada ante un error: la pantalla quedaba con la lista vieja o vacía, sin aviso) (#390).
+   * Igual que `onGetChequeras`, pero el error de red y el del servidor llegan a quien llama (`onGetAll` emite `null`
+   * sin distinguir el motivo) (#390).
    */
   onLeerChequeras(page: number = 0, size: number = 10): Observable<Chequera[]> {
     return this.genericService.onCustomQuery(this.getChequerasGQL, { page, size }, true, LECTURA_CHEQUERAS, undefined,

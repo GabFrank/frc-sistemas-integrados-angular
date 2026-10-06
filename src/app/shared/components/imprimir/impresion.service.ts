@@ -68,6 +68,11 @@ export class ImpresionService {
     }
     // Buscar la impresora de ticket configurada.
     this.impresoraService.todas().pipe(take(1)).subscribe((impresoras: Impresora[]) => {
+      if (impresoras == null) {
+        // No es «no hay impresora configurada»: no se pudo leer la lista (#390).
+        this.notificacion.notification$.next({ texto: 'No se pudieron leer las impresoras: el ticket no se imprimió', color: NotificacionColor.warn, duracion: 5 });
+        return;
+      }
       const imp = this.elegirImpresoraTicket(impresoras);
       if (!imp) {
         this.notificacion.notification$.next({ texto: 'No hay impresora de ticket configurada (Configuración → Impresoras)', color: NotificacionColor.warn, duracion: 5 });

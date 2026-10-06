@@ -17,6 +17,7 @@ import { PagoDetalleCuota, PagoDetalleCuotaEstado } from '../../pago-detalle-cuo
 import { PagoDetalleCuotaService } from '../../pago-detalle-cuota/pago-detalle-cuota.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { forkJoin, Observable, of, tap, catchError, merge, EMPTY } from 'rxjs';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { PagoDetalleEstado } from '../../pago-detalle/pago-detalle.model';
@@ -1324,7 +1325,7 @@ export class PagoDetalleDialogComponent implements OnInit {
       .pipe(
         untilDestroyed(this),
         tap(monedas => {
-          this.monedas = monedas;
+          this.monedas = monedas ?? [];
           
           // If there's a selected moneda, update currency symbol
           const monedaId = this.isEdit ? 
@@ -1349,7 +1350,7 @@ export class PagoDetalleDialogComponent implements OnInit {
     return this.formaPagoService.onGetAllFormaPago()
       .pipe(
         untilDestroyed(this),
-        tap(formasPago => this.formasPago = formasPago),
+        tap(formasPago => this.formasPago = formasPago ?? []),
         catchError(error => {
           console.error('Error al cargar formas de pago', error);
           return of([]);
@@ -1361,10 +1362,12 @@ export class PagoDetalleDialogComponent implements OnInit {
    * Loads sucursales and returns an Observable
    */
   loadSucursales(): Observable<Sucursal[]> {
-    return this.sucursalService.onGetAllSucursales()
+    // Con PROPAGAR el error de red llega al catchError; sin eso onCustomQuery no termina y el forkJoin
+    // de loadData deja el diálogo bloqueado (#390).
+    return this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED)
       .pipe(
         untilDestroyed(this),
-        tap(sucursales => this.sucursales = sucursales),
+        tap(sucursales => this.sucursales = sucursales ?? []),
         catchError(error => {
           console.error('Error al cargar sucursales', error);
           return of([]);
