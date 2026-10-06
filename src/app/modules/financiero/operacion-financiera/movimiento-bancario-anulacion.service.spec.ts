@@ -75,10 +75,11 @@ describe('MovimientoBancarioAnulacionService', () => {
     expect(r.emitidos).toEqual([false]);
   });
 
-  it('avisa una vez el error del pago y cierra el spinner', () => {
-    pagarCompras.onAnularPago.and.returnValue(throwError(() => new Error('El pago ya está anulado')));
+  it('avisa una vez el rechazo del pago, cierra el spinner y pide releer (la pantalla estaba vieja)', () => {
+    pagarCompras.onAnularPago.and.returnValue(throwError(() => Object.assign(
+      new Error('El pago ya está anulado'), { graphQLErrors: [{ message: 'El pago ya está anulado' }] })));
     const r = anular(PAGO);
-    expect(r.emitidos).toEqual([false]);
+    expect(r.emitidos).toEqual([true]);
     expect(r.completo()).toBeTrue();
     expect(avisos.map(a => a.texto)).toEqual(['El pago ya está anulado']);
     expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
@@ -89,22 +90,39 @@ describe('MovimientoBancarioAnulacionService', () => {
     timeout.esTimeout = true;
     pagarCompras.onAnularPago.and.returnValue(throwError(() => timeout));
     const r = anular(PAGO);
-    expect(r.emitidos).toEqual([false]);
+    // Sin respuesta: pudo haberse anulado, hay que releer.
+    expect(r.emitidos).toEqual([true]);
     expect(avisos).toEqual([]);
     expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
   });
 
-  it('no muestra el texto crudo de Apollo en un error de red del pago', () => {
+  it('ante un error de red del pago avisa que no se pudo confirmar (sin el texto crudo de Apollo) y pide releer', () => {
     pagarCompras.onAnularPago.and.returnValue(throwError(() => (
       { message: 'Http failure response for http://x/graphql: 0 Unknown Error', networkError: { status: 0 } })));
-    anular(PAGO);
-    expect(avisos.map(a => a.texto)).toEqual(['Error de red']);
+    const r = anular(PAGO);
+    expect(r.emitidos).toEqual([true]);
+    expect(avisos.map(a => a.texto)).toEqual(['No se pudo confirmar la anulación: se vuelve a leer para verificarla.']);
+  });
+
+  it('una respuesta vacía del pago no es un rechazo: no se pudo confirmar', () => {
+    pagarCompras.onAnularPago.and.returnValue(throwError(() => Object.assign(
+      new Error('Respuesta vacía del servidor'), { graphQLErrors: [{ message: 'Respuesta vacía del servidor' }] })));
+    const r = anular(PAGO);
+    expect(r.emitidos).toEqual([true]);
+    expect(avisos.map(a => a.texto)).toEqual(['No se pudo confirmar la anulación: se vuelve a leer para verificarla.']);
+  });
+
+  it('un resultado nulo sin error avisa que no se pudo confirmar y pide releer', () => {
+    operaciones.onAnular.and.returnValue(of(null));
+    const r = anular(OPERACION);
+    expect(r.emitidos).toEqual([true]);
+    expect(avisos.map(a => a.texto)).toEqual(['No se pudo confirmar la anulación: se vuelve a leer para verificarla.']);
   });
 
   it('no repite el error de la operación, que ya avisó onSaveCustom', () => {
     operaciones.onAnular.and.returnValue(throwError(() => ({ message: 'Saldo insuficiente en la cuenta bancaria' })));
     const r = anular(OPERACION);
-    expect(r.emitidos).toEqual([false]);
+    expect(r.emitidos).toEqual([true]);
     expect(r.completo()).toBeTrue();
     expect(avisos).toEqual([]);
   });
@@ -112,7 +130,7 @@ describe('MovimientoBancarioAnulacionService', () => {
   it('no queda colgado si la mutation completa sin emitir', () => {
     pagarCompras.onAnularPago.and.returnValue(EMPTY);
     const r = anular(PAGO);
-    expect(r.emitidos).toEqual([false]);
+    expect(r.emitidos).toEqual([true]);
     expect(r.completo()).toBeTrue();
     expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
   });

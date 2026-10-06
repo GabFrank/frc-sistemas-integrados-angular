@@ -860,9 +860,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onAnularBanco(row: MovimientoBancarioRow) {
     this.movimientoBancarioAnulacionService.anular(row, row._accion)
       .pipe(untilDestroyed(this))
-      .subscribe(anulado => {
-        // Recarga todo: un pago mixto también movió la caja, y las cards de banco muestran el saldo.
-        if (anulado) this.recargar();
+      .subscribe(hayQueReleer => {
+        // Recarga todo: un pago mixto también movió la caja, y las cards de banco muestran el saldo. También
+        // tras un rechazo o un «sin respuesta»: la anulación pudo haberse aplicado, o la tabla estaba vieja.
+        if (hayQueReleer) this.recargar();
       });
   }
 

@@ -83,8 +83,9 @@ export class ListMovimientosBancariosDialogComponent implements OnInit {
     this.dialogRef.disableClose = true;
     this.movimientoBancarioAnulacionService.anular(row, row._accion)
       .pipe(finalize(() => this.dialogRef.disableClose = false), untilDestroyed(this))
-      .subscribe(anulado => {
-        if (!anulado) return;
+      .subscribe(hayQueReleer => {
+        // También tras un rechazo o un «sin respuesta»: pudo haberse anulado, o la lista estaba vieja.
+        if (!hayQueReleer) return;
         this.huboCambios = true;
         // El contra-movimiento entra arriba de todo: se vuelve a la primera página para verlo.
         this.pageIndex = 0;
