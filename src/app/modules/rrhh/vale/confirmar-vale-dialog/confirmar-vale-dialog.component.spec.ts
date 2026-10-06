@@ -67,11 +67,14 @@ describe('ConfirmarValeDialogComponent', () => {
     expect(botonConfirmar()?.disabled).toBeTrue();
   });
 
-  it('avisa tambien cuando la consulta falla y devuelve null', () => {
+  it('cuando la consulta falla y devuelve null dice que no se pudieron cargar, no que no hay cajas', () => {
     montar(of(null));
     fixture.detectChanges();
     expect(component.cargandoCajas).toBeFalse();
-    expect(texto()).toContain('No hay cajas mayores activas');
+    expect(component.cajasNoCargadas).toBeTrue();
+    expect(texto()).toContain('No se pudieron cargar las cajas');
+    expect(texto()).not.toContain('No hay cajas mayores activas');
+    expect(botonConfirmar()?.disabled).toBeTrue();
   });
 
   it('con cajas mayores activas no muestra el cartel', () => {
