@@ -72,7 +72,7 @@
     <button mat-raised-button (click)="onCancelar()" class="btn-cancelar">
         CANCELAR
     </button>
-    <button mat-raised-button (click)="onGuardar()" [disabled]="form.invalid" class="btn-guardar">
+    <button mat-raised-button (click)="onGuardar()" [disabled]="form.invalid || guardando" class="btn-guardar">
         {{ gps?.id ? 'GUARDAR' : 'REGISTRAR' }}
     </button>
 </mat-dialog-actions>

@@ -18,7 +18,8 @@ export class GpsDialogService {
   private dialog = inject(MatDialog);
   private assetCommonDialogService = inject(AssetCommonDialogService);
 
-  abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
+  /** Emite `true` si se guardó y `'sin-confirmar'` si un alta quedó sin respuesta: en los dos casos refresca. */
+  abrirFormulario(gps?: Gps): Observable<boolean | string | undefined> {
     const dialogRef = this.dialog.open(GPSComponent, {
       width: '800px',
       data: gps,
