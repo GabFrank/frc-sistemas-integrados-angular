@@ -94,7 +94,7 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
@@ -680,12 +680,12 @@ export class GestionComprasComponent
   }
 
   private loadInitialData(): Observable<any> {
-    // Cada fuente falla por su cuenta: monedas y formas de pago usan el onGetAll genérico, que no emite si falla
-    // (se corta poco después del timeout del link). Antes la pantalla no arrancaba ni avisaba (#390).
+    // Cada fuente falla por su cuenta (null = no se pudo leer); el aviso es el de acá abajo, no el del genérico.
+    // Antes la pantalla no arrancaba ni avisaba (#390).
     const sinRespuesta = <T>(o: Observable<T>) => o.pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), catchError(() => of(null as T)));
     return forkJoin({
-      monedas: sinRespuesta(this.monedaService.onGetAll()),
-      formasPago: sinRespuesta(this.formaPagoService.onGetAllFormaPago()),
+      monedas: sinRespuesta(this.monedaService.onGetAll(true, SIN_AVISO_DEL_GENERICO)),
+      formasPago: sinRespuesta(this.formaPagoService.onGetAllFormaPago(true, SIN_AVISO_DEL_GENERICO)),
       sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(catchError(() => of(null)))
     }).pipe(

@@ -54,6 +54,8 @@ export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
  * sigue llegando como `null` (#390).
  */
 export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
+/** Para quien ya avisa por su cuenta cuando onGetAll le devuelve `null`: sin aviso del genérico. */
+export const SIN_AVISO_DEL_GENERICO: QueryError = { graphError: { show: false }, networkError: { show: false } };
 /** Contexto de onCustomQuery: timeout propio y si el link avisa al vencer. */
 export interface ContextoConsulta {
   timeoutMs?: number;
@@ -98,13 +100,40 @@ export class GenericCrudService {
     });
   }
 
-  onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
+  /**
+   * Siempre termina (#390). Ante una falla emite `null` y completa: antes no emitía ni completaba, y
+   * quien llamaba quedaba esperando para siempre (spinner propio encendido, `forkJoin` que no cerraba).
+   * `null` es «no se pudo leer»; una lista vacía sigue siendo `[]`.
+   *
+   * @param errorConf opcional. `graphError.show = false` apaga el «Ups!…» (para quien avisa por su
+   * cuenta). Con `propagate` la falla llega al `error:` del que llama en vez de `null`: el error de
+   * red tal cual, y el GraphQL como `{ message, errors }` (igual que onCustomQuery).
+   */
+  onGetAll(gql: Query, page?, size?, servidor: boolean = true, errorConf?: QueryError): Observable<any> {
     this.isLoading = true;
     const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
     );
     return new Observable((obs) => {
+      // Una sola salida, pase lo que pase: resultado, error del servidor, error de red, que la
+      // consulta complete sin emitir, o una excepción al leer la respuesta.
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.cargandoService.closeDialog(requestId);
+        this.isLoading = false;
+        return true;
+      };
+      const terminar = (valor: any) => {
+        if (!cerrar()) return;
+        obs.next(valor);
+        obs.complete();
+      };
+      const fallar = (error: any) => {
+        if (cerrar()) obs.error(error);
+      };
       gql
         .fetch(
           { page, size },
@@ -119,24 +148,42 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
+            let errores: any[] = null;
+            let datos: any = null;
+            try {
+              errores = res.errors?.length ? res.errors : null;
+              datos = res.data?.["data"] ?? null;
+            } catch (e) {
+              console.error("[GraphQL] Respuesta de onGetAll ilegible", e);
+            }
+            if (errores == null) {
+              terminar(datos);
+              return;
+            }
+            const mensaje = limpiarMensajeGraphQL(errores[0]?.message);
+            if (errorConf?.graphError?.show !== false) {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
+                texto: "Ups! Algo salió mal: " + mensaje,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
             }
+            if (errorConf?.graphError?.propagate === true) {
+              fallar({ message: mensaje, errors: limpiarErroresGraphQL(errores) });
+              return;
+            }
+            // Una lista a medias no es una lista: con errores se emite null aunque haya venido algo.
+            terminar(null);
           },
-          error: () => {
-            // Ej: servidor central offline. Cerrar el spinner en vez de colgarse.
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
+          error: (error) => {
+            // Ej: servidor central offline, corte del link, servidor caído.
+            if (errorConf?.networkError?.propagate === true) {
+              fallar(error);
+              return;
+            }
+            terminar(null);
           },
+          complete: () => terminar(null),
         });
     });
   }

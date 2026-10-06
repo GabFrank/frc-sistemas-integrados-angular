@@ -45,7 +45,7 @@ import { MonedaService } from '../moneda/moneda.service';
 import { Moneda } from '../moneda/moneda.model';
 import { of, forkJoin, combineLatest, BehaviorSubject } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
-import { PROPAGAR_ERROR_DE_RED, ContextoConsulta } from '../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, ContextoConsulta } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 
 /** Consultas del análisis: sin esto, con un servidor sin responder la tabla no termina de cargar nunca (#390). */
@@ -133,11 +133,11 @@ export class AnalisisDiferenciaComponent implements OnInit {
     this.isLoadingInitialData = true;
     
     // Cada fuente falla por su cuenta: sin esto una sola colgaba el overlay de carga para siempre (#390).
-    // Las monedas usan el onGetAll genérico, que no emite si falla: se corta poco después del timeout del link.
+    // Las monedas llegan null si no se pudieron leer; el aviso es el de acá abajo, no el del genérico.
     forkJoin({
       sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, CONSULTA_ANALISIS)
         .pipe(catchError(() => of(null))),
-      monedas: this.monedaService.onGetAll(false)
+      monedas: this.monedaService.onGetAll(false, SIN_AVISO_DEL_GENERICO)
         .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), catchError(() => of(null)))
     }).pipe(untilDestroyed(this)).subscribe({
       next: (results) => {
