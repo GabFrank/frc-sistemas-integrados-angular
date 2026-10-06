@@ -54,19 +54,28 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-          <mat-label fxFlex="30">Principal</mat-label>
-          <mat-slide-toggle fxFlex formControlName="principal">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="24px" style="height: 50px !important; padding-left: 20px">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Principal</mat-label>
+          <mat-slide-toggle formControlName="principal">
             {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
           >
         </div>
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-          <mat-label fxFlex="30">Activo</mat-label>
-          <mat-slide-toggle fxFlex formControlName="activo">{{
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Activo</mat-label>
+          <mat-slide-toggle formControlName="activo">{{
             activoControl.value == true ? "Si" : "No"
           }}</mat-slide-toggle>
         </div>
+        <div *ngIf="selectedPresentacion?.id == null" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Es promoción</mat-label>
+          <mat-slide-toggle [formControl]="promocionControl" (change)="onPromocionChange()">{{
+            promocionControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
+        </div>
+      </div>
+      <div *ngIf="promocionControl.value" style="font-size: 12px; opacity: 0.7; padding-left: 20px">
+        Queda inactiva: al guardar seguís con su precio y las sucursales donde vale.
       </div>
       <!-- Alta sin respuesta (#390): pudo haberse guardado; no se vuelve a guardar desde acá -->
       <div *ngIf="altaSinConfirmar" fxLayout="column" fxLayoutGap="8px" style="padding: 10px; border: 1px solid #ffb74d; border-radius: 6px; margin-top: 10px">

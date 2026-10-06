@@ -105,3 +105,105 @@ Eje B — estado interno:
   (id 28) quedó cortada.
 - `npm run check`: exit 0, sin errores.
 - Sin correr: Karma (`precio-especial.util.spec.ts`).
+
+## Fase 2 — checkbox «Promoción» y altas encadenadas (pedido de Franco, 2026-10-06)
+
+### Problema
+
+Armar un 2x1 son tres diálogos sueltos (presentación, precio, sucursales) y en los dos primeros hay
+que acordarse de apagar «Activo». Si se olvida en el precio, el 2x1 queda vigente en todas las
+sucursales (el PDV parte el ítem en la presentación mayor mirando solo el `activo` del precio).
+
+### Alcance
+
+Solo desktop. Sin cambios de GraphQL, central, filial ni base: `activo=false` ya viaja en
+`PresentacionInput` y `PrecioPorSucursalInput`. No nace ningún campo persistido.
+
+### Cambios
+
+- `adicionar-presentacion` (solo en el **alta**): checkbox «Es una promoción (2x1, 3x2…)». Marcado:
+  `activo=false` y `principal=false`, los dos toggles bloqueados; al guardar se derivan del
+  checkbox, no del toggle. Cierra con la presentación más `promocion: true` solo si quedó inactiva.
+- `adicionar-precio-dialog` (solo en el **alta**): checkbox «Precio de promoción». Llega marcado
+  solo si quien lo abre pasa `data.promocion`. Marcado: `activo=false` (toggle bloqueado, y derivado
+  del checkbox al guardar) y `principal=true`, editable. Cierra con el precio más `promocion: true`
+  solo si quedó inactivo. El botón del pie deja de llamar `formGroup.enable()` en cada clic: solo al
+  pasar de ver a editar (`onBotonPrincipal`).
+- `producto.component.ts`: `onAdicionarPresentacion` sigue con `abrirPrecio(presentación guardada,
+  null, true)`; `abrirPrecio` (extraído de `onAddPrecio`) sigue con `abrirPromociones` (extraído de
+  `onPrecioEspecial`) si el usuario tiene `puedeGestionarPrecios`; si no, avisa. Cancelar el precio
+  en la cadena avisa que la presentación quedó sin precio.
+- En la **edición** no aparece el checkbox. Un guardado `sinConfirmar` no encadena nada.
+
+### Datos nuevos
+
+Ninguno persistido. En memoria: `promocion` en el valor de cierre de los dos diálogos (escribe el
+diálogo, lee `ProductoComponent`) y `AdicionarPrecioPorSucursalData.promocion` (escribe
+`ProductoComponent.abrirPrecio`, lee `AdicionarPrecioDialogComponent.ngOnInit`).
+
+### Auditoría del plan (paso 5)
+
+- **Eje A, alto: el precio de promoción nacía `principal=false`** y el PDV, en cajas sin tipos de
+  precio, toma `principal && activo` (`venta-touch.component.ts:789`, `:824`); el filial conserva
+  el `principal` original. Un 2x1 armado con la cadena no se cobraba ahí. Verificado → el checkbox
+  pone `principal=true` (editable). En la copia local, el 2X1 que ya funciona (precio 12888) es
+  principal.
+- **Eje B, alto: `formGroup.enable()` en cada clic del botón** rehabilitaba el toggle Activo
+  bloqueado; tras un guardado que no cierra (aviso de margen, tipo repetido, rechazo) se podía
+  guardar `activo=true` con el checkbox marcado. Verificado → el valor se deriva del checkbox y el
+  `enable()` queda solo en el paso a editar.
+- **Eje B, medio: marcar por defecto cuando la presentación está inactiva** cambiaba el alta normal
+  de un precio sobre una presentación inactiva que no es promo. → descartado ese default.
+- **A y B, medio: «Verificar» puede cerrar con una presentación igual que ya existía activa.** → solo
+  se encadena si lo guardado quedó `activo=false`.
+- **Eje B: `data` como canal de salida.** → se usa el valor de cierre (copia con `promocion`), sin
+  tocar las constantes `*_SIN_CONFIRMAR`.
+- Roles: el paso de sucursales solo abre con `puedeGestionarPrecios`; sin el rol, avisa. El alta de
+  precio no tiene gate hoy y la cadena no agrega acceso.
+- mobile-pwa crea presentaciones y precios por su cuenta y queda sin esta automatización.
+- No se agregó la util `esAltaDePromocion`: sin el default por presentación inactiva no hay lógica
+  pura que probar.
+
+### Ajuste pedido por Franco (2026-10-06)
+
+El control es un `mat-slide-toggle` «Es promoción», como Principal y Activo, y los tres van en la
+misma fila en los dos diálogos (donde este plan dice «checkbox», leer «toggle»). Los diálogos pasan
+a `minWidth: 480px` para que entren.
+
+### Auditoría del diff (paso 8)
+
+Fijo 1 y Fijo 2 N/A para desktop porque el diff no toca resolver, menú, migración ni `.graphqls`.
+Un auditor sobre el diff:
+
+- **Medio-alto: marcar «Precio de promoción» en una presentación que ya tiene principal** forzaba
+  `principal=true`, el guardado bajaba al principal anterior y la presentación quedaba sin principal
+  activo. Verificado (`continuarGuardado`) → `principal=true` solo si la presentación no tiene
+  precios; con otros precios lo decide el usuario. Al desmarcar se deshace solo lo que puso el
+  checkbox.
+- Bajo, aceptado: «Verificar» que encuentra una única presentación igual **e inactiva** sigue con
+  el alta de precio como si fuera la recién creada.
+
+### Tests
+
+- Runtime local: alta de presentación marcada como promoción → se abre el precio ya marcado
+  (inactivo y principal) → se abre sucursales con el precio cargado → queda inactiva en la ficha y
+  vigente solo en la sucursal elegida. Alta normal sin marcar: igual que hoy, sin encadenar.
+  Edición: sin checkbox.
+- `npm run check`.
+
+### Reversión
+
+Revertir el commit. Las presentaciones y precios creados con el checkbox son iguales a los que hoy
+se crean apagando «Activo» a mano.
+
+### Registro de la fase 2 (2026-10-06)
+
+- Runtime en local (producto 8216): alta de presentación «PRUEBA 3X2» marcada como promoción
+  (id 12015, guardada `activo=f, principal=f`) → se abrió el alta de precio ya marcada → precio
+  12889 guardado `activo=f, principal=t` → se abrió sucursales con 26.000 cargado. Alta normal de
+  precio: sin marcar, activo, no principal. Edición: sin el control, y «Editar» habilita el
+  formulario. Marcar en una presentación con precios no toca Principal. Esa cadena se recorrió con
+  el checkbox; tras pasar a toggle se revisó el estado y la fila en los dos diálogos, sin volver a
+  guardar.
+- `npm run check`: exit 0, sin errores (corrido sobre la versión con toggle).
+- Quedaron en la base local la presentación 12015 y el precio 12889, inactivos y sin sucursales.
