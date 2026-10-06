@@ -237,6 +237,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), takeUntil(this.destroy$))
       .subscribe({
         next: (monedas: Moneda[]) => {
+          if (monedas == null) {
+            // El servidor rechazó la consulta (el genérico ya dijo por qué): misma guía que sin red.
+            this.notificacionService.openWarn('No se pudieron cargar las monedas. Cerrá y volvé a abrir la nota.', 6);
+          }
           monedas = monedas ?? [];
           this.monedas = monedas;
           this.loadingMonedas = false;

@@ -196,7 +196,7 @@ export class GenericCrudService {
             }
             // Nadie más lo dice (el central offline y el servidor caído no avisan), y sin esto la
             // pantalla queda vacía sin explicación. El corte por tiempo ya lo avisó el link.
-            if (errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
+            if (!terminado && errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
               this.avisarLecturaFallida("No se pudo cargar: " + mensajeErrorTransporte(error));
             }
             terminar(null);

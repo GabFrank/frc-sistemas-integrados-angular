@@ -49,7 +49,7 @@ export class CajaObservacionService {
         return this.genericService.onSave(this.saveCajaObservacion, cajaObservacionInput).pipe(
             tap((res: any) => {
                 this.onGetCajasObservaciones().subscribe((updatedObservations) => {
-                    this.cajaObservacionBS.next(updatedObservations);
+                    if (updatedObservations != null) this.cajaObservacionBS.next(updatedObservations);
                 });
             })
         );

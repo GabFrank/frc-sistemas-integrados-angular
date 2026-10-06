@@ -48,7 +48,9 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
     this.funcionarioService.onGetAllPreRegistroFuncionarios(this.page)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        this.dataSource.data = res ?? [];
+        // null = no se pudo leer (#390): queda lo que había, en vez de vaciar la tabla al refrescar.
+        if (res == null) return;
+        this.dataSource.data = res;
       })
   }
 

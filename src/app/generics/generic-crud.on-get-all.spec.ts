@@ -101,6 +101,16 @@ describe('GenericCrudService.onGetAll', () => {
     expect(avisos).toEqual([]);
   });
 
+  it('con graphError.propagate el rechazo llega a quien llama como { message, errors }', () => {
+    const gql = consulta(of({ data: null, errors: [{ message: 'sin permiso' }] }));
+    const r = leer(service.onGetAll(gql, null, null, true, { graphError: { propagate: true, show: false } }));
+    expect(r.valores).toEqual([]);
+    expect(r.error.message).toContain('sin permiso');
+    expect(r.error.errors.length).toBe(1);
+    expect(cerrados).toEqual([7]);
+    expect(avisos).toEqual([]);
+  });
+
   it('con SIN_AVISO_DEL_GENERICO no avisa y emite null', () => {
     const gql = consulta(of({ data: null, errors: [{ message: 'x' }] }));
     expect(leer(service.onGetAll(gql, null, null, true, SIN_AVISO_DEL_GENERICO)).valores).toEqual([null]);
