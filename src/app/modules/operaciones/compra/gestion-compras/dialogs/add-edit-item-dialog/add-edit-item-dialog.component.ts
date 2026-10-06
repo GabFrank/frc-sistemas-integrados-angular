@@ -892,7 +892,7 @@ export class AddEditItemDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
-    // Lazy-load full product data (precioPrincipal, imagenPrincipal, costo completo)
+    // Lazy-load full product data (precioPrincipal, fotos, costo completo)
     // ya que el producto del search dialog puede no traer todos los campos
     this.productoService.onGetProductoParaPedido(producto.id, this.data.pedido != null, PROPAGAR_ERROR_DE_RED, CONSULTA_STOCK)
       .subscribe({

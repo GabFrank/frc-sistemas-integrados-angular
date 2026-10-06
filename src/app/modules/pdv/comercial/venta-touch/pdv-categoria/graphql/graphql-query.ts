@@ -35,7 +35,7 @@ export const pdvCategoriaSearch = gql`
             id
             descripcion
             descripcionFactura
-            imagenPrincipal
+            imagenPrincipalMiniatura
             balanza
             lote
             garantia
@@ -191,7 +191,7 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
           }
           imagenPrincipal
         }
-        imagenPrincipal
+        imagenPrincipalMiniatura
       }
 
       activo
@@ -207,7 +207,7 @@ export const pdvGruposProductosPorGrupoIdSimpleQuery = gql`
         id
         descripcion
         descripcionFactura
-        imagenPrincipal
+        imagenPrincipalMiniatura
         activo
       }
       activo
