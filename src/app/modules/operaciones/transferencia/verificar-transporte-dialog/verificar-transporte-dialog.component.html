@@ -1,0 +1,113 @@
+<div class="hoja-ruta-dialog">
+
+    <div class="dialog-header">
+        <div class="header-icon">
+            <mat-icon>local_shipping</mat-icon>
+        </div>
+        <div class="header-text">
+            <h2>Verificar para transporte</h2>
+            <span class="header-sub">Transferencia #{{ data.transferenciaId }}</span>
+        </div>
+        <button mat-icon-button class="header-close" (click)="onCancel()" [disabled]="isSaving" matTooltip="Cerrar">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <mat-dialog-content class="dialog-body">
+
+        <div *ngIf="isLoading" class="cargando-overlay">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span>Cargando hoja de ruta asignada...</span>
+        </div>
+
+        <ng-container *ngIf="!isLoading">
+
+            <div class="aviso-responsable">
+                <mat-icon>info</mat-icon>
+                <span>El chofer queda como responsable de la verificación para transporte.</span>
+            </div>
+
+            <!-- CHOFER -->
+            <div class="selector-card" [class.vacio]="!selectedChofer" (click)="onBuscarChofer()"
+                matTooltip="Click para buscar un chofer">
+                <div class="selector-avatar chofer" [class.iniciales]="selectedChofer">
+                    <span *ngIf="selectedChofer">{{ choferIniciales }}</span>
+                    <mat-icon *ngIf="!selectedChofer">person</mat-icon>
+                </div>
+                <div class="selector-info">
+                    <span class="selector-label">Chofer <span class="requerido">*</span></span>
+                    <ng-container *ngIf="selectedChofer; else choferVacio">
+                        <span class="selector-value">{{ choferTitulo }}</span>
+                        <span class="selector-sub" *ngIf="choferSubtitulo">{{ choferSubtitulo }}</span>
+                    </ng-container>
+                    <ng-template #choferVacio>
+                        <span class="selector-placeholder">Seleccionar chofer</span>
+                    </ng-template>
+                </div>
+                <mat-icon class="selector-action">{{ selectedChofer ? 'swap_horiz' : 'search' }}</mat-icon>
+            </div>
+
+            <!-- VEHICULO -->
+            <div class="selector-card" [class.vacio]="!selectedVehiculo" (click)="onBuscarVehiculo()"
+                matTooltip="Click para buscar un vehículo">
+                <div class="selector-avatar vehiculo">
+                    <mat-icon>local_shipping</mat-icon>
+                </div>
+                <div class="selector-info">
+                    <span class="selector-label">Vehículo <span class="requerido">*</span></span>
+                    <ng-container *ngIf="selectedVehiculo; else vehiculoVacio">
+                        <span class="selector-value">{{ vehiculoTitulo }}</span>
+                        <span class="selector-sub" *ngIf="vehiculoSubtitulo">{{ vehiculoSubtitulo }}</span>
+                    </ng-container>
+                    <ng-template #vehiculoVacio>
+                        <span class="selector-placeholder">Seleccionar vehículo</span>
+                    </ng-template>
+                </div>
+                <mat-icon class="selector-action">{{ selectedVehiculo ? 'swap_horiz' : 'search' }}</mat-icon>
+            </div>
+
+            <!-- ACOMPAÑANTES -->
+            <div class="acompanhantes-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <mat-icon>groups</mat-icon>
+                        <span>Acompañantes</span>
+                        <span class="contador" *ngIf="cantidadAcompanhantes > 0">{{ cantidadAcompanhantes }}</span>
+                    </div>
+                    <button mat-stroked-button class="btn-agregar" (click)="onAddAcompanhante()" [disabled]="isSaving">
+                        <mat-icon>person_add</mat-icon>
+                        Agregar
+                    </button>
+                </div>
+
+                <div class="lista-vacia" *ngIf="cantidadAcompanhantes === 0">
+                    <mat-icon>group_off</mat-icon>
+                    <span>Sin acompañantes asignados</span>
+                    <small>Opcional — agregá a quienes viajan con el chofer</small>
+                </div>
+
+                <div class="acompanhante-item" *ngFor="let a of acompanhantesView; trackBy: trackByAcompanhante">
+                    <div class="selector-avatar iniciales chico">{{ a.iniciales }}</div>
+                    <div class="acompanhante-info">
+                        <span class="acompanhante-nombre">{{ a.nombre }}</span>
+                        <span class="acompanhante-doc" *ngIf="a.documento">Doc. {{ a.documento }}</span>
+                    </div>
+                    <button mat-icon-button class="btn-quitar" (click)="onRemoveAcompanhante(a)" [disabled]="isSaving"
+                        matTooltip="Quitar acompañante">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
+            </div>
+
+        </ng-container>
+    </mat-dialog-content>
+
+    <mat-dialog-actions class="dialog-footer">
+        <button mat-button class="btn-cancelar" (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
+        <button mat-flat-button class="btn-guardar" (click)="onConfirmar()" [disabled]="confirmarDeshabilitado">
+            <mat-spinner *ngIf="isSaving" diameter="18" class="btn-spinner"></mat-spinner>
+            <mat-icon *ngIf="!isSaving">check</mat-icon>
+            {{ isSaving ? 'Enviando...' : 'Confirmar y verificar' }}
+        </button>
+    </mat-dialog-actions>
+</div>

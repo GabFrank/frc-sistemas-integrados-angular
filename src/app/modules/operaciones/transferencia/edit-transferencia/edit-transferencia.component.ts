@@ -24,6 +24,10 @@ import { UsuarioHelperService } from "../../../administrativo/marcacion/service/
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import {
+  VerificarTransporteDialogComponent,
+  VerificarTransporteDialogData,
+} from "../verificar-transporte-dialog/verificar-transporte-dialog.component";
+import {
   SearchListDialogComponent,
   SearchListtDialogData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -645,7 +649,10 @@ export class EditTransferenciaComponent implements OnInit {
     }
 
     // Se recalcula en cada etapa: el responsable cambia al avanzar.
+    // En verificacion para transporte el responsable es el chofer elegido, que no suele ser quien
+    // esta en la pantalla: revisar los items y despachar lo puede hacer cualquiera, igual que en la PWA.
     this.puedeEditar =
+      this.isTransporteVerificacion ||
       this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
       this.selectedResponsable?.id == null;
     this.onVerificarConfirmados();
@@ -1295,6 +1302,30 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
 
+
+  /**
+   * Igual que la PWA: antes de verificar para transporte se eligen chofer, vehiculo y acompañantes.
+   * El chofer elegido —no quien toca el boton— queda como responsable de la etapa.
+   */
+  onVerificarParaTransporte() {
+    const data: VerificarTransporteDialogData = {
+      transferenciaId: this.selectedTransferencia.id,
+      hojaRutaId: this.selectedTransferencia.hojaRuta?.id,
+    };
+    this.matDialog
+      .open(VerificarTransporteDialogComponent, {
+        data,
+        width: "560px",
+        maxWidth: "95vw",
+        disableClose: true,
+        panelClass: "custom-dialog-container",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cargarDatos(this.selectedTransferencia.id);
+      });
+  }
 
   /**
    * El solicitante solo se puede tocar mientras la transferencia esta en creacion: despues de esa
