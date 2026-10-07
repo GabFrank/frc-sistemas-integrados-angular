@@ -206,6 +206,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
         // El aviso del error lo da el genérico.
         error: () => this.cajaNoCargada = true,
         next: (res) => {
+          // La caja pedida no vino: tampoco es una caja nueva.
+          this.cajaNoCargada = res == null;
           if (res != null) {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;

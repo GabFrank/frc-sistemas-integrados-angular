@@ -103,15 +103,27 @@ export class LegajoFuncionarioComponent implements OnInit {
    * mostraba como «Nuevo funcionario»: guardar ahí creaba otra persona y otro funcionario (#390).
    */
   cargaFallida = false;
+  /**
+   * Se pidió un legajo y todavía no hay ninguno en pantalla: mientras tanto tampoco se muestran las pestañas,
+   * por lo mismo (durante la lectura, o un reintento, «Información general» aparecía como alta).
+   */
+  leyendoSinFuncionario = false;
 
   onSeleccionar() {
     if (this.funcionarioControl.value == null) { return; }
-    this.cargaFallida = false;
+    this.leyendoSinFuncionario = this.funcionario == null;
     this.funcionarioService.onGetFuncionarioById(this.funcionarioControl.value)
       .pipe(untilDestroyed(this)).subscribe({
-        next: (f: Funcionario) => this.setFuncionario(f),
+        next: (f: Funcionario) => {
+          this.cargaFallida = false;
+          this.leyendoSinFuncionario = false;
+          this.setFuncionario(f);
+        },
         // El aviso del error lo da el genérico.
-        error: () => this.cargaFallida = true,
+        error: () => {
+          this.cargaFallida = true;
+          this.leyendoSinFuncionario = false;
+        },
       });
     this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
       .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });

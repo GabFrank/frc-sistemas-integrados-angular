@@ -73,7 +73,10 @@ export class GrillaConteoComponent implements OnChanges {
   /** Pública: es también el «Reintentar» del cartel. */
   cargar() {
     this.cargando = true;
-    this.marcarCargaFallida(false);
+    // Siempre, aunque esta instancia no haya fallado: quien la contiene puede tener marcada la falla de una
+    // instancia anterior (la verificación de retiros destruye la grilla al cambiar de moneda).
+    this.cargaFallida = false;
+    this.cargaFallidaChange.emit(false);
     this.monedaBilletesService.onGetByMonedaId(this.moneda.id)
       .pipe(untilDestroyed(this))
       .subscribe({ error: () => {

@@ -31,6 +31,8 @@ export class AddClienteDialogComponent implements OnInit {
   selectedCliente: Cliente;
   /** La persona elegida ya es cliente, pero su cliente no se pudo leer: no se puede guardar (#390). */
   clienteNoLeido = false;
+  /** Leyendo el cliente de la persona elegida: hasta que llegue tampoco se puede guardar. */
+  leyendoCliente = false;
   selectedPersona: Persona;
 
   //cliente
@@ -150,8 +152,10 @@ export class AddClienteDialogComponent implements OnInit {
           // reasignaría a esta persona. Y si el de esta no se puede leer, guardar crearía otro (no hay
           // unicidad de cliente por persona en el central): no se deja guardar (#390).
           this.selectedCliente = null;
+          this.leyendoCliente = true;
           this.clienteService.onGetByPersonaId(res.id).pipe(untilDestroyed(this)).subscribe({
             next: (res2: Cliente) => {
+              this.leyendoCliente = false;
               this.selectedCliente = res2;
               this.clienteNoLeido = res2 == null;
               this.tipoControl.setValue(this.selectedCliente?.tipo)
@@ -159,7 +163,10 @@ export class AddClienteDialogComponent implements OnInit {
               this.tributaControl.setValue(this.selectedCliente?.tributa ?? false)
             },
             // El aviso del error lo da el genérico.
-            error: () => this.clienteNoLeido = true,
+            error: () => {
+              this.leyendoCliente = false;
+              this.clienteNoLeido = true;
+            },
           })
         } else if (this.data?.cliente == null) {
           // En un alta, el cliente cargado de una persona elegida antes tampoco es el de esta.
@@ -189,7 +196,7 @@ export class AddClienteDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.clienteNoLeido) return;
+    if (this.clienteNoLeido || this.leyendoCliente) return;
     let newPersona = new Persona()
     if (this.selectedPersona != null) Object.assign(newPersona, this.selectedPersona)
     newPersona.nombre = this.nombreControl.value;

@@ -185,7 +185,7 @@
   </mat-card>
 
   <div fxLayout="row" fxLayoutAlign="end center" class="acciones-row">
-    <button mat-raised-button color="primary" type="button" (click)="onGuardar()" [disabled]="cargaFallida">
+    <button mat-raised-button color="primary" type="button" (click)="onGuardar()" [disabled]="cargaFallida || cargandoFuncionario">
       <mat-icon>save</mat-icon> Guardar
     </button>
   </div>
