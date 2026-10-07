@@ -58,7 +58,14 @@
 
   <!-- Tabs: siempre visibles. "Información general" (alta/edición) va primero y no
        depende de que exista el funcionario; el resto sí. -->
-  <div class="dash-main single-col">
+  <div class="carga-fallida" *ngIf="cargaFallida" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px">
+    <span>No se pudo cargar el funcionario.</span>
+    <button mat-stroked-button type="button" (click)="onSeleccionar()">
+      <mat-icon>refresh</mat-icon> Reintentar
+    </button>
+  </div>
+
+  <div class="dash-main single-col" *ngIf="!cargaFallida && !leyendoSinFuncionario">
     <div class="dash-card">
       <mat-tab-group class="legajo-tabs" animationDuration="0ms">
 

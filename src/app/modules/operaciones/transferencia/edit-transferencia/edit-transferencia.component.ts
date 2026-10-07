@@ -933,7 +933,14 @@ export class EditTransferenciaComponent implements OnInit {
       .onGetPresentacionesPorProductoId(
         item.presentacionPreTransferencia.producto.id
       )
-      .subscribe((res) => {
+      .subscribe({
+        // El ítem ya quedó seleccionado para editar: si no se leen sus presentaciones, guardar lo pisaría
+        // con el producto que hubiera en el formulario. Se sale de la edición (#390).
+        error: () => {
+          this.selectedTransferenciaItem = null;
+          this.onClear();
+        },
+        next: (res) => {
         this.selectedProducto = item.presentacionPreTransferencia.producto;
         this.selectedProducto.presentaciones = res;
         this.presentacionControl.setValue(
@@ -960,7 +967,7 @@ export class EditTransferenciaComponent implements OnInit {
         );
         this.matSelect.focus();
         this.matSelect.open();
-      });
+      } });
   }
 
   // onFinalizar() {

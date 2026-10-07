@@ -43,11 +43,17 @@ export class GrillaConteoComponent implements OnChanges {
   @Output() totalChange = new EventEmitter<number>();
   /** Emite las cantidades por valor, para que el padre las persista si le sirve. */
   @Output() cantidadesChange = new EventEmitter<{ [valor: string]: number }>();
+  /**
+   * Las denominaciones no se pudieron leer. La grilla queda sin filas y con total 0, que para quien la usa
+   * es indistinguible de «no se contó nada»: tiene que saberlo para no ajustar ni acreditar sobre ese 0 (#390).
+   */
+  @Output() cargaFallidaChange = new EventEmitter<boolean>();
 
   filas: FilaConteo[] = [];
   columnas: FilaConteo[][] = [];
   total = 0;
   cargando = false;
+  cargaFallida = false;
   /** digitsInfo del pipe number según los decimales de la moneda. */
   formato = '1.0-2';
 
@@ -64,11 +70,20 @@ export class GrillaConteoComponent implements OnChanges {
     }
   }
 
-  private cargar() {
+  /** Pública: es también el «Reintentar» del cartel. */
+  cargar() {
     this.cargando = true;
+    // Siempre, aunque esta instancia no haya fallado: quien la contiene puede tener marcada la falla de una
+    // instancia anterior (la verificación de retiros destruye la grilla al cambiar de moneda).
+    this.cargaFallida = false;
+    this.cargaFallidaChange.emit(false);
     this.monedaBilletesService.onGetByMonedaId(this.moneda.id)
       .pipe(untilDestroyed(this))
-      .subscribe((res: MonedaBillete[]) => {
+      .subscribe({ error: () => {
+        // El aviso del error lo da el genérico.
+        this.cargando = false;
+        this.marcarCargaFallida(true);
+      }, next: (res: MonedaBillete[]) => {
         this.cargando = false;
         const activos = (res || []).filter(b => b?.activo !== false && b?.valor != null);
         // Mayor a menor: es el orden en que se cuenta plata en la mano.
@@ -79,7 +94,13 @@ export class GrillaConteoComponent implements OnChanges {
         });
         this.repartirEnColumnas();
         this.recalcular(false);
-      });
+      } });
+  }
+
+  private marcarCargaFallida(fallo: boolean) {
+    if (this.cargaFallida === fallo) return;
+    this.cargaFallida = fallo;
+    this.cargaFallidaChange.emit(fallo);
   }
 
   private repartirEnColumnas() {

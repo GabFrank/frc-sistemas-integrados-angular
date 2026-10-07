@@ -176,10 +176,38 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
     let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
     if (auxData != null) {
-      this.cajaService
-        .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
+      this.cajaAAbrir = auxData;
+      this.cargarCajaExistente();
+    }
+
+    setTimeout(() => {
+      this.codigoMaletinInput.nativeElement.focus();
+    }, 1000);
+  }
+
+  /** La caja con la que se abrió esta pantalla (edición), para poder reintentar su lectura. */
+  private cajaAAbrir: PdvCaja = null;
+  /**
+   * La caja existente no se pudo leer. Sin esto la pantalla decía «Nueva Caja» y dejaba elegir un maletín
+   * sobre una caja que ya existe (#390). No se cierra: vive como diálogo, como pestaña y dentro del PDV, y en
+   * cada uno cerrar significa otra cosa.
+   */
+  cajaNoCargada = false;
+
+  /** Pública: es también el «Reintentar» del cartel. */
+  cargarCajaExistente(): void {
+    const auxData = this.cajaAAbrir;
+    if (auxData == null) return;
+    this.cajaNoCargada = false;
+    this.cajaService
+      .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        // El aviso del error lo da el genérico.
+        error: () => this.cajaNoCargada = true,
+        next: (res) => {
+          // La caja pedida no vino: tampoco es una caja nueva.
+          this.cajaNoCargada = res == null;
           if (res != null) {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;
@@ -200,13 +228,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
             // Deliverys, solicitudes y tarjetas se verifican al tocar «Conteo Cierre», no acá: un
             // chequeo que no respondía al abrir dejaba su flag en false y el cierre pasaba (#390).
           }
-        });
-    } else {
-    }
-
-    setTimeout(() => {
-      this.codigoMaletinInput.nativeElement.focus();
-    }, 1000);
+        },
+      });
   }
 
   /**

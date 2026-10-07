@@ -175,17 +175,37 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     });
   }
 
-  private cargarFuncionario(): void {
+  /**
+   * Es una edición y el funcionario no se pudo leer: el formulario quedó en blanco y sin la persona. Guardar
+   * así crearía otra persona y le reasignaría el funcionario, así que no se deja (#390).
+   */
+  cargaFallida = false;
+  /** Leyendo el funcionario de una edición: hasta que llegue tampoco se puede guardar. */
+  cargandoFuncionario = false;
+
+  cargarFuncionario(): void {
     if (this.funcionarioId == null) {
+      this.cargaFallida = false;
+      this.cargandoFuncionario = false;
       this.limpiarFormulario();
       return;
     }
+    this.cargandoFuncionario = true;
     this.funcionarioService.onGetFuncionarioById(this.funcionarioId)
       .pipe(untilDestroyed(this))
-      .subscribe((f: Funcionario) => {
-        if (f == null) { return; }
-        this.precargar(f);
-        this.cargarFoto();
+      .subscribe({
+        next: (f: Funcionario) => {
+          this.cargandoFuncionario = false;
+          this.cargaFallida = f == null;
+          if (f == null) { return; }
+          this.precargar(f);
+          this.cargarFoto();
+        },
+        // El aviso del error lo da el genérico.
+        error: () => {
+          this.cargandoFuncionario = false;
+          this.cargaFallida = true;
+        },
       });
   }
 
@@ -358,6 +378,11 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   }
 
   onGuardar(): void {
+    if (this.cargandoFuncionario) { return; }
+    if (this.cargaFallida) {
+      this.notificacion.openWarn('No se pudo cargar el funcionario: reintentá la carga antes de guardar.');
+      return;
+    }
     this.documentoControl.markAsTouched();
     this.nombreControl.markAsTouched();
     this.sucursalControl.markAsTouched();
