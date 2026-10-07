@@ -1964,7 +1964,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               ["AUTORIZADO", "RECHAZADO"],
               true,
               null,
-              CONTEXTO_SONDEO
+              // Trae hasta 200 solicitudes: un minuto, no los 20 s de un sondeo corto.
+              { ...CONTEXTO_SONDEO, timeoutMs: 60000 }
             )
             .pipe(catchError(() => of(null)));
         }),

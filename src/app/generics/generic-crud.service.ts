@@ -290,7 +290,9 @@ export class GenericCrudService {
               // Sin errorConf el error de red llega a quien llama (#390): antes no emitía ni completaba.
               this.fallarAvisandoSiNadieAvisa(
                 () => fallar(error),
-                contexto?.sinAviso === true || esTimeoutDeLink(error) || terminado
+                // El corte por tiempo ya lo avisó el link, salvo que se le haya pedido silencio.
+                contexto?.sinAviso === true || terminado
+                  || (esTimeoutDeLink(error) && contexto?.silenciarAvisoTimeout !== true)
                   ? null
                   : "No se pudo consultar: " + mensajeErrorTransporte(error)
               );
