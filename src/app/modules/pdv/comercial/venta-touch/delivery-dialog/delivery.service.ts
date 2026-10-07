@@ -88,7 +88,7 @@ export class DeliveryService {
   }
 
   /**
-   * El onGetAll genérico no emite si falla: el delivery quedaba sin tarifa y se guardaba así. Corta a los 10 s
+   * Con el onGetAll genérico (que antes no emitía si fallaba) el delivery quedaba sin tarifa y se guardaba así. Corta a los 10 s
    * (el cajero espera de pie) y manda el error de red al llamador; un error GraphQL emite null (#390).
    */
   onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[] | null> {

@@ -2,12 +2,12 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { forkJoin } from 'rxjs';
+import { enviarEnSerie, resumirLote } from '../enviar-en-serie';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
-import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { MainService } from '../../../../main.service';
@@ -83,7 +83,7 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
     if (this.formGroup.invalid) return;
 
     const cajaDestino: CajaVirtual = this.cajaDestinoControl.value;
-    let obsList = [];
+    const items: { cantidad: number; moneda: Moneda }[] = [];
 
     const amtGs = this.cantidadGsControl.value;
     const amtRs = this.cantidadRsControl.value;
@@ -94,31 +94,34 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
       return;
     }
 
-    if (amtGs > 0 && this.monedaGs) {
-      obsList.push(this.createTransferObs(amtGs, this.monedaGs.id, cajaDestino.id));
-    }
-    if (amtRs > 0 && this.monedaRs) {
-       obsList.push(this.createTransferObs(amtRs, this.monedaRs.id, cajaDestino.id));
-    }
-    if (amtDs > 0 && this.monedaDs) {
-       obsList.push(this.createTransferObs(amtDs, this.monedaDs.id, cajaDestino.id));
-    }
+    if (amtGs > 0 && this.monedaGs) items.push({ cantidad: amtGs, moneda: this.monedaGs });
+    if (amtRs > 0 && this.monedaRs) items.push({ cantidad: amtRs, moneda: this.monedaRs });
+    if (amtDs > 0 && this.monedaDs) items.push({ cantidad: amtDs, moneda: this.monedaDs });
 
-    if (obsList.length === 0) return;
+    if (items.length === 0) return;
 
     this.isSaving = true;
-    forkJoin(obsList)
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no refrescaría la caja.
+    this.dialogRef.disableClose = true;
+    enviarEnSerie(items, it => this.createTransferObs(it.cantidad, it.moneda.id, cajaDestino.id))
       .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (resArray) => {
-          this.isSaving = false;
+      .subscribe(resultados => {
+        this.isSaving = false;
+        this.dialogRef.disableClose = false;
+        const resumen = resumirLote(resultados, it => it.moneda.denominacion);
+        if (resumen.todoOk) {
           this.notificacion.openSucess('Transferencia(s) realizada(s) correctamente');
           this.dialogRef.close(true);
-        },
-        // El aviso de error lo da onSaveCustom (una vez por operación, aunque falle más de una moneda).
-        error: () => {
-          this.isSaving = false;
+          return;
         }
+        // Rechazo de la primera moneda: no se transfirió nada (el motivo ya lo mostró onSaveCustom) y se
+        // puede corregir y reintentar.
+        if (resumen.nadaCambio) return;
+        // Algo se transfirió o quedó en duda: con el formulario abierto, reintentar repetiría lo que ya entró.
+        // Se cierra y la caja se relee. Si fue una sola moneda y la cortó el link, su aviso ya lo dijo.
+        const soloElCorteDelLink = resultados.length === 1 && esTimeoutDeLink(resultados[0].error);
+        if (!soloElCorteDelLink) this.notificacion.openWarn(resumen.texto, 12);
+        this.dialogRef.close(true);
       });
   }
 

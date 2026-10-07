@@ -122,7 +122,9 @@ export class UsuarioService {
    */
   onSaveInicioSesion(entity: InicioSesionInput, servidor?: boolean): Observable<InicioSesion> {
     const destino = servidor ?? !this.injector.get(ConfiguracionService).getConfig()?.isLocal;
-    return this.genericService.onSave(this.saveInicioSesion, entity, null, null, destino);
+    // Registrar la sesión no es un guardado del usuario: sin el aviso «verificá antes de repetir» del
+    // genérico. El error llega a quien llama (login y logout ya lo manejan; el logout se colgaba sin red) (#390).
+    return this.genericService.onSave(this.saveInicioSesion, entity, null, null, destino, PROPAGAR_ERROR_DE_RED);
   }
 
   onGetUsuarioImages(id: number, type: string, servidor: boolean = true, errorConf?: any): Observable<string[]> {

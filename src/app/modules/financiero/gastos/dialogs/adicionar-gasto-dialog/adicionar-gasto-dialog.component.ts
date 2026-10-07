@@ -11,8 +11,9 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dial
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
-import { of, Subscription } from "rxjs";
-import { catchError, debounceTime, distinctUntilChanged, take, timeout } from 'rxjs/operators';
+import { of, Subscription, TimeoutError } from "rxjs";
+import { erroresDeRechazo } from "../../../../../commons/core/utils/graphqlErrorUtils";
+import { catchError, debounceTime, distinctUntilChanged, finalize, take, timeout } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import {
   orderByIdDesc,
@@ -52,6 +53,28 @@ import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple
 import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 import { RetiroPreGastoData, RetiroPreGastoDialogComponent } from "../retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component";
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
+/** Monto como número, venga como número o como texto del control. */
+function monto(valor: any): number {
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** El filial guarda la observación recortada y en mayúsculas. */
+function observacionNormalizada(texto: any): string {
+  return (texto ?? '').toString().trim().toUpperCase();
+}
+
+/** ¿El gasto leído de la caja es el que se envió? Responsable, tipo, los tres retiros y la observación. */
+export function esElMismoGasto(leido: Gasto, enviado: Gasto): boolean {
+  return Number(leido?.responsable?.id) === Number(enviado?.responsable?.id)
+    && (leido?.tipoGasto?.id ?? null) == (enviado?.tipoGasto?.id ?? null)
+    && monto(leido?.retiroGs) === monto(enviado?.retiroGs)
+    && monto(leido?.retiroRs) === monto(enviado?.retiroRs)
+    && monto(leido?.retiroDs) === monto(enviado?.retiroDs)
+    && observacionNormalizada(leido?.observacion) === observacionNormalizada(enviado?.observacion);
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -142,6 +165,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   autorizado = true;
 
   gastoList: Gasto[] = [];
+  /** La lista de gastos de la caja se leyó al menos una vez: sin eso no se puede saber qué gasto es nuevo. */
+  private gastosCargados = false;
+  /** Un alta quedó sin respuesta y todavía no se sabe si el gasto se guardó: no se puede guardar de nuevo (#390). */
+  guardadoEnDuda = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
@@ -275,6 +302,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
           .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
+          .pipe(terminarSiFalla())
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -461,8 +489,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             this.tipoGastoControl.setValue(null);
           }
         },
-        error: () => {
+        error: (err) => {
           this.cargandoDialog.closeDialog(requestId);
+          // Sin respuesta pudo haberse registrado: el genérico ya avisó que hay que verificar (#390).
+          if (erroresDeRechazo(err) == null) return;
           this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
         }
       });
@@ -509,6 +539,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onGuardar() {
+    if (this.guardadoEnDuda) return;
     if (this.isVuelto == false) {
       const observacion = (this.observacionControl.value ?? "").toString().trim();
       if (observacion.length == 0) {
@@ -561,29 +592,30 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               } else {
                 gasto.finalizado = false;
               }
+              // Los gastos que ya estaban antes de enviar: si queda sin respuesta, uno nuevo e igual es este.
+              const esAlta = gasto.id == null;
+              const idsAntes = this.gastosCargados ? new Set(this.gastoList.map((g) => Number(g.id))) : null;
               this.gastoService
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
-                .subscribe((gastoResponse) => {
+                .subscribe({ next: (gastoResponse) => {
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
-                    if (this.mainService.usuarioActual?.persona?.id) {
-                      this.notificationHttpService.sendGastoNotification(
-                        gasto.id,
-                        this.mainService.sucursalActual.id,
-                        this.mainService.usuarioActual.persona.id,
-                        gasto.retiroGs,
-                        this.mainService.usuarioActual.persona.nombre,
-                        this.mainService.sucursalActual.nombre
-                      ).subscribe();
-                    }
-
+                    this.notificarGastoGuardado(gasto);
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
                   }
                   this.onCancelar();
-                });
+                },
+                // El formulario queda como está (no se pierde lo cargado). Un rechazo no guardó nada. Sin
+                // respuesta, el gasto pudo haberse guardado (y el ticket impreso): un alta no se puede repetir
+                // hasta ver si ya figura; una edición se puede repetir, alcanza con releer (#390).
+                error: (err) => {
+                  if (erroresDeRechazo(err) != null) return;
+                  if (esAlta) this.verificarGastoEnDuda(gasto, idsAntes);
+                  else this.cargarGastosDeCaja();
+                } });
             }
           });
       }
@@ -693,16 +725,16 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       newGasto.finalizado = true;
       this.gastoService
         .onSave(newGasto, false)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoDialog.closeDialog(requestId);
+        // En finalize: ante un error el spinner quedaba abierto, porque solo se cerraba en el next (#390).
+        .pipe(untilDestroyed(this), finalize(() => this.cargandoDialog.closeDialog(requestId)))
+        .subscribe({ error: () => {}, next: (res) => {
           if (res != null) {
             this.gastoList = replaceObject<Gasto>(this.gastoList, res);
             this.dataSource.data = this.gastoList;
             this.onCancelar();
             this.goTo("lista-gastos");
           }
-        });
+        } });
     }
   }
 
@@ -723,26 +755,101 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onGastoClick(gasto: Gasto) { }
 
-  /** La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo gasto. */
-  private cargarGastosDeCaja(): void {
+  private notificarGastoGuardado(gasto: Gasto): void {
+    if (!this.mainService.usuarioActual?.persona?.id) return;
+    this.notificationHttpService.sendGastoNotification(
+      gasto.id,
+      this.mainService.sucursalActual.id,
+      this.mainService.usuarioActual.persona.id,
+      gasto.retiroGs,
+      this.mainService.usuarioActual.persona.nombre,
+      this.mainService.sucursalActual.nombre
+    ).subscribe();
+  }
+
+  /**
+   * Un alta quedó sin respuesta. Se relee la lista de la caja con «Guardar» deshabilitado: si aparece un gasto
+   * que no estaba antes e igual al enviado, es ese y se da por guardado; si no aparece, se puede guardar de
+   * nuevo; si no se puede saber (la lista no se lee, o no se había leído antes), queda deshabilitado (#390).
+   */
+  private verificarGastoEnDuda(enviado: Gasto, idsAntes: Set<number> | null): void {
+    this.guardadoEnDuda = true;
     this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
       .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .subscribe((gastos: Gasto[]) => {
+        if (gastos == null || idsAntes == null) {
+          if (gastos != null) this.mostrarGastos(gastos);
+          this.notificacionService.openWarn(
+            'No se pudo verificar si el gasto se guardó: cerrá y volvé a abrir Gastos antes de cargar otro.', 10);
+          return;
+        }
+        this.mostrarGastos(gastos);
+        const candidatos = gastos.filter((g) => !idsAntes.has(Number(g.id)) && esElMismoGasto(g, enviado));
+        this.guardadoEnDuda = false;
+        if (candidatos.length === 0) {
+          this.notificacionService.openWarn(
+            'El gasto no figura en la lista. Si salió el ticket, esperá unos segundos y mirá la lista antes de guardarlo de nuevo.', 10);
+          return;
+        }
+        if (candidatos.length > 1) {
+          // No debería pasar; si pasa, que lo mire el cajero antes de hacer nada más.
+          this.notificacionService.openWarn('Hay más de un gasto igual en la lista: revisala antes de guardar otro.', 10);
+          this.goTo("lista-gastos");
+          return;
+        }
+        enviado.id = candidatos[0].id;
+        this.notificarGastoGuardado(enviado);
+        this.notificacionService.openWarn(`El gasto ya figura en la lista (#${enviado.id}): no hace falta cargarlo de nuevo.`, 8);
+        // Si mientras tanto el cajero empezó a cargar otra cosa, no se le borra.
+        if (!this.formularioEsDe(enviado)) return;
+        this.goTo("lista-gastos");
+        this.onCancelar();
+      });
+  }
+
+  /** ¿El formulario sigue con los datos del gasto que se envió? */
+  private formularioEsDe(enviado: Gasto): boolean {
+    return esElMismoGasto({
+      responsable: this.selectedResponsable,
+      tipoGasto: this.selectedTipoGasto,
+      retiroGs: this.guaraniControl.value,
+      retiroRs: this.realControl.value,
+      retiroDs: this.dolarControl.value,
+      observacion: this.observacionControl.value,
+    } as Gasto, enviado);
+  }
+
+  private mostrarGastos(gastos: Gasto[]): void {
+    this.gastoList = orderByIdDesc<Gasto>(gastos);
+    this.dataSource.data = this.gastoList;
+    this.gastosCargados = true;
+  }
+
+  /** La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo gasto. */
+  private cargarGastosDeCaja(): void {
+    // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+    let yaAvisado = false;
+    this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+        catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
       .subscribe((gastos) => {
         if (gastos != null) {
-          this.gastoList = orderByIdDesc<Gasto>(gastos);
-          this.dataSource.data = this.gastoList;
-        } else {
+          this.mostrarGastos(gastos);
+        } else if (!yaAvisado) {
           this.notificacionService.openWarn(AVISO_GASTOS_CAJA, 5);
         }
       });
   }
 
-  /** Carga silenciosa con corte de mostrador: onGetById no emite si falla, así que se corta acá. */
+  /** Carga silenciosa con corte de mostrador (10 s, antes que el corte del link). */
   cargarBalance(): void {
     const id = ++this.balanceCargaId;
     this.estadoBalance = 'cargando';
+    // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+    let yaAvisado = false;
     this.cajaService.onCajaBalancePorId(this.selectedCaja.id, false, true, AVISO_SALDO)
-      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+        catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
       .subscribe((res) => {
         if (id !== this.balanceCargaId) return;
         if (esBalanceVerificable(res)) {
@@ -750,7 +857,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.estadoBalance = 'ok';
         } else {
           this.estadoBalance = 'fallo';
-          this.notificacionService.openWarn(AVISO_SALDO, 5);
+          if (!yaAvisado) this.notificacionService.openWarn(AVISO_SALDO, 5);
         }
       });
   }

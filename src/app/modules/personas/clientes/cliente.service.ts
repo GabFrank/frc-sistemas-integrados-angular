@@ -39,9 +39,9 @@ export class ClienteService {
   }
 
   onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
+    // Sin `show: false`: su único llamador no avisa nada, así que el aviso lo da el genérico (#390).
     let errorConf: QueryError = {
       networkError: {
-        show: false,
         propagate: true
       }
     }
@@ -96,7 +96,7 @@ export class ClienteService {
     return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
-  /** Sin `errorConf` no emite nada si falla (el llamador queda con lo que tenía): pasarlo para enterarse (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama (#390). */
   onGetByPersonaIdFromServer(id: number, errorConf?: QueryError): Observable<Cliente> {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
       "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 

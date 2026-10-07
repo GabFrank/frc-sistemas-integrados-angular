@@ -2,7 +2,7 @@ import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
   PdvCaja,
@@ -66,7 +66,7 @@ export class CajaService {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  /** `silentLoad`: con un error GraphQL onGetById no cierra «Buscando…»; quien carga en segundo plano lo evita (#390). */
+  /** `silentLoad`: para quien carga en segundo plano, sin el modal «Buscando…». */
   onCajaBalancePorId(id: number, servidor: boolean = true, silentLoad?: boolean, warningText?: string): Observable<CajaBalance> {
     return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor, null, null, null, silentLoad,
       null, warningText);
@@ -224,6 +224,19 @@ export class CajaService {
       null,
       null, servidor,
       sucId
+    );
+  }
+
+  /**
+   * La caja abierta del usuario, para saber si un alta que quedó sin respuesta (o fue rechazada) dejó una caja
+   * creada. A diferencia de {@link onGetByUsuarioIdAndAbierto}, termina siempre: `null` es «no tiene», y si no se
+   * pudo consultar falla (sin aviso; corte de mostrador). Sin modal, salvo que se pida (#390).
+   */
+  onGetAbiertaDelUsuario(usuarioId: number, servidor: boolean = true, conModal = false): Observable<PdvCaja | null> {
+    return this.genericService.onGetById(
+      this.cajaPorUsuarioIdAndAbierto, usuarioId, null, null, servidor, null, null, null, !conModal, null, null,
+      { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
+      { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
     );
   }
 

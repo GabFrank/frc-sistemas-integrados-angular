@@ -11,7 +11,7 @@ const CARGO_FIELDS = `
 
 export const cargosQuery = gql`
   {
-    data: cargos { ${CARGO_FIELDS} }
+    data: cargos(page: 0, size: 1000) { ${CARGO_FIELDS} }
   }
 `;
 

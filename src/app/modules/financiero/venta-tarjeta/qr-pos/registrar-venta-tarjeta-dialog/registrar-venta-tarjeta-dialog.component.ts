@@ -5,7 +5,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { interval } from 'rxjs';
-import { debounceTime, filter, map, switchMap } from 'rxjs/operators';
+import { debounceTime, filter, map } from 'rxjs/operators';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -27,6 +27,7 @@ import {
   ordenarPorProveedor,
   parsearCupon,
 } from '../qr-pos-parser';
+import { switchMapSinCortar } from '../../../../../commons/core/utils/rxjsUtils';
 
 export interface RegistrarVentaTarjetaData {
   /** Id del venta_tarjeta PENDIENTE que creó el PDV. */
@@ -234,7 +235,9 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     // y se cierra solo.
     interval(3000)
       .pipe(
-        switchMap(() =>
+        // Si un sondeo falla se espera al siguiente: con un switchMap común el primer error cortaba el
+        // sondeo y el diálogo ya no se cerraba solo cuando el celular completaba el registro (#390).
+        switchMapSinCortar(() =>
           this.ventaTarjetaService.onGetEstadoPorId(this.data.ventaTarjetaId, this.data.sucursalId)
         ),
         untilDestroyed(this)

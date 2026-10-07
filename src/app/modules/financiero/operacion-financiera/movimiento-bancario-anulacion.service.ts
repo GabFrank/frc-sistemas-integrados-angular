@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Observable, of } from 'rxjs';
 import { catchError, defaultIfEmpty, finalize, map, switchMap, take, tap } from 'rxjs/operators';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
-import { mensajeErrorTransporte } from '../../../commons/core/utils/graphqlErrorUtils';
+import { erroresDeRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../shared/services/timeout-link';
 import { CargandoDialogService } from '../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { MotivoDialogComponent, MotivoDialogData } from '../../../shared/components/motivo-dialog/motivo-dialog.component';
@@ -11,6 +11,8 @@ import { PagarComprasService } from '../caja-virtual/pagar-compras-dialog/pagar-
 import { AccionAnularMovimientoBancario } from './movimiento-bancario-anulacion';
 import { MovimientoBancario } from './operacion-financiera.model';
 import { OperacionFinancieraService } from './operacion-financiera.service';
+
+const SIN_CONFIRMAR = 'No se pudo confirmar la anulación: se vuelve a leer para verificarla.';
 
 /**
  * Anula un movimiento bancario desde el módulo dueño, para las dos tablas que los listan (el
@@ -30,8 +32,12 @@ export class MovimientoBancarioAnulacionService {
   ) { }
 
   /**
-   * Pide el motivo y anula. Siempre emite una vez y completa: `true` si se anuló, `false` si el
-   * usuario volvió atrás o si falló (el aviso ya salió, una sola vez).
+   * Pide el motivo y anula. Siempre emite una vez y completa: `true` si **hay que releer** (se intentó anular:
+   * salió bien, el servidor lo rechazó o quedó sin respuesta) y `false` si el usuario volvió atrás. El aviso ya
+   * salió, una sola vez.
+   *
+   * Antes un error devolvía lo mismo que volver atrás y nadie releía: tras un «sin respuesta» la anulación pudo
+   * haberse aplicado, y un rechazo «ya está anulado» significa que la pantalla estaba vieja (#390).
    */
   anular(mov: MovimientoBancario, accion: AccionAnularMovimientoBancario): Observable<boolean> {
     if (!mov || !accion?.habilitada) return of(false);
@@ -64,17 +70,22 @@ export class MovimientoBancarioAnulacionService {
         if (anulado) {
           this.avisar(esPago ? 'Pago anulado' : 'Operación financiera anulada', NotificacionColor.success, 3);
         } else {
-          this.avisar('No se pudo anular: el servidor no confirmó la anulación.', NotificacionColor.warn, 5);
+          // Ni error ni resultado: no se sabe si se anuló.
+          this.avisar(SIN_CONFIRMAR, NotificacionColor.warn, 6);
         }
       }),
       catchError(err => {
-        // El timeout ya lo avisó el link de GraphQL; un error de red trae el texto crudo de Apollo.
+        // La operación va por onSaveCustom, que ya avisó el rechazo, el error de red y la respuesta vacía; el
+        // corte por tiempo lo avisa el link. El pago (Apollo directo) no lo avisa nadie.
         if (esPago && !esTimeoutDeLink(err)) {
-          const texto = err?.networkError ? mensajeErrorTransporte(err) : (err?.message || 'No se pudo anular');
-          this.avisar(texto, NotificacionColor.warn, 5);
+          const rechazo = erroresDeRechazo(err);
+          this.avisar(rechazo ? (rechazo[0]?.message || err?.message || 'No se pudo anular') : SIN_CONFIRMAR,
+            NotificacionColor.warn, rechazo ? 5 : 6);
         }
         return of(false);
       }),
+      // Se intentó anular: con cualquier resultado hay que releer.
+      map(() => true),
       finalize(() => this.cargandoService.closeDialog(requestId)),
     );
   }

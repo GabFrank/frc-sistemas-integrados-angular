@@ -232,11 +232,15 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private loadMonedas(): void {
     this.loadingMonedas = true;
     
-    // El onGetAll genérico no emite si falla: corte propio para no dejar «cargando» para siempre (#390)
-    this.monedaService.onGetAll()
+    // El error de red llega al error: de abajo, que explica qué hacer (#390)
+    this.monedaService.onGetAll(true, PROPAGAR_ERROR_DE_RED)
       .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), takeUntil(this.destroy$))
       .subscribe({
         next: (monedas: Moneda[]) => {
+          if (monedas == null) {
+            // El servidor rechazó la consulta (el genérico ya dijo por qué): misma guía que sin red.
+            this.notificacionService.openWarn('No se pudieron cargar las monedas. Cerrá y volvé a abrir la nota.', 6);
+          }
           monedas = monedas ?? [];
           this.monedas = monedas;
           this.loadingMonedas = false;

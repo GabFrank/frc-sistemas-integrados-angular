@@ -41,6 +41,8 @@ import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-veri
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MENSAJE_RESPUESTA_VACIA } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 
 /** Filtros con los que se cargó la tabla: el reporte imprime exactamente lo mismo. */
@@ -108,6 +110,8 @@ function fechaHoyArchivo(): string {
   return `${dd}-${mm}-${hoy.getFullYear()}`;
 }
 
+const SIN_CONFIRMAR_ANULACION = 'No se pudo confirmar la anulación: se vuelve a leer la caja para verificarla.';
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -127,6 +131,11 @@ export class CajaVirtualDashboardComponent implements OnInit {
   saldosNoDisponibles = false;
   /** Número de la última carga de saldos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
   private saldosCargaId = 0;
+  /**
+   * Los saldos se están releyendo después de un conteo: hasta que vuelvan, el conteo se abre sin saldo del
+   * sistema (no se puede ajustar). No es `saldosNoDisponibles`, que además muestra el cartel de lectura fallida.
+   */
+  private saldosEnRelectura = false;
   /** Moneda por la que se está filtrando la tabla (null = todas). La activa el click en la card. */
   monedaSelId: number = null;
 
@@ -141,6 +150,18 @@ export class CajaVirtualDashboardComponent implements OnInit {
   // Movimientos (tabla)
   dataSource = new MatTableDataSource<MovimientoRow>([]);
   isLoading = false;
+  /** La última lectura de movimientos (de caja o de banco) falló: la tabla muestra lo que había antes. */
+  movimientosNoCargados = false;
+  /** Número de la última lectura de movimientos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
+  private movimientosCargaId = 0;
+  /**
+   * Operaciones con una anulación pedida: en vuelo (`null`) o terminada sin que la caja se haya vuelto a leer
+   * (número de la lectura vigente cuando terminó). No se pueden volver a anular hasta que una lectura de caja
+   * **posterior** termine bien: si la anulación quedó sin respuesta pudo haberse aplicado, y con la fila todavía
+   * «activa» un segundo intento postearía otro contra-movimiento (#390). Se guarda acá y no en la fila porque las
+   * filas se reconstruyen en cada lectura.
+   */
+  private anulacionesPendientes = new Map<string, number | null>();
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
@@ -270,12 +291,13 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe({
         next: res => {
           if (id !== this.saldosCargaId) return;
+          this.saldosEnRelectura = false;
           if (res == null) { this.saldosNoCargados(); return; }
           this.saldosNoDisponibles = false;
           this.saldos = res;
           this.construirCards();
         },
-        error: () => { if (id === this.saldosCargaId) { this.saldosNoCargados(); } }
+        error: () => { if (id === this.saldosCargaId) { this.saldosEnRelectura = false; this.saldosNoCargados(); } }
       });
   }
 
@@ -323,13 +345,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const data: ConteoCajaDialogData = {
       cajaVirtual: this.cajaVirtual,
       moneda: card.saldo?.moneda,
-      saldoSistema: this.saldosNoDisponibles ? null : (card.saldo?.saldo || 0),
+      saldoSistema: (this.saldosNoDisponibles || this.saldosEnRelectura) ? null : (card.saldo?.saldo || 0),
       color: card.color,
     };
     this.dialog.open(ConteoCajaDialogComponent, {
       // Sin ancho fijo: la grilla de denominaciones define el tamaño (1 columna o varias).
       maxWidth: '96vw', maxHeight: '92vh', autoFocus: false, data,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res) return;
+      // Hasta que vuelvan los saldos el conteo no tiene contra qué ajustar: reabrirlo ya, con el saldo de
+      // antes, repetiría un ajuste que pudo haberse registrado (#390).
+      this.saldosEnRelectura = true;
+      this.recargar();
+    });
   }
 
   cargarConfigYBancos() {
@@ -407,6 +435,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;
+    const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
     this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
       desde: f.desde,
@@ -418,8 +447,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
+          // Un resultado vacío sin error tampoco es una lectura: antes dejaba las filas viejas sin avisar.
+          this.movimientosNoCargados = res == null;
           if (res != null) {
+            this.liberarAnulacionesLeidas(carga);
             this.selectedPageInfo = res;
             const rows = (res.getContent || []).map(m => this.toRow(m));
             this.marcarGruposOperacion(rows);
@@ -427,8 +460,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
           }
         },
         error: () => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los movimientos de la caja.', 5);
+          this.movimientosNoCargados = true;
         }
       });
   }
@@ -436,8 +470,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
   /** Carga los movimientos de la cuenta bancaria seleccionada como fuente. */
   private cargarMovimientosBancarios() {
     const cuentaId = this.fuenteSel.cuentaId;
-    if (!cuentaId) { this.dataSourceBanco.data = []; return; }
+    if (!cuentaId) {
+      // También cuenta como lectura: una respuesta bancaria anterior todavía en vuelo no debe llenar la tabla.
+      ++this.movimientosCargaId;
+      this.dataSourceBanco.data = [];
+      this.movimientosNoCargados = false;
+      return;
+    }
     this.isLoading = true;
+    const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
     this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize, {
       desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
@@ -445,16 +486,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta.', 5); return; }
+          this.movimientosNoCargados = res == null;
+          if (res == null) return;
           // Clonar: Apollo congela los resultados (mismo motivo que toRow).
           this.dataSourceBanco.data = (res.getContent || []).map(m => (
             { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) }));
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         },
         error: () => {
+          if (carga !== this.movimientosCargaId) return;
           this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los movimientos de la cuenta: el servidor no responde.', 5);
+          this.movimientosNoCargados = true;
         }
       });
   }
@@ -501,9 +545,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       row._origenLabel = nav?.label;
       row._origenIcon = nav?.icon;
     }
-    row._anulable = this.puedeGestionar
-      && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
-      && m.activo !== false;
+    row._anulable = this.esAnulable(m);
     row._opGrupo = (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) ? m.referenciaId : null;
     return row;
   }
@@ -622,9 +664,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
+  /** Anular una entrada varia ahí adentro mueve el saldo de esta caja: al cerrarse, se relee. */
   onVerEntradasVarias() {
-    this.dialog.open(ListEntradasVariasDialogComponent, {
+    const ref = this.dialog.open(ListEntradasVariasDialogComponent, {
       width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
+    });
+    // Se captura acá: el diálogo se cierra con Esc o clic afuera, y después componentInstance es null.
+    const entradas = ref.componentInstance;
+    ref.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+      if (entradas.huboCambios) this.recargar();
     });
   }
 
@@ -646,9 +694,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   private origenNav: Record<string, { label: string; icon: string; open: (row: MovimientoRow) => void }> = {
     ENTRADA_VARIA: {
       label: 'Ver entradas/salidas varias', icon: 'receipt_long',
-      open: () => this.dialog.open(ListEntradasVariasDialogComponent, {
-        width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
-      }),
+      open: () => this.onVerEntradasVarias(),
     },
     RRHH_VALE: {
       label: 'Ir a Vales (RRHH)', icon: 'payments',
@@ -687,8 +733,40 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.origenNav[row.origenTipo as any]?.open(row);
   }
 
+  private esAnulable(m: MovimientoCajaVirtual): boolean {
+    return this.puedeGestionar
+      && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
+      && m.activo !== false
+      && !this.anulacionesPendientes.has(this.claveAnulacion(m));
+  }
+
+  /**
+   * Qué se anula al anular esta fila. Un pago, una operación financiera o la verificación de un retiro tienen
+   * varias patas (filas): todas comparten la clave y quedan bloqueadas juntas.
+   */
+  private claveAnulacion(m: MovimientoCajaVirtual): string {
+    if (m.origenTipo === 'RETIRO_CAJA' && m.origenId && m.origenSucursalId) return `RETIRO:${m.origenId}:${m.origenSucursalId}`;
+    if (m.esPagoConsolidado && m.referenciaId) return `PAGO:${m.referenciaId}`;
+    if (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) return `OPERACION:${m.referenciaId}`;
+    return `MOVIMIENTO:${m.id}`;
+  }
+
+  /** Vuelve a calcular «Anular» en las filas en pantalla (el bloqueo cambió sin que se releyera la tabla). */
+  private actualizarAnulables(): void {
+    this.dataSource.data.forEach(row => row._anulable = this.esAnulable(row));
+  }
+
+  /** Una lectura de caja que empezó después de terminar la anulación ya refleja su resultado: se desbloquea. */
+  private liberarAnulacionesLeidas(carga: number): void {
+    this.anulacionesPendientes.forEach((terminadaEn, clave) => {
+      if (terminadaEn != null && carga > terminadaEn) this.anulacionesPendientes.delete(clave);
+    });
+  }
+
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
+    const clave = this.claveAnulacion(mov);
+    if (this.anulacionesPendientes.has(clave)) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
     // El movimiento consolidado del pago lleva referenciaId = origenId = pago.id (el evento).
     //
@@ -723,7 +801,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.dialogosService.confirm(
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res !== true) return;
+      if (res !== true || this.anulacionesPendientes.has(clave)) return;
+      this.anulacionesPendientes.set(clave, null);
+      this.actualizarAnulables();
+      // Con cualquier resultado se relee la caja (movimientos y saldos): si se anuló hay que mostrarlo, un
+      // rechazo por «ya está anulado» significa que la tabla estaba vieja, y sin respuesta es la única forma de
+      // saber. La operación sigue bloqueada hasta que esa lectura termine bien.
+      const terminar = () => {
+        this.anulacionesPendientes.set(clave, this.movimientosCargaId);
+        this.recargar();
+      };
       // Tres ramas pasan por onSaveCustom: van sin su «Guardado con éxito» (el éxito lo avisa este
       // componente) y su error ya lo avisó onSaveCustom, así que se marca para no repetirlo. Todo
       // otro error —el pago a proveedor (Apollo directo, sin aviso genérico), la verificación que
@@ -746,13 +833,25 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: r => {
           if (r != null) {
             this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
-            this.recargar();
+          } else {
+            // Ni error ni resultado: nadie avisó y no se sabe si se anuló.
+            this.notificacion.openWarn(SIN_CONFIRMAR_ANULACION, 6);
           }
+          terminar();
         },
         error: err => {
-          if (err?.avisadoPorOnSaveCustom) return;
-          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
-          this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+          // onSaveCustom ya avisó el rechazo, el error de red y la respuesta vacía; el corte, el link.
+          if (!err?.avisadoPorOnSaveCustom && !esTimeoutDeLink(err)) {
+            // Pago a proveedor (Apollo directo): sin respuesta llega con networkError (una respuesta vacía llega
+            // como resultado nulo, arriba; se mira igual el mensaje por si cambia); cualquier otro error trae el
+            // motivo del servidor.
+            const sinRespuesta = !!err?.networkError || err?.message === MENSAJE_RESPUESTA_VACIA;
+            const msg = sinRespuesta
+              ? SIN_CONFIRMAR_ANULACION
+              : (err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular');
+            this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: sinRespuesta ? 6 : 5 });
+          }
+          terminar();
         }
       });
     });
@@ -765,9 +864,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onAnularBanco(row: MovimientoBancarioRow) {
     this.movimientoBancarioAnulacionService.anular(row, row._accion)
       .pipe(untilDestroyed(this))
-      .subscribe(anulado => {
-        // Recarga todo: un pago mixto también movió la caja, y las cards de banco muestran el saldo.
-        if (anulado) this.recargar();
+      .subscribe(hayQueReleer => {
+        // Recarga todo: un pago mixto también movió la caja, y las cards de banco muestran el saldo. También
+        // tras un rechazo o un «sin respuesta»: la anulación pudo haberse aplicado, o la tabla estaba vieja.
+        if (hayQueReleer) this.recargar();
       });
   }
 

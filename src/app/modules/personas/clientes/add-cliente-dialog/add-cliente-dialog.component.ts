@@ -29,6 +29,10 @@ export class AddClienteDialogComponent implements OnInit {
   readonly ROLES = ROLES;
 
   selectedCliente: Cliente;
+  /** La persona elegida ya es cliente, pero su cliente no se pudo leer: no se puede guardar (#390). */
+  clienteNoLeido = false;
+  /** Leyendo el cliente de la persona elegida: hasta que llegue tampoco se puede guardar. */
+  leyendoCliente = false;
   selectedPersona: Persona;
 
   //cliente
@@ -141,14 +145,32 @@ export class AddClienteDialogComponent implements OnInit {
       if ((res) != null) {
         this.selectedPersona = new Persona;
         Object.assign(this.selectedPersona, res);
+        this.clienteNoLeido = false;
         if (res?.isCliente == true) {
           this.notificacionService.openWarn('Ya existe un cliente registrado con este documento')
-          this.clienteService.onGetByPersonaId(res.id).pipe(untilDestroyed(this)).subscribe((res2: Cliente) => {
-            this.selectedCliente = res2;
-            this.tipoControl.setValue(this.selectedCliente?.tipo)
-            this.creditoControl.setValue(this.selectedCliente?.credito)
-            this.tributaControl.setValue(this.selectedCliente?.tributa ?? false)
+          // El cliente que hubiera de una persona elegida antes no es el de esta: si quedara, guardar se lo
+          // reasignaría a esta persona. Y si el de esta no se puede leer, guardar crearía otro (no hay
+          // unicidad de cliente por persona en el central): no se deja guardar (#390).
+          this.selectedCliente = null;
+          this.leyendoCliente = true;
+          this.clienteService.onGetByPersonaId(res.id).pipe(untilDestroyed(this)).subscribe({
+            next: (res2: Cliente) => {
+              this.leyendoCliente = false;
+              this.selectedCliente = res2;
+              this.clienteNoLeido = res2 == null;
+              this.tipoControl.setValue(this.selectedCliente?.tipo)
+              this.creditoControl.setValue(this.selectedCliente?.credito)
+              this.tributaControl.setValue(this.selectedCliente?.tributa ?? false)
+            },
+            // El aviso del error lo da el genérico.
+            error: () => {
+              this.leyendoCliente = false;
+              this.clienteNoLeido = true;
+            },
           })
+        } else if (this.data?.cliente == null) {
+          // En un alta, el cliente cargado de una persona elegida antes tampoco es el de esta.
+          this.selectedCliente = null;
         }
         this.nombreControl.setValue(this.selectedPersona.nombre)
         this.apodoControl.setValue(this.selectedPersona?.apodo)
@@ -174,6 +196,7 @@ export class AddClienteDialogComponent implements OnInit {
   }
 
   onSave() {
+    if (this.clienteNoLeido || this.leyendoCliente) return;
     let newPersona = new Persona()
     if (this.selectedPersona != null) Object.assign(newPersona, this.selectedPersona)
     newPersona.nombre = this.nombreControl.value;

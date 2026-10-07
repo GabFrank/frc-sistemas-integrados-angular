@@ -9,6 +9,7 @@ import { SectorService } from '../../../empresarial/sector/sector.service';
 import { InventarioService } from '../inventario.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MainService } from '../../../../main.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 export interface AgregarZonaDialogData {
   inventario: Inventario;
@@ -53,7 +54,7 @@ export class AgregarZonaDialogComponent implements OnInit {
     }
 
     this.sectorService.onGetSectores(sucursalId)
-      .pipe(untilDestroyed(this))
+      .pipe(terminarSiFalla(), untilDestroyed(this))
       .subscribe(res => {
         if (res) {
           this.sectorList = res.filter(s => s.activo);

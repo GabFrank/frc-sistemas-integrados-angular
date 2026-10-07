@@ -127,7 +127,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   // secuencia para descartar respuestas viejas que llegan despues de una busqueda
   // mas nueva y pisarian la grilla con resultados de un texto ya reemplazado
   private busquedaSeq = 0;
-  imagenPrincipal = null;
   displayedColumns: string[] = [
     "id",
     "descripcion",

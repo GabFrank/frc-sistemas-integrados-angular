@@ -108,6 +108,11 @@
     font-weight: 400;
     font-variant-numeric: tabular-nums;
     line-height: 1.2;
+
+    // Precio inactivo: no rige en ninguna sucursal, así que no compite con el promocional
+    &--inactivo {
+      color: var(--pe-tenue);
+    }
   }
 
   &__nota {

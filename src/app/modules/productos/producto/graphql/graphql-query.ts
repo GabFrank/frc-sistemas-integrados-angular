@@ -11,7 +11,7 @@ export const productosQuery = gql`
       diasVencimiento
       observacion
       cambiable
-      imagenPrincipal
+      imagenPrincipalMiniatura
       subfamilia {
         id
         descripcion
@@ -318,7 +318,7 @@ export const productoPorCodigoQuery = gql`
       lote
       observacion
       cambiable
-      imagenPrincipal
+      imagenPrincipalMiniatura
       isEnvase
       costo {
         ultimoPrecioCompra
@@ -414,7 +414,8 @@ export const productoQuery = gql`
       lote
       observacion
       cambiable
-      imagenPrincipal
+      imagenPrincipalMiniatura
+      imagenPrincipalMediana
       iva
       stock
       isEnvase
@@ -605,7 +606,8 @@ export const productoParaPedidoQuery = gql`
       diasVencimiento
       observacion
       cambiable
-      imagenPrincipal
+      imagenPrincipalMiniatura
+      imagenPrincipalMediana
       iva
       stock
       presentaciones {
@@ -679,7 +681,7 @@ export const findByPdvGrupoProductoQuery = gql`
       diasVencimiento
       observacion
       cambiable
-      imagenPrincipal
+      imagenPrincipalMiniatura
       iva
       stock
       isEnvase

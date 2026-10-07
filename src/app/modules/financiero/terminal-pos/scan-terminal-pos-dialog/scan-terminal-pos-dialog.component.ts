@@ -55,6 +55,8 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   selectedTerminalPos: TerminalPos = null;
   buscando = false;
   noEncontrado = false;
+  /** La búsqueda de la terminal falló (sin conexión, rechazo): distinto de «no existe». */
+  errorConsulta = false;
 
   /** Los formatos activos, para poder reconocer un cupón en el mismo input. */
   private formatos: FormatoQrPos[] = [];
@@ -136,6 +138,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
         tap(() => {
           this.selectedTerminalPos = null;
           this.noEncontrado = false;
+          this.errorConsulta = false;
         }),
         map((valor: string) => (valor || '').trim()),
         filter((valor: string) => valor.length >= LARGO_MINIMO_CODIGO),
@@ -168,6 +171,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
 
     this.buscando = true;
     this.noEncontrado = false;
+    this.errorConsulta = false;
     this.buscarTerminal(lecturasAProbar(codigo, alternativa));
   }
 
@@ -183,6 +187,8 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     this.terminalPosService.onFilter(null, codigo, null, null, true, 0, 1, false)
       .pipe(untilDestroyed(this))
       .subscribe((page: any) => {
+        // null = la consulta fue rechazada: no es «no existe una terminal con ese código».
+        if (page == null) { this.buscando = false; this.errorConsulta = true; return; }
         const resultados = page?.getContent ?? page?.data?.getContent ?? [];
         if (resultados.length === 0 && resto.length > 0) {
           this.buscarTerminal(resto);
@@ -204,7 +210,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
         }
       }, () => {
         this.buscando = false;
-        this.noEncontrado = true;
+        this.errorConsulta = true;
       });
   }
 
@@ -273,7 +279,12 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           this.buscando = false;
-          const resultados = res ?? [];
+          // null = consulta rechazada: no es «esa máquina no está registrada».
+          if (res == null) {
+            this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
+            return;
+          }
+          const resultados = res;
           if (resultados.length === 1) {
             this.selectedTerminalPos = resultados[0];
             this.cerrarSiElCuponSirve(datos);

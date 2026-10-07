@@ -12,7 +12,7 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
 import {
-  ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, estadoPrecioEspecial, textoVigencia,
+  detalleAlCortar, ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, esPrecioInactivo, estadoPrecioEspecial, textoVigencia,
 } from '../precio-especial.util';
 
 /** Fila ya resuelta: el template no llama funciones (regla del repo). */
@@ -22,6 +22,8 @@ interface FilaPrecioEspecial {
   vigencia: string;
   estado: EstadoPrecioEspecial;
   estadoTexto: string;
+  /** El precio global no rige en ninguna sucursal: solo la promoción lo habilita. */
+  precioInactivo: boolean;
 }
 
 @UntilDestroy()
@@ -130,6 +132,7 @@ export class ListPrecioEspecialComponent implements OnInit {
           vigencia: textoVigencia(e),
           estado,
           estadoTexto: ESTADO_PRECIO_ESPECIAL_TEXTO[estado],
+          precioInactivo: esPrecioInactivo(e.precioPorSucursal),
         };
       });
     } });
@@ -158,7 +161,7 @@ export class ListPrecioEspecialComponent implements OnInit {
     const e = fila.especial;
     this.dialogosService
       .confirm('Cortar promoción', `¿Cortar la promoción de ${e.sucursal?.nombre}?`,
-        'La sucursal vuelve al precio global desde el próximo escaneo.')
+        detalleAlCortar(fila.precioInactivo))
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
         // También en error: pudo haberse aplicado (onSaveCustom ya avisó), y la lista lo aclara

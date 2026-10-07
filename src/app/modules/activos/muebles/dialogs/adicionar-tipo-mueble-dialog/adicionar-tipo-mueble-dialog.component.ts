@@ -6,6 +6,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { TipoMueble } from '../../models/tipo-mueble.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
 import { MainService } from '../../../../../main.service';
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -37,7 +38,7 @@ export class AdicionarTipoMuebleDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.data?.familiaId) {
-      this.muebleService.findByIdFamilia(Number(this.data.familiaId)).pipe(untilDestroyed(this)).subscribe(res => {
+      this.muebleService.findByIdFamilia(Number(this.data.familiaId)).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
         if (res) this.onSelectFamilia(res);
       });
     }

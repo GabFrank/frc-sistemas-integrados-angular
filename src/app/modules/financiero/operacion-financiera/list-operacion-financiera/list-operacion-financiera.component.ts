@@ -89,7 +89,10 @@ export class ListOperacionFinancieraComponent implements OnInit {
       maxHeight: '92vh',
       data: null
     }).afterClosed().subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res == null) return;
+      // La operación nueva (o la que pudo haberse registrado) queda arriba de todo: se vuelve a la primera página.
+      this.pageIndex = 0;
+      this.onFiltrar();
     });
   }
 
@@ -114,15 +117,19 @@ export class ListOperacionFinancieraComponent implements OnInit {
       this.operacionFinancieraService.onAnular(row.id, undefined, { avisarExito: false })
         .pipe(untilDestroyed(this)).subscribe({
           next: r => {
-            if (r == null) return;
-            this.notificacion.notification$.next({
-              texto: 'Operación financiera anulada',
-              color: NotificacionColor.success, duracion: 3,
-            });
+            if (r == null) {
+              this.notificacion.openWarn('No se pudo confirmar la anulación: se vuelve a leer para verificarla.', 6);
+            } else {
+              this.notificacion.notification$.next({
+                texto: 'Operación financiera anulada',
+                color: NotificacionColor.success, duracion: 3,
+              });
+            }
             this.onFiltrar();
           },
-          // El mensaje del backend ya lo muestra GenericCrudService.
-          error: () => {},
+          // El mensaje ya lo muestra GenericCrudService. Se relee igual: un rechazo «ya está
+          // anulada» es una lista vieja, y sin respuesta la anulación pudo haberse aplicado (#390).
+          error: () => this.onFiltrar(),
         });
     });
   }

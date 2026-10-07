@@ -456,6 +456,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .onGetAllFormaPago(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
+        // null = no se pudieron leer (#390): queda la lista que ya había (la del FormaPagoService).
+        if (!res?.length) return;
         this.formaPagoList = res;
         this.selectedFormaPago = this.formaPagoList[0];
         this.setFormaPago(this.selectedFormaPago.descripcion);
@@ -466,6 +468,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.monedasService.onGetAll(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
+        // null = no se pudieron leer (#390): quedan las monedas y los cambios que ya había.
+        if (res == null) return;
         this.monedas = res;
         this.decimalesPorMoneda = (res || []).reduce((acc, m) => {
           if (m?.id != null) acc[m.id] = m.decimales ?? 0;

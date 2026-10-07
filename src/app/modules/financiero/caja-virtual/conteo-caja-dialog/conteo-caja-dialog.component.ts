@@ -10,6 +10,8 @@ import { MainService } from '../../../../main.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { GrillaConteoComponent } from '../../../../shared/components/grilla-conteo/grilla-conteo.component';
 
 export interface ConteoCajaDialogData {
@@ -51,6 +53,8 @@ export class ConteoCajaDialogComponent implements OnInit {
   hayDiferencia = false;
   /** Sin saldo del sistema no hay diferencia que calcular ni AJUSTE que postear. */
   sinSaldoSistema = false;
+  /** La grilla no cargó las denominaciones: su total 0 no es un conteo, no se ajusta contra eso (#390). */
+  grillaNoCargo = false;
 
   /** Decimales de la moneda: define el redondeo de la diferencia y el formato mostrado. */
   private decimales = 2;
@@ -201,7 +205,7 @@ export class ConteoCajaDialogComponent implements OnInit {
    * diferencia va tal cual (negativa si falta plata).
    */
   onCrearAjuste() {
-    if (!this.hayDiferencia || this.sinSaldoSistema || this.guardando) return;
+    if (!this.hayDiferencia || this.sinSaldoSistema || this.grillaNoCargo || this.guardando) return;
     const simbolo = this.data.moneda?.simbolo || '';
     const signo = this.diferencia > 0 ? '+' : '';
     this.dialogosService.confirm(
@@ -212,6 +216,8 @@ export class ConteoCajaDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
       this.guardando = true;
+      // Mientras se guarda no se cierra (ni Esc ni clic afuera): la caja no se refrescaría.
+      this.dialogRef.disableClose = true;
       const mov = new MovimientoCajaVirtual();
       mov.cajaVirtual = this.data.cajaVirtual;
       mov.tipoMovimiento = CajaVirtualTipoMovimiento.AJUSTE;
@@ -225,16 +231,34 @@ export class ConteoCajaDialogComponent implements OnInit {
         .subscribe({
           next: r => {
             this.guardando = false;
-            if (r == null) return;
+            this.dialogRef.disableClose = false;
+            if (r == null) { this.ajusteSinConfirmar(true); return; }
             // El snackbar de éxito lo emite GenericCrudService.onSaveCustom; no duplicarlo acá.
             this.dialogRef.close(true);
           },
-          // El aviso de error también lo da onSaveCustom.
-          error: () => {
+          error: err => {
             this.guardando = false;
+            this.dialogRef.disableClose = false;
+            // Rechazo: no se registró nada y el motivo ya lo mostró onSaveCustom.
+            if (erroresDeRechazo(err)) return;
+            // El corte del link ya avisó que pudo haberse aplicado.
+            this.ajusteSinConfirmar(!esTimeoutDeLink(err));
           }
         });
     });
+  }
+
+  /**
+   * El ajuste pudo haberse registrado. La diferencia en pantalla está calculada contra el saldo de antes: otro
+   * intento la postearía de nuevo (#390). Se cierra para que la caja relea el saldo; el conteo no se pierde (la
+   * grilla se guarda por caja y moneda), así que al reabrirlo se ve la diferencia real.
+   */
+  private ajusteSinConfirmar(avisar: boolean) {
+    if (avisar) {
+      this.notificacion.openWarn(
+        'No se pudo confirmar si el ajuste se registró. El conteo sigue guardado: volvé a abrirlo para ver la diferencia con el saldo actualizado.', 10);
+    }
+    this.dialogRef.close(true);
   }
 
   /** Formato es-PY con los decimales de la moneda (el mensaje de confirmación no pasa por pipes). */

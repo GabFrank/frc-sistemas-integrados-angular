@@ -58,6 +58,7 @@ import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 /**
  * Stock actual por sucursal para el resumen: el error de red y el del servidor llegan acá, sin aviso del servicio
@@ -1086,6 +1087,8 @@ export class ListMovimientoStockComponent implements OnInit {
       });
     } else {
       this.inventarioService.onGetInventarioProductoItem(movimiento.referencia)
+        // Si la lectura falla también: el detalle quedaba sin escribirse (#390).
+        .pipe(terminarSiFalla(() => this.escribirDetalle(movimiento, index, { tipo: 'AJUSTE_INVENTARIO', ...cantidades })))
         .subscribe((res) => {
           // Sin el inventario se arma igual la data básica
           this.escribirDetalle(movimiento, index, { ...(res ?? {}), tipo: 'AJUSTE_INVENTARIO', ...cantidades });

@@ -24,6 +24,7 @@ import { FuncionarioService } from '../../../personas/funcionarios/funcionario.s
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
 import { VehiculoSearchGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearch';
 import { LocalesDeSalidaGQL } from '../graphql/localesDeSalida';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import {
   SearchListDialogComponent,
   SearchListtDialogData
@@ -125,13 +126,23 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   private aplicarChofer(funcionario: any): void {
     this.funcionarioService.onGetFuncionarioById(funcionario.id)
       .pipe(untilDestroyed(this))
-      .subscribe(completo => {
-        const persona = completo?.persona ?? funcionario.persona;
-        if (persona == null) return;
-        this.nota.choferPersonaId = persona.id;
-        this.nota.choferNombre = persona.nombre;
-        this.nota.choferDocumento = persona.documento;
-        this.nota.choferDireccion = persona.direccion;
+      .subscribe({
+        next: completo => {
+          const persona = completo?.persona ?? funcionario.persona;
+          if (persona == null) return;
+          this.nota.choferPersonaId = persona.id;
+          this.nota.choferNombre = persona.nombre;
+          this.nota.choferDocumento = persona.documento;
+          this.nota.choferDireccion = persona.direccion;
+        },
+        // Quedaba el chofer elegido antes, completo: la nota podía emitirse con el chofer viejo creyendo
+        // que se había cambiado. Se limpia; el aviso del error lo da el genérico (#390).
+        error: () => {
+          this.nota.choferPersonaId = null;
+          this.nota.choferNombre = null;
+          this.nota.choferDocumento = null;
+          this.nota.choferDireccion = null;
+        },
       });
   }
 
@@ -359,12 +370,16 @@ export class AddNotaRemisionDialogComponent implements OnInit {
               this.dialogRef.close(guardada);
             },
             // La nota YA existe con su número: se cierra igual y se reintenta con «Reenviar»
-            // desde la lista. Volver a guardar crearía una segunda nota.
+            // desde la lista. Volver a guardar crearía una segunda nota. Quien emite solo con
+            // NOTA REMISION EMITIR no tiene esa lista ni puede reenviar: lo hace facturación.
             error: () => {
               this.guardando = false;
+              const puedeReenviar = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
               this.notificacionService.openWarn(
                 `La nota ${guardada.numeroNotaRemision} se guardó pero SIFEN no la aceptó. `
-                + 'Reintentá con «Reenviar» desde la lista de notas de remisión.');
+                + (puedeReenviar
+                  ? 'Reintentá con «Reenviar» desde la lista de notas de remisión.'
+                  : 'Avisá a facturación para que la reenvíe.'));
               this.dialogRef.close(guardada);
             }
           });

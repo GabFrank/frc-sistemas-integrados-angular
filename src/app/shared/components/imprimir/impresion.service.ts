@@ -50,13 +50,17 @@ export class ImpresionService {
 
   /** PDF A4 → visor integrado. */
   private mostrarPdf(nombre: string, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
-    generar(null, false).pipe(take(1)).subscribe((base64: string) => {
-      if (!base64) {
-        this.notificacion.notification$.next({ texto: 'No se pudo generar el documento', color: NotificacionColor.warn, duracion: 3 });
-        return;
-      }
-      this.reporteService.onAdd(nombre, base64);
-      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+    generar(null, false).pipe(take(1)).subscribe({
+      next: (base64: string) => {
+        if (!base64) {
+          this.notificacion.notification$.next({ texto: 'No se pudo generar el documento', color: NotificacionColor.warn, duracion: 3 });
+          return;
+        }
+        this.reporteService.onAdd(nombre, base64);
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+      },
+      // Un solo manejo para todos los recibos y comprobantes que pasan por acá (#390).
+      error: () => this.notificacion.notification$.next({ texto: 'No se pudo generar el documento: ' + nombre, color: NotificacionColor.warn, duracion: 4 }),
     });
   }
 
@@ -67,15 +71,22 @@ export class ImpresionService {
       return;
     }
     // Buscar la impresora de ticket configurada.
-    this.impresoraService.todas().pipe(take(1)).subscribe((impresoras: Impresora[]) => {
+    const avisarTicketNoGenerado = () => this.notificacion.notification$.next(
+      { texto: 'No se pudo generar el ticket: ' + nombre + ' no se imprimió', color: NotificacionColor.warn, duracion: 5 });
+    this.impresoraService.todas().pipe(take(1)).subscribe({ next: (impresoras: Impresora[]) => {
+      if (impresoras == null) {
+        // No es «no hay impresora configurada»: no se pudo leer la lista (#390).
+        this.notificacion.notification$.next({ texto: 'No se pudieron leer las impresoras: el ticket no se imprimió', color: NotificacionColor.warn, duracion: 5 });
+        return;
+      }
       const imp = this.elegirImpresoraTicket(impresoras);
       if (!imp) {
         this.notificacion.notification$.next({ texto: 'No hay impresora de ticket configurada (Configuración → Impresoras)', color: NotificacionColor.warn, duracion: 5 });
         return;
       }
-      generar(anchoMm, true).pipe(take(1)).subscribe((payloadBase64: string) => {
+      generar(anchoMm, true).pipe(take(1)).subscribe({ next: (payloadBase64: string) => {
         if (!payloadBase64) {
-          this.notificacion.notification$.next({ texto: 'No se pudo generar el ticket', color: NotificacionColor.warn, duracion: 3 });
+          avisarTicketNoGenerado();
           return;
         }
         this.electronService.printLocal({
@@ -87,8 +98,9 @@ export class ImpresionService {
               : { texto: 'No se pudo imprimir: ' + (r?.error || 'error'), color: NotificacionColor.warn, duracion: 5 }),
           error: () => this.notificacion.notification$.next({ texto: 'Error al imprimir el ticket', color: NotificacionColor.warn, duracion: 4 }),
         });
-      });
-    });
+      }, error: avisarTicketNoGenerado });
+    }, error: () => this.notificacion.notification$.next(
+      { texto: 'No se pudieron leer las impresoras: el ticket no se imprimió', color: NotificacionColor.warn, duracion: 5 }) });
   }
 
   /** Impresora de ticket: uso TICKET (y tipo térmica), preferir la predeterminada. */

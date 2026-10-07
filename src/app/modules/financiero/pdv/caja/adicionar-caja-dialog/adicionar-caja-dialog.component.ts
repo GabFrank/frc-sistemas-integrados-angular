@@ -21,7 +21,7 @@ import {
   ContextoConsulta,
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
-  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS, LECTURA_ESTRICTA,
 } from "../../../../../generics/generic-crud.service";
 import {
   NotificacionColor,
@@ -176,10 +176,38 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
     let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
     if (auxData != null) {
-      this.cajaService
-        .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
+      this.cajaAAbrir = auxData;
+      this.cargarCajaExistente();
+    }
+
+    setTimeout(() => {
+      this.codigoMaletinInput.nativeElement.focus();
+    }, 1000);
+  }
+
+  /** La caja con la que se abrió esta pantalla (edición), para poder reintentar su lectura. */
+  private cajaAAbrir: PdvCaja = null;
+  /**
+   * La caja existente no se pudo leer. Sin esto la pantalla decía «Nueva Caja» y dejaba elegir un maletín
+   * sobre una caja que ya existe (#390). No se cierra: vive como diálogo, como pestaña y dentro del PDV, y en
+   * cada uno cerrar significa otra cosa.
+   */
+  cajaNoCargada = false;
+
+  /** Pública: es también el «Reintentar» del cartel. */
+  cargarCajaExistente(): void {
+    const auxData = this.cajaAAbrir;
+    if (auxData == null) return;
+    this.cajaNoCargada = false;
+    this.cajaService
+      .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        // El aviso del error lo da el genérico.
+        error: () => this.cajaNoCargada = true,
+        next: (res) => {
+          // La caja pedida no vino: tampoco es una caja nueva.
+          this.cajaNoCargada = res == null;
           if (res != null) {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;
@@ -200,13 +228,51 @@ export class AdicionarCajaDialogComponent implements OnInit {
             // Deliverys, solicitudes y tarjetas se verifican al tocar «Conteo Cierre», no acá: un
             // chequeo que no respondía al abrir dejaba su flag en false y el cierre pasaba (#390).
           }
-        });
-    } else {
-    }
+        },
+      });
+  }
 
-    setTimeout(() => {
-      this.codigoMaletinInput.nativeElement.focus();
-    }, 1000);
+  /**
+   * El alta de la caja falló o quedó sin respuesta, pero la caja pudo haberse creado (o existir de un intento
+   * anterior): el filial rechaza una segunda caja abierta del mismo usuario, así que volver a elegir el maletín
+   * dejaba al cajero trabado. Si su caja abierta es la de este maletín y todavía no tiene apertura, se sigue
+   * con esa. Solo en el PDV (contra el filial), que es donde se crean cajas desde acá.
+   */
+  private adoptarCajaAbiertaOVolverAlMaletin(): void {
+    const maletin = this.selectedMaletin;
+    const usuarioId = this.mainService.usuarioActual?.id;
+    if (!this.isVentaTouch || maletin?.id == null || usuarioId == null) {
+      this.volverAlMaletin();
+      return;
+    }
+    this.cajaService.onGetAbiertaDelUsuario(usuarioId, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (caja) => {
+          if (caja?.id == null) {
+            this.volverAlMaletin();
+            return;
+          }
+          const esLaDeEsteIntento = caja.maletin?.id == maletin.id && caja.conteoApertura == null
+            && caja.fechaCierre == null;
+          if (!esLaDeEsteIntento) {
+            this.volverAlMaletin(`Ya tenés otra caja abierta (#${caja.id}): revisala antes de abrir una nueva.`);
+            return;
+          }
+          this.selectedCaja = caja;
+          this.cajaService.selectedCaja = caja;
+          this.notificacionBar.openWarn(`La caja ya había quedado abierta (#${caja.id}): se continúa con esa.`, 6);
+        },
+        error: () => this.volverAlMaletin(
+          'No se pudo verificar si la caja quedó abierta: revisá la lista de cajas antes de abrir otra.'),
+      });
+  }
+
+  private volverAlMaletin(aviso?: string): void {
+    this.selectedMaletin = null;
+    this.descripcionMaletinControl.setValue(null);
+    this.goTo("maletin");
+    if (aviso) this.notificacionBar.openWarn(aviso, 8);
   }
 
   // cargarMonedas() {
@@ -290,7 +356,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     if (this.verificarMaletinTimeout == null) {
       this.verificarMaletinTimeout = setTimeout(() => {
         this.maletinService
-          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch, PROPAGAR_ERROR_DE_RED)
+          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch, LECTURA_ESTRICTA)
           .pipe(untilDestroyed(this))
           .subscribe({
             // Sin respuesta el clic de verificar quedaba mudo (el maletín no se verifica: no se abre con él) (#390).
@@ -837,11 +903,15 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.cajaService
         .onSave(pdvCaja.toInput(), !this.isVentaTouch)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedCaja = res;
-            this.cajaService.selectedCaja = this.selectedCaja;
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedCaja = res;
+              this.cajaService.selectedCaja = this.selectedCaja;
+            }
+          },
+          // El stepper ya avanzó a la apertura sin caja. El aviso del error lo da el genérico (#390).
+          error: () => this.adoptarCajaAbiertaOVolverAlMaletin(),
         });
     }, 1000);
   }

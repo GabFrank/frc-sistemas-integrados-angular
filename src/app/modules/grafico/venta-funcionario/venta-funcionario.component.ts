@@ -50,6 +50,7 @@ import {
   etiquetasFiltroPeriodoGrafico,
   nombreArchivoGraficoExcel,
 } from "../utils/grafico-excel-export.util";
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -273,7 +274,7 @@ export class VentaFuncionarioComponent implements OnInit {
         startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(() =>
+        switchMapSinCortar(() =>
           this.consultarDatos(
             this.filtroSucursales.normalizarIds(),
             this.funcionariosSeleccionadosSubject.value

@@ -61,8 +61,9 @@ export class MonedaService {
     // }) : null;
   }
 
-  onGetAll(servidor: boolean = true): Observable<Moneda[]>{
-    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
+  /** `null` = no se pudieron leer (el genérico ya avisó, salvo que `errorConf` diga otra cosa). */
+  onGetAll(servidor: boolean = true, errorConf?: QueryError): Observable<Moneda[]>{
+    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor, errorConf);
   }
 
   /**

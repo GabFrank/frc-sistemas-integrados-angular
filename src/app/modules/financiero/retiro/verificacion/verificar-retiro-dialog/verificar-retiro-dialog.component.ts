@@ -30,6 +30,8 @@ interface FilaMoneda {
   /** Etiqueta y color de la diferencia, precalculados (no se llaman funciones desde el HTML). */
   etiqueta: string;
   color: string;
+  /** La grilla de esta moneda no pudo cargar sus denominaciones: su 0 no es un conteo (#390). */
+  grillaNoCargo?: boolean;
 }
 
 /**
@@ -175,6 +177,18 @@ export class VerificarRetiroDialogComponent implements OnInit {
    */
   onConfirmar() {
     if (this.guardando) return;
+
+    // Una moneda cuya grilla no cargó y que quedó en 0 no fue contada: acreditar ese 0 abriría un caso por
+    // todo lo declarado. «Usar declarado» sigue valiendo, porque ahí el contado deja de ser 0.
+    const sinContar = this.filas.find(f => f.grillaNoCargo && !(f.contado > 0) && f.declarado > 0);
+    if (sinContar != null) {
+      this.notificacion.notification$.next({
+        texto: `No se pudieron cargar las denominaciones de ${sinContar.moneda?.denominacion || 'una moneda'}: `
+          + 'reintentá la carga o usá lo declarado antes de confirmar.',
+        color: NotificacionColor.warn, duracion: 6,
+      });
+      return;
+    }
 
     const conteos: ConteoRetiroMonedaInput[] = this.filas.map(f => ({
       monedaId: f.moneda.id,

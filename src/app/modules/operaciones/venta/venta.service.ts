@@ -4,6 +4,7 @@ import { catchError, map, switchMap, tap } from "rxjs/operators";
 import {
   ContextoConsulta,
   GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
   QueryError,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
 } from "../../../generics/generic-crud.service";
@@ -536,7 +537,8 @@ export class VentaService {
       null,
       null,
       servidor,
-      { networkError: { propagate: true } }
+      // Sin aviso del genérico: los dos llamadores dicen lo suyo («No se pudo confirmar el cobro…»).
+      PROPAGAR_ERROR_DE_RED
     );
   }
 
@@ -552,7 +554,7 @@ export class VentaService {
     );
   }
 
-  /** Con `errorConf` el error llega al llamador; sin él, la consulta no emite nada si falla (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onGetVentaItemPorId(id, sucId, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta,
                       silentLoad?: boolean): Observable<VentaItem> {
     return this.genericService.onGetById(

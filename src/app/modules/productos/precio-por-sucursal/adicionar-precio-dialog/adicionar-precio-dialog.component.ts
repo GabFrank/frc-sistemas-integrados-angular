@@ -21,6 +21,8 @@ export class AdicionarPrecioPorSucursalData {
   presentacion: Presentacion;
   /** Costo medio del producto en guaraníes, por unidad base de stock. */
   costoMedio?: number;
+  /** El alta llega marcada como precio de promoción (viene del alta de una presentación promo). */
+  promocion?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -55,6 +57,14 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   principalControl = new FormControl(null);
   tipoPrecioControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(null);
+  /**
+   * Solo en el alta: precio de una promo (2x1, 3x2…). Nace inactivo, para que no rija en todas las sucursales, y
+   * principal si es el primero de la presentación, porque las cajas sin tipos de precio cobran solo el principal.
+   * Fuera del formGroup: no se guarda.
+   */
+  promocionControl = new FormControl(false);
+  /** El toggle puso Principal en Sí: al desmarcarlo se deshace solo eso, no lo que eligió el usuario. */
+  private principalPorPromocion = false;
   precioInput = new PrecioPorSucursalInput;
   isEditting = false;
   tipoPrecioList: TipoPrecio[];
@@ -83,7 +93,42 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       this.formGroup.disable()
     } else {
       this.isEditting = true;
+      if (this.data?.promocion === true) {
+        this.promocionControl.setValue(true);
+        this.onPromocionChange();
+      }
     }
+  }
+
+  onPromocionChange() {
+    if (this.promocionControl.value === true) {
+      this.activoControl.setValue(false);
+      this.activoControl.disable();
+      // Principal solo si es el primer precio de la presentación: con otros precios, guardar un principal baja al
+      // anterior y la presentación quedaría sin principal activo. Ahí lo decide el usuario.
+      this.principalPorPromocion = !(this.data?.presentacion?.precios?.length > 0) && this.principalControl.value !== true;
+      if (this.principalPorPromocion) this.principalControl.setValue(true);
+    } else {
+      this.activoControl.enable();
+      this.activoControl.setValue(true);
+      if (this.principalPorPromocion) this.principalControl.setValue(false);
+      this.principalPorPromocion = false;
+    }
+  }
+
+  /** Botón del pie: en modo ver pasa a editar; editando, guarda. Solo el paso a editar habilita el formulario. */
+  onBotonPrincipal() {
+    if (this.isEditting) {
+      this.onSave();
+      return;
+    }
+    this.isEditting = true;
+    this.formGroup.enable();
+  }
+
+  /** El toggle solo existe en el alta. */
+  private esPromocion(): boolean {
+    return this.precioInput.id == null && this.promocionControl.value === true;
   }
 
   loadTipoPrecios(){
@@ -137,7 +182,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     }
 
     this.precioInput.precio = this.precioControl.value;
-    this.precioInput.activo = this.activoControl.value;
+    // El toggle manda: un precio de promoción no se guarda activo aunque el toggle se haya habilitado
+    this.precioInput.activo = this.esPromocion() ? false : this.activoControl.value;
     this.precioInput.principal = this.principalControl.value;
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
@@ -310,7 +356,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioService.onSave(this.precioInput).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog(requestId);
       if (res != null) {
-        this.matDialogRef.close(res);
+        // `promocion` solo si quedó inactivo: quien abrió el diálogo sigue con las sucursales
+        this.matDialogRef.close(this.esPromocionGuardada(res) ? { ...res, promocion: true } : res);
       } else {
         this.notificacionSnackBar.openWarn(
           'No se pudo confirmar el guardado del precio: revisá los precios de la presentación.', 8);
@@ -342,6 +389,10 @@ export class AdicionarPrecioDialogComponent implements OnInit {
 
   onCancelar() {
     this.matDialogRef.close()
+  }
+
+  private esPromocionGuardada(precio: PrecioPorSucursal): boolean {
+    return this.promocionControl.value === true && this.data?.precio?.id == null && precio?.activo === false;
   }
 
 }

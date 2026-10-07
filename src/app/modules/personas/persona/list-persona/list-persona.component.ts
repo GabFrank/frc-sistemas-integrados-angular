@@ -10,6 +10,7 @@ import { AdicionarUsuarioDialogComponent } from '../../usuarios/adicionar-usuari
 import { AdicionarPersonaDialogComponent } from '../adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 
 
@@ -72,7 +73,8 @@ export class ListPersonaComponent implements OnInit {
     if (this.buscarControl.valid) {
       this.isSearching = true;
       this.service.onSearch(this.buscarControl.value)
-        .pipe(untilDestroyed(this))
+        // Sin esto quedaba «buscando» para siempre (#390).
+        .pipe(terminarSiFalla(() => this.isSearching = false), untilDestroyed(this))
         .subscribe(res => {
           this.isSearching = false;
           this.isLastPage = true;
@@ -101,8 +103,10 @@ export class ListPersonaComponent implements OnInit {
     this.service.onGetAll(this.page)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        if (res.length == 0) this.isLastPage = true;
         this.isSearching = false;
+        // null = la página no se pudo leer (#390): se vuelve atrás para pedirla de nuevo, sin dar la lista por terminada.
+        if (res == null) { this.page--; return; }
+        if (res.length == 0) this.isLastPage = true;
         this.dataSource.data = this.dataSource.data.concat(res)
       })
   }

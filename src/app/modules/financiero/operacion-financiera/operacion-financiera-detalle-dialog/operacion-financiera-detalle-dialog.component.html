@@ -52,7 +52,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions class="of-actions">
-  <button mat-stroked-button (click)="cerrar()">Cerrar</button>
+  <button mat-stroked-button (click)="cerrar()" [disabled]="isAnulando">Cerrar</button>
   <button mat-raised-button color="warn" *ngIf="op && !op.anulado && data.puedeGestionar"
           (click)="onAnular()" [disabled]="isAnulando">
     <mat-icon>block</mat-icon> Anular operación

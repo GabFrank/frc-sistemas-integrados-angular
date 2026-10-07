@@ -41,19 +41,29 @@
         <span>No se pudieron cargar los tipos de precio.</span>
         <button mat-stroked-button type="button" (click)="loadTipoPrecios()">Reintentar</button>
       </div>
-      <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-          <mat-label fxFlex="40">Principal</mat-label>
-          <mat-slide-toggle fxFlex formControlName="principal">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="24px" style="height: 50px !important; padding-left: 20px">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Principal</mat-label>
+          <mat-slide-toggle formControlName="principal">
             {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
           >
         </div>
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-          <mat-label fxFlex="30">Activo</mat-label>
-          <mat-slide-toggle fxFlex formControlName="activo">{{
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Activo</mat-label>
+          <mat-slide-toggle formControlName="activo">{{
             activoControl.value == true ? "Si" : "No"
           }}</mat-slide-toggle>
         </div>
+        <div *ngIf="selectedPrecioPorSucursal?.id == null" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-label>Es promoción</mat-label>
+          <mat-slide-toggle [formControl]="promocionControl" (change)="onPromocionChange()">{{
+            promocionControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
+        </div>
+      </div>
+      <div *ngIf="promocionControl.value" style="font-size: 12px; opacity: 0.7; padding-left: 20px">
+        Queda inactivo: solo se cobra en las sucursales que elijas al guardar. Las cajas sin tipos de precio
+        cobran solo el principal.
       </div>
       <br />
       <div fxFlex fxLayout="row">
@@ -73,11 +83,7 @@
             mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
-            (click)="
-              isEditting ? onSave() : (isEditting = true);
-              formGroup.enable();
-              precioInput.focus()
-            "
+            (click)="onBotonPrincipal(); precioInput.focus()"
           >
             {{ isEditting ? "Guardar" : "Editar" }}
           </button>

@@ -109,15 +109,11 @@ export class EditSucursalDialogComponent implements OnInit {
             console.warn('No se encontraron ciudades');
           }
         },
+        // Antes cargaba tres ciudades inventadas con ids 1, 2 y 3: elegir una y guardar pisaba la ciudad real
+        // de la sucursal con la que tuviera ese id. Sin ciudades, la ciudad no se toca (#390).
         error: (error) => {
           console.error('Error al cargar ciudades:', error);
-          // Fallback to mock data if there's an error
-          const mockCiudades = [
-            { id: 1, descripcion: 'ASUNCIÓN', creadoEn: new Date(), usuario: this.mainService.usuarioActual },
-            { id: 2, descripcion: 'CIUDAD DEL ESTE', creadoEn: new Date(), usuario: this.mainService.usuarioActual },
-            { id: 3, descripcion: 'ENCARNACIÓN', creadoEn: new Date(), usuario: this.mainService.usuarioActual }
-          ];
-          this.ciudadList = mockCiudades as Ciudad[];
+          this.ciudadList = [];
         }
       });
   }
@@ -159,8 +155,12 @@ export class EditSucursalDialogComponent implements OnInit {
     this.selectedSucursal.localizacion = this.localizacionControl.value?.toUpperCase();
     
     // Find selected ciudad object
+    // Si las ciudades no cargaron no hay de dónde elegir: la sucursal conserva la que tenía.
     const ciudadId = this.ciudadControl.value;
-    this.selectedSucursal.ciudad = this.ciudadList.find(c => c.id === ciudadId);
+    const ciudadElegida = this.ciudadList?.find(c => c.id === ciudadId);
+    if (ciudadElegida != null) {
+      this.selectedSucursal.ciudad = ciudadElegida;
+    }
     
     this.selectedSucursal.deposito = this.depositoControl.value ?? false;
     this.selectedSucursal.depositoPredeterminado = this.depositoPredeterminadoControl.value ?? false;
