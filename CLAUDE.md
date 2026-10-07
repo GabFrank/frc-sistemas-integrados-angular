@@ -23,10 +23,13 @@ npm run e2e                # Playwright (corre build:prod primero)
 npm test                   # Karma unit tests (single run)
 npm run test:watch         # Karma watch
 npm run lint               # ng lint (ESLint)
+npm run verificar:imports  # Chequeo estático: nadie lee una constante del genérico al cargarse (segundos)
+npm run verificar:arranque # Abre dist/ en Electron y falla si queda en blanco (necesita build:prod antes)
 ```
 
-> ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` solo hace `npm ci`, `npm run build:prod` y
-> `npm run electron:serve-tsc`, en una matriz `ubuntu-latest` + `windows-latest`. Los 260
+> ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` hace `npm ci`, `npm run verificar:imports`,
+> `npm run build:prod`, `npm run electron:serve-tsc` y, solo en ubuntu, `npm run verificar:arranque`
+> (abre el bundle en Electron bajo `xvfb-run`), en una matriz `ubuntu-latest` + `windows-latest`. Los 260
 > `.spec.ts` de Karma y los specs de Playwright **no se ejecutan en ningún gate**: si querés esa
 > red, corrélos a mano. El único check requerido por la protección de rama es ese build.
 >
@@ -253,7 +256,9 @@ Crear desde `develop`: `auto/{jira-key}-{slug}`
 - Referenciar Jira key en el body del commit
 
 ### Preflight: correr tests antes de abrir PR
-`npm run build:prod && npm run electron:serve-tsc`
+`npm run verificar:imports && npm run build:prod && npm run electron:serve-tsc && npm run verificar:arranque`
+
+(`verificar:arranque` abre una ventana de Electron: sin pantalla, anteponer `xvfb-run -a`.)
 
 Si los tests fallan, NO abrir PR — comentar en el issue explicando el fallo.
 
