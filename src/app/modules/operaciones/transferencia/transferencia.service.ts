@@ -13,7 +13,7 @@ import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from './../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput, VerificarParaTransporteInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
@@ -34,6 +34,7 @@ import { GetHojaRutaPorVehiculoGQL } from './graphql/getHojaRutaPorVehiculo';
 import { GetHojaRutaPorChoferGQL } from './graphql/getHojaRutaPorChofer';
 import { GetHojaRutaActivaPorVehiculoGQL } from './graphql/getHojaRutaActivaPorVehiculo';
 import { SaveHojaRutaGQL } from './graphql/saveHojaRuta';
+import { VerificarParaTransporteGQL } from './graphql/verificarParaTransporte';
 import { DeleteHojaRutaGQL } from './graphql/deleteHojaRuta';
 import { GetHojasRutaConEntregasGQL } from './graphql/getHojasRutaConEntregas';
 import { GetTransferenciasPorHojaRutaGQL } from './graphql/getTransferenciasPorHojaRuta';
@@ -82,6 +83,7 @@ export class TransferenciaService {
     private getHojaRutaPorChofer: GetHojaRutaPorChoferGQL,
     private getHojaRutaActivaPorVehiculo: GetHojaRutaActivaPorVehiculoGQL,
     private saveHojaRutaService: SaveHojaRutaGQL,
+    private verificarParaTransporteGQL: VerificarParaTransporteGQL,
     private deleteHojaRuta: DeleteHojaRutaGQL,
     private getHojasRutaConEntregas: GetHojasRutaConEntregasGQL,
     private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
@@ -338,6 +340,15 @@ export class TransferenciaService {
 
   onSaveHojaRuta(input: HojaRutaInput, servidor = true): Observable<HojaRuta> {
     return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor);
+  }
+
+  /**
+   * Pasa la transferencia a verificacion para transporte con el chofer elegido como responsable.
+   * El central crea la hoja de ruta y mueve el stock de cada item en una sola transaccion.
+   */
+  onVerificarParaTransporte(input: VerificarParaTransporteInput, servidor = true): Observable<Transferencia> {
+    // Igual que avanzar etapa: recorre cada item en el central y con muchos puede pasar el minuto.
+    return this.genericCrudService.onCustomMutation(this.verificarParaTransporteGQL, { input }, servidor, false, { timeoutMs: 300000 });
   }
 
   onDeleteHojaRuta(id: number, servidor = true): Observable<boolean> {

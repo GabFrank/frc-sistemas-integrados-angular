@@ -1,0 +1,16 @@
+/* El resto del dialogo usa los estilos de ruta-hoja (ver styleUrls). */
+.aviso-responsable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #bbbbbb;
+
+    mat-icon {
+        color: #ffa726;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+}
