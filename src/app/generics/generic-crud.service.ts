@@ -950,8 +950,10 @@ export class GenericCrudService {
               if (!esTimeoutDeLink(error)) {
                 const status = error?.networkError?.status ?? error?.status;
                 this.notificacionSnackBar.notification$.next({
+                  // Mismo criterio que onSave: con status tampoco se niega el borrado (un 502 de un proxy
+                  // pudo haberlo dejado pasar).
                   texto: status > 0
-                    ? "No se pudo eliminar: " + mensajeErrorTransporte(error)
+                    ? "No se pudo confirmar si se eliminó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
                     : "No se pudo confirmar si se eliminó (error de red): pudo haberse aplicado, verificá antes de repetir.",
                   duracion: 6,
                   color: NotificacionColor.warn,
