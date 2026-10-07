@@ -9,7 +9,8 @@
 
     <app-grilla-conteo [moneda]="data.moneda" [cantidades]="cantidadesGuardadas"
                        (totalChange)="onTotalChange($event)"
-                       (cantidadesChange)="onCantidadesChange($event)"></app-grilla-conteo>
+                       (cantidadesChange)="onCantidadesChange($event)"
+                       (cargaFallidaChange)="grillaNoCargo = $event"></app-grilla-conteo>
 
     <div class="resumen">
       <div class="resumen-row">
@@ -41,8 +42,8 @@
       <mat-icon>content_copy</mat-icon> Copiar valor total
     </button>
     <button mat-raised-button color="primary" (click)="onCrearAjuste()"
-            [disabled]="!hayDiferencia || sinSaldoSistema || !puedeGestionar || guardando"
-            [matTooltip]="!puedeGestionar ? 'Requiere rol TESORERIA GESTIONAR' : (sinSaldoSistema ? 'No se pudo cargar el saldo del sistema: recargá la caja para ajustar' : (!hayDiferencia ? 'No hay diferencia para ajustar' : ''))">
+            [disabled]="!hayDiferencia || sinSaldoSistema || grillaNoCargo || !puedeGestionar || guardando"
+            [matTooltip]="!puedeGestionar ? 'Requiere rol TESORERIA GESTIONAR' : (grillaNoCargo ? 'No se pudieron cargar las denominaciones: reintentá antes de ajustar' : sinSaldoSistema ? 'No se pudo cargar el saldo del sistema: recargá la caja para ajustar' : (!hayDiferencia ? 'No hay diferencia para ajustar' : ''))">
       <mat-icon>tune</mat-icon> Crear ajuste
     </button>
   </mat-dialog-actions>

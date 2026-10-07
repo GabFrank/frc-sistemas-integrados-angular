@@ -1,9 +1,15 @@
 <div class="caja-dialog__contenido" fxLayout="column" fxLayoutAlign="start" style="padding: 20px;">
   <div fxFlex="5" style="width: 100%; text-align: center; font-size: large;">
     <h3 *ngIf="selectedCaja?.id != null">Editar Caja</h3>
-    <h3 *ngIf="selectedCaja?.id == null">Nueva Caja</h3>
+    <h3 *ngIf="selectedCaja?.id == null && !cajaNoCargada">Nueva Caja</h3>
   </div>
-  <div class="caja-dialog__cuerpo" fxFlex="95" fxLayout="row" style="width: 100%; height: 100%">
+  <div class="caja-no-cargada-aviso" *ngIf="cajaNoCargada" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px">
+    <span>No se pudo cargar la caja.</span>
+    <button mat-stroked-button type="button" (click)="cargarCajaExistente()">
+      <mat-icon>refresh</mat-icon> Reintentar
+    </button>
+  </div>
+  <div class="caja-dialog__cuerpo" [class.caja-no-cargada]="cajaNoCargada" fxFlex="95" fxLayout="row" style="width: 100%; height: 100%">
     <mat-card
       appearance="outlined"
       fxFlex="30%"

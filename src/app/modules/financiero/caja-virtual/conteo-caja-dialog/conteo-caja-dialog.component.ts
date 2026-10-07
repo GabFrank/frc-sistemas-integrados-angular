@@ -53,6 +53,8 @@ export class ConteoCajaDialogComponent implements OnInit {
   hayDiferencia = false;
   /** Sin saldo del sistema no hay diferencia que calcular ni AJUSTE que postear. */
   sinSaldoSistema = false;
+  /** La grilla no cargó las denominaciones: su total 0 no es un conteo, no se ajusta contra eso (#390). */
+  grillaNoCargo = false;
 
   /** Decimales de la moneda: define el redondeo de la diferencia y el formato mostrado. */
   private decimales = 2;
@@ -203,7 +205,7 @@ export class ConteoCajaDialogComponent implements OnInit {
    * diferencia va tal cual (negativa si falta plata).
    */
   onCrearAjuste() {
-    if (!this.hayDiferencia || this.sinSaldoSistema || this.guardando) return;
+    if (!this.hayDiferencia || this.sinSaldoSistema || this.grillaNoCargo || this.guardando) return;
     const simbolo = this.data.moneda?.simbolo || '';
     const signo = this.diferencia > 0 ? '+' : '';
     this.dialogosService.confirm(
