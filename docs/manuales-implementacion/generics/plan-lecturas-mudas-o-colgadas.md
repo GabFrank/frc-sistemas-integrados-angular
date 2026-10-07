@@ -164,3 +164,45 @@ Central y filial locales, desktop en el navegador, fallas inyectadas por consult
 
 ## Decisiones de Franco (2026-10-07)
 - Aprobado con la partición en dos PRs. Rama de este PR: `fix/no-guardar-sobre-lecturas-que-fallaron`, desde `develop`.
+
+## Implementación: desvíos
+
+- **Legajo**: además del cartel, las pestañas no se muestran mientras se lee un legajo que todavía no está en
+  pantalla (antes, durante la lectura, «Información general» ya aparecía como alta con «Guardar» habilitado), y esa
+  pestaña no deja guardar mientras lee su funcionario.
+- **Alta de cliente**: tampoco se puede guardar mientras se lee el cliente existente. Y, en un alta, al elegir una
+  persona que **no** es cliente se limpia el cliente de la persona elegida antes (guardar se lo reasignaba). En una
+  edición ese caso queda como estaba.
+- **Caja existente**: si la caja pedida no viene (sin error), tampoco se trata como «Nueva Caja».
+- **Chofer**: no se agregó aviso propio; se limpian los datos y el aviso del error lo da el genérico.
+- Se verificó con `npm run check` el estado final de cada tanda, no cada commit por separado.
+
+## Prueba de runtime (paso 9, 2026-10-07)
+
+Worktree servido en `:4202`, central local propio en `:8085` (replicación apagada, schedulers en «Negative
+matches»), filial local `:8080`. Fallas inyectadas en el navegador por consulta.
+
+| Caso | Resultado |
+|---|---|
+| Legajo, falla la lectura del legajo | cartel «No se pudo cargar el funcionario» con Reintentar; no hay pestañas ni formulario de alta |
+| Legajo, falla solo la de «Información general» | cartel, «Guardar» deshabilitado; guardar por código no envía nada |
+| Legajo, reintentar / lectura lenta / alta nueva | carga con la persona; durante la lectura no hay pestañas; el alta nueva no cambia |
+| Cambio de salario con el mínimo sin leer | aviso en el formulario; al guardar pide «Salario mínimo sin verificar» |
+| Conteo de la caja mayor con las denominaciones fallando | cartel con Reintentar; «Crear ajuste» deshabilitado y sin efecto por código; reintentar carga 8 denominaciones |
+| Caja existente desde el PDV con la lectura fallando | «No se pudo cargar la caja» con Reintentar; sin «Nueva Caja», cuerpo oculto; reintentar → «Editar Caja» |
+| Alta de cliente: persona A (cliente), B (cliente, lectura fallando), B bien, persona no cliente | A carga su cliente / B: bloqueado con el motivo, sin el cliente de A, guardar no envía nada / carga el de B / queda sin cliente |
+
+No probado en runtime: verificación de retiros con la grilla fallando (incluido el cambio de moneda), chofer de la
+nota de remisión, envase, ítem de transferencia, caja existente como pestaña o como diálogo fuera del PDV, y los
+últimos ajustes de la auditoría salvo el del legajo.
+
+## Auditoría del diff (paso 8, 2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Verificación de retiros: la falla de la grilla quedaba marcada al cambiar de moneda y volver | media | la grilla avisa siempre al empezar a cargar |
+| Legajo: al reintentar (y durante la lectura) las pestañas aparecían como alta | media | no se muestran hasta tener el funcionario; el hijo no guarda mientras lee |
+| Alta de cliente: se podía guardar mientras se leía el cliente | baja | bloqueado durante la lectura |
+| Caja existente que no viene (sin error) se trataba como nueva | baja | también muestra el cartel |
+| Nota de remisión: sin chofer la nota se puede emitir (no hay validación de chofer obligatorio) | — | sin cambio; a confirmar con negocio |
+| Extracción de la carga de caja idéntica a la original, tooltip del ajuste, reglas del HTML, specs | — | verificado, sin hallazgos |
