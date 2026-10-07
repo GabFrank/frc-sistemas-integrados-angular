@@ -206,3 +206,39 @@ nota de remisión, envase, ítem de transferencia, caja existente como pestaña 
 | Caja existente que no viene (sin error) se trataba como nueva | baja | también muestra el cartel |
 | Nota de remisión: sin chofer la nota se puede emitir (no hay validación de chofer obligatorio) | — | sin cambio; a confirmar con negocio |
 | Extracción de la carga de caja idéntica a la original, tooltip del ajuste, reglas del HTML, specs | — | verificado, sin hallazgos |
+
+---
+
+# PR 14g: lo mecánico (rama `fix/lecturas-que-quedan-mudas-o-colgadas`, apilada sobre la del #439)
+
+## Implementación: desvíos
+- Operador compartido `terminarSiFalla(alFallar?)` (`commons/core/utils/rxjsUtils.ts`): ante el error corre lo que
+  haga falta y termina sin emitir. Se inserta en el `pipe` de cada lectura, sin tocar su `next`.
+- Un solo commit para los grupos (b), (c) y (d), más uno de ajustes de la auditoría.
+- **Edición de inventario**: al no poder abrir se avisa y se cierra la pestaña (por referencia); las cinco relecturas
+  tras guardar avisan «Se guardó, pero no se pudo actualizar la pantalla…». No se agregó un botón de reintento ni se
+  bloquean las acciones con la pantalla vieja.
+- **Ventas de una caja**: se sigue con la caja recibida solo si ya trae su sucursal; si no, aviso.
+- **Roles del usuario**: cartel y «agregar rol» deshabilitado.
+- `usuario-helper` (persona sin usuario): solo atrapa el error, sin aviso propio.
+
+## Prueba de runtime (2026-10-07)
+Mismo entorno que el 14f.
+
+| Caso | Resultado |
+|---|---|
+| Lista de personas con la búsqueda fallando / normal | apaga su «buscando», un aviso, sin error en la consola / 115 resultados |
+| Roles de un usuario con la lectura fallando / normal | cartel «No se pudieron cargar los roles…», «agregar rol» deshabilitado, sin error en la consola / habilitado |
+
+No probado en runtime: garantía, sectores, inventario, ventas de una caja, movimiento de stock, ítem de devolución,
+búsquedas por tecla, balance por fecha y los avisos de retiro y gasto de caja.
+
+## Auditoría del diff (2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Ventas de una caja: el respaldo consultaba sin sucursal cuando la caja llega solo con su id (desde retiros) | media | solo si trae sucursal; si no, aviso |
+| Inventario recién creado que no se puede abrir: la pestaña se cerraba sin decirlo | baja | aviso |
+| Dos comentarios nuevos imprecisos | baja | corregidos |
+| `analisis-diferencia` (cálculo de totales por ventas) sin manejo de error | — | es un método sin llamadores |
+| Los 31 usos del operador (cadena correcta, antes de `untilDestroyed`), los cuatro avisos, barrido de consumidores sin manejo | — | verificado, sin hallazgos |
