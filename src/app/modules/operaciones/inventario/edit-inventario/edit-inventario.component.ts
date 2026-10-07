@@ -102,7 +102,11 @@ export class EditInventarioComponent implements OnInit {
   cargarDatos(id: number) {
     this.inventarioService.onGetInventario(id)
       // Sin el inventario la pantalla quedaba vacía: se cierra su pestaña (por referencia, no la activa) (#390).
-      .pipe(terminarSiFalla(() => this.cerrarPestanaPropia()), untilDestroyed(this))
+      .pipe(terminarSiFalla(() => {
+        // Puede ser un inventario recién creado: que no parezca que no se creó.
+        this.notificacionService.openWarn('No se pudo abrir el inventario: buscalo en la lista de inventarios.', 8);
+        this.cerrarPestanaPropia();
+      }), untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
           this.selectedInventario = res;

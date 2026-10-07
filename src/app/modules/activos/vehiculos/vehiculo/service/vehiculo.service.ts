@@ -127,7 +127,7 @@ export class VehiculoService {
   private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
   public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
 
-  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Vehiculo> {
     return this.genericService.onGetById(this.vehiculoByIdGQL, id, null, null, true, null, null, null, null, null, null,
       errorConf, contexto);

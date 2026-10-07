@@ -39,7 +39,7 @@ export class CodigoService {
     private genericService: GenericCrudService
   ) {}
 
-  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onGetCodigosPorPresentacionId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta) {
     return this.genericService.onGetById<Codigo[]>(this.getCodigosPorPresentacionId, id, null, null, servidor, null, null,
       null, null, null, null, errorConf, contexto);

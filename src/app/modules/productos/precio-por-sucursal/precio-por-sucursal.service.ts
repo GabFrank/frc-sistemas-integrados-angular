@@ -46,7 +46,7 @@ export class PrecioPorSucursalService {
     return this.genericService.onDelete(this.deletePrecioPorSucursal, precio.id, "¿Eliminar precio por sucursal?", null, true, servidor, "¿Está seguro que desea eliminar este precio por sucursal?");
   }
 
-  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onGetPrecioPorSurursalPorPresentacionId(id: number, servidor = true, errorConf?: QueryError,
                                           contexto?: ContextoConsulta, silentLoad?: boolean) {
     return this.genericService.onGetById<PrecioPorSucursal[]>(this.getPrecioPorSucursalPorPresentacion, id, null, null,

@@ -245,7 +245,7 @@ export class ProductoService {
     return this.genericService.onCustomMutation(this.saveProducto, {entity: input}, servidor);
   }
 
-  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   getProducto(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
     return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
       null, errorConf, contexto);
