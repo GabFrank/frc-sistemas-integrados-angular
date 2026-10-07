@@ -161,3 +161,41 @@ en el alta de persona y en el legajo, timbrado activo único) pasadas a lectura 
 | B | Emitir `null` ante el error de red arreglaría más con menos cambios | — | descartado: `null` es con lo que se decide mal |
 | B | Doble aviso en ~100 consumidores | alta | se resuelve en el PR 2, no en el 3 |
 | B | Orden de los PRs | media | lo que solo se puede probar con el genérico pasa al PR 2 |
+
+## PR 1 — Implementación: desvíos
+- Los consumidores con estado propio colgado (cajas para pagar en RRHH, lista de factura legal, exportar a Excel
+  de los gráficos, etc.) pasan al PR 2: hasta que el genérico no propague, su manejo no corre y no se puede
+  probar. Del grupo solo entra confirmar vale (apaga su «cargando cajas»).
+- Proveedor: solo se corrige el camino del error. Ante un rechazo del servidor la consulta devuelve `null`, igual
+  que cuando el documento no existe: distinguirlos pide lectura estricta y va en el PR 3. Hasta el PR 2 el cambio
+  de proveedor no tiene efecto.
+- El reintento de abrir caja no se toca (acotado, no escribe): PR 2, con la marca `sinAviso`.
+- Se agrega `rxjsUtils.spec.ts` (los dos operadores).
+
+## PR 1 — Prueba de runtime (2026-10-07)
+Central propio en `:8085` (replicación apagada y verificada), desktop servido en `:4202`. Como el genérico todavía
+no propaga, el error de red se simuló haciendo que `onCustomQuery` falle con la forma de un error de Apollo.
+
+| Caso | Resultado |
+|---|---|
+| Gráfico de ventas por sucursal: dos filtros seguidos con la consulta fallando, después dos normales | las dos fallidas dejan el error en la consola y apagan el «cargando»; las dos siguientes consultan y responden |
+| Ajuste de salario mínimo con rechazo (`null`) y con error de red | «No se pudo consultar…», sin el «Ningún funcionario…» |
+| Ajuste de salario mínimo normal | lista de afectados como antes |
+| Editar sucursal con las ciudades fallando | lista vacía (sin ciudades inventadas); al guardar se envía la ciudad que la sucursal ya tenía |
+| Editar sucursal normal | 6 ciudades; se envía la elegida |
+| Test de los operadores (Karma) | 3 de 3 |
+
+**No probado en runtime**: sondeo de tarjeta y espera del cupón (cubiertos por el test del operador, no por un
+cobro real), buscador global, comentarios, paneles de formato, los otros nueve gráficos, proveedor, replicación,
+lector de terminal, servicio de impresión, contadores del PDV y confirmar vale. Los guardados de sucursal se
+interceptaron: no se escribió nada.
+
+## PR 1 — Auditoría del diff (paso 8, 2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Proveedor: el `null` del rechazo sigue diciendo «Documento disponible» | media | diferido al PR 3, anotado en desvíos |
+| Replicación: «volvé a elegir la sucursal» no reintenta (misma opción) | baja | texto corregido |
+| Sondeos: un error por intento en la consola cuando el genérico propague | baja | PR 2 (`sinAviso`) |
+| `switchMapSinCortar`: un proyector que lanza en forma síncrona corta el flujo | baja | igual que antes; los 16 devuelven observables |
+| Imports de `switchMap` sin usar | baja | quitados |
