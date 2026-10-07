@@ -157,8 +157,24 @@ borrar nada.
 
 El guardado de la persona se simuló y el del cliente se cortó: no se escribió nada.
 
-**No probado en runtime**: un borrado que sí borra, quitar un ítem de una venta en el PDV, quitar una cuota,
-el ítem de compra y el legajo.
+### Segunda pasada, con datos de prueba (pedida por Franco)
+
+| Caso | Resultado |
+|---|---|
+| Crear el tipo de gasto «PRUEBA BORRADO 390» y eliminarlo desde su lista: cancelar | nada pendiente, sin avisos, sigue en la lista |
+| Ídem, confirmar con corte de red | aviso «No se pudo confirmar si se eliminó…», la lista no se recarga |
+| Ídem, confirmar | «Eliminado con éxito», la lista se recarga y el registro ya no existe |
+| Ítem de venta en el filial (por el servicio del PDV, id inexistente): corte de red | aviso, `null`, completa |
+| Ídem, rechazo | «Ups!…», `null`, completa |
+| Ídem, normal | `true` y «Eliminado con éxito»: el filial contesta lo mismo aunque el id no exista (lo que quedó fuera del alcance) |
+| Legajo, guardar con el guardado del funcionario fallando | «Los datos personales se guardaron, pero los del funcionario no. Volvé a guardar.»; no se da por guardado |
+| Legajo, guardar normal | dos «Guardado con éxito» y se da por guardado |
+
+El ítem de venta no se probó quitándolo de un delivery en pantalla: esa edición está deshabilitada a propósito.
+
+**No se puede probar en runtime**: quitar una cuota (`pago-detalle-dialog`) y el ítem de compra
+(`adicionar-detalle-compra-item-dialog`). Los dos están declarados en el módulo pero ninguna pantalla los abre:
+son código sin uso. Sus cambios quedan verificados solo por lectura y por el build.
 
 ## Auditoría del diff (paso 8, 2026-10-07)
 
