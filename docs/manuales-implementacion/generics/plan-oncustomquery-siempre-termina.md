@@ -262,3 +262,43 @@ caja), la impresión de transferencia, el asistente de funcionario, vehículos, 
 | Asistente de funcionario: tras el error queda abierto y vacío | baja | anotado (pantalla en desuso) |
 | Abortar la consulta al cancelar: el servidor puede haberla procesado | baja | son lecturas; no se encontró ninguna con efecto bajo un `switchMap` |
 | Muestreo de ~30 `error:` que empiezan a correr | — | ninguno da éxito falso, usa un valor por defecto ni lanza |
+
+## PR 3 — lecturas de decisión y limpieza
+
+### Qué cambia
+Lecturas donde `null` significa «no existe» y con eso se decide. Un rechazo del servidor también llegaba como
+`null`; ahora pasan `LECTURA_ESTRICTA` y el rechazo (y el error de red) llegan como error.
+- **Persona por documento** (`onGetPorDocumento`):
+  - proveedor y proveedor de servicio: «No se pudo verificar el documento» en vez de «Documento disponible»;
+  - alta de persona y asistente de funcionario: no se guarda («No se pudo verificar si la persona ya existe»);
+  - legajo, buscar persona: «No se pudo buscar la persona», sin vaciar lo que había ni invitar a crearla.
+- **Timbrado activo único** (`onExisteTimbradoActivo`): si no se pudo verificar, un timbrado que no era el activo
+  no queda marcado; el que ya lo era no se toca.
+- Comentarios que describían el comportamiento anterior del genérico.
+
+### Lo que no cambia
+- El control de factura parecida antes de emitir: falla abierto a propósito (documentado en el servicio: nunca
+  bloquea la emisión).
+- La verificación de nickname del asistente de funcionario: usa `onGetByTexto`, que ya propaga.
+- `adicionar-proveedor-dialog`: código muerto.
+
+### Prueba de runtime (2026-10-07)
+Central propio en `:8085`, desktop en `:4202`; rechazo del servidor y corte de red inyectados por consulta.
+
+| Caso | Rechazo | Red | Normal |
+|---|---|---|---|
+| Timbrado nuevo, marcar activo | se desmarca, «No se pudo verificar si ya hay otro…» | igual | «Ya existe un timbrado activo» (hay uno) |
+| Alta de persona, guardar | no guarda, avisa | igual | guarda (guardado interceptado) |
+| Proveedor nuevo, documento | «No se pudo verificar el documento», en amarillo | igual | «Documento disponible» |
+
+**No probado en runtime**: proveedor de servicio (mismo código que proveedor), asistente de funcionario, buscar
+persona en el legajo, y el timbrado que ya era el activo.
+
+### Auditoría del diff (paso 8, 2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Timbrado: «como estaba guardado» se leía de un objeto que el guardado pisa | baja | se recuerda el valor al abrir |
+| Timbrado ya activo: al pulsar Editar, un fallo avisaba «volvé a marcarlo» | baja | sin aviso ni cambio en ese caso |
+| Timbrado: un error tardío puede pisar lo que el usuario cambió mientras tanto | baja | anotado (ventana chica) |
+| Estado colgado, guardado que continúa, firmas, imports | — | sin hallazgos |
