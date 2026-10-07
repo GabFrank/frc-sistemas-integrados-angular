@@ -21,7 +21,12 @@
           </span>
         </div>
         <div class="basicos" fxLayout="row wrap" fxLayoutGap="18px">
-          <span>Cargo: <b>{{ funcionario.cargo?.nombre || '—' }}</b></span>
+          <span>Cargo: <b>{{ funcionario.cargo?.nombre || '—' }}</b>
+            <button type="button" class="asignar-cargo" *ngIf="puedeGestionar && funcionario.activo && !funcionario.cargo"
+              matTooltip="Asignar cargo" aria-label="Asignar cargo" (click)="onCambiarCargo()">
+              <mat-icon>add_circle</mat-icon>
+            </button>
+          </span>
           <span>Salario: <b>{{ funcionario.sueldo | number:'1.0-2' }}</b></span>
           <span>Antigüedad: <b>{{ antiguedadTexto }}</b></span>
           <span>Ingreso: <b>{{ funcionario.fechaIngreso ? (funcionario.fechaIngreso | date:'dd/MM/yyyy') : '—' }}</b></span>
@@ -46,7 +51,7 @@
 
     <!-- Accesos rápidos -->
     <div class="dash-quick-actions">
-      <dash-quick-action *ngIf="puedeGestionar" icon="badge" title="Cambiar cargo" color="#42a5f5" (action)="onCambiarCargo()"></dash-quick-action>
+      <dash-quick-action *ngIf="puedeGestionar" icon="badge" [title]="funcionario.cargo ? 'Cambiar cargo' : 'Asignar cargo'" color="#42a5f5" (action)="onCambiarCargo()"></dash-quick-action>
       <dash-quick-action *ngIf="puedeCambiarSalario" icon="payments" title="Cambiar salario" color="#66bb6a" (action)="onCambiarSalario()"></dash-quick-action>
       <dash-quick-action icon="upload_file" title="Subir documento" color="#7e57c2" (action)="onSubirDocumento()"></dash-quick-action>
       <dash-quick-action *ngIf="funcionario.activo && puedeEgresar" icon="logout" title="Egresar" color="#ef5350" (action)="onEgresar()"></dash-quick-action>
@@ -106,6 +111,11 @@
                 <tr mat-row *matRowDef="let row; columns: cargoColumns"></tr>
               </table>
               <div class="vacio" *ngIf="cargoHistoricos.data.length === 0">Sin cambios de cargo registrados.</div>
+              <div class="vacio-accion" *ngIf="cargoHistoricos.data.length === 0 && puedeGestionar && funcionario.activo && !funcionario.cargo">
+                <button mat-stroked-button color="primary" (click)="onCambiarCargo()">
+                  <mat-icon>add</mat-icon> Asignar cargo
+                </button>
+              </div>
             </div>
           </mat-tab>
 
