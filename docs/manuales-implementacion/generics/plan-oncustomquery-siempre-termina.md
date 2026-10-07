@@ -199,3 +199,26 @@ interceptaron: no se escribió nada.
 | Sondeos: un error por intento en la consola cuando el genérico propague | baja | PR 2 (`sinAviso`) |
 | `switchMapSinCortar`: un proyector que lanza en forma síncrona corta el flujo | baja | igual que antes; los 16 devuelven observables |
 | Imports de `switchMap` sin usar | baja | quitados |
+
+## PR 2 — el genérico
+
+### Qué cambia en `onCustomQuery`
+- **Sin `errorConf`, el error de red llega a quien llama** (antes: ni emitía ni completaba).
+- **Aviso sin duplicar**: el genérico avisa «No se pudo consultar: …» solo si quien llama no avisó en su
+  `error:`. Lo sabe porque todo el sistema avisa por `NotificacionSnackbarService`: mientras entrega el error
+  escucha si salió un aviso. Así los ~100 consumidores que ya dicen lo suyo no quedan con dos carteles y no hay
+  que tocarlos uno por uno (reemplaza «esos piden silencio» de los ajustes de arriba).
+- **Marca `sinAviso`** en el contexto (`CONTEXTO_SONDEO`: corte de 20 s, sin aviso del link ni del genérico):
+  sondeo de venta con tarjeta, espera del cupón, comentarios, paneles de formato, contadores del PDV, reintento
+  de abrir caja, y la lectura de la sucursal en el arranque.
+- **Cancela de verdad**: si quien llama deja de escuchar, la consulta se corta y su «Buscando…» se cierra.
+- **Siempre cierra**: respuesta sin `data` ni `errors`, y completar sin emitir, emiten `null`.
+- Con `errorConf`, nada cambia (salvo que el «Buscando…» ahora se cierra también cuando el error no se propaga).
+
+### Consumidores
+- Con `error:` propio: empieza a correr (relevados en el plan: correctos, o corregidos en el PR 1).
+- Sin `error:` y sin estado: reciben el aviso del genérico; el error queda además en la consola como no
+  manejado. **No se editan en masa**: no cambia nada para el usuario y son más de cien archivos.
+- Con estado propio, fuentes de flujos compuestos y promesas: se corrigen en este PR.
+- Impresión de transferencia (la imprime el servidor): aviso propio «no se pudo confirmar la impresión: puede
+  haber salido».
