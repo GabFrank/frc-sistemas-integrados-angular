@@ -46,6 +46,7 @@ import {
 } from "../../../../../notificacion-snackbar.service";
 import { GenericCrudService } from "../../../../../generics/generic-crud.service";
 import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -494,7 +495,7 @@ export class ListCajaComponent implements OnInit {
         this.fechaFinalControl.value,
         this.selectedSucursal?.id
       )
-      .pipe(untilDestroyed(this))
+      .pipe(terminarSiFalla(), untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.matDialog.open(MostrarBalanceDialogComponent, {

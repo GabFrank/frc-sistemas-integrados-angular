@@ -11,6 +11,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { EditCantidadEnvasesData, EditCantidadEnvasesDialogComponent } from './edit-cantidad-envases-dialog/edit-cantidad-envases-dialog.component';
 import { updateDataSource } from '../../../../../commons/core/utils/numbersUtils';
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -42,7 +43,8 @@ export class GarantiaDialogComponent implements OnInit {
 
   onBuscarCodigo() {
     const { requestId } = this.cargandoService.openDialog(false, "Buscando venta")
-    this.ventaService.onGetPorId(this.ventaIdControl.value).pipe(untilDestroyed(this)).subscribe(res => {
+    // Ante un error se cierra igual el «Buscando venta» propio, que quedaba tapando el PDV (#390).
+    this.ventaService.onGetPorId(this.ventaIdControl.value).pipe(terminarSiFalla(() => this.cargandoService.closeDialog(requestId)), untilDestroyed(this)).subscribe(res => {
       this.cargandoService.closeDialog(requestId)
       if (res != null) {
         this.ventaItemList = res.ventaItemList.filter(i => i.producto.isEnvase == true)

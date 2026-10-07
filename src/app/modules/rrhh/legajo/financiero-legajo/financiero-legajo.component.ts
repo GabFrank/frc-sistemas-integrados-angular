@@ -12,7 +12,7 @@ import { ClienteService } from '../../../personas/clientes/cliente.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
-/** onGetById (cliente por persona) no emite si falla: se corta un poco despues del timeout del link. */
+/** Corte propio de la lectura del cliente por persona, un poco despues del timeout del link. */
 const CORTE_CLIENTE_MS = TIMEOUT_POR_DEFECTO_MS + 5000;
 
 /**
