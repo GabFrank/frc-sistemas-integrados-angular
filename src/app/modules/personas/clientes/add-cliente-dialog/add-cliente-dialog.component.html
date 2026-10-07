@@ -156,11 +156,14 @@
         mat-raised-button
         color="accent"
         type="button"
-        [disabled]="formGroup.invalid"
+        [disabled]="formGroup.invalid || clienteNoLeido"
         (click)="onSave()"
       >
         Guardar
       </button>
+      <div *ngIf="clienteNoLeido" style="color: #ffb74d; font-size: 12px; margin-top: 6px">
+        No se pudo leer el cliente ya registrado: elegí la persona de nuevo.
+      </div>
     </div>
   </div>
 </div>

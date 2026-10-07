@@ -27,10 +27,14 @@
         color="accent"
         style="width: 70px; height: 70px"
         (click)="onCancelar()"
+        [disabled]="selectedEnvase == null"
 
       >
         Si
       </button>
     </div>
+  </div>
+  <div *ngIf="envaseNoLeido" style="color: #ffb74d; text-align: center">
+    No se pudo leer el envase: podés continuar sin cobrarlo.
   </div>
 </div>

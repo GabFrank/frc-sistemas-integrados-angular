@@ -126,13 +126,23 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   private aplicarChofer(funcionario: any): void {
     this.funcionarioService.onGetFuncionarioById(funcionario.id)
       .pipe(untilDestroyed(this))
-      .subscribe(completo => {
-        const persona = completo?.persona ?? funcionario.persona;
-        if (persona == null) return;
-        this.nota.choferPersonaId = persona.id;
-        this.nota.choferNombre = persona.nombre;
-        this.nota.choferDocumento = persona.documento;
-        this.nota.choferDireccion = persona.direccion;
+      .subscribe({
+        next: completo => {
+          const persona = completo?.persona ?? funcionario.persona;
+          if (persona == null) return;
+          this.nota.choferPersonaId = persona.id;
+          this.nota.choferNombre = persona.nombre;
+          this.nota.choferDocumento = persona.documento;
+          this.nota.choferDireccion = persona.direccion;
+        },
+        // Quedaba el chofer elegido antes, completo: la nota podía emitirse con el chofer viejo creyendo
+        // que se había cambiado. Se limpia; el aviso del error lo da el genérico (#390).
+        error: () => {
+          this.nota.choferPersonaId = null;
+          this.nota.choferNombre = null;
+          this.nota.choferDocumento = null;
+          this.nota.choferDireccion = null;
+        },
       });
   }
 
