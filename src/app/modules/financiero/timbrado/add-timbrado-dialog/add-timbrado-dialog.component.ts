@@ -1,3 +1,5 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Timbrado } from '../timbrado.modal';
 import { debounceTime } from 'rxjs/operators';
 import { TimbradoService } from '../timbrado.service';
@@ -215,8 +217,20 @@ export class AddTimbradoDialogComponent implements OnInit {
   validateTimbradoActivoUnico(activo: boolean) {
     if (activo) {
       const excludeId = this.selectedTimbrado.id || null;
-      this.timbradoService.onExisteTimbradoActivo(excludeId)
-        .pipe(untilDestroyed(this))
+      this.timbradoService.onExisteTimbradoActivo(excludeId, true, LECTURA_ESTRICTA)
+        .pipe(
+          // Sin poder verificarlo vuelve a como estaba guardado: uno que no era el activo no queda
+          // marcado (podría haber dos a la vez), y el que ya lo era no se desmarca (#390).
+          terminarSiFalla(() => {
+            this.activoControl.setValue(this.selectedTimbrado?.activo === true, { emitEvent: false });
+            this.notificacionService.notification$.next({
+              texto: 'No se pudo verificar si ya hay otro timbrado activo. Volvé a marcarlo para reintentar.',
+              duracion: 5,
+              color: NotificacionColor.warn
+            });
+          }),
+          untilDestroyed(this)
+        )
         .subscribe(existeActivo => {
           if (existeActivo && this.activoControl.value === true) {
             this.activoControl.setValue(false);

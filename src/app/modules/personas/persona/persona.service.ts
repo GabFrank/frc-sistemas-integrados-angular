@@ -11,7 +11,7 @@ import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { DeletePersonaGQL } from "./graphql/deletePersona";
 import { PersonasGQL } from "./graphql/personasQuery";
 import { PersonaPorDocumentoGQL } from "./graphql/personaPorDocumento";
@@ -44,8 +44,12 @@ export class PersonaService {
     return this.genericService.onCustomQuery(this.searchPersona, { texto }, servidor, null, true)
   }
 
-  onGetPorDocumento(texto, servidor: boolean = true): Observable<Persona> {
-    return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor)
+  /**
+   * `null` = no hay persona con ese documento. Quien decide con eso («disponible», «persona nueva», guardar)
+   * pasa `LECTURA_ESTRICTA`: sin ella un rechazo del servidor también llega como `null` (#390).
+   */
+  onGetPorDocumento(texto, servidor: boolean = true, errorConf?: QueryError): Observable<Persona> {
+    return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor, errorConf)
   }
 
   onSavePersona(input: PersonaInput, servidor: boolean = true): Observable<any> {

@@ -37,9 +37,9 @@ export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
 /** Lo que espera un cajero de pie (escanear, elegir un lote) antes de que se le diga algo (#390). */
 export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
 /**
- * Para quien maneja el error de red con su propio `error:`: sin esto onCustomQuery no emite nada si
- * el servidor no responde, y el que llama queda esperando para siempre. Solo red: un error GraphQL
- * sigue llegando como `null` (#390).
+ * Para quien maneja el error de red con su propio `error:` y no quiere el aviso del genérico. Solo red: un
+ * error GraphQL sigue llegando como `null` (#390). Sin ningún `errorConf` el error de red también llega, con
+ * el aviso «No se pudo consultar…» si quien llama no avisa.
  */
 export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
 /**
