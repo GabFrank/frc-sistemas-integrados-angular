@@ -7,7 +7,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BuscadorTextoService } from '../../services/buscador-texto.service';
-import { filter, switchMap, tap } from 'rxjs/operators';
+import { filter, tap } from 'rxjs/operators';
 import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
