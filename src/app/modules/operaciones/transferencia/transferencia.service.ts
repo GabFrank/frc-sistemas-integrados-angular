@@ -112,11 +112,22 @@ export class TransferenciaService {
       ticket: ticket,
       printerName: this.configService?.getConfig()?.printers?.ticket,
       servidor: servidor
-    }).subscribe(res => {
-      if (res != null) {
-        this.reporteService.onAdd('Transferencia ' + id, res)
-        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
-      }
+    }).subscribe({
+      next: res => {
+        if (res != null) {
+          this.reporteService.onAdd('Transferencia ' + id, res)
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
+        }
+      },
+      // El ticket lo imprime el servidor: si se pierde la respuesta puede haber salido igual, así que no
+      // se invita a reintentar a ciegas (#390). Con este aviso el genérico no agrega el suyo.
+      error: () => this.notificacionService.notification$.next({
+        texto: ticket
+          ? 'No se pudo confirmar la impresión de la transferencia ' + id + ': puede haber salido. Verificá antes de reimprimir.'
+          : 'No se pudo generar el documento de la transferencia ' + id + '.',
+        color: NotificacionColor.warn,
+        duracion: 6,
+      }),
     })
   }
 

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { GenericCrudService, ContextoConsulta } from '../../../../../generics/generic-crud.service';
 import { ConfiguracionService } from '../../../../../shared/services/configuracion.service';
 import { urlsDeServidor } from '../../../../../commons/core/utils/webEndpoints';
 import { CapturaMuestraGQL } from './graphql/capturaMuestra';
@@ -65,8 +65,8 @@ export class MapaFormatoService {
   }
 
   /** `silentLoad`: esto se sondea de fondo y no puede parpadear un "Cargando" sobre el QR. */
-  onEstadoMuestra(token: string): Observable<MuestraEstado> {
-    return this.genericService.onCustomQuery(this.muestraGQL, { token }, true, null, true);
+  onEstadoMuestra(token: string, contexto?: ContextoConsulta): Observable<MuestraEstado> {
+    return this.genericService.onCustomQuery(this.muestraGQL, { token }, true, null, true, contexto);
   }
 
   onDerivar(token: string, formatoTerminalPosId: number): Observable<RegionDerivada[]> {

@@ -28,6 +28,8 @@ export interface QueryError {
 export interface ContextoConsulta {
   timeoutMs?: number;
   silenciarAvisoTimeout?: boolean;
+  /** Sin el aviso del genérico ante un error de red. No es `silentLoad`, que solo saca el «Buscando…». */
+  sinAviso?: boolean;
 }
 
 /** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
@@ -52,3 +54,5 @@ export const LECTURA_ESTRICTA: QueryError = {
 export const CONTEXTO_MOSTRADOR: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 /** Para quien ya avisa por su cuenta cuando onGetAll le devuelve `null`: sin aviso del genérico. */
 export const SIN_AVISO_DEL_GENERICO: QueryError = { graphError: { show: false }, networkError: { show: false } };
+/** Para un sondeo: corte corto, y ni el link ni el genérico avisan (el próximo intento vuelve a preguntar). */
+export const CONTEXTO_SONDEO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true, sinAviso: true };

@@ -9,10 +9,12 @@ import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
   Observable,
+  catchError,
   combineLatest,
   debounceTime,
   finalize,
   map,
+  of,
   Subject,
   startWith,
   switchMap,
@@ -104,6 +106,7 @@ export class GastoCategoriaComponent implements OnInit {
   ngOnInit(): void {
     // Incluye SERVIDOR (sucursal 0): ahi se registran los gastos pagados desde la caja mayor.
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
+      catchError(() => of([] as Sucursal[])),
       map((sucs) => sucursalesConServidor(sucs)),
       tap((sucs) => (this.sucursalesLista = sucs))
     );

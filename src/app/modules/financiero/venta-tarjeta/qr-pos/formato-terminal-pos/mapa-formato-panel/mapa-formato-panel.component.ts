@@ -15,6 +15,7 @@ import {
   RegionFormato,
   ResultadoDerivacion,
 } from '../mapa-formato.model';
+import { CONTEXTO_SONDEO } from '../../../../../../generics/generic-crud.service';
 import { switchMapSinCortar } from '../../../../../../commons/core/utils/rxjsUtils';
 
 /**
@@ -201,7 +202,7 @@ export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
   private sondear(token: string): void {
     this.detenerSondeo();
     this.sondeo = timer(MapaFormatoPanelComponent.MS_SONDEO, MapaFormatoPanelComponent.MS_SONDEO)
-      .pipe(switchMapSinCortar(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
+      .pipe(switchMapSinCortar(() => this.service.onEstadoMuestra(token, CONTEXTO_SONDEO)), untilDestroyed(this))
       .subscribe({
         next: (m) => {
           if (!m) return;

@@ -59,7 +59,7 @@ export class ListGastosComponent implements OnInit {
 
   // Incluye SERVIDOR (sucursal 0): ahi quedan los gastos pagados desde la caja mayor, que no
   // pertenecen a ninguna sucursal fisica.
-  sucursalList$ = this.sucursalService.onGetAllSucursales(true).pipe(map(s => sucursalesConServidor(s)));
+  sucursalList$ = this.sucursalService.onGetAllSucursales(true).pipe(catchError(() => of([] as Sucursal[])), map(s => sucursalesConServidor(s)));
 
   sucOrigenControl = new FormControl();
   idCajaControl = new FormControl();

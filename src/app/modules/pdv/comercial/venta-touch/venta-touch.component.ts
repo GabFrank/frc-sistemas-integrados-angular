@@ -8,7 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS, CONTEXTO_SONDEO } from "../../../../generics/generic-crud.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -1962,7 +1962,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               0,
               200,
               ["AUTORIZADO", "RECHAZADO"],
-              true
+              true,
+              null,
+              // Trae hasta 200 solicitudes: un minuto, no los 20 s de un sondeo corto.
+              { ...CONTEXTO_SONDEO, timeoutMs: 60000 }
             )
             .pipe(catchError(() => of(null)));
         }),
