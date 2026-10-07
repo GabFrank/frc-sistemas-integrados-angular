@@ -171,7 +171,8 @@ export class ListTransferenciaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+    this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol(
+      [ROLES.FACTURACION_EMITIR, ROLES.NOTA_REMISION_EMITIR, ROLES.ADMIN]);
 
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
