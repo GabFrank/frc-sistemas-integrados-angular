@@ -8,6 +8,7 @@ import {
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
+  CONTEXTO_SONDEO,
 } from '../../../generics/generic-crud.constantes';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
@@ -253,7 +254,8 @@ export class VentaTarjetaService {
       { id, sucId },
       false,
       null,
-      true
+      true,
+      CONTEXTO_SONDEO
     );
   }
 

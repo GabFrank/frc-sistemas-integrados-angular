@@ -15,7 +15,7 @@ import { MainService } from '../../../../main.service';
 import { NotificacionesTableroService } from '../../services/notificaciones-tablero.service';
 import { Observable, interval, of } from 'rxjs';
 import { switchMap, tap, catchError, map } from 'rxjs/operators';
-import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, CONTEXTO_SONDEO } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MediaUploadService } from '../../../../shared/services/media-upload.service';
@@ -202,7 +202,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     setTimeout(() => {
       interval(3000)
         .pipe(
-          switchMapSinCortar(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
+          switchMapSinCortar(() => this.comentariosService.obtenerComentarios(this.data.notificacionId, null, CONTEXTO_SONDEO)),
           untilDestroyed(this)
         )
         .subscribe({
