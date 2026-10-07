@@ -23,8 +23,19 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # Barato y sin compilar: una constante del genérico leída al cargarse un archivo deja la app en blanco.
+      - name: Imports del genérico
+        run: npm run verificar:imports
+
       - name: Build (production AOT check)
         run: npm run build:prod
 
       - name: Compile Electron main process
         run: npm run electron:serve-tsc
+
+      # El build compila el bundle pero no lo ejecuta: acá se abre en Electron y falla si queda en blanco.
+      # Solo en Linux: el bundle es el mismo en los dos sistemas. El script termina solo en ~2 min como mucho.
+      - name: Arranque del bundle de producción
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        run: xvfb-run -a npm run verificar:arranque
