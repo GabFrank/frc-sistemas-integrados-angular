@@ -98,7 +98,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
   creditoIconComputed = "money_off";
   creditoLabelComputed = "Sin Crédito";
 
-  documentVerificationState: "none" | "checking" | "found" | "available" = "none";
+  documentVerificationState: "none" | "checking" | "found" | "available" | "unverified" = "none";
   documentVerificationMessage = "";
   showDocumentWarning = false;
   foundPersona: Persona | null = null;
@@ -321,12 +321,13 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
           }
           this.cdr.markForCheck();
         },
+        // No se pudo consultar: no es «documento disponible» (#390).
         error: () => {
           this.foundPersona = null;
-          this.documentVerificationState = "available";
+          this.documentVerificationState = "unverified";
           this.documentVerificationMessage =
-            "Documento disponible para nuevo registro";
-          this.showDocumentWarning = false;
+            "No se pudo verificar el documento. Confirmá que no esté registrado antes de guardar.";
+          this.showDocumentWarning = true;
           this.cdr.markForCheck();
         }
       });
