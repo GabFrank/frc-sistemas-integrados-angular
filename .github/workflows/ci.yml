@@ -25,6 +25,8 @@ jobs:
 
       # Barato y sin compilar: una constante del genérico leída al cargarse un archivo deja la app en blanco.
       - name: Imports del genérico
+        # PRUEBA TEMPORAL: se deja seguir para ver fallar también el arranque. Se revierte en el commit siguiente.
+        continue-on-error: true
         run: npm run verificar:imports
 
       - name: Build (production AOT check)

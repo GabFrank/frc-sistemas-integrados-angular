@@ -3,8 +3,7 @@ import { Observable, BehaviorSubject, of, Subject } from 'rxjs';
 import { map, tap, catchError, debounceTime, finalize } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
-import { ContextoConsulta, GenericCrudService } from '../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 
 /** Consultas de fondo del tablero: nadie las espera, pero sin esto con el central sin responder no terminan (#390). */
 const CONSULTA_TABLERO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };

@@ -25,7 +25,10 @@ import {
 } from "../../comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
 import { SelectProductosResponseData } from "../../comercial/venta-touch/select-productos-dialog/select-productos-dialog.component";
 import { ProductoService } from "../../../productos/producto/producto.service";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.constantes";
+import {
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from "../../../../generics/generic-crud.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 /** El cajero espera de pie: pasado este tiempo se le avisa y el link no repite el aviso. */
 const CONTEXTO_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };

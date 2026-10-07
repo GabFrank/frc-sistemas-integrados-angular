@@ -1,8 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
-import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { CalcularCuotasDetalleGQL, CalcularCuotasDetalleVariables } from '../../ente/graphql/calcularCuotasDetalle';
 import { CuotaDetalle, CuotasDetalleCalculado, sanitizarCuotasDetalle } from '../models/cuota-detalle.model';
 

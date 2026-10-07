@@ -1,8 +1,13 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable, of, throwError } from "rxjs";
 import { catchError, map, switchMap, tap } from "rxjs/operators";
-import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.constantes";
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from "../../../generics/generic-crud.service";
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
 import { MainService } from "../../../main.service";
 import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";

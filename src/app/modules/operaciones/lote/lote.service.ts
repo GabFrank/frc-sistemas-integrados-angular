@@ -4,8 +4,13 @@ import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import {
+  ContextoConsulta,
+  GenericCrudService,
+  PROPAGAR_ERROR_DE_RED,
+  QueryError,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   SearchListDialogComponent,

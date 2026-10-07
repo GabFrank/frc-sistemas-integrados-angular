@@ -22,7 +22,7 @@ import {
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
-} from "../../../../../generics/generic-crud.constantes";
+} from "../../../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import {
   updateDataSource,

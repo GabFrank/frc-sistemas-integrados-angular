@@ -15,8 +15,7 @@ import { ProductoProveedorService } from '../producto-proveedor.service';
 import { DesvincularProductoProveedorGQL } from '../graphql/desvincularProductoProveedor';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { takeUntil } from 'rxjs/operators';
-import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
-import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
+import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 
 /**
  * Lista de vínculos: el error de red y el del servidor llegan al diálogo. Sin esto quedaba «Cargando…» para

@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PageInfo } from '../../../app.component';
-import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
-import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   CortarPrecioEspecialGQL, EditarPrecioEspecialGQL, FilterPreciosEspecialesGQL,

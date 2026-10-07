@@ -45,8 +45,11 @@ import { MovimientoStockService } from "../../../operaciones/movimiento-stock/mo
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
-import { QueryError, ContextoConsulta } from "../../../../generics/generic-crud.service";
-import { TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
+import {
+  QueryError,
+  ContextoConsulta,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 

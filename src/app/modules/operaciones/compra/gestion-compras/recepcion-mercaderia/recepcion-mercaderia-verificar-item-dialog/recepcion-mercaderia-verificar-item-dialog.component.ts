@@ -19,8 +19,11 @@ import { MotivoModificacion, MOTIVO_MODIFICACION_LABELS } from './motivo-modific
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
 import { LoteService } from '../../../../lote/lote.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
-import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
+import {
+  ContextoConsulta,
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+} from '../../../../../../generics/generic-crud.service';
 
 /** Presentaciones y lotes del ítem a verificar: 20 s, avisa el diálogo (#390). */
 const CONSULTA_VERIFICAR: ContextoConsulta = {

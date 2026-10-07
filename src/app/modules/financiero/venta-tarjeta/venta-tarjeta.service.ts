@@ -3,12 +3,13 @@ import { Observable, throwError } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
-import { ContextoConsulta, GenericCrudService } from '../../../generics/generic-crud.service';
 import {
+  ContextoConsulta,
+  GenericCrudService,
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
-} from '../../../generics/generic-crud.constantes';
+} from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
 import { MotivoCuponNoUsableGQL } from './graphql/motivoCuponNoUsable';

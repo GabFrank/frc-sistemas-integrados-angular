@@ -1,16 +1,3 @@
-// Re-export para quien usa estas constantes DENTRO de un método. Quien las lea al cargarse el archivo
-// (`const X = { timeoutMs: ... }` a nivel de módulo, un `static`, un decorador) tiene que importarlas de
-// `generic-crud.constantes`: por acá el bundle de producción las encuentra sin inicializar y la app queda en blanco.
-export {
-  CONTEXTO_MOSTRADOR,
-  LECTURA_ESTRICTA,
-  PROPAGAR_ERROR_DE_RED,
-  SIN_AVISO_DEL_GENERICO,
-  TIMEOUT_CONSULTA_DE_FONDO_MS,
-  TIMEOUT_CONSULTA_MOSTRADOR_MS,
-} from "./generic-crud.constantes";
-export type { ContextoConsulta, QueryError } from "./generic-crud.constantes";
-import type { ContextoConsulta, QueryError } from "./generic-crud.constantes";
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
 import { Observable, OperatorFunction } from "rxjs";
@@ -33,6 +20,19 @@ import {
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { esTimeoutDeLink } from "../shared/services/timeout-link";
 import { Apollo } from "apollo-angular";
+export interface QueryError {
+  graphError?: {
+    show?: boolean;
+    color?: NotificacionColor;
+    propagate?: boolean;
+  };
+  networkError?: {
+    show?: boolean;
+    color?: NotificacionColor;
+    propagate?: boolean;
+  };
+}
+
 // Resultado sintético usado cuando el link de Apollo emite una respuesta vacía
 // (servidor que responde con cuerpo vacío, operación cortada, etc.).
 const RESPUESTA_VACIA = {
@@ -44,6 +44,33 @@ const RESPUESTA_VACIA = {
 const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 /** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
 const MARGEN_DIALOGO_MS = 5000;
+/** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
+export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
+/** Lo que espera un cajero de pie (escanear, elegir un lote) antes de que se le diga algo (#390). */
+export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
+/**
+ * Para quien maneja el error de red con su propio `error:`: sin esto onCustomQuery no emite nada si
+ * el servidor no responde, y el que llama queda esperando para siempre. Solo red: un error GraphQL
+ * sigue llegando como `null` (#390).
+ */
+export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
+/**
+ * Para una lectura de la que depende una decisión: el error del servidor y el de red llegan los dos al
+ * `error:` de quien llama (nunca un `null` que se confunda con «no existe»), sin aviso del genérico (#390).
+ */
+export const LECTURA_ESTRICTA: QueryError = {
+  graphError: { show: false, propagate: true },
+  networkError: { show: false, propagate: true },
+};
+/** Corte de mostrador para {@link LECTURA_ESTRICTA}: el aviso lo da quien llama. */
+export const CONTEXTO_MOSTRADOR: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
+/** Para quien ya avisa por su cuenta cuando onGetAll le devuelve `null`: sin aviso del genérico. */
+export const SIN_AVISO_DEL_GENERICO: QueryError = { graphError: { show: false }, networkError: { show: false } };
+/** Contexto de onCustomQuery: timeout propio y si el link avisa al vencer. */
+export interface ContextoConsulta {
+  timeoutMs?: number;
+  silenciarAvisoTimeout?: boolean;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
