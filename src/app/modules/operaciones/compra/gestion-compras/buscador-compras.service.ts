@@ -2,13 +2,8 @@ import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, shareReplay, switchMap, take, tap } from 'rxjs/operators';
-import {
-  ContextoConsulta,
-  GenericCrudService,
-  PROPAGAR_ERROR_DE_RED,
-  QueryError,
-  TIMEOUT_CONSULTA_MOSTRADOR_MS,
-} from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../generics/generic-crud.constantes';
 import { PageInfo } from '../../../../app.component';
 import { Producto } from '../../../productos/producto/producto.model';
 import { ProductoProveedor } from '../../../productos/producto-proveedor/producto-proveedor.model';

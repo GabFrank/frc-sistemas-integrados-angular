@@ -13,7 +13,8 @@ import { Producto } from '../producto.model';
 import { MovimientoStockService } from '../../../operaciones/movimiento-stock/movimiento-stock.service';
 import { MovimientoStock, MovimientoStockInput } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
 import { TipoMovimiento } from '../../../operaciones/movimiento-stock/movimiento-stock.enums';
-import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 

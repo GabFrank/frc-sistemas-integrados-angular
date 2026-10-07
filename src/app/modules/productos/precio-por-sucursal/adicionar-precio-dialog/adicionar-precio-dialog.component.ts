@@ -28,7 +28,8 @@ export class AdicionarPrecioPorSucursalData {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { concat, defer } from 'rxjs';
 import { take, toArray } from 'rxjs/operators';
-import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 

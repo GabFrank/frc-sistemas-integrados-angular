@@ -22,7 +22,8 @@ import {
 } from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { BuscadorComprasService } from "../../buscador-compras.service";
 import { take } from "rxjs/operators";
-import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../../../generics/generic-crud.service";
+import { ContextoConsulta, QueryError } from "../../../../../../generics/generic-crud.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../../../generics/generic-crud.constantes";
 import {
   PedidoItem,
   PedidoItemInput,

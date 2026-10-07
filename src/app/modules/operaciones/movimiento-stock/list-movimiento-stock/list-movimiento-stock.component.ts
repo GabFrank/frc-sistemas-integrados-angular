@@ -56,7 +56,8 @@ import { EditTransferenciaComponent } from "../../transferencia/edit-transferenc
 import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
 import { forkJoin, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
-import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, QueryError } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
