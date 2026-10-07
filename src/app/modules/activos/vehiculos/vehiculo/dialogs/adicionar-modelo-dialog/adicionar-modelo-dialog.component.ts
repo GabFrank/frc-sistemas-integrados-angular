@@ -7,6 +7,7 @@ import { VehiculoService } from '../../service/vehiculo.service';
 import { Modelo } from '../../models/modelo.model';
 import { Marca } from '../../models/marca.model';
 import { MainService } from '../../../../../../main.service';
+import { terminarSiFalla } from '../../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -48,13 +49,13 @@ export class AdicionarModeloDialogComponent implements OnInit {
     }
 
     cargarMarcas(): void {
-        this.vehiculoService.onFiltrarMarcas('%').pipe(untilDestroyed(this)).subscribe(res => {
+        this.vehiculoService.onFiltrarMarcas('%').pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
             this.marcas$.next(res || []);
         });
     }
 
     onFiltrarMarcas(texto: string): void {
-        this.vehiculoService.onFiltrarMarcas(texto).pipe(untilDestroyed(this)).subscribe(res => {
+        this.vehiculoService.onFiltrarMarcas(texto).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
             this.marcas$.next(res || []);
         });
     }

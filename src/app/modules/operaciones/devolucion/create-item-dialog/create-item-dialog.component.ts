@@ -10,6 +10,7 @@ import {
   MotivoAveria,
   TipoDevolucion,
 } from "../devolucion.model";
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 export interface CreateDevolucionItemDialogData {
   item?: DevolucionItem;
@@ -105,7 +106,8 @@ export class CreateItemDialogComponent implements OnInit {
     if (productoId == null) return;
     this.presentacionService
       .onGetPresentacionesPorProductoId(productoId)
-      .pipe(untilDestroyed(this))
+      // Sin presentaciones el formulario queda inválido y no deja guardar; el aviso lo da el genérico (#390).
+      .pipe(terminarSiFalla(() => this.presentacionList = []), untilDestroyed(this))
       .subscribe((res) => {
         this.presentacionList = res ?? [];
         let target =

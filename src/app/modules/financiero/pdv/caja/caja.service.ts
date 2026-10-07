@@ -66,7 +66,7 @@ export class CajaService {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  /** `silentLoad`: con un error GraphQL onGetById no cierra «Buscando…»; quien carga en segundo plano lo evita (#390). */
+  /** `silentLoad`: para quien carga en segundo plano, sin el modal «Buscando…». */
   onCajaBalancePorId(id: number, servidor: boolean = true, silentLoad?: boolean, warningText?: string): Observable<CajaBalance> {
     return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor, null, null, null, silentLoad,
       null, warningText);

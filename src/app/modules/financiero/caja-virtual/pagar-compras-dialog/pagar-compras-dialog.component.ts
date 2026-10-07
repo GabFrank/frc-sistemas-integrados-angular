@@ -29,6 +29,7 @@ import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { MatStepper } from '@angular/material/stepper';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -323,13 +324,13 @@ export class PagarComprasDialogComponent implements OnInit {
       // Autocomplete de beneficiario (proveedor, opcional).
       this.ngBeneficiarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
         if (typeof val === 'string' && val.trim().length >= 2) {
-          this.proveedorService.onSearch(val.trim()).pipe(untilDestroyed(this)).subscribe(r => this.proveedorFiltrados = r || []);
+          this.proveedorService.onSearch(val.trim()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(r => this.proveedorFiltrados = r || []);
         } else if (typeof val !== 'string') { this.proveedorFiltrados = []; }
       });
       // Autocomplete de categoría (server-side; pueden ser cientos).
       this.ngTipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
         if (typeof val === 'string' && val.trim().length >= 1) {
-          this.gastoService.tipoGastoOnSearch(val.trim()).pipe(untilDestroyed(this)).subscribe(r => this.tipoGastoFiltrados = r || []);
+          this.gastoService.tipoGastoOnSearch(val.trim()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(r => this.tipoGastoFiltrados = r || []);
         } else if (typeof val !== 'string') { this.tipoGastoFiltrados = []; }
       });
       // Filtros de la tabla (client-side sobre lo cargado).

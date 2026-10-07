@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { of, Subscription } from 'rxjs';
+import { of, Subscription, TimeoutError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
@@ -30,6 +30,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { CajaService } from '../../pdv/caja/caja.service';
 import { NotificationHttpService } from '../../../../shared/services/notification-http.service';
 import { Moneda } from '../../moneda/moneda.model';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -101,12 +102,15 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       });
       this.selectedCajaSalida = data.caja;
       // La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo retiro (#390).
+      // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+      let yaAvisado = false;
       retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id, false, true, AVISO_RETIROS_CAJA)
-        .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+        .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+          catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.dataSource.data = res;
-          } else {
+          } else if (!yaAvisado) {
             this.notificacionService.openWarn(AVISO_RETIROS_CAJA, 5);
           }
         });
@@ -149,6 +153,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
           .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
+          .pipe(terminarSiFalla())
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -259,12 +264,15 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
-  /** Carga silenciosa con corte de mostrador: onGetById no emite si falla, así que se corta acá. */
+  /** Carga silenciosa con corte de mostrador (10 s, antes que el corte del link). */
   cargarBalance(): void {
     const id = ++this.balanceCargaId;
     this.estadoBalance = 'cargando';
+    // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+    let yaAvisado = false;
     this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id, false, true, AVISO_SALDO)
-      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+        catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
       .subscribe((res) => {
         if (id !== this.balanceCargaId) return;
         if (esBalanceVerificable(res)) {
@@ -272,7 +280,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
           this.estadoBalance = 'ok';
         } else {
           this.estadoBalance = 'fallo';
-          this.notificacionService.openWarn(AVISO_SALDO, 5);
+          if (!yaAvisado) this.notificacionService.openWarn(AVISO_SALDO, 5);
         }
       });
   }

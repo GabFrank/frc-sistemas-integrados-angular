@@ -43,6 +43,7 @@ import { VentaObservacion } from "../../venta-observacion/venta-observacion.mode
 import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-categoria-observacion.model";
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -153,6 +154,17 @@ export class ListVentaComponent implements OnInit {
 
       this.cajaService
         .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true)
+        // La pestaña ya recibió la caja; esta lectura la completa (sucursal). Si falla y la que vino ya trae
+        // su sucursal, se sigue con esa en vez de dejar la lista vacía; si no, no se consulta a ciegas (#390).
+        .pipe(terminarSiFalla(() => {
+          if (this.selectedCaja?.sucursalId == null && this.selectedCaja?.sucursal?.id == null) {
+            this.notificacionService.openWarn('No se pudo cargar la caja: cerrá esta pestaña y volvé a abrirla.', 8);
+            return;
+          }
+          if (ventaId) this.idVentaControl.setValue(ventaId);
+          this.onFiltrar();
+          this.onGetBalance();
+        }))
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
