@@ -5,6 +5,7 @@ import { Funcionario } from '../../../modules/personas/funcionarios/funcionario.
 import { FuncionarioService } from '../../../modules/personas/funcionarios/funcionario.service';
 import { FuncionarioSearchGQL } from '../../../modules/personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData } from '../search-list-dialog/search-list-dialog.component';
+import { terminarSiFalla } from '../../../commons/core/utils/rxjsUtils';
 
 /**
  * Selector de funcionario. Abre el buscador generico del proyecto
@@ -71,7 +72,7 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
     }
     if (this.seleccionado != null && this.seleccionado.id === this.funcionarioId) return;
     this.funcionarioService.onGetFuncionarioById(this.funcionarioId)
-      .pipe(untilDestroyed(this))
+      .pipe(terminarSiFalla(), untilDestroyed(this))
       .subscribe((res: Funcionario) => this.aplicar(res, false));
   }
 

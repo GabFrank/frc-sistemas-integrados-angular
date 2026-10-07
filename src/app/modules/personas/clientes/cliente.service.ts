@@ -96,7 +96,7 @@ export class ClienteService {
     return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
-  /** Sin `errorConf` no emite nada si falla (el llamador queda con lo que tenía): pasarlo para enterarse (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama (#390). */
   onGetByPersonaIdFromServer(id: number, errorConf?: QueryError): Observable<Cliente> {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
       "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 

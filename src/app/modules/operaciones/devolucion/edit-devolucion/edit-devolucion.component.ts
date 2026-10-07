@@ -292,7 +292,7 @@ export class EditDevolucionComponent implements OnInit {
     this.refrescoSub = this.devolucionService
       .onGetDevolucion(id, true, true)
       .pipe(
-        // onGetById no emite si falla: cortar para no dejar la suscripción colgada.
+        // Corte propio, más corto que el del link, para no dejar la pantalla esperando.
         timeout(15000),
         catchError(() => EMPTY),
         untilDestroyed(this)

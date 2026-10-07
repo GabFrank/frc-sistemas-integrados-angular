@@ -142,7 +142,7 @@ export class GpsService {
 
     /**
      * Búsqueda de GPS con los errores propagados. `silencioso`: sin el modal «Buscando…» (el mapa).
-     * No usa `onGetByTexto`: ante un error no emite nada y no admite corte propio.
+     * No usa `onGetByTexto`: no admite corte propio.
      */
     onBuscar(texto: string, silencioso = false): Observable<Gps[]> {
         return this.genericService.onCustomQuery(this.gpsSearchGQL, { texto }, true, LECTURA_GPS, silencioso, CONSULTA_GPS);

@@ -644,7 +644,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.pdvCategoriaService
       .onGetGrupoProductosPorGrupoId(grupo.id, false)
       .pipe(
-        // onGetById no emite ni completa si la consulta falla: sin esto el grupo quedaria trabado.
+        // Corte propio (3 s) y sin propagar el error: sin esto el grupo quedaria trabado.
         // Si la filial no responde en 3 s, se abre con los favoritos ya cargados.
         timeout(3000),
         catchError(() => of(null)),

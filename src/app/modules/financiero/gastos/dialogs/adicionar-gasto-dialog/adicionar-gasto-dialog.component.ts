@@ -11,7 +11,7 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dial
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
-import { of, Subscription } from "rxjs";
+import { of, Subscription, TimeoutError } from "rxjs";
 import { erroresDeRechazo } from "../../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, debounceTime, distinctUntilChanged, finalize, take, timeout } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
@@ -53,6 +53,7 @@ import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple
 import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 import { RetiroPreGastoData, RetiroPreGastoDialogComponent } from "../retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component";
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 /** Monto como número, venga como número o como texto del control. */
 function monto(valor: any): number {
   const n = Number(valor);
@@ -301,6 +302,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
           .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
+          .pipe(terminarSiFalla())
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -825,23 +827,29 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   /** La lista es informativa (no bloquea); sin ella el cajero podría cargar dos veces el mismo gasto. */
   private cargarGastosDeCaja(): void {
+    // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+    let yaAvisado = false;
     this.gastoService.onGetByCajaId(this.selectedCaja.id, false, true, AVISO_GASTOS_CAJA)
-      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+        catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
       .subscribe((gastos) => {
         if (gastos != null) {
           this.mostrarGastos(gastos);
-        } else {
+        } else if (!yaAvisado) {
           this.notificacionService.openWarn(AVISO_GASTOS_CAJA, 5);
         }
       });
   }
 
-  /** Carga silenciosa con corte de mostrador: onGetById no emite si falla, así que se corta acá. */
+  /** Carga silenciosa con corte de mostrador (10 s, antes que el corte del link). */
   cargarBalance(): void {
     const id = ++this.balanceCargaId;
     this.estadoBalance = 'cargando';
+    // El aviso propio sale solo si no avisó ya el genérico (que avisa el error, no el corte por tiempo de acá).
+    let yaAvisado = false;
     this.cajaService.onCajaBalancePorId(this.selectedCaja.id, false, true, AVISO_SALDO)
-      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS), catchError(() => of(undefined)), untilDestroyed(this))
+      .pipe(timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS),
+        catchError((e) => { yaAvisado = !(e instanceof TimeoutError); return of(undefined); }), untilDestroyed(this))
       .subscribe((res) => {
         if (id !== this.balanceCargaId) return;
         if (esBalanceVerificable(res)) {
@@ -849,7 +857,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.estadoBalance = 'ok';
         } else {
           this.estadoBalance = 'fallo';
-          this.notificacionService.openWarn(AVISO_SALDO, 5);
+          if (!yaAvisado) this.notificacionService.openWarn(AVISO_SALDO, 5);
         }
       });
   }

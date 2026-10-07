@@ -554,7 +554,7 @@ export class VentaService {
     );
   }
 
-  /** Con `errorConf` el error llega al llamador; sin él, la consulta no emite nada si falla (#390). */
+  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
   onGetVentaItemPorId(id, sucId, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta,
                       silentLoad?: boolean): Observable<VentaItem> {
     return this.genericService.onGetById(

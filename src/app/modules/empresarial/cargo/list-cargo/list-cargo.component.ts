@@ -8,6 +8,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Cargo } from '../cargo.model';
 import { CargoService } from '../cargo.service';
 import { EditCargoDialogComponent } from '../edit-cargo-dialog/edit-cargo-dialog.component';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 /**
  * ABM de cargos. El backend ya existia entero (CargoGraphQL); lo que faltaba era esta
@@ -40,7 +41,7 @@ export class ListCargoComponent implements OnInit {
   onFiltrar() {
     const texto = this.textoControl.value;
     const obs = texto ? this.cargoService.onSearch(texto) : this.cargoService.onGetAll();
-    obs.pipe(untilDestroyed(this)).subscribe(res => {
+    obs.pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
       if (res != null) { this.dataSource.data = res || []; }
     });
   }

@@ -162,7 +162,7 @@ export class EnteService {
     this.paginationSubject.next({ pageIndex, pageSize });
   }
 
-  /** Con `errorConf` el error llega a quien llama; sin él, la consulta no emite nada si falla. */
+  /** Sin `errorConf` un error falla hacia quien llama; con él, uno del servidor emite `null` salvo que se pida propagarlo (#390). */
   onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Ente> {
     return this.genericService.onGetById(this.enteByIdGQL, id, null, null, true, null, null, null, null, null, null,
       errorConf, contexto);

@@ -18,6 +18,7 @@ import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { QrData, QrCodeComponent } from '../../../../shared/qr-code/qr-code.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 interface ZonaDisplay {
   inventarioProducto: InventarioProducto;
@@ -83,9 +84,25 @@ export class EditInventarioComponent implements OnInit {
     }
   }
 
+  /** Cierra la pestaña de este inventario aunque el usuario haya pasado a otra mientras tanto. */
+  private cerrarPestanaPropia(): void {
+    const index = this.tabService.tabs.indexOf(this.data);
+    if (index >= 0) this.tabService.removeTab(index);
+  }
+
+  /**
+   * La acción ya se guardó; lo que falló es volver a leer el inventario. Sin aviso la pantalla queda como
+   * antes y parece que no se guardó (#390).
+   */
+  private avisarPantallaDesactualizada(): void {
+    this.notificacionService.openWarn(
+      'Se guardó, pero no se pudo actualizar la pantalla: cerrá y volvé a abrir el inventario antes de seguir.', 10);
+  }
+
   cargarDatos(id: number) {
     this.inventarioService.onGetInventario(id)
-      .pipe(untilDestroyed(this))
+      // Sin el inventario la pantalla quedaba vacía: se cierra su pestaña (por referencia, no la activa) (#390).
+      .pipe(terminarSiFalla(() => this.cerrarPestanaPropia()), untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
           this.selectedInventario = res;
@@ -187,7 +204,7 @@ export class EditInventarioComponent implements OnInit {
         if (itemCreado) {
           const zonaActualId = this.currentInventarioProducto.id;
           this.inventarioService.onGetInventario(this.selectedInventario.id)
-            .pipe(untilDestroyed(this))
+            .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))
             .subscribe(inventario => {
               if (inventario) {
                 this.selectedInventario = inventario;
@@ -245,7 +262,7 @@ export class EditInventarioComponent implements OnInit {
           if (res) {
             this.notificacionService.openSucess('Zona finalizada correctamente');
             this.inventarioService.onGetInventario(this.selectedInventario.id)
-              .pipe(untilDestroyed(this))
+              .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))
               .subscribe(inventario => {
                 if (inventario) {
                   this.selectedInventario = inventario;
@@ -282,7 +299,7 @@ export class EditInventarioComponent implements OnInit {
       .subscribe((inventarioProductoCreado: InventarioProducto) => {
         if (inventarioProductoCreado) {
           this.inventarioService.onGetInventario(this.selectedInventario.id)
-            .pipe(untilDestroyed(this))
+            .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))
             .subscribe(inventario => {
               if (inventario) {
                 this.selectedInventario = inventario;
@@ -388,7 +405,7 @@ export class EditInventarioComponent implements OnInit {
             this.notificacionService.openSucess('Zona reabierta correctamente');
             const zonaActualId = this.currentInventarioProducto.id;
             this.inventarioService.onGetInventario(this.selectedInventario.id)
-              .pipe(untilDestroyed(this))
+              .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))
               .subscribe(inventario => {
                 if (inventario) {
                   this.selectedInventario = inventario;
@@ -426,7 +443,7 @@ export class EditInventarioComponent implements OnInit {
           this.notificacionService.openSucess('Producto eliminado');
           const zonaActualId = this.currentInventarioProducto.id;
           this.inventarioService.onGetInventario(this.selectedInventario.id)
-            .pipe(untilDestroyed(this))
+            .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))
             .subscribe(inventario => {
               if (inventario) {
                 this.selectedInventario = inventario;
