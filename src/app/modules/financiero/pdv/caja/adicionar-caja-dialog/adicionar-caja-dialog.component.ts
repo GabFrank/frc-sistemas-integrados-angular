@@ -21,7 +21,7 @@ import {
   ContextoConsulta,
   PROPAGAR_ERROR_DE_RED,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
-  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS, LECTURA_ESTRICTA,
 } from "../../../../../generics/generic-crud.service";
 import {
   NotificacionColor,
@@ -333,7 +333,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     if (this.verificarMaletinTimeout == null) {
       this.verificarMaletinTimeout = setTimeout(() => {
         this.maletinService
-          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch, PROPAGAR_ERROR_DE_RED)
+          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch, LECTURA_ESTRICTA)
           .pipe(untilDestroyed(this))
           .subscribe({
             // Sin respuesta el clic de verificar quedaba mudo (el maletín no se verifica: no se abre con él) (#390).

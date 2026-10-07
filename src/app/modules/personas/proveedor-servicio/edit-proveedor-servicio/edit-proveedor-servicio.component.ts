@@ -137,7 +137,13 @@ export class EditProveedorServicioComponent implements OnInit {
             }
             this.loadExistingData();
           },
-          error: () => this.loadExistingData(),
+          // Editar con los datos parciales de la lista podía pisar el apodo o el teléfono de la persona al
+          // guardar. Si no se pudo leer el registro completo, no se edita (#390).
+          error: () => {
+            this.notificacionService.openWarn('No se pudieron cargar los datos completos: volvé a abrirlo para editar.', 6);
+            if (this.matDialogRef != null) this.matDialogRef.close();
+            else this.loadExistingData();
+          },
         });
     } else {
       this.loadExistingData();

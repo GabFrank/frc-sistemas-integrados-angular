@@ -400,6 +400,10 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
         },
         error: () => {
           this.notificacionService.openWarn('No se pudo cargar el producto');
+          // La fila quedó marcada «cargando»: se colapsa (si sigue siendo la abierta), y al abrirla de nuevo
+          // se vuelve a pedir (#390).
+          if (this.expandedProducto?.id === producto.id) this.expandedProducto = null;
+          this.cdr.markForCheck();
         },
       });
   }

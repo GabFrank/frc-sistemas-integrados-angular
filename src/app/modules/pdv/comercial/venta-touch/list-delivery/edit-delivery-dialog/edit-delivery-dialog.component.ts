@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { PROPAGAR_ERROR_DE_RED } from '../../../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, LECTURA_ESTRICTA } from '../../../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
@@ -205,7 +205,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         }
         if (res != null && res.length != 0) {
           this.clienteTimer = setTimeout(() => {
-            this.clienteService.onSearch(res, true, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+            this.clienteService.onSearch(res, true, LECTURA_ESTRICTA).subscribe({ error: () => {
               this.notificacionSnackbar.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 4);
             }, next: clienteRes => {
               this.filteredClienteList = clienteRes ?? [];

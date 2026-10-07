@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { catchError, tap, timeout } from "rxjs/operators";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { GenericCrudService, LECTURA_ESTRICTA, QueryError } from "../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import {
   FacturaLegal,
@@ -245,9 +245,9 @@ export class FacturaLegalService {
 
   // silentLoad evita el modal bloqueante de "Buscando...", para consultas que
   // acompanan una interaccion liviana (ej. expandir una fila de la lista).
-  onGetFacturaLegal(id, sucId, servidor: boolean = true, silentLoad = false): Observable<FacturaLegal> {
+  onGetFacturaLegal(id, sucId, servidor: boolean = true, silentLoad = false, errorConf?: QueryError): Observable<FacturaLegal> {
     return this.genericService.onGetById(
-      this.facturaLegalPorId, id, null, null, servidor, sucId, null, null, silentLoad
+      this.facturaLegalPorId, id, null, null, servidor, sucId, null, null, silentLoad, null, null, errorConf
     );
   }
 
@@ -413,7 +413,8 @@ export class FacturaLegalService {
         
         retries++;
         
-        this.onGetFacturaLegal(facturaId, sucursalId, true).subscribe({
+        // Hasta tres intentos: sin modal ni aviso por intento; quien llama dice el resultado (#390).
+        this.onGetFacturaLegal(facturaId, sucursalId, true, true, LECTURA_ESTRICTA).subscribe({
           next: (factura: FacturaLegal) => {
             if (factura) {
               observer.next(factura);

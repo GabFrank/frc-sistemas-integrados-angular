@@ -9,7 +9,7 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
 import { DigitarContrasenaDialogComponent } from '../../../../shared/digitar-contrasena-dialog/digitar-contrasena-dialog.component';
 import { QrCodeComponent, QrData } from '../../../../shared/qr-code/qr-code.component';
@@ -192,7 +192,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   onSearchByNombre() {
     const busqueda = ++this.busquedaCliente;
     this.quitarClienteSeleccionado();
-    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
+    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, LECTURA_ESTRICTA).subscribe({ error: () => {
       if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
     }, next: res2 => {
       if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
