@@ -9,7 +9,7 @@ import { SaveTimbradoGQL } from './graphql/saveTimbrado';
 import { TimbradoSearchGQL } from './graphql/timbradoSearch';
 import { SaveTimbradoDetalleGQL } from './graphql/saveTimbradoDetalle';
 import { ExisteTimbradoActivoGQL } from './graphql/existeTimbradoActivo';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { FindByNumeroTimbradoGQL } from './graphql/findByNumeroTimbradoQuery';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { TimbradoDetallesByTimbradoIdGQL } from './graphql/timbradoDetallesByTimbradoId';
@@ -53,8 +53,8 @@ constructor(
     return this.genericService.onCustomMutation(this.saveTimbrado, {entity: input}, servidor);
   }
   
-  onExisteTimbradoActivo(excludeId?: number, servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.existeTimbradoActivoGQL, {excludeId}, servidor);
+  onExisteTimbradoActivo(excludeId?: number, servidor: boolean = true, errorConf?: QueryError): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.existeTimbradoActivoGQL, {excludeId}, servidor, errorConf);
   }
     
   onSaveTimbradoDetalle(input: TimbradoDetallInput, servidor: boolean = true): Observable<any> {

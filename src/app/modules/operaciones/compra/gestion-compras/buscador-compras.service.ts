@@ -191,9 +191,8 @@ export class BuscadorComprasService {
 
     // productoSearch pagina por offset y devuelve FILAS_POR_LLAMADA_PRODUCTO_SEARCH
     // filas por llamada, no `size`. Se llama directo y no por
-    // ProductoService.onSearch para que un error de red se propague: sin
-    // `propagate`, onCustomQuery no emite ni completa y el diálogo queda
-    // esperando para siempre.
+    // ProductoService.onSearch para que un error de red se propague sin el
+    // aviso del genérico: el que avisa es el diálogo.
     return this.genericCrudService
       .onCustomQuery(
         this.productoSearchGQL,

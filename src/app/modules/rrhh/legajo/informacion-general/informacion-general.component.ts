@@ -1,3 +1,5 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -287,7 +289,11 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       this.notificacion.openWarn('Ingrese un documento para buscar');
       return;
     }
-    this.personaService.onGetPorDocumento(documento).pipe(untilDestroyed(this)).subscribe((p: Persona) => {
+    this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA).pipe(
+      // No se pudo buscar: no es «no existe, cargala como nueva». Lo que había en el formulario no se toca (#390).
+      terminarSiFalla(() => this.notificacion.openWarn('No se pudo buscar la persona. Volvé a intentar.', 5)),
+      untilDestroyed(this)
+    ).subscribe((p: Persona) => {
       if (p != null) {
         this.personaActual = p;
         this.personaId = p.id;

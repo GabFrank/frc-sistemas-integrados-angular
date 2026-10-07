@@ -1,3 +1,5 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Timbrado } from '../timbrado.modal';
 import { debounceTime } from 'rxjs/operators';
 import { TimbradoService } from '../timbrado.service';
@@ -33,6 +35,8 @@ export class AddTimbradoDialogComponent implements OnInit {
   ciudadControl = new FormControl(null);
   barrioControl = new FormControl(null);
   activoControl = new FormControl(false);
+  /** Si el timbrado ya estaba activo al abrir el diálogo (`selectedTimbrado.activo` se pisa al guardar). */
+  private activoGuardado = false;
   telefonoControl = new FormControl(null);
   localidadControl = new FormControl(null);
   direccionControl = new FormControl(null);
@@ -104,6 +108,7 @@ export class AddTimbradoDialogComponent implements OnInit {
     this.rucControl.setValue(this.selectedTimbrado.ruc);
     this.numeroControl.setValue(this.selectedTimbrado.numero);
     this.activoControl.setValue(this.selectedTimbrado.activo);
+    this.activoGuardado = this.selectedTimbrado.activo === true;
     this.razonSocialControl.setValue(this.selectedTimbrado.razonSocial);
 
     this.fechaInicioControl.setValue(
@@ -215,8 +220,22 @@ export class AddTimbradoDialogComponent implements OnInit {
   validateTimbradoActivoUnico(activo: boolean) {
     if (activo) {
       const excludeId = this.selectedTimbrado.id || null;
-      this.timbradoService.onExisteTimbradoActivo(excludeId)
-        .pipe(untilDestroyed(this))
+      this.timbradoService.onExisteTimbradoActivo(excludeId, true, LECTURA_ESTRICTA)
+        .pipe(
+          // Sin poder verificarlo vuelve a como estaba guardado: uno que no era el activo no queda
+          // marcado (podría haber dos a la vez), y el que ya lo era no se desmarca (#390).
+          terminarSiFalla(() => {
+            // El que ya era el activo sigue siéndolo: no hay nada que deshacer ni que avisar.
+            if (this.activoGuardado) return;
+            this.activoControl.setValue(false, { emitEvent: false });
+            this.notificacionService.notification$.next({
+              texto: 'No se pudo verificar si ya hay otro timbrado activo. Volvé a marcarlo para reintentar.',
+              duracion: 5,
+              color: NotificacionColor.warn
+            });
+          }),
+          untilDestroyed(this)
+        )
         .subscribe(existeActivo => {
           if (existeActivo && this.activoControl.value === true) {
             this.activoControl.setValue(false);

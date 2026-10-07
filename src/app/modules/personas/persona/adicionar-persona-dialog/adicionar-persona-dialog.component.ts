@@ -1,3 +1,5 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -113,8 +115,13 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     const documento = this.documentoControl.value?.toString().trim();
     const personaId = this.selectedPersona?.id;
 
-    this.personaService.onGetPorDocumento(documento)
-      .pipe(untilDestroyed(this))
+    this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA)
+      .pipe(
+        // Sin saber si el documento ya está cargado no se guarda: crearía un duplicado (#390).
+        terminarSiFalla(() => this.notificacionService.openWarn(
+          'No se pudo verificar si la persona ya existe: no se guardó. Volvé a intentar.', 5)),
+        untilDestroyed(this)
+      )
       .subscribe(personaExistente => {
         if (personaExistente?.id != null && personaExistente.id !== personaId) {
           this.mostrarAvisoPersonaExistente(personaExistente);

@@ -1,3 +1,4 @@
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, Inject, Input, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -138,8 +139,13 @@ export class FuncionarioWizardComponent implements OnInit {
                 })
               } else {
                 const documento = this.documentoPersona.value?.toString().trim();
-                this.personaService.onGetPorDocumento(documento)
-                  .pipe(untilDestroyed(this))
+                this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA)
+                  .pipe(
+                    // Sin saber si la persona ya existe no se guarda: crearía un duplicado (#390).
+                    terminarSiFalla(() => this.notificacionService.openWarn(
+                      'No se pudo verificar si la persona ya existe: no se guardó. Volvé a intentar.', 5)),
+                    untilDestroyed(this)
+                  )
                   .subscribe(personaExistente => {
                     if (personaExistente?.id != null) {
                       if (personaExistente.isFuncionario && personaExistente.isCliente) {

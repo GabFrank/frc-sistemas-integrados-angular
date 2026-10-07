@@ -1,3 +1,4 @@
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import {
   Component,
   Inject,
@@ -294,7 +295,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.documentVerificationMessage = "Verificando documento...";
     this.cdr.markForCheck();
     this.personaService
-      .onGetPorDocumento(documento.trim())
+      .onGetPorDocumento(documento.trim(), true, LECTURA_ESTRICTA)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
@@ -321,7 +322,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
           }
           this.cdr.markForCheck();
         },
-        // No se pudo consultar: no es «documento disponible» (#390).
+        // No se pudo consultar (red o rechazo del servidor): no es «documento disponible» (#390).
         error: () => {
           this.foundPersona = null;
           this.documentVerificationState = "unverified";
