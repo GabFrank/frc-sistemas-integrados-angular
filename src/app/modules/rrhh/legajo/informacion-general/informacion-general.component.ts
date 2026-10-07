@@ -416,7 +416,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     const personaInput = persona.toInput();
     personaInput.id = this.personaId;
 
-    this.personaService.onSavePersona(personaInput).pipe(untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
+    this.personaService.onSavePersona(personaInput).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
       if (personaGuardada == null) { return; }
       this.personaId = personaGuardada.id;
       this.personaActual = personaGuardada;
@@ -453,7 +453,12 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       // guardar acá lo pisaba con el sueldo viejo — el síntoma era que el salario "volvía"
       // solo al mínimo legal, que suele ser el valor anterior.
 
-      this.funcionarioService.onSaveFuncionario(input).pipe(untilDestroyed(this)).subscribe((funcionarioGuardado: Funcionario) => {
+      this.funcionarioService.onSaveFuncionario(input).pipe(
+        // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
+        terminarSiFalla(() => this.notificacion.openWarn(
+          'Los datos personales se guardaron, pero los del funcionario no. Volvé a guardar.', 6)),
+        untilDestroyed(this)
+      ).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }
         // No se dispara un snackbar adicional acá: GenericCrudService.onSave ya muestra
         // "Guardado con éxito" automáticamente en cada mutación (persona y funcionario),
