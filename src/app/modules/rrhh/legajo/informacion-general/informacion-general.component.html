@@ -4,6 +4,13 @@
     <h2 class="titulo-color">{{ tituloFormulario }}</h2>
   </div>
 
+  <div class="carga-fallida" *ngIf="cargaFallida" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+    <span>No se pudo cargar el funcionario: no se puede guardar hasta leerlo.</span>
+    <button mat-stroked-button type="button" (click)="cargarFuncionario()">
+      <mat-icon>refresh</mat-icon> Reintentar
+    </button>
+  </div>
+
   <!-- Persona (80%) + Foto de perfil (20%) lado a lado -->
   <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="14px" fxLayoutAlign="start stretch">
 
@@ -178,7 +185,7 @@
   </mat-card>
 
   <div fxLayout="row" fxLayoutAlign="end center" class="acciones-row">
-    <button mat-raised-button color="primary" type="button" (click)="onGuardar()">
+    <button mat-raised-button color="primary" type="button" (click)="onGuardar()" [disabled]="cargaFallida">
       <mat-icon>save</mat-icon> Guardar
     </button>
   </div>

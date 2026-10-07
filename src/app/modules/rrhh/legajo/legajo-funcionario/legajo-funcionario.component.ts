@@ -98,10 +98,21 @@ export class LegajoFuncionarioComponent implements OnInit {
     }
   }
 
+  /**
+   * El legajo pedido no se pudo leer. Sin esto, «Información general» recibía un funcionario vacío y se
+   * mostraba como «Nuevo funcionario»: guardar ahí creaba otra persona y otro funcionario (#390).
+   */
+  cargaFallida = false;
+
   onSeleccionar() {
     if (this.funcionarioControl.value == null) { return; }
+    this.cargaFallida = false;
     this.funcionarioService.onGetFuncionarioById(this.funcionarioControl.value)
-      .pipe(untilDestroyed(this)).subscribe((f: Funcionario) => this.setFuncionario(f));
+      .pipe(untilDestroyed(this)).subscribe({
+        next: (f: Funcionario) => this.setFuncionario(f),
+        // El aviso del error lo da el genérico.
+        error: () => this.cargaFallida = true,
+      });
     this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
       .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });
     this.recargar();
