@@ -10,9 +10,11 @@ import { SaveTransferenciaItemGQL } from './graphql/saveTransferenciaItem';
 import { SaveTransferenciaGQL } from './graphql/saveTransferencia';
 import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
-import { GenericCrudService } from './../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from './../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput, VerificarParaTransporteInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
@@ -33,6 +35,7 @@ import { GetHojaRutaPorVehiculoGQL } from './graphql/getHojaRutaPorVehiculo';
 import { GetHojaRutaPorChoferGQL } from './graphql/getHojaRutaPorChofer';
 import { GetHojaRutaActivaPorVehiculoGQL } from './graphql/getHojaRutaActivaPorVehiculo';
 import { SaveHojaRutaGQL } from './graphql/saveHojaRuta';
+import { VerificarParaTransporteGQL } from './graphql/verificarParaTransporte';
 import { DeleteHojaRutaGQL } from './graphql/deleteHojaRuta';
 import { GetHojasRutaConEntregasGQL } from './graphql/getHojasRutaConEntregas';
 import { GetTransferenciasPorHojaRutaGQL } from './graphql/getTransferenciasPorHojaRuta';
@@ -42,6 +45,11 @@ import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
 import { TransferenciaQrEscaneadoSubGQL } from './graphql/transferenciaQrEscaneadoSub';
 import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
+
+/** Consultas que alguien espera (abrir una transferencia, su grilla, una hoja de ruta) (#390). */
+const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Alertas de la grilla y hojas de ruta de entregadores: de fondo, corte corto (#390). */
+const CONSULTA_FONDO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -76,6 +84,7 @@ export class TransferenciaService {
     private getHojaRutaPorChofer: GetHojaRutaPorChoferGQL,
     private getHojaRutaActivaPorVehiculo: GetHojaRutaActivaPorVehiculoGQL,
     private saveHojaRutaService: SaveHojaRutaGQL,
+    private verificarParaTransporteGQL: VerificarParaTransporteGQL,
     private deleteHojaRuta: DeleteHojaRutaGQL,
     private getHojasRutaConEntregas: GetHojasRutaConEntregasGQL,
     private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
@@ -134,7 +143,10 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomQuery(
       this.getHojaRutaPorFechaPage,
       { inicio, fin, texto, page, size },
-      servidor
+      servidor,
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      CONSULTA_FONDO
     );
   }
 
@@ -144,12 +156,15 @@ export class TransferenciaService {
   }
 
 
+  /** Con errorConf (#390): error de red propaga; error del servidor emite null — cada llamador lo trata. */
   onGetTransferencia(id, servidor = true): Observable<Transferencia> {
-    return this.genericCrudService.onGetById(this.getTransferencia, id, null, null, servidor);
+    return this.genericCrudService.onGetById(this.getTransferencia, id, null, null, servidor, null, null, null, null, null,
+      null, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE);
   }
 
   onGetTransferenciaItensPorTransferenciaId(id, page?, size?, servidor = true): Observable<PageInfo<TransferenciaItem>> {
-    return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size, servidor);
+    return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size, servidor, null, null,
+      null, null, null, null, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE);
   }
 
   onAlertasTransferenciaItems(
@@ -161,8 +176,9 @@ export class TransferenciaService {
       this.alertasTransferenciaItemsGQL,
       { transferenciaId, itemIds },
       servidor,
-      null,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_FONDO
     );
   }
 
@@ -274,7 +290,9 @@ export class TransferenciaService {
     creadoHasta?: string,
     page?: number,
     size?: number,
-    servidor = true): Observable<PageInfo<Transferencia>> {
+    servidor = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta): Observable<PageInfo<Transferencia>> {
     return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
       sucursalOrigenId,
       sucursalDestinoId,
@@ -288,18 +306,21 @@ export class TransferenciaService {
       creadoHasta,
       page,
       size
-    }, servidor);
+    }, servidor, errorConf ?? null, undefined, contexto);
   }
 
   onGetTransferenciaItem(id: number, servidor = true): Observable<TransferenciaItem> {
-    return this.genericCrudService.onGetById(this.getTransferenciaItem, id, null, null, servidor);
+    return this.genericCrudService.onGetById(this.getTransferenciaItem, id, null, null, servidor, null, null, null, null, null,
+      null, PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE);
   }
 
   onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?, servidor = true) {
-    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, { id, name: texto, page, size }, servidor);
+    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, { id, name: texto, page, size },
+      servidor, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_DETALLE);
   }
   onGetHojaRuta(id: number, servidor = true): Observable<HojaRuta> {
-    return this.genericCrudService.onGetById(this.getHojaRuta, id, null, null, servidor);
+    return this.genericCrudService.onGetById(this.getHojaRuta, id, null, null, servidor, null, null, null, null, null, null,
+      PROPAGAR_ERROR_DE_RED, CONSULTA_DETALLE);
   }
 
   onGetHojaRutaList(page?, size?, servidor = true): Observable<PageInfo<HojaRuta>> {
@@ -320,6 +341,15 @@ export class TransferenciaService {
 
   onSaveHojaRuta(input: HojaRutaInput, servidor = true): Observable<HojaRuta> {
     return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor);
+  }
+
+  /**
+   * Pasa la transferencia a verificacion para transporte con el chofer elegido como responsable.
+   * El central crea la hoja de ruta y mueve el stock de cada item en una sola transaccion.
+   */
+  onVerificarParaTransporte(input: VerificarParaTransporteInput, servidor = true): Observable<Transferencia> {
+    // Igual que avanzar etapa: recorre cada item en el central y con muchos puede pasar el minuto.
+    return this.genericCrudService.onCustomMutation(this.verificarParaTransporteGQL, { input }, servidor, false, { timeoutMs: 300000 });
   }
 
   onDeleteHojaRuta(id: number, servidor = true): Observable<boolean> {

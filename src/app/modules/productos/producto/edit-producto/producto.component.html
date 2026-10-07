@@ -3,6 +3,18 @@
   style="height: 100%; width: 100%; overflow-y: hidden"
   fxLayoutGap="10px"
 >
+  <!-- El producto a editar no cargó (#390): no se puede guardar hasta cargarlo -->
+  <div
+    *ngIf="productoCargaFallo"
+    fxLayout="row"
+    fxLayoutAlign="center center"
+    fxLayoutGap="10px"
+    style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; padding: 8px 16px; border-radius: 6px; background-color: #5c2b2b"
+  >
+    <mat-icon>error_outline</mat-icon>
+    <span>No se pudo cargar el producto.</span>
+    <button mat-stroked-button type="button" (click)="reintentarCargaProducto()">Reintentar</button>
+  </div>
   <div fxFlex="20" *ngIf="!isDialog">
     <mat-card
       appearance="outlined"
@@ -22,7 +34,7 @@
         >
           <img
             [src]="imagenPrincipal"
-            [frcPrevisualizarImagen]="imagenPrincipal"
+            [frcPrevisualizarImagen]="imagenPrincipalGrande || imagenPrincipal"
             matTooltip="Ver imagen"
             alt="imagen principal mini"
             style="width: 100px; height: 100px; object-fit: contain; border-radius: 50%; cursor: pointer;"
@@ -1159,6 +1171,11 @@
             <div *ngIf="isPresentacionLoading">
               <mat-spinner></mat-spinner>
             </div>
+            <div *ngIf="presentacionesFallo && !isPresentacionLoading" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 10px 0">
+              <mat-icon>error_outline</mat-icon>
+              <span>No se pudieron cargar las presentaciones.</span>
+              <button mat-stroked-button type="button" (click)="reintentarPresentaciones()">Reintentar</button>
+            </div>
             <table
               mat-table
               #presentacionTable
@@ -1723,8 +1740,8 @@
             <div style="text-align: center">Imagen principal</div>
             <div style="background-color: black; width: 350px; height: 350px">
               <img
-                *ngIf="imagenPrincipal != null"
-                [src]="imagenPrincipal"
+                *ngIf="(imagenPrincipalGrande || imagenPrincipal) != null"
+                [src]="imagenPrincipalGrande || imagenPrincipal"
                 alt="imgPrincipal"
                 style="width: 350px; height: 350px; object-fit: contain"
               />

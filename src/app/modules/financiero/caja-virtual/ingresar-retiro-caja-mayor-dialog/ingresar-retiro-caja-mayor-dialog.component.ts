@@ -114,8 +114,15 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     this.cargar();
   }
 
+  /**
+   * Número de la última carga: los filtros recargan al salir del campo, así que puede haber dos en vuelo.
+   * Solo responde la última: una vieja no pisa la tabla ni repite el aviso (#390).
+   */
+  private cargaId = 0;
+
   cargar() {
     this.isLoading = true;
+    const id = ++this.cargaId;
     const sucId = this.sucursalControl.value?.id ?? null;
     const cajaId = this.cajaControl.value ? Number(this.cajaControl.value) : null;
     const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
@@ -124,7 +131,10 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
+          if (id !== this.cargaId) return;
           this.isLoading = false;
+          // Sin retiros flotantes la página llega vacía, no null: null es un error y no «no hay retiros» (#390).
+          if (res == null) { this.flotantesNoCargados(); return; }
           const content = res?.getContent ?? [];
           // Clonar cada fila (Apollo congela los resultados en dev) + campos de display.
           this.dataSource.data = content.map((r: Retiro) => {
@@ -136,8 +146,18 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
           });
           this.totalElements = res?.getTotalElements ?? 0;
         },
-        error: () => { this.isLoading = false; }
+        error: () => {
+          if (id !== this.cargaId) return;
+          this.isLoading = false;
+          this.flotantesNoCargados();
+        }
       });
+  }
+
+  private flotantesNoCargados() {
+    this.dataSource.data = [];
+    this.totalElements = 0;
+    this.notificacion.openWarn('No se pudieron cargar los retiros: intentá de nuevo.', 5);
   }
 
   /**

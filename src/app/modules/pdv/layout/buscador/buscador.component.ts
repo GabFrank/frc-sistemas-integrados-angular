@@ -25,7 +25,11 @@ import {
 } from "../../comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
 import { SelectProductosResponseData } from "../../comercial/venta-touch/select-productos-dialog/select-productos-dialog.component";
 import { ProductoService } from "../../../productos/producto/producto.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.constantes";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+/** El cajero espera de pie: pasado este tiempo se le avisa y el link no repite el aviso. */
+const CONTEXTO_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
+
 @UntilDestroy()
 @Component({
   selector: "app-buscador",
@@ -139,6 +143,9 @@ export class BuscadorComponent implements OnInit {
       mostrarOpciones: true,
       conservarUltimaBusqueda: true,
       servidor: false,
+      // Solo el POS: el diálogo avisa si el servidor no responde (#390). Las otras pantallas que lo
+      // abren no pasan esto y quedan como antes.
+      modoMostrador: true,
     };
     this.dialogReference = this.dialog.open(PdvSearchProductoDialogComponent, {
       height: "90%",
@@ -203,9 +210,9 @@ export class BuscadorComponent implements OnInit {
     let originalTexto = texto;
     
     // First try with the complete barcode
-    this.productoService.onGetProductoPorCodigo(texto, false)
+    this.productoService.onGetProductoPorCodigo(texto, false, false, PROPAGAR_ERROR_DE_RED, CONTEXTO_MOSTRADOR)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe({ error: () => this.avisarSinRespuesta(), next: (res) => {
         if (res != null) {
           console.log('Encontro producto por codigo');
           producto = res;
@@ -273,9 +280,10 @@ export class BuscadorComponent implements OnInit {
             codigo = originalTexto.substring(2, 7);
             peso = +originalTexto.substring(7, 12) / 1000;
             
-            this.productoService.onGetProductoPorCodigo(codigo, false)
+            this.productoService.onGetProductoPorCodigo(codigo, false, false, PROPAGAR_ERROR_DE_RED, CONTEXTO_MOSTRADOR)
               .pipe(untilDestroyed(this))
-              .subscribe((res) => {
+              // Sin sonido: el boop de "no encontrado con el código completo" ya sonó.
+              .subscribe({ error: () => this.avisarSinRespuesta(false), next: (res) => {
                 if (res != null) {
                   producto = res;
                   if (producto != null) {
@@ -302,13 +310,31 @@ export class BuscadorComponent implements OnInit {
                 } else {
                   this.buscarProductoDialog();
                 }
-              });
+              }});
           } else {
             this.buscarProductoDialog();
           }
         }
         this.setFocusToInput();
-      });
+      }});
+  }
+
+  /**
+   * El servidor local no respondió (#390). No se abre el buscador de respaldo: consultaría al mismo
+   * servidor. El código queda escrito y seleccionado: Enter reintenta y el próximo escaneo lo
+   * reemplaza en vez de pegarse atrás.
+   */
+  private avisarSinRespuesta(conSonido = true): void {
+    if (conSonido && this.isAudio) this.beepService.boop();
+    this.notificacionSnackbar.notification$.next({
+      texto: "No se pudo consultar el producto: el servidor local no responde",
+      color: NotificacionColor.warn,
+      duracion: 4,
+    });
+    setTimeout(() => {
+      this.buscadorInput.nativeElement.focus();
+      this.buscadorInput.nativeElement.select();
+    }, 0);
   }
 
   setFocusToInput() {

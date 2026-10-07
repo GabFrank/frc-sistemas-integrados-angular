@@ -44,7 +44,7 @@ export class FacturaLegalDashboard  implements OnInit{
   /** Política de facturación automática del filial (issue filial #127). */
   onAbrirPoliticaFacturacion() {
     this.matDialog.open(ConfiguracionFacturacionDialogComponent, {
-      width: '960px',
+      width: '1280px',
       maxWidth: '95vw',
       disableClose: false,
       panelClass: 'custom-dialog-container'

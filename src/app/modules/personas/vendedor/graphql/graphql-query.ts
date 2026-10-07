@@ -18,7 +18,7 @@ export const vendedoresQuery = gql
         productos{
           id
           descripcion
-          imagenPrincipal
+          imagenPrincipalMiniatura
           productoUltimasCompras{
             cantidad
             precio
@@ -57,7 +57,7 @@ export const vendedoresSearchByPersona = gql
         productos{
           id
           descripcion
-          imagenPrincipal
+          imagenPrincipalMiniatura
         }
       credito
       tipoCredito
@@ -84,7 +84,7 @@ export const vendedoresSearchByProveedor = gql
         productos{
           id
           descripcion
-          imagenPrincipal
+          imagenPrincipalMiniatura
           productoUltimasCompras{
             cantidad
             precio

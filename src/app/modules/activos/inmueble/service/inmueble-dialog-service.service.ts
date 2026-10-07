@@ -98,7 +98,8 @@ export class InmuebleDialogService {
     );
   }
 
-  onCancelar(dialogRef: MatDialogRef<any>): void {
-    dialogRef.close();
+  /** `refrescar`: quien abrió el formulario vuelve a cargar la lista (un alta quedó sin confirmar). */
+  onCancelar(dialogRef: MatDialogRef<any>, refrescar = false): void {
+    dialogRef.close(refrescar ? true : undefined);
   }
 }

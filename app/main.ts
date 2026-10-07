@@ -8,6 +8,7 @@ import { Buffer } from 'buffer';
 import { PosPrinter } from 'electron-pos-printer';
 
 import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
+import { GitHubProviderCanalEstricto, motivoSinProviderCanal } from "./updater-canal";
 
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
@@ -18,6 +19,25 @@ app.disableHardwareAcceleration();
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+
+// Feed de releases filtrado al canal configurado: sin esto un desktop alpha instala builds beta
+// cuando un beta queda arriba en el feed (#381). Mismo owner/repo que electron-builder.json:publish.
+// Si algo falla, el updater sigue con app-update.yml, como antes.
+if (GitHubProviderCanalEstricto) {
+  try {
+    autoUpdater.setFeedURL({
+      provider: 'custom',
+      updateProvider: GitHubProviderCanalEstricto,
+      owner: 'GabFrank',
+      repo: 'frc-sistemas-integrados-angular',
+    } as any);
+    log.info('Auto-updater: feed filtrado por canal activo');
+  } catch (e) {
+    log.error('Auto-updater: no se pudo activar el feed filtrado por canal, se usa app-update.yml:', e);
+  }
+} else {
+  log.warn(`Auto-updater: feed filtrado por canal desactivado (${motivoSinProviderCanal})`);
+}
 
 // Patch: safe AppImage swap (rename-then-move instead of unlink-then-move)
 // Prevents losing the AppImage if the update fails mid-swap.
@@ -71,6 +91,29 @@ if (process.platform === 'linux') {
 }
 
 let updateEnabled = false;
+// true si config-backup.json se armó al arrancar copiando una ruta de fallback: esa copia tiene
+// edad desconocida, así que no se le informa al renderer como canal guardado (#384)
+let configCopiadaDeFallback = false;
+
+function rutaConfigBackup(): string {
+  return path.join(app.getPath('userData'), 'config', 'config-backup.json');
+}
+
+/**
+ * Canal guardado en config-backup.json, el que usa el updater al arrancar. Nunca lanza:
+ * archivo ausente, ilegible o con JSON roto → null.
+ */
+function leerCanalGuardado(): string | null {
+  if (configCopiadaDeFallback) {
+    return null;
+  }
+  try {
+    const canal = JSON.parse(fs.readFileSync(rutaConfigBackup(), 'utf8'))?.updateChannel;
+    return ['alpha', 'beta', 'stable', 'dev'].includes(canal) ? canal : null;
+  } catch {
+    return null;
+  }
+}
 
 function configureUpdateChannel(): boolean {
   try {
@@ -109,6 +152,7 @@ function configureUpdateChannel(): boolean {
             fs.mkdirSync(configDir, { recursive: true });
           }
           fs.copyFileSync(fallback, configPath);
+          configCopiadaDeFallback = true;
           log.info(`Copied config to expected location: ${configPath}`);
           return applyUpdateChannel(channel);
         }
@@ -424,10 +468,35 @@ ipcMain.on('save-config-backup', (event: any, configData: string) => {
       fs.mkdirSync(configDir, { recursive: true });
     }
     const configPath = path.join(configDir, 'config-backup.json');
-    fs.writeFileSync(configPath, configData, 'utf8');
+    let contenido = configData;
+    // Una config sin canal no borra el que ya está guardado: el updater lo lee de acá al arrancar (#384)
+    try {
+      const entrante = JSON.parse(configData);
+      if (entrante && !entrante.updateChannel && fs.existsSync(configPath)) {
+        const canalGuardado = JSON.parse(fs.readFileSync(configPath, 'utf8'))?.updateChannel;
+        if (canalGuardado) {
+          contenido = JSON.stringify({ ...entrante, updateChannel: canalGuardado }, null, 2);
+          log.info(`Config backup sin canal: se conserva el guardado (${canalGuardado})`);
+        }
+      }
+    } catch {
+      // JSON entrante o guardado ilegible: se escribe lo que mandó el renderer, como antes
+    }
+    fs.writeFileSync(configPath, contenido, 'utf8');
     log.info(`Config backup saved by main process to: ${configPath}`);
   } catch (e) {
     log.error('Error saving config backup from renderer:', e);
+  }
+});
+
+// Canal guardado, para que el renderer lo adopte al arrancar en vez de imponer el de su
+// localStorage (#384). Siempre responde: un sendSync sin respuesta congela el renderer.
+ipcMain.on('get-update-channel', (event: any) => {
+  let canal: string | null = null;
+  try {
+    canal = leerCanalGuardado();
+  } finally {
+    event.returnValue = canal;
   }
 });
 

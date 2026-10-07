@@ -42,9 +42,16 @@ export class BancoComponent implements OnInit {
     this.isSearching = true;
     this.bancoService.onGetAll()
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        if (res != null) this.dataSource.data = res;
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los bancos.', 5); return; }
+          this.dataSource.data = res;
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar los bancos: el servidor no responde.', 5);
+        }
       });
   }
 

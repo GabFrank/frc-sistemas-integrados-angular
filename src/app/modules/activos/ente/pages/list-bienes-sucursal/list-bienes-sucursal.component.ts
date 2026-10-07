@@ -15,6 +15,15 @@ import { TipoEnte } from '../../enums/tipo-ente.enum';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
+import { ContextoConsulta, QueryError } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.constantes';
+
+/** Consulta de la asignación de un bien antes de editar o retirar: un fallo llega como error y se avisa. */
+const LECTURA_ASIGNACION: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_ASIGNACION: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 interface BienFinancieroRow {
   id?: number;
@@ -26,10 +35,13 @@ interface BienFinancieroRow {
   situacionPago: string;
   cuotasPagadas: number;
   cuotasTotales: number;
-  cuotasFaltantes: number;
-  montoTotal: number;
-  montoYaPagado: number;
-  montoPendiente: number;
+  // `null` = el central no informó el dato (bien sin plan o sin monto): se muestra «—», no 0
+  cuotasFaltantes: number | null;
+  montoTotal: number | null;
+  montoYaPagado: number | null;
+  montoPendiente: number | null;
+  /** «pagadas / totales», o «—» si el bien no tiene cuotas. */
+  cuotasTexto: string;
   moneda: string;
   diaVencimiento: number;
   diasParaVencer: number;
@@ -38,7 +50,7 @@ interface BienFinancieroRow {
   cuotaPagada: boolean;
   cuotasSubtexto: string;
   proveedor: string;
-  detalleGastos: { concepto: string; monto: number; moneda: string }[];
+  detalleGastos: { concepto: string; monto: number | null; moneda: string }[];
   sucursalIds: number[];
 }
 
@@ -166,9 +178,12 @@ export class ListBienesSucursalComponent implements OnInit {
   onEditar(row: BienFinancieroRow): void {
     if (!row.id) return;
 
-    const obs = this.enteService.getEnteSucursalByEnteId(row.id).pipe(map(res => (res as EnteSucursal[])[0] || null));
+    const sinConsulta = () =>
+      this.notificationService.openWarn('No se pudo consultar la asignación del bien: volvé a intentar.', 5);
+    const obs = this.enteService.getEnteSucursalByEnteId(row.id, LECTURA_ASIGNACION, CONSULTA_ASIGNACION)
+      .pipe(map(res => ((res ?? []) as EnteSucursal[])[0] || null));
 
-    obs.pipe(untilDestroyed(this)).subscribe(enteSucursal => {
+    obs.pipe(untilDestroyed(this)).subscribe({ error: sinConsulta, next: enteSucursal => {
       if (enteSucursal) {
         this.matDialog.open(EnteSucursalDialogComponent, {
           data: {
@@ -179,7 +194,7 @@ export class ListBienesSucursalComponent implements OnInit {
           this.enteService.refrescar();
         });
       } else {
-        this.enteService.onBuscarPorId(row.id!).subscribe(ente => {
+        this.enteService.onBuscarPorId(row.id!, LECTURA_ASIGNACION, CONSULTA_ASIGNACION).pipe(untilDestroyed(this)).subscribe({ error: sinConsulta, next: ente => {
           if (ente) {
             this.matDialog.open(EnteSucursalDialogComponent, {
               data: {
@@ -190,9 +205,9 @@ export class ListBienesSucursalComponent implements OnInit {
               this.enteService.refrescar();
             });
           }
-        });
+        } });
       }
-    });
+    } });
   }
 
   onRetirarDeSucursal(ente: BienFinancieroRow): void {
@@ -202,7 +217,11 @@ export class ListBienesSucursalComponent implements OnInit {
       return;
     }
 
-    this.enteService.getEnteSucursalByEnteAndSucursal(ente.id, sucursalId).subscribe(res => {
+    this.enteService.getEnteSucursalByEnteAndSucursal(ente.id, sucursalId, LECTURA_ASIGNACION, CONSULTA_ASIGNACION)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () =>
+        this.notificationService.openWarn('No se pudo consultar la asignación del bien: no se retiró.', 5),
+      next: res => {
       if (res) {
         this.enteService.onEliminarEnteSucursal(res.id).subscribe(deleted => {
           if (deleted) {
@@ -215,7 +234,7 @@ export class ListBienesSucursalComponent implements OnInit {
           }
         });
       }
-    });
+    } });
   }
 
 
@@ -243,15 +262,16 @@ export class ListBienesSucursalComponent implements OnInit {
   private armarFila(ente: Ente): Observable<BienFinancieroRow> {
     const cuotasTotales = ente.cuotasTotales || 0;
     const cuotasPagadas = ente.cuotasPagadas || 0;
-    const cuotasFaltantes = ente.cuotasFaltantes || 0;
-    const montoTotal = ente.montoTotal || 0;
-    const montoYaPagado = ente.montoYaPagado || 0;
-    const montoPendiente = ente.montoPendiente || 0;
+    // El central deja estos datos en null a propósito cuando el bien no tiene monto o plan (comodato, donado,
+    // «pagando» sin monto). Tratarlos como 0 hacía figurar esos bienes como «Pagado» con pendiente 0.
+    const cuotasFaltantes = ente.cuotasFaltantes ?? null;
+    const montoTotal = ente.montoTotal ?? null;
+    const montoYaPagado = ente.montoYaPagado ?? null;
+    const montoPendiente = ente.montoPendiente ?? null;
     const moneda = ente.monedaSimbolo || 'Gs.';
     const estadoCuota = (ente.estadoCuota as any) || 'SIN PLAN';
     const cuotaPagada = (ente.situacionPago || '') === 'PAGADO'
-      || montoPendiente <= 0
-      || cuotasFaltantes <= 0;
+      || (montoPendiente != null && montoPendiente <= 0);
 
     return of({
       id: ente.id,
@@ -267,13 +287,17 @@ export class ListBienesSucursalComponent implements OnInit {
       montoTotal,
       montoYaPagado,
       montoPendiente,
+      cuotasTexto: cuotasTotales > 0 ? `${cuotasPagadas} / ${cuotasTotales}` : '—',
       moneda,
       diaVencimiento: ente.diaVencimiento || 0,
       diasParaVencer: ente.diasParaVencer || 0,
       estadoCuota,
       estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
       cuotaPagada,
-      cuotasSubtexto: cuotaPagada ? 'Pagado' : `Faltan: ${cuotasFaltantes}`,
+      cuotasSubtexto: cuotaPagada ? 'Pagado'
+        : cuotasFaltantes == null ? (cuotasTotales > 0 ? 'Sin datos de pago' : 'Sin plan')
+        : cuotasFaltantes <= 0 ? 'Sin cuotas pendientes'
+        : `Faltan: ${cuotasFaltantes}`,
       proveedor: ente.proveedorNombre || 'No definido',
       detalleGastos: [
         { concepto: 'Monto total comprometido', monto: montoTotal, moneda },

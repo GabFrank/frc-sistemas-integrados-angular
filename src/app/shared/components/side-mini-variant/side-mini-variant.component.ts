@@ -91,6 +91,7 @@ import { ListOperacionFinancieraComponent } from '../../../modules/financiero/op
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
 import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
 import { ChequesDashboardComponent } from '../../../modules/financiero/cheque/cheques-dashboard/cheques-dashboard.component';
+import { NavegacionMenuService, PantallaMenu } from './navegacion-menu.service';
 
 
 interface BaseNavigationItem {
@@ -126,6 +127,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
   @Output() toggleSideNav = new EventEmitter<boolean>();
 
   private authSubscription: Subscription;
+  private abrirSubscription: Subscription;
 
   navigationItems: NavigationItem[] = [
     {
@@ -822,11 +824,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
     private electronService: ElectronService,
     private notificacionService: NotificacionSnackbarService,
     private usuarioService: UsuarioService,
-    private loginDialogService: LoginDialogService
+    private loginDialogService: LoginDialogService,
+    private navegacionMenuService: NavegacionMenuService
   ) { }
 
   ngOnInit(): void {
     this.updateMenuVisibility();
+    this.navegacionMenuService.registrarMenu(() => this.pantallasVisibles());
+    this.abrirSubscription = this.navegacionMenuService.abrir$.subscribe(action => {
+      this.onItemClick(action, undefined, true);
+    });
     this.authSubscription = this.mainService.authenticationSub.subscribe(isAuthenticated => {
       if (isAuthenticated) {
         this.updateMenuVisibility();
@@ -860,6 +867,29 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
     }
+    if (this.abrirSubscription) {
+      this.abrirSubscription.unsubscribe();
+    }
+  }
+
+  // Hojas del arbol que el usuario ve en el menu, con el mismo criterio que el template
+  // (isVisible !== false en cada nivel). Las consume el buscador global.
+  private pantallasVisibles(): PantallaMenu[] {
+    const pantallas: PantallaMenu[] = [];
+    const recorrer = (items: NavigationItem[], ruta: string[]) => {
+      for (const item of items) {
+        if (item.isVisible === false) {
+          continue;
+        }
+        if ('items' in item && item.items) {
+          recorrer(item.items, [...ruta, item.name]);
+        } else if (item.action) {
+          pantallas.push({ titulo: item.name, ruta: ruta.join(' > '), action: item.action });
+        }
+      }
+    };
+    recorrer(this.navigationItems, []);
+    return pantallas;
   }
   updateMenuVisibility(): void {
     const isLocal = this.mainService.isLocal();

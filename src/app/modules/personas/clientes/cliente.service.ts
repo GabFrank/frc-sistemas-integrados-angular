@@ -39,9 +39,9 @@ export class ClienteService {
   }
 
   onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
+    // Sin `show: false`: su único llamador no avisa nada, así que el aviso lo da el genérico (#390).
     let errorConf: QueryError = {
       networkError: {
-        show: false,
         propagate: true
       }
     }
@@ -88,22 +88,23 @@ export class ClienteService {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, servidor);
   }
 
-  onSearch(texto: string, servidor: boolean = true): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor);
+  onSearch(texto: string, servidor: boolean = true, errorConf?: QueryError): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor, undefined, errorConf);
   }
 
   onSearchConFiltros(texto: string, tipo: TipoCliente, page, size, servidor: boolean = true): Observable<PageInfo<Cliente>> {
     return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
-  onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
+  /** Sin `errorConf` un error falla hacia quien llama (#390). */
+  onGetByPersonaIdFromServer(id: number, errorConf?: QueryError): Observable<Cliente> {
     return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
       "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 
-      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet");
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", errorConf);
   }
 
-  onSearchFromServer(texto: string): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
+  onSearchFromServer(texto: string, errorConf?: QueryError): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000, errorConf);
   }
 
   onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{

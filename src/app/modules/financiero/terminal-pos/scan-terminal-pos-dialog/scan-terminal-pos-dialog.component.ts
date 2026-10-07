@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { Component, Inject, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -10,6 +10,8 @@ import { FormatoTerminalPosService } from "../../venta-tarjeta/qr-pos/formato-te
 import { TIPO_WEB } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.model";
 import { VentaTarjetaService } from "../../venta-tarjeta/venta-tarjeta.service";
 import { DecimalesPorMoneda, ordenarPorProveedor, parsearCupon } from "../../venta-tarjeta/qr-pos/qr-pos-parser";
+import { LectorTecladoDirective } from "../../../../shared/lector-teclado/lector-teclado.directive";
+import { lecturasAProbar } from "../../../../shared/lector-teclado/teclado-lector";
 
 /**
  * Largo minimo antes de intentar la busqueda. El codigo mas corto en uso es del estilo
@@ -53,6 +55,8 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   selectedTerminalPos: TerminalPos = null;
   buscando = false;
   noEncontrado = false;
+  /** La búsqueda de la terminal falló (sin conexión, rechazo): distinto de «no existe». */
+  errorConsulta = false;
 
   /** Los formatos activos, para poder reconocer un cupón en el mismo input. */
   private formatos: FormatoQrPos[] = [];
@@ -66,6 +70,12 @@ export class ScanTerminalPosDialogComponent implements OnInit {
 
   /** Desde `beforeClosed`: el dialogo se esta yendo y el foco ya no se pelea (ver `onBlurCodigo`). */
   private cerrando = false;
+
+  /**
+   * Las teclas fisicas de lo escaneado. Con Windows en español el lector (tabla EE.UU.) llega con
+   * el `*` del cupon como `(` y el `-` de `POS-001` como `'`: esto ofrece la cadena que mando.
+   */
+  @ViewChild(LectorTecladoDirective) private lector: LectorTecladoDirective;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
@@ -128,6 +138,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
         tap(() => {
           this.selectedTerminalPos = null;
           this.noEncontrado = false;
+          this.errorConsulta = false;
         }),
         map((valor: string) => (valor || '').trim()),
         filter((valor: string) => valor.length >= LARGO_MINIMO_CODIGO),
@@ -145,6 +156,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     if (this.buscando) return;
 
     const codigo = this.codigoControl.value?.trim();
+    const alternativa = this.lector?.alternativa();
 
     // ⚠️ PRIMERO SE PRUEBA COMO CUPON, Y EL ORDEN ES LO QUE LO HACE SEGURO.
     //
@@ -155,18 +167,34 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     //
     // Esto es lo que saca el peaje del primer dialogo: el cajero escanea lo que tenga a mano --el
     // aparato o el cupon-- y el sistema decide que era.
-    if (this.intentarComoCupon(codigo)) return;
+    if (this.intentarComoCupon(codigo, alternativa)) return;
 
     this.buscando = true;
     this.noEncontrado = false;
+    this.errorConsulta = false;
+    this.buscarTerminal(lecturasAProbar(codigo, alternativa));
+  }
 
+  /**
+   * Busca la terminal por la primera lectura y, si no aparece, por la siguiente. La segunda es la
+   * cadena rearmada desde las teclas fisicas: primero va lo que tipeo Windows, que es lo que tipea
+   * un cajero a mano.
+   */
+  private buscarTerminal(lecturas: string[]): void {
+    const [codigo, ...resto] = lecturas;
     // Los nulls del medio son `serie` y `sucursalId`: acá se busca por el codigo que el cajero
     // escanea, no por la serie del aparato ni por donde esté.
     this.terminalPosService.onFilter(null, codigo, null, null, true, 0, 1, false)
       .pipe(untilDestroyed(this))
       .subscribe((page: any) => {
-        this.buscando = false;
+        // null = la consulta fue rechazada: no es «no existe una terminal con ese código».
+        if (page == null) { this.buscando = false; this.errorConsulta = true; return; }
         const resultados = page?.getContent ?? page?.data?.getContent ?? [];
+        if (resultados.length === 0 && resto.length > 0) {
+          this.buscarTerminal(resto);
+          return;
+        }
+        this.buscando = false;
         if (resultados.length > 0) {
           this.selectedTerminalPos = resultados[0];
           // Si ya se habia escaneado el cupon y faltaba la terminal, salen los dos juntos y el
@@ -182,7 +210,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
         }
       }, () => {
         this.buscando = false;
-        this.noEncontrado = true;
+        this.errorConsulta = true;
       });
   }
 
@@ -194,11 +222,17 @@ export class ScanTerminalPosDialogComponent implements OnInit {
    * Prueba la cadena como cupon. Devuelve `true` si lo era --y entonces ya se resolvio o se
    * informo-- y `false` si hay que seguir tratandola como codigo de terminal.
    */
-  private intentarComoCupon(cadena: string): boolean {
+  private intentarComoCupon(cadena: string, alternativa?: string | null): boolean {
     if (!this.formatos.length) return false;
 
-    const r = parsearCupon(cadena, this.formatos, this.data?.decimalesPorMoneda);
+    const r = parsearCupon(cadena, this.formatos, this.data?.decimalesPorMoneda, alternativa);
     if (!r.ok || !r.datos) return false;
+
+    // Si se leyo por la rearmada, el campo pasa a mostrarla: el cajero ve lo que se uso, no los
+    // `(` que tipeo Windows.
+    if (r.datos.qrCrudo !== cadena) {
+      this.codigoControl.setValue(r.datos.qrCrudo, { emitEvent: false });
+    }
 
     this.cuponPendiente = r.datos;
     this.resolverTerminalDelCupon(r.datos);
@@ -225,10 +259,10 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       //
       // Si el formato NO la declara, no hay nada mal: ese proveedor simplemente no imprime de qué
       // punto salió, y pedir la terminal es el camino normal.
-      this.avisoCupon = declaraTerminal(datos?.formato)
+      this.esperarTerminal(declaraTerminal(datos?.formato)
         ? 'Este cupón no trae el identificador de la terminal que el formato declara. '
           + 'Puede ser de una versión anterior del cupón.'
-        : 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué aparato salió.';
+        : 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué aparato salió.');
       return;
     }
 
@@ -245,7 +279,12 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           this.buscando = false;
-          const resultados = res ?? [];
+          // null = consulta rechazada: no es «esa máquina no está registrada».
+          if (res == null) {
+            this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
+            return;
+          }
+          const resultados = res;
           if (resultados.length === 1) {
             this.selectedTerminalPos = resultados[0];
             this.cerrarSiElCuponSirve(datos);
@@ -254,17 +293,32 @@ export class ScanTerminalPosDialogComponent implements OnInit {
           // Cero o mas de una: no se elige por el cajero. Dos con la misma serie exacta significa
           // que estan cargadas bajo proveedores distintos --el unico caso que los indices permiten--
           // y adivinar ahi es cobrar contra la maquina equivocada.
-          this.avisoCupon = resultados.length === 0
+          this.esperarTerminal(resultados.length === 0
             ? `Leí el cupón, y dice que salió de la máquina "${serie}", que no está registrada. `
               + 'Escaneá el código de la terminal.'
             : `Leí el cupón, pero "${serie}" coincide con más de una terminal. `
-              + 'Escaneá el código de la que corresponde.';
+              + 'Escaneá el código de la que corresponde.');
         },
         error: () => {
           this.buscando = false;
-          this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
+          this.esperarTerminal('Leí el cupón. Escaneá el código de la terminal para continuar.');
         },
       });
+  }
+
+  /**
+   * El cupón ya está leído y falta la terminal: el campo se vacía para el próximo escaneo.
+   *
+   * Antes quedaba con el texto del cupón, y el lector --keyboard-wedge, escribe donde está el
+   * cursor-- pegaba el código de la terminal atrás (`FRCP1*…*202608271401POS-001`): ni terminal ni
+   * cupón, y el cajero tenía que borrar a mano. Vacío, además, `LectorTecladoDirective` arranca un
+   * registro nuevo y puede rearmar el `-` de `POS-001` si Windows lo tipeó como `'` (auditoría del
+   * diff, 2026-10-05). `reset` y no `setValue('')`: ver `cerrarSiElCuponSirve`.
+   */
+  private esperarTerminal(aviso: string): void {
+    this.avisoCupon = aviso;
+    this.codigoControl.reset(null, { emitEvent: false });
+    this.enfocarInput();
   }
 
   /**

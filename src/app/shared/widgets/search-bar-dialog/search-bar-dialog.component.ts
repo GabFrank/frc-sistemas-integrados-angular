@@ -7,7 +7,8 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BuscadorTextoService } from '../../services/buscador-texto.service';
-import { filter, switchMap, tap } from 'rxjs/operators';
+import { filter, tap } from 'rxjs/operators';
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -37,16 +38,15 @@ export class SearchBarDialogComponent implements OnInit {
       .pipe(
         tap(() => this.actualizarMenu()),
         filter(() => !!this.buscarControl.value?.trim()),
-        switchMap(() =>
+        // Si una búsqueda falla, el buscador sigue escuchando lo que se tipea (#390).
+        switchMapSinCortar(() =>
           this.searchBarService.onSearch(this.buscarControl.value ?? '')
         ),
         untilDestroyed(this)
       )
       .subscribe((result) => {
         this.searchDataList = {
-          componentes: this.searchBarService.filtrarComponentes(
-            this.buscarControl.value ?? ''
-          ),
+          componentes: this.componentesPermitidos(this.buscarControl.value ?? ''),
           productos: result.productos ?? [],
         };
       });
@@ -64,14 +64,27 @@ export class SearchBarDialogComponent implements OnInit {
 
   private actualizarMenu(): void {
     const texto = this.buscarControl.value ?? '';
-    const componentes = this.searchBarService.filtrarComponentes(texto);
+    const componentes = this.componentesPermitidos(texto);
     this.searchDataList = {
       componentes,
       productos: this.searchDataList?.productos ?? [],
     };
   }
 
+  // No ofrecer lo que el usuario no puede abrir
+  private componentesPermitidos(texto: string): SearchData[] {
+    return this.searchBarService
+      .filtrarComponentes(texto)
+      .filter((item) => this.hasPermissionToAccess(item));
+  }
+
   hasPermissionToAccess(item: SearchData): boolean {
+    // Las pantallas del menu ya llegan filtradas por visibilidad, y el menu vuelve a validar
+    // el rol al abrirlas.
+    if (item.action) {
+      return true;
+    }
+
     const userRoles = this.mainService.usuarioActual?.roles || [];
     
     // Si el usuario es ADMIN, puede acceder a todo

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario } from './operacion-financiera.model';
 import { OperacionesFinancierasGQL } from './graphql/operacionesFinancieras';
 import { OperacionFinancieraGQL } from './graphql/operacionFinanciera';
@@ -16,6 +17,9 @@ export interface SimplePage<T> {
   getTotalElements: number;
   getContent: T[];
 }
+
+/** Listados y catálogos con un solo suscriptor por método, que maneja el error (#390). */
+const CONSULTA_OPERACIONES: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -33,16 +37,19 @@ export class OperacionFinancieraService {
   ) { }
 
   onGetOperaciones(page = 0, size = 10): Observable<SimplePage<OperacionFinanciera>> {
-    return this.genericService.onCustomQuery(this.operacionesGQL, { page, size });
+    return this.genericService.onCustomQuery(this.operacionesGQL, { page, size }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_OPERACIONES);
   }
 
   /** Detalle de una operación financiera por id (para el diálogo read-only en caja mayor). */
   onGetOperacion(id: number): Observable<OperacionFinanciera> {
-    return this.genericService.onCustomQuery(this.operacionGQL, { id });
+    return this.genericService.onCustomQuery(this.operacionGQL, { id }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_OPERACIONES);
   }
 
   onGetCategorias(): Observable<OperacionFinancieraCategoria[]> {
-    return this.genericService.onCustomQuery(this.categoriasGQL, {});
+    return this.genericService.onCustomQuery(this.categoriasGQL, {}, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_OPERACIONES);
   }
 
   onRegistrar(operacion: OperacionFinanciera, opciones?: { avisarExito?: boolean }): Observable<OperacionFinanciera> {
@@ -69,6 +76,6 @@ export class OperacionFinancieraService {
       tipo: filtros.tipo ?? null,
       soloActivos: filtros.soloActivos ?? false,
       page, size
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_OPERACIONES);
   }
 }

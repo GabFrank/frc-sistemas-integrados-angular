@@ -1,10 +1,11 @@
-import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { LectorTecladoDirective } from '../../../../../shared/lector-teclado/lector-teclado.directive';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { interval } from 'rxjs';
-import { debounceTime, filter, map, switchMap } from 'rxjs/operators';
+import { debounceTime, filter, map } from 'rxjs/operators';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -26,6 +27,7 @@ import {
   ordenarPorProveedor,
   parsearCupon,
 } from '../qr-pos-parser';
+import { switchMapSinCortar } from '../../../../../commons/core/utils/rxjsUtils';
 
 export interface RegistrarVentaTarjetaData {
   /** Id del venta_tarjeta PENDIENTE que creó el PDV. */
@@ -110,6 +112,12 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
 export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
 
   cuponControl = new FormControl('');
+
+  /**
+   * Las teclas fisicas de lo escaneado. Con Windows en español el lector (tabla EE.UU.) tipea el
+   * `*` del cupon como `(`: esto ofrece la cadena que mando (ver `shared/lector-teclado`).
+   */
+  @ViewChild(LectorTecladoDirective) private lector: LectorTecladoDirective;
   formatos: FormatoQrPos[] = [];
   procesando = false;
   errorLectura: string = null;
@@ -227,7 +235,9 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     // y se cierra solo.
     interval(3000)
       .pipe(
-        switchMap(() =>
+        // Si un sondeo falla se espera al siguiente: con un switchMap común el primer error cortaba el
+        // sondeo y el diálogo ya no se cerraba solo cuando el celular completaba el registro (#390).
+        switchMapSinCortar(() =>
           this.ventaTarjetaService.onGetEstadoPorId(this.data.ventaTarjetaId, this.data.sucursalId)
         ),
         untilDestroyed(this)
@@ -257,10 +267,16 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     this.errorLectura = null;
 
     const ordenados = ordenarPorProveedor(this.formatos, this.data.proveedorServicioId);
-    const resultado = parsearCupon(cadena, ordenados, this.data.decimalesPorMoneda || {});
+    const resultado = parsearCupon(
+      cadena, ordenados, this.data.decimalesPorMoneda || {}, this.lector?.alternativa());
     if (!resultado.ok) {
       this.errorLectura = resultado.error;
       return;
+    }
+    // Si se leyo por la rearmada, el campo pasa a mostrarla: el cajero ve lo que se uso, no los
+    // `(` que tipeo Windows.
+    if (resultado.datos.qrCrudo !== cadena) {
+      this.cuponControl.setValue(resultado.datos.qrCrudo, { emitEvent: false });
     }
 
     const datos = resultado.datos;
@@ -308,8 +324,9 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    * puede desempatarlos si son del mismo monto y hoy no vincula ninguno: el dato del cupón queda
    * guardado pero la conciliación se pierde. Por eso acá se FRENA y se obliga a elegir.
    *
-   * Si la consulta de cobros falla no se bloquea el registro: se completa sin cobroDetalleId y
-   * el backend hace lo que pueda. Perder el vínculo es malo; perder el registro del cupón, peor.
+   * Si la consulta de cobros no responde, NO se completa sin vínculo (#390): sin saber cuántos cobros
+   * hay, con dos del mismo monto el registro quedaba COMPLETADO sin vínculo y sin forma de deshacerlo.
+   * El cupón no se pierde: se vuelve a escanear, o «Más tarde» lo deja PENDIENTE en la conciliación.
    */
   private resolverCobroYCompletar(datos: DatosCupon, advertencias: string[]): void {
     if (!this.data.ventaId) {
@@ -350,7 +367,10 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.procesando = false;
-          this.completar(datos, advertencias);
+          this.cuponControl.setValue('', { emitEvent: false });
+          this.errorLectura = 'No se pudo consultar los cobros de la venta: el servidor no responde. Volvé a escanear el cupón.';
+          // El texto de arriba solo se ve con el lector; por foto o captura, el aviso.
+          this.notificacionSnackbar.openWarn(this.errorLectura, 4);
         },
       });
   }

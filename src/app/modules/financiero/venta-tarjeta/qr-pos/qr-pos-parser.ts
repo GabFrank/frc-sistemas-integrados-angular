@@ -13,8 +13,13 @@ import {
  * pantalla de administracion. A ValidaPix le pedimos nuestro formato (FRCP1) y acepto; el resto
  * de los proveedores imprime lo que ya tiene, y a eso hay que adaptarse sin un release.
  *
- * Lo que este motor NO puede resolver: el lector es keyboard-wedge con teclado es-LA. Si un
- * proveedor imprime multilinea, o caracteres que el wedge no tipea, no hay regex que lo salve.
+ * Lo que este motor NO puede resolver: el lector es keyboard-wedge. Si un proveedor imprime
+ * multilinea, o caracteres que el wedge no tipea, no hay regex que lo salve.
+ *
+ * ⚠️ Lo que el wedge tipea depende del idioma de teclado de Windows, no del lector: el lector
+ * manda teclas físicas con tabla EE.UU., y con Windows en español el `*` llega como `(` (medido el
+ * 2026-10-05). Por eso `parsearCupon` acepta una `alternativa`, la cadena rearmada desde las
+ * teclas físicas por `LectorTecladoDirective` (`shared/lector-teclado`).
  */
 
 /**
@@ -40,7 +45,8 @@ export interface DecimalesPorMoneda {
 export function parsearCupon(
   cadena: string,
   formatos: FormatoQrPos[],
-  decimalesPorMoneda: DecimalesPorMoneda = {}
+  decimalesPorMoneda: DecimalesPorMoneda = {},
+  alternativa?: string | null
 ): ResultadoParseo {
   const cruda = (cadena || '').trim();
   if (!cruda) {
@@ -59,11 +65,30 @@ export function parsearCupon(
     };
   }
 
+  // ⚠️ Las dos lecturas se prueban FORMATO POR FORMATO, no «la original contra todos y después la
+  // rearmada». Al revés, una original corrupta podría matchear el patrón de OTRO proveedor antes de
+  // que la rearmada llegara al propio, y se cargarían datos de otro formato (auditoría del plan,
+  // hallazgo A1). Así el formato del proveedor de la terminal gana siempre.
+  //
+  // La lectura que matchea es la que queda en `qrCrudo`, y viaja al filial como base del control de
+  // duplicado por cadena cruda. La rearmada es lo que tipearía un Windows en inglés, así que el
+  // mismo cupón llega igual desde cualquier caja: el control no se esquiva cambiando de idioma.
+  const alterna = (alternativa || '').trim();
+  const lecturas =
+    alterna && alterna !== cruda && alterna.length <= MAX_LONGITUD_QR ? [cruda, alterna] : [cruda];
   for (const formato of formatos) {
-    const match = intentarMatch(cruda, formato);
+    let match: RegExpMatchArray | null = null;
+    let lectura = cruda;
+    for (const l of lecturas) {
+      match = intentarMatch(l, formato);
+      if (match) {
+        lectura = l;
+        break;
+      }
+    }
     if (!match) continue;
     try {
-      return { ok: true, datos: extraer(match, cruda, formato, decimalesPorMoneda) };
+      return { ok: true, datos: extraer(match, lectura, formato, decimalesPorMoneda) };
     } catch (e) {
       return {
         ok: false,
@@ -81,7 +106,7 @@ export function parsearCupon(
   // el cupón de la terminal. El error genérico no dice qué esperaba y propone el celular, que es
   // la salida correcta para un cupón ilegible y la equivocada para una seña pegada en el campo de
   // al lado. Pasó en la prueba del 2026-09-17: la cadena era correcta y el campo era el otro.
-  if (cruda.trim().toLowerCase().startsWith('frc-')) {
+  if (lecturas.some((l) => l.toLowerCase().startsWith('frc-'))) {
     return {
       ok: false,
       error:

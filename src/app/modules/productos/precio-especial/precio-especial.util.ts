@@ -69,3 +69,24 @@ export function idsSucursalesSeleccionadas(
   const ids = elegidas.filter((s) => s != null).map((s) => Number(s.id)).filter((id) => id !== 0 && !isNaN(id));
   return Array.from(new Set(ids));
 }
+
+/** Un precio inactivo (una promo 2x1) no se cobra en ninguna sucursal: solo una promoción lo habilita. */
+export function esPrecioInactivo(precio: { activo?: boolean }): boolean {
+  return precio?.activo === false;
+}
+
+/**
+ * La promoción cobra su propio valor, no el del precio. Sobre un precio inactivo ese valor ya se cargó
+ * una vez (los 5.000 del 2x1): el alta arranca con él en vez de pedirlo de nuevo.
+ */
+export function precioPromocionalInicial(precio: { activo?: boolean; precio?: number }): number | null {
+  const valor = Number(precio?.precio);
+  return esPrecioInactivo(precio) && valor > 0 ? valor : null;
+}
+
+/** Detalle del confirm de cortar: sin promoción, un precio inactivo no vuelve a ningún precio. */
+export function detalleAlCortar(precioInactivo: boolean): string {
+  return precioInactivo
+    ? 'El precio vuelve a quedar inactivo en esa sucursal desde el próximo escaneo.'
+    : 'La sucursal vuelve al precio global desde el próximo escaneo.';
+}

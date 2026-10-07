@@ -42,7 +42,7 @@
     <button mat-button (click)="onToggleAgregar()">Cancelar</button>
   </div>
 
-  <div *ngIf="!mostrarAgregar && liq.estado === 'BORRADOR' && puedeLiquidar" fxLayout="row" fxLayoutAlign="end center">
+  <div *ngIf="!mostrarAgregar && liq.estado === 'BORRADOR' && puedeLiquidar && !conceptosNoCargados" fxLayout="row" fxLayoutAlign="end center">
     <button mat-stroked-button color="primary" (click)="onToggleAgregar()">
       <mat-icon>add</mat-icon> Agregar Item
     </button>
@@ -161,13 +161,20 @@
       Corrija los items o cobre la diferencia por separado.</span>
   </div>
 
+  <div *ngIf="itemsFallo" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>No se pudieron cargar los ítems: la liquidación no se puede aprobar hasta que carguen.</span>
+    <button mat-stroked-button (click)="cargarItems()">Reintentar</button>
+  </div>
+
   <div class="acciones-footer" fxLayout="row" fxLayoutAlign="space-between center">
     <button mat-stroked-button (click)="onCerrar()">Cerrar</button>
     <div fxLayout="row" fxLayoutGap="10px">
       <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR' && puedeLiquidar" (click)="onRegenerar()">
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar" (click)="onAprobar()">Aprobar</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar"
+        [disabled]="!itemsCargados" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && (puedeLiquidar || puedeAprobar)" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo

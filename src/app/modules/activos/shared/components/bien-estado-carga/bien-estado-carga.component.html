@@ -1,0 +1,34 @@
+<!-- Alta sin confirmar (#390): vale para cualquier estado de carga (un alta nunca cargó un bien) -->
+<div *ngIf="altaSinConfirmar" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+  style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
+  <mat-icon>warning</mat-icon>
+  <span fxFlex>{{ textoAltaSinConfirmar }}</span>
+  <button mat-stroked-button type="button" (click)="cerrar.emit()">Cerrar</button>
+</div>
+
+<div *ngIf="bien === 'cargando'" style="padding: 8px 0">Cargando los datos del bien…</div>
+
+<div *ngIf="bien === 'error'" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+  style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
+  <mat-icon>warning</mat-icon>
+  <span fxFlex>No se pudo cargar el bien. No se puede guardar hasta cargarlo.</span>
+  <button mat-stroked-button type="button" (click)="reintentarBien.emit()">Reintentar</button>
+</div>
+
+<ng-container *ngIf="bien === 'ok'">
+  <div *ngIf="eraPagando && cuotas === 'cargando'" style="padding: 8px 0">Cargando las cuotas del bien…</div>
+
+  <div *ngIf="eraPagando && cuotas === 'error'" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+    style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px; margin-bottom: 10px">
+    <mat-icon>warning</mat-icon>
+    <span fxFlex>No se pudieron cargar las cuotas del bien: guardar así perdería las cuotas guardadas. No se puede guardar hasta cargarlas.</span>
+    <button mat-stroked-button type="button" (click)="reintentarCuotas.emit()">Reintentar</button>
+  </div>
+
+  <div *ngIf="enteFallo && !(eraPagando && cuotas === 'error')" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+    style="padding: 8px 0">
+    <mat-icon>info</mat-icon>
+    <span fxFlex>No se pudieron consultar los archivos del bien.</span>
+    <button mat-stroked-button type="button" (click)="reintentarCuotas.emit()">Reintentar</button>
+  </div>
+</ng-container>

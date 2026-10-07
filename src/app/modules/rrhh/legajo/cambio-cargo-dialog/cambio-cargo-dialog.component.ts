@@ -74,7 +74,7 @@ export class CambioCargoDialogComponent implements OnInit {
 
   onGuardar() {
     if (this.cargoControl.invalid) {
-      this.notificacion.notification$.next({ texto: 'Seleccione el nuevo cargo', color: NotificacionColor.warn, duracion: 3 });
+      this.notificacion.notification$.next({ texto: 'Seleccione un cargo', color: NotificacionColor.warn, duracion: 3 });
       return;
     }
     const input = {

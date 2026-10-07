@@ -147,6 +147,11 @@
       </mat-card-header>
 
       <mat-card-content>
+        <div class="lectura-fallo" *ngIf="lecturaFallo">
+          <mat-icon>warning</mat-icon>
+          <span>No se pudieron leer los cheques: lo que se ve puede estar desactualizado.</span>
+          <button mat-stroked-button type="button" (click)="recargar()">Reintentar</button>
+        </div>
         <!-- Gráfico: monto a pagar por día (clic en barra → enfoca el día) -->
         <div class="grafico-area" *ngIf="hayDatosGrafico">
           <div echarts [options]="chartOptions" (chartClick)="onBarClick($event)"

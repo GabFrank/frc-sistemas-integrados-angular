@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { GenericCrudService, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
+import { GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
 import { SaveMonedaGQL } from './graphql/saveMoneda';
 import { DeleteMonedaGQL } from './graphql/deleteMoneda';
@@ -61,20 +61,24 @@ export class MonedaService {
     // }) : null;
   }
 
-  onGetAll(servidor: boolean = true): Observable<Moneda[]>{
-    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
+  /** `null` = no se pudieron leer (el genérico ya avisó, salvo que `errorConf` diga otra cosa). */
+  onGetAll(servidor: boolean = true, errorConf?: QueryError): Observable<Moneda[]>{
+    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor, errorConf);
   }
 
   /**
    * Igual que {@link onGetAll} contra el central, para consultas de fondo (el header): sin spinner
    * global, corte a los 20 s sin aviso, y el error de red se propaga al que llama.
+   * `servidor = false` las lee del filial (la etiqueta de precio); `errorConf` permite callar el aviso del
+   * servicio cuando quien llama muestra el suyo. Sin parámetros se comporta como siempre.
    */
-  onGetAllEnSegundoPlano(): Observable<Moneda[]> {
+  onGetAllEnSegundoPlano(servidor: boolean = true,
+                         errorConf: QueryError = { networkError: { propagate: true } }): Observable<Moneda[]> {
     return this.genericService.onCustomQuery(
       this.getAllMonedas,
       {},
-      true,
-      { networkError: { propagate: true } },
+      servidor,
+      errorConf,
       true,
       { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
     );

@@ -286,6 +286,14 @@ export class HojaRuta {
   creadoEn: Date;
 }
 
+/** Lo que pide `verificarParaTransporteMobile`. El chofer es un Usuario; los acompañantes, Personas. */
+export class VerificarParaTransporteInput {
+  transferenciaId: number;
+  choferUsuarioId: number;
+  vehiculoId: number;
+  acompanantesIds: number[];
+}
+
 export class HojaRutaInput {
   id: number;
   vehiculoId: number;

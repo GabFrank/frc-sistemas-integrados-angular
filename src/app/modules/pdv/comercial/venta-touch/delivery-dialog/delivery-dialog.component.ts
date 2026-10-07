@@ -202,21 +202,26 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     })
 
     this.monedaService.onGetAll().subscribe(res => {
-      this.monedaList = res;
-      this.cambioRs = this.monedaList.find(
-        (m) => m.denominacion == "REAL"
-      )?.cambio ?? null;
-      this.cambioDs = this.monedaList.find(
-        (m) => m.denominacion == "DOLAR"
-      )?.cambio ?? null;
-      this.cambioArg = this.monedaList.find(
-        (m) => m.denominacion == "PESO ARG"
-      )?.cambio ?? null;
+      // null = no se pudieron leer las monedas (#390): se sigue igual, para no dejar sin pedir los
+      // precios de delivery, que cuelgan de acá.
+      this.monedaList = res ?? [];
+      // Sin monedas se conservan las cotizaciones que mandó venta-touch.
+      if (res != null) {
+        this.cambioRs = this.monedaList.find(
+          (m) => m.denominacion == "REAL"
+        )?.cambio ?? null;
+        this.cambioDs = this.monedaList.find(
+          (m) => m.denominacion == "DOLAR"
+        )?.cambio ?? null;
+        this.cambioArg = this.monedaList.find(
+          (m) => m.denominacion == "PESO ARG"
+        )?.cambio ?? null;
+      }
 
       this.monedaControl.setValue(this.monedaList[0])
       this.deliveryService.onGetPreciosDelivery().subscribe(res => {
         setTimeout(() => {
-          this.precioDeliveryList = res;
+          this.precioDeliveryList = res ?? [];
           this.precioControl.setValue(this.precioDeliveryList[0])
           this.totalConDelivery += this.precioControl.value?.valor;
           this.calcularVuelto()
@@ -234,7 +239,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     })
 
     this.formaPagoService.onGetAllFormaPago().subscribe(res => {
-      this.formaPagoList = res;
+      this.formaPagoList = res ?? [];
       this.formaPagoControl.setValue(this.formaPagoList[0])
       this.loadingItens++;
     })

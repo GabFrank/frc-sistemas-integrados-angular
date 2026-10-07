@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../../generics/generic-crud.service";
 import { DevolucionConfiguracion } from "./devolucion-configuracion.model";
 import {
   DevolucionConfiguracionGQL,
@@ -16,13 +16,15 @@ export class DevolucionConfiguracionService {
     private guardarGQL: GuardarDevolucionConfiguracionGQL
   ) {}
 
-  onGet(): Observable<DevolucionConfiguracion> {
+  /** El central crea la fila si no existe: un null es un error. `errorConf`/`contexto` opt-in (#390). */
+  onGet(errorConf?: QueryError, contexto?: ContextoConsulta): Observable<DevolucionConfiguracion> {
     return this.genericService.onCustomQuery(
       this.getGQL,
       {},
       true,
-      undefined,
-      true
+      errorConf,
+      true,
+      contexto
     );
   }
 

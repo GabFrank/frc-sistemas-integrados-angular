@@ -15,6 +15,19 @@ import { ProductoProveedorService } from '../producto-proveedor.service';
 import { DesvincularProductoProveedorGQL } from '../graphql/desvincularProductoProveedor';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { takeUntil } from 'rxjs/operators';
+import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
+
+/**
+ * Lista de vínculos: el error de red y el del servidor llegan al diálogo. Sin esto quedaba «Cargando…» para
+ * siempre, o un error del servidor se mostraba como «no hay vinculados» (#390).
+ */
+const LECTURA_VINCULOS: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_VINCULOS: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
 import { Subject } from 'rxjs';
 import {
   SearchListDialogComponent,
@@ -68,6 +81,12 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
   dataSource = new MatTableDataSource<ProductoProveedorProductoRow>([]);
   displayedColumns: string[] = ['id', 'descripcion', 'codigo', 'acciones'];
   loading = false;
+  /** La lista no se pudo leer: la tabla vacía no significa «no hay vinculados». */
+  listaFallo = false;
+  /** Descarta respuestas de una lectura anterior (abrir, paginar, tras vincular o desvincular). */
+  private lectura = 0;
+  /** Página a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
+  private paginaMostrada = { pageIndex: 0, pageSize: 10 };
   pageIndex = 0;
   pageSize = 10;
   searchText = '';
@@ -103,14 +122,34 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
   loadList(): void {
     if (!this.proveedor?.id) return;
     this.loading = true;
+    const lectura = ++this.lectura;
+    const fallo = () => {
+      if (lectura !== this.lectura) return;
+      this.loading = false;
+      this.listaFallo = true;
+      // El total no se toca (el paginador no colapsa) y se vuelve a la página que está a la vista
+      this.pageIndex = this.paginaMostrada.pageIndex;
+      this.pageSize = this.paginaMostrada.pageSize;
+      this.notificacionService.openWarn(this.dataSource.data.length
+        ? 'No se pudo actualizar la lista: puede no reflejar el último cambio. Usá «Reintentar».'
+        : 'No se pudo cargar la lista: usá «Reintentar».', 6);
+    };
     this.productoProveedorService
-      .getByProveedorId(this.proveedor.id, this.searchText || null, this.pageIndex, this.pageSize, undefined, true)
+      .getByProveedorId(this.proveedor.id, this.searchText || null, this.pageIndex, this.pageSize, undefined, true,
+        LECTURA_VINCULOS, CONSULTA_VINCULOS)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (page) => {
+          if (lectura !== this.lectura) return;
+          if (page == null) {
+            fallo();
+            return;
+          }
           this.loading = false;
-          this.totalElements = page?.getTotalElements ?? 0;
-          const content = page?.getContent ?? [];
+          this.listaFallo = false;
+          this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
+          this.totalElements = page.getTotalElements ?? 0;
+          const content = page.getContent ?? [];
           const rows: ProductoProveedorProductoRow[] = content.map((pp: ProductoProveedor) => ({
             ...pp,
             productoDescripcionComputed: pp?.producto?.descripcion ?? '',
@@ -118,9 +157,7 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
           }));
           this.dataSource.data = rows;
         },
-        error: () => {
-          this.loading = false;
-        },
+        error: fallo,
       });
   }
 
@@ -186,8 +223,9 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
           this.onRemoverProducto();
           this.loadList();
         },
-        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        error: () => {},
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom. Se relee igual: sin
+        // respuesta pudo haberse vinculado (un reintento respondería «ya vinculado»).
+        error: () => this.loadList(),
       });
   }
 
@@ -208,6 +246,7 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
         },
         error: () => {
           this.notificacionService.openAlgoSalioMal('Error al desvincular');
+          this.loadList(); // pudo haberse aplicado
         },
       });
   }

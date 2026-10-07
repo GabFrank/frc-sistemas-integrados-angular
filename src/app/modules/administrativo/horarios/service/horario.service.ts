@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
 import { PageInfo } from '../../../../app.component';
 import { Horario, HorarioInput } from '../models/horario.model';
@@ -31,19 +31,21 @@ export class HorarioService {
         return this.genericCrudService.onGetById(this.horarioById, id, null, null, servidor);
     }
 
-    onGetHorariosPorUsuario(usuarioId: number, servidor = true): Observable<Horario[]> {
-        return this.genericCrudService.onCustomQuery(this.horariosPorUsuario, { usuarioId }, servidor);
+    /** `errorConf` y `contexto` son para la asignación en lote (#390); sin ellos queda como antes. */
+    onGetHorariosPorUsuario(usuarioId: number, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Horario[]> {
+        return this.genericCrudService.onCustomQuery(this.horariosPorUsuario, { usuarioId }, servidor, errorConf, undefined, contexto);
     }
 
     onGetAllHorarios(page?: number, size?: number, servidor = true): Observable<PageInfo<Horario>> {
         return this.genericCrudService.onGetAll(this.horarios, page, size, servidor);
     }
 
-    onSaveHorario(input: HorarioInput, servidor = true): Observable<Horario> {
+    /** `errorConf` es para la asignación en lote (#390): sin él, un error de red no llega nunca. */
+    onSaveHorario(input: HorarioInput, servidor = true, errorConf?: QueryError): Observable<Horario> {
         if (!input.usuarioId && this.mainService.usuarioActual?.id) {
             input.usuarioId = this.mainService.usuarioActual.id;
         }
-        return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor);
+        return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor, errorConf);
     }
 
     onDeleteHorario(id: number, servidor = true): Observable<boolean> {

@@ -1,3 +1,6 @@
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FormControl } from '@angular/forms';
@@ -58,15 +61,24 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
     private matDialoRef: MatDialogRef<SeleccionarSucursalDialogComponent>,
     private cargandoService: CargandoDialogService,
     private matDialog: MatDialog, private sucursalService: SucursalService,
-    private mainService: MainService
+    private mainService: MainService,
+    private notificacion: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
     const { requestId } = this.cargandoService.openDialog()
-    this.sucursalService.onGetAllSucursales(true)
+    // Sin sucursales el selector queda en blanco: se cierra con aviso (antes el overlay quedaba 65 s) (#390).
+    const noCargo = () => {
+      this.cargandoService.closeDialog(requestId);
+      this.notificacion.openWarn('No se pudieron cargar las sucursales: intentá de nuevo.', 5);
+      this.matDialoRef.close();
+    };
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          if (res == null) { noCargo(); return; }
           this.sucursalList = res
           if (this.mainService.sucursalActual.id != 0) {
             this.filteredOrigenSucursalList = [this.mainService.sucursalActual]
@@ -80,8 +92,9 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
           if(this.data?.sucursalDestino!=null){
             this.onDestinoChange(this.sucursalList?.find(s => s.id == this.data.sucursalDestino?.id))
           }
-        }
-        this.cargandoService.closeDialog(requestId)
+          this.cargandoService.closeDialog(requestId)
+        },
+        error: () => noCargo()
       })
 
     setInterval(() => {

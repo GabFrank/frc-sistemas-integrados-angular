@@ -109,7 +109,7 @@ export class MainCajaObservacionComponent implements OnInit, OnDestroy {
   loadData() {
     this.cajaCategoriaObsService.onGetCajasCategoriasObservaciones().subscribe({
       next: (observaciones: CajaCategoriaObservacion[]) => {
-        const datos = observaciones.map(cat => ({ ...cat, expanded: false }));
+        const datos = (observaciones ?? []).map(cat => ({ ...cat, expanded: false }));
         this.cajaCategoriaObsDataSource.data = datos;
       },
       error: err => console.error('Error al cargar las observaciones:', err)
@@ -118,7 +118,7 @@ export class MainCajaObservacionComponent implements OnInit, OnDestroy {
     this.cajaSubCategoriaObsService.onGetAllCajaSubCategoriaObs()
       .subscribe({
         next: (subCat: CajaSubCategoriaObservacion[]) => {
-          const datos = subCat.map(sub => ({ ...sub, expanded: false }));
+          const datos = (subCat ?? []).map(sub => ({ ...sub, expanded: false }));
           this.cajaSubCategoriaObsDataSource.data = datos;
         }
       });
@@ -126,7 +126,7 @@ export class MainCajaObservacionComponent implements OnInit, OnDestroy {
     this.cajaMotivoObsService.onGetCajaMotivosObservaciones()
       .subscribe({
         next: (motivo: CajaMotivoObservacion[]) => {
-          const datos = motivo.map(mot => ({ ...mot, expanded: false }));
+          const datos = (motivo ?? []).map(mot => ({ ...mot, expanded: false }));
           this.cajaMotivoObsDataSource.data = datos;
         }
       });

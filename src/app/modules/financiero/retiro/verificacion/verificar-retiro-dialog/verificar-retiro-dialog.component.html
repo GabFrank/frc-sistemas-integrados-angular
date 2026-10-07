@@ -49,7 +49,8 @@
       <!-- Una grilla abierta a la vez: necesita ancho y con tres monedas no entrarían todas. -->
       <div class="moneda-grilla" *ngIf="monedaAbierta?.id === f.moneda?.id">
         <app-grilla-conteo [moneda]="f.moneda" [cantidades]="cantidadesDe(f.moneda.id)"
-                           (cantidadesChange)="onCantidadesChange(f, $event)"></app-grilla-conteo>
+                           (cantidadesChange)="onCantidadesChange(f, $event)"
+                           (cargaFallidaChange)="f.grillaNoCargo = $event"></app-grilla-conteo>
       </div>
 
       <div class="moneda-categoria" *ngIf="f.categoria">

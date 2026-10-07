@@ -11,6 +11,8 @@ import { FormaPago } from '../../forma-pago/forma-pago.model';
 import { FormaPagoService } from '../../forma-pago/forma-pago.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MainService } from '../../../../main.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface EntradaVariaDialogData {
   cajaVirtual: CajaVirtual;
@@ -73,8 +75,10 @@ export class AddEntradaVariaDialogComponent implements OnInit {
       }
     });
 
-    this.entradaVariaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.categoriaList = res;
+    const sinCategorias = 'No se pudieron cargar las categorías: cerrá y volvé a abrir para reintentar.';
+    this.entradaVariaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.categoriaList = res; } else { this.notificacion.openWarn(sinCategorias, 5); } },
+      error: () => this.notificacion.openWarn(sinCategorias, 5)
     });
 
     this.formaPagoService.formaPagoSub.pipe(untilDestroyed(this)).subscribe(res => {
@@ -89,7 +93,7 @@ export class AddEntradaVariaDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid) return;
+    if (this.formGroup.invalid || this.isSaving) return;
 
     const entradaVaria = new EntradaVaria();
     entradaVaria.descripcion = this.descripcionControl.value;
@@ -102,21 +106,45 @@ export class AddEntradaVariaDialogComponent implements OnInit {
     entradaVaria.numeroComprobante = this.numeroComprobanteControl.value;
 
     this.isSaving = true;
-    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no refrescaría la caja.
+    this.dialogRef.disableClose = true;
+    // El aviso de éxito es propio (más específico); el de un rechazo lo da onSaveCustom.
     this.entradaVariaService.onRegistrar(entradaVaria, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
           this.isSaving = false;
+          this.dialogRef.disableClose = false;
           if (res != null) {
             this.notificacion.openSucess('Movimiento registrado correctamente');
             this.dialogRef.close(res);
+          } else {
+            this.sinConfirmar(entradaVaria, true);
           }
         },
-        error: () => {
+        error: err => {
           this.isSaving = false;
+          this.dialogRef.disableClose = false;
+          // Rechazo: no se registró nada; queda el formulario para corregir y reintentar.
+          if (erroresDeRechazo(err)) return;
+          // El corte del link ya avisó que pudo haberse aplicado.
+          this.sinConfirmar(entradaVaria, !esTimeoutDeLink(err));
         }
       });
+  }
+
+  /**
+   * El movimiento pudo haberse registrado, y el central registra otro igual si se repite (#390). Se cierra para
+   * que la caja se relea: ahí se ve si está, antes de cargarlo de nuevo.
+   */
+  private sinConfirmar(entradaVaria: EntradaVaria, avisar: boolean) {
+    if (avisar) {
+      const que = entradaVaria.esIngreso ? 'ingreso' : 'egreso';
+      const monto = `${entradaVaria.moneda?.simbolo || ''} ${(entradaVaria.monto || 0).toLocaleString('es-PY')}`.trim();
+      this.notificacion.openWarn(
+        `No se pudo confirmar si el ${que} de ${monto} se registró: revisá los movimientos de la caja (y sus filtros) antes de repetirlo.`, 10);
+    }
+    this.dialogRef.close(true);
   }
 
   onCancel() {

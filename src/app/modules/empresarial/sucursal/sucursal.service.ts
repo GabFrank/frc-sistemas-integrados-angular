@@ -10,7 +10,7 @@ import { Sucursal } from "./sucursal.model";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../environments/environment";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
 import { SucursalByIdGQL } from "./graphql/sucursalById";
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
@@ -108,8 +108,8 @@ export class SucursalService {
     return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor);
   }
 
-  onGetAllSucursales(servidor: boolean = true): Observable<Sucursal[]> {
-    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor);
+  onGetAllSucursales(servidor: boolean = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Sucursal[]> {
+    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor, errorConf, undefined, contexto);
   }
 
   onGetSucursalesActivas(servidor: boolean = true): Observable<Sucursal[]> {

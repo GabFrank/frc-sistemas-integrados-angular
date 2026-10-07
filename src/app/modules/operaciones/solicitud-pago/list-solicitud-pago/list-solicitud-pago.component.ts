@@ -145,7 +145,10 @@ export class ListSolicitudPagoComponent implements OnInit {
           this.length = pageResult?.getTotalElements ?? 0;
         },
         error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al cargar solicitudes');
+          // No quedan a la vista las filas del filtro anterior como si fueran del nuevo (#390)
+          this.dataSource.data = [];
+          this.length = 0;
+          this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
         }
       });
   }
@@ -285,6 +288,9 @@ export class ListSolicitudPagoComponent implements OnInit {
     if (!notaRecepcionId) return;
     this.pedidoService.onGetNotaRecepcionById(notaRecepcionId).pipe(untilDestroyed(this)).subscribe({
       next: (nota) => {
+        if (nota == null) {
+          return; // Error GraphQL: el servicio ya avisó; no se abre una nota vacía como si fuera real (#390)
+        }
         const data: AddEditNotaRecepcionDialogData = {
           nota,
           isEdit: true,
@@ -297,7 +303,7 @@ export class ListSolicitudPagoComponent implements OnInit {
         });
       },
       error: () => {
-        this.notificacionService.openAlgoSalioMal('Error al cargar la nota de recepción');
+        this.notificacionService.openWarn('No se pudo cargar la nota de recepción: el servidor no responde. Intentá de nuevo.', 6);
       }
     });
   }

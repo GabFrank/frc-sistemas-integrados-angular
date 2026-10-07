@@ -16,7 +16,8 @@ import {
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
 import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
@@ -51,6 +52,9 @@ import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
 import { LucroPorProductoListGQL } from "./graphql/lucroPorProductoList";
+
+/** Un reporte puede tardar: se mantiene el corte largo de las consultas (no el de 60 s). */
+export const TIMEOUT_REPORTE_MS = 300000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -133,12 +137,16 @@ export class ProductoService {
       size
     }, 
     servidor,
-    undefined,
-    silentLoad);
+    // El error de red y el del servidor llegan a la lista (60 s), que avisa una vez (#390)
+    { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } },
+    silentLoad,
+    { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
-  onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true){
-    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, undefined, silentLoad);
+  onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true, errorConf?: QueryError,
+                                   contexto?: ContextoConsulta){
+    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, errorConf, silentLoad,
+      contexto);
   }
 
   /**
@@ -161,12 +169,19 @@ export class ProductoService {
   onGetStockPorSucursales(
     proId: number,
     silentLoad = true,
-    servidor = true
+    servidor = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PorSucursal<number>> {
     return this.genericService
-      .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, undefined, silentLoad)
+      .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, errorConf, silentLoad, contexto)
       .pipe(
         map((filas: StockPorSucursalRaw[]) => {
+          // El central nunca devuelve null acá ([] si no hay movimientos): para quien pidió el error, un null
+          // sin error es un fallo, no «sin stock en ninguna sucursal»
+          if (filas == null && errorConf?.graphError?.propagate === true) {
+            throw new Error('stockPorSucursales sin datos');
+          }
           const porSucursal = new PorSucursal<number>();
           (filas || []).forEach((fila) => {
             if (fila?.sucursalId == null) return;
@@ -177,20 +192,32 @@ export class ProductoService {
       );
   }
 
-  onProductoDescripcionExists(descripcion: string, servidor = true) {
-    return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor);
+  /**
+   * El error de red y el del servidor llegan al llamador (20 s): un control de duplicado que no respondió no es
+   * «no existe» (#390).
+   */
+  onProductoDescripcionExists(descripcion: string, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } }, undefined,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
-  onGetProductoPorCodigo(texto, servidor: boolean = true, silentLoad: boolean = false): Observable<Producto> {
-    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor, undefined, silentLoad);
+  /** `errorConf` y `contexto` son para el POS; el resto de las pantallas no los pasa y queda como antes. */
+  onGetProductoPorCodigo(texto, servidor: boolean = true, silentLoad: boolean = false,
+                         errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor, errorConf, silentLoad, contexto);
   }
 
-  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, undefined, silentLoad);
+  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false,
+           errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, errorConf, silentLoad, contexto);
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor);
+    // El error de red y el del servidor llegan al buscador (20 s), que avisa: sin esto quedaba «buscando» (#390)
+    return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true, show: false } }, undefined,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
   onSearchLocal(texto: string) {
@@ -209,16 +236,19 @@ export class ProductoService {
 
   onSearchParaPdv() {}
 
-  onGetProductoPorId(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
+  onGetProductoPorId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onSaveProducto(input: ProductoInput, servidor = true): Observable<any> {
     return this.genericService.onCustomMutation(this.saveProducto, {entity: input}, servidor);
   }
 
-  getProducto(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
+  getProducto(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onImageSave(image: string, filename: string, servidor = true): Observable<any> {
@@ -229,16 +259,23 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.printProductoPorId, {id}, servidor);
   }
 
-  onGetProductoParaPedido(id, servidor = true): Observable<Producto> {
-    return this.genericService.onGetById(this.getProductoParaPedido, id, null, null, servidor);
+  onGetProductoParaPedido(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.getProductoParaPedido, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
   }
 
   onExportarReporte(texto: string, servidor = true): Observable<string> {
     return this.genericService.onCustomQuery(this.exportarReporte, {texto}, servidor);
   }
 
+  /**
+   * Propaga el error de red: sin eso quien llama no se entera y su modal «Generando reporte…» queda abierto (#390).
+   * Sin modal ni avisos propios (los pone quien llama); con error del servidor emite `null`.
+   */
   onExportarReporteConFiltros(parametros: any, servidor = true): Observable<string> {
-    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor);
+    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor,
+      { networkError: { propagate: true, show: false }, graphError: { show: false } }, true,
+      { timeoutMs: TIMEOUT_REPORTE_MS, silenciarAvisoTimeout: true });
   }
 
   onFindByPdvGrupoProductoId(id, servidor = true): Observable<Producto[]> {

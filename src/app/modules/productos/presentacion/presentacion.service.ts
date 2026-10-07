@@ -1,4 +1,4 @@
-import { GenericCrudService } from './../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from './../../../generics/generic-crud.service';
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
 import { MainService } from "../../../main.service";
@@ -38,8 +38,18 @@ export class PresentacionService {
     private genericService: GenericCrudService
   ) { }
 
-  onGetPresentacionesPorProductoId(id, servidor = true): Observable<Presentacion[]>{
-    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id, null, null, servidor);
+  onGetPresentacionesPorProductoId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Presentacion[]>{
+    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id, null, null, servidor, null, null, null, null,
+      null, null, errorConf, contexto);
+  }
+
+  /**
+   * Presentaciones de un producto para un diálogo abierto: 20 s y el error de red al llamador, que avisa. Con un
+   * error GraphQL emite `null` (el servicio ya avisó) (#390).
+   */
+  onGetPresentacionesPorProductoIdParaDialogo(id): Observable<Presentacion[] | null> {
+    return this.onGetPresentacionesPorProductoId(id, true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
   onGetPresentaciones(servidor = true) {

@@ -22,7 +22,7 @@ import { SaveTipoVehiculoGQL } from '../graphql/saveTipoVehiculo';
 import { DeleteModeloGQL } from '../graphql/deleteModelo';
 import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
-import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../../generics/generic-crud.service';
 import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PageInfo } from '../../../../../app.component';
@@ -127,8 +127,10 @@ export class VehiculoService {
   private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
   public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
 
-  onBuscarPorId(id: number): Observable<Vehiculo> {
-    return this.genericService.onGetById(this.vehiculoByIdGQL, id);
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
+  onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Vehiculo> {
+    return this.genericService.onGetById(this.vehiculoByIdGQL, id, null, null, true, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onFiltrar(texto: string, page: number, size: number): Observable<Vehiculo[]> {
@@ -173,8 +175,9 @@ export class VehiculoService {
     this.updatePagination(0, this._paginationState$.value.pageSize);
   }
 
+  /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
   onGuardar(input: VehiculoInput): Observable<Vehiculo> {
-    return this.genericService.onSave(this.saveVehiculoGQL, input).pipe(
+    return this.genericService.onSave(this.saveVehiculoGQL, input, undefined, undefined, true, PROPAGAR_ERROR_DE_RED).pipe(
       tap(res => {
         if (res) this.refrescar();
       })

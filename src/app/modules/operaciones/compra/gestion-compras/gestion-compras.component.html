@@ -1,4 +1,9 @@
 <div class="gestion-compras-container">
+  <div *ngIf="datosInicialesFallo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px;">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>No se pudieron cargar monedas, formas de pago o sucursales: no se puede guardar.</span>
+    <button mat-stroked-button (click)="reintentarDatosIniciales()">Reintentar</button>
+  </div>
   <!-- Fixed Header Section -->
   <div class="pedido-header">
     <mat-card class="header-card">

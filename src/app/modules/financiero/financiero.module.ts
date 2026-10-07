@@ -108,6 +108,7 @@ import { ListOperacionFinancieraComponent } from './operacion-financiera/list-op
 import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
 import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
 import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-bancaria-dialog/add-cuenta-bancaria-dialog.component';
+import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-teclado.directive';
 
 @NgModule({
   declarations: [
@@ -222,6 +223,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     FormsModule,
     MaterialModule,
     SharedModule,
+    LectorTecladoDirective,
     NgxQRCodeModule,
     FinancieroRoutingModule,
     BootstrapModule,

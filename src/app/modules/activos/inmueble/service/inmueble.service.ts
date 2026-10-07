@@ -2,7 +2,7 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Inmueble } from '../models/inmueble.model';
 import { InmuebleInput } from '../models/inmueble-input.model';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { InmuebleByIdGQL } from '../graphql/inmuebleById';
 import { SaveInmuebleGQL } from '../graphql/saveInmueble';
@@ -80,8 +80,10 @@ export class InmuebleService {
   });
   public paginationState$ = this._paginationState$.asObservable();
 
-  onBuscarPorId(id: number): Observable<Inmueble> {
-    return this.genericService.onGetById(this.inmuebleByIdGQL, id);
+  /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
+  onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Inmueble> {
+    return this.genericService.onGetById(this.inmuebleByIdGQL, id, null, null, true, null, null, null, null, null, null,
+      errorConf, contexto);
   }
 
   onFiltrar(texto: string, page: number, size: number): Observable<PageInfo<Inmueble>> {
@@ -121,8 +123,9 @@ export class InmuebleService {
 
 
 
+  /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
   onGuardar(input: InmuebleInput): Observable<Inmueble> {
-    return this.genericService.onSave(this.saveInmuebleGQL, input).pipe(
+    return this.genericService.onSave(this.saveInmuebleGQL, input, undefined, undefined, true, PROPAGAR_ERROR_DE_RED).pipe(
       tap((res) => {
         if (res) this.refrescar();
       })

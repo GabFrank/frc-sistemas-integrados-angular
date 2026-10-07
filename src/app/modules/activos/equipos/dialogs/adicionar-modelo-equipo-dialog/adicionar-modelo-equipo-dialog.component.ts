@@ -7,6 +7,7 @@ import { MainService } from '../../../../../main.service';
 import { MarcaEquipo } from '../../models/marca-equipo.model';
 import { ModeloEquipo } from '../../models/modelo-equipo.model';
 import { EquiposService } from '../../services/equipos.service';
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -46,13 +47,13 @@ export class AdicionarModeloEquipoDialogComponent {
   }
 
   cargarMarcas(): void {
-    this.equiposService.onFiltrarMarcas('%').pipe(untilDestroyed(this)).subscribe((res) => {
+    this.equiposService.onFiltrarMarcas('%').pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((res) => {
       this.marcas$.next(res || []);
     });
   }
 
   onFiltrarMarcas(texto: string): void {
-    this.equiposService.onFiltrarMarcas(texto).pipe(untilDestroyed(this)).subscribe((res) => {
+    this.equiposService.onFiltrarMarcas(texto).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((res) => {
       this.marcas$.next(res || []);
     });
   }

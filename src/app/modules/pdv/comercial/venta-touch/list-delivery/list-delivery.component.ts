@@ -16,7 +16,14 @@ import {
 } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy } from "@ngneat/until-destroy";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, EMPTY } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import {
+  PROPAGAR_ERROR_DE_RED,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from "../../../../../generics/generic-crud.constantes";
+import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import {
   updateDataSource,
   updateDataSourceWithId,
@@ -41,6 +48,11 @@ export interface ListDeliveryData {
   /** Se llama cuando se guarda un delivery nuevo armado con los ítems del carrito del PDV. */
   onCarritoGuardadoEnDelivery?: () => void;
 }
+
+/** Un listado: más margen que un escaneo; el aviso lo da el componente. */
+const CONTEXTO_LISTA_DELIVERYS = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+/** Abrir un delivery de la lista: el cajero espera de pie (#390). */
+const CONSULTA_MOSTRADOR_DELIVERY = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -94,11 +106,23 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
     private matDialog: MatDialog,
     private matDialogRef: MatDialogRef<ListDeliveryComponent>,
     @Inject(MAT_DIALOG_DATA) private data: ListDeliveryData,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private notificacionSnackbar: NotificacionSnackbarService
   ) {
     this.cambioRs = data.cambioRs;
     this.cambioDs = data.cambioDs;
   }
+  /**
+   * Sin respuesta del servidor (#390): aviso y lista como estaba, en vez de quedar muda. Un error
+   * GraphQL llega como null y se trata como lista vacía (antes reventaba en `res.length`).
+   */
+  private sinRespuestaAvisa<T>() {
+    return catchError<T, typeof EMPTY>(() => {
+      this.notificacionSnackbar.openWarn("No se pudieron cargar los deliverys: el servidor no responde.", 4);
+      return EMPTY;
+    });
+  }
+
   ngOnDestroy(): void {
     this.timerList?.forEach((t) => {
       clearInterval(t);
@@ -115,8 +139,10 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
           DeliveryEstado.EN_CAMINO,
           DeliveryEstado.PARA_ENTREGA,
         ],
-        this.cajaService?.selectedCaja?.sucursalId, false
+        this.cajaService?.selectedCaja?.sucursalId, false,
+        PROPAGAR_ERROR_DE_RED, CONTEXTO_LISTA_DELIVERYS
       )
+      .pipe(this.sinRespuestaAvisa(), map((res) => res ?? []))
       .subscribe((res) => {
         this.dataSource.data = res;
         if (this.data.delivery?.id != null) {
@@ -193,8 +219,10 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
         .onDeliveryPorCajaIdAndEstado(
           this.cajaService?.selectedCaja?.id,
           this.selectedEstadosControl.value,
-          this.cajaService?.selectedCaja?.sucursalId, false
+          this.cajaService?.selectedCaja?.sucursalId, false,
+          PROPAGAR_ERROR_DE_RED, CONTEXTO_LISTA_DELIVERYS
         )
+        .pipe(this.sinRespuestaAvisa(), map((res) => res ?? []))
         .subscribe((res) => {
           this.dataSource.data = res;
           this.calcularDuracion();
@@ -244,8 +272,14 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onDeliveryClick(row: Delivery, index) {
     this.calcularVueltoSub.next(null);
-    if (row.venta?.id == null) {
-      this.deliveryService.onGetById(row.id, false).subscribe((res) => {
+    // Con un cobro sin confirmar se vuelve a leer del filial: trae sus cobros reales y un objeto sin la marca (#390)
+    if (row.venta?.id == null || row.cobroIncierto) {
+      this.deliveryService.onGetById(row.id, false, PROPAGAR_ERROR_DE_RED, CONSULTA_MOSTRADOR_DELIVERY).subscribe({ error: () => {
+        this.notificacionSnackbar.openWarn('No se pudo abrir el delivery: el filial no responde. Intentá de nuevo.', 4);
+      }, next: (res) => {
+        if (res == null) {
+          return; // Error GraphQL: el servicio ya avisó
+        }
         if (res != null) {
           let aux = this.selectedDelivery?.id;
           this.selectedDelivery = res;
@@ -258,7 +292,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
             return this.onAbrirDeliveryOpciones(row, index);
           }
         }
-      });
+      } });
     } else {
       if (row.id == this.selectedDelivery.id) {
         return this.onAbrirDeliveryOpciones(row, index);

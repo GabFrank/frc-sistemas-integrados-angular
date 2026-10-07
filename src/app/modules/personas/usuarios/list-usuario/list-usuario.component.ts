@@ -51,7 +51,7 @@ export class ListUsuarioComponent implements OnInit {
   buscarControl = new FormControl(null);
 
   // Arranca deshabilitado: se habilita cuando llegan los roles. Si la carga falla,
-  // onGetAll no emite y el selector queda deshabilitado en vez de vacio.
+  // onGetAll emite null y el selector queda deshabilitado en vez de vacio.
   rolesControl = new FormControl<number[]>({ value: [], disabled: true });
   roleList: Role[] = [];
   rolesResumen = '';

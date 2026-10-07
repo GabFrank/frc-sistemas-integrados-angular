@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { CargoHistoricosGQL } from './graphql/CargoHistoricos';
 import { SalarioHistoricosGQL } from './graphql/SalarioHistoricos';
 import { DocumentosGQL } from './graphql/Documentos';
@@ -61,10 +62,12 @@ export class LegajoService {
 
   /**
    * Snapshot del egreso vigente, para precargar el credito en la reversa. Devuelve null
-   * si el egreso es anterior al historico: ahi hay que cargarlo a mano.
+   * si el egreso es anterior al historico: ahi hay que cargarlo a mano. Un error de red se
+   * propaga: no es lo mismo que «no hay snapshot» (#390).
    */
   onGetEgresoVigente(funcionarioId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.egresoVigenteGQL, { funcionarioId }, servidor);
+    return this.genericService.onCustomQuery(this.egresoVigenteGQL, { funcionarioId }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   /**

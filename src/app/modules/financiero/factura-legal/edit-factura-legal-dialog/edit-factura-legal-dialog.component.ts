@@ -176,13 +176,10 @@ export class EditFacturaLegalDialogComponent implements OnInit {
                   this.direccionControl.setValue(res.direccion || '');
                 }
               },
-              error: (err) => {
-                // Persona exists but not a cliente - fill form fields
-                this.selectedCliente = null;
-                this.clienteControl.setValue(res.nombre);
-                this.nombreControl.setValue(res.nombre || '');
-                this.rucControl.setValue(res.documento || '');
-                this.direccionControl.setValue(res.direccion || '');
+              // No se sabe si la persona es cliente: tratarla como «todavía no es cliente» y rellenar la
+              // factura con sus datos sería decidir sobre una lectura que falló. No se toca nada (#390).
+              error: () => {
+                this.notificacionSnackbar.openWarn('No se pudo comprobar si la persona ya es cliente: elegila de nuevo.', 6);
               }
             });
         }

@@ -21,7 +21,9 @@ import {
   ComprasSearchProductoResponse,
 } from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { BuscadorComprasService } from "../../buscador-compras.service";
-import { take, timeout } from "rxjs/operators";
+import { take } from "rxjs/operators";
+import { ContextoConsulta, QueryError } from "../../../../../../generics/generic-crud.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../../../generics/generic-crud.constantes";
 import {
   PedidoItem,
   PedidoItemInput,
@@ -63,6 +65,14 @@ export interface AddEditItemDialogData {
 }
 
 const MENSAJE_PRODUCTO_YA_EN_PEDIDO = "Ya existe un producto cargado en la lista";
+/** Stock y sugerida: corte de 20 s y errores al llamador, que muestra «—» en vez de un 0 inventado (#390). */
+const CONSULTA_STOCK_ERRORES: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_STOCK: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+const MENSAJE_STOCK_NO_DISPONIBLE = "No se pudo obtener el stock: se muestra «—» y la cantidad sugerida no se calcula";
+const MENSAJE_PRODUCTO_SIN_VERIFICAR = "No se pudo verificar si el producto ya está en la lista: revisala antes de agregarlo";
 
 export interface AddEditItemDialogResult {
   item: PedidoItem;
@@ -73,9 +83,11 @@ export interface AddEditItemDialogResult {
 export interface DistribucionItem {
   sucursalInfluencia: Sucursal;
   sucursalEntrega: Sucursal;
-  stockActual: number;
+  /** `null` = no se pudo obtener («—»): distinto del 0 real y del oculto por rol (#390). */
+  stockActual: number | null;
   stockActualLoading: boolean;
-  cantidadSugerida: number;
+  /** `null` = no disponible: sin stock no se calcula (la cuenta lo resta). */
+  cantidadSugerida: number | null;
   cantidadSugeridaLoading: boolean;
   cantidadPedir: number;
   distribucionId?: number; // Para modo edición
@@ -112,6 +124,12 @@ export class AddEditItemDialogComponent implements OnInit {
   // Computed properties for template
   titleComputed = "";
   canSaveComputed = false;
+  /**
+   * Editando un ítem, sus distribuciones tienen que haber cargado antes de guardar: el guardado hace merge
+   * y con la lista sin cargar se perderían o duplicarían cantidades por sucursal (#390).
+   */
+  distribucionesCargando = false;
+  distribucionesFallo = false;
   productoSelectedComputed = false;
   isBonificacionComputed = false;
   subtotalComputed = 0;
@@ -587,7 +605,7 @@ export class AddEditItemDialogComponent implements OnInit {
                   this.distribucionesItems.length > 0 && 
                   this.cantidadTotalComputed > 0;
     }
-    this.canSaveComputed = formValid && !this.savingComputed;
+    this.canSaveComputed = formValid && !this.savingComputed && !this.distribucionesCargando && !this.distribucionesFallo;
     
     this.productoSelectedComputed = !!this.itemForm.get("producto")?.value;
     this.isBonificacionComputed =
@@ -635,6 +653,10 @@ export class AddEditItemDialogComponent implements OnInit {
     let tooltipText = "Desglose por Sucursal:\n";
     // Las filas con el stock oculto no suman ni aparecen: su 0 sería un cero falso.
     this.distribucionesItems.filter(item => !item.stockOculto).forEach(item => {
+      if (item.stockActual == null) {
+        tooltipText += `${item.sucursalInfluencia.nombre}: no disponible\n`;
+        return;
+      }
       const stock = item.stockActual || 0;
       if (stock > 0) {
         this.stockTotalSimplificadoComputed += stock;
@@ -718,7 +740,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     this.buscadorComprasService
-      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .buscarProductosParaDialog(searchText, 0, 20, true, true)
       .pipe(take(1))
       .subscribe({
         next: (productos) => {
@@ -738,7 +760,8 @@ export class AddEditItemDialogComponent implements OnInit {
 
           this.abrirDialogoBusquedaProducto(searchText);
         },
-        error: () => this.abrirDialogoBusquedaProducto(searchText),
+        // El diálogo volvería a consultar y a esperar: se avisa y se puede reintentar (#390)
+        error: () => this.notificacionService.openWarn("No se pudo buscar el producto: el servidor no responde. Intentá de nuevo."),
       });
   }
 
@@ -802,7 +825,8 @@ export class AddEditItemDialogComponent implements OnInit {
       .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
       .subscribe({
         next: (items) => {
-          this.productoIdsEnPedido = this.extractProductoIds(items);
+          // Con null (error GraphQL) queda vacía: avisoProductoYaEnPedido vuelve a consultar
+          this.productoIdsEnPedido = this.extractProductoIds(items ?? []);
         },
         error: () => {
           this.productoIdsEnPedido = [];
@@ -846,9 +870,14 @@ export class AddEditItemDialogComponent implements OnInit {
       .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
       .subscribe({
         next: (items) => {
+          if (items == null) {
+            this.notificacionService.openWarn(MENSAJE_PRODUCTO_SIN_VERIFICAR);
+            return;
+          }
           this.productoIdsEnPedido = this.extractProductoIds(items);
           mostrarAvisoSiCorresponde();
         },
+        error: () => this.notificacionService.openWarn(MENSAJE_PRODUCTO_SIN_VERIFICAR),
       });
   }
 
@@ -864,16 +893,20 @@ export class AddEditItemDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
-    // Lazy-load full product data (precioPrincipal, imagenPrincipal, costo completo)
+    // Lazy-load full product data (precioPrincipal, fotos, costo completo)
     // ya que el producto del search dialog puede no traer todos los campos
-    this.productoService.onGetProductoParaPedido(producto.id, this.data.pedido != null)
-      .subscribe((productoCompleto) => {
-        if (productoCompleto?.presentaciones) {
-          this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
-          this.presentacionesDisponibles = productoCompleto.presentaciones;
-          this.syncPresentacionEnFormulario(presentacion);
-          this.updateComputedProperties();
-        }
+    this.productoService.onGetProductoParaPedido(producto.id, this.data.pedido != null, PROPAGAR_ERROR_DE_RED, CONSULTA_STOCK)
+      .subscribe({
+        next: (productoCompleto) => {
+          if (productoCompleto?.presentaciones) {
+            this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
+            this.presentacionesDisponibles = productoCompleto.presentaciones;
+            this.syncPresentacionEnFormulario(presentacion);
+            this.updateComputedProperties();
+          }
+        },
+        error: () => this.notificacionService.openWarn(
+          "No se pudieron cargar todos los datos del producto (presentaciones, precio): revisalos antes de guardar.", 5),
       });
 
     // Solo seleccionar automáticamente la primera presentación si NO se proporcionó una presentación
@@ -1122,6 +1155,12 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Dialog actions
   onSave(): void {
+    if (this.distribucionesCargando || this.distribucionesFallo) {
+      this.notificacionService.openWarn(this.distribucionesFallo
+        ? "No se puede guardar: faltan las distribuciones del ítem. Usá «Reintentar distribuciones»."
+        : "Esperá a que carguen las distribuciones del ítem antes de guardar.");
+      return;
+    }
     // Validar formulario
     if (!this.itemForm.valid) {
       this.markFormGroupTouched();
@@ -1534,9 +1573,19 @@ export class AddEditItemDialogComponent implements OnInit {
    * Carga las distribuciones existentes en modo edición
    */
   private loadDistribucionesExistentes(pedidoItemId: number): void {
+    this.distribucionesCargando = true;
+    this.distribucionesFallo = false;
+    this.updateComputedProperties();
     this.pedidoService.onGetPedidoItemDistribucionesByPedidoItemId(pedidoItemId).subscribe({
       next: (distribuciones) => {
-        if (distribuciones && distribuciones.length > 0) {
+        this.distribucionesCargando = false;
+        if (distribuciones == null) {
+          // Error GraphQL: el servicio ya avisó. Un [] sí es válido (ítem sin distribuir).
+          this.distribucionesFallo = true;
+          this.updateComputedProperties();
+          return;
+        }
+        if (distribuciones.length > 0) {
           // Convertir cantidad de unidades base a cantidad por presentación
           const presentacion = this.itemForm.get("presentacion")?.value;
           distribuciones.forEach(dist => {
@@ -1565,15 +1614,20 @@ export class AddEditItemDialogComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error cargando distribuciones:', error);
-        // En caso de error, inicializar como en modo creación
-        // Solo si no estamos en modo simplificado con múltiples sucursales
-        const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
-            (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
-        if (!esModoSimplificadoMultiSucursal) {
-          this.initializeDistribuciones();
-        }
+        // No se inicializa como alta: guardar eso pisaría las distribuciones reales
+        this.distribucionesCargando = false;
+        this.distribucionesFallo = true;
+        this.notificacionService.openWarn("No se pudieron cargar las distribuciones del ítem: usá «Reintentar» antes de guardar.", 6);
+        this.updateComputedProperties();
       }
     });
+  }
+
+  reintentarDistribuciones(): void {
+    const id = this.data.item?.id;
+    if (id != null) {
+      this.loadDistribucionesExistentes(id);
+    }
   }
 
   /**
@@ -1645,7 +1699,7 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
-    this.productoService.onGetStockPorSucursales(productoId).subscribe({
+    this.productoService.onGetStockPorSucursales(productoId, true, true, CONSULTA_STOCK_ERRORES, CONSULTA_STOCK).subscribe({
       next: (stockPorSucursal: PorSucursal<number>) => {
         pendientes.forEach((item) => {
           item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
@@ -1659,14 +1713,14 @@ export class AddEditItemDialogComponent implements OnInit {
       error: (error) => {
         console.error('Error cargando el stock por sucursal del producto:', error);
         pendientes.forEach((item) => {
-          item.stockActual = 0;
+          item.stockActual = null;
           item.stockActualLoading = false;
         });
+        this.notificacionService.openWarn(MENSAJE_STOCK_NO_DISPONIBLE, 5);
         setTimeout(() => {
           this.updateComputedProperties();
         }, 0);
-        // Sin stock la sugerida igual se puede calcular —queda como si el stock fuera cero—, y
-        // sobre todo saca las filas del "Calculando..." en vez de dejarlas colgadas.
+        // Saca las filas del "Calculando...": con el stock en null la sugerida queda no disponible
         this.calcularCantidadSugeridaDeDistribuciones(pendientes);
       },
     });
@@ -1863,7 +1917,10 @@ export class AddEditItemDialogComponent implements OnInit {
     this.productoService.onGetStockPorProductoAndSucursal(
       producto.id,
       distribucionItem.sucursalInfluencia.id,
-      true
+      true,
+      true,
+      CONSULTA_STOCK_ERRORES,
+      CONSULTA_STOCK
     ).subscribe({
       next: (stock) => {
         // Actualizar solo este item específico
@@ -1879,9 +1936,10 @@ export class AddEditItemDialogComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error cargando stock para sucursal', distribucionItem.sucursalInfluencia.nombre, ':', error);
-        // En caso de error, establecer valores por defecto
-        distribucionItem.stockActual = 0;
+        // No disponible, no 0: un 0 inflaría la sugerida
+        distribucionItem.stockActual = null;
         distribucionItem.stockActualLoading = false;
+        this.notificacionService.openWarn(MENSAJE_STOCK_NO_DISPONIBLE, 5);
         
         // Actualizar también en caso de error
         setTimeout(() => {
@@ -1947,6 +2005,12 @@ export class AddEditItemDialogComponent implements OnInit {
         item.cantidadSugeridaLoading = false;
       });
     };
+    const cerrarNoDisponible = (filas: DistribucionItem[]) => {
+      filas.forEach((item) => {
+        item.cantidadSugerida = null;
+        item.cantidadSugeridaLoading = false;
+      });
+    };
 
     if (!producto?.id) {
       cerrarEnCero(pendientes);
@@ -1956,7 +2020,10 @@ export class AddEditItemDialogComponent implements OnInit {
     // Una fila sin sucursal de influencia no tiene historial que pedir.
     cerrarEnCero(pendientes.filter((item) => item.sucursalInfluencia?.id == null));
 
-    const conSucursal = pendientes.filter((item) => item.sucursalInfluencia?.id != null);
+    // Sin stock no se calcula: la cuenta lo resta y con un 0 inventado inflaría la sugerida.
+    cerrarNoDisponible(pendientes.filter((item) => item.sucursalInfluencia?.id != null && item.stockActual == null));
+
+    const conSucursal = pendientes.filter((item) => item.sucursalInfluencia?.id != null && item.stockActual != null);
     if (conSucursal.length === 0) {
       return;
     }
@@ -1971,12 +2038,12 @@ export class AddEditItemDialogComponent implements OnInit {
         producto.id,
         dateToString(inicio),
         dateToString(fin),
-        sucursales
+        sucursales,
+        true,
+        true,
+        CONSULTA_STOCK_ERRORES,
+        CONSULTA_STOCK
       )
-      // Ante un error de red, GenericCrudService no emite, no completa y no propaga: el observable
-      // queda colgado y la fila se queda en "Calculando..." para siempre. Este timeout es lo que
-      // la saca de ahí; el `error` de abajo no alcanza porque nunca llegaría a dispararse.
-      .pipe(timeout(60000))
       .subscribe({
         next: (porSucursal: PorSucursal<CantidadSugeridaPorSucursal>) => {
           conSucursal.forEach((item) => {
@@ -1992,7 +2059,10 @@ export class AddEditItemDialogComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error calculando la cantidad sugerida:', error);
-          cerrarEnCero(conSucursal);
+          cerrarNoDisponible(conSucursal);
+          setTimeout(() => {
+            this.updateComputedProperties();
+          }, 0);
         },
       });
   }

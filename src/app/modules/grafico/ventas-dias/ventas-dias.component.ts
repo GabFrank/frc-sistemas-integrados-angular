@@ -39,6 +39,7 @@ import {
   nombreArchivoGraficoExcel,
   periodosComparacionHoyAyer,
 } from "../utils/grafico-excel-export.util";
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 /** Paleta de colores para líneas de múltiples sucursales */
 const PALETA_LINEAS = [
@@ -150,7 +151,7 @@ export class VentasDiasComponent implements OnInit {
       .pipe(
         startWith(this.filtroSucursales.control.value),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap((sucIds) =>
+        switchMapSinCortar((sucIds) =>
           this.consultarDatos(this.filtroSucursales.normalizarIds(sucIds))
         ),
         untilDestroyed(this)

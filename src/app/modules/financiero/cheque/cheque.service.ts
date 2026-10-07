@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { limpiarErroresGraphQL, limpiarMensajeGraphQL } from '../../../commons/core/utils/graphqlErrorUtils';
 import { Cheque, ChequeInput, ChequeResumenDia, ChequeSaldoChequera, ChequeDashboardFiltro } from './cheque.model';
 import { GetChequeGQL } from './graphql/getCheque';
 import { GetChequesGQL } from './graphql/getCheques';
@@ -17,6 +18,12 @@ import { GetChequesSaldosPorChequeraGQL } from './graphql/getChequesSaldosPorChe
 import { CobrarChequeGQL } from './graphql/cobrarCheque';
 import { AnularChequeGQL } from './graphql/anularCheque';
 import { EmitirChequeGQL } from './graphql/emitirCheque';
+
+/**
+ * Los cheques son del central. Sin esto, con «Usar servidor local» tildado el dashboard y sus acciones iban al
+ * filial, que no tiene el módulo (una operación sin `clientName` va al servidor local).
+ */
+const AL_CENTRAL = { clientName: 'servidor' };
 
 @Injectable({
   providedIn: 'root'
@@ -118,36 +125,32 @@ export class ChequeService {
   /** Lista de cheques por fecha de pago en el rango, con filtros opcionales. */
   onGetChequesDashboard(f: ChequeDashboardFiltro): Observable<Cheque[]> {
     return this.getChequesDashboardGQL
-      .fetch(this.filtroVars(f), { fetchPolicy: 'network-only' })
+      .fetch(this.filtroVars(f), { fetchPolicy: 'network-only', context: AL_CENTRAL })
       .pipe(map(res => res?.data?.data || []));
   }
 
   /** Total y cantidad de cheques a pagar por día (gráfico + KPI por fecha). */
   onGetResumenPorDia(f: ChequeDashboardFiltro): Observable<ChequeResumenDia[]> {
     return this.getChequesResumenPorDiaGQL
-      .fetch(this.filtroVars(f), { fetchPolicy: 'network-only' })
+      .fetch(this.filtroVars(f), { fetchPolicy: 'network-only', context: AL_CENTRAL })
       .pipe(map(res => res?.data?.data || []));
   }
 
   /** Saldos/compromiso por chequera activa hasta la fecha (cards del sidebar). */
   onGetSaldosPorChequera(hasta: string, estado?: string | null): Observable<ChequeSaldoChequera[]> {
     return this.getChequesSaldosPorChequeraGQL
-      .fetch({ hasta, estado: estado || null }, { fetchPolicy: 'network-only' })
+      .fetch({ hasta, estado: estado || null }, { fetchPolicy: 'network-only', context: AL_CENTRAL })
       .pipe(map(res => res?.data?.data || []));
   }
 
   /** Cobra un cheque diferido (debita el banco y libera la reserva). */
   onCobrar(chequeId: number): Observable<Cheque> {
-    return this.cobrarChequeGQL
-      .mutate({ chequeId })
-      .pipe(map(res => res?.data?.data));
+    return this.mutar(this.cobrarChequeGQL, { chequeId });
   }
 
   /** Anula un cheque (libera reserva o revierte el débito). */
   onAnular(chequeId: number, motivo: string): Observable<Cheque> {
-    return this.anularChequeGQL
-      .mutate({ chequeId, motivo })
-      .pipe(map(res => res?.data?.data));
+    return this.mutar(this.anularChequeGQL, { chequeId, motivo });
   }
 
   /** Emite un cheque suelto (no ligado a un pago CPP). */
@@ -155,9 +158,22 @@ export class ChequeService {
     chequeraId: number; total: number; diferido: boolean;
     monedaId?: number; cuentaBancariaId?: number; fechaPago?: string; concepto?: string;
   }): Observable<Cheque> {
-    return this.emitirChequeGQL
-      .mutate(vars)
-      .pipe(map(res => res?.data?.data));
+    return this.mutar(this.emitirChequeGQL, vars);
+  }
+
+  /**
+   * Ejecuta una mutation contra el central y emite `next` con el dato o `error`. El error de un rechazo lleva el
+   * mensaje limpio y `graphQLErrors`, para distinguirlo de un «sin respuesta» con `erroresDeRechazo` (#390): tras
+   * un error de red, un corte o una respuesta vacía la operación pudo haberse aplicado.
+   */
+  private mutar(gql: any, variables: any): Observable<any> {
+    return gql.mutate(variables, { fetchPolicy: 'no-cache', errorPolicy: 'all', context: AL_CENTRAL }).pipe(map((res: any) => {
+      if (res?.errors?.length) {
+        throw Object.assign(new Error(limpiarMensajeGraphQL(res.errors[0].message) || 'No se pudo completar la operación'),
+          { graphQLErrors: limpiarErroresGraphQL(res.errors) });
+      }
+      return res?.data?.data;
+    }));
   }
 
   private filtroVars(f: ChequeDashboardFiltro) {

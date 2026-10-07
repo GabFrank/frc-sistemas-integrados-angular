@@ -104,13 +104,20 @@
     </div>
   </ng-container>
 
+  <div *ngIf="cargaFallo" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>No se pudo consultar el finiquito: lo que se ve puede no estar actualizado y no se puede aprobar.</span>
+    <button mat-stroked-button (click)="recargar()">Reintentar</button>
+  </div>
+
   <!-- Footer de acciones (cuando hay borrador vigente) -->
   <div class="acciones-footer" *ngIf="liq != null" fxLayout="row" fxLayoutAlign="end center">
     <div fxLayout="row" fxLayoutGap="10px">
       <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR' && puedeLiquidar" (click)="onRegenerar()">
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar" (click)="onAprobar()">Aprobar</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar"
+        [disabled]="cargaFallo" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && (puedeLiquidar || puedeAprobar)" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
