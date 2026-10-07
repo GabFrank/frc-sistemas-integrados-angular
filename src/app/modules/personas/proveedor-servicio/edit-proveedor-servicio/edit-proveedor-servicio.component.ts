@@ -97,7 +97,7 @@ export class EditProveedorServicioComponent implements OnInit {
   telefonoInvalidComputed = false;
   telefonoErrorMessageComputed = "";
 
-  documentVerificationState: "none" | "checking" | "found" | "available" =
+  documentVerificationState: "none" | "checking" | "found" | "available" | "unverified" =
     "none";
   documentVerificationMessage = "";
   showDocumentWarning = false;
@@ -305,12 +305,13 @@ export class EditProveedorServicioComponent implements OnInit {
           }
           this.cdr.markForCheck();
         },
+        // No se pudo consultar: no es «documento disponible» (#390).
         error: () => {
           this.foundPersona = null;
-          this.documentVerificationState = "available";
+          this.documentVerificationState = "unverified";
           this.documentVerificationMessage =
-            "Documento disponible para nuevo registro";
-          this.showDocumentWarning = false;
+            "No se pudo verificar el documento. Confirmá que no esté registrado antes de guardar.";
+          this.showDocumentWarning = true;
           this.cdr.markForCheck();
         },
       });

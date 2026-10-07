@@ -43,6 +43,10 @@
       Buscando la terminal…
     </p>
 
+    <mat-error *ngIf="errorConsulta" style="font-size: 0.9rem;">
+      No se pudo consultar la terminal (sin conexión con el servidor). Volvé a escanear.
+    </mat-error>
+
     <mat-error *ngIf="noEncontrado" style="font-size: 0.9rem;">
       No se encontró ninguna terminal activa con ese código.
     </mat-error>

@@ -42,6 +42,8 @@ export class SetupReplicationDialogComponent implements OnInit {
   isLoadingSetupState = false;
   /** True if current target+scope would create something that already exists (or filial not reachable when scope needs it). */
   wouldCreateExisting = false;
+  /** No se pudo leer el estado de la replicación de la sucursal elegida. */
+  estadoNoLeido = false;
 
   errorMessage: string = null;
   /** Step-by-step log from backend after setup finishes (null while not yet run or after reset). */
@@ -91,6 +93,7 @@ export class SetupReplicationDialogComponent implements OnInit {
       this.selectedSucursal = null;
       this.canConfigureSucursal = false;
       this.setupState = null;
+      this.estadoNoLeido = false;
       this.wouldCreateExisting = false;
       return;
     }
@@ -98,6 +101,7 @@ export class SetupReplicationDialogComponent implements OnInit {
     this.selectedSucursal = s;
     this.canConfigureSucursal = !!(s?.ip != null && s.ip !== '' && s?.puerto != null && s.puerto > 0);
     this.setupState = null;
+    this.estadoNoLeido = false;
     this.loadSetupState(sucursalId);
   }
 
@@ -108,11 +112,14 @@ export class SetupReplicationDialogComponent implements OnInit {
       .subscribe({
         next: (state) => {
           this.setupState = state ?? null;
+          this.estadoNoLeido = state == null;
           this.isLoadingSetupState = false;
           this.updateWouldCreateExisting();
         },
+        // Sin el estado no se sabe si ya existe lo que se va a crear: no se deja configurar (#390).
         error: () => {
           this.setupState = null;
+          this.estadoNoLeido = true;
           this.isLoadingSetupState = false;
           this.updateWouldCreateExisting();
         }
