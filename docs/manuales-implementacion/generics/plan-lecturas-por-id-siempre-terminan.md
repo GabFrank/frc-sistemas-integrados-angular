@@ -167,3 +167,52 @@ legajo) no den dos avisos; consola sin errores en lo tocado; los tres de `onGetB
 ## Decisiones de Franco (2026-10-06)
 - Aprobado. La rama sale de `develop`: el #435 y el #436 ya están mergeados (no se apila).
 - Producto con lote cuya lectura falla: **no se agrega y se avisa**.
+
+## Implementación: desvíos
+
+- Se trabajó en un worktree aparte (`.claude/worktrees/390-14e`): el checkout principal estaba en otra rama con
+  cambios de otra sesión. Sin efecto en el código.
+- **Lote**: si el filial no devuelve el producto (no existe) tampoco se agrega: es tan incomprobable como un error.
+- **Caja del PDV**: la lectura fallida no borra la caja guardada (la comparten otras pestañas de venta); el diálogo
+  Reintentar / Salir ya impide seguir.
+- **Editar un delivery**: ante el error se vuelve al carrito anterior **sin** el delivery (no solo se restaura la lista).
+- **Proveedor y proveedor de servicio** (no estaban en el plan): su `error:`, que con este cambio empieza a correr,
+  cargaba el formulario con los datos parciales de la lista. Ahora avisan y cierran.
+- Constantes nuevas en el genérico: `LECTURA_ESTRICTA` y `CONTEXTO_MOSTRADOR`.
+- No se tocó la lista de ítems de factura legal (ya manejaba bien el error) ni el aviso duplicado de retiro y gasto
+  de caja (queda para el 14f).
+- Se verificó con `npm run check` el estado final de cada tanda, no cada commit por separado.
+
+## Prueba de runtime (paso 9, 2026-10-07)
+
+Worktree servido en `:4202`, central local propio en `:8085` (replicación apagada, schedulers en «Negative
+matches»), filial local `:8080`. Fallas inyectadas en el navegador por consulta.
+
+| Caso | Resultado |
+|---|---|
+| Abrir el PDV con la lectura de la caja fallando | diálogo «No se pudo leer la caja» con Reintentar / Salir; no ofrece abrir otra |
+| Reintentar con la falla todavía / ya sin falla | vuelve el diálogo / carga la caja con su apertura |
+| Lote, lectura con error de red / rechazo del servidor | no se agrega; «No se pudo comprobar el lote de X… escanealo de nuevo»; sin modal colgado |
+| Lote, filial lento (15 s) | corta a los 10 s, un aviso |
+| Lote, producto que el filial no devuelve | no se agrega, mismo aviso |
+| Lote, lectura normal / dato ya presente (sí / no) | abre el selector de lote / selector / agrega directo |
+| Maletín al abrir caja: rechazo / red / no existe | «No se pudo verificar el maletín…» (antes un rechazo quedaba esperando) / ídem / «No existe un maletin…» |
+| Lista de personas (sin `error:`, va al 14f): red / normal | aviso «No se pudo consultar: Error de red», sigue «buscando» y deja un error en la consola / 115 resultados |
+
+No probado en runtime: edición de delivery con error, factura legal (cliente), crear inventario, selector de compras,
+proveedor, consulta de la factura recién emitida, cliente en delivery y en venta a crédito, categorías del PDV, y un
+consumidor ya migrado.
+Tests: `generic-crud.lecturas.spec.ts` 22 de 22 (49 de 49 con los de `onGetAll` y `onSave`).
+
+## Auditoría del diff (paso 8, 2026-10-06)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Editar delivery: restaurar solo la lista dejaba la pantalla en modo delivery con ítems del carrito común | media | se vuelve al carrito sin el delivery |
+| Proveedor: el `error:` ahora alcanzable editaba con datos parciales | baja | avisa y cierra |
+| Lote: el producto inexistente se agregaba sin lote | baja | no se agrega |
+| La lectura fallida borraba la caja compartida con otras pestañas | baja | no se toca |
+| Selector de compras: un error tardío colapsaba otra fila | baja | solo la propia |
+| Crear inventario: carreras menores entre sucursales | baja | se deja |
+| Aviso duplicado en retiro y gasto de caja; «Ups!» sin deduplicar | baja | 14f |
+| El genérico rama por rama contra `develop`, firmas posicionales, guardas antes de guardar, specs | — | verificado, sin hallazgos |
