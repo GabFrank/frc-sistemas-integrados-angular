@@ -50,6 +50,9 @@
           <mat-spinner diameter="28"></mat-spinner>
           <span>Verificando estado en central y filial...</span>
         </div>
+        <p class="state-warning" *ngIf="!isLoadingSetupState && estadoNoLeido">
+          No se pudo leer el estado actual de la replicación. Volvé a elegir la sucursal para reintentar.
+        </p>
         <div class="state-content" *ngIf="!isLoadingSetupState && setupState">
           <p class="state-title">Estado actual (sucursal seleccionada)</p>
           <p class="state-line">
@@ -130,7 +133,7 @@
       <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting">
         CANCELAR
       </button>
-      <button mat-raised-button color="primary" type="submit" form="setupReplicationForm" [disabled]="form.invalid || isSubmitting || wouldCreateExisting">
+      <button mat-raised-button color="primary" type="submit" form="setupReplicationForm" [disabled]="form.invalid || isSubmitting || wouldCreateExisting || isLoadingSetupState || estadoNoLeido">
         <mat-spinner *ngIf="isSubmitting" diameter="20" class="spinner-button"></mat-spinner>
         <span *ngIf="!isSubmitting">CONFIGURAR</span>
       </button>

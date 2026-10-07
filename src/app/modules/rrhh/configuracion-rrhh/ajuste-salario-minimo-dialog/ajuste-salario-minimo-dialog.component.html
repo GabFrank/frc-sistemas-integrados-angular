@@ -9,7 +9,11 @@
 
   <div *ngIf="cargando" class="cargando">Buscando funcionarios afectados…</div>
 
-  <div *ngIf="!cargando && dataSource.data.length === 0" class="sin-afectados">
+  <div *ngIf="!cargando && errorCarga" class="cargando" style="color: #ffb74d">
+    No se pudo consultar qué funcionarios quedaron por debajo del nuevo mínimo. Cerrá y volvé a intentar.
+  </div>
+
+  <div *ngIf="!cargando && !errorCarga && dataSource.data.length === 0" class="sin-afectados">
     <mat-icon>check_circle</mat-icon>
     Ningún funcionario quedó por debajo del nuevo mínimo.
   </div>

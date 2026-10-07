@@ -1949,7 +1949,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         switchMap(() => {
           const cajaId = this.cajaService?.selectedCaja?.id;
           if (cajaId == null) {
-            return of(null);
+            // Sin caja no hay solicitudes: página vacía, distinta del null de una consulta que falló.
+            return of({ getContent: [] } as any);
           }
           return this.gastoService
             .preGastoFilter(
@@ -1968,6 +1969,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         untilDestroyed(this)
       )
       .subscribe((res) => {
+        // La consulta falló (corte o rechazo): los contadores conservan su valor hasta el próximo
+        // sondeo, en vez de ir a 0 y esconder una solicitud ya autorizada (#390).
+        if (res == null) {
+          return;
+        }
         const sucursalActualId =
           this.cajaService?.selectedCaja?.sucursalId ??
           this.cajaService?.selectedCaja?.sucursal?.id ??

@@ -10,6 +10,8 @@ import { catchError, switchMap } from 'rxjs/operators';
  */
 export function terminarSiFalla<T>(alFallar?: (error: any) => void): MonoTypeOperatorFunction<T> {
   return catchError((error) => {
+    // Siempre a la consola: acá también cae un error de programación de un operador de más arriba.
+    console.error('[terminarSiFalla]', error);
     alFallar?.(error);
     return EMPTY;
   });
