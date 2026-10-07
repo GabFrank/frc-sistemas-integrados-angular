@@ -130,3 +130,41 @@ Un solo PR: con las correcciones, las fases 1 y 3 son chicas.
 | A | Aviso doble donde el consumidor ya avisa su error | baja | se revisa en la fase 2 |
 | B | `null` y completar, no `obs.error` (~36 consumidores con `if (res)`) | — | confirmado |
 | B | Separar en dos PRs | media | no: tras las correcciones el resto es chico |
+
+## Decisiones de Franco (2026-10-07)
+- Aprobado, con la respuesta `false` del backend fuera del alcance.
+
+## Implementación: desvíos
+- `onDelete` y `onDeleteWithSucId` comparten una sola implementación privada (`eliminar`).
+- El aviso doble no se toca: donde el consumidor ya avisa su error (solicitudes de pago), su texto y el del
+  genérico se complementan.
+- En cliente y legajo, además del aviso del segundo paso, el primer guardado atrapa su error (el aviso ya lo da
+  `onSave`).
+
+## Prueba de runtime (2026-10-07)
+Central propio en `:8085` (replicación apagada y verificada), desktop en `:4202`; rechazo y corte de red
+inyectados por consulta. El borrado se probó con «eliminar tipo de gasto» sobre un id que no existe, para no
+borrar nada.
+
+| Caso | Resultado |
+|---|---|
+| Borrado con confirmación, cancelar | completa sin emitir; ningún «Eliminando…» pendiente; pantalla libre |
+| Borrado con confirmación, rechazo del servidor | «Ups! Ocurrió algun problema al eliminar: …», `null`, completa |
+| Borrado con confirmación, corte de red | «No se pudo confirmar si se eliminó (error de red)…», `null`, completa, modal cerrado |
+| Cliente nuevo con el guardado del cliente fallando | aviso de `onSave` + «Los datos de la persona se guardaron, pero el cliente no»; el diálogo queda abierto |
+| Cliente nuevo, reintento | manda el id de la persona ya guardada (no duplica) |
+| Tests del borrado (Karma) | 13 de 13 |
+
+El guardado de la persona se simuló y el del cliente se cortó: no se escribió nada.
+
+**No probado en runtime**: un borrado que sí borra, quitar un ítem de una venta en el PDV, quitar una cuota,
+el ítem de compra y el legajo.
+
+## Auditoría del diff (paso 8, 2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Con un error HTTP (502 de un proxy) el aviso negaba un borrado que pudo aplicarse | media | mismo texto que `onSave`: «no se pudo confirmar… respondió HTTP N» |
+| Aviso doble en solicitudes de pago, cliente y legajo | baja | se deja: los textos se complementan |
+| Sin limpieza: si quien llama se va con la confirmación abierta, confirmar igual borra | baja | igual que antes; anotado |
+| Textos de confirmación, condición de `showDialog`, variables, los dos wrappers con `sucId` | — | equivalentes a lo anterior |
