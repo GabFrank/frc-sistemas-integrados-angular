@@ -29,11 +29,8 @@ import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-ite
 import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 import { MainService } from '../../../../../../main.service';
-import {
-  ContextoConsulta,
-  PROPAGAR_ERROR_DE_RED,
-  TIMEOUT_CONSULTA_DE_FONDO_MS,
-} from '../../../../../../generics/generic-crud.service';
+import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
 
 /** Cotización de la nota: 20 s sin el aviso genérico del link; avisa el diálogo (#390). */
 const CONSULTA_COTIZACION: ContextoConsulta = {

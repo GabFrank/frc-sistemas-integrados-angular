@@ -12,11 +12,8 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
-import {
-  ContextoConsulta,
-  PROPAGAR_ERROR_DE_RED,
-  TIMEOUT_CONSULTA_DE_FONDO_MS,
-} from '../../../../generics/generic-crud.service';
+import { ContextoConsulta } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 
 /** Cotización de la forma de pago: 20 s, avisa el diálogo (#390). */
 const CONSULTA_COTIZACION: ContextoConsulta = {

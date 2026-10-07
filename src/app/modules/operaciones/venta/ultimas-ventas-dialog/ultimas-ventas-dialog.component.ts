@@ -11,7 +11,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { Venta } from "../venta.model";
 import { ErrorCancelacionVenta, VentaService } from "../venta.service";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.constantes";
 
 /** Diálogo del POS contra la sucursal: el cajero espera de pie (#390). */
 const CONSULTA_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };

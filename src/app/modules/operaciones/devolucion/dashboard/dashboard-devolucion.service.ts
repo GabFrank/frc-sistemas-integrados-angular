@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
 
 /**
  * Paneles del dashboard: propagan red y GraphQL sin aviso propio — el componente avisa una sola vez por recarga
