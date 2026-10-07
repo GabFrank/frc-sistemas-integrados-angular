@@ -25,6 +25,18 @@
         font-size: 13px;
         opacity: 0.9;
         span { white-space: nowrap; }
+        // "+" para asignar el primer cargo, al lado de "Cargo: —"
+        .asignar-cargo {
+          background: none;
+          border: 0;
+          padding: 0;
+          margin-left: 4px;
+          cursor: pointer;
+          color: #42a5f5;
+          vertical-align: middle;
+          line-height: 0;
+          mat-icon { font-size: 18px; width: 18px; height: 18px; }
+        }
       }
     }
 
@@ -71,6 +83,7 @@
     th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
 
     .vacio { text-align: center; opacity: 0.6; font-size: 13px; padding: 18px; }
+    .vacio-accion { text-align: center; margin-top: -6px; }
 
     .proximamente {
       text-align: center;
