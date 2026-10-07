@@ -222,3 +222,43 @@ interceptaron: no se escribió nada.
 - Con estado propio, fuentes de flujos compuestos y promesas: se corrigen en este PR.
 - Impresión de transferencia (la imprime el servidor): aviso propio «no se pudo confirmar la impresión: puede
   haber salido».
+
+## PR 2 — Implementación: desvíos
+- El aviso doble se resuelve en el genérico (escucha si quien llama avisó) y no consumidor por consumidor.
+- Los consumidores sin `error:` y sin estado no se editan: reciben el aviso del genérico y dejan el error en la
+  consola como no manejado.
+- Revisados y sin cambio porque ya estaban protegidos o no usan `onCustomQuery`: las búsquedas de
+  modificaciones, las observaciones de caja y de venta, las exportaciones de los gráficos, la marcación facial.
+- No se toca la cotización de pagar compras (`getRateGs`): ante el error no actualiza el total en moneda
+  principal, que es fallar cerrado.
+- Legajo: si no cargan sucursales y ciudades las listas quedan vacías; la ciudad de la persona ya se conservaba.
+
+## PR 2 — Prueba de runtime (2026-10-07)
+Central propio en `:8085` (replicación apagada y verificada), filial local, desktop en `:4202`. Cortes de red
+reales: la petición se desvía a un puerto cerrado.
+
+| Caso | Resultado |
+|---|---|
+| Ajuste de salario mínimo con el central caído | «No se pudo consultar qué funcionarios…»; un solo aviso (el del diálogo; el genérico no agrega el suyo); sin «Buscando…» colgado |
+| Ajuste de salario mínimo normal | 228 afectados, sin avisos |
+| Gráfico de ventas por sucursal: seis filtros con el central caído (tres en ráfaga) | «cargando» se apaga; dos avisos «No se pudo consultar: Error de red» en total (no uno por consulta); al volver la red consulta y responde, sin avisos |
+| Editar sucursal con la lista de ciudades fallando | lista vacía, un aviso del genérico, al guardar se envía la ciudad original |
+| Editar sucursal normal | 6 ciudades, sin avisos |
+| Arranque con central y filial caídos | llega al login con el «Servidor Offline!!» de siempre; ningún «No se pudo consultar» ni modal colgado |
+| Tests del genérico (Karma) | 18 de 18 |
+
+**No probado en runtime**: los sondeos reales (venta con tarjeta, cupón, comentarios, contadores del PDV, abrir
+caja), la impresión de transferencia, el asistente de funcionario, vehículos, y el resto de las ~240 llamadas
+(solo muestreadas por la auditoría del diff).
+
+## PR 2 — Auditoría del diff (paso 8, 2026-10-07)
+
+| Hallazgo | Sev. | Qué se hizo |
+|---|---|---|
+| Con `errorConf` que no propaga el error de red sigue sin terminar | media | sin cambio a propósito; se buscó y hoy ningún llamador pasa un `errorConf` así |
+| Corte por tiempo con el aviso del link silenciado: no avisaba nadie | media | el genérico avisa en ese caso |
+| Contadores del PDV: 20 s puede cortar una consulta de 200 filas | baja | 60 s |
+| Fuentes de sucursales con `shareReplay`: una lista vacía queda hasta reabrir | baja | anotado |
+| Asistente de funcionario: tras el error queda abierto y vacío | baja | anotado (pantalla en desuso) |
+| Abortar la consulta al cancelar: el servidor puede haberla procesado | baja | son lecturas; no se encontró ninguna con efecto bajo un `switchMap` |
+| Muestreo de ~30 `error:` que empiezan a correr | — | ninguno da éxito falso, usa un valor por defecto ni lanza |
