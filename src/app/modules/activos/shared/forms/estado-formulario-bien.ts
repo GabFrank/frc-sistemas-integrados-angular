@@ -1,5 +1,6 @@
 import { FormGroup } from '@angular/forms';
-import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 

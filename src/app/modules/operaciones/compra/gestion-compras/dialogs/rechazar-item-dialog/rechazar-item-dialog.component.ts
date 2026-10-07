@@ -15,11 +15,8 @@ import { NotificacionSnackbarService } from '../../../../../../notificacion-snac
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
 import { debounceTime } from 'rxjs/operators';
-import {
-  ContextoConsulta,
-  PROPAGAR_ERROR_DE_RED,
-  TIMEOUT_CONSULTA_DE_FONDO_MS,
-} from '../../../../../../generics/generic-crud.service';
+import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
 
 /** Cotización de la nota que crea el rechazo: 20 s, avisa el diálogo (#390). */
 const CONSULTA_COTIZACION: ContextoConsulta = {

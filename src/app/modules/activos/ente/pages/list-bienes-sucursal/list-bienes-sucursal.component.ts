@@ -15,7 +15,8 @@ import { TipoEnte } from '../../enums/tipo-ente.enum';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
-import { ContextoConsulta, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, QueryError } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.constantes';
 
 /** Consulta de la asignación de un bien antes de editar o retirar: un fallo llega como error y se avisa. */
 const LECTURA_ASIGNACION: QueryError = {

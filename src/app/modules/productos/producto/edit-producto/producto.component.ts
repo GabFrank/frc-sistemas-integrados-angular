@@ -29,7 +29,8 @@ import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
 import { Subscription } from "rxjs";
-import { ContextoConsulta, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, QueryError } from "../../../../generics/generic-crud.service";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
 import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
 
 /** Carga del producto a editar: error de red y de servidor llegan a la pantalla, que avisa y bloquea el guardado. */

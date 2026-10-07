@@ -69,6 +69,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - Una clase service Apollo por query/mutation, en archivos separados (`getX.ts`, `saveX.ts`, `deleteX.ts`, etc.).
 - **Inputs con campos de fecha**: usar `string`, no `Date`. Convertir vía `dateToString` de `src/app/commons/core/utils/dateUtils.ts` en `toInput()`.
 - Pagination format estándar (incluye `getTotalPages`, `getTotalElements`, `getNumberOfElements`, `isFirst`).
+- **Una constante del genérico que se lee al cargarse el archivo se importa de `generics/generic-crud.constantes`, nunca de `generic-crud.service`.** «Al cargarse» es todo lo que corre fuera de un método: `const X = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS }` a nivel de módulo, un `static`, el argumento de un decorador. `generic-crud.service` está en un ciclo de imports y el bundle de producción puede evaluar tu archivo antes que el servicio: la app empaquetada queda **en blanco al arrancar** (`Cannot access '…' before initialization`), y ni `ng serve` ni el CI lo muestran porque nadie ejecuta el bundle (alphas .125 a .164, 2026-10). Dentro de un método da igual de dónde se importe. Una constante nueva del genérico se declara en `generic-crud.constantes.ts`, que no puede importar nada de la app salvo con `import type`.
 
 ### Electron main process
 - Editar **siempre** `.ts` Y `.js` en paralelo (`main.ts` ↔ `main.js`, `preload.ts` ↔ `preload.js`). El `.ts` se compila vía `tsc -p tsconfig.serve.json` antes de cada electron serve, pero el `.js` es lo que efectivamente carga Electron en builds locales.

@@ -18,7 +18,8 @@ import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
 import { GuardarConfigAlertasGpsGQL } from '../graphql/guardarConfigAlertasGps';
 import { MatDialog } from '@angular/material/dialog';
 import { GpsDialogService } from './gps-dialog-service.service';
-import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.constantes';
 
 /**
  * `error`: no se pudo cargar y no hay nada que mostrar. `desactualizada`: falló un refresco de la misma búsqueda y
