@@ -161,6 +161,9 @@ export class AddClienteDialogComponent implements OnInit {
             // El aviso del error lo da el genérico.
             error: () => this.clienteNoLeido = true,
           })
+        } else if (this.data?.cliente == null) {
+          // En un alta, el cliente cargado de una persona elegida antes tampoco es el de esta.
+          this.selectedCliente = null;
         }
         this.nombreControl.setValue(this.selectedPersona.nombre)
         this.apodoControl.setValue(this.selectedPersona?.apodo)
