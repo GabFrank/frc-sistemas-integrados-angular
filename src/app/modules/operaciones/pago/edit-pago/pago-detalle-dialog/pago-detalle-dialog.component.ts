@@ -1002,7 +1002,9 @@ export class PagoDetalleDialogComponent implements OnInit {
               return EMPTY;
             })
           )
-          .subscribe(() => {
+          .subscribe((eliminada) => {
+            // null = no se eliminó (rechazo o error de red, ya avisado): la cuota sigue en la lista (#390).
+            if (!eliminada) return;
             console.log('Cuota deleted successfully from database, removing from array. Before:', this.pagoDetalleCuotas.length);
             
             // Remove the cuota from the array
