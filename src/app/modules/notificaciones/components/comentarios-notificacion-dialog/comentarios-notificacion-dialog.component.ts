@@ -25,6 +25,7 @@ import { MediaTypeService } from '../../../../shared/services/media-type.service
 import { TextFormatterService } from '../../../../shared/services/text-formatter.service';
 import { MencionUsuarioService } from '../../../../shared/services/mencion-usuario.service';
 import { ComentariosDialogData, UsuarioExtendido, ComentarioExtendido } from './comentarios.models';
+import { switchMapSinCortar } from '../../../../commons/core/utils/rxjsUtils';
 
 export { ComentariosDialogData } from './comentarios.models';
 
@@ -201,7 +202,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     setTimeout(() => {
       interval(3000)
         .pipe(
-          switchMap(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
+          switchMapSinCortar(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
           untilDestroyed(this)
         )
         .subscribe({

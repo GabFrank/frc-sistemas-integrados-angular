@@ -4,6 +4,7 @@ import { distinctUntilChanged, filter, map, switchMap, takeWhile } from 'rxjs/op
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { CapturaCupon, CapturaCuponQr } from './captura-cupon.model';
 import { CapturaCuponGQL, CapturaCuponSubGQL, CrearCapturaCuponGQL } from './graphql/capturaCupon';
+import { switchMapSinCortar } from '../../../../commons/core/utils/rxjsUtils';
 
 /**
  * La captura de la foto del cupón, del lado de la caja.
@@ -128,11 +129,12 @@ export class CapturaCuponService {
         // ID de GraphQL y llega como string.
         // eslint-disable-next-line eqeqeq
         filter((t) => t != null && t.cajaId != null && t.cajaId == cajaId),
-        switchMap(() => this.consultar(token))
+        switchMapSinCortar(() => this.consultar(token))
       );
 
+    // Una consulta que falla no corta la espera: el sondeo vuelve a preguntar a los tres segundos (#390).
     const porSondeo = timer(CapturaCuponService.MS_SONDEO, CapturaCuponService.MS_SONDEO).pipe(
-      switchMap(() => this.consultar(token))
+      switchMapSinCortar(() => this.consultar(token))
     );
 
     return merge(porAviso, porSondeo).pipe(

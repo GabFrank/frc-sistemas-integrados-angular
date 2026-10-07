@@ -8,6 +8,7 @@ import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { GraficoService } from '../grafico.service';
 import { VentaMesDatosGraficoProcesados } from './interfaces/venta-mes-datos-grafico-procesados.model';
 import { VentaMesResumenAnho } from './interfaces/venta-mes-resumen-anho.model';
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -75,7 +76,7 @@ export class VentaMesComponent implements OnInit {
     ]).pipe(
       debounceTime(300),
       tap(() => this.cargandoSubject.next(true)),
-      switchMap(([sucId, anho]) => {
+      switchMapSinCortar(([sucId, anho]) => {
         const actual = anho || new Date().getFullYear();
         const anterior = actual - 1;
 

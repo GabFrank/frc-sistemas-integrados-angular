@@ -8,6 +8,7 @@ import { ROLES } from '../../../modules/personas/roles/roles.enum';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BuscadorTextoService } from '../../services/buscador-texto.service';
 import { filter, switchMap, tap } from 'rxjs/operators';
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -37,7 +38,8 @@ export class SearchBarDialogComponent implements OnInit {
       .pipe(
         tap(() => this.actualizarMenu()),
         filter(() => !!this.buscarControl.value?.trim()),
-        switchMap(() =>
+        // Si una búsqueda falla, el buscador sigue escuchando lo que se tipea (#390).
+        switchMapSinCortar(() =>
           this.searchBarService.onSearch(this.buscarControl.value ?? '')
         ),
         untilDestroyed(this)

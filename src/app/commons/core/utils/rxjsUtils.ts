@@ -1,5 +1,5 @@
-import { EMPTY, MonoTypeOperatorFunction } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { EMPTY, from, MonoTypeOperatorFunction, ObservableInput, OperatorFunction } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 
 /**
  * Para una lectura cuyo error ya avisó `GenericCrudService` y de la que quien llama no tiene nada más que
@@ -13,4 +13,16 @@ export function terminarSiFalla<T>(alFallar?: (error: any) => void): MonoTypeOpe
     alFallar?.(error);
     return EMPTY;
   });
+}
+
+/**
+ * `switchMap` para un flujo que tiene que seguir vivo (un filtro, lo que se tipea, un sondeo): si la consulta
+ * de adentro falla, se descarta ese resultado y el flujo de afuera sigue escuchando. Con un `switchMap` común,
+ * el primer error termina el flujo entero y la pantalla deja de responder hasta reabrirla (#390).
+ */
+export function switchMapSinCortar<T, R>(
+  proyectar: (valor: T, indice: number) => ObservableInput<R>,
+  alFallar?: (error: any) => void,
+): OperatorFunction<T, R> {
+  return switchMap((valor, indice) => from(proyectar(valor, indice)).pipe(terminarSiFalla<R>(alFallar)));
 }
