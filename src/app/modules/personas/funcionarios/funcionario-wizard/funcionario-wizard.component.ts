@@ -4,6 +4,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -93,7 +94,9 @@ export class FuncionarioWizardComponent implements OnInit {
 
     this.selectedPreRegistro = new PreRegistroFuncionario;
     Object.assign(this.selectedPreRegistro, this.data.preRegistroFuncionario as PreRegistroFuncionario)
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursales(true).pipe(
+      terminarSiFalla(() => this.cargandoService.closeDialog(requestId))
+    ).subscribe((res) => {
       this.cargandoService.closeDialog(requestId)
       this.sucursalList = res.filter(s => s.id != 0);
       this.cargarDatos()
