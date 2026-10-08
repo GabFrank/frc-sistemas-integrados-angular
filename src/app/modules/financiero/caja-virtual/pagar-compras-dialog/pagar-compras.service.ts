@@ -186,9 +186,12 @@ export class PagarComprasService {
    * Pago mixto: varias solicitudes, cada una con su subset de líneas (caja/banco, multi-moneda).
    * Llama la mutation directo (no onSaveCustom) para que el diálogo muestre un único aviso con el
    * mensaje de negocio, sin el cargando "Guardando..." ni el snackbar genérico de onSaveCustom.
+   *
+   * `claveIdempotencia` identifica el intento del usuario: reenviar el mismo pedido con la misma clave devuelve
+   * el pago que ya se registró en vez de registrarlo otra vez (franco-system-backend-servidor#376).
    */
-  onPagarMixto(pagos: SolicitudConLineas[], servidor = true): Observable<any> {
-    return this.mutar(this.pagarMixtoGQL, { pagos }, servidor);
+  onPagarMixto(pagos: SolicitudConLineas[], claveIdempotencia?: string, servidor = true): Observable<any> {
+    return this.mutar(this.pagarMixtoGQL, { pagos, claveIdempotencia: claveIdempotencia || null }, servidor);
   }
 
   /** Anula un evento de pago completo (todas sus notas y movimientos consolidados). */
