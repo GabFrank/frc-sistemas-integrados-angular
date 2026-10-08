@@ -184,3 +184,36 @@ son código sin uso. Sus cambios quedan verificados solo por lectura y por el bu
 | Aviso doble en solicitudes de pago, cliente y legajo | baja | se deja: los textos se complementan |
 | Sin limpieza: si quien llama se va con la confirmación abierta, confirmar igual borra | baja | igual que antes; anotado |
 | Textos de confirmación, condición de `showDialog`, variables, los dos wrappers con `sucId` | — | equivalentes a lo anterior |
+
+## Seguimiento (2026-10-08): el mensaje cuando el registro ya no existe
+
+### Qué se midió
+Con la respuesta `false` fuera del alcance, se midió qué contestan los backends locales al borrar un id que no
+existe:
+
+| Borrado | Respuesta |
+|---|---|
+| Central: cargo, sector, banco (borrado base, `CrudService.deleteById`) | error «Transaction silently rolled back because it has been marked as rollback-only» |
+| Filial: cargo, banco (borrado base) | el mismo error |
+| Filial: ítem de venta, detalle de cobro (borrado con lógica propia) | `false`, sin error |
+| Central: sector con una zona adentro | borra los dos (en cascada) |
+
+- El borrado base **nunca llega a contestar `false`**: atrapa la excepción, pero la transacción ya quedó marcada
+  y falla al cerrar. El éxito falso que se temía casi no existe; `false` solo lo devuelven los borrados con
+  lógica propia, y ahí significa «ya no existía».
+- El problema real es el texto: el usuario veía «Ups! Ocurrió algun problema al eliminar: Transaction silently
+  rolled back…».
+- No se midió un borrado bloqueado por datos relacionados (el par probado borra en cascada).
+
+### Cambio (decisión de Franco: solo desktop)
+El borrado genérico reconoce ese error y dice «No se pudo eliminar: el registro ya no existe o no se puede
+borrar. Actualizá la lista.» El resto de los rechazos se muestra como antes.
+
+### Prueba
+- Test nuevo en `generic-crud.on-delete.spec.ts` (14 de 14).
+- Runtime, central local: tipo de gasto de prueba creado, eliminado («Eliminado con éxito») y vuelto a eliminar
+  desde la misma fila ya vieja: sale el texto nuevo.
+
+### Anotado
+La solución de fondo es en los backends (`CrudService.deleteById` de central y filial: contestar «eliminado» si
+el registro ya no existe y un mensaje claro si hay datos relacionados). Toca la base de ~245 borrados.
