@@ -28,6 +28,8 @@
               type="text"
               inputmode="numeric"
               [formControl]="idVentaControl"
+              (input)="onIdVentaInput($event)"
+              (compositionend)="onIdVentaInput($event)"
               (keyup.enter)="onFiltrarConReset()"
             >
           </mat-form-field>
