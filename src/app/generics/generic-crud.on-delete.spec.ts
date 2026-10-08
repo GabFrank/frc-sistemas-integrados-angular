@@ -62,6 +62,16 @@ describe('GenericCrudService: onDelete y onDeleteWithSucId', () => {
       expect(cerrados).toEqual([7]);
     });
 
+    it('el «rollback-only» de los backends se dice en claro: el registro ya no existe', () => {
+      const cruda = 'Exception while fetching data (/deleteCargo) : Transaction silently rolled back because it has been marked as rollback-only';
+      const r = leer(service.onDelete(mutacion(of({ data: null, errors: [{ message: cruda }] })), 5, null, null, false));
+      expect(r.valores).toEqual([null]);
+      expect(r.completo).toBeTrue();
+      expect(avisos.length).toBe(1);
+      expect(avisos[0]).toContain('ya no existe');
+      expect(avisos[0]).not.toContain('rollback');
+    });
+
     it('error de red: avisa que pudo haberse aplicado, emite null y completa', () => {
       const r = leer(service.onDelete(mutacion(red()), 5, null, null, false));
       expect(r.valores).toEqual([null]);

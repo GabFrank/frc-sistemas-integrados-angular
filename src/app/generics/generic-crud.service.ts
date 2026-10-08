@@ -952,12 +952,16 @@ export class GenericCrudService {
                 terminar(true);
                 return;
               }
+              const motivo = limpiarMensajeGraphQL(res.errors[0]?.message);
+              // Así contestan los dos backends cuando el borrado base falla por dentro; lo medido: el registro
+              // ya no existe (lo borró otro, o la lista está vieja). El texto crudo no le dice nada a nadie.
+              const yaNoExiste = typeof motivo === "string" && /rollback-only/i.test(motivo);
               this.notificacionSnackBar.notification$.next({
-                texto:
-                  "Ups! Ocurrió algun problema al eliminar: " +
-                  limpiarMensajeGraphQL(res.errors[0]?.message),
-                duracion: 3,
-                color: NotificacionColor.danger,
+                texto: yaNoExiste
+                  ? "No se pudo eliminar: el registro ya no existe o no se puede borrar. Actualizá la lista."
+                  : "Ups! Ocurrió algun problema al eliminar: " + motivo,
+                duracion: yaNoExiste ? 5 : 3,
+                color: yaNoExiste ? NotificacionColor.warn : NotificacionColor.danger,
               });
               terminar(null);
             },
