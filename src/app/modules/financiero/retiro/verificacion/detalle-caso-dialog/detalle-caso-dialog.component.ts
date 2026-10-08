@@ -279,16 +279,12 @@ export class DetalleCasoDialogComponent implements OnInit {
       // El aviso del error lo da onSaveCustom (o el link, en un corte).
       error: err => {
         this.guardando = false;
-        const rechazo = erroresDeRechazo(err) !== null;
-        // Rechazo sin anulación pedida: nada se guardó, el diálogo queda abierto para corregir.
-        if (rechazo && !pidioAnular) return;
-        if (rechazo) {
-          // El central guarda el caso como resuelto y después anula la verificación: si esa
-          // anulación falla llega un error, pero el caso pudo haber quedado resuelto (#390).
-          this.cerrarSinConfirmar('El caso pudo haber quedado resuelto aunque la anulación de la verificación '
-            + 'falló: se vuelve a leer la lista de casos.');
-          return;
-        }
+        // Rechazo: el central no guardó nada y el diálogo queda abierto para corregir, también cuando se
+        // pidió anular la verificación. El central resuelve el caso y anula en una sola transacción
+        // (franco-system-backend-servidor#376): si la anulación no pasa, el caso tampoco queda resuelto, y
+        // se puede reintentar —sin anular, o después de arreglar lo que la frenó— sin perder el informe.
+        if (erroresDeRechazo(err) !== null) return;
+        // Sin respuesta (red, corte, respuesta vacía): ahí sí pudo haberse resuelto.
         this.cerrarSinConfirmar(esTimeoutDeLink(err) ? null
           : 'No se pudo confirmar si el caso quedó resuelto: se vuelve a leer la lista de casos.');
       },
