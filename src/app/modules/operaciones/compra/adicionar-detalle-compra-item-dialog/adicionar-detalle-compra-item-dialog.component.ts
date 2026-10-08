@@ -1,3 +1,4 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import {
   Component,
   ElementRef,
@@ -91,7 +92,11 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
     //   this.selectedCompraItem.estado = CompraItemEstado.SIN_MODIFICACIONN
     // }
     this.selectedCompraItem.verificado = false;
-    this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
+    this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).pipe(
+      // Si el guardado falla el modal propio también se cierra: quedaba tapando la pantalla (#390).
+      terminarSiFalla(() => this.cargandoDialog.closeDialog(requestId)),
+      untilDestroyed(this)
+    ).subscribe(res => {
       this.cargandoDialog.closeDialog(requestId)
       if(res!=null){
         this.matDialogRef.close(this.selectedCompraItem)

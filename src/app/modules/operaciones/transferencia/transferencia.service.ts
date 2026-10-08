@@ -98,9 +98,9 @@ export class TransferenciaService {
   /**
    * Avisa cuando alguien escaneó el QR de una transferencia desde el móvil.
    *
-   * Emite una sola vez y completa —así resuelve `onCustomSub`—, que es
-   * justo lo que hace falta para cerrar el diálogo del QR: después del
-   * primer escaneo ya no hay nada que escuchar.
+   * El canal es de todos los desktops: emite cada escaneo, de cualquier
+   * transferencia, hasta que quien llama deja de escuchar (al cerrar el
+   * diálogo del QR). Quien llama filtra el suyo.
    */
   qrEscaneadoSub() {
     return this.genericCrudService.onCustomSub(this.transferenciaQrEscaneadoSub, null, true, false);

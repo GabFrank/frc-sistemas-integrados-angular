@@ -408,22 +408,35 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Escucha una subscription hasta que quien llama deja de escuchar (#390).
+   *
+   * No se corta con el primer aviso: los canales del servidor son compartidos por todos los desktops y quien
+   * llama filtra el suyo. Antes completaba con el primero que llegara, así que un aviso de otra caja cerraba
+   * la escucha justo antes del propio. Al dejar de escuchar se corta la conexión de verdad.
+   *
+   * Un aviso con error se avisa y se sigue escuchando. Si la conexión se corta, completa (queda en la consola).
+   */
   onCustomSub(
     gql: Subscription,
     data,
     servidor: boolean = true,
     cargando?: boolean
   ): Observable<any> {
-    this.isLoading = true;
-    let requestId: number | null = null;
-
-    if (cargando == true) {
-      const result = this.cargandoService.openDialog(false, "Buscando...");
-      requestId = result.requestId;
-    }
-
     return new Observable((obs) => {
-      gql
+      this.isLoading = true;
+      let requestId: number | null = null;
+      if (cargando == true) {
+        requestId = this.cargandoService.openDialog(false, "Buscando...").requestId;
+      }
+      const cerrarModal = () => {
+        if (requestId != null) {
+          this.cargandoService.closeDialog(requestId);
+          requestId = null;
+        }
+        this.isLoading = false;
+      };
+      const escucha = gql
         .subscribe(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
@@ -431,31 +444,35 @@ export class GenericCrudService {
             clientName: servidor == null || servidor ? "servidor" : null,
           },
         })
-        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
-          next: (res) => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          next: (res: any) => {
+            cerrarModal();
+            // Un aviso vacío no trae nada que entregar ni que avisar.
+            if (res == null) return;
             if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              obs.next(res.data?.["data"] ?? null);
+              return;
             }
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0]?.message),
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
           },
-          error: () => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          error: (error) => {
+            cerrarModal();
+            console.warn("[GraphQL] Se cortó una subscription", error);
+            obs.complete();
+          },
+          complete: () => {
+            cerrarModal();
+            obs.complete();
           },
         });
+      return () => {
+        escucha.unsubscribe();
+        cerrarModal();
+      };
     });
   }
 
@@ -852,6 +869,15 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Siempre termina (#390): `true` si se eliminó, `null` si no (rechazo del servidor o error de red, los dos
+   * avisados), y completa. Si se pide confirmación y el usuario cancela, completa sin emitir.
+   *
+   * Ante un error de red no se sabe si el borrado se aplicó: lo dice el aviso. No falla con `obs.error`
+   * porque quien llama pregunta `if (res)`.
+   *
+   * No mira el Boolean que devuelve el backend: `false` es tanto «no pude» como «ya no existía».
+   */
   onDelete(
     gql: Mutation,
     id,
@@ -861,115 +887,13 @@ export class GenericCrudService {
     servidor: boolean = true,
     mensaje?: string
   ): Observable<any> {
-    return new Observable((obs) => {
-      if (showDialog == false) {
-        const { requestId } = this.cargandoService.openDialog(
-          false,
-          "Eliminando..."
-        );
-        gql
-          .mutate(
-            {
-              id,
-            },
-            {
-              errorPolicy: "all",
-              context: {
-                clientName: servidor == null || servidor ? "servidor" : null,
-              },
-            }
-          )
-          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
-          .subscribe({
-            next: (res) => {
-              this.cargandoService.closeDialog(requestId);
-              if (res.errors == null) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Eliminado con éxito",
-                  duracion: 2,
-                  color: NotificacionColor.success,
-                });
-                obs.next(true);
-                obs.complete();
-              } else {
-                {
-                  this.notificacionSnackBar.notification$.next({
-                    texto:
-                      "Ups! Ocurrió algun problema al eliminar: " +
-                      limpiarMensajeGraphQL(res.errors[0].message),
-                    duracion: 3,
-                    color: NotificacionColor.danger,
-                  });
-                  obs.next(null);
-                }
-              }
-            },
-            error: () => {
-              this.cargandoService.closeDialog(requestId);
-              obs.next(null);
-            },
-          });
-      } else {
-        this.dialogoService
-          .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
-          .pipe(untilDestroyed(this))
-          .subscribe((res1) => {
-            const { requestId } = this.cargandoService.openDialog(
-              false,
-              "Eliminando..."
-            );
-            if (res1) {
-              gql
-                .mutate(
-                  {
-                    id,
-                  },
-                  {
-                    errorPolicy: "all",
-                    context: {
-                      clientName: servidor == null || servidor ? "servidor" : null,
-                    },
-                  }
-                )
-                .pipe(this.sinRespuestaVacia())
-                .subscribe({
-                  next: (res) => {
-                    this.cargandoService.closeDialog(requestId);
-                    if (res.errors == null) {
-                      this.notificacionSnackBar.notification$.next({
-                        texto: "Eliminado con éxito",
-                        duracion: 2,
-                        color: NotificacionColor.success,
-                      });
-                      obs.next(true);
-                      obs.complete();
-                    } else {
-                      {
-                        this.notificacionSnackBar.notification$.next({
-                          texto:
-                            "Ups! Ocurrió algun problema al eliminar: " +
-                            limpiarMensajeGraphQL(res.errors[0].message),
-                          duracion: 3,
-                          color: NotificacionColor.danger,
-                        });
-                        obs.next(null);
-                        obs.complete();
-                      }
-                    }
-                  },
-                  error: () => {
-                    this.cargandoService.closeDialog(requestId);
-                    obs.next(null);
-                    obs.complete();
-                  },
-                });
-            } else {
-            }
-          });
-      }
+    return this.eliminar(gql, { id }, servidor, showDialog == false ? null : {
+      titulo: titulo != null ? titulo : "Atención!!",
+      mensaje: mensaje != null ? mensaje : "Realemente desea eliminar este item?",
     });
   }
 
+  /** Como {@link onDelete}, para las entidades cuya clave incluye la sucursal. */
   onDeleteWithSucId(
     gql: Mutation,
     id,
@@ -979,113 +903,101 @@ export class GenericCrudService {
     showDialog?: boolean,
     servidor: boolean = true
   ): Observable<any> {
+    return this.eliminar(gql, { id, sucId }, servidor, showDialog == false ? null : {
+      titulo: "Atención!!",
+      mensaje: "Realemente desea eliminar este " + titulo,
+    });
+  }
+
+  private eliminar(
+    gql: Mutation,
+    variables: any,
+    servidor: boolean,
+    confirmacion: { titulo: string; mensaje: string } | null
+  ): Observable<any> {
     return new Observable((obs) => {
-      if (showDialog == false) {
-        const { requestId } = this.cargandoService.openDialog(
-          false,
-          "Eliminando..."
-        );
+      let requestId: any = null;
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        if (requestId != null) this.cargandoService.closeDialog(requestId);
+        return true;
+      };
+      const terminar = (valor: any) => {
+        if (!cerrar()) return;
+        obs.next(valor);
+        obs.complete();
+      };
+      const ejecutar = () => {
+        // Recién acá: abierto antes de confirmar, cancelar lo dejaba tapando la pantalla.
+        requestId = this.cargandoService.openDialog(false, "Eliminando...").requestId;
         gql
-          .mutate(
-            {
-              id,
-              sucId,
+          .mutate(variables, {
+            errorPolicy: "all",
+            context: {
+              clientName: servidor == null || servidor ? "servidor" : null,
             },
-            {
-              errorPolicy: "all",
-              context: {
-                clientName: servidor == null || servidor ? "servidor" : null,
-              },
-            }
-          )
-          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+          })
+          .pipe(this.sinRespuestaVacia())
           .subscribe({
             next: (res) => {
-              this.cargandoService.closeDialog(requestId);
+              if (terminado) return;
               if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
                   texto: "Eliminado con éxito",
                   duracion: 2,
                   color: NotificacionColor.success,
                 });
-                obs.next(true);
-                obs.complete();
-              } else {
-                {
-                  this.notificacionSnackBar.notification$.next({
-                    texto:
-                      "Ups! Ocurrió algun problema al eliminar: " +
-                      limpiarMensajeGraphQL(res.errors[0].message),
-                    duracion: 3,
-                    color: NotificacionColor.danger,
-                  });
-                  obs.next(null);
-                }
+                terminar(true);
+                return;
               }
+              this.notificacionSnackBar.notification$.next({
+                texto:
+                  "Ups! Ocurrió algun problema al eliminar: " +
+                  limpiarMensajeGraphQL(res.errors[0]?.message),
+                duracion: 3,
+                color: NotificacionColor.danger,
+              });
+              terminar(null);
             },
-            error: () => {
-              this.cargandoService.closeDialog(requestId);
-              obs.next(null);
-            },
-          });
-      } else {
-        this.dialogoService
-          .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
-          .pipe(untilDestroyed(this))
-          .subscribe((res1) => {
-            const { requestId } = this.cargandoService.openDialog(
-              false,
-              "Eliminando..."
-            );
-            if (res1) {
-              gql
-                .mutate(
-                  {
-                    id,
-                  },
-                  {
-                    errorPolicy: "all",
-                    context: {
-                      clientName: servidor == null || servidor ? "servidor" : null,
-                    },
-                  }
-                )
-                .pipe(this.sinRespuestaVacia())
-                .subscribe({
-                  next: (res) => {
-                    this.cargandoService.closeDialog(requestId);
-                    if (res.errors == null) {
-                      this.notificacionSnackBar.notification$.next({
-                        texto: "Eliminado con éxito",
-                        duracion: 2,
-                        color: NotificacionColor.success,
-                      });
-                      obs.next(true);
-                      obs.complete();
-                    } else {
-                      {
-                        this.notificacionSnackBar.notification$.next({
-                          texto:
-                            "Ups! Ocurrió algun problema al eliminar: " +
-                            limpiarMensajeGraphQL(res.errors[0].message),
-                          duracion: 3,
-                          color: NotificacionColor.danger,
-                        });
-                        obs.next(null);
-                        obs.complete();
-                      }
-                    }
-                  },
-                  error: () => {
-                    this.cargandoService.closeDialog(requestId);
-                    obs.next(null);
-                    obs.complete();
-                  },
+            error: (error) => {
+              if (terminado) return;
+              // Es una escritura: sin respuesta no se sabe si se aplicó. El corte por tiempo ya lo avisó el link.
+              if (!esTimeoutDeLink(error)) {
+                const status = error?.networkError?.status ?? error?.status;
+                this.notificacionSnackBar.notification$.next({
+                  // Mismo criterio que onSave: con status tampoco se niega el borrado (un 502 de un proxy
+                  // pudo haberlo dejado pasar).
+                  texto: status > 0
+                    ? "No se pudo confirmar si se eliminó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                    : "No se pudo confirmar si se eliminó (error de red): pudo haberse aplicado, verificá antes de repetir.",
+                  duracion: 6,
+                  color: NotificacionColor.warn,
                 });
-            } else {
-            }
+              }
+              terminar(null);
+            },
+            complete: () => terminar(null),
           });
+      };
+      if (confirmacion == null) {
+        ejecutar();
+        return;
       }
+      this.dialogoService
+        .confirm(confirmacion.titulo, confirmacion.mensaje)
+        .subscribe({
+          next: (confirmado) => {
+            if (confirmado) {
+              ejecutar();
+            } else if (cerrar()) {
+              // Canceló: no hay nada que emitir, pero quien llama no queda esperando.
+              obs.complete();
+            }
+          },
+          error: () => { if (cerrar()) obs.complete(); },
+        });
     });
   }
 
@@ -1239,12 +1151,20 @@ export class GenericCrudService {
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
-            if (error) {
-              obs.next({ error: err });
-            } else {
-              obs.next(null);
-            }
-            obs.complete();
+            // Es una escritura: sin respuesta no se sabe si se aplicó. Se avisa solo si quien llama no
+            // lo dice por su cuenta (la factura legal ya avisa lo suyo) (#390).
+            const status = err?.networkError?.status ?? err?.status;
+            this.fallarAvisandoSiNadieAvisa(
+              () => {
+                obs.next(error ? { error: err } : null);
+                obs.complete();
+              },
+              esTimeoutDeLink(err)
+                ? null
+                : status > 0
+                  ? "No se pudo confirmar si se guardó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                  : "No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir."
+            );
           },
         });
     });

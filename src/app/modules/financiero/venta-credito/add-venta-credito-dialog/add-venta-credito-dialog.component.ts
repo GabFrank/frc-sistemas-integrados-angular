@@ -311,17 +311,23 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
       }
     })
 
-    this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().pipe(untilDestroyed(this)).subscribe(res => {
-      if (+res['clienteId'] == +id && +this.mainService.sucursalActual.id == +res['sucursalId'] && secretKey == res['secretKey']) {
+    // Se deja de escuchar al cerrarse el QR (escaneado, vencido o cerrado a mano): un escaneo tardío del
+    // mismo código no confirma la venta con el diálogo ya cerrado (#390).
+    this.ventaSub?.unsubscribe();
+    const escucha = this.ventaCreditoService.ventaCreditoQrSub().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null && +res['clienteId'] == +id && +this.mainService.sucursalActual.id == +res['sucursalId'] && secretKey == res['secretKey']) {
         let diff = ((Date.now() - (+qrData.timestamp)) / 1000) / 60;
         if (diff < 60) {
-          this.ventaSub.unsubscribe()
+          escucha.unsubscribe()
           qrDialogRef.close()
           this.tipoConfirmacion = TipoConfirmacion.QR;
           this.onConfirmVentaCredito()
         }
       }
     })
+    this.ventaSub = escucha;
+    // Cada QR corta su propia escucha, no la de uno abierto después.
+    qrDialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => escucha.unsubscribe());
   }
 
   onVer(gasto) { }
