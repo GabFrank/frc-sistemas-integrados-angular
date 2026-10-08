@@ -30,6 +30,18 @@ import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/serv
 import { MatStepper } from '@angular/material/stepper';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+
+/**
+ * Un pago de compras o de gastos tal como se envió, con la clave de idempotencia de ese intento. Reenviar
+ * **este mismo objeto** es seguro: el central devuelve el pago si ya lo había registrado
+ * (franco-system-backend-servidor#376). Las variables son una copia: no siguen a la selección ni a las líneas.
+ */
+interface PedidoDePago {
+  clave: string;
+  pagos: SolicitudConLineas[];
+}
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -202,6 +214,18 @@ export class PagarComprasDialogComponent implements OnInit {
    */
   altaSinConfirmar: string | null = null;
   private idsSinConfirmar = new Set<number>();
+  /**
+   * El pago de compras o de gastos que quedó sin respuesta, para reenviarlo con su misma clave. Hay uno solo:
+   * mientras exista no se confirma otro pago (ver `onSave`), porque un pedido nuevo —con otra clave— sobre las
+   * mismas notas se registraría además de este. Los modos de vales y de RRHH no lo usan: sus mutations no
+   * llevan clave.
+   */
+  private pedidoPendiente: PedidoDePago | null = null;
+  /** Espejo de `pedidoPendiente` para el template (un campo, no un getter). */
+  hayPendiente = false;
+  reenviando = false;
+  /** Algún pago quedó sin respuesta en este diálogo: al cerrar, quien lo abrió tiene que releer la caja. */
+  private huboSinConfirmar = false;
 
   isLoading = false;
   /** La última carga de pendientes falló: la lista está vacía a propósito, no porque no haya pendientes. */
@@ -279,6 +303,7 @@ export class PagarComprasDialogComponent implements OnInit {
     private funcionarioService: FuncionarioService,
     private motivoValeService: MotivoValeService,
     private dialog: MatDialog,
+    private dialogosService: DialogosService,
   ) {}
 
   ngOnInit(): void {
@@ -1071,6 +1096,7 @@ export class PagarComprasDialogComponent implements OnInit {
 
   // ── Confirmar ──
   onSave() {
+    if (this.hayPendiente) return this.err('Hay un pago sin confirmar: reenviálo o descartálo antes de pagar otro');
     const sel = this.todas.filter(r => r._sel);
     if (sel.length === 0) return this.err('Seleccione al menos una nota a pagar');
     if (this.lineas.length === 0) return this.err('Agregue al menos una forma de pago');
@@ -1083,7 +1109,14 @@ export class PagarComprasDialogComponent implements OnInit {
     if (!this.balanceOk) return this.err('El total de las formas de pago debe igualar el total a pagar');
 
     const pagos = this.distribuirFifo(sel);
+    // Compras y gastos llevan clave de idempotencia: una por cada «Confirmar». El pedido se copia junto con ella
+    // para poder reenviarlo idéntico si queda sin respuesta.
+    const pedido: PedidoDePago | null = (this.esRrhh || this.esVale)
+      ? null
+      : { clave: nuevaClaveIdempotencia(), pagos: JSON.parse(JSON.stringify(pagos)) };
     this.isSaving = true;
+    // Esc o un clic afuera en pleno guardado cerrarían sin ver la respuesta (el pedido sigue su curso en el central).
+    this.dialogRef.disableClose = true;
     // El modo VALES paga por valeId: el backend resuelve/crea la obligación de pago de cada vale
     // (los vales que vienen del mobile nacen sin ella) y delega en el mismo motor de pago.
     const pago$ = this.esRrhh
@@ -1094,7 +1127,7 @@ export class PagarComprasDialogComponent implements OnInit {
       : this.esVale
         ? this.pagarComprasService.onPagarValesMixto(
             pagos.map(p => ({ valeId: p.solicitudId, lineas: p.lineas } as ValeConLineas)))
-        : this.pagarComprasService.onPagarMixto(pagos);
+        : this.pagarComprasService.onPagarMixto(pedido.pagos, pedido.clave);
     pago$.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;
@@ -1103,7 +1136,7 @@ export class PagarComprasDialogComponent implements OnInit {
           this.dialogRef.close(res);
         } else {
           // Ni error ni resultado: no se sabe si se registró.
-          this.pagoSinRespuesta(sel, true);
+          this.pagoSinRespuesta(sel, true, pedido);
         }
       },
       error: err => {
@@ -1113,21 +1146,80 @@ export class PagarComprasDialogComponent implements OnInit {
           // El servidor dijo que no y no registró nada. Se relee por si la lista estaba vieja (p. ej. «ya
           // está CONCLUIDO»), conservando lo armado si nada de lo elegido cambió.
           this.notificacion.openWarn(rechazo[0]?.message || err?.message || 'Error al registrar el pago', 6);
+          this.dialogRef.disableClose = this.huboSinConfirmar;
           this.cargar(true);
           return;
         }
         // Sin respuesta. El corte por tiempo ya lo avisó el link; el resto (red, central offline, respuesta
         // vacía) no lo avisa nadie.
-        this.pagoSinRespuesta(sel, !esTimeoutDeLink(err));
+        this.pagoSinRespuesta(sel, !esTimeoutDeLink(err), pedido);
       }
     });
+  }
+
+  /**
+   * Reenvía el pago que quedó sin respuesta, idéntico y con su misma clave: si el central ya lo había registrado
+   * devuelve ese pago, y si no, lo registra ahora. Nunca dos veces.
+   */
+  reenviarPago() {
+    const pedido = this.pedidoPendiente;
+    if (!pedido || this.reenviando || this.isSaving) return;
+    this.reenviando = true;
+    this.pagarComprasService.onPagarMixto(pedido.pagos, pedido.clave).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.reenviando = false;
+        if (res != null) {
+          this.notificacion.openSucess('Pago registrado correctamente');
+          this.dialogRef.close(res);
+        } else {
+          this.notificacion.openWarn('El pago sigue sin confirmar. Podés reenviarlo de nuevo.', 6);
+        }
+      },
+      error: err => {
+        this.reenviando = false;
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          // El central respondió que no. Salvo que el mensaje diga que el pago se registró y después se anuló,
+          // el pedido original no había entrado: el central busca la clave antes de validar. No queda nada que
+          // reenviar; se relee para armar el pago otra vez sobre saldos al día.
+          this.notificacion.openWarn(rechazo[0]?.message || err?.message || 'El pago no se registró', 8);
+          this.soltarPendiente();
+          this.cargar();
+          return;
+        }
+        if (!esTimeoutDeLink(err)) {
+          this.notificacion.openWarn('El pago sigue sin confirmar. Podés reenviarlo de nuevo.', 6);
+        }
+      }
+    });
+  }
+
+  /** «Ya revisé los saldos»: suelta el pago sin confirmar y deja armar otro, que saldrá con una clave nueva. */
+  descartarPendiente() {
+    if (this.reenviando) return;
+    this.soltarPendiente();
+  }
+
+  private soltarPendiente() {
+    this.pedidoPendiente = null;
+    this.hayPendiente = false;
+    this.pagoSinConfirmar = null;
+    this.idsSinConfirmar.clear();
+    this.todas.forEach(r => r._sinConfirmar = false);
+    // huboSinConfirmar y disableClose quedan como están: el pago pudo haberse registrado, así que el diálogo se
+    // sigue cerrando solo por «Cancelar», que le avisa a quien lo abrió que relea la caja.
   }
 
   /**
    * El pago pudo haberse registrado. La selección y las formas de pago se sueltan **ya** (no al terminar la
    * relectura, que puede tardar): con ellas armadas, otro clic en «Confirmar» repetiría el mismo pedido.
    */
-  private pagoSinRespuesta(sel: SolicitudRow[], avisar: boolean) {
+  private pagoSinRespuesta(sel: SolicitudRow[], avisar: boolean, pedido: PedidoDePago | null) {
+    this.huboSinConfirmar = true;
+    if (pedido) {
+      this.pedidoPendiente = pedido;
+      this.hayPendiente = true;
+    }
     const items = sel.map(r => ({
       numero: r.numeroSolicitud, tercero: r.proveedorNombre, simbolo: r.monedaSimbolo,
       monto: r._montoAPagar, saldoAntes: r.saldoPendiente,
@@ -1137,7 +1229,9 @@ export class PagarComprasDialogComponent implements OnInit {
     // Esc o un clic afuera cerrarían sin que quien abrió el diálogo refresque la caja.
     this.dialogRef.disableClose = true;
     if (avisar) {
-      this.notificacion.openWarn('No se pudo confirmar si el pago se registró: revisá los saldos antes de volver a pagar.', 8);
+      this.notificacion.openWarn(pedido
+        ? 'No se pudo confirmar si el pago se registró: podés reenviarlo sin riesgo de pagarlo dos veces.'
+        : 'No se pudo confirmar si el pago se registró: revisá los saldos antes de volver a pagar.', 8);
     }
     this.todas.forEach(r => { r._sel = false; r._sinConfirmar = this.idsSinConfirmar.has(r.id); });
     this.recomputarSeleccion();
@@ -1231,5 +1325,18 @@ export class PagarComprasDialogComponent implements OnInit {
 
   private err(msg: string) { this.notificacion.openAlgoSalioMal(msg); }
   /** Con un pago sin confirmar se cierra con un valor: quien abrió el diálogo refresca la caja con cualquier valor. */
-  onCancel() { this.dialogRef.close(this.pagoSinConfirmar ? { sinConfirmar: true } : null); }
+  onCancel() {
+    if (this.reenviando) return;
+    if (!this.hayPendiente) {
+      this.dialogRef.close(this.huboSinConfirmar ? { sinConfirmar: true } : null);
+      return;
+    }
+    this.dialogosService.confirm(
+      'Hay un pago sin confirmar',
+      'Si cerrás ahora no vas a poder reenviarlo: vas a tener que revisar los saldos a mano antes de pagar otra vez.',
+      null, null, true, 'Sí, cerrar', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res === true && !this.reenviando) this.dialogRef.close({ sinConfirmar: true });
+    });
+  }
 }
