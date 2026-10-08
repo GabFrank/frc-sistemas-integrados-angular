@@ -21,10 +21,10 @@ botones:
   como un pago normal. (No se llama «Reintentar»: ya hay un «Reintentar» en el mismo diálogo que relee la
   lista.)
 - **Descartar**: «ya revisé los saldos». Suelta el pedido pendiente y deja el diálogo como hoy, para armar
-  otro pago.
+  otro pago. Pide confirmación: es la única salida que vuelve a permitir el pago doble.
 
-**Mientras haya un pedido pendiente no se puede confirmar otro pago** en ese diálogo: «Confirmar» queda
-deshabilitado hasta reenviar o descartar. Sin esa regla, un segundo pago con otra clave sobre las mismas
+**Mientras haya un pedido pendiente no se puede confirmar otro pago** en ese diálogo: «Confirmar» y «Siguiente»
+quedan deshabilitados hasta reenviar o descartar. Sin esa regla, un segundo pago con otra clave sobre las mismas
 notas se registraría además del primero, y el aviso mezclaría dos pedidos con un solo botón.
 
 «Cancelar» con un pedido pendiente pide confirmación («si cerrás, no vas a poder reenviarlo»).
@@ -39,7 +39,8 @@ se relee.
 ### Lo que no cambia
 
 Vales, liquidaciones, finiquitos y aguinaldos (modos `VALES` y RRHH del mismo diálogo): sus mutations no
-tienen el argumento y el central ya rechaza su repetición. Siguen con el aviso de hoy, sin botones.
+tienen el argumento y el central ya rechaza su repetición. Siguen con el aviso de hoy, sin botones. Lo único
+que les cambia: mientras se guarda, Esc y el clic afuera ya no cierran el diálogo (en ningún modo).
 
 ## Diseño
 
@@ -114,6 +115,37 @@ el central justo después del clic. El error tiene que tener forma de `ApolloErr
   mutation con un argumento desconocido y cómo lo muestra el desktop (se espera un rechazo con el texto de
   validación, no un «sin respuesta»).
 - Una vez en Electron (`npm run electron:local`): emitir un cheque, para ver la clave bajo `file://`.
+
+### Resultado (2026-10-08, Chrome contra `ng serve` + central local, usuario de prueba)
+
+El «sin respuesta» se provocó interceptando el XHR en la página: el pedido sale (o no) hacia el central y al
+desktop le llega un error de red real, armado por Apollo.
+
+| Caso | Resultado |
+|---|---|
+| Pago parcial de un gasto (2.000), el central lo registra y la respuesta se pierde → **Reenviar pago** | los dos envíos llevan la misma clave; un solo pago (#23), caja −2.000; el diálogo se cierra con «Pago registrado correctamente» y la caja se relee |
+| Cancelar con un pago pendiente | pide confirmación; «No» deja el diálogo como estaba |
+| El pago pendiente se anula por fuera → Reenviar pago | «El pago #24 de este pedido ya se registró y después fue anulado»; desaparecen el aviso y los botones, la lista se relee |
+| Cheque al día de 700 cuyo pedido **no llega** al central → **Reenviar cheque** | misma clave; un solo cheque (Nº 700006), banco −700; el diálogo se cierra y el dashboard se relee |
+| Esc con un cheque pendiente | no cierra |
+| Central sin el argumento (POST con un argumento desconocido) | HTTP 200 con `ValidationError`, nada ejecutado: el desktop lo trata como rechazo |
+
+**Sin probar en la interfaz:** «Descartar» y su confirmación, «Cerrar» del cheque, los modos de vales y RRHH,
+el websocket caído, y Electron bajo `file://`.
+
+## Auditoría del diff (paso 8, 2026-10-08)
+
+Dos auditores (autorización; contrato y corrección). El eje de esquema y migración no aplica: el desktop no
+tiene base. Ningún hallazgo alto.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| «Descartar» era un clic que reabre el pago doble | pide confirmación |
+| «Siguiente» utilizable con un pedido pendiente: se llegaba a «Confirmar» apagado sin explicación | deshabilitado |
+| `disableClose` mientras se guarda alcanza también a vales y RRHH, y el plan decía que no cambiaban | se deja (cerrar en pleno guardado pierde la respuesta en cualquier modo); corregido el plan |
+| Doble clic en «Cancelar» con pendiente puede abrir dos confirmaciones | no aplicado: el segundo cierre es inocuo |
+| `Math.random` cuando no hay `crypto` | no aplicado: el central ata la clave a usuario, operación y huella |
+| Preexistente: «Egreso» se habilita con TESORERIA GESTIONAR y el central exige además CPP PAGAR | fuera de este PR |
 
 ## Despliegue
 

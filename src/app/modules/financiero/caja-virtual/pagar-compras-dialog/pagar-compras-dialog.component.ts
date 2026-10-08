@@ -1194,10 +1194,20 @@ export class PagarComprasDialogComponent implements OnInit {
     });
   }
 
-  /** «Ya revisé los saldos»: suelta el pago sin confirmar y deja armar otro, que saldrá con una clave nueva. */
+  /**
+   * «Ya revisé los saldos»: suelta el pago sin confirmar y deja armar otro, que saldrá con una clave nueva. Pide
+   * confirmación porque es la única salida que vuelve a permitir el pago doble: si el pedido original sí se
+   * registró, pagar otra vez las mismas notas lo duplica.
+   */
   descartarPendiente() {
-    if (this.reenviando) return;
-    this.soltarPendiente();
+    if (this.reenviando || !this.hayPendiente) return;
+    this.dialogosService.confirm(
+      'Descartar el pago sin confirmar',
+      'Hacelo solo si ya revisaste los saldos. Si ese pago se registró, volver a pagar las mismas notas lo duplica.',
+      null, null, true, 'Sí, descartar', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res === true && !this.reenviando) this.soltarPendiente();
+    });
   }
 
   private soltarPendiente() {

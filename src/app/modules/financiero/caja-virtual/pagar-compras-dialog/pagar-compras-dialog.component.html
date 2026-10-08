@@ -549,7 +549,7 @@
     <ng-container [ngSwitch]="stepper.selectedIndex">
       <ng-container *ngSwitchCase="0">
         <button mat-stroked-button (click)="onCancel()" [disabled]="reenviando">Cancelar</button>
-        <button mat-raised-button color="primary" (click)="stepper.next()" [disabled]="!haySeleccion">
+        <button mat-raised-button color="primary" (click)="stepper.next()" [disabled]="!haySeleccion || hayPendiente">
           Siguiente <mat-icon>arrow_forward</mat-icon>
         </button>
       </ng-container>
