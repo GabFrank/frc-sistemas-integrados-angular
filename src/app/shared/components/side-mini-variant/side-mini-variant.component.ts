@@ -183,12 +183,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Marcar horario',
           icon: 'login',
           action: 'marcar-horario'
-        },
-        {
-          name: 'Lista de horarios',
-          icon: 'list_alt',
-          action: 'list-marcacion',
-          visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
         }
       ]
     },
@@ -1379,13 +1373,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
-        break;
-      case "list-marcacion":
-        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
-          this.tabService.addTab(new Tab(ListMarcacionComponent, "Lista de horarios", null, null));
-        } else {
-          this.notificacionService.openWarn('No tenés acceso a esta opción.');
-        }
         break;
       case "devoluciones":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");
