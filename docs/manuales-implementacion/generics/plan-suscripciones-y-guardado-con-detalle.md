@@ -56,9 +56,25 @@ misma operación que usa el celular (`transferenciaQrEscaneado`, `ventaCreditoQr
 
 Antes del cambio, el primer aviso ajeno cerraba la escucha y el propio ya no llegaba.
 
-**No probado en runtime**: el diálogo de venta a crédito con QR en una venta real del PDV (confirmación tras un
-aviso ajeno, y el escaneo tardío con el QR cerrado), el QR de transferencia desde la edición, y el aviso nuevo de
-`onSaveConDetalle` emitiendo una factura con corte de red.
+### Segunda pasada (2026-10-08, pedida por Franco)
+PDV contra el filial local (caja 3009), con un carrito de prueba y el cobro por convenio abierto.
+
+| Caso | Resultado |
+|---|---|
+| Venta a crédito, QR abierto: aviso de otro cliente, con otra clave y de otra sucursal | el QR sigue abierto, no confirma |
+| Ídem, aviso propio | cierra el QR y confirma una vez, como QR |
+| Ídem, el mismo aviso repetido | no vuelve a confirmar |
+| Venta a crédito, QR cerrado a mano y después su escaneo | no confirma |
+| QR de transferencia desde la edición: aviso ajeno y de otra sucursal | sigue abierto |
+| Ídem, aviso propio | se cierra |
+| Guardar factura (por el servicio) con corte de red, sin aviso de quien llama | `null`, completa, aviso «No se pudo confirmar si se guardó…» |
+| Ídem, avisando como lo hace el diálogo de factura | un solo aviso, el del diálogo |
+
+La confirmación de la venta a crédito se interceptó antes de cobrar y la factura se cortó antes de llegar al
+filial: no se hizo ninguna venta ni se emitió nada.
+
+**No probado en runtime**: el diálogo de factura legal completo (se probó su servicio con el mismo aviso que usa
+el diálogo), y una venta a crédito llevada hasta el cobro.
 
 ## Auditoría del diff (paso 8, 2026-10-07)
 
