@@ -207,6 +207,15 @@ export class GenericListVentaComponent implements OnInit {
     return soloDigitos.length > 0 ? parseInt(soloDigitos, 10) : null;
   }
 
+  // Deja solo dígitos mientras se tipea o se pega (734.498 -> 734498). No se usa numericOnly porque bloquea Ctrl+V
+  onIdVentaInput(event: Event) {
+    let input = event.target as HTMLInputElement;
+    let soloDigitos = input.value.replace(/\D/g, '');
+    if (soloDigitos !== input.value) {
+      this.idVentaControl.setValue(soloDigitos);
+    }
+  }
+
   onFiltrarConReset() {
     this.pageIndex = 0;
     this.paginator.firstPage();
