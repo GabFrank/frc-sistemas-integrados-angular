@@ -83,7 +83,8 @@ tienen el argumento y el central ya rechaza su repetición. Siguen con el aviso 
 ## Fases
 
 1. **Clave + GraphQL + servicios** (`claveIdempotencia.ts` con su `.spec.ts`: formato v4, largo ≤ 64,
-   unicidad, sin `crypto`; las dos mutations; los dos servicios). Los diálogos mandan la clave; sin botones.
+   unicidad, sin `crypto`; las dos mutations; los dos servicios). Los diálogos todavía no la mandan: la
+   variable viaja nula y el central se comporta como hoy.
 2. **Pedido pendiente en `pagar-compras-dialog`**: Reenviar pago, Descartar, bloqueo de Confirmar,
    confirmación al cancelar, `disableClose` (ts + html + scss).
 3. **Pedido pendiente en `emitir-cheque-dialog`**: Reenviar cheque, Cerrar (ts + html + scss).

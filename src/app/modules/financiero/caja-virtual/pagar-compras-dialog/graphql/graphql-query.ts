@@ -82,8 +82,8 @@ export const pagarSolicitudesLoteCajaMayorMutation = gql`
 `;
 
 export const pagarSolicitudesMixtoMutation = gql`
-  mutation ($pagos: [SolicitudConLineasInput!]!) {
-    data: pagarSolicitudesMixto(pagos: $pagos) {
+  mutation ($pagos: [SolicitudConLineasInput!]!, $claveIdempotencia: String) {
+    data: pagarSolicitudesMixto(pagos: $pagos, claveIdempotencia: $claveIdempotencia) {
       id
       estado
     }
