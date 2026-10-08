@@ -408,22 +408,35 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Escucha una subscription hasta que quien llama deja de escuchar (#390).
+   *
+   * No se corta con el primer aviso: los canales del servidor son compartidos por todos los desktops y quien
+   * llama filtra el suyo. Antes completaba con el primero que llegara, así que un aviso de otra caja cerraba
+   * la escucha justo antes del propio. Al dejar de escuchar se corta la conexión de verdad.
+   *
+   * Un aviso con error se avisa y se sigue escuchando. Si la conexión se corta, completa (queda en la consola).
+   */
   onCustomSub(
     gql: Subscription,
     data,
     servidor: boolean = true,
     cargando?: boolean
   ): Observable<any> {
-    this.isLoading = true;
-    let requestId: number | null = null;
-
-    if (cargando == true) {
-      const result = this.cargandoService.openDialog(false, "Buscando...");
-      requestId = result.requestId;
-    }
-
     return new Observable((obs) => {
-      gql
+      this.isLoading = true;
+      let requestId: number | null = null;
+      if (cargando == true) {
+        requestId = this.cargandoService.openDialog(false, "Buscando...").requestId;
+      }
+      const cerrarModal = () => {
+        if (requestId != null) {
+          this.cargandoService.closeDialog(requestId);
+          requestId = null;
+        }
+        this.isLoading = false;
+      };
+      const escucha = gql
         .subscribe(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
@@ -431,31 +444,35 @@ export class GenericCrudService {
             clientName: servidor == null || servidor ? "servidor" : null,
           },
         })
-        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
-          next: (res) => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          next: (res: any) => {
+            cerrarModal();
+            // Un aviso vacío no trae nada que entregar ni que avisar.
+            if (res == null) return;
             if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              obs.next(res.data?.["data"] ?? null);
+              return;
             }
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0]?.message),
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
           },
-          error: () => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          error: (error) => {
+            cerrarModal();
+            console.warn("[GraphQL] Se cortó una subscription", error);
+            obs.complete();
+          },
+          complete: () => {
+            cerrarModal();
+            obs.complete();
           },
         });
+      return () => {
+        escucha.unsubscribe();
+        cerrarModal();
+      };
     });
   }
 
@@ -1134,12 +1151,20 @@ export class GenericCrudService {
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
-            if (error) {
-              obs.next({ error: err });
-            } else {
-              obs.next(null);
-            }
-            obs.complete();
+            // Es una escritura: sin respuesta no se sabe si se aplicó. Se avisa solo si quien llama no
+            // lo dice por su cuenta (la factura legal ya avisa lo suyo) (#390).
+            const status = err?.networkError?.status ?? err?.status;
+            this.fallarAvisandoSiNadieAvisa(
+              () => {
+                obs.next(error ? { error: err } : null);
+                obs.complete();
+              },
+              esTimeoutDeLink(err)
+                ? null
+                : status > 0
+                  ? "No se pudo confirmar si se guardó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                  : "No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir."
+            );
           },
         });
     });
