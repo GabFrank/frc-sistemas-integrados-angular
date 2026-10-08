@@ -1091,7 +1091,10 @@ export class PagarComprasDialogComponent implements OnInit {
   private round(valor: number, moneda: any, decOverride?: number): number {
     const dec = decOverride != null ? decOverride : this.decimales(moneda);
     const f = Math.pow(10, dec);
-    return Math.round((valor || 0) * f) / f;
+    // Mitad lejos del cero: Math.round(-0.5) da -0 y un pago que excede la deuda por medio guaraní
+    // se veía como balance exacto; el central lo rechazaba después sin que el diálogo avisara.
+    const v = valor || 0;
+    return Math.sign(v) * Math.round(Math.abs(v) * f) / f || 0;
   }
 
   // ── Confirmar ──
