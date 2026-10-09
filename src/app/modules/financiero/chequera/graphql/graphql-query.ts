@@ -60,6 +60,8 @@ export const saveChequera = gql`
       }
       rangoDesde
       rangoHasta
+      siguienteNumero
+      estado
       fechaRetiro
       creadoEn
       usuario {

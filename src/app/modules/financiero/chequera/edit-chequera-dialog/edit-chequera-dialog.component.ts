@@ -123,7 +123,14 @@ export class EditChequeraDialogComponent implements OnInit {
       next: res => {
         fin();
         if (res != null) {
-          this.notificacion.openSucess(this.esEdicion ? 'Chequera actualizada' : 'Chequera creada');
+          // El central decide el correlativo y el estado sobre lo que tiene guardado: si no quedaron como
+          // se pidieron (el próximo número no vuelve atrás; sin números queda agotada), se dice cómo quedaron.
+          const ajustes = this.ajustesDelCentral(input, res);
+          if (ajustes) {
+            this.notificacion.openWarn('Chequera guardada. ' + ajustes, 8);
+          } else {
+            this.notificacion.openSucess(this.esEdicion ? 'Chequera actualizada' : 'Chequera creada');
+          }
           this.dialogRef.close(true);
         } else {
           this.sinConfirmar(true);
@@ -138,6 +145,17 @@ export class EditChequeraDialogComponent implements OnInit {
         this.sinConfirmar(!esTimeoutDeLink(err));
       },
     });
+  }
+
+  private ajustesDelCentral(pedido: ChequeraInput, guardada: Chequera): string {
+    const avisos: string[] = [];
+    if (guardada.siguienteNumero != null && Number(guardada.siguienteNumero) !== Number(pedido.siguienteNumero)) {
+      avisos.push(`El próximo número quedó en ${guardada.siguienteNumero}.`);
+    }
+    if (guardada.estado && pedido.estado && guardada.estado !== pedido.estado) {
+      avisos.push(`El estado quedó en ${guardada.estado}.`);
+    }
+    return avisos.join(' ');
   }
 
   /**
