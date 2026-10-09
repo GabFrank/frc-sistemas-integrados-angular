@@ -269,6 +269,18 @@ export const saveMovimientoCajaVirtualMutation = gql`
   }
 `;
 
+// El desktop manda el saldo que tenía en pantalla y lo contado; la diferencia la calcula el central
+// (franco-system-backend-servidor#376).
+export const ajustarCajaVirtualPorConteoMutation = gql`
+  mutation ajustarCajaVirtualPorConteo($cajaVirtualId: ID!, $monedaId: ID!, $saldoEsperado: Float!, $contado: Float!) {
+    data: ajustarCajaVirtualPorConteo(
+      cajaVirtualId: $cajaVirtualId, monedaId: $monedaId, saldoEsperado: $saldoEsperado, contado: $contado
+    ) {
+      ${movimientoFields}
+    }
+  }
+`;
+
 export const anularMovimientoCajaVirtualMutation = gql`
   mutation anularMovimientoCajaVirtual($id: ID!, $motivo: String) {
     data: anularMovimientoCajaVirtual(id: $id, motivo: $motivo) {

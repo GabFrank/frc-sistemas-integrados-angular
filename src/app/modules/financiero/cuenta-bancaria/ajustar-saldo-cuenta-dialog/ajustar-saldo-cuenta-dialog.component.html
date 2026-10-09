@@ -4,7 +4,18 @@
     {{ data.cuentaBancaria?.banco?.nombre }} · {{ data.cuentaBancaria?.numero }}
   </div>
 
-  <mat-dialog-content class="aj-content">
+  <mat-dialog-content *ngIf="hayPendiente" class="aj-content">
+    <div class="aviso-sin-confirmar">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <div><b>No se pudo confirmar si el ajuste de {{ pendienteDescripcion }} se aplicó.</b></div>
+        <div class="aviso-detalle">Reintentá: si ya se había aplicado no se aplica otro, y si no, se aplica ahora.
+          Si cerrás, revisá el saldo y los movimientos de la cuenta antes de repetirlo.</div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-content *ngIf="!hayPendiente" class="aj-content">
   <p class="aj-hint">
     Corrige el saldo contra el extracto real. El ajuste <strong>no tiene contrapartida</strong>:
     queda registrado con tu usuario y el motivo, que es toda su trazabilidad.
@@ -48,7 +59,14 @@
   </mat-form-field>
 </mat-dialog-content>
 
-  <mat-dialog-actions align="end" class="aj-acciones">
+  <mat-dialog-actions align="end" class="aj-acciones" *ngIf="hayPendiente">
+    <button mat-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+    <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+      <mat-icon>replay</mat-icon> {{ isSaving ? 'Reintentando…' : 'Reintentar' }}
+    </button>
+  </mat-dialog-actions>
+
+  <mat-dialog-actions align="end" class="aj-acciones" *ngIf="!hayPendiente">
     <button mat-button (click)="cerrar()" [disabled]="isSaving">Cancelar</button>
     <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="isSaving">
       <mat-icon>check</mat-icon> Aplicar ajuste

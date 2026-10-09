@@ -3,11 +3,13 @@ import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CuentaBancaria } from '../cuenta-bancaria.model';
-import { CuentaBancariaService } from '../cuenta-bancaria.service';
+import { CuentaBancariaService, PedidoDeAjusteBancario } from '../cuenta-bancaria.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { esRechazoPorSaldo } from '../../rechazo-por-saldo';
 
 export interface AjustarSaldoCuentaData {
   cuentaBancaria: CuentaBancaria;
@@ -40,6 +42,12 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
   isSaving = false;
   /** Hay una confirmación abierta: otro clic en «Guardar» abriría una segunda y se aplicarían dos ajustes. */
   private confirmando = false;
+
+  /** El ajuste que quedó sin respuesta. Mientras exista solo se puede reenviarlo o cerrar. */
+  private pedidoPendiente: PedidoDeAjusteBancario | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
 
   /** Saldo que va a quedar. Se recalcula al tipear; el template solo lo lee. */
   saldoResultante = 0;
@@ -84,6 +92,7 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
   }
 
   onGuardar(): void {
+    if (this.hayPendiente) return;
     if (this.montoControl.invalid) return this.err('Ingresá un monto mayor a cero');
     if (this.motivoControl.invalid) return this.err('El motivo es obligatorio (mín. 4 caracteres)');
 
@@ -100,50 +109,84 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       this.confirmando = false;
       if (res !== true) return;
-      this.isSaving = true;
-      // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de cuentas no se releería.
-      this.dialogRef.disableClose = true;
-      this.cuentaBancariaService
-        // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
-        .onAjustarSaldo(this.data.cuentaBancaria.id, monto, this.positivo, this.motivoControl.value, { avisarExito: false })
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: r => {
-            this.isSaving = false;
-            this.dialogRef.disableClose = false;
-            if (r != null) {
-              this.notificacion.notification$.next({
-                texto: 'Saldo ajustado', color: NotificacionColor.success, duracion: 3,
-              });
-              this.dialogRef.close(r);
-            } else {
-              this.sinConfirmar(signo, monto, true);
-            }
-          },
-          error: err => {
-            this.isSaving = false;
-            this.dialogRef.disableClose = false;
-            // Rechazo: no se aplicó nada (el motivo ya lo mostró onSaveCustom); se puede corregir y reintentar.
-            if (erroresDeRechazo(err)) return;
-            // El corte del link ya avisó que pudo haberse aplicado.
-            this.sinConfirmar(signo, monto, !esTimeoutDeLink(err));
-          },
-        });
+      // Una clave por cada «Aplicar». El pedido se guarda entero, con ella y con el saldo que se veía, para
+      // poder reenviarlo idéntico (franco-system-backend-servidor#376).
+      this.pendienteDescripcion = `${signo} ${this.monedaSimbolo} ${monto.toLocaleString('es-PY')}`.trim();
+      this.enviar({
+        cuentaBancariaId: this.data.cuentaBancaria.id,
+        monto,
+        positivo: this.positivo,
+        motivo: this.motivoControl.value,
+        saldoEsperado: this.saldoActual,
+        claveIdempotencia: nuevaClaveIdempotencia(),
+      }, false);
     });
   }
 
   /**
-   * El ajuste pudo haberse aplicado, y repetirlo lo aplica otra vez (es relativo: suma o resta el monto) (#390).
-   * Se cierra para que la lista de cuentas se relea; el aviso deja el saldo que se veía, para compararlo.
+   * Reenvía el ajuste que quedó sin respuesta, idéntico y con su misma clave: si el central ya lo había aplicado
+   * devuelve ese ajuste, y si no, lo aplica ahora. Nunca dos.
    */
-  private sinConfirmar(signo: string, monto: number, avisar: boolean): void {
+  reenviar(): void {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, true);
+  }
+
+  private enviar(pedido: PedidoDeAjusteBancario, esReenvio: boolean): void {
+    this.isSaving = true;
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de cuentas no se releería.
+    this.dialogRef.disableClose = true;
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.cuentaBancariaService.onAjustarSaldo(pedido, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
+      next: r => {
+        this.isSaving = false;
+        if (r == null) { this.quedoSinConfirmar(pedido, true); return; }
+        this.dialogRef.disableClose = false;
+        this.notificacion.notification$.next({ texto: 'Saldo ajustado', color: NotificacionColor.success, duracion: 3 });
+        this.dialogRef.close(r);
+      },
+      error: err => {
+        this.isSaving = false;
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          // No se aplicó nada (el motivo ya lo mostró onSaveCustom).
+          this.pedidoPendiente = null;
+          this.hayPendiente = false;
+          this.dialogRef.disableClose = false;
+          // Si la cuenta ya no tiene el saldo que se veía, este diálogo quedó viejo y cualquier otro intento
+          // volvería a rechazarse: se cierra para que la lista se relea. Los demás rechazos dejan corregir.
+          if (esRechazoPorSaldo(rechazo)) this.dialogRef.close(true);
+          return;
+        }
+        // El corte del link ya avisó que pudo haberse aplicado.
+        this.quedoSinConfirmar(pedido, !esTimeoutDeLink(err) || esReenvio);
+      },
+    });
+  }
+
+  /**
+   * El ajuste pudo haberse aplicado. El diálogo queda abierto solo para reenviarlo (seguro, por la clave) o
+   * cerrar: no se vuelve al formulario, porque un pedido nuevo saldría con otra clave. `disableClose` sigue en
+   * true: Esc y el clic afuera cerrarían sin que la lista de cuentas se relea.
+   */
+  private quedoSinConfirmar(pedido: PedidoDeAjusteBancario, avisar: boolean): void {
+    this.pedidoPendiente = pedido;
+    this.hayPendiente = true;
     if (avisar) {
-      const fmt = (n: number) => `${this.monedaSimbolo} ${n.toLocaleString('es-PY')}`.trim();
       this.notificacion.notification$.next({
-        texto: `No se pudo confirmar si el ajuste de ${signo} ${fmt(monto)} se aplicó. El saldo que se veía era ${fmt(this.saldoActual)}: comparalo con el de la cuenta y sus movimientos antes de repetirlo.`,
-        color: NotificacionColor.warn, duracion: 12,
+        texto: 'No se pudo confirmar si el ajuste se aplicó: podés reintentar sin riesgo de aplicarlo dos veces.',
+        color: NotificacionColor.warn, duracion: 8,
       });
     }
+  }
+
+  /** Cierra con el ajuste sin confirmar. Cierra con `true` para que la lista de cuentas se relea. */
+  cerrarSinConfirmar(): void {
+    if (this.isSaving) return;
+    this.notificacion.notification$.next({
+      texto: `No se pudo confirmar si el ajuste de ${this.pendienteDescripcion} se aplicó: revisá el saldo y los movimientos de la cuenta antes de repetirlo.`,
+      color: NotificacionColor.warn, duracion: 12,
+    });
     this.dialogRef.close(true);
   }
 
