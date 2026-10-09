@@ -13,6 +13,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { ImprimirEnSucursalDialogComponent } from "../imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component";
+import { EnviarFacturaCorreoDialogComponent } from "../enviar-factura-correo-dialog/enviar-factura-correo-dialog.component";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
@@ -846,6 +847,14 @@ export class ListFacturaLegalComponent implements OnInit {
     this.matDialog.open(ImprimirEnSucursalDialogComponent, {
       data: { tipo: 'NORMAL', factura },
       width: '900px',
+    });
+  }
+
+  /** Envío manual del PDF de la factura al correo que se confirme en el diálogo. */
+  onEnviarPorCorreo(factura: FacturaLegal): void {
+    this.matDialog.open(EnviarFacturaCorreoDialogComponent, {
+      data: { factura },
+      width: '480px',
     });
   }
 }

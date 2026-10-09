@@ -62,6 +62,7 @@ export const facturaLegalesQuery = gql`
           persona {
             nombre
             documento
+            email
           }
         }
         venta {
@@ -127,6 +128,7 @@ export const facturaLegalesFullInfoQuery = gql`
           persona {
             nombre
             documento
+            email
           }
         }
         venta {
@@ -205,6 +207,7 @@ export const facturaLegalQuery = gql`
         persona {
           nombre
           documento
+          email
         }
       }
       venta {
@@ -460,6 +463,12 @@ export const imprimirPdfFacturaEnImpresoraMutation = gql`
       sucId: $sucId
       impresoraId: $impresoraId
     )
+  }
+`;
+
+export const enviarFacturaLegalPorCorreoMutation = gql`
+  mutation ($id: ID!, $sucId: ID!, $email: String!) {
+    data: enviarFacturaLegalPorCorreo(id: $id, sucId: $sucId, email: $email)
   }
 `;
 

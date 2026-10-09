@@ -1,0 +1,31 @@
+<div class="dialog-header">
+  <h2 mat-dialog-title>Enviar factura por correo</h2>
+  <button mat-icon-button (click)="cancelar()" class="close-btn" tabindex="-1">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content class="dialog-content-modern">
+  <p class="detalle">Factura Nro. {{ data.factura?.numeroFactura }} — {{ clienteNombre }}</p>
+
+  <p class="aviso" *ngIf="sinCorreoGuardado">
+    <mat-icon>info</mat-icon>
+    <span>El cliente no tiene un correo guardado. Escribí a dónde enviarla.</span>
+  </p>
+
+  <mat-form-field appearance="outline" class="campo-email">
+    <mat-label>Correo</mat-label>
+    <input matInput type="email" [formControl]="emailControl" autocomplete="off" cdkFocusInitial
+      (keydown.enter)="enviar()" />
+    <mat-error>Ingresá un correo válido</mat-error>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions-modern">
+  <button mat-button (click)="cancelar()" class="btn-cancelar">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="enviar()" class="btn-aceptar"
+    [disabled]="enviando || !emailValido">
+    <mat-icon>{{ enviando ? 'hourglass_empty' : 'send' }}</mat-icon>
+    {{ enviando ? 'Enviando…' : 'Enviar' }}
+  </button>
+</mat-dialog-actions>

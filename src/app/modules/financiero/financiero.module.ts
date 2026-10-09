@@ -34,6 +34,7 @@ import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-lega
 import { EditFacturaLegalDialogComponent } from './factura-legal/edit-factura-legal-dialog/edit-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
 import { ImprimirEnSucursalDialogComponent } from './factura-legal/imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component';
+import { EnviarFacturaCorreoDialogComponent } from './factura-legal/enviar-factura-correo-dialog/enviar-factura-correo-dialog.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
 import { FinancieroConfiguracionDialogComponent } from './financiero-configuracion-dialog/financiero-configuracion-dialog.component';
@@ -141,6 +142,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     EditFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
     ImprimirEnSucursalDialogComponent,
+    EnviarFacturaCorreoDialogComponent,
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,
     FinancieroConfiguracionDialogComponent,
