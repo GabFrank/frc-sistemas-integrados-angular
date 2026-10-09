@@ -68,3 +68,19 @@ hizo, y el central rechaza si ya no es ese (franco-system-backend-servidor#376).
   que el diálogo **cierra** con `true` para que quien lo abrió relea. Se reconoce por el texto del mensaje: el
   error de GraphQL no trae código. Los demás rechazos dejan el diálogo abierto para corregir.
 - Lo contado sigue guardado en `localStorage` por caja y moneda: reabrir el conteo no lo pierde.
+## Movimientos y transferencias de caja mayor en varias monedas
+
+Los diálogos `add-movimiento-caja-virtual-dialog` (ingreso, egreso, ajuste) y
+`transferencia-caja-virtual-dialog` cargan Gs, Rs y Ds a la vez. Mandan **un solo pedido** con todos los montos
+(`registrarMovimientosCajaVirtual`, `realizarTransferenciasCajaVirtual`) y su `claveIdempotencia`; el central lo
+registra entero o no lo registra (franco-system-backend-servidor#376). Antes iba un pedido por moneda, en serie
+(`enviar-en-serie.ts`, eliminado), y un rechazo de la segunda dejaba la primera adentro.
+
+- **Rechazo:** no entró ninguna moneda; el formulario queda para corregir y el próximo intento usa otra clave.
+- **Sin respuesta:** el diálogo pasa a «No se pudo confirmar» con *Reintentar* (el mismo pedido, con su clave) y
+  *Cerrar* (cierra con `true`, para que la caja se relea). No se vuelve al formulario.
+- El usuario del movimiento lo pone el central (el de la sesión); el desktop ya no lo manda.
+- El ajuste de egreso manda el monto negativo, como antes.
+- El ajuste por conteo (`conteo-caja-dialog`) sigue con `saveMovimientoCajaVirtual`, de una moneda y sin clave.
+- Hoy ningún botón abre el diálogo de transferencia (`onTransferencia` del dashboard no está en el template):
+  quedó actualizado igual, para cuando se vuelva a enlazar.
