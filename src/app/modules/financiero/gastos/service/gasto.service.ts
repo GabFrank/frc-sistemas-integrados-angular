@@ -445,10 +445,13 @@ export class GastoService {
     return this.genericService.onSave(this.saveGastoRendicionGQL, input);
   }
 
-  onCancelarGasto(id: number, sucId: number, servidor = true): Observable<boolean> {
+  // cancelar dice cómo tiene que quedar (true = cancelado, false = habilitado): el central ya no
+  // invierte el estado, así que repetir el pedido no lo deshace.
+  onCancelarGasto(id: number, sucId: number, cancelar: boolean, servidor = true): Observable<boolean> {
     return this.genericService.onCustomMutation(this.cancelarGastoGQL, {
       id,
-      sucId
+      sucId,
+      cancelar
     }, servidor);
   }
 

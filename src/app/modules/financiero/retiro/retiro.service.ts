@@ -61,8 +61,11 @@ export class RetiroService {
 
   // servidor = true: la mutation vive en el central, igual que la lista que se
   // consume con onFilterRetiro. El estado baja a la filial por replicacion.
-  onCancelarRetiro(id: number, sucId: number, servidor = true): Observable<boolean> {
-    return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId }, servidor);
+  //
+  // cancelar dice cómo tiene que quedar (true = cancelado, false = habilitado): el central ya no
+  // invierte el estado, así que repetir el pedido —doble clic, reintento— no lo deshace.
+  onCancelarRetiro(id: number, sucId: number, cancelar: boolean, servidor = true): Observable<boolean> {
+    return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId, cancelar }, servidor);
   }
 
   onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true,
