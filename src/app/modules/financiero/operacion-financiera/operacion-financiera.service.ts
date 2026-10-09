@@ -6,7 +6,8 @@ import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario }
 import { OperacionesFinancierasGQL } from './graphql/operacionesFinancieras';
 import { OperacionFinancieraGQL } from './graphql/operacionFinanciera';
 import { OperacionFinancieraCategoriasGQL } from './graphql/operacionFinancieraCategorias';
-import { RegistrarOperacionFinancieraGQL } from './graphql/registrarOperacionFinanciera';
+import { RegistrarOperacionFinancieraGQL, RegistrarOperacionFinancieraSinClaveGQL } from './graphql/registrarOperacionFinanciera';
+import { centralNoConoceLaClave, conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../commons/core/utils/claveIdempotencia';
 import { AnularOperacionFinancieraGQL } from './graphql/anularOperacionFinanciera';
 import { MovimientosBancariosGQL } from './graphql/movimientosBancarios';
 
@@ -16,6 +17,12 @@ import { MovimientosBancariosGQL } from './graphql/movimientosBancarios';
 export interface SimplePage<T> {
   getTotalElements: number;
   getContent: T[];
+}
+
+/** Una operación financiera lista para enviar: el input ya armado y la clave de ese intento. */
+export interface PedidoDeOperacionFinanciera {
+  input: any;
+  claveIdempotencia: string;
 }
 
 /** Listados y catálogos con un solo suscriptor por método, que maneja el error (#390). */
@@ -34,6 +41,7 @@ export class OperacionFinancieraService {
     private registrarGQL: RegistrarOperacionFinancieraGQL,
     private anularGQL: AnularOperacionFinancieraGQL,
     private movimientosBancariosGQL: MovimientosBancariosGQL,
+    private registrarSinClaveGQL: RegistrarOperacionFinancieraSinClaveGQL,
   ) { }
 
   onGetOperaciones(page = 0, size = 10): Observable<SimplePage<OperacionFinanciera>> {
@@ -52,13 +60,20 @@ export class OperacionFinancieraService {
       CONSULTA_OPERACIONES);
   }
 
-  onRegistrar(operacion: OperacionFinanciera, opciones?: { avisarExito?: boolean }): Observable<OperacionFinanciera> {
-    let aux = operacion;
-    if (!(operacion instanceof OperacionFinanciera)) {
-      aux = new OperacionFinanciera();
-      Object.assign(aux, operacion);
-    }
-    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() }, true, opciones);
+  /**
+   * Registra el pedido tal como viene: el input ya armado y su clave, para que un reintento mande exactamente
+   * lo mismo (el formulario recalcula montos y cotización, y un segundo armado puede redondear distinto).
+   * `opciones.sinClave` avisa si el central no conoce la clave.
+   */
+  onRegistrar(pedido: PedidoDeOperacionFinanciera,
+              opciones?: { avisarExito?: boolean } & OpcionesDePedidoConClave): Observable<OperacionFinanciera> {
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.genericService.onSaveCustom<OperacionFinanciera>(this.registrarGQL,
+          { input: pedido.input, claveIdempotencia: pedido.claveIdempotencia }, true,
+          { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceLaClave })
+      : this.genericService.onSaveCustom<OperacionFinanciera>(this.registrarSinClaveGQL, { input: pedido.input }, true,
+          { avisarExito: opciones?.avisarExito }),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   /** Anula la operación financiera entera: revierte todas sus patas (caja y/o banco) en el backend. */

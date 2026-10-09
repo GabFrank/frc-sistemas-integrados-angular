@@ -30,7 +30,7 @@ import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/serv
 import { MatStepper } from '@angular/material/stepper';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
-import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 /**
@@ -116,6 +116,15 @@ interface PagoLinea {
   fechaPago?: string;      // ISO
   _numeroCheque?: number;  // display (siguienteNumero proyectado)
   _chequeraNombre?: string;
+}
+
+/** El alta de un gasto o de un vale que se mandó: el input ya armado y la clave de ese intento. */
+interface AltaPendiente {
+  que: 'gasto' | 'vale';
+  input: GastoParaPagoInput | ValeParaPagoInput;
+  clave: string;
+  resumen: string;
+  filtrar: () => void;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -213,6 +222,15 @@ export class PagarComprasDialogComponent implements OnInit {
    * igual. Texto de lo enviado, para buscarlo en la lista antes de cargarlo de nuevo.
    */
   altaSinConfirmar: string | null = null;
+  /**
+   * El pedido de esa alta, con su clave, para reenviarlo idéntico (franco-system-backend-servidor#376). Nulo si
+   * el central no conoce la clave: ahí no hay reintento seguro y queda solo el aviso.
+   */
+  private altaPendiente: AltaPendiente | null = null;
+  /** Espejo de `altaPendiente` para el template (un campo, no un getter). */
+  hayAltaPendiente = false;
+  /** El central no conoce la clave de las altas: no protege la repetición. */
+  private centralSinClave = false;
   private idsSinConfirmar = new Set<number>();
   /**
    * El pago de compras o de gastos que quedó sin respuesta, para reenviarlo con su misma clave. Hay uno solo:
@@ -638,28 +656,12 @@ export class PagarComprasDialogComponent implements OnInit {
       beneficiarioProveedorId: (ben && typeof ben !== 'string') ? ben.id : undefined,
       fechaVencimiento: this.ngVencimientoControl.value ? dateToString(this.ngVencimientoControl.value) : undefined,
     };
-    this.creandoGasto = true;
-    this.pagarComprasService.onCrearGasto(input).pipe(untilDestroyed(this)).subscribe({
-      next: () => {
-        this.creandoGasto = false;
-        this.altaSinConfirmar = null;
-        this.notificacion.openSucess('Gasto creado');
-        this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
-        this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
-        this.vistaNuevoGasto = false;   // volver al stepper con la tabla actualizada
-        this.cargar();
-      },
-      error: (err) => {
-        this.creandoGasto = false;
-        if (erroresDeRechazo(err)) {
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
-          return;
-        }
-        this.altaSinRespuesta(err, `gasto «${desc}» por ${monto}`, 'gasto');
-        // La lista vuelve filtrada por la descripción enviada: si el gasto se creó, es el que aparece.
-        this.filtroDescripcionControl.setValue(desc, { emitEvent: false });
-      }
-    });
+    // Una clave por cada «Crear». El input se guarda con ella, para poder reenviarlo idéntico.
+    this.enviarAlta({
+      que: 'gasto', input, clave: nuevaClaveIdempotencia(), resumen: `gasto «${desc}» por ${monto}`,
+      // La lista vuelve filtrada por la descripción enviada: si el gasto se creó, es el que aparece.
+      filtrar: () => this.filtroDescripcionControl.setValue(desc, { emitEvent: false }),
+    }, false);
   }
 
   // ── Alta de vale (misma vista que el alta de gasto; oculta el stepper) ──
@@ -692,40 +694,87 @@ export class PagarComprasDialogComponent implements OnInit {
       esAdelanto: !!this.nvEsAdelantoControl.value,
       observacion: (this.nvObservacionControl.value || '').trim() || undefined,
     };
+    const nombre = this.displayFuncionario(funcionario);
+    this.enviarAlta({
+      que: 'vale', input, clave: nuevaClaveIdempotencia(), resumen: `vale de ${nombre} por ${monto}`,
+      // La lista vuelve filtrada por el funcionario: si el vale se creó, es el que aparece.
+      filtrar: () => this.filtroProveedorControl.setValue(nombre, { emitEvent: false }),
+    }, false);
+  }
+
+  /**
+   * Reenvía el alta que quedó sin respuesta, idéntica y con su misma clave: si el central ya la había creado
+   * devuelve ese gasto o vale, y si no, lo crea ahora. Nunca dos.
+   */
+  reenviarAlta() {
+    if (!this.altaPendiente || this.creandoGasto) return;
+    this.enviarAlta(this.altaPendiente, true);
+  }
+
+  private enviarAlta(alta: AltaPendiente, esReenvio: boolean) {
     this.creandoGasto = true;
-    this.pagarComprasService.onCrearVale(input).pipe(untilDestroyed(this)).subscribe({
+    const opciones = { esReenvio, sinClave: () => this.centralSinClave = true };
+    const pedido = alta.que === 'gasto'
+      ? this.pagarComprasService.onCrearGasto(alta.input as GastoParaPagoInput, alta.clave, opciones)
+      : this.pagarComprasService.onCrearVale(alta.input as ValeParaPagoInput, alta.clave, opciones);
+    pedido.pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
-        this.altaSinConfirmar = null;
-        this.notificacion.openSucess('Vale registrado (pendiente de pago)');
-        this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();
-        this.nvMontoControl.reset(); this.nvObservacionControl.reset('');
-        this.nvEsAdelantoControl.setValue(true);
+        this.descartarAltaPendiente();
+        if (alta.que === 'gasto') {
+          this.notificacion.openSucess('Gasto creado');
+          this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
+          this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
+        } else {
+          this.notificacion.openSucess('Vale registrado (pendiente de pago)');
+          this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();
+          this.nvMontoControl.reset(); this.nvObservacionControl.reset('');
+          this.nvEsAdelantoControl.setValue(true);
+        }
         this.vistaNuevoGasto = false;   // volver al stepper con la tabla actualizada
         this.cargar();
       },
       error: (err) => {
         this.creandoGasto = false;
         if (erroresDeRechazo(err)) {
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+          if (esReenvio && centralNoConoceLaClave(err)) {
+            // El central volvió a una versión que no conoce la clave: reenviar sin ella podría crear dos.
+            this.notificacion.openWarn('El servidor ya no reconoce este reintento. Revisá la lista antes de cargarlo de nuevo.', 10);
+            this.altaPendiente = null;
+            this.hayAltaPendiente = false;
+            return;
+          }
+          // No se creó nada: queda el formulario para corregir.
+          this.descartarAltaPendiente();
+          this.notificacion.openAlgoSalioMal(err?.message || (alta.que === 'gasto' ? 'Error al crear el gasto' : 'Error al registrar el vale'));
           return;
         }
-        const nombre = this.displayFuncionario(funcionario);
-        this.altaSinRespuesta(err, `vale de ${nombre} por ${monto}`, 'vale');
-        // La lista vuelve filtrada por el funcionario: si el vale se creó, es el que aparece.
-        this.filtroProveedorControl.setValue(nombre, { emitEvent: false });
+        // Contra un central que no conoce la clave no hay reintento seguro: solo el aviso, como antes.
+        this.altaPendiente = this.centralSinClave ? null : alta;
+        this.hayAltaPendiente = this.altaPendiente != null;
+        this.altaSinRespuesta(err, alta.resumen, alta.que, esReenvio);
+        alta.filtrar();
       }
     });
+  }
+
+  /** Saca el aviso del alta sin confirmar y su pedido: desde acá, un alta nueva sale con otra clave. */
+  descartarAltaPendiente() {
+    this.altaSinConfirmar = null;
+    this.altaPendiente = null;
+    this.hayAltaPendiente = false;
   }
 
   /**
    * El alta pudo haberse creado. Se vuelve a la lista y se relee para verlo; el formulario **no** se limpia: si
    * no figura, se puede enviar de nuevo sin retipear.
    */
-  private altaSinRespuesta(err: any, resumen: string, que: 'gasto' | 'vale') {
+  private altaSinRespuesta(err: any, resumen: string, que: 'gasto' | 'vale', esReenvio = false) {
     this.altaSinConfirmar = resumen;
-    if (!esTimeoutDeLink(err)) {
-      this.notificacion.openWarn(`No se pudo confirmar si el ${que} se creó: revisá la lista antes de cargarlo de nuevo.`, 8);
+    if (!esTimeoutDeLink(err) || esReenvio) {
+      this.notificacion.openWarn(this.hayAltaPendiente
+        ? `No se pudo confirmar si el ${que} se creó: podés reintentar sin riesgo de crearlo dos veces.`
+        : `No se pudo confirmar si el ${que} se creó: revisá la lista antes de cargarlo de nuevo.`, 8);
     }
     this.vistaNuevoGasto = false;
     this.cargar();

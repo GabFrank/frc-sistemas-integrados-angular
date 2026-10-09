@@ -42,11 +42,15 @@ export const prestamoCuotasQuery = gql`
   }
 `;
 
-export const crearPrestamoMutation = gql`
-  mutation crearPrestamo($prestamo: PrestamoInput!, $cajaVirtualId: ID!) {
-    data: crearPrestamo(prestamo: $prestamo, cajaVirtualId: $cajaVirtualId) { ${PRESTAMO_FIELDS} }
+// Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+const crearPrestamo = (conClave: boolean) => gql`
+  mutation crearPrestamo($prestamo: PrestamoInput!, $cajaVirtualId: ID!${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: crearPrestamo(prestamo: $prestamo, cajaVirtualId: $cajaVirtualId${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) { ${PRESTAMO_FIELDS} }
   }
 `;
+export const crearPrestamoMutation = crearPrestamo(true);
+export const crearPrestamoSinClaveMutation = crearPrestamo(false);
 
 export const cobrarCuotaMutation = gql`
   mutation cobrarCuota($cuotaId: ID!, $cajaVirtualId: ID!, $montoPago: Float, $montoPagadoEsperado: Float) {

@@ -11,9 +11,10 @@ import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
 import { DevolverSolicitudPagoGQL } from './graphql/devolverSolicitudPago';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 import { GastosPendientesGQL } from './graphql/gastosPendientes';
-import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
+import { CrearGastoParaPagoGQL, CrearGastoParaPagoSinClaveGQL } from './graphql/crearGastoParaPago';
+import { conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../../commons/core/utils/claveIdempotencia';
 import { ValesPendientesGQL } from './graphql/valesPendientes';
-import { CrearValeParaPagoGQL } from './graphql/crearValeParaPago';
+import { CrearValeParaPagoGQL, CrearValeParaPagoSinClaveGQL } from './graphql/crearValeParaPago';
 import { PagarValesMixtoGQL } from './graphql/pagarValesMixto';
 import { LiquidacionesPendientesPagoGQL } from './graphql/liquidacionesPendientesPago';
 import { FiniquitosPendientesPagoGQL } from './graphql/finiquitosPendientesPago';
@@ -95,6 +96,8 @@ export class PagarComprasService {
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
     private gastosPendientesGQL: GastosPendientesGQL,
     private crearGastoGQL: CrearGastoParaPagoGQL,
+    private crearGastoSinClaveGQL: CrearGastoParaPagoSinClaveGQL,
+    private crearValeSinClaveGQL: CrearValeParaPagoSinClaveGQL,
     private valesPendientesGQL: ValesPendientesGQL,
     private crearValeGQL: CrearValeParaPagoGQL,
     private pagarValesMixtoGQL: PagarValesMixtoGQL,
@@ -121,8 +124,15 @@ export class PagarComprasService {
   }
 
   /** Crea un vale listo para pagar (queda SOLICITADO, sin mover plata). */
-  onCrearVale(input: ValeParaPagoInput, servidor = true): Observable<any> {
-    return this.mutar(this.crearValeGQL, { input }, servidor);
+  /**
+   * Alta de un vale con su clave: un reintento con el mismo input y la misma clave devuelve el vale ya creado.
+   * `opciones.sinClave` avisa si el central no conoce la clave (se mandó sin ella).
+   */
+  onCrearVale(input: ValeParaPagoInput, claveIdempotencia: string, opciones?: OpcionesDePedidoConClave): Observable<any> {
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.mutar(this.crearValeGQL, { input, claveIdempotencia }, true)
+      : this.mutar(this.crearValeSinClaveGQL, { input }, true),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   /** Paga N vales como un único evento consolidado. El pago parcial de un vale está prohibido. */
@@ -163,8 +173,15 @@ export class PagarComprasService {
   }
 
   /** Crea un gasto (PreGasto liviano) + su SolicitudPago GASTO en SOLICITADO. Devuelve la solicitud. */
-  onCrearGasto(input: GastoParaPagoInput, servidor = true): Observable<any> {
-    return this.mutar(this.crearGastoGQL, { input }, servidor);
+  /**
+   * Alta de un gasto con su clave: un reintento con el mismo input y la misma clave devuelve el gasto ya creado.
+   * `opciones.sinClave` avisa si el central no conoce la clave (se mandó sin ella).
+   */
+  onCrearGasto(input: GastoParaPagoInput, claveIdempotencia: string, opciones?: OpcionesDePedidoConClave): Observable<any> {
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.mutar(this.crearGastoGQL, { input, claveIdempotencia }, true)
+      : this.mutar(this.crearGastoSinClaveGQL, { input }, true),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   /** Chequeras activas de una cuenta bancaria (para ofrecer cheque como forma de pago). */

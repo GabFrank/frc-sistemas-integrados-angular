@@ -1,7 +1,16 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
   <h2 mat-dialog-title>Nuevo préstamo</h2>
 
-  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+  <div class="aviso-sin-confirmar" *ngIf="hayPendiente">
+    <mat-icon>warning</mat-icon>
+    <div>
+      <div><b>No se pudo confirmar si el préstamo de {{ pendienteDescripcion }} se creó.</b></div>
+      <div class="aviso-detalle">Reintentá: si ya se había creado no se desembolsa otra vez, y si no, se crea ahora.
+        Si cerrás, revisá los préstamos del funcionario y los movimientos de la caja antes de repetirlo.</div>
+    </div>
+  </div>
+
+  <form *ngIf="!hayPendiente" [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
       [funcionarioId]="funcionarioControl.value"
       (idSelected)="funcionarioControl.setValue($event)">
@@ -55,8 +64,15 @@
     </mat-form-field>
   </form>
 
-  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
-    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Crear y desembolsar</button>
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" *ngIf="hayPendiente">
+    <button mat-stroked-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+    <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+      <mat-icon>replay</mat-icon> {{ isSaving ? 'Reintentando…' : 'Reintentar' }}
+    </button>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" *ngIf="!hayPendiente">
+    <button mat-stroked-button (click)="onCancelar()" [disabled]="isSaving">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid || isSaving" (click)="onGuardar()">Crear y desembolsar</button>
   </div>
 </div>

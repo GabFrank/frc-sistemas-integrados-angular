@@ -807,9 +807,12 @@ export class GenericCrudService {
    * error: esos los da siempre este método, que tiene el mensaje real del backend.
    * Es un objeto y no un booleano: varios wrappers terminan en `servidor: boolean`, y un `false`
    * suelto caería ahí sin que el compilador lo note.
+   * `opciones.silenciarRechazo` recibe los errores de un rechazo y devuelve `true` si el llamador se hace
+   * cargo (lo reintenta de otra forma): ese rechazo no se avisa, pero el observable falla igual.
    */
   onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true,
-                  opciones?: { avisarExito?: boolean; timeoutMs?: number }): Observable<T> {
+                  opciones?: { avisarExito?: boolean; timeoutMs?: number;
+                               silenciarRechazo?: (errores: any[]) => boolean }): Observable<T> {
     this.isLoading = true;
     const { requestId } = this.cargandoService.openDialog(
       false,
@@ -845,7 +848,9 @@ export class GenericCrudService {
               // Sin mensaje del backend (undefined o vacío) el aviso diría «…operacion: undefined».
               const limpio = limpiarMensajeGraphQL(res.errors[0]?.message);
               const mensaje = typeof limpio === "string" && limpio.trim() ? limpio : "el servidor no dio detalle";
-              this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
+              if (!opciones?.silenciarRechazo?.(res.errors as any[])) {
+                this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
+              }
               // Ademas del snackbar hay que CERRAR el observable: sin esto el llamador se queda
               // esperando para siempre y cualquier bandera de "guardando" nunca se apaga, con lo
               // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el

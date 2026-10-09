@@ -8,7 +8,11 @@ import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { Prestamo } from '../prestamo.model';
-import { PrestamoService } from '../prestamo.service';
+import { PedidoDePrestamo, PrestamoService } from '../prestamo.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 
@@ -28,6 +32,18 @@ export class EditPrestamoDialogComponent implements OnInit {
   monedas: Moneda[] = [];
   cajas: CajaVirtual[] = [];
 
+  isSaving = false;
+  /**
+   * El préstamo que se mandó y quedó sin respuesta, con su clave. Mientras exista solo se puede reenviarlo o
+   * cerrar: uno nuevo saldría con otra clave y desembolsaría otra vez (franco-system-backend-servidor#376).
+   */
+  private pedidoPendiente: PedidoDePrestamo | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
+  /** El central no conoce la clave: no protege la repetición, así que no se ofrece «Reintentar». */
+  private centralSinClave = false;
+
   funcionarioControl = new FormControl(null, [Validators.required]);
   descripcionControl = new FormControl(null);
   montoTotalControl = new FormControl(0, [Validators.required, Validators.min(1)]);
@@ -42,7 +58,8 @@ export class EditPrestamoDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<EditPrestamoDialogComponent>,
     private prestamoService: PrestamoService,
     private monedaService: MonedaService,
-    private cajaVirtualService: CajaVirtualService
+    private cajaVirtualService: CajaVirtualService,
+    private notificacion: NotificacionSnackbarService
   ) {
   }
 
@@ -75,7 +92,7 @@ export class EditPrestamoDialogComponent implements OnInit {
   }
 
   onGuardar() {
-    if (this.formGroup.invalid) { return; }
+    if (this.formGroup.invalid || this.isSaving || this.hayPendiente) { return; }
     const p = new Prestamo();
     const func = new Funcionario();
     func.id = this.funcionarioControl.value;
@@ -89,9 +106,82 @@ export class EditPrestamoDialogComponent implements OnInit {
     p.cantidadCuotas = this.cantidadCuotasControl.value;
     p.observacion = this.observacionControl.value ? this.observacionControl.value.toUpperCase() : null;
 
-    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-    this.prestamoService.onCrear(p.toInput(), this.cajaControl.value)
+    const moneda = this.monedas.find(m => m.id === mon.id);
+    this.pendienteDescripcion = `${moneda?.simbolo || ''} ${Number(p.montoTotal).toLocaleString('es-PY')}`.trim();
+    // Una clave por cada «Crear y desembolsar». El input se arma una sola vez y se guarda con ella.
+    this.enviar({ prestamo: p.toInput(), cajaVirtualId: this.cajaControl.value, claveIdempotencia: nuevaClaveIdempotencia() }, false);
+  }
+
+  /**
+   * Reenvía el préstamo que quedó sin respuesta, idéntico y con su misma clave: si el central ya lo había creado
+   * devuelve ese préstamo, y si no, lo crea y desembolsa ahora. Nunca dos.
+   */
+  reenviar() {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, true);
+  }
+
+  private enviar(pedido: PedidoDePrestamo, esReenvio: boolean) {
+    this.isSaving = true;
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de préstamos no se releería.
+    this.dialogRef.disableClose = true;
+    // El aviso de un rechazo o de un error de red ya lo muestra GenericCrudService.onSaveCustom.
+    this.prestamoService.onCrear(pedido, { esReenvio, sinClave: () => this.centralSinClave = true })
       .pipe(untilDestroyed(this))
-      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
+      .subscribe({
+        next: res => {
+          this.isSaving = false;
+          if (res == null) { this.quedoSinConfirmar(pedido, true); return; }
+          this.dialogRef.disableClose = false;
+          this.dialogRef.close(res);
+        },
+        error: err => {
+          this.isSaving = false;
+          if (erroresDeRechazo(err)) {
+            if (esReenvio && centralNoConoceLaClave(err)) {
+              // El central volvió a una versión que no conoce la clave: reenviar sin ella podría desembolsar dos veces.
+              this.notificacion.openWarn('El servidor ya no reconoce este reintento. Cerrá y revisá los préstamos del funcionario antes de repetirlo.', 10);
+              return;
+            }
+            // No se creó nada: vuelve al formulario para corregir.
+            this.pedidoPendiente = null;
+            this.hayPendiente = false;
+            this.dialogRef.disableClose = false;
+            return;
+          }
+          // El corte del link ya avisó que pudo haberse aplicado.
+          this.quedoSinConfirmar(pedido, !esTimeoutDeLink(err) || esReenvio);
+        }
+      });
+  }
+
+  /**
+   * El préstamo pudo haberse creado y desembolsado. El diálogo queda abierto solo para reenviarlo (seguro, por
+   * la clave) o cerrar: no se vuelve al formulario. Contra un central que no conoce la clave no hay reintento
+   * seguro: se cierra con el aviso de qué revisar.
+   */
+  private quedoSinConfirmar(pedido: PedidoDePrestamo, avisar: boolean) {
+    if (this.centralSinClave) {
+      this.cerrarConAviso();
+      return;
+    }
+    this.pedidoPendiente = pedido;
+    this.hayPendiente = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si el préstamo se creó: podés reintentar sin riesgo de desembolsarlo dos veces.', 8);
+    }
+  }
+
+  /** Cierra con el préstamo sin confirmar. Cierra con `true` para que la lista se relea. */
+  cerrarSinConfirmar() {
+    if (this.isSaving) return;
+    this.cerrarConAviso();
+  }
+
+  private cerrarConAviso() {
+    this.notificacion.openWarn(
+      `No se pudo confirmar si el préstamo de ${this.pendienteDescripcion} se creó: revisá los préstamos del funcionario y los movimientos de la caja antes de repetirlo.`, 12);
+    this.dialogRef.disableClose = false;
+    this.dialogRef.close(true);
   }
 }
