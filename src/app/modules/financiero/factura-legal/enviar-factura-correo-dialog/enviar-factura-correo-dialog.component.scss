@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  .close-btn {
+    opacity: 0.6;
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.dialog-content-modern {
+  padding: 20px 24px 0 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detalle {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  opacity: 0.8;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.campo-email {
+  width: 100%;
+}
+
+.dialog-actions-modern {
+  padding: 16px 24px 24px !important;
+  margin-bottom: 0;
+
+  .btn-cancelar {
+    margin-right: 8px;
+  }
+
+  .btn-aceptar {
+    padding: 0 24px;
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
