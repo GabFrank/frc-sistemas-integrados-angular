@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ApolloBase } from 'apollo-angular';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { GenericCrudService, QueryError } from './../../../generics/generic-crud.service';
 import { Cliente, ClienteInput, TipoCliente } from './cliente.model';
 import { ClienteByIdGQL } from './graphql/clienteById';
@@ -105,6 +106,20 @@ export class ClienteService {
 
   onSearchFromServer(texto: string, errorConf?: QueryError): Observable<Cliente[]> {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000, errorConf);
+  }
+
+  /**
+   * Clientes cuyo nombre o documento contiene `texto`, para sugerir mientras se escribe: sin
+   * diálogo de carga (le robaría el foco al campo) y sin snackbar si falla.
+   */
+  onSugerir(texto: string, cantidad: number = 8, servidor: boolean = true): Observable<Cliente[]> {
+    const errorConf: QueryError = {
+      graphError: { show: false, propagate: true },
+      networkError: { show: false, propagate: true },
+    };
+    return this.genericService
+      .onCustomQuery(this.searchWithFilters, { texto, tipo: null, page: 0, size: cantidad }, servidor, errorConf, true)
+      .pipe(map((pagina: PageInfo<Cliente>) => pagina?.getContent ?? []));
   }
 
   onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{
