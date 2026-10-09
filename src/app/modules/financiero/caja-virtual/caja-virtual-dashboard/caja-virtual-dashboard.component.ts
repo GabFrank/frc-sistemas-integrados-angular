@@ -778,6 +778,11 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // verificación entera (movimiento + estado del retiro + caso abierto), y para ubicarla
     // hacen falta las dos mitades de la PK del retiro.
     const esRetiro = mov.origenTipo === 'RETIRO_CAJA' && !!mov.origenId && !!mov.origenSucursalId;
+    // Una transferencia entre cajas hecha a mano se anula entera: el central revierte también la pata de
+    // la otra caja. Las de una operación financiera llevan su origen y entran por esOpFinanciera.
+    const esTransferencia = (mov.tipoMovimiento === CajaVirtualTipoMovimiento.TRANSFERENCIA_ENTRADA
+        || mov.tipoMovimiento === CajaVirtualTipoMovimiento.TRANSFERENCIA_SALIDA)
+      && (!mov.origenTipo || mov.origenTipo === 'MANUAL');
 
     let titulo: string, mensaje: string, exito: string;
     if (esRetiro) {
@@ -792,6 +797,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo = 'Anular operación financiera';
       mensaje = '¿Anular la operación financiera completa? Se revertirán TODOS sus movimientos vinculados (origen y destino).';
       exito = 'Operación financiera anulada';
+    } else if (esTransferencia) {
+      titulo = 'Anular transferencia';
+      mensaje = '¿Anular la transferencia completa? Se revierte en las DOS cajas: la plata vuelve a la caja de origen y sale de la de destino. Hace falta permiso sobre las dos.';
+      exito = 'Transferencia anulada';
     } else {
       titulo = 'Anular movimiento';
       mensaje = '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).';
