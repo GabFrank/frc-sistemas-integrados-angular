@@ -1,10 +1,13 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Subject, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
 import { FacturaLegal, FacturaLegalInput } from '../factura-legal.model';
 import { FacturaLegalService } from '../factura-legal.service';
-import { Cliente } from '../../../personas/clientes/cliente.model';
+import { Cliente, ClienteResponse } from '../../../personas/clientes/cliente.model';
 import { ClienteService } from '../../../personas/clientes/cliente.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -38,6 +41,16 @@ export class EditFacturaLegalDialogComponent implements OnInit {
   
   // Selected cliente
   selectedCliente: Cliente = null;
+
+  // Sugerencias de clientes mientras se escribe el nombre o el RUC
+  sugerencias: Cliente[] = [];
+  buscandoSugerencias = false;
+  /** RUC escrito que se puede ir a buscar a la SET; null si lo escrito no parece un RUC. */
+  rucParaSet: string = null;
+  /** Lo que se le muestra al usuario sobre el cliente que queda vinculado a la factura. */
+  clienteVinculadoTexto: string = null;
+  clienteVinculadoEmail: string = null;
+  private busqueda$ = new Subject<string>();
   
   // Table columns
   displayedColumns = ['producto', 'cantidad', 'precioUnitario', 'subtotal'];
@@ -57,6 +70,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm(); // Inicializar el formulario de inmediato
+    this.escucharBusqueda();
 
     const { requestId } = this.cargandoService.openDialog();
     this.facturaLegalService.onGetFacturaLegal(this.factura.id, this.factura.sucursalId)
@@ -79,6 +93,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           this.selectedCliente = this.factura.cliente;
           this.clienteControl.setValue(this.displayCliente(this.selectedCliente));
         }
+        this.actualizarClienteVinculado();
         this.cargandoService.closeDialog(requestId);
       }, err => {
         this.cargandoService.closeDialog(requestId);
@@ -131,6 +146,98 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     } else {
       this.formGroup.enable();
     }
+  }
+
+  /** Busca clientes en la base a medida que se escribe, sin disparar una consulta por tecla. */
+  private escucharBusqueda(): void {
+    this.busqueda$
+      .pipe(
+        debounceTime(350),
+        distinctUntilChanged(),
+        tap((texto) => { this.buscandoSugerencias = texto.length >= 3; }),
+        switchMap((texto) => texto.length < 3
+          ? of([] as Cliente[])
+          : this.clienteService.onSugerir(texto).pipe(catchError(() => of([] as Cliente[])))),
+        untilDestroyed(this)
+      )
+      .subscribe((clientes) => {
+        this.sugerencias = clientes;
+        this.buscandoSugerencias = false;
+      });
+  }
+
+  /** El usuario escribió en nombre o RUC: lo escrito ya no es el cliente elegido antes. */
+  onEscribir(valor: string, esRuc: boolean): void {
+    const texto = (valor || '').trim().toUpperCase();
+    if (this.selectedCliente) {
+      this.selectedCliente = null;
+      this.clienteControl.setValue('');
+      this.actualizarClienteVinculado();
+    }
+    if (esRuc) {
+      const documento = texto.split('-')[0];
+      this.rucParaSet = /^\d{5,}$/.test(documento) ? documento : null;
+    }
+    this.busqueda$.next(texto);
+  }
+
+  onSugerenciaElegida(evento: MatAutocompleteSelectedEvent): void {
+    const valor = evento.option.value;
+    if (valor?.buscarEnSet) {
+      this.rucControl.setValue(valor.buscarEnSet);
+      this.buscarEnSet(valor.buscarEnSet);
+      return;
+    }
+    this.elegirCliente(valor as Cliente);
+  }
+
+  private elegirCliente(cliente: Cliente): void {
+    this.selectedCliente = cliente;
+    this.clienteControl.setValue(this.displayCliente(cliente));
+    this.nombreControl.setValue(cliente.persona?.nombre || '');
+    this.rucControl.setValue(cliente.persona?.documento || '');
+    this.direccionControl.setValue(cliente.persona?.direccion || this.direccionControl.value || '');
+    this.sugerencias = [];
+    this.rucParaSet = null;
+    this.actualizarClienteVinculado();
+  }
+
+  /**
+   * Va a la SET con el RUC escrito. El central, si lo encuentra, lo da de alta como cliente: por
+   * eso es una opción que se elige y no algo que corre solo con cada RUC a medio escribir.
+   */
+  private buscarEnSet(documento: string): void {
+    this.clienteService.onGetClientePorPersonaDocumentoDetallado(documento, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (respuesta: ClienteResponse) => {
+          if (respuesta?.cliente?.id) {
+            this.elegirCliente(respuesta.cliente);
+            return;
+          }
+          const razonSocial = respuesta?.datosBasicos?.razonSocial || respuesta?.datosBasicos?.nombreFantasia;
+          if (razonSocial) {
+            this.nombreControl.setValue(razonSocial);
+            this.direccionControl.setValue(respuesta.datosBasicos.direccion || this.direccionControl.value || '');
+          }
+          this.notificacionSnackbar.openWarn(
+            respuesta?.errores?.[0] || `No se encontró el RUC ${documento} en la SET.`, 6);
+        },
+        error: () => {
+          this.notificacionSnackbar.openWarn(`No se pudo consultar el RUC ${documento} en la SET.`, 6);
+        }
+      });
+  }
+
+  /** Para los dos autocomplete: la opción es un cliente, pero en el campo va solo su texto. */
+  mostrarNombre = (valor: any): string => typeof valor === 'string' ? valor : (valor?.persona?.nombre || '');
+  mostrarRuc = (valor: any): string =>
+    typeof valor === 'string' ? valor : (valor?.buscarEnSet || valor?.persona?.documento || '');
+
+  private actualizarClienteVinculado(): void {
+    const cliente = this.selectedCliente ?? this.factura.cliente;
+    this.clienteVinculadoTexto = cliente?.persona ? this.displayCliente(cliente) : null;
+    this.clienteVinculadoEmail = cliente?.persona?.email || null;
   }
 
   onClienteSearch(): void {
