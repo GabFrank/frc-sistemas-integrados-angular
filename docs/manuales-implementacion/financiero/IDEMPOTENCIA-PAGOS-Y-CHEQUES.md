@@ -51,3 +51,36 @@ también para **Deploy Web**, que no valida que el `ref` corresponda al canal.
 
 Cuando el central agregue el argumento a otra mutation: variable `$claveIdempotencia: String` en su documento,
 clave nueva al confirmar, pedido congelado, y el mismo patrón de pendiente / reenviar en su diálogo.
+
+## Ajustes de saldo: conteo de caja y cuenta bancaria
+
+Los dos ajustes se calculaban acá, con el saldo que se veía en pantalla. Ahora el pedido dice contra qué saldo se
+hizo, y el central rechaza si ya no es ese (franco-system-backend-servidor#376).
+
+- **Conteo de caja** (`conteo-caja-dialog`): manda `saldoEsperado` (el saldo del sistema que se veía) y `contado`
+  a `ajustarCajaVirtualPorConteo`; la diferencia la calcula el central y deja el saldo exactamente en lo
+  contado. No lleva clave: es absoluto, y repetido responde que el saldo ya coincide con lo contado.
+- **Saldo bancario** (`ajustar-saldo-cuenta-dialog`): manda `saldoEsperado` y `claveIdempotencia`. Es relativo
+  (suma o resta un monto), así que el saldo esperado solo no alcanza: lleva también la clave y el patrón de
+  pendiente / *Reintentar* de pagos y cheques.
+- **Rechazo por saldo** (`esRechazoPorSaldo`, en `financiero/rechazo-por-saldo.ts`): el saldo «cambió» o «ya
+  coincide con lo contado». El que se ve en el diálogo quedó viejo y otro intento volvería a rechazarse, así
+  que el diálogo **cierra** con `true` para que quien lo abrió relea. Se reconoce por el texto del mensaje: el
+  error de GraphQL no trae código. Los demás rechazos dejan el diálogo abierto para corregir.
+- Lo contado sigue guardado en `localStorage` por caja y moneda: reabrir el conteo no lo pierde.
+## Movimientos y transferencias de caja mayor en varias monedas
+
+Los diálogos `add-movimiento-caja-virtual-dialog` (ingreso, egreso, ajuste) y
+`transferencia-caja-virtual-dialog` cargan Gs, Rs y Ds a la vez. Mandan **un solo pedido** con todos los montos
+(`registrarMovimientosCajaVirtual`, `realizarTransferenciasCajaVirtual`) y su `claveIdempotencia`; el central lo
+registra entero o no lo registra (franco-system-backend-servidor#376). Antes iba un pedido por moneda, en serie
+(`enviar-en-serie.ts`, eliminado), y un rechazo de la segunda dejaba la primera adentro.
+
+- **Rechazo:** no entró ninguna moneda; el formulario queda para corregir y el próximo intento usa otra clave.
+- **Sin respuesta:** el diálogo pasa a «No se pudo confirmar» con *Reintentar* (el mismo pedido, con su clave) y
+  *Cerrar* (cierra con `true`, para que la caja se relea). No se vuelve al formulario.
+- El usuario del movimiento lo pone el central (el de la sesión); el desktop ya no lo manda.
+- El ajuste de egreso manda el monto negativo, como antes.
+- El ajuste por conteo (`conteo-caja-dialog`) sigue con `saveMovimientoCajaVirtual`, de una moneda y sin clave.
+- Hoy ningún botón abre el diálogo de transferencia (`onTransferencia` del dashboard no está en el template):
+  quedó actualizado igual, para cuando se vuelva a enlazar.

@@ -269,6 +269,18 @@ export const saveMovimientoCajaVirtualMutation = gql`
   }
 `;
 
+// El desktop manda el saldo que tenía en pantalla y lo contado; la diferencia la calcula el central
+// (franco-system-backend-servidor#376).
+export const ajustarCajaVirtualPorConteoMutation = gql`
+  mutation ajustarCajaVirtualPorConteo($cajaVirtualId: ID!, $monedaId: ID!, $saldoEsperado: Float!, $contado: Float!) {
+    data: ajustarCajaVirtualPorConteo(
+      cajaVirtualId: $cajaVirtualId, monedaId: $monedaId, saldoEsperado: $saldoEsperado, contado: $contado
+    ) {
+      ${movimientoFields}
+    }
+  }
+`;
+
 export const anularMovimientoCajaVirtualMutation = gql`
   mutation anularMovimientoCajaVirtual($id: ID!, $motivo: String) {
     data: anularMovimientoCajaVirtual(id: $id, motivo: $motivo) {
@@ -277,22 +289,40 @@ export const anularMovimientoCajaVirtualMutation = gql`
   }
 `;
 
-export const realizarTransferenciaQuery = gql`
-  mutation realizarTransferenciaCajaVirtual(
+// Un solo pedido con todos los montos: el central registra todo o nada. La clave de idempotencia hace que
+// repetirlo no registre de nuevo (franco-system-backend-servidor#376).
+export const registrarMovimientosCajaVirtualMutation = gql`
+  mutation registrarMovimientosCajaVirtual(
+    $cajaVirtualId: ID!
+    $tipoMovimiento: CajaVirtualTipoMovimiento!
+    $montos: [MontoCajaVirtualInput!]!
+    $descripcion: String
+    $claveIdempotencia: String
+  ) {
+    data: registrarMovimientosCajaVirtual(
+      cajaVirtualId: $cajaVirtualId
+      tipoMovimiento: $tipoMovimiento
+      montos: $montos
+      descripcion: $descripcion
+      claveIdempotencia: $claveIdempotencia
+    )
+  }
+`;
+
+export const realizarTransferenciasCajaVirtualMutation = gql`
+  mutation realizarTransferenciasCajaVirtual(
     $origenId: ID!
     $destinoId: ID!
-    $cantidad: Float!
-    $monedaId: ID!
+    $montos: [MontoCajaVirtualInput!]!
     $descripcion: String
-    $usuarioId: ID
+    $claveIdempotencia: String
   ) {
-    data: realizarTransferenciaCajaVirtual(
+    data: realizarTransferenciasCajaVirtual(
       origenId: $origenId
       destinoId: $destinoId
-      cantidad: $cantidad
-      monedaId: $monedaId
+      montos: $montos
       descripcion: $descripcion
-      usuarioId: $usuarioId
+      claveIdempotencia: $claveIdempotencia
     )
   }
 `;
