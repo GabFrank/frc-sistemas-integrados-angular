@@ -9,6 +9,16 @@ import { SaveCuentaBancariaGQL } from './graphql/saveCuentaBancaria';
 import { DeleteCuentaBancariaGQL } from './graphql/deleteCuentaBancaria';
 import { AjustarSaldoCuentaBancariaGQL } from './graphql/ajustarSaldoCuentaBancaria';
 
+/** Un ajuste de saldo tal como se envía, con su clave: se guarda entero para poder reenviarlo idéntico. */
+export interface PedidoDeAjusteBancario {
+  cuentaBancariaId: number;
+  monto: number;
+  positivo: boolean;
+  motivo: string;
+  saldoEsperado: number;
+  claveIdempotencia: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -51,10 +61,10 @@ export class CuentaBancariaService {
    * Ajusta el saldo de la cuenta contra el extracto real. El motivo es obligatorio: un ajuste
    * no tiene contrapartida, y ese texto es toda la trazabilidad que le queda al movimiento.
    */
-  onAjustarSaldo(cuentaBancariaId: number, monto: number, positivo: boolean, motivo: string,
-                 opciones?: { avisarExito?: boolean }): Observable<any> {
-    return this.genericService.onSaveCustom(this.ajustarSaldoGQL, {
-      cuentaBancariaId, monto, positivo, motivo,
-    }, true, opciones);
+  //
+  // saldoEsperado: el saldo que se veía; si la cuenta ya no tiene ese, el central rechaza. claveIdempotencia: el
+  // mismo pedido reenviado devuelve el ajuste original en vez de aplicar otro (franco-system-backend-servidor#376).
+  onAjustarSaldo(pedido: PedidoDeAjusteBancario, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom(this.ajustarSaldoGQL, pedido, true, opciones);
   }
 }

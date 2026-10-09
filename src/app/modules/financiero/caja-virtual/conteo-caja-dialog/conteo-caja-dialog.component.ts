@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual } from '../caja-virtual.model';
+import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaBillete } from '../../moneda/moneda-billetes/moneda-billetes.model';
@@ -11,6 +11,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esRechazoPorSaldo } from '../../rechazo-por-saldo';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { GrillaConteoComponent } from '../../../../shared/components/grilla-conteo/grilla-conteo.component';
 
@@ -200,33 +201,27 @@ export class ConteoCajaDialogComponent implements OnInit {
   }
 
   /**
-   * Postea un AJUSTE firmado por la diferencia, dejando el saldo del sistema igual al contado.
-   * El AJUSTE conserva el signo de la cantidad en TesoreriaService.signedDelta, así que la
-   * diferencia va tal cual (negativa si falta plata).
+   * Pide el ajuste por conteo. Se manda el saldo que se veía y lo contado: la diferencia la calcula el central
+   * contra el saldo real, y deja el saldo exactamente en lo contado (franco-system-backend-servidor#376). Antes la
+   * calculaba este diálogo, y si el saldo había cambiado se aplicaba una diferencia que ya no era la real.
    */
   onCrearAjuste() {
     if (!this.hayDiferencia || this.sinSaldoSistema || this.grillaNoCargo || this.guardando) return;
     const simbolo = this.data.moneda?.simbolo || '';
     const signo = this.diferencia > 0 ? '+' : '';
+    const saldoEsperado = this.data.saldoSistema;
+    const contado = this.total;
     this.dialogosService.confirm(
       'Crear ajuste por conteo',
       `Se registrará un AJUSTE de ${signo}${this.fmt(this.diferencia)} ${simbolo} para dejar el saldo del sistema igual al conteo.`,
-      `Sistema: ${this.fmt(this.data.saldoSistema)} ${simbolo} · Contado: ${this.fmt(this.total)} ${simbolo}`,
+      `Sistema: ${this.fmt(saldoEsperado)} ${simbolo} · Contado: ${this.fmt(contado)} ${simbolo}`,
       null, true, 'Sí, ajustar', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
       this.guardando = true;
       // Mientras se guarda no se cierra (ni Esc ni clic afuera): la caja no se refrescaría.
       this.dialogRef.disableClose = true;
-      const mov = new MovimientoCajaVirtual();
-      mov.cajaVirtual = this.data.cajaVirtual;
-      mov.tipoMovimiento = CajaVirtualTipoMovimiento.AJUSTE;
-      mov.cantidad = this.diferencia;
-      mov.moneda = this.data.moneda;
-      mov.usuario = this.mainService.usuarioActual;
-      mov.activo = true;
-      mov.descripcion = `AJUSTE POR CONTEO DE CAJA (SISTEMA ${this.fmt(this.data.saldoSistema)} / CONTADO ${this.fmt(this.total)})`;
-      this.cajaVirtualService.onSaveMovimiento(mov)
+      this.cajaVirtualService.onAjustarPorConteo(this.data.cajaVirtual.id, this.data.moneda.id, saldoEsperado, contado)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: r => {
@@ -239,8 +234,14 @@ export class ConteoCajaDialogComponent implements OnInit {
           error: err => {
             this.guardando = false;
             this.dialogRef.disableClose = false;
-            // Rechazo: no se registró nada y el motivo ya lo mostró onSaveCustom.
-            if (erroresDeRechazo(err)) return;
+            const rechazo = erroresDeRechazo(err);
+            if (rechazo) {
+              // No se registró nada y el motivo ya lo mostró onSaveCustom. Si el rechazo es por el saldo (cambió, o
+              // ya coincide con lo contado), el que se ve acá quedó viejo y otro intento volvería a rechazarse: se
+              // cierra para que la caja relea. El conteo sigue guardado. Los demás rechazos dejan corregir.
+              if (esRechazoPorSaldo(rechazo)) this.dialogRef.close(true);
+              return;
+            }
             // El corte del link ya avisó que pudo haberse aplicado.
             this.ajusteSinConfirmar(!esTimeoutDeLink(err));
           }
@@ -249,9 +250,9 @@ export class ConteoCajaDialogComponent implements OnInit {
   }
 
   /**
-   * El ajuste pudo haberse registrado. La diferencia en pantalla está calculada contra el saldo de antes: otro
-   * intento la postearía de nuevo (#390). Se cierra para que la caja relea el saldo; el conteo no se pierde (la
-   * grilla se guarda por caja y moneda), así que al reabrirlo se ve la diferencia real.
+   * El ajuste pudo haberse registrado. Se cierra para que la caja relea el saldo; el conteo no se pierde (la
+   * grilla se guarda por caja y moneda), así que al reabrirlo se ve la diferencia real. Repetirlo ya no puede
+   * ajustar dos veces: si había entrado, el central responde que el saldo ya coincide con lo contado.
    */
   private ajusteSinConfirmar(avisar: boolean) {
     if (avisar) {
