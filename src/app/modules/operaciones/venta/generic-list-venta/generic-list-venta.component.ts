@@ -27,6 +27,10 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
+import { MainService } from "../../../../main.service";
+import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -107,6 +111,9 @@ export class GenericListVentaComponent implements OnInit {
   totalRecibidoGs = 0;
   selectedPageInfo: PageInfo<Venta>;
 
+  /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
+  puedeCancelarVenta = false;
+
   constructor(
     private matDialog: MatDialog,
     private cajaService: CajaService,
@@ -118,10 +125,12 @@ export class GenericListVentaComponent implements OnInit {
     private clienteSearch: ClientesSearchConFiltrosGQL,
     private ventaObservacionService: VentaObservacionService,
     private notificacionService: NotificacionSnackbarService,
-    private ventaTarjetaService: VentaTarjetaService
+    private ventaTarjetaService: VentaTarjetaService,
+    private mainService: MainService
   ) { }
 
   ngOnInit(): void {
+    this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
     
     let hoy = new Date();
     let aux = new Date();
@@ -546,6 +555,11 @@ export class GenericListVentaComponent implements OnInit {
               if (e?.fase === "lectura") {
                 this.notificacionService.openWarn(
                   "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
+                return;
+              }
+              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y no hay qué confirmar
+              if (erroresDeRechazo(e?.error) != null) {
+                this.notificacionService.openAlgoSalioMal(mensajeDeError(e.error, `No se pudo ${accion} la venta.`));
                 return;
               }
               // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.
