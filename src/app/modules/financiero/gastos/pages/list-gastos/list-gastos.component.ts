@@ -2,7 +2,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
 import { GastoService } from '../../service/gasto.service';
 import { Gasto } from '../../models/gastos.model';
-import { UntilDestroy } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
@@ -17,6 +17,7 @@ import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 import { GastosDashboardComponent } from '../gastos-dashboard/gastos-dashboard.component';
 import { MainService } from '../../../../../main.service';
@@ -43,6 +44,7 @@ export class ListGastosComponent implements OnInit {
   @Input() data: Tab;
 
   private gastoService = inject(GastoService);
+  private dialogosService = inject(DialogosService);
   private notificacion = inject(NotificacionSnackbarService);
   private sucursalService = inject(SucursalService);
   private tabService = inject(TabService);
@@ -153,8 +155,21 @@ export class ListGastosComponent implements OnInit {
 
   onCancelarGasto(gasto: Gasto) {
     if (!gasto?.id) return;
-    this.gastoService.onCancelarGasto(gasto.id, gasto.sucursalId).subscribe(res => {
-      if (res) this.onFiltrar();
+    const estabaCancelado = gasto.cancelado === true;
+    const mensaje = estabaCancelado
+      ? 'Realmente desea habilitar este gasto?'
+      : 'Realmente desea cancelar este gasto?';
+    this.dialogosService.confirm('Atención!!', mensaje).pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res) return;
+      // Se manda cómo tiene que quedar, no «invertir»: repetirlo no lo deshace.
+      this.gastoService.onCancelarGasto(gasto.id, gasto.sucursalId, !estabaCancelado).pipe(untilDestroyed(this)).subscribe({
+        next: () => {
+          this.notificacion.openSucess(estabaCancelado ? 'Gasto habilitado con éxito' : 'Gasto cancelado con éxito');
+          this.onFiltrar();
+        },
+        // El motivo del rechazo ya lo avisó onCustomMutation. Se relee por si la lista estaba vieja.
+        error: () => this.onFiltrar()
+      });
     });
   }
 

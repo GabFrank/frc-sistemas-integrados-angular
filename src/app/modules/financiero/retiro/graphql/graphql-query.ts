@@ -194,8 +194,8 @@ export const deleteRetiroQuery = gql`
 `;
 
 export const cancelarRetiroQuery = gql`
-  mutation cancelarRetiro($id: ID!, $sucId: ID) {
-    data: cancelarRetiro(id: $id, sucId: $sucId)
+  mutation cancelarRetiro($id: ID!, $sucId: ID, $cancelar: Boolean) {
+    data: cancelarRetiro(id: $id, sucId: $sucId, cancelar: $cancelar)
   }
 `;
 
