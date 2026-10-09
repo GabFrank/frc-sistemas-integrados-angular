@@ -17,7 +17,8 @@ import { RevocarAccesoCajaGQL } from './graphql/revocarAccesoCaja';
 import { TransferirPropiedadCajaGQL } from './graphql/transferirPropiedadCaja';
 import { SaveMovimientoCajaVirtualGQL } from './graphql/saveMovimientoCajaVirtual';
 import { MovimientosCajaVirtualGQL, MovimientosCajaVirtualPorFechaGQL } from './graphql/movimientosCajaVirtual';
-import { RealizarTransferenciaCajaVirtualGQL } from './graphql/realizarTransferenciaCajaVirtual';
+import { RealizarTransferenciasCajaVirtualGQL, RegistrarMovimientosCajaVirtualGQL } from './graphql/movimientosEnLote';
+import { PedidoDeMovimientos, PedidoDeTransferencias } from './pedido-en-lote';
 import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVirtual';
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
@@ -49,7 +50,8 @@ export class CajaVirtualService {
     private saveMovimientoGQL: SaveMovimientoCajaVirtualGQL,
     private movimientosGQL: MovimientosCajaVirtualGQL,
     private movimientosPorFechaGQL: MovimientosCajaVirtualPorFechaGQL,
-    private realizarTransferenciaGQL: RealizarTransferenciaCajaVirtualGQL,
+    private registrarMovimientosGQL: RegistrarMovimientosCajaVirtualGQL,
+    private realizarTransferenciasGQL: RealizarTransferenciasCajaVirtualGQL,
     private anularMovimientoGQL: AnularMovimientoCajaVirtualGQL,
     private saldosGQL: CajaVirtualSaldosGQL,
     private resumenBancarioGQL: CajaVirtualResumenBancarioGQL,
@@ -207,10 +209,16 @@ export class CajaVirtualService {
     return this.genericService.onSaveCustom(this.saveConfiguracionGQL, { input }, true, opciones);
   }
 
-  onRealizarTransferencia(origenId: number, destinoId: number, cantidad: number, monedaId: number, descripcion?: string, usuarioId?: number,
-                          opciones?: { avisarExito?: boolean }): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.realizarTransferenciaGQL, {
-      origenId, destinoId, cantidad, monedaId, descripcion, usuarioId
-    }, true, opciones);
+  /**
+   * Ingreso, egreso o ajuste en una o más monedas, en un solo pedido: entra todo o no entra nada. El usuario
+   * lo pone el central (el de la sesión).
+   */
+  onRegistrarMovimientos(pedido: PedidoDeMovimientos, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.registrarMovimientosGQL, pedido, true, opciones);
+  }
+
+  /** Transferencia entre dos cajas en una o más monedas, en un solo pedido: todo o nada. */
+  onRealizarTransferencias(pedido: PedidoDeTransferencias, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.realizarTransferenciasGQL, pedido, true, opciones);
   }
 }
