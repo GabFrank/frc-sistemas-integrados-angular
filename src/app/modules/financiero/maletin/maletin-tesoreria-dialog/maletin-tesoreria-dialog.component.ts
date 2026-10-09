@@ -252,6 +252,13 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
             this.notificacion.openWarn('El servidor ya no reconoce este reintento. Cerrá y revisá los movimientos de la caja antes de repetirlo.', 10);
             return;
           }
+          if (esReenvio) {
+            // Rechazo al reintentar (el motivo ya se mostró). Si el primer envío había entrado, volver al
+            // formulario dejaría cargarlo otra vez con otra clave: se cierra para que se revise.
+            this.dialogRef.disableClose = false;
+            this.sinConfirmar(true);
+            return;
+          }
           // No se registró nada (el motivo ya lo mostró onSaveCustom): vuelve al formulario para corregir.
           this.pedidoPendiente = null;
           this.hayPendiente = false;

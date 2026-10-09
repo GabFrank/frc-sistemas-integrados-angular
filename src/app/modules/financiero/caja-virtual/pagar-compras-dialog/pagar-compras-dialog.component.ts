@@ -125,6 +125,7 @@ interface AltaPendiente {
   clave: string;
   resumen: string;
   filtrar: () => void;
+  quitarFiltro: () => void;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -661,6 +662,7 @@ export class PagarComprasDialogComponent implements OnInit {
       que: 'gasto', input, clave: nuevaClaveIdempotencia(), resumen: `gasto «${desc}» por ${monto}`,
       // La lista vuelve filtrada por la descripción enviada: si el gasto se creó, es el que aparece.
       filtrar: () => this.filtroDescripcionControl.setValue(desc, { emitEvent: false }),
+      quitarFiltro: () => this.filtroDescripcionControl.setValue('', { emitEvent: false }),
     }, false);
   }
 
@@ -699,6 +701,7 @@ export class PagarComprasDialogComponent implements OnInit {
       que: 'vale', input, clave: nuevaClaveIdempotencia(), resumen: `vale de ${nombre} por ${monto}`,
       // La lista vuelve filtrada por el funcionario: si el vale se creó, es el que aparece.
       filtrar: () => this.filtroProveedorControl.setValue(nombre, { emitEvent: false }),
+      quitarFiltro: () => this.filtroProveedorControl.setValue('', { emitEvent: false }),
     }, false);
   }
 
@@ -713,6 +716,10 @@ export class PagarComprasDialogComponent implements OnInit {
 
   private enviarAlta(alta: AltaPendiente, esReenvio: boolean) {
     this.creandoGasto = true;
+    // Mientras se envía no se cierra (ni Esc ni clic afuera): el pedido seguiría en el central y se perdería
+    // su clave. Al terminar vuelve a como lo dejaron los pagos.
+    this.dialogRef.disableClose = true;
+    const soltarCierre = () => this.dialogRef.disableClose = this.huboSinConfirmar;
     const opciones = { esReenvio, sinClave: () => this.centralSinClave = true };
     const pedido = alta.que === 'gasto'
       ? this.pagarComprasService.onCrearGasto(alta.input as GastoParaPagoInput, alta.clave, opciones)
@@ -720,7 +727,10 @@ export class PagarComprasDialogComponent implements OnInit {
     pedido.pipe(untilDestroyed(this)).subscribe({
       next: () => {
         this.creandoGasto = false;
+        soltarCierre();
         this.descartarAltaPendiente();
+        // El filtro se había puesto para buscar el alta sin confirmar: ya no hace falta.
+        if (esReenvio) alta.quitarFiltro();
         if (alta.que === 'gasto') {
           this.notificacion.openSucess('Gasto creado');
           this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
@@ -736,10 +746,15 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: (err) => {
         this.creandoGasto = false;
+        soltarCierre();
         if (erroresDeRechazo(err)) {
-          if (esReenvio && centralNoConoceLaClave(err)) {
-            // El central volvió a una versión que no conoce la clave: reenviar sin ella podría crear dos.
-            this.notificacion.openWarn('El servidor ya no reconoce este reintento. Revisá la lista antes de cargarlo de nuevo.', 10);
+          if (esReenvio) {
+            // Rechazo al reintentar: no hay más reintento seguro, y si el primer envío había entrado, cargarlo
+            // de nuevo lo duplicaría. Queda el aviso de revisar la lista; el formulario sigue bloqueado hasta
+            // «Entendido».
+            this.notificacion.openWarn(centralNoConoceLaClave(err)
+              ? 'El servidor ya no reconoce este reintento. Revisá la lista antes de cargarlo de nuevo.'
+              : `${err?.message || 'El servidor rechazó el reintento'}. Revisá la lista antes de cargarlo de nuevo.`, 10);
             this.altaPendiente = null;
             this.hayAltaPendiente = false;
             return;
@@ -1388,7 +1403,17 @@ export class PagarComprasDialogComponent implements OnInit {
   private err(msg: string) { this.notificacion.openAlgoSalioMal(msg); }
   /** Con un pago sin confirmar se cierra con un valor: quien abrió el diálogo refresca la caja con cualquier valor. */
   onCancel() {
-    if (this.reenviando) return;
+    if (this.reenviando || this.creandoGasto) return;
+    if (this.hayAltaPendiente && !this.hayPendiente) {
+      this.dialogosService.confirm(
+        'Hay un alta sin confirmar',
+        `Si cerrás ahora no vas a poder reintentar el alta del ${this.altaSinConfirmar}: revisá la lista antes de cargarlo de nuevo.`,
+        null, null, true, 'Sí, cerrar', 'No'
+      ).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res === true && !this.creandoGasto) this.dialogRef.close(this.huboSinConfirmar ? { sinConfirmar: true } : null);
+      });
+      return;
+    }
     if (!this.hayPendiente) {
       this.dialogRef.close(this.huboSinConfirmar ? { sinConfirmar: true } : null);
       return;

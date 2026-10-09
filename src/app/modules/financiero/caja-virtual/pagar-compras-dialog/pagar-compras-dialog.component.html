@@ -134,7 +134,8 @@
     <div class="aviso-texto">
       <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b>
       <ng-container *ngIf="hayAltaPendiente"> Reintentá: si ya se había creado no se crea otro, y si no, se crea
-        ahora. Si figura en la lista (quedó filtrada), tocá «Entendido».</ng-container>
+        ahora. «Entendido» suelta ese reintento: tocá ahí solo si ya lo ves en la lista (quedó filtrada), porque
+        cargarlo de nuevo lo crearía otra vez.</ng-container>
       <ng-container *ngIf="!hayAltaPendiente"> Pudo haberse creado: fijate si figura en la lista (quedó filtrada)
         antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario; para volver a enviarlo, primero tocá
         «Entendido».</ng-container>

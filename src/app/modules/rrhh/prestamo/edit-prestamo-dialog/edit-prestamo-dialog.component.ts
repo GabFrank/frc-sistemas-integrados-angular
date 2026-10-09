@@ -132,7 +132,6 @@ export class EditPrestamoDialogComponent implements OnInit {
         next: res => {
           this.isSaving = false;
           if (res == null) { this.quedoSinConfirmar(pedido, true); return; }
-          this.dialogRef.disableClose = false;
           this.dialogRef.close(res);
         },
         error: err => {
@@ -143,10 +142,15 @@ export class EditPrestamoDialogComponent implements OnInit {
               this.notificacion.openWarn('El servidor ya no reconoce este reintento. Cerrá y revisá los préstamos del funcionario antes de repetirlo.', 10);
               return;
             }
-            // No se creó nada: vuelve al formulario para corregir.
+            if (esReenvio) {
+              // Rechazo al reintentar (el motivo ya se mostró). Si el primer envío había entrado, volver al
+              // formulario dejaría desembolsarlo otra vez con otra clave: se cierra para que se revise.
+              this.cerrarConAviso();
+              return;
+            }
+            // No se creó nada: vuelve al formulario para corregir. El diálogo se abre con disableClose y sigue así.
             this.pedidoPendiente = null;
             this.hayPendiente = false;
-            this.dialogRef.disableClose = false;
             return;
           }
           // El corte del link ya avisó que pudo haberse aplicado.
@@ -181,7 +185,6 @@ export class EditPrestamoDialogComponent implements OnInit {
   private cerrarConAviso() {
     this.notificacion.openWarn(
       `No se pudo confirmar si el préstamo de ${this.pendienteDescripcion} se creó: revisá los préstamos del funcionario y los movimientos de la caja antes de repetirlo.`, 12);
-    this.dialogRef.disableClose = false;
     this.dialogRef.close(true);
   }
 }
