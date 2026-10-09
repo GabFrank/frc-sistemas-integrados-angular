@@ -1,7 +1,6 @@
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { Pedido } from './pedido.model';
 import { PedidoItem } from './pedido-item.model';
-import { Compra } from '../compra.model';
 import { Documento } from '../../../financiero/documento/documento.model';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { Producto } from '../../../productos/producto/producto.model';
@@ -20,7 +19,6 @@ export enum NotaRecepcionEstado {
 export class NotaRecepcion {
   id: number;
   pedido: Pedido;
-  compra: Compra;
   documento: Documento;
   numero: number;
   tipoBoleta: string;
@@ -39,7 +37,6 @@ export class NotaRecepcion {
     let input = new NotaRecepcionInput();
     input.id = this?.id || undefined;
     input.pedidoId = this?.pedido?.id || undefined;
-    input.compraId = this?.compra?.id || undefined;
     input.documentoId = this?.documento?.id || undefined;
     input.numero = this?.numero || 0;
     input.tipoBoleta = this?.tipoBoleta || '';
@@ -59,7 +56,6 @@ export class NotaRecepcion {
 export class NotaRecepcionInput {
   id?: number;
   pedidoId?: number;
-  compraId?: number;
   documentoId?: number;
   numero: number;
   tipoBoleta: string;

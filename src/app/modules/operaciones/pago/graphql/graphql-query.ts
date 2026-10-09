@@ -59,9 +59,6 @@ export const notaRecepcionFragment = gql`
         id
       }
     }
-    compra {
-      id
-    }
   }
 `;
 
