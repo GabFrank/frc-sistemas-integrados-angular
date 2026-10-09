@@ -416,6 +416,7 @@
             </button>
             <button
               mat-menu-item
+              *ngIf="puedeCancelarFactura"
               (click)="onCancelarFactura(factura)"
               [disabled]="!factura.puedeCancelar">
               <mat-icon>cancel</mat-icon>

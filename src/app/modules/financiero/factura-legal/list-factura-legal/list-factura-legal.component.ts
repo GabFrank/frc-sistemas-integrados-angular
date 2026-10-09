@@ -21,6 +21,7 @@ import { EditFacturaLegalDialogComponent } from "../edit-factura-legal-dialog/ed
 import { EstadoDE } from "../../documento-electronico/documento-electronico.model";
 import { MainService } from "../../../../main.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
+import { mensajeDeError } from "../../venta-tarjeta/qr-pos/mensaje-error";
 import { AddNotaCreditoDialogComponent } from "../../nota-credito/add-nota-credito-dialog/add-nota-credito-dialog.component";
 import {
   animate,
@@ -161,6 +162,7 @@ export class ListFacturaLegalComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+    this.puedeCancelarFactura = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
 
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
@@ -577,6 +579,8 @@ export class ListFacturaLegalComponent implements OnInit {
 
   /** Rol para emitir notas de crédito; se calcula una vez, nunca desde el HTML. */
   puedeEmitirNotaCredito = false;
+  /** Cancelar una factura exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
+  puedeCancelarFactura = false;
 
   /**
    * Abre la nota de crédito de una factura. Es el camino cuando SIFEN ya no acepta la cancelación
@@ -717,7 +721,8 @@ export class ListFacturaLegalComponent implements OnInit {
         error: (error) => {
           this.cargandoService.closeDialog(requestId);
           console.error('Error al cancelar factura:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cancelar la factura');
+          // Si el central la rechazó (por ejemplo, falta el rol) se muestra su motivo, no un texto genérico
+          this.notificacionService.openAlgoSalioMal(mensajeDeError(error, 'Error al cancelar la factura'));
         }
       });
   }

@@ -721,7 +721,7 @@
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="onCancelarVenta(venta, i)">
+                <button mat-menu-item *ngIf="puedeCancelarVenta" (click)="onCancelarVenta(venta, i)">
                   {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar" }}
                 </button>
                 <button mat-menu-item (click)="onListObservaciones(venta)">
