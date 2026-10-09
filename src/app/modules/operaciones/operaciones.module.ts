@@ -5,8 +5,6 @@ import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
 import { TransferenciaTimelineDialogComponent } from '../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
-import { AdicionarDetalleCompraItemDialogComponent } from './compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component';
-import { EditCompraComponent } from './compra/edit-compra/edit-compra.component';
 import { ListCompraComponent } from './compra/list-compra/list-compra.component';
 import { DeliveryDashboardComponent } from './delivery/delivery-dashboard/delivery-dashboard.component';
 import { PrecioDeliveryComponent } from './delivery/precio-delivery/precio-delivery.component';
@@ -97,7 +95,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
 @NgModule({
   declarations: [
     ListCompraComponent,
-    EditCompraComponent,
     ListNecesidadComponent,
     EditNecesidadComponent,
     ListMovimientoStockComponent,
@@ -106,7 +103,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
-    AdicionarDetalleCompraItemDialogComponent,
     AdicionarProgramarPrecioDialogComponent,
     UltimasVentasDialogComponent,
     ListVentaComponent,
