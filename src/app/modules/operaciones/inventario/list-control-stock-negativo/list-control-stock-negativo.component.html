@@ -2,7 +2,7 @@
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
           <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
             <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
@@ -13,7 +13,7 @@
         </mat-form-field>
       </div>
       <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
           <mat-label>Sucursal</mat-label>
           <mat-select [formControl]="sucursalControl">
             <mat-option [value]="null">Todas</mat-option>
@@ -24,7 +24,7 @@
         </mat-form-field>
       </div>
       <div fxFlex="15%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
           <mat-label>Tipo de movimiento</mat-label>
           <mat-select [formControl]="tipoControl">
             <mat-option [value]="null">Todos</mat-option>
@@ -35,7 +35,7 @@
         </mat-form-field>
       </div>
       <div fxFlex="13%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
           <mat-label>Stock al salir</mat-label>
           <mat-select [formControl]="stockControl">
             <mat-option [value]="null">Todos</mat-option>
@@ -46,7 +46,7 @@
         </mat-form-field>
       </div>
       <div fxFlex="22%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
           <mat-label>Buscar por descripción del producto</mat-label>
           <input matInput [formControl]="textoControl" (keyup.enter)="onFiltrar()" autocomplete="off" />
         </mat-form-field>
@@ -54,7 +54,8 @@
     </div>
   </div>
 
-  <div table class="control-stock-tabla">
+  <div table class="control-stock-tabla" fxLayout="column">
+    <div class="control-stock-scroll" fxFlex>
     <table mat-table [dataSource]="dataSource" [trackBy]="trackById" style="width: 100%">
       <ng-container matColumnDef="fecha">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">Fecha</th>
@@ -122,7 +123,8 @@
         </td>
       </tr>
     </table>
-    <mat-paginator [length]="length" [pageSize]="pageSize" [pageIndex]="pageIndex"
+    </div>
+    <mat-paginator class="control-stock-footer" fxFlex="none" [length]="length" [pageSize]="pageSize" [pageIndex]="pageIndex"
       [pageSizeOptions]="pageSizeOptions" (page)="onPage($event)" showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>
