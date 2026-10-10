@@ -1983,6 +1983,12 @@ export class EditTransferenciaComponent implements OnInit {
       this.onClear();
       return;
     }
+    // La confirmación existe porque lo confirmado queda registrado en el control de stock negativo, y el central
+    // registra solo ítems NUEVOS: un guardado con el id de un ítem existente es una edición, y preguntar prometería un registro que no se hace.
+    if (this.selectedTransferenciaItem?.id != null) {
+      this.procederConGuardadoItem();
+      return;
+    }
     const mensaje =
       stock === 0
         ? "El producto tiene stock 0 en la sucursal de origen."
