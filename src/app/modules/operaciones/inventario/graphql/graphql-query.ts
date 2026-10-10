@@ -759,6 +759,7 @@ export const controlStockNegativoQuery = gql`
     $sucursalId: ID
     $tipo: TipoControlStock
     $texto: String
+    $stock: FiltroStockControl
     $page: Int!
     $size: Int!
   ) {
@@ -768,6 +769,7 @@ export const controlStockNegativoQuery = gql`
       sucursalId: $sucursalId
       tipo: $tipo
       texto: $texto
+      stock: $stock
       page: $page
       size: $size
     ) {
@@ -781,6 +783,7 @@ export const controlStockNegativoQuery = gql`
         tipo
         cantidad
         stockPrevio
+        stockActual
         fecha
         referenciaId
         itemId

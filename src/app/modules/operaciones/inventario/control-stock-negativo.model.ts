@@ -4,6 +4,9 @@ import { Producto } from "../../productos/producto/producto.model";
 
 export type TipoControlStock = "VENTA" | "TRANSFERENCIA";
 
+/** Filtro por el stock previo del registro; null = todos. */
+export type FiltroStockControl = "CERO" | "NEGATIVO";
+
 /** Salida de un producto cuyo stock en la sucursal ya era 0 o negativo. */
 export interface ControlStockNegativo {
   id: number;
@@ -12,6 +15,8 @@ export interface ControlStockNegativo {
   tipo: TipoControlStock;
   cantidad: number;
   stockPrevio: number;
+  /** Stock de hoy del producto en esa sucursal; null si el central no pudo calcularlo. */
+  stockActual: number | null;
   usuario: Usuario;
   fecha: Date;
   referenciaId: number;
@@ -33,6 +38,7 @@ export interface ControlStockNegativoFiltros {
   sucursalId: number | null;
   tipo: TipoControlStock | null;
   texto: string | null;
+  stock: FiltroStockControl | null;
   page: number;
   size: number;
 }

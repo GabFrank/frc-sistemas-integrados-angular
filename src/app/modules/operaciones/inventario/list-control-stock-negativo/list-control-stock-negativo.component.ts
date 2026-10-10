@@ -12,7 +12,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
-import { ControlStockNegativo, ControlStockNegativoFiltros, TipoControlStock } from "../control-stock-negativo.model";
+import { ControlStockNegativo, ControlStockNegativoFiltros, FiltroStockControl, TipoControlStock } from "../control-stock-negativo.model";
 import { ControlStockNegativoGQL } from "../graphql/controlStockNegativo.gql";
 
 /**
@@ -37,14 +37,19 @@ export class ListControlStockNegativoComponent implements OnInit {
   sucursalControl = new FormControl<Sucursal | null>(null);
   tipoControl = new FormControl<TipoControlStock | null>(null);
   textoControl = new FormControl<string>("");
+  stockControl = new FormControl<FiltroStockControl | null>(null);
 
   sucursalList: Sucursal[] = [];
   readonly tipoOpciones: { value: TipoControlStock; label: string }[] = [
     { value: "VENTA", label: "Venta" },
     { value: "TRANSFERENCIA", label: "Transferencia" },
   ];
+  readonly stockOpciones: { value: FiltroStockControl; label: string }[] = [
+    { value: "CERO", label: "Stock 0" },
+    { value: "NEGATIVO", label: "Stock negativo" },
+  ];
   readonly displayedColumns: string[] = [
-    "fecha", "sucursal", "tipo", "producto", "cantidad", "stockPrevio", "usuario", "referencia",
+    "fecha", "sucursal", "tipo", "producto", "cantidad", "stockPrevio", "stockActual", "usuario", "referencia",
   ];
   readonly pageSizeOptions = [15, 25, 50, 100];
   readonly today = new Date();
@@ -84,6 +89,7 @@ export class ListControlStockNegativoComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.tipoControl.setValue(null);
     this.textoControl.setValue("");
+    this.stockControl.setValue(null);
     this.pageIndex = 0;
     this.buscar();
   }
@@ -125,6 +131,7 @@ export class ListControlStockNegativoComponent implements OnInit {
       sucursalId: this.sucursalControl.value?.id ?? null,
       tipo: this.tipoControl.value ?? null,
       texto: texto.length > 0 ? texto.toUpperCase() : null,
+      stock: this.stockControl.value ?? null,
       page: this.pageIndex,
       size: this.pageSize,
     };
