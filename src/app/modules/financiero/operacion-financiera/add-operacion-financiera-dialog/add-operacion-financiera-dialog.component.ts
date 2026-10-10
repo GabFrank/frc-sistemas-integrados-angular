@@ -3,7 +3,8 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo } from '../operacion-financiera.model';
-import { OperacionFinancieraService } from '../operacion-financiera.service';
+import { OperacionFinancieraService, PedidoDeOperacionFinanciera } from '../operacion-financiera.service';
+import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
@@ -104,6 +105,19 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   currencyOptsDestino: any = this.buildCurrencyOptions(null);
 
   isSaving = false;
+
+  /**
+   * La operación que se mandó y quedó sin respuesta: el input ya armado y su clave. Mientras exista solo se
+   * puede reenviar o cerrar: un pedido nuevo saldría con otra clave y se registraría otra vez
+   * (franco-system-backend-servidor#376).
+   */
+  private pedidoPendiente: PedidoDeOperacionFinanciera | null = null;
+  private pendienteOriginal: OperacionFinanciera | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
+  /** El central no conoce la clave: no protege la repetición, así que no se ofrece «Reintentar». */
+  private centralSinClave = false;
 
   constructor(
     private dialogRef: MatDialogRef<AddOperacionFinancieraDialogComponent>,
@@ -572,7 +586,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid || this.isSaving) return;
+    if (this.formGroup.invalid || this.isSaving || this.hayPendiente) return;
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
 
     // Operaciones de monto único (depósito/retiro/transf. entre cajas): el destino espeja al
@@ -617,32 +631,88 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       operacion.diferenciaObservacion = this.diferenciaObservacionControl.value;
     }
 
+    this.pendienteDescripcion = this.describir(operacion);
+    // Una clave por cada «Guardar». El input se arma una sola vez y se guarda con ella: armarlo de nuevo desde el
+    // formulario puede redondear distinto, y el central lo tomaría por otro pedido.
+    this.enviar({ input: operacion.toInput(), claveIdempotencia: nuevaClaveIdempotencia() }, operacion, false);
+  }
+
+  /**
+   * Reenvía la operación que quedó sin respuesta, idéntica y con su misma clave: si el central ya la había
+   * registrado devuelve esa operación, y si no, la registra ahora. Nunca dos.
+   */
+  reenviar() {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, this.pendienteOriginal, true);
+  }
+
+  private enviar(pedido: PedidoDeOperacionFinanciera, original: OperacionFinanciera, esReenvio: boolean) {
     this.isSaving = true;
     // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no releería nada.
     this.dialogRef.disableClose = true;
-    this.operacionFinancieraService.onRegistrar(operacion, { avisarExito: false })
+    // El aviso de éxito es propio (más específico); el de un rechazo lo da onSaveCustom.
+    this.operacionFinancieraService.onRegistrar(pedido, { avisarExito: false, esReenvio, sinClave: () => this.centralSinClave = true })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
           this.isSaving = false;
+          if (res == null) { this.quedoSinConfirmar(pedido, original, true); return; }
           this.dialogRef.disableClose = false;
-          if (res != null) {
-            this.notificacion.openSucess('Operación financiera registrada correctamente');
-            this.dialogRef.close(res);
-          } else {
-            this.sinConfirmar(operacion, true);
-          }
+          this.notificacion.openSucess('Operación financiera registrada correctamente');
+          this.dialogRef.close(res);
         },
         error: err => {
           this.isSaving = false;
-          this.dialogRef.disableClose = false;
-          // Rechazo: no se registró nada y el motivo ya lo mostró GenericCrudService (repetirlo acá deja
-          // dos snackbars diciendo lo mismo). El formulario queda para corregir y reintentar.
-          if (erroresDeRechazo(err)) return;
+          if (erroresDeRechazo(err)) {
+            if (esReenvio && centralNoConoceLaClave(err)) {
+              // El central volvió a una versión que no conoce la clave: reenviar sin ella podría registrar dos.
+              this.notificacion.openWarn('El servidor ya no reconoce este reintento. Cerrá y revisá antes de repetirlo.', 10);
+              return;
+            }
+            if (esReenvio) {
+              // Rechazo al reintentar (el motivo ya se mostró). Si el primer envío había entrado, volver al
+              // formulario dejaría cargarlo otra vez con otra clave: se cierra para que se revise.
+              this.dialogRef.disableClose = false;
+              this.sinConfirmar(original, true);
+              return;
+            }
+            // No se registró nada (el motivo ya lo mostró onSaveCustom): vuelve al formulario para corregir.
+            this.pedidoPendiente = null;
+            this.pendienteOriginal = null;
+            this.hayPendiente = false;
+            this.dialogRef.disableClose = false;
+            return;
+          }
           // El corte del link ya avisó que pudo haberse aplicado.
-          this.sinConfirmar(operacion, !esTimeoutDeLink(err));
+          this.quedoSinConfirmar(pedido, original, !esTimeoutDeLink(err) || esReenvio);
         }
       });
+  }
+
+  /**
+   * La operación pudo haberse registrado. El diálogo queda abierto solo para reenviarla (seguro, por la clave) o
+   * cerrar: no se vuelve al formulario, porque un pedido nuevo saldría con otra clave. `disableClose` sigue en
+   * true: Esc y el clic afuera cerrarían sin que quien abrió el diálogo relea. Contra un central que no conoce
+   * la clave no hay reintento seguro: se cierra, como antes.
+   */
+  private quedoSinConfirmar(pedido: PedidoDeOperacionFinanciera, original: OperacionFinanciera, avisar: boolean) {
+    if (this.centralSinClave) {
+      this.dialogRef.disableClose = false;
+      this.sinConfirmar(original, avisar);
+      return;
+    }
+    this.pedidoPendiente = pedido;
+    this.pendienteOriginal = original;
+    this.hayPendiente = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si se registró: podés reintentar sin riesgo de registrarla dos veces.', 8);
+    }
+  }
+
+  /** Cierra sin confirmar, con el aviso de qué revisar. Cierra con `true` para que quien abrió relea. */
+  cerrarSinConfirmar() {
+    if (this.isSaving || !this.pendienteOriginal) return;
+    this.sinConfirmar(this.pendienteOriginal, true);
   }
 
   /**
@@ -652,15 +722,20 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
    */
   private sinConfirmar(operacion: OperacionFinanciera, avisar: boolean) {
     if (avisar) {
-      const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
-      const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
-      let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
-      // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
-      if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
       this.notificacion.openWarn(
-        `No se pudo confirmar si la operación se registró (${tipo}, ${monto}): buscala en Operaciones financieras antes de repetirla.`, 10);
+        `No se pudo confirmar si la operación se registró (${this.describir(operacion)}): buscala en Operaciones financieras antes de repetirla.`, 10);
     }
     this.dialogRef.close(true);
+  }
+
+  /** «Tipo, monto» de una operación, para los avisos. */
+  private describir(operacion: OperacionFinanciera): string {
+    const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
+    const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
+    let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
+    // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
+    if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
+    return `${tipo}, ${monto}`;
   }
 
   private err(msg: string) {

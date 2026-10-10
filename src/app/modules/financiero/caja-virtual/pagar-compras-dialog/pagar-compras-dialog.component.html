@@ -132,11 +132,19 @@
   <div class="aviso-sin-confirmar" *ngIf="altaSinConfirmar">
     <mat-icon>warning</mat-icon>
     <div class="aviso-texto">
-      <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b> Pudo haberse creado: fijate si figura en la
-      lista (quedó filtrada) antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario; para volver a
-      enviarlo, primero tocá «Entendido».
+      <b>No se pudo confirmar el alta del {{ altaSinConfirmar }}.</b>
+      <ng-container *ngIf="hayAltaPendiente"> Reintentá: si ya se había creado no se crea otro, y si no, se crea
+        ahora. «Entendido» suelta ese reintento: tocá ahí solo si ya lo ves en la lista (quedó filtrada), porque
+        cargarlo de nuevo lo crearía otra vez.</ng-container>
+      <ng-container *ngIf="!hayAltaPendiente"> Pudo haberse creado: fijate si figura en la lista (quedó filtrada)
+        antes de cargarlo de nuevo. Lo que escribiste sigue en el formulario; para volver a enviarlo, primero tocá
+        «Entendido».</ng-container>
     </div>
-    <button mat-stroked-button type="button" (click)="altaSinConfirmar = null">Entendido</button>
+    <button mat-raised-button color="primary" type="button" *ngIf="hayAltaPendiente" (click)="reenviarAlta()"
+            [disabled]="creandoGasto || isLoading">
+      <mat-icon>replay</mat-icon> {{ creandoGasto ? 'Reintentando…' : 'Reintentar' }}
+    </button>
+    <button mat-stroked-button type="button" (click)="descartarAltaPendiente()" [disabled]="creandoGasto">Entendido</button>
   </div>
 
   <div *ngIf="!vistaNuevoGasto" class="stepper-wrap">

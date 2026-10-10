@@ -42,9 +42,11 @@ export const gastosPendientesQuery = gql`
   }
 `;
 
-export const crearGastoParaPagoMutation = gql`
-  mutation ($input: GastoParaPagoInput!) {
-    data: crearGastoParaPago(input: $input) {
+// Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+const crearGastoParaPago = (conClave: boolean) => gql`
+  mutation ($input: GastoParaPagoInput!${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: crearGastoParaPago(input: $input${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
       id
       numeroSolicitud
       montoTotal
@@ -57,6 +59,8 @@ export const crearGastoParaPagoMutation = gql`
     }
   }
 `;
+export const crearGastoParaPagoMutation = crearGastoParaPago(true);
+export const crearGastoParaPagoSinClaveMutation = crearGastoParaPago(false);
 
 export const chequerasPorCuentaQuery = gql`
   query ($cuentaBancariaId: ID!, $soloActivas: Boolean) {
@@ -130,9 +134,9 @@ export const valesPendientesQuery = gql`
   }
 `;
 
-export const crearValeParaPagoMutation = gql`
-  mutation ($input: ValeParaPagoInput!) {
-    data: crearValeParaPago(input: $input) {
+const crearValeParaPago = (conClave: boolean) => gql`
+  mutation ($input: ValeParaPagoInput!${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: crearValeParaPago(input: $input${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
       id
       monto
       estado
@@ -143,6 +147,8 @@ export const crearValeParaPagoMutation = gql`
     }
   }
 `;
+export const crearValeParaPagoMutation = crearValeParaPago(true);
+export const crearValeParaPagoSinClaveMutation = crearValeParaPago(false);
 
 export const pagarValesMixtoMutation = gql`
   mutation ($pagos: [ValeConLineasInput!]!) {

@@ -8,6 +8,7 @@
       type="button"
       class="op-menu-item"
       [class.selected]="tipoOperacionControl.value === t.value"
+      [disabled]="hayPendiente || isSaving"
       (click)="seleccionarTipo(t.value)">
       <mat-icon>{{ t.icono }}</mat-icon>
       <div class="op-menu-text">
@@ -21,7 +22,18 @@
   <div class="op-form">
     <h2 class="op-form-title">{{ tituloActual }}</h2>
 
-    <mat-dialog-content [formGroup]="formGroup">
+    <mat-dialog-content *ngIf="hayPendiente">
+      <div class="aviso-sin-confirmar">
+        <mat-icon>warning</mat-icon>
+        <div>
+          <div><b>No se pudo confirmar si la operación se registró ({{ pendienteDescripcion }}).</b></div>
+          <div class="aviso-detalle">Reintentá: si ya se había registrado no se registra otra vez, y si no, se registra ahora.
+            Si cerrás, buscala en Operaciones financieras antes de repetirla.</div>
+        </div>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-content *ngIf="!hayPendiente" [formGroup]="formGroup">
       <div class="op-body">
 
         <mat-form-field appearance="outline" *ngIf="categoriaList.length > 0" style="order: 0;">
@@ -180,7 +192,14 @@
       </div>
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
+    <mat-dialog-actions align="end" *ngIf="hayPendiente">
+      <button mat-stroked-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+      <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+        <mat-icon>replay</mat-icon> {{ isSaving ? 'Reintentando…' : 'Reintentar' }}
+      </button>
+    </mat-dialog-actions>
+
+    <mat-dialog-actions align="end" *ngIf="!hayPendiente">
       <button mat-stroked-button (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
       <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
         <mat-icon>save</mat-icon> Confirmar

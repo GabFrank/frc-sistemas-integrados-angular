@@ -1,3 +1,6 @@
+import { Observable, throwError } from "rxjs";
+import { catchError } from "rxjs/operators";
+
 /** Lo único que se necesita de `crypto`; se puede pasar otro en una prueba, o `null` si no hay. */
 export type FuenteAleatoria = { getRandomValues(bytes: Uint8Array): unknown } | null;
 
@@ -32,4 +35,50 @@ export function nuevaClaveIdempotencia(fuente: FuenteAleatoria = cryptoDelNavega
     hex.slice(8, 10).join(""),
     hex.slice(10, 16).join(""),
   ].join("-");
+}
+
+/**
+ * `true` si el central rechazó el pedido porque todavía no conoce el argumento `claveIdempotencia` (un central
+ * anterior al cambio). Ese rechazo es de validación del schema: ocurre antes de ejecutar nada, así que el
+ * pedido no se aplicó y se puede reenviar sin la clave.
+ */
+export function centralNoConoceLaClave(error: any): boolean {
+  const errores = Array.isArray(error) ? error : error?.graphQLErrors;
+  if (!Array.isArray(errores)) return false;
+  return errores.some((e) => {
+    const mensaje = typeof e?.message === "string" ? e.message : "";
+    const deValidacion = e?.extensions?.classification === "ValidationError" || mensaje.includes("UnknownArgument");
+    return deValidacion && mensaje.includes("claveIdempotencia");
+  });
+}
+
+/** Lo que acepta un servicio que manda un pedido con clave, además de sus opciones propias. */
+export interface OpcionesDePedidoConClave {
+  /** El central no conoce la clave y el pedido se mandó sin ella: ante un «sin respuesta» no hay «Reintentar». */
+  sinClave?: () => void;
+  /** Es el reenvío de un pedido que quedó sin respuesta: no cae a «sin clave» (ver `conClaveSiElCentralLaConoce`). */
+  esReenvio?: boolean;
+}
+
+/**
+ * Manda el pedido con clave y, si el central no la conoce, lo manda una vez más sin ella (como se hacía antes).
+ * `alCaer` avisa a quien llama que ese central no protege la repetición: ante un «sin respuesta» no puede
+ * ofrecer «Reintentar».
+ *
+ * Un **reenvío** no cae (`permitirCaida = false`): el primer intento salió con clave, así que si ahora el
+ * central no la conoce es porque volvió a una versión anterior, y mandarlo sin clave podría registrarlo dos
+ * veces. Falla con ese rechazo y quien llama pide revisar.
+ */
+export function conClaveSiElCentralLaConoce<T>(
+  enviar: (conClave: boolean) => Observable<T>,
+  alCaer?: () => void,
+  permitirCaida = true
+): Observable<T> {
+  return enviar(true).pipe(
+    catchError((error) => {
+      if (!permitirCaida || !centralNoConoceLaClave(error)) return throwError(() => error);
+      if (alCaer) alCaer();
+      return enviar(false);
+    })
+  );
 }

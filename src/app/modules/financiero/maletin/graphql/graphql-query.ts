@@ -199,13 +199,17 @@ export const ingresarMaletinCajaMayorMutation = gql`
   }
 `;
 
-export const egresarMaletinCajaMayorMutation = gql`
-  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String) {
-    data: egresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion) {
+// Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+const egresarMaletinCajaMayor = (conClave: boolean) => gql`
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: egresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
       id
     }
   }
 `;
+export const egresarMaletinCajaMayorMutation = egresarMaletinCajaMayor(true);
+export const egresarMaletinCajaMayorSinClaveMutation = egresarMaletinCajaMayor(false);
 
 export const ingresarMaletinCierreMutation = gql`
   mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaIds: [ID], $descripcion: String) {
