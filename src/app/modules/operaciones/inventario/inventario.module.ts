@@ -11,6 +11,7 @@ import { AddProductoDialogComponent } from './add-producto-dialog/add-producto-d
 import { AgregarZonaDialogComponent } from './agregar-zona-dialog/agregar-zona-dialog.component';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ListProductosVencidosComponent } from './list-productos-vencidos/list-productos-vencidos.component';
+import { ListControlStockNegativoComponent } from './list-control-stock-negativo/list-control-stock-negativo.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { ListProductosVencidosComponent } from './list-productos-vencidos/list-p
     CreateInventarioDialogComponent,
     AddProductoDialogComponent,
     AgregarZonaDialogComponent,
-    ListProductosVencidosComponent
+    ListProductosVencidosComponent,
+    ListControlStockNegativoComponent
   ],
   imports: [
     CommonModule,

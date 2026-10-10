@@ -1,0 +1,130 @@
+<app-generic-list titulo="Control de stock negativo" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="20%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+            <input matEndDate formControlName="fin" placeholder="Fin" [max]="today" />
+          </mat-date-range-input>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
+          <mat-label>Tipo de movimiento</mat-label>
+          <mat-select [formControl]="tipoControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let opcion of tipoOpciones" [value]="opcion.value">
+              {{ opcion.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="13%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
+          <mat-label>Stock al salir</mat-label>
+          <mat-select [formControl]="stockControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let opcion of stockOpciones" [value]="opcion.value">
+              {{ opcion.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="22%">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 100%">
+          <mat-label>Buscar por descripción del producto</mat-label>
+          <input matInput [formControl]="textoControl" (keyup.enter)="onFiltrar()" autocomplete="off" />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <div table class="control-stock-tabla" fxLayout="column">
+    <div class="control-stock-scroll" fxFlex>
+    <table mat-table [dataSource]="dataSource" [trackBy]="trackById" style="width: 100%">
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Fecha</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.fecha | date: "dd/MM/yyyy HH:mm" }}</td>
+      </ng-container>
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Sucursal</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.sucursal?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Tipo</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.tipo | titlecase }}</td>
+      </ng-container>
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Producto</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.producto?.descripcion }}</td>
+      </ng-container>
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Cantidad</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.cantidad | number: "1.0-3" }}</td>
+      </ng-container>
+      <ng-container matColumnDef="stockPrevio">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Stock al salir</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center" [class.stock-negativo]="item.stockPrevio < 0">
+          {{ item.stockPrevio | number: "1.0-3" }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="stockActual">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Stock actual</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center"
+          [class.stock-negativo]="item.stockActual != null && item.stockActual <= 0"
+          [class.stock-regularizado]="item.stockActual > 0">
+          {{ item.stockActual != null ? (item.stockActual | number: "1.0-3") : "—" }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Usuario</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.usuario?.nickname }}</td>
+      </ng-container>
+      <ng-container matColumnDef="referencia">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Nro. venta / transferencia</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.referenciaId }}</td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">Acciones</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item [disabled]="item.referenciaId == null" (click)="onIrAReferencia(item)">
+              <span *ngIf="item.tipo === 'TRANSFERENCIA'">Ir a transferencia</span>
+              <span *ngIf="item.tipo === 'VENTA'">Ir a venta</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="text-align: center; padding: 24px">
+          <span *ngIf="huboError">No se pudo consultar. Reintentá con «Filtrar».</span>
+          <span *ngIf="!huboError">No hay registros para los filtros elegidos.</span>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator class="control-stock-footer" fxFlex="none" [length]="length" [pageSize]="pageSize" [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions" (page)="onPage($event)" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

@@ -5,6 +5,9 @@ import { ListInventarioComponent } from '../list-inventario/list-inventario.comp
 import { EditInventarioComponent } from '../edit-inventario/edit-inventario.component';
 import { ListSectorComponent } from '../../../empresarial/sector/list-sector/list-sector.component';
 import { ListProductosVencidosComponent } from '../list-productos-vencidos/list-productos-vencidos.component';
+import { ListControlStockNegativoComponent } from '../list-control-stock-negativo/list-control-stock-negativo.component';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
 
 @Component({
   selector: 'app-inventario-dashboard',
@@ -15,10 +18,15 @@ import { ListProductosVencidosComponent } from '../list-productos-vencidos/list-
 export class InventarioDashboardComponent implements OnInit {
 
   constructor(
-    private tabService: TabService
+    private tabService: TabService,
+    private mainService: MainService
   ) { }
 
+  /** Calculado una vez: el HTML no llama funciones. La seguridad real la aplica el central. */
+  puedeVerControlStock = false;
+
   ngOnInit(): void {
+    this.puedeVerControlStock = this.mainService.tieneAlgunRol([ROLES.VER_INVENTARIO]);
   }
 
   onListInventarios(){
@@ -35,6 +43,10 @@ export class InventarioDashboardComponent implements OnInit {
 
   onListProductosVencidos(){
     this.tabService.addTab(new Tab(ListProductosVencidosComponent, 'Lista de productos vencidos', null, InventarioDashboardComponent))
+  }
+
+  onControlStockNegativo(){
+    this.tabService.addTab(new Tab(ListControlStockNegativoComponent, 'Control de stock negativo', null, InventarioDashboardComponent))
   }
 
 }

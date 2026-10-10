@@ -19,6 +19,10 @@
         <app-boton nombre="Productos Vencidos" icon="warning" [iconSize]="3"
           (clickEvent)="onListProductosVencidos()"></app-boton>
       </div>
+      <div fxFlex="30%" style="height: 250px" *ngIf="puedeVerControlStock">
+        <app-boton nombre="Control de stock negativo" icon="trending_down" [iconSize]="3"
+          (clickEvent)="onControlStockNegativo()"></app-boton>
+      </div>
     </div>
   </div>
 </div>
