@@ -18,6 +18,7 @@ import { MainService } from "../../../../main.service";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { decidirAvisoStock, necesitaConfiguracion } from "../aviso-stock";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { SeleccionarSucursalDialogComponent } from "../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
 import { UsuarioHelperService } from "../../../administrativo/marcacion/service/usuario-helper.service";
@@ -1930,31 +1931,23 @@ export class EditTransferenciaComponent implements OnInit {
               this.notificacionService.openAlgoSalioMal("No se pudo verificar el stock del producto: no se agregó.");
               return;
             }
-            if (stock < 0) {
-              this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
-                next: (config) => {
-                  this.cargandoService.closeDialog(requestId);
-                  if (!config?.permitirStockNegativo) {
-                    this.notificacionService.openWarn(
-                      avisoNegativo(stock)
-                    );
-                    this.onClear();
-                    return;
-                  }
-                  this.procederConGuardadoItem();
-                },
-                error: () => {
-                  this.cargandoService.closeDialog(requestId);
-                  this.notificacionService.openWarn(
-                    avisoNegativo(stock)
-                  );
-                  this.onClear();
-                }
-              });
-            } else {
+            if (!necesitaConfiguracion(stock)) {
               this.cargandoService.closeDialog(requestId);
-              this.procederConGuardadoItem();
+              this.resolverAvisoStock(stock, false, ocultarStock, avisoNegativo);
+              return;
             }
+            this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
+              next: (config) => {
+                this.cargandoService.closeDialog(requestId);
+                this.resolverAvisoStock(stock, !!config?.permitirStockNegativo, ocultarStock, avisoNegativo);
+              },
+              error: () => {
+                // Sin la configuración no se puede saber si el negativo está permitido: se bloquea, como hoy.
+                this.cargandoService.closeDialog(requestId);
+                this.notificacionService.openWarn(avisoNegativo(stock));
+                this.onClear();
+              },
+            });
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
@@ -1964,6 +1957,48 @@ export class EditTransferenciaComponent implements OnInit {
     } else {
       this.procederConGuardadoItem();
     }
+  }
+
+  /**
+   * Stock 0 o negativo permitido: aviso con confirmación. Al continuar se guarda el ítem y el
+   * central lo deja registrado en el control de stock negativo.
+   */
+  private resolverAvisoStock(
+    stock: number,
+    permitirNegativo: boolean,
+    ocultarStock: boolean,
+    avisoNegativo: (stock: number) => string
+  ): void {
+    const decision = decidirAvisoStock(
+      stock,
+      permitirNegativo,
+      esSucursalCompras(this.selectedTransferencia?.sucursalOrigen)
+    );
+    if (decision === "SEGUIR") {
+      this.procederConGuardadoItem();
+      return;
+    }
+    if (decision === "BLOQUEAR") {
+      this.notificacionService.openWarn(avisoNegativo(stock));
+      this.onClear();
+      return;
+    }
+    const mensaje =
+      stock === 0
+        ? "El producto tiene stock 0 en la sucursal de origen."
+        : ocultarStock
+        ? "El producto tiene stock negativo en la sucursal de origen."
+        : `El producto tiene stock negativo (${stock}) en la sucursal de origen.`;
+    this.dialogoService
+      .confirm("Atención", mensaje, "¿Está seguro de continuar?")
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.procederConGuardadoItem();
+        } else {
+          this.onClear();
+        }
+      });
   }
 
   procederConGuardadoItem() {
