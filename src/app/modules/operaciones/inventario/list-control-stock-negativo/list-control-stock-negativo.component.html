@@ -98,6 +98,20 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">Nro. venta / transferencia</th>
         <td mat-cell *matCellDef="let item" style="text-align: center">{{ item.referenciaId }}</td>
       </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">Acciones</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item [disabled]="item.referenciaId == null" (click)="onIrAReferencia(item)">
+              <span *ngIf="item.tipo === 'TRANSFERENCIA'">Ir a transferencia</span>
+              <span *ngIf="item.tipo === 'VENTA'">Ir a venta</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
