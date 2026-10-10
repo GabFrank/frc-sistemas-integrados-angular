@@ -95,9 +95,16 @@ export class ListControlStockNegativoComponent implements OnInit {
   }
 
   onPage(e: PageEvent): void {
+    const pageIndexAnterior = this.pageIndex;
+    const pageSizeAnterior = this.pageSize;
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.buscar();
+    if (!this.buscar()) {
+      // La consulta no salió: el paginador no puede quedar en una página cuyas filas no están en pantalla.
+      this.pageIndex = pageIndexAnterior;
+      this.pageSize = pageSizeAnterior;
+      this.cdRef.detectChanges();
+    }
   }
 
   trackById(_: number, item: ControlStockNegativo): number {
@@ -111,11 +118,14 @@ export class ListControlStockNegativoComponent implements OnInit {
     this.fechaFormGroup.setValue({ inicio, fin });
   }
 
-  /** Rango elegido, o null si falta una fecha o la escrita a mano no es válida (el control queda en null). */
+  /** Rango elegido, o null si falta una fecha o la escrita a mano no es válida (el control queda en null), o el fin es anterior al inicio. */
   private rangoValido(): { inicio: Date; fin: Date } | null {
     const { inicio, fin } = this.fechaFormGroup.value;
     const esFecha = (d: unknown): d is Date => d instanceof Date && !isNaN(d.getTime());
     if (!esFecha(inicio) || !esFecha(fin)) {
+      return null;
+    }
+    if (fin.getTime() < inicio.getTime()) {
       return null;
     }
     return { inicio: new Date(inicio), fin: new Date(fin) };
@@ -137,11 +147,12 @@ export class ListControlStockNegativoComponent implements OnInit {
     };
   }
 
-  private buscar(): void {
+  /** @returns true si la consulta se envió; false si el rango no es válido y no se envió. */
+  private buscar(): boolean {
     const rango = this.rangoValido();
     if (rango == null) {
-      this.notificacion.openWarn("Elegí el rango de fechas desde el calendario: la fecha escrita no es válida.");
-      return;
+      this.notificacion.openWarn("Completá un rango de fechas válido (inicio y fin) desde el calendario.");
+      return false;
     }
     const { requestId } = this.cargandoService.openDialog(false, "Buscando...");
     this.controlStockNegativoGQL
@@ -162,9 +173,7 @@ export class ListControlStockNegativoComponent implements OnInit {
           this.huboError = true;
           this.dataSource.data = [];
           this.length = 0;
-          this.notificacion.openAlgoSalioMal(
-            result?.errors?.[0]?.message || "No se pudo consultar el control de stock negativo"
-          );
+          this.notificacion.openAlgoSalioMal(this.mensajeDeError(result?.errors?.[0]?.message));
         } else {
           this.huboError = false;
           this.dataSource.data = pagina.getContent || [];
@@ -172,5 +181,14 @@ export class ListControlStockNegativoComponent implements OnInit {
         }
         this.cdRef.detectChanges();
       });
+    return true;
+  }
+
+  /** Un servidor central anterior a esta función rechaza la consulta por validación del esquema. */
+  private mensajeDeError(mensaje: string | undefined): string {
+    if (/validation error|fieldundefined/i.test(mensaje ?? "")) {
+      return "El servidor todavía no tiene el control de stock negativo. Actualizá el servidor central.";
+    }
+    return mensaje || "No se pudo consultar el control de stock negativo";
   }
 }
