@@ -105,15 +105,23 @@ export class ListControlStockNegativoComponent implements OnInit {
     this.fechaFormGroup.setValue({ inicio, fin });
   }
 
-  private filtros(): ControlStockNegativoFiltros {
-    const inicio = new Date(this.fechaFormGroup.value.inicio ?? new Date());
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(this.fechaFormGroup.value.fin ?? this.fechaFormGroup.value.inicio ?? new Date());
-    fin.setHours(23, 59, 59, 0);
+  /** Rango elegido, o null si falta una fecha o la escrita a mano no es válida (el control queda en null). */
+  private rangoValido(): { inicio: Date; fin: Date } | null {
+    const { inicio, fin } = this.fechaFormGroup.value;
+    const esFecha = (d: unknown): d is Date => d instanceof Date && !isNaN(d.getTime());
+    if (!esFecha(inicio) || !esFecha(fin)) {
+      return null;
+    }
+    return { inicio: new Date(inicio), fin: new Date(fin) };
+  }
+
+  private filtros(rango: { inicio: Date; fin: Date }): ControlStockNegativoFiltros {
+    rango.inicio.setHours(0, 0, 0, 0);
+    rango.fin.setHours(23, 59, 59, 0);
     const texto = (this.textoControl.value ?? "").trim();
     return {
-      fechaInicio: dateToString(inicio),
-      fechaFin: dateToString(fin),
+      fechaInicio: dateToString(rango.inicio),
+      fechaFin: dateToString(rango.fin),
       sucursalId: this.sucursalControl.value?.id ?? null,
       tipo: this.tipoControl.value ?? null,
       texto: texto.length > 0 ? texto.toUpperCase() : null,
@@ -123,9 +131,14 @@ export class ListControlStockNegativoComponent implements OnInit {
   }
 
   private buscar(): void {
+    const rango = this.rangoValido();
+    if (rango == null) {
+      this.notificacion.openWarn("Elegí el rango de fechas desde el calendario: la fecha escrita no es válida.");
+      return;
+    }
     const { requestId } = this.cargandoService.openDialog(false, "Buscando...");
     this.controlStockNegativoGQL
-      .fetch(this.filtros(), {
+      .fetch(this.filtros(rango), {
         fetchPolicy: "no-cache",
         errorPolicy: "all",
         // La tabla vive solo en el central: sin esto, en modo local Apollo la rutea al filial.
