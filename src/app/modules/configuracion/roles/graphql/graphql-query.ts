@@ -15,15 +15,24 @@ query ($page: Int) {
   }
 `;
 
-export const rolesSearch = gql`
-  query ($texto: String) {
-    data: rolesSearch(texto: $texto) {
-      id
-      nombre
-      creadoEn
-      usuario {
-        persona {
-          nombre
+export const rolesPaginatedQuery = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: rolesPaginated(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        creadoEn
+        usuario {
+          persona {
+            nombre
+          }
         }
       }
     }
