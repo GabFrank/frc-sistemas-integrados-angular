@@ -19,6 +19,7 @@ import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
 import { EditFacturaLegalDialogComponent } from "../edit-factura-legal-dialog/edit-factura-legal-dialog.component";
 import { EstadoDE } from "../../documento-electronico/documento-electronico.model";
+import { facturaActiva, puedeCancelarseFactura } from "../factura-legal-estado";
 import { MainService } from "../../../../main.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { mensajeDeError } from "../../venta-tarjeta/qr-pos/mensaje-error";
@@ -613,7 +614,7 @@ export class ListFacturaLegalComponent implements OnInit {
       return factura.documentoElectronico?.estado || 'N/A';
     } else {
       // Factura papel - mostrar activo/inactivo
-      return factura.activo ? 'ACTIVA' : 'INACTIVA';
+      return facturaActiva(factura) ? 'ACTIVA' : 'INACTIVA';
     }
   }
 
@@ -634,7 +635,7 @@ export class ListFacturaLegalComponent implements OnInit {
           return 'estado-default';
       }
     } else {
-      return factura.activo ? 'estado-activo' : 'estado-inactivo';
+      return facturaActiva(factura) ? 'estado-activo' : 'estado-inactivo';
     }
   }
 
@@ -643,18 +644,7 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   calcularPuedeCancelarFactura(factura: FacturaLegal): boolean {
-    // Solo se puede cancelar si:
-    // - Tiene activo = true, O
-    // - Si es electrónica, el estado del documento electrónico es APROBADO
-    if (factura.activo === true) {
-      return true;
-    }
-
-    if (this.esElectronica(factura) && factura.documentoElectronico?.estado === EstadoDE.APROBADO) {
-      return true;
-    }
-
-    return false;
+    return puedeCancelarseFactura(factura);
   }
 
   onCancelarFactura(factura: FacturaLegal) {

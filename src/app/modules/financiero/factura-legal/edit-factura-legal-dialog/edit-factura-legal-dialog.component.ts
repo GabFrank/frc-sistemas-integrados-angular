@@ -15,6 +15,7 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../sh
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
 import { Persona } from '../../../personas/persona/persona.model';
 import { EstadoDE } from '../../documento-electronico/documento-electronico.model';
+import { facturaActiva } from '../factura-legal-estado';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -137,7 +138,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     if (this.esElectronicaComputed) {
       this.estadoFacturaDisplayComputed = this.factura.documentoElectronico?.estado || 'N/A';
     } else {
-      this.estadoFacturaDisplayComputed = this.factura.activo ? 'Activa' : 'Inactiva';
+      this.estadoFacturaDisplayComputed = facturaActiva(this.factura) ? 'Activa' : 'Inactiva';
     }
 
     // Deshabilitar formulario si no se puede editar
