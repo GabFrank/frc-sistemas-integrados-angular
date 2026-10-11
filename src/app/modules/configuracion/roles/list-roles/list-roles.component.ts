@@ -31,7 +31,7 @@ export class ListRolesComponent implements OnInit {
   dataSource: MatTableDataSource<Role>;
   expandedElement: Role;
   displayedColumns: string[];
-  readonly pageSizeOptions = [15, 25, 50];
+  readonly pageSizeOptions = [15, 25, 50, 100];
   length = 0;
   pageSize = 15;
   pageIndex = 0;
