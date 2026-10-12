@@ -44,3 +44,28 @@ export interface FuncionarioDocumento {
   anulado?: boolean;
   creadoEn?: Date;
 }
+
+export type EstadoAsistenciaDia = 'TRABAJADO' | 'TARDANZA' | 'AUSENCIA_JUSTIFICADA' | 'AUSENCIA_INJUSTIFICADA';
+
+export interface AsistenciaDia {
+  fecha?: string;   // yyyy-MM-dd
+  estado?: EstadoAsistenciaDia;
+  minutosLlegadaTardia?: number;
+  minutosLlegadaTardiaAlmuerzo?: number;
+  justificativo?: string;
+}
+
+/** Asistencia de un funcionario en un mes. La calcula el central; acá solo se muestra. */
+export interface AsistenciaResumen {
+  anho?: number;
+  mes?: number;
+  tieneHorario?: boolean;
+  diasEsperados?: number;
+  diasTrabajados?: number;
+  llegadasTardias?: number;
+  ausenciasJustificadas?: number;
+  ausenciasInjustificadas?: number;
+  puntualidad?: number;   // null sin días trabajados
+  puntaje?: number;       // 0..10; null sin días esperados
+  dias?: AsistenciaDia[];
+}
