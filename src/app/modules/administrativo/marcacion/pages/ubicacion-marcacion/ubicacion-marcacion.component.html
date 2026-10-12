@@ -1,0 +1,32 @@
+<div class="main-container">
+    <div class="header-controls">
+        <div class="titulo">
+            <span class="funcionario">{{ jornada?.usuario?.persona?.nombre | titlecase }}</span>
+            <span class="fecha">Jornada del {{ jornada?.fecha | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="puntos">
+            <button type="button" class="punto" *ngFor="let punto of puntos" [class.sin-ubicacion]="punto.lat == null"
+                [disabled]="punto.lat == null" (click)="onCentrar(punto)"
+                [matTooltip]="punto.lat == null ? 'Esta marcación no guardó ubicación' : 'Centrar en el mapa'">
+                <span class="punto-dot" [style.background-color]="punto.color"></span>
+                <span class="punto-texto">
+                    <span class="punto-titulo">{{ punto.etiqueta }} · {{ punto.hora }}</span>
+                    <span class="punto-detalle" *ngIf="punto.lat != null">
+                        {{ punto.distancia != null ? punto.distancia + ' m de la sucursal' : 'Distancia sin dato' }}
+                        <ng-container *ngIf="punto.precision != null"> · ± {{ punto.precision }} m</ng-container>
+                    </span>
+                    <span class="punto-detalle" *ngIf="punto.lat == null">Sin ubicación</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <div class="aviso-sin-ubicacion" *ngIf="!hayUbicacion">
+        <mat-icon>location_off</mat-icon>
+        <span>Ninguna marcación de esta jornada guardó la ubicación.</span>
+    </div>
+
+    <div class="map-wrapper" *ngIf="hayUbicacion">
+        <div class="map-container" #mapContainer></div>
+    </div>
+</div>

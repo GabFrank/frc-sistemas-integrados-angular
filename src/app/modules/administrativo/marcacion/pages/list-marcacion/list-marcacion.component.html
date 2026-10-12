@@ -93,7 +93,7 @@
 
     <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
         fxLayoutAlign="space-between start">
-        <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+        <table mat-table [dataSource]="dataSource" [trackBy]="trackById" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
             <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
                     Id
@@ -148,7 +148,30 @@
                     Turno
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
-                    {{ marcacion.turno ? (marcacion.turno | titlecase) : '-' }}
+                    {{ marcacion.turnoTexto }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="distancia">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 7%"
+                    matTooltip="Mayor distancia a la sucursal entre las marcaciones de la jornada">
+                    Distancia
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.distanciaTexto }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="ubicacion">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+                    Ubicación
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    <button mat-icon-button type="button" [disabled]="!marcacion.conUbicacion"
+                        [attr.title]="marcacion.ubicacionTitulo"
+                        (click)="$event.stopPropagation(); onVerUbicacion(marcacion)">
+                        <mat-icon>location_on</mat-icon>
+                    </button>
                 </td>
             </ng-container>
 
@@ -156,19 +179,10 @@
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
-                    <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+                    <button mat-icon-button [matMenuTriggerFor]="menuAcciones" [matMenuTriggerData]="{ jornada: marcacion }"
+                        (click)="$event.stopPropagation()">
                         <mat-icon>more_vert</mat-icon>
                     </button>
-                    <mat-menu #menu="matMenu">
-                        <button mat-menu-item (click)="onAjustar8Horas(marcacion)" [disabled]="!puedeAjustarA8Horas(marcacion)">
-                            <mat-icon>timer</mat-icon>
-                            <span>Ajustar 8 Horas</span>
-                        </button>
-                        <button mat-menu-item (click)="onAgregarObservacion(marcacion)">
-                            <mat-icon>note_add</mat-icon>
-                            <span>Observación</span>
-                        </button>
-                    </mat-menu>
                 </td>
             </ng-container>
 
@@ -195,8 +209,7 @@
                     Salida
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
-                    {{ marcacion.marcacionSalida?.fechaSalida || marcacion.marcacionSalida?.fechaEntrada | date:'short'
-                    }}
+                    {{ marcacion.fechaSalidaMostrada | date:'short' }}
                 </td>
             </ng-container>
 
@@ -204,10 +217,9 @@
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
                     Llegada Tardía
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center"
-                    [ngStyle]="{'color': getColorLlegadaTardia((marcacion.minutosLlegadaTardia || 0) + (marcacion.minutosLlegadaTardiaAlmuerzo || 0)), 'font-weight': 'bold'}">
-                    {{ formatMinutes((marcacion.minutosLlegadaTardia || 0) + (marcacion.minutosLlegadaTardiaAlmuerzo ||
-                    0)) }}
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center; font-weight: bold"
+                    [style.color]="marcacion.llegadaTardiaColor">
+                    {{ marcacion.llegadaTardiaTexto }}
                 </td>
             </ng-container>
 
@@ -216,7 +228,7 @@
                     Hora Extra
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
-                    {{ formatMinutes(marcacion.minutosExtras) }}
+                    {{ marcacion.horaExtraTexto }}
                 </td>
             </ng-container>
 
@@ -227,7 +239,7 @@
                     <div class="example-element-detail"
                         [@detailExpand]="marcacion == expandedMarcacion ? 'expanded' : 'collapsed'"
                         style="overflow: hidden;">
-                        <div style="width: 100%; padding: 10px;">
+                        <div style="width: 100%; padding: 10px;" *ngIf="marcacion === expandedMarcacion">
                             <mat-card appearance="outlined" fxLayout="column" fxLayoutAlign="start start"
                                 style="padding: 10px; background-color: rgb(32, 32, 32); width: 100%">
                                 <h3 style="width: 100%; margin-bottom: 15px; text-align: center; color: white;">Detalles
@@ -248,27 +260,21 @@
                                     <tbody>
                                         <tr>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
-                                                (selectedJornada?.marcacionSalidaAlmuerzo?.fechaSalida ||
-                                                selectedJornada?.marcacionSalidaAlmuerzo?.fechaEntrada) | date:'HH:mm'
-                                                ||
-                                                '--:--' }}</td>
+                                                marcacion.salidaAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
-                                                selectedJornada?.marcacionEntradaAlmuerzo?.fechaEntrada | date:'HH:mm'
-                                                || '--:--' }}</td>
-                                            <td style="text-align: center; padding: 10px;"
-                                                [ngStyle]="{'color': getColorLlegadaTardia(selectedJornada?.minutosLlegadaTardiaAlmuerzo), 'font-weight': 'bold'}">
-                                                {{ selectedJornada?.minutosLlegadaTardiaAlmuerzo ?
-                                                formatMinutes(selectedJornada?.minutosLlegadaTardiaAlmuerzo) : '00:00'
-                                                }}
+                                                marcacion.retornoAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
+                                            <td style="text-align: center; padding: 10px; font-weight: bold"
+                                                [style.color]="marcacion.tardiaAlmuerzoColor">
+                                                {{ marcacion.tardiaAlmuerzoTexto }}
                                             </td>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
-                                                formatMinutes(selectedJornada?.minutosTrabajados) }}</td>
+                                                marcacion.trabajadoTexto }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div *ngIf="selectedJornada?.observacion" style="width: 100%; margin-top: 15px; padding: 10px; border-top: 1px solid #444;">
+                                <div *ngIf="marcacion.observacion" style="width: 100%; margin-top: 15px; padding: 10px; border-top: 1px solid #444;">
                                     <h4 style="color: #bbb; margin-bottom: 5px;">Observación:</h4>
-                                    <p style="color: white; font-style: italic;">{{ selectedJornada.observacion }}</p>
+                                    <p style="color: white; font-style: italic;">{{ marcacion.observacion }}</p>
                                 </div>
                             </mat-card>
                         </div>
@@ -283,7 +289,19 @@
             </tr>
             <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
         </table>
-        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="selectedPageInfo?.getTotalElements"
+        <mat-menu #menuAcciones="matMenu">
+            <ng-template matMenuContent let-jornada="jornada">
+                <button mat-menu-item (click)="onAjustar8Horas(jornada)" [disabled]="!jornada.puedeAjustarA8Horas">
+                    <mat-icon>timer</mat-icon>
+                    <span>Ajustar 8 Horas</span>
+                </button>
+                <button mat-menu-item (click)="onAgregarObservacion(jornada)">
+                    <mat-icon>note_add</mat-icon>
+                    <span>Observación</span>
+                </button>
+            </ng-template>
+        </mat-menu>
+        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="totalElementos" [pageIndex]="pageIndex" [pageSize]="pageSize"
             [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)" style="width: 100%"
             showFirstLastButtons>
         </mat-paginator>
