@@ -1,13 +1,25 @@
 <div class="metrica-dialog" fxLayout="column" fxLayoutGap="12px">
   <h2 mat-dialog-title>{{ titulo }}</h2>
 
-  <div class="aviso">
+  <div class="aviso" *ngIf="!esAsistencia">
     <mat-icon>construction</mat-icon>
     <span>Módulo en desarrollo — datos de ejemplo. Se conectará al módulo real cuando esté implementado.</span>
   </div>
 
   <p class="resumen" *ngIf="nombre">{{ nombre }}</p>
   <p class="resumen">{{ resumen }}</p>
+
+  <div class="periodo" *ngIf="esAsistencia" fxLayout="row" fxLayoutAlign="space-between center">
+    <button mat-icon-button (click)="onMoverMes(-1)" [disabled]="cargando" matTooltip="Mes anterior">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <b>{{ periodoTexto }}</b>
+    <button mat-icon-button (click)="onMoverMes(1)" [disabled]="cargando || esMesActual" matTooltip="Mes siguiente">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <p class="mensaje" *ngIf="esAsistencia && !cargando && mensaje">{{ mensaje }}</p>
 
   <div class="filas" fxLayout="column" fxLayoutGap="10px">
     <div class="fila" *ngFor="let f of filas" fxLayout="column" fxLayoutGap="4px">

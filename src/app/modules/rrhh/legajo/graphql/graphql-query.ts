@@ -53,3 +53,13 @@ export const saveDocumentoMutation = gql`
 export const anularDocumentoMutation = gql`
   mutation anularFuncionarioDocumento($id: ID!) { data: anularFuncionarioDocumento(id: $id) { id anulado } }
 `;
+
+export const asistenciaFuncionarioQuery = gql`
+  query ($funcionarioId: ID!, $anho: Int!, $mes: Int!) {
+    data: asistenciaFuncionario(funcionarioId: $funcionarioId, anho: $anho, mes: $mes) {
+      anho mes tieneHorario diasEsperados diasTrabajados llegadasTardias
+      ausenciasJustificadas ausenciasInjustificadas puntualidad puntaje
+      dias { fecha estado minutosLlegadaTardia minutosLlegadaTardiaAlmuerzo justificativo }
+    }
+  }
+`;
