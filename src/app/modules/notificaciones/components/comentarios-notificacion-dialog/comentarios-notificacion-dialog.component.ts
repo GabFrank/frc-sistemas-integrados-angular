@@ -15,6 +15,9 @@ import { MainService } from '../../../../main.service';
 import { NotificacionesTableroService } from '../../services/notificaciones-tablero.service';
 import { Observable, interval, of } from 'rxjs';
 import { switchMap, tap, catchError, map } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MediaUploadService } from '../../../../shared/services/media-upload.service';
 import { AudioRecordingService, EstadoGrabacion } from '../../../../shared/services/audio-recording.service';
 import { AvatarService } from '../../../../shared/services/avatar.service';
@@ -22,6 +25,7 @@ import { MediaTypeService } from '../../../../shared/services/media-type.service
 import { TextFormatterService } from '../../../../shared/services/text-formatter.service';
 import { MencionUsuarioService } from '../../../../shared/services/mencion-usuario.service';
 import { ComentariosDialogData, UsuarioExtendido, ComentarioExtendido } from './comentarios.models';
+import { switchMapSinCortar } from '../../../../commons/core/utils/rxjsUtils';
 
 export { ComentariosDialogData } from './comentarios.models';
 
@@ -51,6 +55,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   private readonly tableroService = inject(NotificacionesTableroService);
   private readonly mainService = inject(MainService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly notificacion = inject(NotificacionSnackbarService);
   private readonly mediaUploadService = inject(MediaUploadService);
   private readonly audioRecordingService = inject(AudioRecordingService);
   private readonly avatarService = inject(AvatarService);
@@ -100,12 +105,15 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   }
 
   ngOnInit(): void {
-    this.cargarComentarios().subscribe(() => {
-      if (this.data.comentarioId) {
-        setTimeout(() => {
-          this.scrollAComentario(this.data.comentarioId!);
-        }, 500);
-      }
+    this.cargarComentarios().subscribe({
+      next: () => {
+        if (this.data.comentarioId) {
+          setTimeout(() => {
+            this.scrollAComentario(this.data.comentarioId!);
+          }, 500);
+        }
+      },
+      error: () => this.avisarComentariosNoCargados()
     });
     this.cargarUsuariosActivos();
     this.cargarUsuariosDestinatarios();
@@ -164,11 +172,19 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
       this.cdr.markForCheck();
     }
 
-    return this.comentariosService.obtenerComentarios(this.data.notificacionId)
+    // El poll usa el servicio directo y no propaga (moriría); la carga inicial y la recarga tras comentar sí (#390).
+    return this.comentariosService.obtenerComentarios(this.data.notificacionId, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(
         untilDestroyed(this),
         tap({
           next: (comentarios) => {
+            // null = error del servidor: antes comentarios.map reventaba y cargando quedaba en true.
+            if (comentarios == null) {
+              this.cargando = false;
+              this.cdr.markForCheck();
+              throw new Error('No se pudieron cargar los comentarios');
+            }
             this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
             this.ultimoConteoComentarios = comentarios.length;
             this.cargando = false;
@@ -186,11 +202,13 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     setTimeout(() => {
       interval(3000)
         .pipe(
-          switchMap(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
+          switchMapSinCortar(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
           untilDestroyed(this)
         )
         .subscribe({
           next: (comentarios) => {
+            // null (error del servidor) en un intento: se espera al siguiente, sin cortar el poll.
+            if (comentarios == null) { return; }
             const hayCambios = comentarios.length !== this.ultimoConteoComentarios ||
               comentarios.some((c, index) => {
                 const comentarioAnterior = this.comentarios[index];
@@ -481,19 +499,28 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     ).pipe(
       untilDestroyed(this),
       switchMap(() => {
-        return this.cargarComentarios(false);
+        // El comentario ya se guardó: si falla solo la recarga, no se trata como un envío fallido (se dejaba
+        // de ver un comentario que sí quedó guardado). Se conserva el temporal y el poll lo reemplaza (#390).
+        return this.cargarComentarios(false).pipe(
+          catchError(() => {
+            this.enviando = false;
+            this.notificacion.openWarn('Comentario enviado, pero no se pudieron recargar los comentarios.', 5);
+            this.cdr.markForCheck();
+            return of(null as NotificacionComentario[]);
+          })
+        );
       }),
       catchError(() => {
         this.comentarios = this.comentarios.filter(c => c.id !== -1);
         this.enviando = false;
-        this.cargarComentarios().subscribe();
+        this.cargarComentarios().subscribe({ error: () => this.avisarComentariosNoCargados() });
         this.cdr.markForCheck();
         return of([]);
       })
     )
       .subscribe({
         next: (comentarios) => {
-          if (comentarios.length > 0) {
+          if (comentarios?.length > 0) {
             this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
             this.ultimoConteoComentarios = comentarios.length;
             this.enviando = false;
@@ -527,6 +554,10 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   cancelarRespuesta(): void {
     this.comentarioPadreId = null;
     this.cdr.markForCheck();
+  }
+
+  private avisarComentariosNoCargados() {
+    this.notificacion.openWarn('No se pudieron cargar los comentarios: el servidor no responde.', 5);
   }
 
   cerrar(): void {

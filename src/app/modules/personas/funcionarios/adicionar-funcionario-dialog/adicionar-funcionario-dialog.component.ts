@@ -26,6 +26,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { AdicionarPersonaDialogComponent } from '../../persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { catchError, combineLatest, forkJoin, of } from 'rxjs';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { ClienteService } from '../../clientes/cliente.service';
 import { UsuarioService } from '../../usuarios/usuario.service';
@@ -112,12 +113,14 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
       forkJoin(
         {
-          sucResult: this.sucursalService.onGetAllSucursales(true),
+          // Con PROPAGAR + catchError la pata termina aunque el central no responda; sin eso el
+          // forkJoin no emite nunca y el diálogo queda sin cargar (#390). null = no se pudo leer.
+          sucResult: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED).pipe(catchError(() => of(null))),
           monedaResult: this.monedaService.onGetAll()
         }
       ).subscribe((res) => {
-        this.sucursalList = res['sucResult'].filter(s => s.deposito == true);
-        this.monedaList = res['monedaResult'];
+        this.sucursalList = (res['sucResult'] ?? []).filter(s => s.deposito == true);
+        this.monedaList = res['monedaResult'] ?? [];
 
         if (this.data.funcionario == null) {
           this.onBuscarPersona();

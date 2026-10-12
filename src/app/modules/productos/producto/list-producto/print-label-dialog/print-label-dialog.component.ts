@@ -11,6 +11,7 @@ import { PrinterInfo, PrintResult } from '../../../../../commons/core/electron/e
 import { BarcodeQrGeneratorService } from './barcode-qr-generator.service';
 import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @Component({
   selector: 'app-print-label-dialog',
@@ -40,8 +41,16 @@ export class PrintLabelDialogComponent implements OnInit {
   ];
 
   // Cotizaciones cargadas desde MonedaService
-  cotizacionReal: number = 130;
-  cotizacionDolar: number = 7000;
+  // Sin valores por defecto: una cotización que no se pudo leer no se reemplaza por una fija (#390)
+  cotizacionReal: number | null = null;
+  cotizacionDolar: number | null = null;
+  cotizacionesEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  /**
+   * El modo de moneda elegido necesita una cotización que no hay (solo etiqueta de precio). Bloquea la impresión:
+   * una etiqueta en reales o dólares no sale sin su cotización leída. Guaraníes imprime siempre.
+   */
+  faltaCotizacion = false;
+  textoCotizaciones = '';
 
   // Precios calculados para preview y plantilla vertical
   previewPrecioReal: string = '';
@@ -57,7 +66,8 @@ export class PrintLabelDialogComponent implements OnInit {
     private snackBar: MatSnackBar,
     private fb: FormBuilder,
     private barcodeQrService: BarcodeQrGeneratorService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private notificacionService: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -103,22 +113,71 @@ export class PrintLabelDialogComponent implements OnInit {
   }
 
   loadCotizaciones(): void {
-    this.monedaService.onGetAll(false).subscribe({
+    this.cotizacionesEstado = 'cargando';
+    this.actualizarFaltaCotizacion();
+    const aplicar = (real: number | null, dolar: number | null, estado: 'ok' | 'error') => {
+      this.cotizacionReal = real;
+      this.cotizacionDolar = dolar;
+      this.printForm.get('cotizacionReal').setValue(real, { emitEvent: false });
+      this.printForm.get('cotizacionDolar').setValue(dolar, { emitEvent: false });
+      this.cotizacionesEstado = estado;
+      this.updatePreviewComputedProperties();
+    };
+    // Del filial, como siempre (sin filial va al central). Sin modal; el error de red y el del servidor llegan
+    // acá (el del servidor como null) y avisa el cartel de la fila de cotizaciones, no el servicio.
+    this.monedaService.onGetAllEnSegundoPlano(false, {
+      networkError: { propagate: true, show: false },
+      graphError: { show: false },
+    }).subscribe({
       next: (monedas: Moneda[]) => {
-        const real = monedas?.find(m => m.denominacion === 'REAL');
-        const dolar = monedas?.find(m => m.denominacion === 'DOLAR');
-        if (real?.cambio) {
-          this.cotizacionReal = real.cambio;
-          this.printForm.get('cotizacionReal').setValue(real.cambio, { emitEvent: false });
+        if (monedas == null) {
+          aplicar(null, null, 'error');
+          return;
         }
-        if (dolar?.cambio) {
-          this.cotizacionDolar = dolar.cambio;
-          this.printForm.get('cotizacionDolar').setValue(dolar.cambio, { emitEvent: false });
-        }
-        this.updatePreviewComputedProperties();
+        const real = monedas.find(m => m.denominacion === 'REAL');
+        const dolar = monedas.find(m => m.denominacion === 'DOLAR');
+        aplicar(real?.cambio > 0 ? real.cambio : null, dolar?.cambio > 0 ? dolar.cambio : null, 'ok');
       },
-      error: () => {/* usa valores por defecto */}
+      error: () => aplicar(null, null, 'error')
     });
+  }
+
+  /** Cotización usable del formulario, o `null` si no hay (vacía, 0, sin leer). */
+  private cotizacionDe(control: 'cotizacionReal' | 'cotizacionDolar'): number | null {
+    const valor = Number(this.printForm?.get(control)?.value);
+    return valor > 0 ? valor : null;
+  }
+
+  /** Precio convertido y formateado, o «—» sin cotización (solo llega a la vista previa: la impresión se bloquea). */
+  private precioConvertido(precioGs: number, cotizacion: number | null): string {
+    return cotizacion == null ? '—' : (precioGs / cotizacion).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /** Recalcula si el modo de moneda elegido necesita una cotización que no hay, y el texto del cartel. */
+  private actualizarFaltaCotizacion(): void {
+    const modo: string = this.printForm.get('currencyMode').value || 'guarani';
+    const esPrecio = this.printForm.get('selectedLabelType').value === 'price';
+    const faltaReal = modo !== 'guarani' && this.cotizacionDe('cotizacionReal') == null;
+    const faltaDolar = modo === 'todas' && this.cotizacionDe('cotizacionDolar') == null;
+    this.faltaCotizacion = esPrecio && (faltaReal || faltaDolar);
+    if (!faltaReal && !faltaDolar) {
+      this.textoCotizaciones = '';
+    } else if (this.cotizacionesEstado === 'cargando') {
+      this.textoCotizaciones = 'Leyendo cotizaciones…';
+    } else if (this.cotizacionesEstado === 'error') {
+      this.textoCotizaciones = 'No se pudieron leer las cotizaciones: no se puede imprimir en esa moneda.';
+    } else {
+      const cuales = faltaReal && faltaDolar ? 'el real ni para el dólar' : faltaReal ? 'el real' : 'el dólar';
+      this.textoCotizaciones = `No hay cotización cargada para ${cuales}: no se puede imprimir en esa moneda.`;
+    }
+  }
+
+  /** Guarda de las dos entradas de impresión (térmica y afiche). */
+  private impresionBloqueadaPorCotizacion(): boolean {
+    this.actualizarFaltaCotizacion();
+    if (!this.faltaCotizacion) return false;
+    this.notificacionService.openWarn(this.textoCotizaciones, 6);
+    return true;
   }
 
   initForm(): void {
@@ -134,8 +193,8 @@ export class PrintLabelDialogComponent implements OnInit {
       qrCodeTitle: [''],
       creationDate: [new Date().toISOString().split('T')[0]],
       currencyMode: ['guarani'],
-      cotizacionReal: [this.cotizacionReal],
-      cotizacionDolar: [this.cotizacionDolar]
+      cotizacionReal: [null],
+      cotizacionDolar: [null]
     });
   }
 
@@ -234,16 +293,17 @@ export class PrintLabelDialogComponent implements OnInit {
     const barcodeVal: string = (this.printForm.get('barcodeData').value || this.data.producto?.codigoPrincipal || '').toString();
     const qrDataVal: string = (this.printForm.get('qrCodeData').value || '').toString();
     const creationDate = this.printForm.get('creationDate').value;
-    const cotReal = this.printForm.get('cotizacionReal')?.value || this.cotizacionReal;
-    const cotDolar = this.printForm.get('cotizacionDolar')?.value || this.cotizacionDolar;
+    const cotReal = this.cotizacionDe('cotizacionReal');
+    const cotDolar = this.cotizacionDe('cotizacionDolar');
+    this.actualizarFaltaCotizacion();
 
     const selType = this.printForm.get('selectedLabelType').value;
     const nameMaxChars = this.getMaxNameCharsForLabel(selType);
     this.previewNameLines = this.wrapNameToTwoLines(productName, nameMaxChars);
     this.previewPrice = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     this.previewDate = `Fab: ${this.formatShortDate(creationDate)}`;
-    this.previewPrecioReal = `R$ ${(priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    this.previewPrecioDolar = `D$ ${(priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    this.previewPrecioReal = `R$ ${this.precioConvertido(priceNum, cotReal)}`;
+    this.previewPrecioDolar = `D$ ${this.precioConvertido(priceNum, cotDolar)}`;
     
     // Actualizar propiedades para la plantilla vertical
     this.priceGs = this.previewPrice;
@@ -388,6 +448,8 @@ export class PrintLabelDialogComponent implements OnInit {
         });
         return;
       }
+      // Etiqueta de precio (térmica y vertical): sin la cotización que el modo necesita no se imprime
+      if (this.impresionBloqueadaPorCotizacion()) return;
 
       this.loading = true;
       const printerName = this.printForm.get('selectedPrinter').value;
@@ -546,12 +608,12 @@ export class PrintLabelDialogComponent implements OnInit {
         : parseFloat(this.data.producto?.precioPrincipal) || 0;
 
       const currencyMode: string = this.printForm.get('currencyMode').value || 'guarani';
-      const cotReal: number = this.printForm.get('cotizacionReal').value || this.cotizacionReal;
-      const cotDolar: number = this.printForm.get('cotizacionDolar').value || this.cotizacionDolar;
+      const cotReal = this.cotizacionDe('cotizacionReal');
+      const cotDolar = this.cotizacionDe('cotizacionDolar');
 
       const priceGs = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-      const priceReal = `R$ ${(priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      const priceDolar = `D$ ${(priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const priceReal = `R$ ${this.precioConvertido(priceNum, cotReal)}`;
+      const priceDolar = `D$ ${this.precioConvertido(priceNum, cotDolar)}`;
 
       const data: any[] = [];
       
@@ -794,6 +856,7 @@ export class PrintLabelDialogComponent implements OnInit {
   async printOfficeLabel(): Promise<void> {
     const product = this.data.producto;
     if (!product) return;
+    if (this.impresionBloqueadaPorCotizacion()) return;
 
     const productName: string = (product.descripcion || '').toString().toUpperCase();
     const codigoPrincipal: string = (product.codigoPrincipal || '').toString().trim();
@@ -802,12 +865,12 @@ export class PrintLabelDialogComponent implements OnInit {
       : parseFloat(product.precioPrincipal) || 0;
     const quantity: number = this.printForm.get('quantity').value || 1;
     const currencyMode: string = this.printForm.get('currencyMode').value || 'guarani';
-    const cotReal: number = this.printForm.get('cotizacionReal').value || this.cotizacionReal;
-    const cotDolar: number = this.printForm.get('cotizacionDolar').value || this.cotizacionDolar;
+    const cotReal = this.cotizacionDe('cotizacionReal');
+    const cotDolar = this.cotizacionDe('cotizacionDolar');
 
     const priceGs = priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    const priceReal = (priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const priceDolar = (priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const priceReal = this.precioConvertido(priceNum, cotReal);
+    const priceDolar = this.precioConvertido(priceNum, cotDolar);
 
     const showAllCurrencies = currencyMode === 'todas';
 

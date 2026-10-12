@@ -11,6 +11,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTable, MatTableDataSource } from '@angular/material/table';
 import { state, transition, trigger, animate, style } from '@angular/animations';
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -100,7 +101,7 @@ export class ListLoteDeComponent implements OnInit {
         }
       })
   } else {
-    this.loteDeService.onFindByLoteId(this.idControl.value).pipe(untilDestroyed(this)).subscribe(res => {
+    this.loteDeService.onFindByLoteId(this.idControl.value).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
       if(res != null){
         this.dataSource.data = [res];
       }

@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { PageInfo } from '../../../../app.component';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { ConfiguracionFacturacion, ConfiguracionFacturacionHistorial, ConfiguracionFacturacionInput } from './configuracion-facturacion.model';
 import { GetConfiguracionesFacturacionGQL } from '../graphql/getConfiguracionesFacturacion';
 import { SaveConfiguracionFacturacionGQL } from '../graphql/saveConfiguracionFacturacion';
 import { DeleteConfiguracionFacturacionGQL } from '../graphql/deleteConfiguracionFacturacion';
 import { SetActivoConfiguracionesFacturacionGQL } from '../graphql/setActivoConfiguracionesFacturacion';
-import { GetHistorialConfiguracionFacturacionGQL } from '../graphql/getHistorialConfiguracionFacturacion';
+import { GetHistorialConfiguracionFacturacionPageGQL } from '../graphql/getHistorialConfiguracionFacturacionPage';
 
 /**
  * Siempre contra el central (servidor = true): la política se administra ahí y llega a los
@@ -23,7 +24,7 @@ export class ConfiguracionFacturacionService {
     private saveConfiguracionGQL: SaveConfiguracionFacturacionGQL,
     private deleteConfiguracionGQL: DeleteConfiguracionFacturacionGQL,
     private setActivoGQL: SetActivoConfiguracionesFacturacionGQL,
-    private getHistorialGQL: GetHistorialConfiguracionFacturacionGQL
+    private getHistorialPageGQL: GetHistorialConfiguracionFacturacionPageGQL
   ) { }
 
   onGetConfiguraciones(): Observable<ConfiguracionFacturacion[]> {
@@ -43,8 +44,8 @@ export class ConfiguracionFacturacionService {
     return this.genericCrudService.onCustomMutation(this.setActivoGQL, { activo }, true);
   }
 
-  /** sucursalId null = todo; -1 = solo la global. Más reciente primero. */
-  onGetHistorial(sucursalId: number, limite = 200): Observable<ConfiguracionFacturacionHistorial[]> {
-    return this.genericCrudService.onCustomQuery(this.getHistorialGQL, { sucursalId, limite }, true);
+  /** sucursalId null = todo; -1 = solo la global. Más reciente primero, por páginas y con el total. */
+  onGetHistorialPage(sucursalId: number, page: number, size: number): Observable<PageInfo<ConfiguracionFacturacionHistorial>> {
+    return this.genericCrudService.onCustomQuery(this.getHistorialPageGQL, { sucursalId, page, size }, true);
   }
 }

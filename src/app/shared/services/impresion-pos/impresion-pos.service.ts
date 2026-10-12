@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
-import { Observable, of } from "rxjs";
+import { EMPTY, MonoTypeOperatorFunction, Observable, of } from "rxjs";
 import { catchError, map, switchMap, take } from "rxjs/operators";
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../timeout-link";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
@@ -43,6 +44,26 @@ export class ImpresionPosService {
     private senaCuponEscpos: SenaCuponEscposGQL,
     private notificacion: NotificacionSnackbarService
   ) {}
+
+  /** Para la rama "imprime el servidor": un minuto, y el aviso lo da `avisarSinRespuesta`. */
+  readonly contextoImpresionServidor = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+
+  /**
+   * Rama "imprime el servidor" sin respuesta (#390). Avisa y completa sin emitir: el que llama no
+   * necesita `error:`. La impresión la hace el servidor, así que un timeout no prueba que no salió.
+   * @param que con artículo y en minúscula, p. ej. "la reimpresión del delivery".
+   */
+  avisarSinRespuesta<T>(que: string): MonoTypeOperatorFunction<T> {
+    return catchError((err) => {
+      this.notificacion.openWarn(
+        esTimeoutDeLink(err)
+          ? `No se pudo confirmar ${que}: revisá la impresora antes de reintentar.`
+          : `No se pudo hacer ${que}: el servidor no responde.`,
+        4
+      );
+      return EMPTY;
+    });
+  }
 
   /** ¿Esta operación la imprime el frontend? Solo contra la filial y en modo "desde esta PC". */
   porCliente(servidor: boolean): boolean {

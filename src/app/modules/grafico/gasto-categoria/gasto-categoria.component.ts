@@ -41,6 +41,7 @@ import {
   etiquetasFiltroPeriodoGrafico,
   nombreArchivoGraficoExcel,
 } from "../utils/grafico-excel-export.util";
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 /**
  * Escala de calor del gasto: azul (menor) -> verde -> ámbar -> rojo (mayor).
@@ -162,7 +163,7 @@ export class GastoCategoriaComponent implements OnInit {
         startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(() =>
+        switchMapSinCortar(() =>
           this.consultarDatos(this.filtroSucursales.normalizarIds())
         ),
         untilDestroyed(this)

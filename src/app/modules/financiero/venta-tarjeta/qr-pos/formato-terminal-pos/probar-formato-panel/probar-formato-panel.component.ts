@@ -7,6 +7,7 @@ import { mensajeDeError } from '../../mensaje-error';
 import { FormatoTerminalPos } from '../formato-terminal-pos.model';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { CapturaMuestraQr, ResultadoPruebaFormato } from '../mapa-formato.model';
+import { switchMapSinCortar } from '../../../../../../commons/core/utils/rxjsUtils';
 
 /** Marca el corte por formulario incompleto, que ya se avisó por snackbar y no se repite. */
 export const ERROR_FORMULARIO_INCOMPLETO = 'FORMULARIO_INCOMPLETO';
@@ -205,7 +206,7 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
   private sondear(formatoId: number, token: string): void {
     this.detenerSondeo();
     this.sondeo = timer(ProbarFormatoPanelComponent.MS_SONDEO, ProbarFormatoPanelComponent.MS_SONDEO)
-      .pipe(switchMap(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
+      .pipe(switchMapSinCortar(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
       .subscribe({
         next: (m) => {
           if (!m) return;

@@ -40,7 +40,24 @@
       </mat-error>  
     </mat-form-field>
 
-    <div fxLayout="row" *ngIf="selectedSucursal" class="stock-row">
+    <!-- Fallos de lectura (#390): sin el stock actual leído no se ajusta -->
+    <div *ngIf="sucursalesFallo" class="info-stock">
+      <mat-icon class="info-icon">error_outline</mat-icon>
+      No se pudieron cargar las sucursales.
+      <button mat-stroked-button type="button" (click)="reintentarSucursales()">Reintentar</button>
+    </div>
+    <div *ngIf="selectedSucursal && stockFallo" class="info-stock">
+      <mat-icon class="info-icon">error_outline</mat-icon>
+      No se pudo leer el stock actual de la sucursal.
+      <button mat-stroked-button type="button" (click)="volverALeerStock()">Reintentar</button>
+    </div>
+    <div *ngIf="selectedSucursal && pendienteEnSucursal && !stockFallo && !isLoadingStock" class="info-stock">
+      <mat-icon class="info-icon">warning</mat-icon>
+      El ajuste anterior no se pudo confirmar (stock leído: {{ stockActual | number: '1.0-3' }}).
+      <button mat-stroked-button type="button" (click)="volverALeerStock()">Volver a leer</button>
+    </div>
+
+    <div fxLayout="row" *ngIf="selectedSucursal && stockCargado" class="stock-row">
       <div fxFlex="33">
         <mat-form-field style="width: 100%">
           <mat-label>Stock Actual</mat-label>
@@ -90,7 +107,7 @@
       </div>
     </div>
 
-    <div *ngIf="selectedSucursal && diferencia !== 0" style="margin-top: 10px;">
+    <div *ngIf="selectedSucursal && stockCargado && diferencia !== 0" style="margin-top: 10px;">
         <div class="info-stock">
           <mat-icon class="info-icon">info</mat-icon>
           El stock se ajustará de <strong>{{stockActual}}</strong> 
@@ -119,7 +136,7 @@
       mat-raised-button 
       color="accent"
       (click)="onGuardar()"
-      [disabled]="formGroup.invalid || diferencia === 0 || isLoadingStock"
+      [disabled]="formGroup.invalid || diferencia === 0 || isLoadingStock || !stockCargado || guardando || pendienteEnSucursal"
       style="min-width: 120px"
     >
       Guardar

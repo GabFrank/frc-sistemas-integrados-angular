@@ -144,6 +144,7 @@ export class EntregadoresComponent implements OnInit {
         },
         error: (err) => {
           console.error('Error al cargar hojas de ruta:', err);
+          this.notificacionService.openWarn('No se pudieron cargar las hojas de ruta: el servidor no responde.', 5);
           this.isLoading = false;
           this.cdr.markForCheck();
         }

@@ -8,7 +8,11 @@
     <mat-spinner diameter="36"></mat-spinner>
   </div>
 
-  <mat-tab-group *ngIf="!cargando" class="config-tabs" animationDuration="0ms">
+  <div *ngIf="cargaFallo" class="carga-fallo" fxLayout="row" fxLayoutAlign="center center">
+    No se pudo cargar la configuración. Cerrá la pestaña y volvé a abrirla para reintentar.
+  </div>
+
+  <mat-tab-group *ngIf="!cargando && !cargaFallo" class="config-tabs" animationDuration="0ms">
     <mat-tab *ngFor="let sec of secciones">
       <ng-template mat-tab-label>
         <mat-icon class="tab-icon">{{ sec.icono }}</mat-icon> {{ sec.titulo }}

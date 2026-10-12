@@ -4,6 +4,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -13,7 +15,8 @@ import { PrecioPorSucursal } from '../../precio-por-sucursal/precio-por-sucursal
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
 import {
-  ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, textoVigencia,
+  detalleAlCortar, ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, esPrecioInactivo, estadoPrecioEspecial, fechaParam,
+  idsSucursalesSeleccionadas, precioPromocionalInicial, textoVigencia,
 } from '../precio-especial.util';
 
 export class PrecioEspecialDialogData {
@@ -52,6 +55,15 @@ export class PrecioEspecialDialogComponent implements OnInit {
   sucursalList: Sucursal[] = [];
   filas: FilaEspecial[] = [];
   vigentes = 0;
+  /**
+   * Estado de la lista. Con `error` no se afirma «ninguna sucursal tiene promoción» ni se muestra el conteo de
+   * vigentes: si había filas se conservan, avisando que pueden no reflejar el último cambio (#390).
+   */
+  listaEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  /** Solo aplica la última lectura (al abrir, tras guardar, tras cortar). */
+  private lecturaLista = 0;
+  /** Sin sucursales no se puede cargar una promoción nueva (editar una existente sí). */
+  sucursalesFallo = false;
   /** Especial que se esta editando; null = alta. */
   editando: PrecioEspecialSucursal = null;
   editandoSucursal = '';
@@ -62,6 +74,11 @@ export class PrecioEspecialDialogComponent implements OnInit {
   tipoPrecioTexto = '';
   esPrincipal = false;
   precioGlobal: number = null;
+  /** Precio global inactivo (una promo 2x1): no rige en ninguna sucursal hasta que una promoción lo habilite. */
+  precioInactivo = false;
+  rotuloPrecioGlobal = 'Precio actual';
+  notaPrecioGlobal = 'Lo cobran todas las demás sucursales';
+  tooltipCortar = 'Cortar: vuelve al precio actual';
 
   // Comparador: se recalcula con cada cambio del precio.
   precioEspecial: number = null;
@@ -78,7 +95,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<PrecioEspecialDialogComponent>,
     private service: PrecioEspecialService,
     private sucursalService: SucursalService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -89,21 +107,60 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.tipoPrecioTexto = this.data.precio?.tipoPrecio?.descripcion || '';
     this.esPrincipal = !!this.data.precio?.principal;
     this.precioGlobal = this.data.precio?.precio ?? null;
+    this.precioInactivo = esPrecioInactivo(this.data.precio);
+    if (this.precioInactivo) {
+      this.rotuloPrecioGlobal = 'Precio cargado';
+      this.notaPrecioGlobal = 'Inactivo: no se cobra en ninguna sucursal';
+      this.tooltipCortar = 'Cortar: el precio vuelve a quedar inactivo en la sucursal';
+    }
 
     this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarComparador());
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarResumenSucursales());
+    // Después de suscribir: el reset emite y el comparador arranca con el valor precargado
+    this.precioControl.reset(precioPromocionalInicial(this.data.precio));
     this.actualizarComparador();
 
-    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.sucursalList = (res || []).filter((s) => Number(s.id) !== 0);
-    });
+    this.cargarSucursales();
     this.cargar();
   }
 
+  cargarSucursales(): void {
+    this.sucursalesFallo = false;
+    this.sucursalService
+      .onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.sucursalesFallo = true;
+        this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar».', 5);
+      }, next: (res) => {
+        if (res == null) {
+          this.sucursalesFallo = true; // error del servidor: ya se avisó
+          return;
+        }
+        this.sucursalList = res.filter((s) => Number(s.id) !== 0);
+      } });
+  }
+
   cargar(): void {
-    this.service.onPorPrecio(this.data.precio.id).pipe(untilDestroyed(this)).subscribe((res) => {
+    const lectura = ++this.lecturaLista;
+    if (this.listaEstado !== 'ok') this.listaEstado = 'cargando';
+    const fallo = () => {
+      if (lectura !== this.lecturaLista) return;
+      this.listaEstado = 'error';
+      this.notificacionService.openWarn(this.filas.length
+        ? 'No se pudo actualizar la lista de promociones: puede no reflejar el último cambio.'
+        : 'No se pudieron cargar las promociones de este precio.', 6);
+    };
+    this.service.onPorPrecio(this.data.precio.id).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
+      if (lectura !== this.lecturaLista) return; // respuesta de una lectura anterior
+      if (res == null) {
+        // El central devuelve [] cuando no hay: un null es un fallo, no «sin promociones»
+        fallo();
+        return;
+      }
+      this.listaEstado = 'ok';
       const hoy = new Date();
-      this.filas = (res || []).map((e) => {
+      this.filas = res.map((e) => {
         const estado = estadoPrecioEspecial(e, hoy);
         return {
           especial: e,
@@ -116,14 +173,16 @@ export class PrecioEspecialDialogComponent implements OnInit {
         };
       });
       this.vigentes = this.filas.filter((f) => f.estado === 'VIGENTE').length;
-    });
+    } });
   }
 
   onEditar(fila: FilaEspecial): void {
     const e = fila.especial;
     this.editando = e;
     this.editandoSucursal = fila.sucursal;
-    this.sucursalControl.setValue(this.sucursalList.filter((s) => Number(s.id) === Number(e.sucursal?.id)));
+    // Si las sucursales todavía no cargaron (o fallaron), se muestra igual la de la fila
+    const deLaLista = this.sucursalList.filter((s) => Number(s.id) === Number(e.sucursal?.id));
+    this.sucursalControl.setValue(deLaLista.length || e.sucursal == null ? deLaLista : [e.sucursal]);
     this.sucursalControl.disable();
     this.precioControl.setValue(e.precio);
     this.desdeControl.setValue(e.fechaDesde ? stringToLocalDate(e.fechaDesde) : null);
@@ -136,7 +195,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.sucursalControl.enable();
     // reset y no setValue: deja los campos sin tocar, sin el borde de error despues de guardar.
     this.sucursalControl.reset([]);
-    this.precioControl.reset(null);
+    this.precioControl.reset(precioPromocionalInicial(this.data.precio));
     this.desdeControl.reset(null);
     this.hastaControl.reset(null);
   }
@@ -145,10 +204,11 @@ export class PrecioEspecialDialogComponent implements OnInit {
     const e = fila.especial;
     this.dialogosService
       .confirm('Cortar promoción', `¿Cortar la promoción de ${fila.sucursal}?`,
-        'La sucursal vuelve al precio global desde el próximo escaneo.')
+        detalleAlCortar(this.precioInactivo))
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
-        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.cargar(), error: () => {} });
+        // También en error: pudo haberse aplicado (onSaveCustom ya avisó), y la lista lo aclara
+        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.cargar(), error: () => this.cargar() });
       });
   }
 
@@ -187,8 +247,9 @@ export class PrecioEspecialDialogComponent implements OnInit {
           this.cargar();
         }
       },
-      // onSaveCustom ya mostro el error de negocio (superposicion, rol) en un snackbar.
-      error: () => {},
+      // onSaveCustom ya mostro el error (de negocio o de red) en un snackbar. Se relee igual: sin respuesta pudo
+      // haberse guardado, y un reintento que responde «ya tiene una promoción» significa que el primero entró.
+      error: () => this.cargar(),
     });
   }
 
@@ -199,7 +260,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
   private actualizarComparador(): void {
     const valor = Number(this.precioControl.value);
     this.precioEspecial = valor > 0 ? valor : null;
-    this.descuentoPorcentaje = this.precioEspecial != null && this.precioGlobal > 0
+    // Contra un precio inactivo no hay diferencia que mostrar: ese precio no rige en ninguna sucursal
+    this.descuentoPorcentaje = this.precioEspecial != null && this.precioGlobal > 0 && !this.precioInactivo
       ? ((this.precioEspecial - this.precioGlobal) / this.precioGlobal) * 100
       : null;
     const evaluacion = this.precioEspecial != null

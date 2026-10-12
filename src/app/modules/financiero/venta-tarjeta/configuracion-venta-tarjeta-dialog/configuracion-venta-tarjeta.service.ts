@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { ConfiguracionVentaTarjeta, ConfiguracionVentaTarjetaInput } from './configuracion-venta-tarjeta.model';
 import { GetConfiguracionVentaTarjetaGQL } from '../graphql/getConfiguracionVentaTarjeta';
 import { SaveConfiguracionVentaTarjetaGQL } from '../graphql/saveConfiguracionVentaTarjeta';
@@ -19,8 +19,12 @@ export class ConfiguracionVentaTarjetaService {
     private terminalObligatoriaGQL: GetTerminalObligatoriaVentaTarjetaGQL
   ) { }
 
-  onGetConfiguracion(servidor = true): Observable<ConfiguracionVentaTarjeta> {
-    return this.genericCrudService.onCustomQuery(this.getConfiguracionGQL, {}, servidor);
+  /**
+   * Todos los que la llaman manejan el error de red (#390): el cobro bloquea lo afectado y el ABM
+   * deja de quedar cargando. `contexto` es para el cobro del POS; el ABM no lo pasa.
+   */
+  onGetConfiguracion(servidor = true, contexto?: ContextoConsulta): Observable<ConfiguracionVentaTarjeta> {
+    return this.genericCrudService.onCustomQuery(this.getConfiguracionGQL, {}, servidor, PROPAGAR_ERROR_DE_RED, undefined, contexto);
   }
 
   /**

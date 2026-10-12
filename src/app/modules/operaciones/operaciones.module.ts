@@ -46,6 +46,7 @@ import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
+import { VerificarTransporteDialogComponent } from './transferencia/verificar-transporte-dialog/verificar-transporte-dialog.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
 import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
@@ -133,6 +134,7 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     PagoDetalleDialogComponent,
     ModificarSucursalPagoDetalleComponent,
     RutaHojaComponent,
+    VerificarTransporteDialogComponent,
     EntregadoresComponent,
     ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,

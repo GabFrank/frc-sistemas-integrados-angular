@@ -21,7 +21,12 @@
     <mat-spinner diameter="30"></mat-spinner>
   </div>
 
-  <div class="hist-vacio" *ngIf="!cargando && operaciones.length === 0">
+  <div class="hist-vacio" *ngIf="!cargando && cargaFallo">
+    <mat-icon>error_outline</mat-icon>
+    <p>No se pudo cargar el histórico.</p>
+    <button mat-stroked-button (click)="cargar()">Reintentar</button>
+  </div>
+  <div class="hist-vacio" *ngIf="!cargando && !cargaFallo && operaciones.length === 0">
     <mat-icon>inbox</mat-icon>
     <p>No hay retiros en el histórico</p>
   </div>

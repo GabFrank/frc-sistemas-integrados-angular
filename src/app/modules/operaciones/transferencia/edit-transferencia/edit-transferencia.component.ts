@@ -24,6 +24,10 @@ import { UsuarioHelperService } from "../../../administrativo/marcacion/service/
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import {
+  VerificarTransporteDialogComponent,
+  VerificarTransporteDialogData,
+} from "../verificar-transporte-dialog/verificar-transporte-dialog.component";
+import {
   SearchListDialogComponent,
   SearchListtDialogData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -81,7 +85,8 @@ import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Observable, Subscription, of } from "rxjs";
-import { finalize, map, switchMap } from "rxjs/operators";
+import { catchError, finalize, map, switchMap } from "rxjs/operators";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -383,7 +388,9 @@ export class EditTransferenciaComponent implements OnInit {
           this.transferenciaService
             .onSaveTransferencia(auxTransf.toInput())
             .pipe(untilDestroyed(this))
-            .subscribe((saveTransferenciaRes) => {
+            // El aviso lo da el genérico. Sin error: el error quedaba sin manejar (#390).
+            .subscribe({ error: () => {}, next: (saveTransferenciaRes) => {
+              if (saveTransferenciaRes == null) return;
               this.selectedTransferencia.sucursalOrigen =
                 saveTransferenciaRes.sucursalOrigen;
               this.selectedTransferencia.sucursalDestino =
@@ -398,7 +405,7 @@ export class EditTransferenciaComponent implements OnInit {
               this.tabService.changeCurrentTabName(
                 "Transferencia " + this.selectedTransferencia.id
               );
-            });
+            } });
           // }
         } else {
           this.dialogoService
@@ -428,9 +435,12 @@ export class EditTransferenciaComponent implements OnInit {
       this.transferenciaService
         .onGetTransferencia(id)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          // this.cargandoService.closeDialog();
-          if (res != null) {
+        .subscribe({
+          next: (res) => {
+            if (res == null) {
+              this.notificacionService.openWarn("No se pudo cargar la transferencia.", 5);
+              return;
+            }
             this.selectedTransferencia = new Transferencia();
             Object.assign(this.selectedTransferencia, res);
             setTimeout(() => {
@@ -441,7 +451,8 @@ export class EditTransferenciaComponent implements OnInit {
             this.actualizarPermisosPorSucursal();
             this.onVerificarConfirmados();
             this.verificarEtapa();
-          }
+          },
+          error: () => this.notificacionService.openWarn("No se pudo cargar la transferencia: el servidor no responde.", 5)
         });
     }
   }
@@ -484,14 +495,25 @@ export class EditTransferenciaComponent implements OnInit {
           if (!this.selectedTransferencia?.id || itemIds.length === 0) {
             return of({ res, alertas: [] as TransferenciaItemAlerta[] });
           }
+          // Sin alertas los ítems se muestran igual (con aviso); el error queda adentro del switchMap (#390).
           return this.transferenciaService
             .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
-            .pipe(map((alertas) => ({ res, alertas })));
+            .pipe(
+              catchError(() => of(null)),
+              map((alertas) => {
+                if (alertas == null) { this.avisarAlertasNoCargadas(); }
+                return { res, alertas: alertas ?? [] };
+              })
+            );
         }),
         untilDestroyed(this)
       )
-      .subscribe(({ res, alertas }) => {
-        if (res != null) {
+      .subscribe({
+        next: ({ res, alertas }) => {
+          if (res == null) {
+            this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia.", 5);
+            return;
+          }
           this.selectedPageInfo = res;
           this.dataSource.data = this.combinarItemsConAlertas(
             res.getContent,
@@ -501,8 +523,13 @@ export class EditTransferenciaComponent implements OnInit {
           // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
           // "todo confirmado".
           this.verificarEtapa();
-        }
+        },
+        error: () => this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia: el servidor no responde.", 5)
       });
+  }
+
+  private avisarAlertasNoCargadas(): void {
+    this.notificacionService.openWarn("No se pudieron cargar las alertas de vencidos y averiados de los ítems.", 5);
   }
 
   private combinarItemsConAlertas(
@@ -510,7 +537,7 @@ export class EditTransferenciaComponent implements OnInit {
     alertas: TransferenciaItemAlerta[]
   ): TransferenciaItemView[] {
     const alertaPorItemId = new Map<number, TransferenciaItemAlerta>();
-    for (const alerta of alertas) {
+    for (const alerta of alertas ?? []) {
       alertaPorItemId.set(alerta.transferenciaItemId, alerta);
     }
 
@@ -538,8 +565,12 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
       .pipe(untilDestroyed(this))
-      .subscribe((alertas) => {
-        this.dataSource.data = this.combinarItemsConAlertas(items, alertas);
+      .subscribe({
+        next: (alertas) => {
+          if (alertas == null) { this.avisarAlertasNoCargadas(); return; }
+          this.dataSource.data = this.combinarItemsConAlertas(items, alertas);
+        },
+        error: () => this.avisarAlertasNoCargadas()
       });
   }
 
@@ -618,7 +649,10 @@ export class EditTransferenciaComponent implements OnInit {
     }
 
     // Se recalcula en cada etapa: el responsable cambia al avanzar.
+    // En verificacion para transporte el responsable es el chofer elegido, que no suele ser quien
+    // esta en la pantalla: revisar los items y despachar lo puede hacer cualquiera, igual que en la PWA.
     this.puedeEditar =
+      this.isTransporteVerificacion ||
       this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
       this.selectedResponsable?.id == null;
     this.onVerificarConfirmados();
@@ -804,7 +838,7 @@ export class EditTransferenciaComponent implements OnInit {
           if (this.selectedTransferencia?.id == null) {
             this.onSaveTransferencia().then(() => {
               this.onSaveTransferenciaItem(res["item"]);
-            });
+            }, () => {});
           } else {
             this.onSaveTransferenciaItem(res["item"]);
           }
@@ -819,13 +853,17 @@ export class EditTransferenciaComponent implements OnInit {
         .onSaveTransferencia(this.selectedTransferencia.toInput())
         .pipe(untilDestroyed(this))
         .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedTransferencia = res;
-            resolve(res);
-          } else {
-            reject();
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedTransferencia = res;
+              resolve(res);
+            } else {
+              reject();
+            }
+          },
+          // Sin esto la promesa quedaba pendiente para siempre ante un error (#390). El aviso lo da el genérico.
+          error: () => reject(),
         });
     });
   }
@@ -902,7 +940,14 @@ export class EditTransferenciaComponent implements OnInit {
       .onGetPresentacionesPorProductoId(
         item.presentacionPreTransferencia.producto.id
       )
-      .subscribe((res) => {
+      .subscribe({
+        // El ítem ya quedó seleccionado para editar: si no se leen sus presentaciones, guardar lo pisaría
+        // con el producto que hubiera en el formulario. Se sale de la edición (#390).
+        error: () => {
+          this.selectedTransferenciaItem = null;
+          this.onClear();
+        },
+        next: (res) => {
         this.selectedProducto = item.presentacionPreTransferencia.producto;
         this.selectedProducto.presentaciones = res;
         this.presentacionControl.setValue(
@@ -929,7 +974,7 @@ export class EditTransferenciaComponent implements OnInit {
         );
         this.matSelect.focus();
         this.matSelect.open();
-      });
+      } });
   }
 
   // onFinalizar() {
@@ -1259,6 +1304,30 @@ export class EditTransferenciaComponent implements OnInit {
 
 
   /**
+   * Igual que la PWA: antes de verificar para transporte se eligen chofer, vehiculo y acompañantes.
+   * El chofer elegido —no quien toca el boton— queda como responsable de la etapa.
+   */
+  onVerificarParaTransporte() {
+    const data: VerificarTransporteDialogData = {
+      transferenciaId: this.selectedTransferencia.id,
+      hojaRutaId: this.selectedTransferencia.hojaRuta?.id,
+    };
+    this.matDialog
+      .open(VerificarTransporteDialogComponent, {
+        data,
+        width: "560px",
+        maxWidth: "95vw",
+        disableClose: true,
+        panelClass: "custom-dialog-container",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cargarDatos(this.selectedTransferencia.id);
+      });
+  }
+
+  /**
    * El solicitante solo se puede tocar mientras la transferencia esta en creacion: despues de esa
    * etapa el dato ya viajo con el pedido y cambiarlo seria reescribir quien lo pidio.
    */
@@ -1366,10 +1435,13 @@ export class EditTransferenciaComponent implements OnInit {
         .onSaveTransferencia(auxTransf.toInput())
         .pipe(untilDestroyed(this))
         .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedTransferencia.solicitante = res.solicitante;
-          }
+        .subscribe({
+          next: (res) => {
+            if (res != null) {
+              this.selectedTransferencia.solicitante = res.solicitante;
+            }
+          },
+          error: () => {},
         });
     });
   }
@@ -1847,10 +1919,18 @@ export class EditTransferenciaComponent implements OnInit {
           ? "El producto tiene stock negativo y no puede ser transferido."
           : `El producto tiene stock negativo (${stock}) y no puede ser transferido.`;
       const { requestId } = this.cargandoService.openDialog(false, "Verificando stock...");
-      this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
+      // Fail-closed (#390): sin respuesta del central, o con un null (error del servidor), no se agrega el ítem.
+      // Antes, sin red el overlay tapaba la app 65 s sin avisar, y un null agregaba el ítem sin verificar.
+      this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
         .subscribe({
           next: (stock) => {
-            if (stock != null && stock < 0) {
+            if (stock == null) {
+              this.cargandoService.closeDialog(requestId);
+              this.notificacionService.openAlgoSalioMal("No se pudo verificar el stock del producto: no se agregó.");
+              return;
+            }
+            if (stock < 0) {
               this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
                 next: (config) => {
                   this.cargandoService.closeDialog(requestId);
@@ -1878,7 +1958,7 @@ export class EditTransferenciaComponent implements OnInit {
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
-            this.notificacionService.openAlgoSalioMal("Error al verificar el stock del producto");
+            this.notificacionService.openAlgoSalioMal("No se pudo verificar el stock del producto: el servidor no responde. No se agregó.");
           }
         });
     } else {
@@ -1934,7 +2014,7 @@ export class EditTransferenciaComponent implements OnInit {
           this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
           this.onClear();
         }
-      });
+      }, () => {});
     }
   }
 }

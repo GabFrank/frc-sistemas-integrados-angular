@@ -7,6 +7,10 @@ import { ChequeraService } from '../chequera.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { take } from 'rxjs/operators';
 import { MainService } from '../../../../main.service';
 
 export interface EditChequeraData { chequera?: Chequera; }
@@ -58,13 +62,19 @@ export class EditChequeraDialogComponent implements OnInit {
       estadoControl: this.estadoControl,
     });
 
-    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => {
-      this.cuentas = res || [];
-      const ch = this.data?.chequera;
-      if (ch?.cuentaBancaria?.id) {
-        const sel = this.cuentas.find(c => c.id === ch.cuentaBancaria.id);
-        if (sel) this.cuentaControl.setValue(sel);
-      }
+    const sinCuentas = 'No se pudieron cargar las cuentas bancarias: cerrá y volvé a abrir para reintentar.';
+    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { this.notificacion.openWarn(sinCuentas, 5); return; }
+        this.cuentas = res;
+        const ch = this.data?.chequera;
+        if (ch?.cuentaBancaria?.id) {
+          const sel = this.cuentas.find(c => c.id === ch.cuentaBancaria.id);
+          if (sel) this.cuentaControl.setValue(sel);
+        }
+      },
+      error: () => this.notificacion.openWarn(sinCuentas, 5)
     });
 
     const ch = this.data?.chequera;
@@ -104,21 +114,48 @@ export class EditChequeraDialogComponent implements OnInit {
       usuarioId: this.mainService.usuarioActual?.id,
     };
 
+    if (this.isSaving) return;
     this.isSaving = true;
-    this.chequeraService.onSaveChequera(input).pipe(untilDestroyed(this)).subscribe({
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de chequeras no se releería.
+    this.dialogRef.disableClose = true;
+    const fin = () => { this.isSaving = false; this.dialogRef.disableClose = false; };
+    this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED).pipe(take(1), untilDestroyed(this)).subscribe({
       next: res => {
-        this.isSaving = false;
+        fin();
         if (res != null) {
           this.notificacion.openSucess(this.esEdicion ? 'Chequera actualizada' : 'Chequera creada');
           this.dialogRef.close(true);
+        } else {
+          this.sinConfirmar(true);
         }
       },
       error: err => {
-        this.isSaving = false;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo guardar la chequera';
-        this.notificacion.openAlgoSalioMal(msg);
+        fin();
+        // Rechazo: no se guardó nada y el motivo ya lo mostró el servicio genérico (llega como arreglo: antes
+        // se buscaba `graphQLErrors`, que ahí no existe, y encima salía un «No se pudo guardar» sin motivo).
+        if (erroresDeRechazo(err)) return;
+        // El corte del link ya avisó que pudo haberse aplicado.
+        this.sinConfirmar(!esTimeoutDeLink(err));
       },
     });
+  }
+
+  /**
+   * El guardado pudo haberse aplicado (#390). Un **alta** repetida crea otra chequera con el mismo rango de
+   * números: se cierra y la lista se relee. Una **edición** lleva su id y se puede repetir, pero manda el
+   * «siguiente número» que había al abrir: si se emitió un cheque en el medio, lo pisa.
+   */
+  private sinConfirmar(avisar: boolean) {
+    if (this.esEdicion) {
+      if (avisar) {
+        this.notificacion.openWarn('No se pudo confirmar si se guardó. Revisá el siguiente número de la chequera antes de guardar de nuevo.', 8);
+      }
+      return;
+    }
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si la chequera se creó: revisá la lista antes de cargarla de nuevo.', 8);
+    }
+    this.dialogRef.close(true);
   }
 
   onCancel() {

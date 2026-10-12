@@ -23,10 +23,13 @@ npm run e2e                # Playwright (corre build:prod primero)
 npm test                   # Karma unit tests (single run)
 npm run test:watch         # Karma watch
 npm run lint               # ng lint (ESLint)
+npm run verificar:imports  # Chequeo estático: nadie lee una constante del genérico al cargarse (segundos)
+npm run verificar:arranque # Abre dist/ en Electron y falla si queda en blanco (necesita build:prod antes)
 ```
 
-> ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` solo hace `npm ci`, `npm run build:prod` y
-> `npm run electron:serve-tsc`, en una matriz `ubuntu-latest` + `windows-latest`. Los 260
+> ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` hace `npm ci`, `npm run verificar:imports`,
+> `npm run build:prod`, `npm run electron:serve-tsc` y, solo en ubuntu, `npm run verificar:arranque`
+> (abre el bundle en Electron bajo `xvfb-run`), en una matriz `ubuntu-latest` + `windows-latest`. Los 260
 > `.spec.ts` de Karma y los specs de Playwright **no se ejecutan en ningún gate**: si querés esa
 > red, corrélos a mano. El único check requerido por la protección de rama es ese build.
 >
@@ -69,6 +72,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - Una clase service Apollo por query/mutation, en archivos separados (`getX.ts`, `saveX.ts`, `deleteX.ts`, etc.).
 - **Inputs con campos de fecha**: usar `string`, no `Date`. Convertir vía `dateToString` de `src/app/commons/core/utils/dateUtils.ts` en `toInput()`.
 - Pagination format estándar (incluye `getTotalPages`, `getTotalElements`, `getNumberOfElements`, `isFirst`).
+- **Una constante del genérico que se lee al cargarse el archivo se importa de `generics/generic-crud.constantes`, nunca de `generic-crud.service`.** «Al cargarse» es todo lo que corre fuera de un método: `const X = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS }` a nivel de módulo, un `static`, el argumento de un decorador. `generic-crud.service` está en un ciclo de imports y el bundle de producción puede evaluar tu archivo antes que el servicio: la app empaquetada queda **en blanco al arrancar** (`Cannot access '…' before initialization`), y ni `ng serve` ni el CI lo muestran porque nadie ejecuta el bundle (alphas .125 a .164, 2026-10). Dentro de un método da igual de dónde se importe. Una constante nueva del genérico se declara en `generic-crud.constantes.ts`, que no puede importar nada de la app salvo con `import type`.
 
 ### Electron main process
 - Editar **siempre** `.ts` Y `.js` en paralelo (`main.ts` ↔ `main.js`, `preload.ts` ↔ `preload.js`). El `.ts` se compila vía `tsc -p tsconfig.serve.json` antes de cada electron serve, pero el `.js` es lo que efectivamente carga Electron en builds locales.
@@ -136,11 +140,27 @@ App inicia → lee canal de config (alpha/beta/stable/dev)
 
 El canal se configura en la UI: **Configuración → Canal de actualización**.
 
+### Qué release elige cada canal ([app/updater-canal.ts](app/updater-canal.ts))
+
+- **stable** pide `/releases/latest`, que excluye prereleases.
+- **alpha / beta** leen el feed `releases.atom`, que **no** viene ordenado por fecha de creación (un
+  beta puede quedar arriba del alpha más nuevo), y `electron-updater` 5.3.0 toma la **primera**
+  entrada aceptada: para un cliente alpha, un tag beta pasa (#381). Por eso `main.ts` instala con
+  `setFeedURL` un provider que filtra el feed al canal configurado y lo ordena por versión.
+- Asignar `autoUpdater.channel` pone `allowDowngrade = true`. **No lo apagues**: es lo que permite
+  cambiar de canal bajando de versión (alpha `4.5.0-alpha.3` → stable `4.4.0`).
+- Si el feed no trae ninguna entrada del canal (trae solo los últimos 10 releases), si no se
+  reconoce el XML, o si `electron-updater` no es `5.3.0`, se usa el feed original: el
+  comportamiento de antes, incluido el salto alpha → beta. En `main.log`: `Feed filtrado al canal
+  …` (bien) o `Feed sin entradas del canal …` (fallback).
+- **Al actualizar `electron-updater`**: revisar `GitHubProvider.getLatestVersion` y subir
+  `VERSION_AUDITADA` en `updater-canal.ts`; si no, el filtro se apaga solo.
+
 ### Persistencia local de la app instalada
 
 | Archivo | Contenido |
 |---|---|
-| `%AppData%/FRC/config/config-backup.json` | Canal de actualización seleccionado, persistido vía IPC desde renderer al main process |
+| `%AppData%/FRC/config/config-backup.json` | Canal de actualización seleccionado, persistido vía IPC desde renderer al main process. **Para el canal, este archivo manda** (#384): el renderer lo pide al arrancar (IPC `get-update-channel`) y lo adopta sobre el de su `localStorage`; solo una elección en la UI lo cambia. Si llega una config sin canal, el main conserva el guardado |
 | `%AppData%/FRC/config/zoom-level.json` | Nivel de zoom del usuario |
 | `%AppData%/FRC/logs/main.log` | Logs del proceso main de Electron — **primer lugar para debuggear problemas de auto-update** |
 
@@ -199,6 +219,8 @@ El **único** menú lateral es `SideMiniVariantComponent` (`src/app/shared/compo
 
 **Agregar una entrada de menú = 3 ediciones en `side-mini-variant.component.ts`** (si falta una, el módulo queda inalcanzable): (1) `import` del componente entry; (2) item en el árbol de menú (`name`/`icon`/`action`/`visibilityRoles`) bajo el grupo correcto; (3) `case "<action>":` en `onItemClick()` con `this.openTabIfAuthorized(ROLES.X, Component, "Title")` (permite rol `X` o `ADMIN`).
 
+**El buscador global se deriva del menú** (#235): `SearchBarService` toma las pantallas visibles del árbol vía `NavegacionMenuService` y las abre con el mismo `onItemClick`. Una entrada de menú nueva aparece sola en el buscador — **no** agregarla a `componenteList` (`search-bar.service.ts`), que queda solo para pantallas que no están en el menú.
+
 ## Estructura de módulos (`src/app/modules/`)
 
 19 módulos por dominio funcional: `administrativo`, `configuracion`, `dashboard`, `empresarial`, `financiero`, `general`, `login`, `notificaciones`, `operaciones`, `pdv`, `personas`, `print`, `productos`, `reportes`, `sistema`, `transferencias`. Cada uno sigue el patrón list/edit/graphql descripto arriba.
@@ -234,7 +256,9 @@ Crear desde `develop`: `auto/{jira-key}-{slug}`
 - Referenciar Jira key en el body del commit
 
 ### Preflight: correr tests antes de abrir PR
-`npm run build:prod && npm run electron:serve-tsc`
+`npm run verificar:imports && npm run build:prod && npm run electron:serve-tsc && npm run verificar:arranque`
+
+(`verificar:arranque` abre una ventana de Electron: sin pantalla, anteponer `xvfb-run -a`.)
 
 Si los tests fallan, NO abrir PR — comentar en el issue explicando el fallo.
 

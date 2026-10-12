@@ -28,6 +28,9 @@ export class ListEntradasVariasDialogComponent implements OnInit {
 
   puedeGestionar = false;
 
+  /** Lo lee quien abrió el diálogo al cerrarse (no hay botón de cierre: se sale con Esc o clic afuera). */
+  huboCambios = false;
+
   displayedColumns = [
     'creadoEn',
     'esIngreso',
@@ -57,11 +60,16 @@ export class ListEntradasVariasDialogComponent implements OnInit {
     this.isSearching = true;
     this.entradaVariaService.onGetEntradasVarias(this.cajaVirtual.id, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        if (res != null) {
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las entradas varias.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las entradas varias: el servidor no responde.', 5);
         }
       });
   }
@@ -73,6 +81,8 @@ export class ListEntradasVariasDialogComponent implements OnInit {
       null, null
     ).subscribe(confirmed => {
       if (confirmed) {
+        // Antes de enviar: si el diálogo se cierra a mitad de camino, la caja igual se relee.
+        this.huboCambios = true;
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.entradaVariaService.onAnular(item.id, 'ANULADO DESDE ESCRITORIO', { avisarExito: false })
           .pipe(untilDestroyed(this))
@@ -80,12 +90,14 @@ export class ListEntradasVariasDialogComponent implements OnInit {
             next: res => {
               if (res != null) {
                 this.notificacion.openSucess('Movimiento anulado correctamente');
-                this.onFiltrar();
               } else {
-                this.notificacion.openAlgoSalioMal('No se pudo anular el movimiento');
+                this.notificacion.openWarn('No se pudo confirmar la anulación: se vuelve a leer para verificarla.', 6);
               }
+              this.onFiltrar();
             },
-            error: () => {}
+            // Rechazo («ya está anulada»: la lista estaba vieja) o sin respuesta (pudo haberse
+            // aplicado): en los dos casos hay que releer antes de ofrecer otra vez la acción (#390).
+            error: () => this.onFiltrar()
           });
       }
     });

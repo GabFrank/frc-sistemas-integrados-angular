@@ -6,6 +6,9 @@ import { FormControl, Validators, FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { PresentacionService } from '../../../productos/presentacion/presentacion.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Producto } from '../../../productos/producto/producto.model';
 
 export interface CreateItemDialogData {
@@ -47,6 +50,7 @@ export class CreateItemDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<CreateItemDialogComponent>,
     private presentacionService: PresentacionService,
     private cargandoService: CargandoDialogService,
+    private notificacion: NotificacionSnackbarService,
   ) { }
 
   ngOnInit(): void {
@@ -56,9 +60,20 @@ export class CreateItemDialogComponent implements OnInit {
       this.cargarDatos(this.data.item, requestId)
     } else if (this.data.presentacion != null) {
       this.selectedPresentacion = this.data.presentacion;
-      this.presentacionService.onGetPresentacionesPorProductoId(this.selectedPresentacion.producto.id).subscribe(res => {
-        this.presentacionList = res;
-        this.cargandoService.closeDialog(requestId)
+      // Sin presentaciones el diálogo no sirve: se cierra con aviso en vez de dejar el overlay 65 s (#390).
+      const noCargo = () => {
+        this.cargandoService.closeDialog(requestId);
+        this.notificacion.openWarn('No se pudieron cargar las presentaciones del producto: intentá de nuevo.', 5);
+        this.matDialogRef.close();
+      };
+      this.presentacionService.onGetPresentacionesPorProductoId(this.selectedPresentacion.producto.id, true,
+        PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
+        next: res => {
+          if (res == null) { noCargo(); return; }
+          this.presentacionList = res;
+          this.cargandoService.closeDialog(requestId)
+        },
+        error: () => noCargo()
       })
     } else {
       this.cargandoService.closeDialog(requestId)

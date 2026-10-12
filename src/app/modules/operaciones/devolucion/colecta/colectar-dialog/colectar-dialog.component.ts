@@ -1,3 +1,6 @@
+import { PROPAGAR_ERROR_DE_RED } from "../../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../../shared/services/timeout-link";
+import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { Component, Inject, OnInit } from "@angular/core";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
@@ -27,17 +30,29 @@ export class ColectarDialogComponent implements OnInit {
   constructor(
     private dialogRef: MatDialogRef<ColectarDialogComponent>,
     private sucursalService: SucursalService,
-    @Inject(MAT_DIALOG_DATA) public data: ColectarDialogData
+    @Inject(MAT_DIALOG_DATA) public data: ColectarDialogData,
+    private notificacion: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
+    // Sin sucursales no hay destino que elegir: se cierra con aviso (antes quedaba cargando) (#390).
+    // avisar = false con null: el servicio ya avisó el error.
+    const noCargo = (avisar = true) => {
       this.cargando = false;
-      const origenId =
-        this.data?.sucursalOrigenId != null ? Number(this.data.sucursalOrigenId) : null;
-      this.sucursales = (res || []).filter(
-        (s) => s.id != 0 && Number(s.id) !== origenId
-      );
+      if (avisar) this.notificacion.openWarn("No se pudieron cargar las sucursales: intentá de nuevo.", 5);
+      this.dialogRef.close();
+    };
+    this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
+      next: (res) => {
+        if (res == null) { noCargo(false); return; }
+        this.cargando = false;
+        const origenId =
+          this.data?.sucursalOrigenId != null ? Number(this.data.sucursalOrigenId) : null;
+        this.sucursales = res.filter(
+          (s) => s.id != 0 && Number(s.id) !== origenId
+        );
+      },
+      error: () => noCargo(),
     });
   }
 

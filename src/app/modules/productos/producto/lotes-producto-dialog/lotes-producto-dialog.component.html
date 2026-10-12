@@ -20,12 +20,16 @@
     Cargando lotes...
   </div>
 
+  <div *ngIf="!cargando && cargaFallo" class="mensaje-estado">
+    No se pudieron cargar los lotes del producto.
+    <button mat-stroked-button type="button" (click)="reintentarLotes()">Reintentar</button>
+  </div>
   <div *ngIf="!cargando && sinLotes" class="mensaje-estado">
     Este producto todavía no tiene lotes registrados. Los lotes se crean al recibir mercadería
     en la verificación detallada de compras.
   </div>
 
-  <div class="tabla-container" *ngIf="!cargando && !sinLotes">
+  <div class="tabla-container" *ngIf="!cargando && !sinLotes && !cargaFallo">
     <table mat-table [dataSource]="lotes" class="tabla-lotes">
 
       <ng-container matColumnDef="numeroLote">

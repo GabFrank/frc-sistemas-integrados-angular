@@ -21,9 +21,29 @@ export class AdicionarPrecioPorSucursalData {
   presentacion: Presentacion;
   /** Costo medio del producto en guaraníes, por unidad base de stock. */
   costoMedio?: number;
+  /** El alta llega marcada como precio de promoción (viene del alta de una presentación promo). */
+  promocion?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { concat, defer } from 'rxjs';
+import { take, toArray } from 'rxjs/operators';
+import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+
+/** Lectura de precios antes de guardar: error de red y de servidor llegan acá (un solo aviso, el del diálogo). */
+const LECTURA_PRECIOS: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_PRECIOS: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+/**
+ * Valor de cierre cuando un guardado quedó sin confirmar (o a medias): no trae el precio, pero no es null,
+ * así que quien abrió el diálogo recarga los precios de la presentación.
+ */
+export const PRECIO_SIN_CONFIRMAR = { sinConfirmar: true };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -38,9 +58,18 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   principalControl = new FormControl(null);
   tipoPrecioControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(null);
+  /**
+   * Solo en el alta: precio de una promo (2x1, 3x2…). Nace inactivo, para que no rija en todas las sucursales, y
+   * principal si es el primero de la presentación, porque las cajas sin tipos de precio cobran solo el principal.
+   * Fuera del formGroup: no se guarda.
+   */
+  promocionControl = new FormControl(false);
+  /** El toggle puso Principal en Sí: al desmarcarlo se deshace solo eso, no lo que eligió el usuario. */
+  private principalPorPromocion = false;
   precioInput = new PrecioPorSucursalInput;
   isEditting = false;
   tipoPrecioList: TipoPrecio[];
+  tiposPrecioFallo = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarPrecioPorSucursalData,
@@ -65,15 +94,56 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       this.formGroup.disable()
     } else {
       this.isEditting = true;
+      if (this.data?.promocion === true) {
+        this.promocionControl.setValue(true);
+        this.onPromocionChange();
+      }
     }
   }
 
+  onPromocionChange() {
+    if (this.promocionControl.value === true) {
+      this.activoControl.setValue(false);
+      this.activoControl.disable();
+      // Principal solo si es el primer precio de la presentación: con otros precios, guardar un principal baja al
+      // anterior y la presentación quedaría sin principal activo. Ahí lo decide el usuario.
+      this.principalPorPromocion = !(this.data?.presentacion?.precios?.length > 0) && this.principalControl.value !== true;
+      if (this.principalPorPromocion) this.principalControl.setValue(true);
+    } else {
+      this.activoControl.enable();
+      this.activoControl.setValue(true);
+      if (this.principalPorPromocion) this.principalControl.setValue(false);
+      this.principalPorPromocion = false;
+    }
+  }
+
+  /** Botón del pie: en modo ver pasa a editar; editando, guarda. Solo el paso a editar habilita el formulario. */
+  onBotonPrincipal() {
+    if (this.isEditting) {
+      this.onSave();
+      return;
+    }
+    this.isEditting = true;
+    this.formGroup.enable();
+  }
+
+  /** El toggle solo existe en el alta. */
+  private esPromocion(): boolean {
+    return this.precioInput.id == null && this.promocionControl.value === true;
+  }
+
   loadTipoPrecios(){
-    this.tipoPrecioService.onGetAllTipoPrecios().pipe(untilDestroyed(this)).subscribe(res => {
+    this.tiposPrecioFallo = false;
+    this.tipoPrecioService.onGetAllTipoPrecios(true, PROPAGAR_ERROR_DE_RED, CONSULTA_PRECIOS).pipe(untilDestroyed(this)).subscribe({ error: () => {
+      this.tiposPrecioFallo = true;
+      this.notificacionSnackBar.openWarn('No se pudieron cargar los tipos de precio: usá «Reintentar».', 5);
+    }, next: res => {
       if(res!=null){
         this.tipoPrecioList = res;
+      } else {
+        this.tiposPrecioFallo = true; // error del servidor: ya se avisó
       }
-    })
+    } })
   }
 
   createForm() {
@@ -113,16 +183,22 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     }
 
     this.precioInput.precio = this.precioControl.value;
-    this.precioInput.activo = this.activoControl.value;
+    // El toggle manda: un precio de promoción no se guarda activo aunque el toggle se haya habilitado
+    this.precioInput.activo = this.esPromocion() ? false : this.activoControl.value;
     this.precioInput.principal = this.principalControl.value;
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
 
     if (this.precioInput.id == null) {
-      this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)
+      this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id, true, LECTURA_PRECIOS, CONSULTA_PRECIOS)
         .pipe(untilDestroyed(this))
-        .subscribe((preciosExistentes: PrecioPorSucursal[]) => {
-          const yaExiste = (preciosExistentes || []).some(
+        .subscribe({ error: () => this.avisarPreciosSinLeer(), next: (preciosExistentes: PrecioPorSucursal[]) => {
+          if (preciosExistentes == null) {
+            // Sin precios llega []: un null es un fallo, no «no existe ese tipo»
+            this.avisarPreciosSinLeer();
+            return;
+          }
+          const yaExiste = preciosExistentes.some(
             precio => precio.tipoPrecio?.id === this.precioInput.tipoPrecioId
           );
 
@@ -136,7 +212,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
           }
 
           this.verificarMargen();
-        });
+        } });
       return;
     }
 
@@ -213,74 +289,111 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     return valor.toFixed(1).replace('.', ',');
   }
 
+  private avisarPreciosSinLeer(): void {
+    this.notificacionSnackBar.openWarn(
+      'No se pudieron leer los precios de la presentación: no se guardó nada. Volvé a intentar.', 6);
+  }
+
   private continuarGuardado() {
     const { requestId } = this.cargandoDialog.openDialog();
 
-    if (this.principalControl.value === true) {
-      this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)
-        .pipe(untilDestroyed(this))
-        .subscribe((preciosExistentes: PrecioPorSucursal[]) => {
-          const updatePromises = [];
-          
-          if (preciosExistentes && preciosExistentes.length > 0) {
-            preciosExistentes.forEach(precio => {
-              if (precio.principal && precio.id !== this.precioInput.id) {
-                // Crear input para la actualización
-                const updateInput = new PrecioPorSucursalInput();
-                updateInput.id = precio.id;
-                updateInput.precio = precio.precio;
-                updateInput.activo = precio.activo;
-                updateInput.principal = false;
-                updateInput.presentacionId = this.data.presentacion.id;
-                updateInput.tipoPrecioId = precio.tipoPrecio?.id;
-                updateInput.sucursalId = this.mainService?.sucursalActual?.id;
-                updateInput.usuarioId = null;
-                
-                updatePromises.push(
-                  this.precioService.onSave(updateInput, false).pipe(untilDestroyed(this))
-                );
-              }
-            });
-          }
+    if (this.principalControl.value !== true) {
+      this.guardarPrecio(requestId, false);
+      return;
+    }
+    // Precio principal: primero se baja el principal anterior. Sin poder leer los precios, o sin poder bajarlo,
+    // NO se guarda el nuevo (quedarían dos principales) (#390).
+    this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id, true, LECTURA_PRECIOS,
+      CONSULTA_PRECIOS, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.cargandoDialog.closeDialog(requestId);
+        this.avisarPreciosSinLeer();
+      }, next: (preciosExistentes: PrecioPorSucursal[]) => {
+        if (preciosExistentes == null) {
+          this.cargandoDialog.closeDialog(requestId);
+          this.avisarPreciosSinLeer();
+          return;
+        }
+        const bajas = preciosExistentes
+          .filter(precio => precio.principal && precio.id !== this.precioInput.id)
+          .map(precio => {
+            const updateInput = new PrecioPorSucursalInput();
+            updateInput.id = precio.id;
+            updateInput.precio = precio.precio;
+            updateInput.activo = precio.activo;
+            updateInput.principal = false;
+            updateInput.presentacionId = this.data.presentacion.id;
+            updateInput.tipoPrecioId = precio.tipoPrecio?.id;
+            updateInput.sucursalId = this.mainService?.sucursalActual?.id;
+            updateInput.usuarioId = null;
+            // Al central, como el alta: los precios se replican central → filial, una baja hecha en el filial se pierde
+            // defer: onSave abre su modal «Guardando…» al llamarse; así una baja que no llega a correr no deja el suyo abierto
+            return defer(() => this.precioService.onSave(updateInput).pipe(take(1)));
+          });
 
-          if (updatePromises.length > 0) {
-            Promise.all(updatePromises.map(promise => promise.toPromise()))
-              .then(() => {
-                this.guardarPrecio(requestId);
-              })
-              .catch(error => {
-                console.error('Error al actualizar precios principales:', error);
-                this.guardarPrecio(requestId);
-              });
-          } else {
-            this.guardarPrecio(requestId);
+        if (bajas.length === 0) {
+          this.guardarPrecio(requestId, false);
+          return;
+        }
+        // De a una: si una falla no se sigue con las demás
+        concat(...bajas).pipe(toArray(), untilDestroyed(this)).subscribe({
+          next: () => this.guardarPrecio(requestId, true),
+          error: () => {
+            this.cargandoDialog.closeDialog(requestId);
+            this.notificacionSnackBar.openWarn(
+              'No se pudo quitar el precio principal anterior: el precio nuevo NO se guardó. Revisá los precios de la presentación.', 10);
+            // La baja pudo haberse aplicado: el padre recarga los precios
+            this.matDialogRef.close(PRECIO_SIN_CONFIRMAR);
           }
         });
-    } else {
-      this.guardarPrecio(requestId);
-    }
+      } });
   }
 
-  private guardarPrecio(requestId: number) {
+  /** `seBajoElPrincipal`: ya se quitó el principal anterior; si este guardado falla, la presentación queda sin principal. */
+  private guardarPrecio(requestId: number, seBajoElPrincipal: boolean) {
     this.precioInput.sucursalId = this.mainService?.sucursalActual?.id;
 
     this.precioService.onSave(this.precioInput).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog(requestId);
       if (res != null) {
-        this.matDialogRef.close(res);
+        // `promocion` solo si quedó inactivo: quien abrió el diálogo sigue con las sucursales
+        this.matDialogRef.close(this.esPromocionGuardada(res) ? { ...res, promocion: true } : res);
+      } else {
+        this.notificacionSnackBar.openWarn(
+          'No se pudo confirmar el guardado del precio: revisá los precios de la presentación.', 8);
+        this.matDialogRef.close(PRECIO_SIN_CONFIRMAR);
       }
     }, error => {
       this.cargandoDialog.closeDialog(requestId);
-      this.notificacionSnackBar.notification$.next({
-        texto: "Error al guardar el precio",
-        color: NotificacionColor.warn,
-        duracion: 3
-      });
+      // Una respuesta vacía también llega como arreglo, pero no es un rechazo: pudo haberse guardado
+      const rechazado = esRechazoDelServidor(error);
+      if (rechazado && !seBajoElPrincipal) {
+        // El servidor respondió que no (ya lo avisó el servicio) y no se tocó nada más: se puede corregir y reintentar
+        return;
+      }
+      if (rechazado) {
+        this.notificacionSnackBar.openWarn(
+          'No se guardó el precio nuevo y el principal anterior ya se había quitado: la presentación quedó sin precio principal. Revisá sus precios.', 12);
+      } else if (seBajoElPrincipal) {
+        // Se avisa siempre (también tras el corte por tiempo): el link no sabe que el principal ya se quitó
+        this.notificacionSnackBar.openWarn(
+          'No se pudo confirmar si el precio nuevo se guardó y el principal anterior ya se había quitado: la presentación pudo quedar sin precio principal. Revisá sus precios.', 12);
+      } else if (!esTimeoutDeLink(error)) {
+        // Sin respuesta: pudo haberse guardado (en el corte por tiempo ya avisa el link)
+        this.notificacionSnackBar.openWarn(
+          'No se pudo confirmar el guardado: pudo haberse guardado. Revisá los precios de la presentación antes de reintentar.', 10);
+      }
+      this.matDialogRef.close(PRECIO_SIN_CONFIRMAR);
     });
   }
 
   onCancelar() {
     this.matDialogRef.close()
+  }
+
+  private esPromocionGuardada(precio: PrecioPorSucursal): boolean {
+    return this.promocionControl.value === true && this.data?.precio?.id == null && precio?.activo === false;
   }
 
 }

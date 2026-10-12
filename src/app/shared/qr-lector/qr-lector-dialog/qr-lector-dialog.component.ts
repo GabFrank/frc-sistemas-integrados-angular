@@ -2,11 +2,13 @@ import { AfterViewInit, Component, ElementRef, Inject, ViewChild } from '@angula
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, of, throwError } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { CajaVirtual } from '../../../modules/financiero/caja-virtual/caja-virtual.model';
 import { BeepService } from '../../beep/beep.service';
 import { Retiro, EstadoRetiro } from '../../../modules/financiero/retiro/retiro.model';
 import { RetiroService } from '../../../modules/financiero/retiro/retiro.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../services/timeout-link';
 import { QrLectorService } from '../qr-lector.service';
 import { QrCrudo, QrItemCarrito, QrTipoSoportado, claveItem } from '../qr-lector.model';
 
@@ -163,8 +165,13 @@ export class QrLectorDialogComponent implements AfterViewInit {
     if (sucursalId == null) {
       return throwError(() => new Error('El código no indica de qué sucursal es el retiro.'));
     }
-    return this.retiroService.onFilterRetiro(qr.idOrigen, null, sucursalId, null, null, 0, 1)
-      .pipe(map(page => {
+    return this.retiroService.onFilterRetiro(qr.idOrigen, null, sucursalId, null, null, 0, 1, true, PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
+      .pipe(
+        catchError(() => throwError(() => new Error('No se pudo consultar el retiro: el servidor no responde.'))),
+        map(page => {
+        // null = error del servidor: no es lo mismo que «no existe ese retiro» (#390).
+        if (page == null) { throw new Error('No se pudo consultar el retiro. Intentá de nuevo.'); }
         const retiro: Retiro = (page?.getContent || [])[0];
         if (retiro == null) return null;
 

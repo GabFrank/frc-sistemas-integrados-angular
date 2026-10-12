@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 import {
   EtiquetasSeparadoPdfGQL,
@@ -23,8 +24,10 @@ export class EtiquetasDevolucionService {
       this.pdfGQL,
       { devolucionId },
       true,
-      undefined,
-      true
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      // Dos suscriptores, los dos con error: (#390).
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
     );
   }
 

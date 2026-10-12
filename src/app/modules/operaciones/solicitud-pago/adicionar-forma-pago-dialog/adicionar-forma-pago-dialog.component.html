@@ -28,6 +28,8 @@
           />
           <mat-hint *ngIf="cotizacionOrigen === 'mercado'">Cotización mercado (nortecambios)</mat-hint>
           <mat-hint *ngIf="cotizacionOrigen === 'manual'">Modificada manualmente</mat-hint>
+          <mat-error *ngIf="form.get('cotizacion')?.hasError('required')">Ingresá la cotización</mat-error>
+          <mat-error *ngIf="form.get('cotizacion')?.hasError('cotizacionInvalida')">La cotización tiene que ser mayor a 1</mat-error>
         </mat-form-field>
         <div class="valor-with-menu">
           <mat-form-field appearance="outline" class="valor-field">
@@ -139,7 +141,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="!form.valid">
+    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="!form.valid || guardando">
       {{ textoBoton }}
     </button>
   </mat-dialog-actions>

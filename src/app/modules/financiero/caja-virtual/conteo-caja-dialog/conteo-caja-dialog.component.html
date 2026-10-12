@@ -9,12 +9,14 @@
 
     <app-grilla-conteo [moneda]="data.moneda" [cantidades]="cantidadesGuardadas"
                        (totalChange)="onTotalChange($event)"
-                       (cantidadesChange)="onCantidadesChange($event)"></app-grilla-conteo>
+                       (cantidadesChange)="onCantidadesChange($event)"
+                       (cargaFallidaChange)="grillaNoCargo = $event"></app-grilla-conteo>
 
     <div class="resumen">
       <div class="resumen-row">
         <span>Saldo del sistema</span>
-        <strong>{{ data.saldoSistema | number:formato }} {{ data.moneda?.simbolo }}</strong>
+        <strong *ngIf="!sinSaldoSistema">{{ data.saldoSistema | number:formato }} {{ data.moneda?.simbolo }}</strong>
+        <strong *ngIf="sinSaldoSistema">No disponible</strong>
       </div>
       <div class="resumen-row total">
         <span>Total contado</span>
@@ -31,7 +33,7 @@
   </mat-dialog-content>
 
   <mat-dialog-actions class="conteo-actions">
-    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-button (click)="onCancelar()" [disabled]="guardando">Cancelar</button>
     <span class="spacer"></span>
     <button mat-stroked-button (click)="onLimpiar()" [disabled]="cargando || !total">
       <mat-icon>backspace</mat-icon> Limpiar conteo
@@ -40,8 +42,8 @@
       <mat-icon>content_copy</mat-icon> Copiar valor total
     </button>
     <button mat-raised-button color="primary" (click)="onCrearAjuste()"
-            [disabled]="!hayDiferencia || !puedeGestionar || guardando"
-            [matTooltip]="!puedeGestionar ? 'Requiere rol TESORERIA GESTIONAR' : (!hayDiferencia ? 'No hay diferencia para ajustar' : '')">
+            [disabled]="!hayDiferencia || sinSaldoSistema || grillaNoCargo || !puedeGestionar || guardando"
+            [matTooltip]="!puedeGestionar ? 'Requiere rol TESORERIA GESTIONAR' : (grillaNoCargo ? 'No se pudieron cargar las denominaciones: reintentá antes de ajustar' : sinSaldoSistema ? 'No se pudo cargar el saldo del sistema: recargá la caja para ajustar' : (!hayDiferencia ? 'No hay diferencia para ajustar' : ''))">
       <mat-icon>tune</mat-icon> Crear ajuste
     </button>
   </mat-dialog-actions>

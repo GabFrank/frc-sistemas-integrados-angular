@@ -247,4 +247,48 @@ describe('qr-pos-parser', () => {
       expect(formatoCruzado(anidado, 7)).toBeFalse();
     });
   });
+
+  // Medido el 2026-10-05: el lector manda teclas con tabla EE.UU. y Windows en español convierte
+  // cada `*` en `(`. La alternativa es la cadena rearmada desde las teclas físicas.
+  describe('alternativa del lector', () => {
+    const CUPON_ES = CUPON_REAL.split('*').join('(');
+
+    it('sin alternativa, la cadena que tipeó Windows en español no matchea (el defecto)', () => {
+      expect(parsearCupon(CUPON_ES, [FRCP1], DECIMALES).ok).toBeFalse();
+    });
+
+    it('con la alternativa lee el cupón, y guarda en qrCrudo la lectura que matcheó', () => {
+      const r = parsearCupon(CUPON_ES, [FRCP1], DECIMALES, CUPON_REAL);
+      expect(r.ok).toBeTrue();
+      expect(r.datos.monto).toBe(94.55);
+      expect(r.datos.qrCrudo).toBe(CUPON_REAL);
+    });
+
+    it('si la original matchea, gana la original', () => {
+      const r = parsearCupon(CUPON_REAL, [FRCP1], DECIMALES, 'OTRA COSA');
+      expect(r.datos.qrCrudo).toBe(CUPON_REAL);
+    });
+
+    // Hallazgo A1 de la auditoría: una original corrupta no puede ganarle al formato propio por
+    // matchear el patrón de otro proveedor.
+    it('prueba las dos lecturas formato por formato: el del proveedor de la terminal gana', () => {
+      const propio: FormatoQrPos = { ...FRCP1, id: 10, proveedorServicioId: 7 };
+      const ajeno: FormatoQrPos = {
+        id: 11, nombre: 'ajeno', activo: true, proveedorServicioId: 9,
+        patron: '^FRCP1\\((?<resto>.*)$',
+        mapeo: JSON.stringify({ identificadorTransaccion: { de: 'resto' } }),
+      };
+      const ordenados = ordenarPorProveedor([ajeno, propio], 7);
+      const r = parsearCupon(CUPON_ES, ordenados, DECIMALES, CUPON_REAL);
+      expect(r.datos.formato.id).toBe(10);
+      expect(r.datos.qrCrudo).toBe(CUPON_REAL);
+    });
+
+    it('la seña rota por el idioma igual se reconoce como seña por la alternativa', () => {
+      const sena = 'frc-24-VT-1-1-X-654|1|1-1';
+      const r = parsearCupon("frc'24'VT'1'1'X'654]1]1'1", [FRCP1], DECIMALES, sena);
+      expect(r.ok).toBeFalse();
+      expect(r.error).toContain('seña');
+    });
+  });
 });

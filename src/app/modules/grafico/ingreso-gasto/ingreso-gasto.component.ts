@@ -43,6 +43,7 @@ import {
   etiquetaSucursalesSeleccionadas,
   nombreArchivoGraficoExcel,
 } from "../utils/grafico-excel-export.util";
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -150,7 +151,7 @@ export class IngresoGastoComponent implements OnInit {
     ])
       .pipe(
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([sucursales, sucIds, years]) => {
+        switchMapSinCortar(([sucursales, sucIds, years]) => {
           this.sucursalesLista = sucursales;
           return this.consultarDatos(
             this.filtroSucursales.normalizarIds(sucIds),

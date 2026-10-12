@@ -1,6 +1,11 @@
 <div class="cargando" *ngIf="cargando">Cargando denominaciones...</div>
 
-<div class="sin-billetes" *ngIf="!cargando && filas.length === 0">
+<div class="sin-billetes" *ngIf="cargaFallida">
+  No se pudieron cargar las denominaciones.
+  <button mat-stroked-button type="button" (click)="cargar()">Reintentar</button>
+</div>
+
+<div class="sin-billetes" *ngIf="!cargando && !cargaFallida && filas.length === 0">
   Esta moneda no tiene denominaciones cargadas. Configurarlas en Monedas → Billetes.
 </div>
 

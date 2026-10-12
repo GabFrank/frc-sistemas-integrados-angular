@@ -8,6 +8,7 @@ import { PersonaService } from '../../../personas/persona/persona.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { UsuarioSearchGQL } from '../../../personas/usuarios/graphql/usuarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @Injectable({
     providedIn: 'root'
@@ -33,7 +34,7 @@ export class UsuarioHelperService {
     }
 
     private manejarErrorPersonaNoEncontrada(id: number): void {
-        this.personaService.onGetPersona(id).pipe().subscribe(res => {
+        this.personaService.onGetPersona(id).pipe(terminarSiFalla()).subscribe(res => {
             if (res) {
                 this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');
             } else {

@@ -1,3 +1,6 @@
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, Validators } from '@angular/forms';
@@ -40,6 +43,7 @@ import { CajaService } from '../../../pdv/caja/caja.service';
 })
 export class AdicionarPreGastoComponent implements OnInit {
   private gastoService = inject(GastoService);
+  private notificacionAviso = inject(NotificacionSnackbarService);
   private monedaService = inject(MonedaService);
   private sucursalService = inject(SucursalService);
   private matDialog = inject(MatDialog);
@@ -316,22 +320,30 @@ export class AdicionarPreGastoComponent implements OnInit {
 
   onImprimir(): void {
     if (this.idPreGastoGuardado) {
-      this.gastoService.preGastoImprimir(this.idPreGastoGuardado, this.sucursalIdPreGastoGuardado).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.reporteService.onAdd('Solicitud de Gasto ' + this.idPreGastoGuardado, res);
-          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
-        }
+      this.gastoService.preGastoImprimir(this.idPreGastoGuardado, this.sucursalIdPreGastoGuardado, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res != null) {
+            this.reporteService.onAdd('Solicitud de Gasto ' + this.idPreGastoGuardado, res);
+            this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
+          }
+        },
+        error: () => this.notificacionAviso.openWarn('No se pudo generar la solicitud para imprimir: el servidor no responde.', 5)
       });
     }
   }
 
   reimprimir(id: number, sucursalId: number): void {
     if (id) {
-      this.gastoService.preGastoImprimir(id, sucursalId || 0).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.reporteService.onAdd('Solicitud de Gasto ' + id, res);
-          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
-        }
+      this.gastoService.preGastoImprimir(id, sucursalId || 0, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res != null) {
+            this.reporteService.onAdd('Solicitud de Gasto ' + id, res);
+            this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
+          }
+        },
+        error: () => this.notificacionAviso.openWarn('No se pudo generar la solicitud para imprimir: el servidor no responde.', 5)
       });
     }
   }

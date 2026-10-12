@@ -38,6 +38,7 @@ import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ObservacionJornadaDialogComponent } from '../../components/observacion-jornada-dialog.component';
 import { EstadoJornada } from '../../enums/estado-jornada.enum';
+import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
 
 @UntilDestroy()
@@ -145,7 +146,8 @@ export class ListMarcacionComponent implements OnInit {
 
   mensajeErrorPersona(id: number): void {
     this.personaService.onGetPersona(id)
-      .pipe(untilDestroyed(this))
+      // El control queda inválido igual: no se sabe quién es (#390).
+      .pipe(terminarSiFalla(() => this.usuarioIdControl.setErrors({ invalid: true })), untilDestroyed(this))
       .subscribe(res => {
         if (res) {
           this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');

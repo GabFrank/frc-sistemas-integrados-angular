@@ -3,6 +3,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin } from 'rxjs';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { CajaVirtual, CajaVirtualConfiguracion } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
@@ -29,6 +31,8 @@ export class ConfigurarCajaVirtualDialogComponent implements OnInit {
   operacionesHabilitado = true;
 
   loading = false;
+  /** La carga falló: no se muestra ni se puede guardar una configuración armada sin datos del servidor. */
+  cargaFallo = false;
   guardando = false;
 
   constructor(
@@ -44,12 +48,24 @@ export class ConfigurarCajaVirtualDialogComponent implements OnInit {
   ngOnInit(): void {
     this.loading = true;
     forkJoin({
-      cuentas: this.cuentaBancariaService.onGetAllOperables(),
+      cuentas: this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }),
       config: this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
-    }).pipe(untilDestroyed(this)).subscribe(({ cuentas, config }) => {
-      this.loading = false;
-      this.aplicarConfig(cuentas || [], config);
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: ({ cuentas, config }) => {
+        this.loading = false;
+        // Sin cuentas (error) Guardar pisaría las cuentas visibles y el orden con una lista vacía. config null
+        // es «caja sin configuración», legítimo (#390).
+        if (cuentas == null) { this.noCargo(); return; }
+        this.aplicarConfig(cuentas, config);
+      },
+      error: () => { this.loading = false; this.noCargo(); }
     });
+  }
+
+  private noCargo() {
+    this.cargaFallo = true;
+    this.notificacion.openWarn('No se pudo cargar la configuración de la caja: cerrá y volvé a abrir para reintentar.', 5);
   }
 
   private aplicarConfig(cuentas: CuentaBancaria[], config: CajaVirtualConfiguracion) {

@@ -19,6 +19,7 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../sh
 import { Observable } from 'rxjs';
 import { ROLES } from '../../roles/roles.enum';
 import { MainService } from '../../../../main.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -37,6 +38,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   formGroup: FormGroup;
   isEditting = false;
   usuarioRoleList = new MatTableDataSource<UsuarioRole>([])
+  /** Los roles del usuario no se pudieron leer: no se muestran como «sin roles» ni se dejan tocar. */
+  rolesNoDisponibles = false;
   usuarioRoleColumnsToDisplay = ['id', 'nombre', 'eliminar']
   roleList: Role[];
   selectedUsuarioRole;
@@ -80,7 +83,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     this.nicknameControl.setValue(this.selectedUsuario.nickname)
     this.activoControl.setValue(this.selectedUsuario.activo)
     this.formGroup.disable()
-    this.roleService.onGetUsuarioRolePorUsuario(this.selectedUsuario?.id).pipe(untilDestroyed(this))
+    // Con la lista vacía por un error parecería un usuario sin roles, y se podría agregar uno repetido (#390).
+    this.roleService.onGetUsuarioRolePorUsuario(this.selectedUsuario?.id).pipe(terminarSiFalla(() => this.rolesNoDisponibles = true), untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
           this.usuarioRoleList.data = res;

@@ -1,7 +1,14 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService } from '../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
+
+/** Lecturas del pedido: todos sus suscriptores tienen error: (#390). Corte de pantalla, sin aviso del link. */
+const CONSULTA_PEDIDO: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
+/** Consultas que espera un diálogo abierto (verificar, rechazar, guardar una nota): 20 s, avisa el llamador. */
+const CONSULTA_DIALOGO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 // GraphQL imports
 import { SavePedidoFullGQL } from './gestion-compras/graphql/savePedidoFull';
@@ -151,7 +158,8 @@ export class PedidoService {
    * @returns Observable<Pedido>
    */
   onGetPedidoById(id: number): Observable<Pedido> {
-    return this.genericCrudService.onGetById(this.getPedidoGQL, id);
+    return this.genericCrudService.onGetById(this.getPedidoGQL, id, null, null, true, null, null, null, null, null, null,
+      PROPAGAR_ERROR_DE_RED, CONSULTA_PEDIDO);
   }
 
   /**
@@ -160,7 +168,8 @@ export class PedidoService {
    * @returns Observable<PedidoResumen>
    */
   onGetPedidoResumen(pedidoId: number): Observable<PedidoResumen> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoResumenGQL, { pedidoId: pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getPedidoResumenGQL, { pedidoId: pedidoId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -169,11 +178,13 @@ export class PedidoService {
    * @returns Observable<PedidoItem[]>
    */
   onGetPedidoItemsByPedidoId(pedidoId: number, silentLoad = false): Observable<PedidoItem[]> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId }, true, undefined, silentLoad);
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId }, true, PROPAGAR_ERROR_DE_RED, silentLoad,
+      CONSULTA_PEDIDO);
   }
 
   onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto?: string, soloPendientes?: boolean): Observable<PageInfo<PedidoItem>> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemPorPedidoPageGQL, { pedidoId, page, size, texto, soloPendientes });
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemPorPedidoPageGQL, { pedidoId, page, size, texto, soloPendientes },
+      true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -255,7 +266,8 @@ export class PedidoService {
    * @returns Observable<PedidoItemDistribucion[]>
    */
   onGetPedidoItemDistribucionesByPedidoItemId(pedidoItemId: number): Observable<PedidoItemDistribucion[]> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemDistribucionesGQL, { pedidoItemId });
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemDistribucionesGQL, { pedidoItemId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -335,7 +347,9 @@ export class PedidoService {
    * @returns Observable<NotaRecepcionItemDistribucion[]>
    */
   onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(notaRecepcionItemId: number): Observable<NotaRecepcionItemDistribucion[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemDistribucionesByNotaRecepcionItemIdGQL, { notaRecepcionItemId });
+    // Sus llamadores (recepción, rechazar ítem, distribuir desde la nota) tienen todos su error: (#390)
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemDistribucionesByNotaRecepcionItemIdGQL, { notaRecepcionItemId },
+      true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_DIALOGO);
   }
 
   /**
@@ -433,7 +447,8 @@ export class PedidoService {
    * @returns Observable<NotaRecepcion[]>
    */
   onGetNotaRecepcionPorPedidoId(pedidoId: number): Observable<NotaRecepcion[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionPorPedidoIdGQL, { pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionPorPedidoIdGQL, { pedidoId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -452,7 +467,8 @@ export class PedidoService {
   ): Observable<PageInfo<NotaRecepcion>> {
     return this.genericCrudService.onCustomQuery(
       this.getNotaRecepcionPorPedidoIdAndNumeroPageGQL, 
-      { pedidoId, numero, page, size }
+      { pedidoId, numero, page, size },
+      true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO
     );
   }
 
@@ -465,7 +481,11 @@ export class PedidoService {
   onBuscarNotasPorProveedorYNumero(proveedorId: number, numero: number): Observable<NotaRecepcion[]> {
     return this.genericCrudService.onCustomQuery(
       this.getNotaRecepcionPorProveedorAndNumeroGQL,
-      { proveedorId, numero }
+      { proveedorId, numero },
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      CONSULTA_DIALOGO
     );
   }
 
@@ -475,7 +495,9 @@ export class PedidoService {
    * @returns Observable<NotaRecepcion>
    */
   onGetNotaRecepcionById(id: number): Observable<NotaRecepcion> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionByIdGQL, { id });
+    // Un solo llamador («Ver nota» de la lista de solicitudes de pago), con su error: (#390)
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionByIdGQL, { id }, true, PROPAGAR_ERROR_DE_RED, true,
+      CONSULTA_DIALOGO);
   }
 
   /**
@@ -543,7 +565,8 @@ export class PedidoService {
    * @returns Observable<NotaRecepcionItem[]>
    */
   onGetNotaRecepcionItemListPorNotaRecepcionId(notaRecepcionId: number): Observable<NotaRecepcionItem[]> {
-    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemListPorNotaRecepcionIdGQL, { id: notaRecepcionId });
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemListPorNotaRecepcionIdGQL, { id: notaRecepcionId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -571,7 +594,7 @@ export class PedidoService {
       size,
       filtroVerificacion,
       filtroTexto
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -610,11 +633,13 @@ export class PedidoService {
    * @returns Observable<Sucursal[]>
    */
   onGetSucursalesDisponiblesRecepcionFisica(pedidoId: number): Observable<Sucursal[]> {
-    return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   onGetPedidoRecepcionFisicaResumen(pedidoId: number): Observable<PedidoRecepcionFisicaResumen> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoRecepcionFisicaResumenGQL, { pedidoId });
+    return this.genericCrudService.onCustomQuery(this.getPedidoRecepcionFisicaResumenGQL, { pedidoId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_PEDIDO);
   }
 
   /**
@@ -763,7 +788,7 @@ export class PedidoService {
       creadoHasta,
       page,
       size
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
   }
 
   /**

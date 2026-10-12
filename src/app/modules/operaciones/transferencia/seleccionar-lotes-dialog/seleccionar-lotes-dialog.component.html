@@ -59,6 +59,11 @@
     Cargando lotes disponibles...
   </div>
 
+  <div *ngIf="cargaFallo && !cargando" class="mensaje-estado" role="status" aria-live="polite">
+    No se pudieron cargar los lotes de la sucursal de origen.
+    <button mat-stroked-button type="button" (click)="reintentarCarga()">Reintentar</button>
+  </div>
+
   <div
     *ngIf="sinCoincidencias"
     class="mensaje-estado"
@@ -236,7 +241,7 @@
     mat-raised-button
     color="accent"
     (click)="onConfirmar()"
-    [disabled]="cargando || excedeRequerido"
+    [disabled]="cargando || cargaFallo || excedeRequerido"
   >
     Confirmar
   </button>

@@ -574,22 +574,25 @@ export const setActivoConfiguracionesFacturacion = gql`
   }
 `;
 
-export const historialConfiguracionFacturacionQuery = gql`
-  query historialConfiguracionFacturacion($sucursalId: ID, $limite: Int) {
-    data: historialConfiguracionFacturacion(sucursalId: $sucursalId, limite: $limite) {
-      id
-      configuracionId
-      sucursal {
+export const historialConfiguracionFacturacionPageQuery = gql`
+  query historialConfiguracionFacturacionPage($sucursalId: ID, $page: Int, $size: Int) {
+    data: historialConfiguracionFacturacionPage(sucursalId: $sucursalId, page: $page, size: $size) {
+      getTotalElements
+      getContent {
         id
-        nombre
+        configuracionId
+        sucursal {
+          id
+          nombre
+        }
+        accion
+        modo
+        ventasSinFactura
+        ventaTicketRespetaPolitica
+        activo
+        usuarioNickname
+        creadoEn
       }
-      accion
-      modo
-      ventasSinFactura
-      ventaTicketRespetaPolitica
-      activo
-      usuarioNickname
-      creadoEn
     }
   }
 `;

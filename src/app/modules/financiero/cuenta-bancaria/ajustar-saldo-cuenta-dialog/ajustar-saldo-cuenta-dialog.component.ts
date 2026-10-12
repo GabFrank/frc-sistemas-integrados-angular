@@ -6,6 +6,8 @@ import { CuentaBancaria } from '../cuenta-bancaria.model';
 import { CuentaBancariaService } from '../cuenta-bancaria.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface AjustarSaldoCuentaData {
   cuentaBancaria: CuentaBancaria;
@@ -36,6 +38,8 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
   monedaDenominacion = '';
   currencyOpts: any;
   isSaving = false;
+  /** Hay una confirmación abierta: otro clic en «Guardar» abriría una segunda y se aplicarían dos ajustes. */
+  private confirmando = false;
 
   /** Saldo que va a quedar. Se recalcula al tipear; el template solo lo lee. */
   saldoResultante = 0;
@@ -83,8 +87,10 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
     if (this.montoControl.invalid) return this.err('Ingresá un monto mayor a cero');
     if (this.motivoControl.invalid) return this.err('El motivo es obligatorio (mín. 4 caracteres)');
 
+    if (this.isSaving || this.confirmando) return;
     const monto = Math.abs(Number(this.montoControl.value));
     const signo = this.positivo ? '+' : '−';
+    this.confirmando = true;
 
     this.dialogos.confirm(
       'Confirmar ajuste de saldo',
@@ -92,8 +98,11 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
       'Un ajuste no tiene contrapartida: queda registrado con tu usuario y el motivo.',
       null, true, 'Sí, ajustar', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
+      this.confirmando = false;
       if (res !== true) return;
       this.isSaving = true;
+      // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de cuentas no se releería.
+      this.dialogRef.disableClose = true;
       this.cuentaBancariaService
         // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
         .onAjustarSaldo(this.data.cuentaBancaria.id, monto, this.positivo, this.motivoControl.value, { avisarExito: false })
@@ -101,18 +110,41 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
         .subscribe({
           next: r => {
             this.isSaving = false;
+            this.dialogRef.disableClose = false;
             if (r != null) {
               this.notificacion.notification$.next({
                 texto: 'Saldo ajustado', color: NotificacionColor.success, duracion: 3,
               });
               this.dialogRef.close(r);
+            } else {
+              this.sinConfirmar(signo, monto, true);
             }
           },
-          error: () => {
+          error: err => {
             this.isSaving = false;
+            this.dialogRef.disableClose = false;
+            // Rechazo: no se aplicó nada (el motivo ya lo mostró onSaveCustom); se puede corregir y reintentar.
+            if (erroresDeRechazo(err)) return;
+            // El corte del link ya avisó que pudo haberse aplicado.
+            this.sinConfirmar(signo, monto, !esTimeoutDeLink(err));
           },
         });
     });
+  }
+
+  /**
+   * El ajuste pudo haberse aplicado, y repetirlo lo aplica otra vez (es relativo: suma o resta el monto) (#390).
+   * Se cierra para que la lista de cuentas se relea; el aviso deja el saldo que se veía, para compararlo.
+   */
+  private sinConfirmar(signo: string, monto: number, avisar: boolean): void {
+    if (avisar) {
+      const fmt = (n: number) => `${this.monedaSimbolo} ${n.toLocaleString('es-PY')}`.trim();
+      this.notificacion.notification$.next({
+        texto: `No se pudo confirmar si el ajuste de ${signo} ${fmt(monto)} se aplicó. El saldo que se veía era ${fmt(this.saldoActual)}: comparalo con el de la cuenta y sus movimientos antes de repetirlo.`,
+        color: NotificacionColor.warn, duracion: 12,
+      });
+    }
+    this.dialogRef.close(true);
   }
 
   private err(texto: string): void {

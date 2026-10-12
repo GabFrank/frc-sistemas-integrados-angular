@@ -201,6 +201,43 @@
     }
   }
 
+  /* ESTADO DEL SERVIDOR Y ENVÍOS */
+  .estado-servidor {
+    font-size: 0.8rem;
+    color: #a1a1aa;
+    margin-top: 2px;
+  }
+
+  .sin-enviar,
+  .sin-confirmar {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  .sin-enviar {
+    color: #fbbf24;
+  }
+
+  .sin-confirmar {
+    color: #fb923c;
+  }
+
+  .aviso-sin-confirmar {
+    padding: 14px 32px;
+    background: rgba(251, 146, 60, 0.1);
+    border-bottom: 1px solid rgba(251, 146, 60, 0.3);
+    color: #fdba74;
+    font-size: 0.85rem;
+    line-height: 1.5;
+
+    mat-icon {
+      color: #fb923c;
+    }
+  }
+
   /* INFO BOX */
   .info-box {
     padding: 16px 20px;

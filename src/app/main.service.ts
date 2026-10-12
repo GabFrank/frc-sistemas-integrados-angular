@@ -1,4 +1,5 @@
 import { HttpClient } from "@angular/common/http";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "./generics/generic-crud.service";
 import { Injectable, Injector, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { BehaviorSubject, Observable, Subscription } from "rxjs";
@@ -111,6 +112,11 @@ export class MainService implements OnDestroy {
               this.logged = true;
               obs.next(true);
               this.authenticationSub.next(res);
+            } else if (res === null) {
+              // El servidor no respondió (#390): el login queda a la vista sin borrar la sesión
+              // guardada; un corte de red no es un "no hay usuario".
+              obs.next(false);
+              this.authenticationSub.next(false);
             } else {
               // If getUsuario failed, clear the token if not keepLogged
               if (keepLogged !== "true") {
@@ -132,20 +138,27 @@ export class MainService implements OnDestroy {
     });
   }
 
-  getUsuario(): Observable<boolean> {
+  /** true: usuario cargado; false: el servidor respondió sin usuario; null: no respondió (#390). */
+  getUsuario(): Observable<boolean | null> {
     return new Observable((obs) => {
       let id = localStorage.getItem("usuarioId");
       if (id != null) {
         this.usuarioService
-          .onGetUsuario(+id, !this.isLocal())
+          .onGetUsuario(+id, !this.isLocal(), PROPAGAR_ERROR_DE_RED, {
+            timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+            silenciarAvisoTimeout: true,
+          })
           .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res != null) {
-              this.usuarioActual = res;
-              obs.next(true);
-            } else {
-              obs.next(false);
-            }
+          .subscribe({
+            next: (res) => {
+              if (res != null) {
+                this.usuarioActual = res;
+                obs.next(true);
+              } else {
+                obs.next(false);
+              }
+            },
+            error: () => obs.next(null),
           })
       } else {
         obs.next(false);

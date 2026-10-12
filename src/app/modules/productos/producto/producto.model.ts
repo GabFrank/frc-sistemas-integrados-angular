@@ -25,7 +25,10 @@ export class Producto {
   lote?: boolean;
   cambiable?: boolean;
   usuario?: Usuario;
-  imagenPrincipal?: string;
+  /** Miniatura de 250x250: iconos, avatares y listas. El original no se pide desde ninguna pantalla. */
+  imagenPrincipalMiniatura?: string;
+  /** Hasta 800 px de lado mayor: previsualizaciones. Solo la traen las consultas de un producto por id. */
+  imagenPrincipalMediana?: string;
   tipoConservacion?: string;
   subfamilia?: Subfamilia;
   codigos?: Codigo[]

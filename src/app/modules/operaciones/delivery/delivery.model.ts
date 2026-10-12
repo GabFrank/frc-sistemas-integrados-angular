@@ -24,6 +24,11 @@ export class Delivery {
     barrio: Barrio;
     duracion: any;
     fechaConcluido: Date;
+    /**
+     * Solo en memoria: un cobro de este delivery quedó sin confirmar (pudo haberse guardado en el filial). No se
+     * cobra ni se guarda hasta volver a leerlo desde la lista (#390).
+     */
+    cobroIncierto?: boolean;
 
     toInput(): DeliveryInput {
         let input = new DeliveryInput()

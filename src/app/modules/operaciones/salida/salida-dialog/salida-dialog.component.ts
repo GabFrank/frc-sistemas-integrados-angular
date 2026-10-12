@@ -24,6 +24,7 @@ export interface SalidaDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -110,7 +111,7 @@ export class SalidaDialogComponent implements OnInit {
       }
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
-          this.usuarioService.onSeachUsuario(res).pipe(untilDestroyed(this)).subscribe((response) => {
+          this.usuarioService.onSeachUsuario(res).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((response) => {
             this.usuarioList = response["data"];
             if (this.usuarioList.length == 1) {
               this.onResponsableSelect(this.usuarioList[0]);

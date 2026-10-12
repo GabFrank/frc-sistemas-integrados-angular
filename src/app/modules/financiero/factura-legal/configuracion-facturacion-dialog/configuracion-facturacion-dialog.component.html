@@ -1,13 +1,24 @@
 <div class="dialog-header">
     <h2 mat-dialog-title>Política de facturación</h2>
-    <div class="subtitulo">Qué ventas se facturan sin que el cajero lo pida</div>
 </div>
 
 <mat-dialog-content>
-    <mat-button-toggle-group class="vistas" [value]="vista">
-        <mat-button-toggle value="config" (click)="onVerConfiguracion()">Configuración</mat-button-toggle>
-        <mat-button-toggle value="historial" (click)="onVerHistorial()">Historial</mat-button-toggle>
-    </mat-button-toggle-group>
+    <!-- Vistas a la izquierda y acciones masivas a la derecha, en una sola fila. -->
+    <div class="barra">
+        <mat-button-toggle-group [value]="vista">
+            <mat-button-toggle value="config" (click)="onVerConfiguracion()">Configuración</mat-button-toggle>
+            <mat-button-toggle value="historial" (click)="onVerHistorial()">Historial</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <div class="acciones-masivas" *ngIf="vista === 'config' && !sinSoporte">
+            <button mat-stroked-button [disabled]="!haySucursalesActivas" (click)="onSetActivoSucursales(false)">
+                <mat-icon>pause_circle_outline</mat-icon> Desactivar sucursales
+            </button>
+            <button mat-stroked-button [disabled]="!haySucursalesInactivas" (click)="onSetActivoSucursales(true)">
+                <mat-icon>play_circle_outline</mat-icon> Activar sucursales
+            </button>
+        </div>
+    </div>
 
     <div class="aviso" *ngIf="sinSoporte">
         <mat-icon>warning_amber</mat-icon>
@@ -21,62 +32,54 @@
             <span>{{ avisoGlobal }}</span>
         </div>
 
-        <div class="acciones-masivas" *ngIf="!sinSoporte">
-            <button mat-stroked-button [disabled]="!haySucursalesActivas" (click)="onSetActivoSucursales(false)">
-                <mat-icon>pause_circle_outline</mat-icon> Desactivar sucursales
-            </button>
-            <button mat-stroked-button [disabled]="!haySucursalesInactivas" (click)="onSetActivoSucursales(true)">
-                <mat-icon>play_circle_outline</mat-icon> Activar sucursales
-            </button>
+        <div class="tabla-scroll">
+            <table class="tabla-config">
+                <thead>
+                    <tr>
+                        <th>Activo</th>
+                        <th>Sucursal</th>
+                        <th>Modo</th>
+                        <th>Venta + Ticket / Delivery</th>
+                        <th>Modificado</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId"
+                        [class.inactiva]="fila.config.activo === false">
+                        <td>
+                            <mat-slide-toggle color="accent" [checked]="fila.config.activo !== false"
+                                (change)="onToggleActivo(fila)" matTooltip="Activar / desactivar"></mat-slide-toggle>
+                        </td>
+                        <td class="sucursal">{{ fila.sucursalNombre }}</td>
+                        <td>
+                            <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
+                        </td>
+                        <td>
+                            <span class="chip" [class.chip-respeta]="fila.respetaActivo"
+                                [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
+                        </td>
+                        <td class="modificado">{{ fila.modificadoPor }}</td>
+                        <td class="modificado fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
+                        <td class="acciones">
+                            <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
+                        <td colspan="7" class="vacio">
+                            <mat-icon>info_outline</mat-icon>
+                            <span>Sin configuración: cada sucursal usa su contador local.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-
-        <table class="tabla-config">
-            <thead>
-                <tr>
-                    <th>Activo</th>
-                    <th>Sucursal</th>
-                    <th>Modo</th>
-                    <th>Venta + Ticket / Delivery</th>
-                    <th>Modificado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId"
-                    [class.inactiva]="fila.config.activo === false">
-                    <td>
-                        <mat-slide-toggle color="accent" [checked]="fila.config.activo !== false"
-                            (change)="onToggleActivo(fila)" matTooltip="Activar / desactivar"></mat-slide-toggle>
-                    </td>
-                    <td class="sucursal">{{ fila.sucursalNombre }}</td>
-                    <td>
-                        <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
-                    </td>
-                    <td>
-                        <span class="chip" [class.chip-respeta]="fila.respetaActivo"
-                            [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
-                    </td>
-                    <td class="modificado">
-                        <div>{{ fila.modificadoPor }}</div>
-                        <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
-                    </td>
-                    <td class="acciones">
-                        <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
-                            <mat-icon>edit</mat-icon>
-                        </button>
-                        <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
-                            <mat-icon>delete</mat-icon>
-                        </button>
-                    </td>
-                </tr>
-                <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
-                    <td colspan="6" class="vacio">
-                        <mat-icon>info_outline</mat-icon>
-                        <span>Sin configuración: cada sucursal usa su contador local.</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
 
         <form [formGroup]="form" class="form-config">
             <div class="form-titulo">{{ editandoId != null ? 'Editar configuración' : 'Nueva configuración' }}</div>
@@ -139,36 +142,42 @@
             <span>No se pudo cargar el historial desde el servidor central.</span>
         </div>
 
-        <table class="tabla-config" *ngIf="!historialError">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Sucursal</th>
-                    <th>Cambio</th>
-                    <th>Modo</th>
-                    <th>Venta + Ticket / Delivery</th>
-                    <th>Estado</th>
-                    <th>Usuario</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let h of historial">
-                    <td class="modificado">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td class="sucursal">{{ h.sucursalNombre }}</td>
-                    <td><span class="chip" [ngClass]="h.accionClase">{{ h.accionLabel }}</span></td>
-                    <td><span class="chip" [ngClass]="h.modoClase">{{ h.modoLabel }}</span></td>
-                    <td>{{ h.respetaLabel }}</td>
-                    <td>{{ h.activoLabel }}</td>
-                    <td>{{ h.usuario }}</td>
-                </tr>
-                <tr *ngIf="!historialCargando && historial.length === 0">
-                    <td colspan="7" class="vacio">
-                        <mat-icon>info_outline</mat-icon>
-                        <span>Sin cambios registrados.</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="tabla-scroll con-paginador" *ngIf="!historialError">
+            <table class="tabla-config">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Sucursal</th>
+                        <th>Cambio</th>
+                        <th>Modo</th>
+                        <th>Venta + Ticket / Delivery</th>
+                        <th>Estado</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let h of historial">
+                        <td class="modificado">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+                        <td class="sucursal">{{ h.sucursalNombre }}</td>
+                        <td><span class="chip" [ngClass]="h.accionClase">{{ h.accionLabel }}</span></td>
+                        <td><span class="chip" [ngClass]="h.modoClase">{{ h.modoLabel }}</span></td>
+                        <td>{{ h.respetaLabel }}</td>
+                        <td>{{ h.activoLabel }}</td>
+                        <td>{{ h.usuario }}</td>
+                    </tr>
+                    <tr *ngIf="!historialCargando && historial.length === 0">
+                        <td colspan="7" class="vacio">
+                            <mat-icon>info_outline</mat-icon>
+                            <span>Sin cambios registrados.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <mat-paginator *ngIf="!historialError" [length]="historialTotal" [pageSize]="historialPageSize"
+            [pageSizeOptions]="[15, 30, 50]" [pageIndex]="historialPageIndex" (page)="onHistorialPage($event)"
+            showFirstLastButtons></mat-paginator>
     </ng-container>
 </mat-dialog-content>
 

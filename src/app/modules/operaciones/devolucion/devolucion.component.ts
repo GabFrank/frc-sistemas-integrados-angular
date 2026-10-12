@@ -2,6 +2,8 @@ import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
+import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import { EChartsOption } from "echarts";
 
 import { Tab } from "../../../layouts/tab/tab.model";
@@ -113,14 +115,17 @@ export class DevolucionComponent implements OnInit, OnDestroy {
     public mainService: MainService,
     private dashboardService: DashboardDevolucionService,
     private configService: DevolucionConfiguracionService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private notificacion: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
     this.resolverSucursalFija();
     this.armarAccesos();
     // La config define umbrales / top-N / rango por defecto; se carga antes.
-    this.configService.onGet().subscribe({
+    // Sin config arranca con los valores por defecto, sin aviso propio (lo da el de los paneles). Antes, sin red,
+    // el dashboard no arrancaba hasta 300 s (#390).
+    this.configService.onGet(PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }).subscribe({
       next: (c) => {
         this.aplicarConfig(c);
         this.iniciar();
@@ -218,9 +223,18 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   }
 
   // ===== Carga =====
+  /** Un solo aviso por recarga aunque fallen los 6 paneles (#390). */
+  private avisoFalloMostrado = false;
+  private avisarFallo(): void {
+    if (this.avisoFalloMostrado) return;
+    this.avisoFalloMostrado = true;
+    this.notificacion.openWarn('No se pudieron cargar algunos datos del dashboard. Usá «Actualizar».', 5);
+  }
+
   cargar(): void {
     if (!this.desde || !this.hasta) return;
     this.cargando = true;
+    this.avisoFalloMostrado = false;
     const f = this.filtro;
 
     this.dashboardService
@@ -231,47 +245,56 @@ export class DevolucionComponent implements OnInit, OnDestroy {
           this.cargando = false;
           this.armarKpis(r);
         },
-        error: () => (this.cargando = false),
+        error: () => { this.cargando = false; this.avisarFallo(); },
       });
 
     this.dashboardService
       .onGetTopProductos(f, this.topN)
       .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => {
-        this.topProductos = this.mapTop(
-          (data || []).map((p) => ({
-            nombre: p.descripcion,
-            principal: p.cantidad,
-            secundario: p.valor,
-          }))
-        );
+      .subscribe({
+        next: (data) => {
+          this.topProductos = this.mapTop(
+            (data || []).map((p) => ({
+              nombre: p.descripcion,
+              principal: p.cantidad,
+              secundario: p.valor,
+            }))
+          );
+        },
+        error: () => this.avisarFallo(),
       });
 
     this.dashboardService
       .onGetTopProveedores(f, this.topN)
       .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => {
-        this.topProveedores = this.mapTop(
-          (data || []).map((p) => ({
-            nombre: p.nombre,
-            principal: p.devoluciones,
-            secundario: p.valor,
-          }))
-        );
+      .subscribe({
+        next: (data) => {
+          this.topProveedores = this.mapTop(
+            (data || []).map((p) => ({
+              nombre: p.nombre,
+              principal: p.devoluciones,
+              secundario: p.valor,
+            }))
+          );
+        },
+        error: () => this.avisarFallo(),
       });
 
     this.dashboardService
       .onGetTopMotivos(f, this.topN)
       .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => {
-        this.topMotivos = this.mapTop(
-          (data || []).map((m) => ({
-            nombre: m.descripcion,
-            principal: m.cantidad,
-            secundario: m.items,
-            secundarioSufijo: " items",
-          }))
-        );
+      .subscribe({
+        next: (data) => {
+          this.topMotivos = this.mapTop(
+            (data || []).map((m) => ({
+              nombre: m.descripcion,
+              principal: m.cantidad,
+              secundario: m.items,
+              secundarioSufijo: " items",
+            }))
+          );
+        },
+        error: () => this.avisarFallo(),
       });
   }
 
@@ -286,17 +309,18 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         sucursalId: this.sucursalId,
       })
       .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => this.armarSerie(data || []));
+      .subscribe({ next: (data) => this.armarSerie(data || []), error: () => this.avisarFallo() });
   }
 
   cargarEstancadas(): void {
     this.dashboardService
       .onGetEstancadas(this.diasEstancado, this.sucursalId, 10)
       .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => this.armarEstancadas(data || []));
+      .subscribe({ next: (data) => this.armarEstancadas(data || []), error: () => this.avisarFallo() });
   }
 
   onCambioDiasEstancado(): void {
+    this.avisoFalloMostrado = false;
     this.cargarEstancadas();
   }
 

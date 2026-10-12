@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { ValesPorFuncionarioGQL } from './graphql/ValesPorFuncionario';
 import { ValesPorEstadoGQL } from './graphql/ValesPorEstado';
 import { ValesPageGQL } from './graphql/ValesPage';
@@ -35,7 +36,8 @@ export class ValeService {
   }
 
   onGetCuotas(valeId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.valeCuotasGQL, { valeId }, servidor);
+    return this.genericService.onCustomQuery(this.valeCuotasGQL, { valeId }, servidor, PROPAGAR_ERROR_DE_RED, undefined,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   /** Crea y confirma el vale en un paso, egresando de la caja mayor (origen RRHH_VALE). */
@@ -45,7 +47,8 @@ export class ValeService {
   }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.valesPorFuncionarioGQL, { funcionarioId }, servidor);
+    return this.genericService.onCustomQuery(this.valesPorFuncionarioGQL, { funcionarioId }, servidor,
+      PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   onGetPorEstado(estado: string, servidor = true): Observable<any> {

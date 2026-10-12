@@ -20,6 +20,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class SeleccionarEnvaseDialogComponent implements OnInit {
   selectedEnvase: Producto;
+  envaseNoLeido = false;
   cantidadControl = new FormControl(null, Validators.required);
 
   constructor(
@@ -31,10 +32,16 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
       this.cantidadControl.setValue(data.cantidad);
     }
     if (data.envase != null) {
-      productoService.onGetProductoPorId(data.envase.id).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.selectedEnvase = res;
-        }
+      productoService.onGetProductoPorId(data.envase.id).pipe(untilDestroyed(this)).subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.selectedEnvase = res;
+          }
+          this.envaseNoLeido = res == null;
+        },
+        // No se cierra: quien abre toma un cierre sin valor como «sin envase», y sería decidirlo por el
+        // cajero. Queda deshabilitado «Sí» (que sin el envase rompía) y se dice por qué (#390).
+        error: () => this.envaseNoLeido = true,
       });
     }
   }
@@ -46,6 +53,7 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
   }
 
   onCancelar() {
+    if (this.selectedEnvase == null) return;
     let item = new VentaItem();
     item.cantidad = this.cantidadControl.value;
     item.presentacion = this.selectedEnvase.presentaciones.find(p => p.principal == true);

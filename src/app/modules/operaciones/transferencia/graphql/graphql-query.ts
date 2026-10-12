@@ -433,6 +433,18 @@ export const prepararTransferencia = gql`
   }
 `;
 
+/**
+ * Verifica para transporte con el chofer elegido como responsable y le crea una hoja de ruta nueva
+ * con el vehiculo y los acompañantes. Es la misma mutation que usa la PWA (de ahi el nombre).
+ */
+export const verificarParaTransporte = gql`
+  mutation verificarParaTransporteMobile($input: VerificarParaTransporteInput!) {
+    data: verificarParaTransporteMobile(input: $input) {
+      id
+    }
+  }
+`;
+
 export const imprimirTransferencia = gql`
   query imprimirTransferencia($id: ID!) {
     data: imprimirTransferencia(id: $id)

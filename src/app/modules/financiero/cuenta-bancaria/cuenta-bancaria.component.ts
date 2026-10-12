@@ -62,10 +62,17 @@ export class CuentaBancariaComponent implements OnInit {
     this.isSearching = true;
     this.cuentaBancariaService.onGetAll()
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        this.todas = res || [];
-        this.onFiltrar();
+      .subscribe({
+        next: res => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias.', 5); return; }
+          this.todas = res;
+          this.onFiltrar();
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: el servidor no responde.', 5);
+        }
       });
   }
 
@@ -125,8 +132,15 @@ export class CuentaBancariaComponent implements OnInit {
   }
 
   onVerMovimientos(item: CuentaBancaria) {
-    this.dialog.open(ListMovimientosBancariosDialogComponent, {
+    const ref = this.dialog.open(ListMovimientosBancariosDialogComponent, {
       width: '95vw', maxWidth: '1200px', height: '85vh', data: item
+    });
+    // El flag se lee del componente y no del valor de cierre: el diálogo también se cierra con
+    // ESC o clic afuera. Hay que capturarlo acá: tras cerrar, componentInstance es null.
+    const movimientos = ref.componentInstance;
+    ref.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+      // Anular un movimiento cambió el saldo de la cuenta que muestra esta lista.
+      if (movimientos.huboCambios) this.cargar();
     });
   }
 

@@ -7,6 +7,7 @@ import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 export interface ConfirmarValeDialogData {
   vale: Vale;
@@ -27,6 +28,8 @@ export class ConfirmarValeDialogComponent implements OnInit {
   // Mientras la query no responde no se muestra el cartel de "no hay cajas":
   // el select vacio inicial no significa que no existan cajas mayores activas.
   cargandoCajas = true;
+  /** La lista de cajas no se pudo leer: no es lo mismo que «no hay cajas» (#390). */
+  cajasNoCargadas = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: ConfirmarValeDialogData,
@@ -41,9 +44,17 @@ export class ConfirmarValeDialogComponent implements OnInit {
   ngOnInit(): void {
     this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
     this.cajaVirtualService.onGetActivas()
-      .pipe(untilDestroyed(this))
+      .pipe(
+        // Sin esto el diálogo queda en «cargando cajas» para siempre ante un error de red (#390).
+        terminarSiFalla(() => {
+          this.cajasNoCargadas = true;
+          this.cargandoCajas = false;
+        }),
+        untilDestroyed(this)
+      )
       .subscribe((res: CajaVirtual[]) => {
         this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR');
+        this.cajasNoCargadas = res == null;
         this.cargandoCajas = false;
       });
   }

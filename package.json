@@ -37,6 +37,8 @@
     "e2e:show-trace": "playwright show-trace e2e/tracing/trace.zip",
     "version": "conventional-changelog -i CHANGELOG.md -s -r 0 && git add CHANGELOG.md",
     "check": "ng build --configuration production --no-progress",
+    "verificar:imports": "node scripts/verificar-imports-del-generico.js",
+    "verificar:arranque": "node scripts/verificar-arranque.js",
     "lint": "ng lint",
     "remind": "node -e \"console.log('\\n╔══════════════════════════════════════════╗\\n║  💡 RECORDATORIO                         ║\\n║  Antes de push ejecutá:                  ║\\n║  npm run check                           ║\\n║  para detectar errores AOT de Angular    ║\\n╚══════════════════════════════════════════╝\\n')\"",
     "prepare": "husky"

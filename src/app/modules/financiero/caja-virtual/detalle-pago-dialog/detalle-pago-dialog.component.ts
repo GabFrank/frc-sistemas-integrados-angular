@@ -46,6 +46,8 @@ export class DetallePagoDialogComponent implements OnInit {
   displayedColumns = ['solicitud', 'tipo', 'descripcion', 'beneficiario', 'imputado', 'estado'];
   dataSource = new MatTableDataSource<DetalleRow>([]);
   isLoading = true;
+  /** El detalle no cargó: no se dice «sin documentos asociados», que sería falso (#390). */
+  cargaFallo = false;
 
   cantidad = 0;
   /** Total imputado por moneda: un evento puede pagar documentos en monedas distintas. */
@@ -66,12 +68,16 @@ export class DetallePagoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.pagarComprasService.onGetDetalleDePago(this.data.pagoId)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isLoading = false;
-        const filas: DetalleRow[] = (res || []).map((d: any) => this.toRow(d));
-        this.dataSource.data = filas;
-        this.cantidad = filas.length;
-        this.totales = this.agruparPorMoneda(filas);
+      .subscribe({
+        next: res => {
+          this.isLoading = false;
+          if (res == null) { this.cargaFallo = true; return; }
+          const filas: DetalleRow[] = res.map((d: any) => this.toRow(d));
+          this.dataSource.data = filas;
+          this.cantidad = filas.length;
+          this.totales = this.agruparPorMoneda(filas);
+        },
+        error: () => { this.isLoading = false; this.cargaFallo = true; }
       });
   }
 

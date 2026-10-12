@@ -4,6 +4,8 @@ import { MatDialogRef } from "@angular/material/dialog";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { DevolucionConfiguracion } from "../devolucion-configuracion.model";
 import { DevolucionConfiguracionService } from "../devolucion-configuracion.service";
+import { PROPAGAR_ERROR_DE_RED } from "../../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../../shared/services/timeout-link";
 
 /**
  * Diálogo de configuración del módulo de devoluciones. Carga la fila única,
@@ -18,6 +20,11 @@ import { DevolucionConfiguracionService } from "../devolucion-configuracion.serv
 export class ConfiguracionDevolucionDialogComponent implements OnInit {
   form: FormGroup;
   cargando = true;
+  /**
+   * La configuración no cargó: el formulario tiene los valores por defecto del código y Guardar los escribiría
+   * sobre la configuración real. Se bloquea hasta reintentar (#390).
+   */
+  cargaFallo = false;
   guardando = false;
 
   rangos = [
@@ -55,13 +62,22 @@ export class ConfiguracionDevolucionDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.configService.onGet().subscribe({
+    this.cargar();
+  }
+
+  cargar(): void {
+    this.cargando = true;
+    this.cargaFallo = false;
+    this.configService.onGet(PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
       next: (c) => {
         this.cargando = false;
-        if (c) this.form.patchValue(c);
+        // El central crea la fila si no existe: null es un error.
+        if (c == null) { this.cargaFallo = true; return; }
+        this.form.patchValue(c);
       },
       error: () => {
         this.cargando = false;
+        this.cargaFallo = true;
         this.notificacionService.openAlgoSalioMal(
           "No se pudo cargar la configuración"
         );

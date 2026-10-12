@@ -404,9 +404,12 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private initializePresentaciones(): void {
     // Solo cargar presentaciones si hay un producto seleccionado
     if (this.originalItem.producto && this.originalItem.producto.id) {
-      this.presentacionService.onGetPresentacionesPorProductoId(this.originalItem.producto.id)
+      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.originalItem.producto.id)
         .pipe(takeUntil(this.destroy$))
-        .subscribe((presentaciones) => {
+        .subscribe({ error: () => this.avisarPresentacionesSinCargar(), next: (presentaciones) => {
+          if (presentaciones == null) {
+            return; // Error GraphQL: el servicio ya avisó; queda la presentación original del ítem
+          }
           this.presentacionesDisponibles = presentaciones;
           console.log('presentaciones', this.presentacionesDisponibles);
           console.log('originalItem', this.originalItem);
@@ -416,7 +419,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
             this.itemForm.get('presentacion')?.setValue(this.presentacionesDisponibles.find(p => p.id === this.originalItem.presentacionEnNota.id));
           }
           console.log('presentacion', this.itemForm.get('presentacion')?.value);
-        });
+        } });
     }
   }
 
@@ -757,15 +760,28 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
   private loadPresentacionesForProduct(producto: Producto): void {
     if (producto && producto.id) {
-      this.presentacionService.onGetPresentacionesPorProductoId(producto.id)
+      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(producto.id)
         .pipe(takeUntil(this.destroy$))
-        .subscribe((presentaciones) => {
-          this.presentacionesDisponibles = presentaciones;
-          // Limpiar presentación seleccionada cuando cambia el producto
-          this.itemForm.get('presentacion')?.setValue(null);
-          this.updateComputedProperties();
+        .subscribe({
+          next: (presentaciones) => {
+            // null = error GraphQL (el servicio ya avisó): sin presentación el formulario no es válido
+            this.presentacionesDisponibles = presentaciones ?? [];
+            // Limpiar presentación seleccionada cuando cambia el producto
+            this.itemForm.get('presentacion')?.setValue(null);
+            this.updateComputedProperties();
+          },
+          error: () => {
+            this.presentacionesDisponibles = [];
+            this.itemForm.get('presentacion')?.setValue(null);
+            this.updateComputedProperties();
+            this.avisarPresentacionesSinCargar();
+          }
         });
     }
+  }
+
+  private avisarPresentacionesSinCargar(): void {
+    this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
   }
 
   onRemoverProducto(): void {

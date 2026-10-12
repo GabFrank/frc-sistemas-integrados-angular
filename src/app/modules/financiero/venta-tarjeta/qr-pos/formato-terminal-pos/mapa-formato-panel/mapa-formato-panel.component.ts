@@ -15,6 +15,7 @@ import {
   RegionFormato,
   ResultadoDerivacion,
 } from '../mapa-formato.model';
+import { switchMapSinCortar } from '../../../../../../commons/core/utils/rxjsUtils';
 
 /**
  * Deriva el mapa de un formato a partir de un cupón de muestra.
@@ -200,7 +201,7 @@ export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
   private sondear(token: string): void {
     this.detenerSondeo();
     this.sondeo = timer(MapaFormatoPanelComponent.MS_SONDEO, MapaFormatoPanelComponent.MS_SONDEO)
-      .pipe(switchMap(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
+      .pipe(switchMapSinCortar(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
       .subscribe({
         next: (m) => {
           if (!m) return;

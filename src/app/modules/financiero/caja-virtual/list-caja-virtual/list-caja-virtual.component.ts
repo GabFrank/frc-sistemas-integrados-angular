@@ -98,11 +98,16 @@ export class ListCajaVirtualComponent implements OnInit {
       activo: (this.activoControl.value === null || this.activoControl.value === undefined) ? null : this.activoControl.value,
     }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<CajaVirtual>) => {
-        this.isSearching = false;
-        if (res != null) {
+      .subscribe({
+        next: (res: PageInfo<CajaVirtual>) => {
+          this.isSearching = false;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = this.marcarAdminAccesos(res.getContent);
+        },
+        error: () => {
+          this.isSearching = false;
+          this.notificacion.openWarn('No se pudieron cargar las cajas: el servidor no responde.', 5);
         }
       });
   }

@@ -45,6 +45,8 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
 
   secciones: SeccionVM[] = [];
   cargando = true;
+  /** La configuración no se pudo leer: se dice, en vez de mostrar el panel en blanco (#390). */
+  cargaFallo = false;
 
   readonly meses = [
     { v: 1, n: 'Enero' }, { v: 2, n: 'Febrero' }, { v: 3, n: 'Marzo' }, { v: 4, n: 'Abril' },
@@ -66,6 +68,8 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
   private cargar() {
     this.cargando = true;
     this.configuracionRrhhService.onGetAll().pipe(untilDestroyed(this)).subscribe((res: ConfiguracionRrhh[]) => {
+      this.cargaFallo = res == null;
+      if (res == null) { this.cargando = false; return; }
       const porClave = new Map<string, ConfiguracionRrhh>();
       (res || []).forEach(c => porClave.set(c.clave, c));
       const usadas = new Set<string>();

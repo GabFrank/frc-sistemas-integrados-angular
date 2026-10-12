@@ -117,13 +117,16 @@ export class ListRetiroCasosComponent implements OnInit {
       .subscribe({
         next: res => {
           this.isLoading = false;
-          if (res == null) return;
+          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5); return; }
           // Clonar antes de agregar props de display: Apollo congela los resultados.
           this.dataSource.data = (res.getContent || []).map(c => this.toRow(c));
           this.totalElements = res.getTotalElements || 0;
           if (resaltarId != null) this.resaltar(resaltarId);
         },
-        error: () => { this.isLoading = false; },
+        error: () => {
+          this.isLoading = false;
+          this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
+        },
       });
   }
 
@@ -227,7 +230,7 @@ export class ListRetiroCasosComponent implements OnInit {
 
     this.service.onAsignarCaso(row.id, usuarioId, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
       next: r => {
-        if (r == null) return;
+        if (r == null) { this.cargar(); return; }
         this.notificacion.notification$.next({
           texto: `Caso del retiro #${row.retiroId} tomado`,
           color: NotificacionColor.success, duracion: 3,
@@ -238,8 +241,9 @@ export class ListRetiroCasosComponent implements OnInit {
         this.pageIndex = 0;
         this.cargar(row.id);
       },
-      // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-      error: () => {}
+      // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom. Se relee:
+      // un rechazo es una bandeja vieja (lo tomó otro), y sin respuesta pudo haberse tomado (#390).
+      error: () => this.cargar()
     });
   }
 
@@ -251,7 +255,7 @@ export class ListRetiroCasosComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
       this.service.onSoltarCaso(row.id).pipe(untilDestroyed(this))
-        .subscribe({ next: r => { if (r != null) this.cargar(); }, error: () => {} });
+        .subscribe({ next: () => this.cargar(), error: () => this.cargar() });
     });
   }
 

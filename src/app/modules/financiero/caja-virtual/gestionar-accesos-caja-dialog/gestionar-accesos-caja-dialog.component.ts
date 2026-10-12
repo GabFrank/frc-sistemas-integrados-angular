@@ -43,6 +43,11 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
   displayedColumns = ['usuario', 'leer', 'escribir', 'otorgadoPor', 'acciones'];
   dataSource = new MatTableDataSource<AccesoRow>([]);
   isLoading = true;
+  /**
+   * La lista de accesos llegó. Sin ella no se ofrece agregar: el alta es un upsert y pisaría el permiso de
+   * escritura de alguien que ya tiene acceso sin que se vea (#390).
+   */
+  accesosCargados = false;
   isSaving = false;
 
   /** Alta: buscador de usuario + los dos permisos. */
@@ -85,20 +90,32 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
 
   cargar(): void {
     this.isLoading = true;
+    this.accesosCargados = false;
     this.cajaVirtualService.onGetAccesos(this.data.cajaVirtual.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isLoading = false;
-        this.dataSource.data = (res || []).map((a: any) => ({
-          id: a.id,
-          usuarioId: a.usuario?.id,
-          nickname: a.usuario?.nickname || '—',
-          nombre: a.usuario?.persona?.nombre || '—',
-          puedeLeer: !!a.puedeLeer,
-          puedeEscribir: !!a.puedeEscribir,
-          otorgadoPor: a.otorgadoPor?.nickname || '—',
-        } as AccesoRow));
+      .subscribe({
+        next: res => {
+          this.isLoading = false;
+          if (res == null) { this.accesosNoCargados(); return; }
+          this.accesosCargados = true;
+          this.dataSource.data = res.map((a: any) => ({
+            id: a.id,
+            usuarioId: a.usuario?.id,
+            nickname: a.usuario?.nickname || '—',
+            nombre: a.usuario?.persona?.nombre || '—',
+            puedeLeer: !!a.puedeLeer,
+            puedeEscribir: !!a.puedeEscribir,
+            otorgadoPor: a.otorgadoPor?.nickname || '—',
+          } as AccesoRow));
+        },
+        error: () => { this.isLoading = false; this.accesosNoCargados(); }
       });
+  }
+
+  /** Sin la lista no se muestra una vieja (toggles y revocar sobre datos desactualizados) ni «nadie tiene acceso». */
+  private accesosNoCargados() {
+    this.dataSource.data = [];
+    this.err('No se pudieron cargar los accesos de la caja.');
   }
 
   /** Alta desde el buscador. El backend rechaza otorgarle acceso al propio responsable. */

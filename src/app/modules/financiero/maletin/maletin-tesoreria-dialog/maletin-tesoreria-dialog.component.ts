@@ -8,6 +8,8 @@ import { MaletinService } from '../maletin.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface MaletinTesoreriaDialogData {
   cajaVirtual: CajaVirtual;
@@ -90,11 +92,15 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     this.maletinService.onGetValor(maletin.id).pipe(untilDestroyed(this)).subscribe({
       next: (res: ValorItem[]) => {
         this.cargandoValor = false;
+        if (res == null) { this.notificacion.openWarn('No se pudo calcular el valor del maletín.', 5); return; }
         // Todas las monedas con valor arrancan seleccionadas; el usuario destilda las que no quiere.
         this.valorItems = (res || []).map(v => ({ ...v, sel: (v.total || 0) > 0 }));
         this.recalcularSeleccion();
       },
-      error: () => { this.cargandoValor = false; }
+      error: () => {
+        this.cargandoValor = false;
+        this.notificacion.openWarn('No se pudo calcular el valor del maletín: el servidor no responde.', 5);
+      }
     });
   }
 
@@ -156,18 +162,43 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
 
     // Las dos ramas van sin «Guardado con éxito» (el éxito lo avisa este diálogo); el error lo da onSaveCustom.
     this.isSaving = true;
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no refrescaría la caja.
+    this.dialogRef.disableClose = true;
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;
+        this.dialogRef.disableClose = false;
         if (res != null) {
           this.notificacion.openSucess(this.esEgreso ? 'Egreso de maletín registrado' : 'Ingreso de maletín registrado');
           this.dialogRef.close(res);
+        } else {
+          this.sinConfirmar(true);
         }
       },
-      error: () => {
+      error: err => {
         this.isSaving = false;
+        this.dialogRef.disableClose = false;
+        // Rechazo: no se registró nada y el motivo ya lo mostró onSaveCustom.
+        if (erroresDeRechazo(err)) return;
+        // El corte del link ya avisó que pudo haberse aplicado.
+        this.sinConfirmar(!esTimeoutDeLink(err));
       }
     });
+  }
+
+  /**
+   * El ingreso o egreso pudo haberse registrado, y el central no impide ingresar dos veces el mismo cierre
+   * (#390). Se cierra para que la caja se relea: ahí se ve si el movimiento está, antes de repetirlo.
+   */
+  private sinConfirmar(avisar: boolean) {
+    if (avisar) {
+      const operacion = this.esEgreso ? 'EGRESO' : 'INGRESO';
+      // El central lo describe con el código del maletín, o con su id si no tiene.
+      const codigo = this.maletinControl.value?.descripcion || `#${this.maletinControl.value?.id}`;
+      this.notificacion.openWarn(
+        `No se pudo confirmar si se registró: buscá «${operacion} MALETIN ${codigo}» en los movimientos de la caja antes de repetirlo.`, 10);
+    }
+    this.dialogRef.close(true);
   }
 
   private err(msg: string) { this.notificacion.openAlgoSalioMal(msg); }

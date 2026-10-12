@@ -15,6 +15,24 @@
   </div>
 
   <form [formGroup]="configForm" class="content-form">
+    <div class="aviso-sin-confirmar" *ngIf="lecturaFallo && !haySinConfirmar" fxLayout="row"
+      fxLayoutAlign="start center" fxLayoutGap="15px">
+      <mat-icon>warning</mat-icon>
+      <span fxFlex>No se pudo leer el estado actual del GPS: lo que se muestra es lo que traía la lista y puede
+        estar desactualizado.</span>
+      <button mat-stroked-button type="button" (click)="onActualizarEstado()" [disabled]="actualizandoEstado">
+        REINTENTAR
+      </button>
+    </div>
+    <div class="aviso-sin-confirmar" *ngIf="haySinConfirmar" fxLayout="row" fxLayoutAlign="start center"
+      fxLayoutGap="15px">
+      <mat-icon>warning</mat-icon>
+      <span fxFlex>No se pudo confirmar si el último comando llegó al GPS. Lo que figura como «en el servidor» puede
+        no ser el estado real del equipo.</span>
+      <button mat-stroked-button type="button" (click)="onActualizarEstado()" [disabled]="actualizandoEstado">
+        ACTUALIZAR ESTADO
+      </button>
+    </div>
     <mat-tab-group dynamicHeight animationDuration="500ms">
       <mat-tab>
         <ng-template mat-tab-label>
@@ -23,11 +41,13 @@
         </ng-template>
 
         <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
-          <div class="card-section motor-control" [class.motor-cut]="!(motorEnabled$ | async)">
+          <div class="card-section motor-control" [class.motor-cut]="motorCortadoEnServidor">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="column">
                 <span class="label">CORTE DE MOTOR</span>
-                <span class="status-desc">{{ motorStatusDesc$ | async }}</span>
+                <span class="status-desc">En el servidor: {{ motorServidorTexto }}</span>
+                <span class="sin-enviar" *ngIf="sinEnviar.motor">sin enviar</span>
+                <span class="sin-confirmar" *ngIf="sinConfirmar.motor">último envío sin confirmar</span>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
                 <mat-slide-toggle formControlName="motorEstado" color="warn">
@@ -37,7 +57,7 @@
                   [disabled]="loading.motor">
                   <mat-icon *ngIf="!loading.motor">sync</mat-icon>
                   <mat-spinner diameter="20" *ngIf="loading.motor"></mat-spinner>
-                  ACTUALIZAR
+                  ENVIAR
                 </button>
               </div>
             </div>
@@ -48,7 +68,12 @@
               <div fxLayout="row" fxLayoutAlign="space-between center">
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                   <mat-icon class="card-icon" [color]="(sleepModeEnabled$ | async) ? 'accent' : ''">bedtime</mat-icon>
-                  <span class="card-label">MODO SUEÑO (AHORRO)</span>
+                  <div fxLayout="column">
+                    <span class="card-label">MODO SUEÑO (AHORRO)</span>
+                    <span class="estado-servidor">En el servidor: {{ sleepServidorTexto }}</span>
+                    <span class="sin-enviar" *ngIf="sinEnviar.sleep">sin enviar</span>
+                    <span class="sin-confirmar" *ngIf="sinConfirmar.sleep">último envío sin confirmar</span>
+                  </div>
                 </div>
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px">
                   <mat-slide-toggle formControlName="sleepMode"></mat-slide-toggle>
@@ -64,7 +89,12 @@
               <div fxLayout="row" fxLayoutAlign="space-between center">
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                   <mat-icon class="card-icon">timer</mat-icon>
-                  <span class="card-label">INTERVALO: {{ reportInterval$ | async }}s</span>
+                  <div fxLayout="column">
+                    <span class="card-label">INTERVALO: {{ reportInterval$ | async }}s</span>
+                    <span class="estado-servidor">En el servidor: {{ intervaloServidorTexto }}</span>
+                    <span class="sin-enviar" *ngIf="sinEnviar.interval">sin enviar</span>
+                    <span class="sin-confirmar" *ngIf="sinConfirmar.interval">último envío sin confirmar</span>
+                  </div>
                 </div>
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px" fxFlex="60">
                   <mat-slider min="10" max="180" step="10" thumbLabel fxFlex>
@@ -90,8 +120,8 @@
         <div class="tab-body" fxLayout="column" fxLayoutGap="15px">
           <div class="info-box">
             <mat-icon>info</mat-icon>
-            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. Presiona el botón de guardar
-              junto a cada opción para persistir los cambios.</span>
+            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. El botón de guardar de
+              cualquier alerta guarda las cinco juntas.</span>
           </div>
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
@@ -204,6 +234,8 @@
                 ENVIAR APN
               </button>
             </div>
+
+            <span class="sin-confirmar" *ngIf="sinConfirmar.apn">último envío sin confirmar</span>
 
             <div *ngIf="(apnName$ | async) === 'otro'" fxLayout="row" fxLayoutAlign="start center"
               fxLayoutGap="15px">

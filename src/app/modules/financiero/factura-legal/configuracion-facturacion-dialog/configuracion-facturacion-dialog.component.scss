@@ -6,13 +6,48 @@
   }
 }
 
-.subtitulo {
-  font-size: 14px;
-  color: #9e9e9e;
-  padding: 0 24px 8px;
+// La tabla toma el alto que sobra y scrollea sola: el formulario de abajo queda siempre a la vista.
+// El scroll del diálogo queda de respaldo para cuando la pantalla no da el mínimo de la tabla.
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 75vh;
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  > .tabla-scroll {
+    flex: 1 1 auto;
+  }
 }
 
-.vistas {
+.tabla-scroll {
+  min-height: 180px;
+  overflow: auto;
+  margin-bottom: 24px;
+
+  .tabla-config {
+    margin-bottom: 0;
+  }
+
+  // Sticky va en cada th, con fondo opaco y el borde como sombra: con border-collapse el
+  // border-bottom de un th fijo no se pinta.
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #424242;
+    border-bottom: none;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -35,9 +70,16 @@
 
 .acciones-masivas {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
-  margin-bottom: 8px;
+}
+
+// El paginador va pegado debajo del scroll de la tabla del historial, siempre a la vista.
+.tabla-scroll.con-paginador {
+  margin-bottom: 0;
+}
+
+mat-paginator {
+  background: transparent;
 }
 
 .filtro-historial {
@@ -85,15 +127,17 @@
 
   .sucursal {
     font-weight: 500;
+    // "NUEVA ESPERANZA SAN ANTONIO" en una sola línea.
+    white-space: nowrap;
   }
 
+  // Usuario y fecha en columnas propias y en una línea: la fila no crece a dos renglones.
   .modificado {
     font-size: 13px;
+    white-space: nowrap;
 
-    .fecha {
+    &.fecha {
       color: #9e9e9e;
-      font-size: 12px;
-      margin-top: 2px;
     }
   }
 

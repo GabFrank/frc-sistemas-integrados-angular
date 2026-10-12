@@ -4,7 +4,10 @@
 
   <mat-dialog-content class="dp-content">
   <div class="dp-cargando" *ngIf="isLoading">Cargando…</div>
-  <div class="dp-vacio" *ngIf="!isLoading && cantidad === 0">
+  <div class="dp-vacio" *ngIf="!isLoading && cargaFallo">
+    No se pudo cargar el detalle del pago. Cerrá y volvé a abrir para reintentar.
+  </div>
+  <div class="dp-vacio" *ngIf="!isLoading && !cargaFallo && cantidad === 0">
     Este movimiento no tiene documentos asociados.
   </div>
 

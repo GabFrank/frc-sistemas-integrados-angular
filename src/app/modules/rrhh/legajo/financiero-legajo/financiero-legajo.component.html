@@ -3,16 +3,16 @@
   <!-- Resumen: KPIs -->
   <div class="dash-stats-row">
     <dash-stat-chip icon="shopping_cart" color="info"
-      [value]="creditoSaldo | number:'1.0-0'"
+      [value]="creditoNoCargado ? 'No disponible' : (creditoSaldo | number:'1.0-0')"
       label="Crédito convenio (saldo)"></dash-stat-chip>
     <dash-stat-chip icon="receipt_long" color="warning"
-      [value]="valesPendiente | number:'1.0-0'"
+      [value]="valesNoCargados ? 'No disponible' : (valesPendiente | number:'1.0-0')"
       label="Vales pendientes de descontar"></dash-stat-chip>
     <dash-stat-chip icon="account_balance" color="info"
-      [value]="prestamosSaldo | number:'1.0-0'"
+      [value]="prestamosNoCargados ? 'No disponible' : (prestamosSaldo | number:'1.0-0')"
       label="Saldo de préstamos"></dash-stat-chip>
     <dash-stat-chip icon="gavel" color="error"
-      [value]="penalizacionesTotal | number:'1.0-0'"
+      [value]="penalizacionesNoCargadas ? 'No disponible' : (penalizacionesTotal | number:'1.0-0')"
       label="Penalizaciones y descuentos"></dash-stat-chip>
   </div>
 
@@ -23,9 +23,10 @@
       <div fxLayout="column">
         <span class="exp-label">Exposición total</span>
         <span class="exp-sub">Crédito + vales + saldo de préstamos pendientes</span>
+        <span class="exp-sub" *ngIf="exposicionFaltante">{{ exposicionFaltante }}</span>
       </div>
     </div>
-    <span class="exp-valor">{{ exposicionTotal | number:'1.0-0' }}</span>
+    <span class="exp-valor">{{ exposicionFaltante ? 'No disponible' : (exposicionTotal | number:'1.0-0') }}</span>
   </mat-card>
 
   <!-- Crédito por compras en convenio -->

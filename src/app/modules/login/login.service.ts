@@ -15,7 +15,7 @@ export interface LoginResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable, of } from "rxjs";
+import { Observable, of, Subscription } from "rxjs";
 import { catchError, tap, timeout } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
@@ -151,8 +151,11 @@ export class LoginService {
               }
 
               this.mainService.sucursalActual = res["sucursal"];
+              // Se guarda para cancelarla si el usuario no carga: si no, escribía token_central después
+              // de que noSeCargoElUsuario limpiara la sesión (#390).
+              let autenticacionCentral: Subscription = null;
               if (config.isLocal) {
-                this.autenticarEnCentral(nickname, password).subscribe();
+                autenticacionCentral = this.autenticarEnCentral(nickname, password).subscribe();
               }
 
               setTimeout(() => {
@@ -160,8 +163,15 @@ export class LoginService {
                   this.usuarioService
                     .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
-                    .subscribe((res) => {
-                      if (res?.id != null) {
+                    .subscribe({
+                      // Sin usuario (no respondió o error del servidor) el login emitía nada y quedaba esperando (#390).
+                      error: () => obs.next(this.noSeCargoElUsuario(autenticacionCentral)),
+                      next: (res) => {
+                      if (res?.id == null) {
+                        obs.next(this.noSeCargoElUsuario(autenticacionCentral));
+                        return;
+                      }
+                      {
                         this.mainService.usuarioActual = res;
                         this.registrarSesionActiva(res, !config.isLocal);
                         this.notificarInicioSesion(res.id);
@@ -172,7 +182,7 @@ export class LoginService {
                         };
                         obs.next(response);
                       }
-                    });
+                    }});
                 }
               }, 500);
             } else {
@@ -280,6 +290,21 @@ export class LoginService {
     return this.buildServerErrorResponse(
       "No se pudo iniciar sesión por un error del servidor. Intente nuevamente."
     );
+  }
+
+  /**
+   * Autenticó pero no se pudo cargar el usuario. Se limpia lo que la autenticación ya guardó: con
+   * "mantener sesión" el próximo arranque entraba con un token sin sesión registrada.
+   */
+  private noSeCargoElUsuario(autenticacionCentral: Subscription): LoginResponse {
+    autenticacionCentral?.unsubscribe();
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuarioId");
+    localStorage.removeItem("token_central");
+    return {
+      usuario: null,
+      error: this.buildServerErrorResponse("No se pudo cargar el usuario: el servidor no responde. Intente nuevamente."),
+    };
   }
 
   private buildAuthErrorResponse(

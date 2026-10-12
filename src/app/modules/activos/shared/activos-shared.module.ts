@@ -6,11 +6,13 @@ import { MaterialModule } from '../../../commons/core/material.module';
 import { SharedModule } from '../../../shared/shared.module';
 import { CuotasDetalleEditorComponent } from './components/cuotas-detalle-editor/cuotas-detalle-editor.component';
 import { EnteArchivosPanelComponent } from './components/ente-archivos-panel/ente-archivos-panel.component';
+import { BienEstadoCargaComponent } from './components/bien-estado-carga/bien-estado-carga.component';
 
 @NgModule({
   declarations: [
     CuotasDetalleEditorComponent,
     EnteArchivosPanelComponent,
+    BienEstadoCargaComponent,
   ],
   imports: [
     CommonModule,
@@ -23,6 +25,7 @@ import { EnteArchivosPanelComponent } from './components/ente-archivos-panel/ent
   exports: [
     CuotasDetalleEditorComponent,
     EnteArchivosPanelComponent,
+    BienEstadoCargaComponent,
   ],
 })
 export class ActivosSharedModule {}

@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, shareReplay, switchMap, take, tap } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../generics/generic-crud.constantes';
 import { PageInfo } from '../../../../app.component';
 import { Producto } from '../../../productos/producto/producto.model';
 import { ProductoProveedor } from '../../../productos/producto-proveedor/producto-proveedor.model';
@@ -57,6 +58,11 @@ const BUSQUEDA_DIALOG_PAGE_SIZE = 20;
  */
 const FILAS_POR_LLAMADA_PRODUCTO_SEARCH = 10;
 const BUSQUEDA_CACHE_TTL_MS = 60_000;
+/** El que busca espera de pie: 10 s y sin el aviso genérico del link, avisa el llamador (#390). */
+const CONSULTA_BUSCADOR: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS,
+  silenciarAvisoTimeout: true,
+};
 
 @Injectable({
   providedIn: 'root',
@@ -76,12 +82,16 @@ export class BuscadorComprasService {
   /**
    * Búsqueda de productos para el diálogo de compras.
    * Usa caché compartida (shareReplay) para que prefetch y diálogo reutilicen la misma petición.
+   *
+   * `propagarError`: el diálogo de búsqueda lo pide para avisar que el servidor no respondió en vez de
+   * mostrar «sin resultados». Sin él, la página 0 devuelve lista vacía ante un error (#390).
    */
   buscarProductosParaDialog(
     texto: string,
     page = 0,
     size = BUSQUEDA_DIALOG_PAGE_SIZE,
-    silentLoad = true
+    silentLoad = true,
+    propagarError = false
   ): Observable<Producto[]> {
     const termino = (texto ?? '').trim();
     if (!termino) {
@@ -89,9 +99,17 @@ export class BuscadorComprasService {
     }
 
     const cacheKey = `${termino}|${page}|${size}`;
+    const conPolitica = (busqueda$: Observable<Producto[]>) =>
+      // La página 0 la comparten el prefetch y los Enter, que esperan lista
+      // vacía ante un error. En las siguientes el error tiene que llegar al
+      // diálogo: una lista vacía se leería como «no hay más resultados».
+      page === 0 && !propagarError
+        ? busqueda$.pipe(catchError(() => of([] as Producto[])))
+        : busqueda$;
+
     const cached = this.busquedaDialogCache.get(cacheKey);
     if (cached) {
-      return cached;
+      return conPolitica(cached);
     }
 
     const request$ = this.ejecutarBusquedaProductosDialog(
@@ -102,19 +120,17 @@ export class BuscadorComprasService {
     ).pipe(
       tap((productos) => this.busquedaResultadosCache.set(cacheKey, productos)),
       shareReplay({ bufferSize: 1, refCount: false }),
-      // La página 0 la comparten el prefetch y los Enter, que esperan lista
-      // vacía ante un error. En las siguientes el error tiene que llegar al
-      // diálogo: una lista vacía se leería como «no hay más resultados».
+      // Un fallo no se cachea: el próximo intento vuelve a consultar
       catchError((error) => {
         this.olvidarBusqueda(cacheKey, request$);
-        return page === 0 ? of([] as Producto[]) : throwError(() => error);
+        return throwError(() => error);
       })
     );
 
     this.busquedaDialogCache.set(cacheKey, request$);
     setTimeout(() => this.olvidarBusqueda(cacheKey, request$), BUSQUEDA_CACHE_TTL_MS);
 
-    return request$;
+    return conPolitica(request$);
   }
 
   /**
@@ -190,8 +206,9 @@ export class BuscadorComprasService {
           activo: true,
         },
         true,
-        { networkError: { propagate: true } },
-        silentLoad
+        PROPAGAR_ERROR_DE_RED,
+        silentLoad,
+        CONSULTA_BUSCADOR
       )
       .pipe(
         // Con un error de GraphQL onCustomQuery ya avisó y emite null.
@@ -228,24 +245,23 @@ export class BuscadorComprasService {
         this.buscarProductoInteligenteGQL,
         { texto, proveedorId, activo: true, page, size },
         true,
-        undefined,
-        silentLoad
+        PROPAGAR_ERROR_DE_RED,
+        silentLoad,
+        CONSULTA_BUSCADOR
       )
       .pipe(
+        // Un error de red llega al llamador sin pasar por filtros: si el servidor no responde, la
+        // segunda consulta tampoco, y la espera se duplicaría. Un error GraphQL emite null y sí cae
+        // a filtros, como antes.
         switchMap((pageInfo: PageInfo<BuscadorProductoResultado>) => {
           if (pageInfo?.getContent?.length > 0) {
             return of(pageInfo);
           }
           if (proveedorId != null) {
-            return of(pageInfo);
+            return of(pageInfo ?? new PageInfo<BuscadorProductoResultado>());
           }
           return this.buscarProductoConFiltros(texto, page, size, silentLoad);
-        }),
-        catchError(() =>
-          proveedorId != null
-            ? of(new PageInfo<BuscadorProductoResultado>())
-            : this.buscarProductoConFiltros(texto, page, size, silentLoad)
-        )
+        })
       );
   }
 
@@ -279,10 +295,15 @@ export class BuscadorComprasService {
           size,
         },
         true,
-        undefined,
-        silentLoad
+        PROPAGAR_ERROR_DE_RED,
+        silentLoad,
+        CONSULTA_BUSCADOR
       )
       .pipe(
+        // Con un error GraphQL onCustomQuery ya avisó y emite null: es un fallo, no «sin resultados»
+        switchMap((pageInfo: PageInfo<Producto> | null) =>
+          pageInfo == null ? throwError(() => new Error('searchProductoWithFilters sin datos')) : of(pageInfo)
+        ),
         map((pageInfo: PageInfo<Producto>) => {
           const resultado = new PageInfo<BuscadorProductoResultado>();
           resultado.getTotalPages = pageInfo.getTotalPages;
@@ -308,14 +329,17 @@ export class BuscadorComprasService {
     page = 0,
     size = 10,
     pedidoId?: number,
-    silentLoad = true
+    silentLoad = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PageInfo<ProductoProveedor>> {
     return this.genericCrudService.onCustomQuery(
       this.productoProveedorBusquedaInteligenteGQL,
       { id: proveedorId, texto, page, size, pedidoId },
       true,
-      undefined,
-      silentLoad
+      errorConf,
+      silentLoad,
+      contexto
     );
   }
 

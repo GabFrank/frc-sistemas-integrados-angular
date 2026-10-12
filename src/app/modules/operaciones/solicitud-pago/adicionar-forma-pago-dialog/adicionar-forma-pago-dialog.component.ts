@@ -1,6 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { forkJoin, of } from 'rxjs';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
@@ -13,6 +12,23 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
+import { ContextoConsulta } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
+
+/** Cotización de la forma de pago: 20 s, avisa el diálogo (#390). */
+const CONSULTA_COTIZACION: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
+
+/** Una moneda extranjera nunca cotiza 1 o menos contra el guaraní. */
+function cotizacionMayorAUno(control: AbstractControl): ValidationErrors | null {
+  const v = control.value;
+  if (v == null || v === '') {
+    return null; // lo cubre required
+  }
+  return Number(v) > 1 ? null : { cotizacionInvalida: true };
+}
 
 export interface AdicionarFormaPagoDialogData {
   monedaList: Moneda[];
@@ -51,6 +67,17 @@ export class AdicionarFormaPagoDialogComponent {
   diferenciaEstado: 'cubre' | 'exceso' | 'falta' = 'falta';
   /** Origen actual del campo cotización: "mercado" | "manual" | "none". */
   cotizacionOrigen: 'mercado' | 'manual' | 'none' = 'none';
+  /** Descarta la respuesta de cotización de una moneda elegida antes. */
+  private cotizacionConsulta = 0;
+  /**
+   * La cotización no se pudo leer y el valor quedó vacío: mientras el usuario no toque el valor, cada cambio de la
+   * cotización lo recalcula desde el monto sugerido en Gs (si no, quedaría calculado con el primer dígito tipeado).
+   */
+  private valorDesdeCotizacionManual = false;
+  /** Al abrir un detalle existente no se consulta la cotización: se respeta la guardada. */
+  private cargandoExistente = false;
+  /** Altas en curso: un segundo Confirmar duplicaría formas de pago. */
+  guardando = false;
   /** Opciones ngx-currency para el campo Valor según moneda seleccionada (Guarani: sin decimales, punto miles; otras: decimales). */
   valorCurrencyOptions: any;
   /** Opciones ngx-currency para Cotización (siempre con decimales). */
@@ -123,10 +150,15 @@ export class AdicionarFormaPagoDialogComponent {
       this.valorCurrencyOptions = m ? this.monedaService.currencyOptionsByMoneda(m) : this.monedaService.currencyOptionsGuarani;
       const denom = (m?.denominacion || '').toUpperCase();
       this.mostrarCotizacion = denom !== 'GUARANI' && denom !== 'GS' && denom !== '';
-      if (this.mostrarCotizacion && m) {
+      this.actualizarValidadoresCotizacion();
+      if (!this.mostrarCotizacion || !m) {
+        this.cotizacionConsulta++; // una consulta en vuelo de la moneda anterior ya no aplica
+      }
+      if (this.mostrarCotizacion && m && !this.cargandoExistente) {
         // Prefill cotización mercado siempre (compra > venta > último Cambio > moneda.cambio).
         this.prefillCotizacionMercado(m);
       } else if (!this.mostrarCotizacion && this.data?.montoSugerido != null && !this.isModoEdicion) {
+        this.valorDesdeCotizacionManual = false;
         this.cotizacionOrigen = 'none';
         this.form.patchValue(
           { valor: this.data.montoSugerido },
@@ -149,6 +181,7 @@ export class AdicionarFormaPagoDialogComponent {
       this.mostrarCamposCheque = formaPago?.descripcion != null && (formaPago.descripcion + '').toUpperCase().includes('CHEQUE');
       const fechaPago = existente.fechaPago ? new Date(existente.fechaPago) : null;
       const fechaEmisionCheque = existente.fechaEmisionCheque ? new Date(existente.fechaEmisionCheque) : this.form.get('fechaEmisionCheque').value;
+      this.cargandoExistente = true;
       this.form.patchValue({
         monedaId: existente.monedaId,
         formaPagoId: existente.formaPagoId,
@@ -161,18 +194,28 @@ export class AdicionarFormaPagoDialogComponent {
         nominal: existente.nominal ?? true,
         diferido: existente.diferido ?? true
       });
+      this.cargandoExistente = false;
     }
-    this.form.get('valor').valueChanges.subscribe(() => this.updateValorEnGuaraniesDisplay());
-    this.form.get('cotizacion').valueChanges.subscribe(() => this.updateValorEnGuaraniesDisplay());
+    this.form.get('valor').valueChanges.subscribe(() => {
+      // El usuario escribió el valor: deja de calcularse desde la cotización
+      this.valorDesdeCotizacionManual = false;
+      this.updateValorEnGuaraniesDisplay();
+    });
+    this.form.get('cotizacion').valueChanges.subscribe(() => {
+      this.recalcularValorDesdeCotizacionManual();
+      this.updateValorEnGuaraniesDisplay();
+    });
     this.updateValorEnGuaraniesDisplay();
   }
 
   /**
    * Trae la última cotización de mercado para la moneda y la setea como prefill editable.
-   * Prioridad: valorEnGsCompraMercado → valorEnGsVentaMercado → valorEnGs → moneda.cambio.
+   * Prioridad: valorEnGsCompraMercado → valorEnGsVentaMercado → valorEnGs. Sin ninguna, queda vacía (#390).
    */
   private prefillCotizacionMercado(moneda: Moneda): void {
+    const consulta = ++this.cotizacionConsulta;
     const aplicarTasa = (tasa: number, origen: 'mercado' | 'manual' | 'none') => {
+      this.valorDesdeCotizacionManual = false;
       this.cotizacionOrigen = origen;
       this.form.patchValue({ cotizacion: tasa }, { emitEvent: false });
       const montoGs = this.data?.montoSugerido;
@@ -185,22 +228,56 @@ export class AdicionarFormaPagoDialogComponent {
       }
       this.updateValorEnGuaraniesDisplay();
     };
-    this.cambioService.getUltimoCambioPorMonedaId(moneda.id).subscribe({
+    // Sin cotización leída del servidor no se inventa una (antes caía a moneda.cambio, posiblemente viejo, y
+    // con la consulta colgada el monto sugerido en Gs quedaba como si fuera moneda extranjera) (#390)
+    const sinCotizacion = () => {
+      if (consulta !== this.cotizacionConsulta) {
+        return;
+      }
+      this.cotizacionOrigen = 'none';
+      if (!this.isModoEdicion) {
+        this.form.patchValue({ cotizacion: null, valor: null }, { emitEvent: false });
+        this.valorDesdeCotizacionManual = true;
+      }
+      this.updateValorEnGuaraniesDisplay();
+      this.notificacionService.openWarn('No se pudo obtener la cotización: ingresala a mano y revisá el valor.', 6);
+    };
+    if (!this.isModoEdicion) {
+      // Mientras se consulta no queda la cotización (ni el valor calculado) de la moneda anterior
+      this.form.patchValue({ cotizacion: null }, { emitEvent: false });
+      this.updateValorEnGuaraniesDisplay();
+    }
+    this.cambioService.getUltimoCambioPorMonedaId(moneda.id, PROPAGAR_ERROR_DE_RED, CONSULTA_COTIZACION).subscribe({
       next: (cambio: any) => {
+        if (consulta !== this.cotizacionConsulta) {
+          return;
+        }
         const tasaMercado = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado;
         if (tasaMercado != null && tasaMercado > 0) {
           aplicarTasa(tasaMercado, 'mercado');
           return;
         }
-        const tasaManual = cambio?.valorEnGs ?? moneda.cambio ?? 0;
-        if (tasaManual > 0) aplicarTasa(tasaManual, 'manual');
-        else aplicarTasa(moneda.cambio || 0, 'none');
+        const tasaManual = cambio?.valorEnGs;
+        if (tasaManual != null && tasaManual > 0) {
+          aplicarTasa(tasaManual, 'manual');
+          return;
+        }
+        // null (error GraphQL o sin cambio registrado): no es una tasa
+        sinCotizacion();
       },
-      error: () => {
-        // Sin cambio registrado → fallback moneda.cambio
-        aplicarTasa(moneda.cambio || 0, 'none');
-      }
+      error: () => sinCotizacion()
     });
+  }
+
+  /** En una forma nueva en moneda extranjera la cotización es obligatoria y mayor a 1 (#390). */
+  private actualizarValidadoresCotizacion(): void {
+    const control = this.form.get('cotizacion');
+    if (this.mostrarCotizacion && !this.isModoEdicion) {
+      control.setValidators([Validators.required, cotizacionMayorAUno]);
+    } else {
+      control.clearValidators();
+    }
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   /** Si el user edita la cotización manualmente, marcar origen para hint UI. */
@@ -208,6 +285,16 @@ export class AdicionarFormaPagoDialogComponent {
     if (this.cotizacionOrigen === 'mercado') {
       this.cotizacionOrigen = 'manual';
     }
+  }
+
+  private recalcularValorDesdeCotizacionManual(): void {
+    if (!this.valorDesdeCotizacionManual) {
+      return;
+    }
+    const tasa = Number(this.form.get('cotizacion').value);
+    const montoGs = this.data?.montoSugerido;
+    const valor = tasa > 1 && montoGs != null && montoGs > 0 ? Math.round((montoGs / tasa) * 100) / 100 : null;
+    this.form.patchValue({ valor }, { emitEvent: false });
   }
 
   private updateValorEnGuaraniesDisplay(): void {
@@ -295,6 +382,9 @@ export class AdicionarFormaPagoDialogComponent {
   }
 
   onConfirmar(): void {
+    if (this.guardando) {
+      return;
+    }
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;
@@ -317,15 +407,9 @@ export class AdicionarFormaPagoDialogComponent {
 
       const solicitudPagoId = this.data?.solicitudPagoId;
       if (solicitudPagoId != null) {
-        // Modo edición de la solicitud: persistir cada detalle y devolver las filas guardadas.
-        const calls = detalles.map((d) => this.solicitudPagoService.onAgregarSolicitudPagoDetalle(solicitudPagoId, d));
-        forkJoin(calls.length ? calls : [of(null)]).subscribe({
-          next: (savedList: any[]) => {
-            const rows = (savedList || []).filter(Boolean).map((s) => this.mapSavedToRow(s));
-            this.dialogRef.close(rows);
-          },
-          error: () => this.notificacionService.openAlgoSalioMal('No se pudo guardar la forma de pago')
-        });
+        // Modo edición de la solicitud: persistir cada detalle EN SECUENCIA y devolver las filas guardadas. Antes
+        // iban en paralelo: si fallaba una cuota las otras ya existían y un reintento duplicaba cheques (#390).
+        this.guardarEnSecuencia(solicitudPagoId, detalles);
       } else {
         // Solicitud nueva (aún no creada): devolver los detalles sin guardar.
         this.dialogRef.close(detalles.map((d) => this.toRow(d)));
@@ -403,6 +487,34 @@ export class AdicionarFormaPagoDialogComponent {
       detalle.portador = (v.portador || '').toString().trim().toUpperCase() || undefined;
     }
     return detalle;
+  }
+
+  private guardarEnSecuencia(solicitudPagoId: number, detalles: SolicitudPagoDetalleInput[]): void {
+    if (this.guardando) {
+      return;
+    }
+    this.guardando = true;
+    const guardados: any[] = [];
+    const siguiente = (i: number) => {
+      if (i >= detalles.length) {
+        this.dialogRef.close(guardados.filter(Boolean).map((s) => this.mapSavedToRow(s)));
+        return;
+      }
+      this.solicitudPagoService.onAgregarSolicitudPagoDetalle(solicitudPagoId, detalles[i]).subscribe({
+        next: (saved) => {
+          guardados.push(saved);
+          siguiente(i + 1);
+        },
+        error: () => {
+          // Sin respuesta la última pudo haberse guardado igual: el padre recarga la solicitud del servidor
+          this.notificacionService.openWarn(detalles.length > 1
+            ? `Se confirmaron ${guardados.length} de ${detalles.length} formas de pago (puede haber alguna más): revisá la solicitud antes de agregar las que faltan.`
+            : 'No se pudo confirmar si la forma de pago se guardó: revisá la solicitud antes de reintentar.', 8);
+          this.dialogRef.close({ recargar: true });
+        }
+      });
+    };
+    siguiente(0);
   }
 
   private mapSavedToRow(saved: any): SolicitudPagoDetalleInput & { id?: number; monedaDenominacion?: string; formaPagoDescripcion?: string } {

@@ -12,8 +12,11 @@ import { sucursalesConServidor } from '../../../../empresarial/sucursal/sucursal
 import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../../pdv/caja/caja.model';
 import { PageEvent } from '@angular/material/paginator';
-import { combineLatest, BehaviorSubject, Observable } from 'rxjs';
-import { switchMap, tap, map, shareReplay } from 'rxjs/operators';
+import { combineLatest, BehaviorSubject, Observable, of } from 'rxjs';
+import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 import { GastosDashboardComponent } from '../gastos-dashboard/gastos-dashboard.component';
 import { MainService } from '../../../../../main.service';
@@ -40,6 +43,7 @@ export class ListGastosComponent implements OnInit {
   @Input() data: Tab;
 
   private gastoService = inject(GastoService);
+  private notificacion = inject(NotificacionSnackbarService);
   private sucursalService = inject(SucursalService);
   private tabService = inject(TabService);
   public mainService = inject(MainService);
@@ -79,10 +83,17 @@ export class ListGastosComponent implements OnInit {
       null,
       this.descripcionControl.value,
       pag.pageIndex,
-      pag.pageSize
+      pag.pageSize,
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
+    ).pipe(
+      // Dentro del switchMap: si el error saliera de acá, el stream moriría y la lista no se actualizaría más (#390).
+      catchError(() => of(null))
     )),
     tap(res => {
-      if (res) this.totalElements$.next(res.getTotalElements);
+      if (res == null) { this.notificacion.openWarn('No se pudieron cargar los gastos.', 5); }
+      this.totalElements$.next(res ? res.getTotalElements : 0);
     }),
     map(res => (res?.getContent || []).map(g => this.toRow(g))),
     shareReplay({ bufferSize: 1, refCount: true })

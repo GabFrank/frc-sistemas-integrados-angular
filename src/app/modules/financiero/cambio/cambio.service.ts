@@ -1,6 +1,6 @@
 import { CambioInput } from './cambio-input.model';
 import { Observable } from 'rxjs';
-import { GenericCrudService, TIMEOUT_CONSULTA_DE_FONDO_MS } from './../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from './../../../generics/generic-crud.service';
 import { SaveCambioGQL } from './graphql/saveCambio';
 import { Injectable } from '@angular/core';
 import { CambiosGetAllByDateGQL } from './graphql/cambiosGetByDate';
@@ -29,8 +29,8 @@ export class CambioService {
     return this.genericService.onSave(this.saveCambio, cambio)
   }
 
-  getUltimoCambioPorMonedaId(monedaId: number): Observable<Cambio> {
-    return this.genericService.onCustomQuery(this.ultimoCambioPorMonedaIdGQL, {id: monedaId}, true);
+  getUltimoCambioPorMonedaId(monedaId: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Cambio> {
+    return this.genericService.onCustomQuery(this.ultimoCambioPorMonedaIdGQL, {id: monedaId}, true, errorConf, undefined, contexto);
   }
 
   /**

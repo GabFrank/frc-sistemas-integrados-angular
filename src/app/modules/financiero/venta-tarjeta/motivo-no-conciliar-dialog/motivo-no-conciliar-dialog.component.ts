@@ -5,7 +5,8 @@ import { MOTIVOS_NO_COMPLETADO } from '../venta-tarjeta.model';
 
 export interface MotivoNoConciliarData {
   /** Cuántos cobros se van a marcar. 1 = uno solo; más = el cierre de caja completo. */
-  cuantos: number;
+  /** null = no se sabe cuántas (el conteo dio error en el cierre de caja). */
+  cuantos: number | null;
 }
 
 export interface MotivoNoConciliarResultado {

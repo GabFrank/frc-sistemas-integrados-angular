@@ -68,7 +68,7 @@
       Cancelar
     </button>
     <button
-      [disabled]="!formGroup.valid"
+      [disabled]="!formGroup.valid || guardando"
       fxFlex="30"
       *ngIf="isGuardar"
       mat-raised-button

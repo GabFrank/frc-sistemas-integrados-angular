@@ -9,6 +9,10 @@ import { ChequeraService } from '../chequera.service';
 import { EditChequeraDialogComponent, EditChequeraData } from '../edit-chequera-dialog/edit-chequera-dialog.component';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { take } from 'rxjs/operators';
 
 interface ChequeraRow extends Chequera {
   _cuentaLabel?: string;
@@ -27,6 +31,8 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
   dataSource = new MatTableDataSource<ChequeraRow>([]);
   displayedColumns = ['nombre', 'cuenta', 'rango', 'siguiente', 'hojas', 'estado', 'acciones'];
   isLoading = false;
+  /** Número de la última lectura: una respuesta vieja (dos lecturas seguidas) no pisa a la nueva. */
+  private cargaSeq = 0;
   cambios = false;   // se devuelve al cerrar para que el dashboard recargue si hubo cambios
 
   // Filtros (client-side sobre la lista cargada)
@@ -66,10 +72,24 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
 
   cargar() {
     this.isLoading = true;
-    this.chequeraService.onGetChequeras(0, 500).pipe(untilDestroyed(this)).subscribe(res => {
+    const carga = ++this.cargaSeq;
+    const noSePudo = () => {
+      if (carga !== this.cargaSeq) return;
       this.isLoading = false;
-      this.dataSource.data = (res || []).map(ch => this.toRow(ch));
-      this.aplicarFiltro();
+      this.notificacion.notification$.next({
+        texto: 'No se pudo leer la lista de chequeras: lo que se ve puede estar desactualizado.',
+        color: NotificacionColor.warn, duracion: 6,
+      });
+    };
+    this.chequeraService.onLeerChequeras(0, 500).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (carga !== this.cargaSeq) return;
+        if (res == null) { noSePudo(); return; }
+        this.isLoading = false;
+        this.dataSource.data = res.map(ch => this.toRow(ch));
+        this.aplicarFiltro();
+      },
+      error: noSePudo,
     });
   }
 
@@ -140,19 +160,33 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
         siguienteNumero: ch.siguienteNumero,
         estado: EstadoChequera.ANULADA,
       };
-      this.chequeraService.onSaveChequera(input).pipe(untilDestroyed(this)).subscribe({
+      this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED).pipe(take(1), untilDestroyed(this)).subscribe({
         next: r => {
+          this.cambios = true;
           if (r != null) {
-            this.cambios = true;
             this.notificacion.notification$.next({ texto: 'Chequera desactivada', color: NotificacionColor.success, duracion: 3 });
-            this.cargar();
+          } else {
+            this.desactivarSinConfirmar(true);
           }
+          this.cargar();
         },
         error: err => {
-          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo desactivar';
-          this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+          // Rechazo: no se desactivó y el motivo ya lo mostró el servicio genérico.
+          if (erroresDeRechazo(err)) return;
+          // Sin respuesta: pudo haberse desactivado. Antes, con la red caída, no pasaba nada ni se avisaba.
+          this.cambios = true;
+          this.desactivarSinConfirmar(!esTimeoutDeLink(err));
+          this.cargar();
         },
       });
+    });
+  }
+
+  private desactivarSinConfirmar(avisar: boolean) {
+    if (!avisar) return;
+    this.notificacion.notification$.next({
+      texto: 'No se pudo confirmar si la chequera se desactivó: se vuelve a leer la lista.',
+      color: NotificacionColor.warn, duracion: 6,
     });
   }
 

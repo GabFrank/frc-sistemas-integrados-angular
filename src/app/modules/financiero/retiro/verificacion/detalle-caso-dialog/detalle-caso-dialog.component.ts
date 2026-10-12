@@ -9,6 +9,8 @@ import { RetiroVerificacionService } from '../retiro-verificacion.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
 import { CajaService } from '../../../pdv/caja/caja.service';
 import { CajaBalance } from '../../../pdv/caja/caja.model';
+import { erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
 
 export interface DetalleCasoDialogData {
   caso: RetiroCaso;
@@ -71,6 +73,8 @@ export class DetalleCasoDialogComponent implements OnInit {
   filas: FilaDetalle[] = [];
   resolucion = '';
   guardando = false;
+  /** Hubo un intento de resolver: al cerrar, la lista de casos se relee. */
+  private huboIntento = false;
 
   contadoPor = '';
   rapida = false;
@@ -254,23 +258,46 @@ export class DetalleCasoDialogComponent implements OnInit {
     const choque = this.veredictoContraElConteo();
     if (choque) return this.avisar(choque);
 
+    const pidioAnular = this.esErrorDeConteo && this.anularVerificacion;
     this.guardando = true;
+    // Desde acá el cierre pasa por «Cerrar», que hace releer la lista (Esc y el clic afuera
+    // cerrarían sin valor).
+    this.huboIntento = true;
+    this.dialogRef.disableClose = true;
     this.service.onResolverCaso(this.data.caso.id, {
       veredicto: this.veredicto,
       resolucion: this.resolucion,
       responsablePersonaId: this.exigeResponsable ? this.responsablePersonaId : null,
       reintegroRetiroId: this.esReintegro ? this.reintegroRetiroId : null,
-      anularVerificacion: this.esErrorDeConteo && this.anularVerificacion,
+      anularVerificacion: pidioAnular,
     }).pipe(untilDestroyed(this)).subscribe({
       next: r => {
         this.guardando = false;
-        if (r != null) this.dialogRef.close(r);
+        if (r != null) { this.dialogRef.close(r); return; }
+        this.cerrarSinConfirmar('No se pudo confirmar si el caso quedó resuelto: se vuelve a leer la lista de casos.');
       },
-      // El aviso de error lo da onSaveCustom.
-      error: () => {
+      // El aviso del error lo da onSaveCustom (o el link, en un corte).
+      error: err => {
         this.guardando = false;
+        const rechazo = erroresDeRechazo(err) !== null;
+        // Rechazo sin anulación pedida: nada se guardó, el diálogo queda abierto para corregir.
+        if (rechazo && !pidioAnular) return;
+        if (rechazo) {
+          // El central guarda el caso como resuelto y después anula la verificación: si esa
+          // anulación falla llega un error, pero el caso pudo haber quedado resuelto (#390).
+          this.cerrarSinConfirmar('El caso pudo haber quedado resuelto aunque la anulación de la verificación '
+            + 'falló: se vuelve a leer la lista de casos.');
+          return;
+        }
+        this.cerrarSinConfirmar(esTimeoutDeLink(err) ? null
+          : 'No se pudo confirmar si el caso quedó resuelto: se vuelve a leer la lista de casos.');
       },
     });
+  }
+
+  private cerrarSinConfirmar(texto: string) {
+    if (texto) this.notificacion.notification$.next({ texto, color: NotificacionColor.warn, duracion: 8 });
+    this.dialogRef.close(true);
   }
 
   /**
@@ -299,6 +326,6 @@ export class DetalleCasoDialogComponent implements OnInit {
   }
 
   onCerrar() {
-    this.dialogRef.close(null);
+    this.dialogRef.close(this.huboIntento ? true : null);
   }
 }

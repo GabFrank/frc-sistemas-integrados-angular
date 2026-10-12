@@ -6,7 +6,11 @@
       <mat-spinner diameter="28"></mat-spinner>
     </div>
 
-    <ng-container *ngIf="!cargando">
+    <div *ngIf="!cargando && cargaFallo" class="config-cargando">
+      No se pudo cargar la configuración: no se puede guardar.
+      <button mat-stroked-button type="button" (click)="cargar()">Reintentar</button>
+    </div>
+    <ng-container *ngIf="!cargando && !cargaFallo">
       <!-- Dashboard / umbrales -->
       <div class="config-seccion">
         <h3 class="config-seccion-titulo">
@@ -133,7 +137,7 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="guardando || cargando"
+      [disabled]="guardando || cargando || cargaFallo"
       (click)="onGuardar()"
     >
       <mat-icon>save</mat-icon> Guardar

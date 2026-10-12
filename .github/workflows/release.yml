@@ -141,6 +141,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.release.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           # Determine channel from version tag
           if [[ "${VERSION}" == *"-alpha"* ]]; then
@@ -152,19 +153,36 @@ jobs:
           fi
           echo "Channel: ${CHANNEL}"
 
-          # Copy manifests with channel name
-          # electron-updater looks for {channel}.yml and {channel}-linux.yml
+          # Rename manifests to the channel name
+          # electron-updater looks for {channel}.yml and {channel}-linux.yml.
+          # Rename (not copy): a prerelease that also ships latest*.yml looks, to anyone
+          # reading its assets, like a build the stable channel could receive.
           if [ "${CHANNEL}" != "latest" ]; then
             for f in release/latest*.yml; do
               if [ -f "$f" ]; then
                 NEWNAME=$(echo "$f" | sed "s/latest/${CHANNEL}/")
-                cp "$f" "$NEWNAME"
-                echo "Created $NEWNAME"
+                mv "$f" "$NEWNAME"
+                echo "Renamed $f -> $NEWNAME"
               fi
             done
           else
-            echo "Channel is latest — manifests already have correct names, skipping copy"
+            echo "Channel is latest — manifests already have correct names, skipping rename"
           fi
+
+          # Fail loudly if this platform's channel manifest is missing. Without it the
+          # release publishes fine but every client on the channel gets
+          # ERR_UPDATER_CHANNEL_FILE_NOT_FOUND on each check, and nothing reports it.
+          if [ "${PLATFORM}" = "linux" ]; then
+            MANIFEST="release/${CHANNEL}-linux.yml"
+          else
+            MANIFEST="release/${CHANNEL}.yml"
+          fi
+          if [ ! -f "${MANIFEST}" ]; then
+            echo "::error::Missing ${MANIFEST} — the ${CHANNEL} channel would have no update manifest"
+            ls -la release/
+            exit 1
+          fi
+          echo "Channel manifest present: ${MANIFEST}"
 
       - name: Upload artifacts to GitHub Release
         shell: bash
@@ -176,6 +194,8 @@ jobs:
           # Collect files individually (handles filenames with spaces)
           FILES=()
           for f in release/*.exe release/*.AppImage release/*.yml release/*.blockmap; do
+            # electron-builder's own debug dump: no client reads it
+            [ "$(basename "$f")" = "builder-debug.yml" ] && continue
             [ -f "$f" ] && FILES+=("$f")
           done
           if [ ${#FILES[@]} -gt 0 ]; then

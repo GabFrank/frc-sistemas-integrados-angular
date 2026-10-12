@@ -131,10 +131,13 @@ export class VehiculoDialogService {
     );
   }
 
-  onCancelar(dialogRef: any): void {
+  /** `refrescar`: se vuelve a cargar la lista de vehículos (un alta quedó sin confirmar). */
+  onCancelar(dialogRef: any, refrescar = false): void {
     if (dialogRef) {
-      dialogRef.close();
+      dialogRef.close(refrescar ? true : undefined);
     } else {
+      // Abierto en pestaña (desde el pre-registro): nadie escucha el cierre, se refresca acá
+      if (refrescar) this.vehiculoService.refrescar();
       this.tabService.removeTab(this.tabService.currentIndex);
     }
   }

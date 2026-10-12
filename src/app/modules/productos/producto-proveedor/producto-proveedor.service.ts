@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { Observable } from 'rxjs';
 import { ProductoProveedor } from './producto-proveedor.model';
 import { ProductoProveedorPorProveedorIdGQL } from './graphql/productoProveedorPorProveedorId';
@@ -19,23 +19,27 @@ export class ProductoProveedorService {
     private saveProductoProveedorGQL: SaveProductoProveedorGQL
   ) { }
 
-  getByProveedorId(id: number, texto: string, page: number, size: number, pedidoId?: number, silentLoad?: boolean): Observable<PageInfo<ProductoProveedor>> {
+  getByProveedorId(id: number, texto: string, page: number, size: number, pedidoId?: number, silentLoad?: boolean,
+                   errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<ProductoProveedor>> {
     return this.genericService.onCustomQuery(
       this.productoProveedorPorProveedorId,
       { id, texto, page, size, pedidoId },
       true,
-      undefined,
-      silentLoad
+      errorConf,
+      silentLoad,
+      contexto
     );
   }
 
-  getByProductoId(productoId: number, page: number, size: number, silentLoad?: boolean): Observable<PageInfo<ProductoProveedor>> {
+  getByProductoId(productoId: number, page: number, size: number, silentLoad?: boolean,
+                  errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<ProductoProveedor>> {
     return this.genericService.onCustomQuery(
       this.productoProveedorPorProductoId,
       { id: productoId, page, size },
       true,
-      undefined,
-      silentLoad
+      errorConf,
+      silentLoad,
+      contexto
     );
   }
 

@@ -12,6 +12,9 @@ import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { CambioService } from '../../cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -134,15 +137,23 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       diferenciaObservacionControl: this.diferenciaObservacionControl,
     });
 
-    this.operacionFinancieraService.onGetCategorias().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.categoriaList = res;
+    // Sin estos catálogos los selectores quedaban vacíos sin aviso (#390). Las categorías propagan en el servicio.
+    const noCargo = (que: string) => this.notificacion.openWarn('No se pudieron cargar ' + que
+      + ': cerrá y volvé a abrir para reintentar.', 5);
+    this.operacionFinancieraService.onGetCategorias().pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.categoriaList = res; } else { noCargo('las categorías'); } },
+      error: () => noCargo('las categorías')
     });
-    this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.cajaVirtualList = res;
+    this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.cajaVirtualList = res; } else { noCargo('las cajas'); } },
+      error: () => noCargo('las cajas')
     });
     // Solo cuentas propias operables (no de terceros).
-    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.cuentaBancariaList = res;
+    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+      next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
+      error: () => noCargo('las cuentas bancarias')
     });
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
@@ -561,7 +572,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid) return;
+    if (this.formGroup.invalid || this.isSaving) return;
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
 
     // Operaciones de monto único (depósito/retiro/transf. entre cajas): el destino espeja al
@@ -607,22 +618,49 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     }
 
     this.isSaving = true;
+    // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no releería nada.
+    this.dialogRef.disableClose = true;
     this.operacionFinancieraService.onRegistrar(operacion, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
           this.isSaving = false;
+          this.dialogRef.disableClose = false;
           if (res != null) {
             this.notificacion.openSucess('Operación financiera registrada correctamente');
             this.dialogRef.close(res);
+          } else {
+            this.sinConfirmar(operacion, true);
           }
         },
-        error: () => {
-          // Solo se libera el formulario: el mensaje ya lo mostró GenericCrudService y
-          // repetirlo acá deja dos snackbars encimados diciendo lo mismo.
+        error: err => {
           this.isSaving = false;
+          this.dialogRef.disableClose = false;
+          // Rechazo: no se registró nada y el motivo ya lo mostró GenericCrudService (repetirlo acá deja
+          // dos snackbars diciendo lo mismo). El formulario queda para corregir y reintentar.
+          if (erroresDeRechazo(err)) return;
+          // El corte del link ya avisó que pudo haberse aplicado.
+          this.sinConfirmar(operacion, !esTimeoutDeLink(err));
         }
       });
+  }
+
+  /**
+   * La operación pudo haberse registrado, y el central registra otra igual si se repite (#390). Se cierra: con el
+   * formulario abierto, reintentar es un clic. El aviso manda a la lista de operaciones financieras y no a «los
+   * movimientos»: abierta desde una caja, la operación puede no tocar esa caja (p. ej. una transferencia bancaria).
+   */
+  private sinConfirmar(operacion: OperacionFinanciera, avisar: boolean) {
+    if (avisar) {
+      const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
+      const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
+      let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
+      // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
+      if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
+      this.notificacion.openWarn(
+        `No se pudo confirmar si la operación se registró (${tipo}, ${monto}): buscala en Operaciones financieras antes de repetirla.`, 10);
+    }
+    this.dialogRef.close(true);
   }
 
   private err(msg: string) {

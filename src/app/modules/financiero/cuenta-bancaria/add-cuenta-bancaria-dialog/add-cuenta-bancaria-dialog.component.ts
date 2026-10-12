@@ -69,8 +69,12 @@ export class AddCuentaBancariaDialogComponent implements OnInit {
       disponibleControl: this.disponibleControl,
     });
 
-    this.bancoService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.bancoList = res;
+    this.bancoService.onGetAll().pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res != null) { this.bancoList = res; return; }
+        this.notificacion.openWarn('No se pudieron cargar los bancos: cerrá y volvé a abrir para reintentar.', 5);
+      },
+      error: () => this.notificacion.openWarn('No se pudieron cargar los bancos: cerrá y volvé a abrir para reintentar.', 5)
     });
 
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {

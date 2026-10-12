@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
@@ -42,6 +43,18 @@ import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado
 import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
 import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
 import { CancelarGastoGQL } from '../graphql/cancelarGasto';
+
+/**
+ * Retiro de pre-gasto: lo espera el cajero en el POS y va al central. Sin esto, con el central sin
+ * responder no emiten nada y el diálogo queda con su spinner; los `error:` ya están escritos (#390).
+ */
+const RETIRO_PRE_GASTO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
+
+/** En cuál de los dos guardados del retiro de pre-gasto falló, y con qué error. */
+export interface ErrorRetiroPreGasto {
+  etapa: 'GASTO' | 'RETIRO';
+  causa: any;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -104,8 +117,9 @@ export class GastoService {
     return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
 
-  onGetByCajaId(id: number, servidor = true): Observable<Gasto[]> {
-    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor);
+  onGetByCajaId(id: number, servidor = true, silentLoad?: boolean, warningText?: string): Observable<Gasto[]> {
+    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor, null, null, null, silentLoad,
+      null, warningText);
   }
 
   onReimprimir(id: number, servidor = true): Observable<boolean> {
@@ -114,14 +128,18 @@ export class GastoService {
         .imprimirTicket('GASTO', id, 'La reimpresión del gasto', true)
         .pipe(map((ok) => (ok ? true : null)));
     }
-    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor);
+    return this.genericService
+      .onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor,
+        PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta('la reimpresión del gasto'));
   }
 
   onSaveVuelto(data: any, servidor = true): Observable<Gasto> {
     return this.genericService.onSaveCustom(this.saveVuelto, data, servidor);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Gasto>> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true,
+                errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<Gasto>> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
@@ -131,10 +149,12 @@ export class GastoService {
       descripcion,
       page,
       size
-    }, servidor)
+    }, servidor, errorConf ?? null, undefined, contexto)
   }
 
-  preGastoFilter(id?: number, cajaId?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number, estados?: string[], silentLoad?: boolean): Observable<PageInfo<PreGasto>> {
+  /** Va al central. `errorConf` y `contexto` son para el cierre de caja (#390); sin ellos queda como antes. */
+  preGastoFilter(id?: number, cajaId?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number, estados?: string[], silentLoad?: boolean,
+                 errorConf?: QueryError, contexto?: ContextoConsulta): Observable<PageInfo<PreGasto>> {
     return this.genericService.onCustomQuery(this.filterPreGastosGQL, {
       id,
       cajaId,
@@ -144,7 +164,7 @@ export class GastoService {
       fin,
       page,
       size
-    }, true, null, silentLoad);
+    }, true, errorConf ?? null, silentLoad, contexto);
   }
 
   preGastoGuardar(input: unknown): Observable<PreGasto> {
@@ -179,8 +199,9 @@ export class GastoService {
     });
   }
 
-  preGastoImprimir(id: number, sucId?: number): Observable<string> {
-    return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId });
+  preGastoImprimir(id: number, sucId?: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId }, true, errorConf ?? null, undefined,
+      contexto);
   }
 
   preGastoEnviarATesoreria(id: number, sucId: number, usuarioId: number): Observable<PreGasto> {
@@ -212,7 +233,9 @@ export class GastoService {
     texto?: string,
     page?: number,
     size?: number,
-    moduloPadre?: string | null
+    moduloPadre?: string | null,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PageInfo<TipoGasto>> {
     return this.genericService.onCustomQuery(this.filterTipoGastosGQL, {
       naturaleza,
@@ -220,15 +243,17 @@ export class GastoService {
       page,
       size,
       moduloPadre: moduloPadre ?? null,
-    });
+    }, true, errorConf ?? null, undefined, contexto);
   }
 
   preGastosParaRetiro(sucursalCajaId: number): Observable<PreGasto[]> {
-    return this.genericService.onCustomQuery(this.preGastosParaRetiroGQL, { sucursalCajaId });
+    return this.genericService.onCustomQuery(this.preGastosParaRetiroGQL, { sucursalCajaId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
   qrRetiroPreGasto(preGastoId: number, sucursalId: number): Observable<{ codigoQr: string; preGastoId: number; sucursalId: number; qrToken: string }> {
-    return this.genericService.onCustomQuery(this.qrRetiroPreGastoGQL, { preGastoId, sucursalId });
+    return this.genericService.onCustomQuery(this.qrRetiroPreGastoGQL, { preGastoId, sucursalId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
   preGastoPorId(id: number, sucId?: number): Observable<PreGasto> {
@@ -236,15 +261,19 @@ export class GastoService {
   }
 
   lineasRetiroSugeridas(preGastoId: number, sucursalId: number): Observable<LineaRetiroSugerida[]> {
-    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId });
+    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, RETIRO_PRE_GASTO);
   }
 
   montosRetiroDesdeLineas(lineas: RetiroPreGastoLineaInput[]): Observable<MontosRetiroPayload> {
-    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas });
+    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, RETIRO_PRE_GASTO);
   }
 
-  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId });
+  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number, errorConf?: QueryError, silentLoad?: boolean,
+                           contexto?: ContextoConsulta): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId }, true,
+      errorConf ?? null, silentLoad, contexto);
   }
 
   ejecutarRetiroPreGasto(input: {
@@ -259,6 +288,10 @@ export class GastoService {
     return this.genericService.onCustomMutation(this.ejecutarRetiroPreGastoGQL, { input });
   }
 
+  /**
+   * Falla con un {@link ErrorRetiroPreGasto} si el error vino de uno de los dos guardados; con un `Error`
+   * común si se cortó antes de guardar nada.
+   */
   registrarRetiroPreGastoHibrido(
     preGasto: PreGasto,
     caja: PdvCaja,
@@ -270,6 +303,11 @@ export class GastoService {
     const sucursalCajaId = caja?.sucursal?.id ?? caja?.sucursalId;
     return this.montosRetiroDesdeLineas(lineas).pipe(
       switchMap((montos) => {
+        // Sin montos (error del servidor) el gasto se guardaba en la caja con retiro 0 y después se
+        // ejecutaba el retiro en el central con las líneas reales: caja descuadrada. Se corta antes (#390).
+        if (montos == null) {
+          return throwError(() => new Error('No se pudieron calcular los montos del retiro: no se registró nada.'));
+        }
         const gasto = new Gasto();
         gasto.caja = caja;
         gasto.sucursalId = sucursalCajaId;
@@ -286,7 +324,10 @@ export class GastoService {
         gasto.activo = true;
         gasto.finalizado = false;
 
+        // Son dos guardados (gasto en el filial, retiro en el central). El error dice en cuál falló, porque
+        // de eso depende si se puede repetir: un fallo en el segundo deja el gasto ya guardado (#390).
         return this.onSave(gasto, false).pipe(
+          catchError((causa) => throwError(() => ({ etapa: 'GASTO', causa } as ErrorRetiroPreGasto))),
           switchMap((gastoGuardado) => {
             if (!gastoGuardado?.id) {
               return throwError(() => new Error('No se pudo registrar el gasto en la caja local.'));
@@ -299,7 +340,7 @@ export class GastoService {
               usuarioId,
               gastoRegistroId: gastoGuardado.id,
               lineas,
-            });
+            }).pipe(catchError((causa) => throwError(() => ({ etapa: 'RETIRO', causa } as ErrorRetiroPreGasto))));
           })
         );
       })

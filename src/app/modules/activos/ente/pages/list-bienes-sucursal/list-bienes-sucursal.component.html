@@ -44,6 +44,15 @@
 
   <div table style="height: 100%; background-color: transparent" fxLayout="column"
     fxLayoutAlign="space-between start">
+    <!-- Sin dato informado por el central (bien sin monto o sin plan): no es 0 -->
+    <ng-template #sinDato>—</ng-template>
+    <mat-progress-bar *ngIf="enteService.loading$ | async" mode="indeterminate"></mat-progress-bar>
+    <!-- La búsqueda falló (#390): la lista vacía no significa que no haya bienes -->
+    <div *ngIf="enteService.error$ | async" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 12px">
+      <mat-icon>error_outline</mat-icon>
+      <span>No se pudieron cargar los bienes.</span>
+      <button mat-stroked-button type="button" (click)="onFiltrar()">Reintentar</button>
+    </div>
     <table mat-table [dataSource]="(filteredRows$ | async) || []" multiTemplateDataRows class="mat-elevation-z8 bienes-table" style="width: 100%">
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>
@@ -83,7 +92,7 @@
       <ng-container matColumnDef="cuotas">
         <th mat-header-cell *matHeaderCellDef>Cuotas</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.cuotasPagadas }} / {{ row.cuotasTotales }}
+          {{ row.cuotasTexto }}
           <div class="subtext" [class.cuota-pagada]="row.cuotaPagada">
             {{ row.cuotasSubtexto }}
           </div>
@@ -93,14 +102,14 @@
       <ng-container matColumnDef="montoYaPagado">
         <th mat-header-cell *matHeaderCellDef>Pagado</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.moneda }} {{ row.montoYaPagado | number:'1.0-0' }}
+          <ng-container *ngIf="row.montoYaPagado != null; else sinDato">{{ row.moneda }} {{ row.montoYaPagado | number:'1.0-0' }}</ng-container>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="montoPendiente">
         <th mat-header-cell *matHeaderCellDef>Pendiente</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.moneda }} {{ row.montoPendiente | number:'1.0-0' }}
+          <ng-container *ngIf="row.montoPendiente != null; else sinDato">{{ row.moneda }} {{ row.montoPendiente | number:'1.0-0' }}</ng-container>
         </td>
       </ng-container>
 
@@ -149,7 +158,9 @@
                 <table class="gastos-table">
                   <tr *ngFor="let gasto of row.detalleGastos">
                     <td>{{ gasto.concepto }}</td>
-                    <td class="align-right">{{ gasto.moneda }} {{ gasto.monto | number:'1.0-0' }}</td>
+                    <td class="align-right">
+                      <ng-container *ngIf="gasto.monto != null; else sinDato">{{ gasto.moneda }} {{ gasto.monto | number:'1.0-0' }}</ng-container>
+                    </td>
                   </tr>
                 </table>
               </mat-card>

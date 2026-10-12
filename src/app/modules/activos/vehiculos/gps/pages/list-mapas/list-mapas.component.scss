@@ -169,3 +169,22 @@
 ::ng-deep .leaflet-popup-content {
     margin: 12px;
 }
+.aviso-posiciones {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    background: rgba(251, 146, 60, 0.12);
+    border-bottom: 1px solid rgba(251, 146, 60, 0.35);
+    color: #fdba74;
+    font-size: 14px;
+    flex-shrink: 0;
+
+    span {
+        flex: 1;
+    }
+
+    mat-icon {
+        color: #fb923c;
+    }
+}

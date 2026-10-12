@@ -119,15 +119,16 @@ export class DividirItemDialogComponent implements OnInit {
 
   private loadPresentaciones(): void {
     if (this.data.pedidoItem.producto?.id) {
-      this.presentacionService.onGetPresentacionesPorProductoId(this.data.pedidoItem.producto.id)
+      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.data.pedidoItem.producto.id)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (presentaciones) => {
-            this.presentaciones = presentaciones;
+            // null = error GraphQL (el servicio ya avisó): sin presentación los ítems no son válidos
+            this.presentaciones = presentaciones ?? [];
           },
           error: (error) => {
             console.error('Error cargando presentaciones:', error);
-            this.notificacionService.openAlgoSalioMal('Error cargando presentaciones');
+            this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
           }
         });
     }

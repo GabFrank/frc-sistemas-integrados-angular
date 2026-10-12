@@ -305,10 +305,14 @@
               </div>
 
               <mat-spinner
-                *ngIf="!fila.sucursales"
+                *ngIf="!fila.sucursales && !fila.errorSucursales"
                 diameter="30"
                 class="detalle-spinner"
               ></mat-spinner>
+              <div *ngIf="!fila.sucursales && fila.errorSucursales" class="mensaje-estado">
+                No se pudo cargar el stock por sucursal.
+                <button mat-stroked-button type="button" (click)="reintentarSucursalesDelLote(fila, $event)">Reintentar</button>
+              </div>
 
               <table
                 *ngIf="fila.sucursales"
@@ -380,6 +384,11 @@
         class="fila-detalle"
       ></tr>
     </table>
+
+    <div *ngIf="busquedaFallo" class="mensaje-estado">
+      No se pudo consultar el stock por lotes: el servidor no responde.
+      <button mat-stroked-button type="button" (click)="reintentarBusqueda()">Reintentar</button>
+    </div>
 
     <div *ngIf="sinResultados" class="mensaje-estado">
       No hay stock por lotes con esos filtros. Los lotes se generan al recibir mercadería de

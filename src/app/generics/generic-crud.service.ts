@@ -1,3 +1,16 @@
+// Re-export para quien usa estas constantes DENTRO de un método. Quien las lea al cargarse el archivo
+// (`const X = { timeoutMs: ... }` a nivel de módulo, un `static`, un decorador) tiene que importarlas de
+// `generic-crud.constantes`: por acá el bundle de producción las encuentra sin inicializar y la app queda en blanco.
+export {
+  CONTEXTO_MOSTRADOR,
+  LECTURA_ESTRICTA,
+  PROPAGAR_ERROR_DE_RED,
+  SIN_AVISO_DEL_GENERICO,
+  TIMEOUT_CONSULTA_DE_FONDO_MS,
+  TIMEOUT_CONSULTA_MOSTRADOR_MS,
+} from "./generic-crud.constantes";
+export type { ContextoConsulta, QueryError } from "./generic-crud.constantes";
+import type { ContextoConsulta, QueryError } from "./generic-crud.constantes";
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
 import { Observable, OperatorFunction } from "rxjs";
@@ -15,36 +28,22 @@ import {
   limpiarErroresGraphQL,
   limpiarMensajeGraphQL,
   mensajeErrorTransporte,
+  MENSAJE_RESPUESTA_VACIA,
 } from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { esTimeoutDeLink } from "../shared/services/timeout-link";
 import { Apollo } from "apollo-angular";
-export interface QueryError {
-  graphError?: {
-    show?: boolean;
-    color?: NotificacionColor;
-    propagate?: boolean;
-  };
-  networkError?: {
-    show?: boolean;
-    color?: NotificacionColor;
-    propagate?: boolean;
-  };
-}
-
 // Resultado sintético usado cuando el link de Apollo emite una respuesta vacía
 // (servidor que responde con cuerpo vacío, operación cortada, etc.).
 const RESPUESTA_VACIA = {
   data: null,
-  errors: [{ message: "Respuesta vacía del servidor" }],
+  errors: [{ message: MENSAJE_RESPUESTA_VACIA }],
 };
 
 /** Tiempo máximo de onCustomQuery (reportes, vistas previas pesadas); lo aplica el timeout link. */
 const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 /** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
 const MARGEN_DIALOGO_MS = 5000;
-/** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
-export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -84,13 +83,53 @@ export class GenericCrudService {
     });
   }
 
-  onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
+  // Un diálogo suele pedir varias listas a la vez (monedas, formas de pago…): si el servidor no
+  // responde fallan todas juntas, y alcanza con decirlo una vez. Reloj monotónico, como abajo.
+  private ultimoAvisoLectura: { texto: string; en: number } = null;
+
+  private avisarLecturaFallida(texto: string): void {
+    const ahora = performance.now();
+    if (this.ultimoAvisoLectura?.texto === texto && ahora - this.ultimoAvisoLectura.en < 5000) return;
+    this.ultimoAvisoLectura = { texto, en: ahora };
+    this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.warn, duracion: 4 });
+  }
+
+  /**
+   * Siempre termina (#390). Ante una falla emite `null` y completa: antes no emitía ni completaba, y
+   * quien llamaba quedaba esperando para siempre (spinner propio encendido, `forkJoin` que no cerraba).
+   * `null` es «no se pudo leer»; una lista vacía sigue siendo `[]`.
+   *
+   * Ante un error de red avisa «No se pudo cargar: …», una vez aunque fallen varias lecturas juntas.
+   *
+   * @param errorConf opcional. `graphError.show = false` y `networkError.show = false` apagan los
+   * avisos (para quien avisa por su cuenta). Con `propagate` la falla llega al `error:` del que llama en vez de `null`: el error de
+   * red tal cual, y el GraphQL como `{ message, errors }` (igual que onCustomQuery).
+   */
+  onGetAll(gql: Query, page?, size?, servidor: boolean = true, errorConf?: QueryError): Observable<any> {
     this.isLoading = true;
     const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
     );
     return new Observable((obs) => {
+      // Una sola salida, pase lo que pase: resultado, error del servidor, error de red, que la
+      // consulta complete sin emitir, o una excepción al leer la respuesta.
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.cargandoService.closeDialog(requestId);
+        this.isLoading = false;
+        return true;
+      };
+      const terminar = (valor: any) => {
+        if (!cerrar()) return;
+        obs.next(valor);
+        obs.complete();
+      };
+      const fallar = (error: any) => {
+        if (cerrar()) obs.error(error);
+      };
       gql
         .fetch(
           { page, size },
@@ -105,24 +144,47 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
+            let errores: any[] = null;
+            let datos: any = null;
+            try {
+              errores = res.errors?.length ? res.errors : null;
+              datos = res.data?.["data"] ?? null;
+            } catch (e) {
+              console.error("[GraphQL] Respuesta de onGetAll ilegible", e);
+            }
+            if (errores == null) {
+              terminar(datos);
+              return;
+            }
+            const mensaje = limpiarMensajeGraphQL(errores[0]?.message);
+            if (errorConf?.graphError?.show !== false) {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
+                texto: "Ups! Algo salió mal: " + mensaje,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
             }
+            if (errorConf?.graphError?.propagate === true) {
+              fallar({ message: mensaje, errors: limpiarErroresGraphQL(errores) });
+              return;
+            }
+            // Una lista a medias no es una lista: con errores se emite null aunque haya venido algo.
+            terminar(null);
           },
-          error: () => {
-            // Ej: servidor central offline. Cerrar el spinner en vez de colgarse.
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
+          error: (error) => {
+            // Ej: servidor central offline, corte del link, servidor caído.
+            if (errorConf?.networkError?.propagate === true) {
+              fallar(error);
+              return;
+            }
+            // Nadie más lo dice (el central offline y el servidor caído no avisan), y sin esto la
+            // pantalla queda vacía sin explicación. El corte por tiempo ya lo avisó el link.
+            if (!terminado && errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
+              this.avisarLecturaFallida("No se pudo cargar: " + mensajeErrorTransporte(error));
+            }
+            terminar(null);
           },
+          complete: () => terminar(null),
         });
     });
   }
@@ -136,9 +198,9 @@ export class GenericCrudService {
     gql: Query,
     data,
     servidor: boolean = true,
-    errorConf?,
+    errorConf?: QueryError,
     silentLoad?: boolean,
-    contexto?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }
+    contexto?: ContextoConsulta
   ): Observable<any> {
     const timeoutMs = contexto?.timeoutMs ?? TIMEOUT_CUSTOM_QUERY_MS;
     this.isLoading = true;
@@ -175,11 +237,19 @@ export class GenericCrudService {
               obs.next(res.data["data"]);
               obs.complete();
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
+              if (errorConf?.graphError?.show !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + errorMessage,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              // Opt-in, con la misma forma que onGetByTexto: el que llama decide qué mostrar.
+              if (errorConf?.graphError?.propagate === true) {
+                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+                return;
+              }
               // Cerrar el observable igual: si no, el que llamo queda esperando para
               // siempre una respuesta que ya no va a llegar. Con errorPolicy 'all' puede
               // venir data parcial, asi que se emite lo que haya en vez de descartarla.
@@ -315,6 +385,18 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Siempre termina (#390). `null` es «no existe» y nada más: un error **no** se disfraza de `null`, porque
+   * quien llama decide cosas con ese `null` (ofrecer crear, abrir una caja, dar algo por inexistente).
+   *
+   * - **Sin `errorConf`**: un error del servidor falla con `{ message, errors }` y uno de red con el error
+   *   tal cual. El genérico avisa («Ups!…» / el `warningText`), sin repetir el de red.
+   * - **Con `errorConf`** (lo que ya hacían los migrados, sin cambios): un error del servidor emite `null` y
+   *   completa, o falla si `graphError.propagate`; el de red falla si `networkError.propagate`, y el aviso
+   *   propio sale solo con `networkError.show === true`.
+   *
+   * `contexto.timeoutMs` fija el corte del link.
+   */
   onGetById<T>(
     gql: any,
     id: number,
@@ -326,7 +408,9 @@ export class GenericCrudService {
     duracion?,
     silentLoad?,
     errorText?,
-    warningText?
+    warningText?,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<T> {
     this.isLoading = true;
     let { requestId = null } =
@@ -334,6 +418,46 @@ export class GenericCrudService {
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
     return new Observable((obs) => {
+      // Una sola salida, pase lo que pase.
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.isLoading = false;
+        if (silentLoad != true) this.cargandoService.closeDialog(requestId);
+        return true;
+      };
+      const alResponder = (res: any) => {
+        if (!cerrar()) return;
+        // Ni errores ni data: no se puede decir «no existe».
+        if (res.errors == null && res.data == null) res = RESPUESTA_VACIA;
+        if (res.errors == null) {
+          obs.next(res.data["data"]);
+          obs.complete();
+          if (res.data["data"] == null && res.data["error"] == false) {
+            this.notificacionSnackBar.notification$.next({
+              texto: "Item no encontrado",
+              color: NotificacionColor.warn,
+              duracion: 2,
+            });
+          }
+          return;
+        }
+        const errorMessage = limpiarMensajeGraphQL(res.errors[0]?.message);
+        if (errorConf?.graphError?.show !== false) {
+          this.notificacionSnackBar.notification$.next({
+            texto: errorText != null ? errorText : "Ups! Algo salió mal: " + errorMessage,
+            color: NotificacionColor.danger,
+            duracion: 3,
+          });
+        }
+        if (errorConf == null || errorConf.graphError?.propagate === true) {
+          obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+        } else {
+          obs.next(null);
+          obs.complete();
+        }
+      };
       gql
         .fetch(
           { id, page, size, sucId },
@@ -342,46 +466,40 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
+              ...(contexto?.timeoutMs != null ? { timeoutMs: contexto.timeoutMs } : {}),
+              ...(contexto?.silenciarAvisoTimeout ? { silenciarAvisoTimeout: true } : {}),
             },
           }
         )
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
-        .subscribe(
-          (res) => {
-            silentLoad != true
-              ? this.cargandoService.closeDialog(requestId)
-              : null;
-            this.isLoading = false;
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-              if (res.data["data"] == null && res.data["error"] == false) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Item no encontrado",
-                  color: NotificacionColor.warn,
-                  duracion: 2,
-                });
-              }
-            } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
-            }
-          },
-          (err) => {
-            if (!esTimeoutDeLink(err)) {
-              this.notificacionBar.openWarn(
+        .subscribe({
+          next: alResponder,
+          error: (err) => {
+            if (!cerrar()) return;
+            const avisar = errorConf != null ? errorConf.networkError?.show === true : true;
+            if (avisar && !esTimeoutDeLink(err)) {
+              this.avisarLecturaFallida(
                 warningText != null ? warningText : "Problema al realizar esta operación"
               );
             }
-            this.cargandoService.closeDialog(requestId);
-          }
-        );
+            if (errorConf == null || errorConf.networkError?.propagate === true) {
+              obs.error(err);
+            }
+          },
+          // La consulta terminó sin emitir nada: es una respuesta vacía.
+          complete: () => alResponder(RESPUESTA_VACIA),
+        });
     });
   }
 
+  /**
+   * Siempre termina cuando no se pasa `errorConf` (#390): ante un error falla hacia quien llama (el del
+   * servidor como `{ message, errors }`, el de red tal cual) y avisa, sin repetir el de red. Una lista vacía
+   * sigue siendo `[]`.
+   *
+   * Con `errorConf` no cambia: falla solo lo que se pidió propagar (`graphError.propagate`,
+   * `networkError.propagate`). Quien lo pasa tiene que pedir las dos cosas si no quiere quedar esperando.
+   */
   onGetByTexto(
     gql: Query,
     texto: string,
@@ -396,6 +514,34 @@ export class GenericCrudService {
       duracion
     );
     return new Observable((obs) => {
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.cargandoService.closeDialog(requestId);
+        this.isLoading = false;
+        return true;
+      };
+      const alResponder = (res: any) => {
+        if (!cerrar()) return;
+        if (res.errors == null && res.data == null) res = RESPUESTA_VACIA;
+        if (res.errors == null) {
+          obs.next(res.data["data"]);
+          obs.complete();
+          return;
+        }
+        const errorMessage = limpiarMensajeGraphQL(res.errors[0]?.message);
+        if (errorConf?.graphError?.show !== false) {
+          this.notificacionSnackBar.notification$.next({
+            texto: "Ups! Algo salió mal: " + errorMessage,
+            color: NotificacionColor.danger,
+            duracion: 3,
+          });
+        }
+        if (errorConf == null || errorConf.graphError?.propagate === true) {
+          obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+        }
+      };
       gql
         .fetch(
           { texto },
@@ -409,30 +555,18 @@ export class GenericCrudService {
         )
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
-          next: (res) => {
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
-              if (errorConf?.graphError?.show !== false) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + errorMessage,
-                  color: NotificacionColor.danger,
-                  duracion: 3,
-                });
-              }
-              if (errorConf?.graphError?.propagate === true) {
-                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
-              }
-            }
-          },
+          next: alResponder,
           error: (error) => {
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
-            if (errorConf?.networkError?.show === true && !esTimeoutDeLink(error)) {
+            if (!cerrar()) return;
+            if (errorConf == null) {
+              // Antes callaba y no terminaba. Se usa en búsquedas por tecla: el aviso no se repite.
+              if (!esTimeoutDeLink(error)) {
+                this.avisarLecturaFallida("No se pudo consultar: " + mensajeErrorTransporte(error));
+              }
+              obs.error(error);
+              return;
+            }
+            if (errorConf.networkError?.show === true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -440,14 +574,24 @@ export class GenericCrudService {
                 duracion: 3,
               });
             }
-            if (errorConf?.networkError?.propagate === true) {
+            if (errorConf.networkError?.propagate === true) {
               obs.error(error);
             }
           },
+          complete: () => alResponder(RESPUESTA_VACIA),
         });
     });
   }
 
+  /**
+   * Siempre termina (#390): emite lo guardado y completa, o falla.
+   * - Rechazo del servidor: avisa «Ups!…» y falla con el arreglo de errores (`esRechazoDelServidor`).
+   * - Error de red (sin conexión, central offline, HTTP 4xx/5xx): avisa «No se pudo confirmar si se
+   *   guardó…» y falla con el error tal cual. **No es un «no se guardó»**: quien lo maneja no debe
+   *   invitar a repetir a ciegas (`erroresDeRechazo(err) == null` lo distingue).
+   *
+   * @param errorConf `networkError.show = false` apaga ese aviso, para quien dice lo suyo.
+   */
   onSave<T>(
     gql: Mutation,
     input,
@@ -470,6 +614,15 @@ export class GenericCrudService {
       "Guardando..."
     );
     return new Observable((obs) => {
+      // Una sola salida, pase lo que pase (#390).
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.isLoading = false;
+        this.cargandoService.closeDialog(requestId);
+        return true;
+      };
       gql
         .mutate(
           { entity: input, printerName, local },
@@ -484,8 +637,9 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
-            this.isLoading = false;
-            this.cargandoService.closeDialog(requestId);
+            if (!cerrar()) return;
+            // Ni errores ni data: no se puede decir que guardó (y leer `data` de ahí rompía sin terminar).
+            if (res.errors == null && res.data == null) res = RESPUESTA_VACIA;
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
@@ -502,26 +656,35 @@ export class GenericCrudService {
                 duracion: 5,
               });
               if (res?.data != null && res?.data["data"] != null) {
+                // Se guardó, y falló algo al armar la respuesta. Antes emitía sin completar.
                 obs.next(res.data["data"]);
+                obs.complete();
               } else {
                 obs.error(limpiarErroresGraphQL(res.errors));
               }
             }
           },
           error: (error) => {
-            this.isLoading = false;
-            this.cargandoService.closeDialog(requestId);
-            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Error de red",
-                color:
-                  errorConf?.networkError?.color || NotificacionColor.danger,
-                duracion: 3,
-              });
+            if (!cerrar()) return;
+            // Antes, sin `errorConf`, acá no pasaba nada: ni aviso ni error, y quien llamaba quedaba
+            // esperando para siempre. El guardado pudo haberse aplicado (el servidor sigue aunque el
+            // cliente corte), así que se dice eso y no «no se guardó». Calla quien avisa por su cuenta
+            // (`show: false`); el corte por tiempo ya lo avisó el link.
+            if (errorConf?.networkError?.show !== false && !esTimeoutDeLink(error)) {
+              // Con un status HTTP el servidor respondió: se dice cuál, sin «pudo haberse aplicado».
+              const status = error?.networkError?.status ?? error?.status;
+              const texto = typeof status === "number" && status > 0
+                ? `No se pudo confirmar si se guardó: el servidor respondió HTTP ${status}. Verificá antes de repetir.`
+                : "No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir.";
+              this.avisarErrorSinRepetir(gql, texto, 8);
             }
-            if (errorConf?.networkError?.propagate == true) {
-              obs.error(error);
-            }
+            obs.error(error);
+          },
+          // La mutation terminó sin emitir nada: para quien llama es una respuesta vacía.
+          complete: () => {
+            if (!cerrar()) return;
+            this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + MENSAJE_RESPUESTA_VACIA, 5);
+            obs.error(limpiarErroresGraphQL(RESPUESTA_VACIA.errors));
           },
         });
     });
@@ -860,7 +1023,9 @@ export class GenericCrudService {
     sucId?
   ): Observable<any> {
     let hoy = new Date();
-    let ayer = new Date(hoy.getDay() - 1);
+    // Antes `new Date(hoy.getDay() - 1)`: un día de la semana usado como milisegundos (1970).
+    let ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
     ayer.setHours(0);
     ayer.setMinutes(0);
     ayer.setSeconds(0);
@@ -883,9 +1048,34 @@ export class GenericCrudService {
     }
     const { requestId } = this.cargandoService.openDialog(
       false,
-      "Eliminando..."
+      "Buscando..."
     );
+    // Siempre termina (#390): ante un error falla hacia quien llama, como onGetById.
     return new Observable((obs) => {
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        this.cargandoService.closeDialog(requestId);
+        this.isLoading = false;
+        return true;
+      };
+      const alResponder = (res: any) => {
+        if (!cerrar()) return;
+        if (res.errors == null && res.data == null) res = RESPUESTA_VACIA;
+        if (res.errors == null) {
+          obs.next(res.data["data"]);
+          obs.complete();
+          return;
+        }
+        const errorMessage = limpiarMensajeGraphQL(res.errors[0]?.message);
+        this.notificacionSnackBar.notification$.next({
+          texto: "Ups! Algo salió mal: " + errorMessage,
+          color: NotificacionColor.danger,
+          duracion: 3,
+        });
+        obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
+      };
       gql
         .fetch(
           { inicio: dateToString(inicio), fin: dateToString(fin), sucId },
@@ -899,23 +1089,15 @@ export class GenericCrudService {
         )
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
-          next: (res) => {
-            this.cargandoService.closeDialog(requestId);
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+          next: alResponder,
+          error: (error) => {
+            if (!cerrar()) return;
+            if (!esTimeoutDeLink(error)) {
+              this.avisarLecturaFallida("No se pudo consultar: " + mensajeErrorTransporte(error));
             }
+            obs.error(error);
           },
-          error: () => {
-            this.cargandoService.closeDialog(requestId);
-            this.isLoading = false;
-          },
+          complete: () => alResponder(RESPUESTA_VACIA),
         });
     });
   }

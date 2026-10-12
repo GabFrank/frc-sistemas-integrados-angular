@@ -12,6 +12,14 @@
     </div>
     <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
         fxLayoutAlign="space-between start">
+        <div style="width: 100%">
+        <div class="aviso-lista" *ngIf="listaError || listaDesactualizada" fxLayout="row" fxLayoutAlign="start center"
+            fxLayoutGap="12px">
+            <mat-icon>warning</mat-icon>
+            <span fxFlex *ngIf="listaError">No se pudo cargar la lista de GPS.</span>
+            <span fxFlex *ngIf="listaDesactualizada">No se pudo actualizar la lista: puede estar desactualizada.</span>
+            <button mat-stroked-button type="button" (click)="onReintentar()">REINTENTAR</button>
+        </div>
         <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
             <ng-container matColumnDef="id" style="width: 5%">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
@@ -97,6 +105,7 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"></tr>
         </table>
+        </div>
         <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
             (page)="handlePageEvent($event)" 
             [length]="(gpsService.totalElements$ | async) || 0"

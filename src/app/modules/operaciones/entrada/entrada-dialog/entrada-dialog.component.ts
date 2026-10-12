@@ -50,6 +50,7 @@ export interface EntradaDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -140,7 +141,7 @@ export class EntradaDialogComponent implements OnInit {
       }
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
-          this.usuarioService.onSeachUsuario(res).subscribe((response) => {
+          this.usuarioService.onSeachUsuario(res).pipe(terminarSiFalla()).subscribe((response) => {
             this.usuarioList = response["data"];
             if (this.usuarioList.length == 1) {
               this.onResponsableSelect(this.usuarioList[0]);

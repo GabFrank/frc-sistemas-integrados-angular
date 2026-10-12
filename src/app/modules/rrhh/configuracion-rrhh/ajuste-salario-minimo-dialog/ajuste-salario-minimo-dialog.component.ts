@@ -51,6 +51,8 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
   ) { }
 
   puedeConfig = false;
+  /** La lista de afectados no se pudo consultar: no se muestra como «ninguno». */
+  errorCarga = false;
 
   ngOnInit(): void {
     this.puedeConfig = this.mainService.tieneAlgunRol(['RRHH CONFIG']);
@@ -59,6 +61,8 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
       .subscribe({
         next: res => {
           this.cargando = false;
+          // null = el servidor rechazó la consulta: no es «nadie quedó por debajo».
+          this.errorCarga = res == null;
           const filas = (res || []).map(f => ({
             ...f,
             diferencia: this.data.minimo - (f.sueldo || 0)
@@ -69,10 +73,10 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
             + ' funcionarios de la lista, incluidos los que no entren en pantalla';
           // Nada preseleccionado: ajustar un salario es una decision explicita.
         },
-        // Sin esto el dialogo se queda en "Buscando..." para siempre: onCustomQuery
-        // no emite cuando la query falla, solo muestra un snackbar.
+        // La lista vacía por un error no es «ningún funcionario quedó por debajo» (#390).
         error: () => {
           this.cargando = false;
+          this.errorCarga = true;
           this.notificacion.notification$.next({
             texto: 'No se pudo cargar la lista de funcionarios afectados',
             color: NotificacionColor.warn, duracion: 5

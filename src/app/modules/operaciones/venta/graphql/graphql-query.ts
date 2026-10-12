@@ -622,6 +622,7 @@ export const lucroPorFuncionarioListQuery = gql`
         totalVenta
         lucro
         margen
+        margenCosto
         totalDescuento
         totalAumento
       }

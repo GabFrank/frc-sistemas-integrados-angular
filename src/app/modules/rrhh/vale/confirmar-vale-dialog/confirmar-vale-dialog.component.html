@@ -15,7 +15,11 @@
     <mat-error *ngIf="cajaControl.hasError('required')">Seleccione la caja</mat-error>
   </mat-form-field>
 
-  <div class="sin-cajas" *ngIf="!cargandoCajas && cajas.length === 0">
+  <div class="sin-cajas" *ngIf="cajasNoCargadas">
+    No se pudieron cargar las cajas. Cerrá y volvé a abrir para reintentar.
+  </div>
+
+  <div class="sin-cajas" *ngIf="!cargandoCajas && !cajasNoCargadas && cajas.length === 0">
     No hay cajas mayores activas. Configure una caja mayor antes de confirmar el vale.
   </div>
 

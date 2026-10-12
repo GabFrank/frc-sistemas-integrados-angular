@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { GenericCrudService, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { ConfiguracionTransferencia, ConfiguracionTransferenciaInput } from './configuracion-transferencia.model';
 import { GetConfiguracionTransferenciaGQL } from '../graphql/getConfiguracionTransferencia';
 import { SaveConfiguracionTransferenciaGQL } from '../graphql/saveConfiguracionTransferencia';
@@ -17,7 +17,9 @@ export class ConfiguracionTransferenciaService {
   ) { }
 
   onGetConfiguracion(servidor = true): Observable<ConfiguracionTransferencia> {
-    return this.genericCrudService.onCustomQuery(this.getConfiguracionGQL, {}, servidor);
+    // Dos suscriptores, los dos con error: (el chequeo de stock de transferencias falla cerrado) (#390).
+    return this.genericCrudService.onCustomQuery(this.getConfiguracionGQL, {}, servidor, PROPAGAR_ERROR_DE_RED, undefined,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
   onSaveConfiguracion(input: ConfiguracionTransferenciaInput, servidor = true): Observable<ConfiguracionTransferencia> {

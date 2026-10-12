@@ -110,6 +110,21 @@ llamarlo también.
   verdad (no antes de `procesarCupon`, que consulta por red); todo diálogo nuevo del cobro tiene que
   marcarla y desmarcarla (CONVENIO y FIRMA la dejaban pegada en `true`). El diálogo de terminal usa
   `cdkFocusInitial` y recupera el foco si sale fuera de él.
+- **Lo que tipea el lector depende del idioma de teclado de Windows.** El lector manda teclas
+  físicas con tabla EE.UU. (medido el 2026-10-05): con Windows en español el `*` del cupón llega
+  como `(` y el `-` / `|` de la seña como `'` / `]`; con portugués de Brasil el cupón pasa y la seña
+  no. Los cuatro campos donde escanea el lector (terminal del PDV, escanear cupón, registrar venta,
+  seña de la caja) llevan `frcLectorTeclado` (`shared/lector-teclado`), que guarda
+  `KeyboardEvent.code` y ofrece la cadena rearmada con `alternativa()`. Se prueba **primero lo que
+  tipeó Windows** —un cajero que escribe a mano con su teclado no cambia de comportamiento— y
+  después la rearmada; en el cupón, **formato por formato** (`parsearCupon(…, alternativa)`), para
+  que una cadena corrupta no matchee el patrón de otro proveedor antes que el propio. La lectura que
+  matchea queda en `qrCrudo`: la rearmada es lo que tipearía un Windows en inglés, así que el
+  control de duplicado del filial ve la misma cadena desde cualquier caja. Sin registro íntegro
+  (Backspace, pegar, Ctrl/Alt, cursor en el medio, valor puesto por código) no hay rearmada.
+  **Un campo de escaneo nuevo tiene que llevar la directiva.** Para diagnosticar un lector:
+  `desktop/docs/utilitarios/diagnostico-lector-teclado.html` muestra qué recibiría la caja en
+  cada idioma.
 - **`terminalObligatoria`** (perilla del ABM, default `true`): `onFinalizar` no cierra mientras
   `lineasTarjetaSinTerminal` no esté vacía. Se lee del filial **en una query aparte** con Apollo
   directo (sin el snackbar de `GenericCrudService`): si fuera en la query de `habilitado`, un filial

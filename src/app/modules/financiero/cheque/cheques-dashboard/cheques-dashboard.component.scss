@@ -278,3 +278,19 @@
     flex: 1;
   }
 }
+
+.lectura-fallo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(251, 146, 60, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  color: #fdba74;
+  font-size: 13px;
+
+  span { flex: 1; }
+  mat-icon { color: #fb923c; }
+}

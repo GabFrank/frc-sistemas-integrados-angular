@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { TabService } from '../../../layouts/tab/tab.service';
 import { CobroDetalleInput } from '../../operaciones/venta/cobro/cobro-detalle.model';
@@ -45,8 +45,10 @@ export class VentaCreditoService {
     private configService: ConfiguracionService
   ) { }
 
-  onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, cobro: boolean): Observable<VentaCredito[]> {
-    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, fechaInicio, fechaFin, estado, cobro }, true);
+  onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, cobro: boolean,
+                  errorConf?: QueryError, contexto?: ContextoConsulta): Observable<VentaCredito[]> {
+    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, fechaInicio, fechaFin, estado, cobro }, true,
+      errorConf, undefined, contexto);
   }
 
   onSave(input: VentaCreditoInput, itens: VentaCreditoCuotaInput[]): Observable<any> {
@@ -57,8 +59,9 @@ export class VentaCreditoService {
     return this.genericService.onCustomSub(this.ventaCreditoQrAuthSub, null, true, false);
   }
 
-  onImprimirVentaCredito(id: number, sucId): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.imprimirVentaCredito, { id, sucId, printerName: this.configService?.getConfig()?.printers?.ticket })
+  onImprimirVentaCredito(id: number, sucId, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.imprimirVentaCredito,
+      { id, sucId, printerName: this.configService?.getConfig()?.printers?.ticket }, true, errorConf, undefined, contexto)
   }
 
   onCobrarVentaCredito(ventaCreditoInputList: VentaCreditoInput[], cobroDetalleInputList: CobroDetalleInput[]) {

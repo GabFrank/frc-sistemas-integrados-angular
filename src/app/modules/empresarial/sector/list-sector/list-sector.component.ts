@@ -14,6 +14,7 @@ import { ZonaService } from '../../zona/zona.service';
 import { AdicionarSectorDialogComponent } from '../adicionar-sector-dialog/adicionar-sector-dialog.component';
 import { Sector } from '../sector.model';
 import { SectorService } from '../sector.service';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy()
 @Component({
@@ -79,10 +80,11 @@ export class ListSectorComponent implements OnInit {
       this.selectedSucursal = this.sucursalControl.value;
       const { requestId } = this.cargandoService.openDialog()
       this.sectorService.onGetSectores(this.selectedSucursal.id)
-        .pipe(untilDestroyed(this))
+        // Ante un error se cierra igual el modal propio, que quedaba tapando la pantalla (#390).
+        .pipe(terminarSiFalla(() => this.cargandoService.closeDialog(requestId)), untilDestroyed(this))
         .subscribe(res => {
           this.cargandoService.closeDialog(requestId)
-          this.dataSource.data = res;
+          this.dataSource.data = res ?? [];
         })
     }
   }

@@ -75,6 +75,12 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   montoTotalComputed = 0;
   totalFormasPagoComputed = 0;
   saving = false;
+  /** Fallos de carga y creación sin confirmar (#390). */
+  monedasFallo = false;
+  formasPagoFallo = false;
+  creacionIncierta = false;
+  /** Una mutación quedó sin confirmar y la recarga no llegó: lo que se ve puede no ser lo del servidor. */
+  pantallaDesactualizada = false;
 
   /** Modo edición: true cuando se abre con solicitudPago existente. */
   isEditMode = false;
@@ -170,52 +176,79 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.loadFormasPago();
   }
 
-  private loadSolicitudParaEdicion(): void {
+  /**
+   * Una mutación de nota o forma de pago sin respuesta pudo haberse aplicado igual: en vez de corregir la pantalla
+   * a mano se vuelve a leer la solicitud del servidor (#390).
+   */
+  private recargarSolicitud(aviso: string): void {
+    this.notificacionService.openWarn(aviso, 8);
+    this.pantallaDesactualizada = true; // hasta que la recarga llegue
+    if (this.solicitudPagoId != null) {
+      this.loadSolicitudParaEdicion(true);
+    }
+  }
+
+  private loadSolicitudParaEdicion(recarga = false): void {
     this.solicitudPagoService.onGetById(this.solicitudPagoId).subscribe({
       next: (sp: SolicitudPago) => {
+        if (sp == null) {
+          this.cargaSolicitudFallida(recarga);
+          return;
+        }
+        this.pantallaDesactualizada = false;
         this.selectedProveedor = sp.proveedor;
         this.solicitudPagoEstado = sp.estado ?? null;
         this.proveedorNombreDisplay = (sp?.proveedor?.persona?.nombre || '').toString().toUpperCase();
-        this.form.patchValue({
-          observaciones: sp.observaciones || ''
-        });
-        if (sp.notasRecepcion?.length) {
-          this.notasAgregadas = sp.notasRecepcion.map((nr) => this.withProveedorDisplay(nr.notaRecepcion));
-          this.updateNotasDisplay();
-          this.updateMontoTotal();
+        // En una recarga no se pisa lo que el usuario ya editó en el formulario
+        if (!recarga || !this.form.dirty) {
+          this.form.patchValue({
+            observaciones: sp.observaciones || ''
+          });
         }
-        if (sp.detalles?.length) {
-          this.detallesAgregados = sp.detalles.map((d) => ({
-            id: d.id,
-            monedaId: d.moneda?.id,
-            formaPagoId: d.formaPago?.id,
-            valor: d.valor,
-            fechaPago: d.fechaPago,
-            observacion: d.observacion,
-            cotizacion: d.cotizacion,
-            orden: d.orden,
-            fechaEmisionCheque: d.fechaEmisionCheque,
-            portador: d.portador,
-            nominal: d.nominal,
-            diferido: d.diferido,
-            monedaDenominacion: (d.moneda?.denominacion || '').toString().toUpperCase(),
-            formaPagoDescripcion: (d.formaPago?.descripcion || '').toString().toUpperCase()
-          }));
-          this.detallesTableDataSource.data = this.detallesAgregados;
-          this.updateTotalFormasPago();
-          this.updateResumenFormasPago();
-        }
+        // Siempre lo del servidor, también vacío: tras una mutación incierta la pantalla no puede quedar con filas viejas
+        this.notasAgregadas = (sp.notasRecepcion ?? []).map((nr) => this.withProveedorDisplay(nr.notaRecepcion));
+        this.updateNotasDisplay();
+        this.refrescarTablaNotas();
+        this.updateMontoTotal();
+        this.detallesAgregados = (sp.detalles ?? []).map((d) => ({
+          id: d.id,
+          monedaId: d.moneda?.id,
+          formaPagoId: d.formaPago?.id,
+          valor: d.valor,
+          fechaPago: d.fechaPago,
+          observacion: d.observacion,
+          cotizacion: d.cotizacion,
+          orden: d.orden,
+          fechaEmisionCheque: d.fechaEmisionCheque,
+          portador: d.portador,
+          nominal: d.nominal,
+          diferido: d.diferido,
+          monedaDenominacion: (d.moneda?.denominacion || '').toString().toUpperCase(),
+          formaPagoDescripcion: (d.formaPago?.descripcion || '').toString().toUpperCase()
+        }));
+        this.detallesTableDataSource.data = this.detallesAgregados;
+        this.updateTotalFormasPago();
+        this.updateResumenFormasPago();
         if (!this.isEditable) {
           this.form.disable();
         }
         this.updatePuedeEditarFormaPago();
         this.updatePuedeEditarProveedor();
       },
-      error: () => {
-        this.notificacionService.openAlgoSalioMal('Error al cargar la solicitud');
-        this.dialogRef.close(false);
-      }
+      error: () => this.cargaSolicitudFallida(recarga)
     });
+  }
+
+  private cargaSolicitudFallida(recarga: boolean): void {
+    this.saving = false;
+    if (recarga) {
+      // La solicitud ya estaba abierta: no se cierra, se avisa que lo que se ve puede no estar al día
+      this.pantallaDesactualizada = true;
+      this.notificacionService.openWarn('No se pudo recargar la solicitud: cerrá y volvé a abrirla antes de seguir.', 8);
+      return;
+    }
+    this.notificacionService.openAlgoSalioMal('No se pudo cargar la solicitud: el servidor no responde.');
+    this.dialogRef.close(false);
   }
 
   ngAfterViewInit(): void {
@@ -224,19 +257,57 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     }
   }
 
+  /**
+   * Monedas y formas de pago: el diálogo de forma de pago las recibe por copia al abrirse y los totales en Gs usan
+   * moneda.cambio. Si faltan (error, null o lista vacía) se avisa y no se puede agregar una forma de pago (#390).
+   */
   private loadMonedas(): void {
-    this.monedaService.onGetAll().subscribe((list) => {
-      this.monedaList = list || [];
-      if (this.detallesAgregados?.length) {
-        this.updateResumenFormasPago();
+    this.monedasFallo = false;
+    this.monedaService.onGetAllEnSegundoPlano().subscribe({
+      next: (list) => {
+        this.monedaList = list || [];
+        this.monedasFallo = this.monedaList.length === 0;
+        if (this.monedasFallo) {
+          this.avisarListasFaltantes();
+        } else if (this.detallesAgregados?.length) {
+          this.updateResumenFormasPago();
+        }
+      },
+      error: () => {
+        this.monedasFallo = true;
+        this.avisarListasFaltantes();
       }
     });
   }
 
   private loadFormasPago(): void {
-    this.formaPagoService.onGetAllFormaPago(true).subscribe((list) => {
-      this.formaPagoList = list || [];
+    this.formasPagoFallo = false;
+    this.formaPagoService.onGetAllFormaPagoParaDialogo(true).subscribe({
+      next: (list) => {
+        this.formaPagoList = list || [];
+        this.formasPagoFallo = this.formaPagoList.length === 0;
+        if (this.formasPagoFallo) {
+          this.avisarListasFaltantes();
+        }
+      },
+      error: () => {
+        this.formasPagoFallo = true;
+        this.avisarListasFaltantes();
+      }
     });
+  }
+
+  private avisarListasFaltantes(): void {
+    this.notificacionService.openWarn('No se pudieron cargar las monedas o las formas de pago: usá «Reintentar» antes de agregar una forma de pago.', 6);
+  }
+
+  reintentarListas(): void {
+    if (this.monedasFallo) {
+      this.loadMonedas();
+    }
+    if (this.formasPagoFallo) {
+      this.loadFormasPago();
+    }
   }
 
   onProveedorKeydown(event: KeyboardEvent): void {
@@ -272,6 +343,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarNota(): void {
+    if (this.accionBloqueada()) {
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -307,17 +381,25 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
             nota.valorTotal ?? 0
           )
         );
-        let done = 0;
+        // Cada nota cuenta, falle o no; si alguna falló se recarga la solicitud al final: la nota se mostró y sumó
+        // antes de la mutación y, sin respuesta, pudo haberse vinculado igual (#390)
+        let terminadas = 0;
+        let fallidas = 0;
         const total = queue.length;
+        const terminar = () => {
+          terminadas++;
+          if (terminadas < total) return;
+          this.saving = false;
+          if (fallidas > 0) {
+            this.recargarSolicitud(`No se pudo confirmar ${fallidas} de ${total} nota(s): revisá la solicitud antes de reintentar.`);
+          }
+        };
         queue.forEach((obs) => {
           obs.subscribe({
-            next: () => {
-              done++;
-              if (done === total) this.saving = false;
-            },
+            next: () => terminar(),
             error: () => {
-              this.notificacionService.openAlgoSalioMal('Error al vincular nota');
-              this.saving = false;
+              fallidas++;
+              terminar();
             }
           });
         });
@@ -330,6 +412,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   onQuitarNota(index: number): void {
     const nota = this.notasAgregadas[index];
     if (!nota) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
     const textoNota = nota.numero != null ? `la nota Nº ${nota.numero}` : 'esta nota de recepción';
     this.dialogosService
       .confirm('Eliminar nota de recepción', `¿Está seguro de que desea quitar ${textoNota} de la solicitud?`)
@@ -346,8 +431,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.saving = false;
             },
             error: () => {
-              this.notificacionService.openAlgoSalioMal('No se pudo desvincular la nota');
               this.saving = false;
+              this.recargarSolicitud('No se pudo confirmar que la nota se quitó: revisá la solicitud antes de reintentar.');
             }
           });
         } else {
@@ -360,6 +445,13 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   onAgregarFormaPago(): void {
+    if (this.accionBloqueada()) {
+      return;
+    }
+    if (this.monedasFallo || this.formasPagoFallo) {
+      this.avisarListasFaltantes();
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -381,6 +473,12 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
     ref.afterClosed().subscribe((detalles: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] | null) => {
       // El diálogo devuelve un array: 1 forma, o N (una por cheque si se eligieron cuotas).
+      if ((detalles as any)?.recargar) {
+        // Alguna alta quedó sin confirmar (el diálogo ya avisó): lo que vale es lo del servidor (#390)
+        this.pantallaDesactualizada = true;
+        this.loadSolicitudParaEdicion(true);
+        return;
+      }
       if (!detalles?.length) return;
       detalles.forEach((detalle) => {
         this.detallesAgregados.push({
@@ -401,6 +499,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
 
   onEditarDetalle(detalle: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }), index: number): void {
     if (!this.puedeEditarFormaPagoComputed) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
+    if (this.monedasFallo || this.formasPagoFallo) {
+      // Sin monedas el diálogo no muestra la cotización y el detalle volvería sin ella
+      this.avisarListasFaltantes();
+      return;
+    }
     const ref = this.dialog.open(AdicionarFormaPagoDialogComponent, {
       width: '50vw',
       data: {
@@ -451,14 +557,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
                 this.saving = false;
               },
               error: () => {
-                this.notificacionService.openAlgoSalioMal('Error al actualizar la forma de pago');
                 this.saving = false;
+                this.recargarSolicitud('La forma de pago anterior se eliminó, pero no se pudo confirmar la nueva: revisá la solicitud antes de reintentar.');
               }
             });
           },
           error: () => {
-            this.notificacionService.openAlgoSalioMal('No se pudo eliminar la forma de pago anterior');
             this.saving = false;
+            this.recargarSolicitud('No se pudo confirmar el cambio de la forma de pago: revisá la solicitud antes de reintentar.');
           }
         });
       } else {
@@ -473,6 +579,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   onQuitarDetalle(index: number): void {
     const detalle = this.detallesAgregados[index];
     if (!detalle) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
     const descripcion = detalle.formaPagoDescripcion
       ? `${detalle.formaPagoDescripcion} - ${detalle.valor != null ? detalle.valor : ''}`
       : 'esta forma de pago';
@@ -494,7 +603,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.updatePuedeEditarProveedor();
             },
             error: () => {
-              this.notificacionService.openAlgoSalioMal('No se pudo eliminar la forma de pago');
+              this.recargarSolicitud('No se pudo confirmar que la forma de pago se eliminó: revisá la solicitud antes de reintentar.');
             }
           });
         } else {
@@ -797,7 +906,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   private crearSolicitudYActivarEdicion(): void {
-    if (!this.notasAgregadas.length) return;
+    if (!this.notasAgregadas.length || this.saving || this.creacionIncierta) return;
     const input = this.buildInputForSave();
     this.saving = true;
     this.solicitudPagoService.onSaveInput(input).subscribe({
@@ -809,14 +918,56 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.tituloDialogo = 'Editar solicitud de pago';
         }
       },
-      error: () => {
+      error: (error) => {
         this.saving = false;
+        this.marcarCreacionInciertaSiFueDeRed(error);
       }
     });
   }
 
+  /**
+   * Una creación sin respuesta pudo haberse hecho en el servidor y la pantalla no tiene su id: la próxima acción
+   * crearía OTRA solicitud (deuda duplicada). Se bloquea agregar y guardar hasta revisar la lista (#390).
+   */
+  private marcarCreacionInciertaSiFueDeRed(error: any): void {
+    const mensaje = (Array.isArray(error) ? error[0]?.message : error?.graphQLErrors?.[0]?.message) ?? '';
+    const respuestaVacia = /respuesta vac[ií]a/i.test(mensaje);
+    if ((Array.isArray(error) || error?.graphQLErrors?.length) && !respuestaVacia) {
+      return; // error de negocio: el servidor respondió que no
+    }
+    this.creacionIncierta = true;
+    this.avisarCreacionIncierta();
+  }
+
+  private avisarCreacionIncierta(): void {
+    this.notificacionService.openWarn('No se pudo confirmar si la solicitud se creó: cerrá y revisá la lista antes de seguir.', 8);
+  }
+
+  /**
+   * Bloqueo común de las acciones que mutan la solicitud (#390): con un guardado en vuelo (si no, una segunda
+   * creación duplicaría la deuda), con la creación sin confirmar, o con la pantalla desactualizada (Guardar
+   * reemplaza notas y formas de pago con lo que se ve).
+   */
+  private accionBloqueada(): boolean {
+    if (this.saving) {
+      return true;
+    }
+    if (this.creacionIncierta) {
+      this.avisarCreacionIncierta();
+      return true;
+    }
+    if (this.pantallaDesactualizada) {
+      this.notificacionService.openWarn('La solicitud no está al día con el servidor: cerrá y volvé a abrirla antes de seguir.', 8);
+      return true;
+    }
+    return false;
+  }
+
   onGuardar(): void {
     if (!this.isEditable) return;
+    if (this.accionBloqueada()) {
+      return;
+    }
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -849,8 +1000,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.notificacionService.openSucess('Solicitud de pago creada');
           this.dialogRef.close(true);
         },
-        error: () => {
+        error: (error) => {
           this.saving = false;
+          this.marcarCreacionInciertaSiFueDeRed(error);
         }
       });
     }

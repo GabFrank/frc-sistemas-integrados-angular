@@ -27,6 +27,12 @@
         </div>
     </div>
 
+    <div class="aviso-posiciones" *ngIf="posicionesFallo">
+        <mat-icon>warning</mat-icon>
+        <span>No se pudieron cargar las últimas posiciones: solo se ven los vehículos que reporten ahora.</span>
+        <button mat-stroked-button type="button" (click)="onReintentarPosiciones()">REINTENTAR</button>
+    </div>
+
     <div class="map-wrapper">
         <div class="map-container" id="map" #mapContainer></div>
     </div>

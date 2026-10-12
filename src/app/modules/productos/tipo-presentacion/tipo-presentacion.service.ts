@@ -5,7 +5,7 @@ import { FamiliaService } from "../familia/familia.service";
 import { AllPresentacionesQueryGQL } from "../presentacion/graphql/allPresentacionesQuery";
 import { AllTiposPresentacionesQueryGQL } from "./graphql/all-tipos-presentacion";
 import { TipoPresentacion } from "./tipo-presentacion.model";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 
 @Injectable({
   providedIn: "root",
@@ -24,8 +24,9 @@ export class TipoPresentacionService {
   //   return this.getPresentacionesPorProductoId.fetch(id, {fetchPolicy: "no-cache"});
   // }
 
-  onGetPresentaciones(servidor = true) {
-    return this.genericService.onCustomQuery(this.getTipoPresentaciones, null, servidor);
+  /** `errorConf` / `contexto`: para quien necesita enterarse del error; sin ellos queda como antes. */
+  onGetPresentaciones(servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta) {
+    return this.genericService.onCustomQuery(this.getTipoPresentaciones, null, servidor, errorConf, undefined, contexto);
   }
 
   // onSavePresentacion(presentacionInput: PresentacionInput): Observable<any> {

@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { finalize } from "rxjs/operators";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import {
   NotificacionSnackbarService
 } from "../../../notificacion-snackbar.service";
@@ -64,8 +64,9 @@ export class FuncionarioService {
     return this.genericCrud.onCustomQuery(this.searchFuncionario, { texto }, servidor);
   }
 
-  onSaveFuncionario(input: FuncionarioInput, servidor = true): Observable<Funcionario> {
-    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor);
+  /** `errorConf` es para la asignación de horarios en lote (#390); sin él queda como antes. */
+  onSaveFuncionario(input: FuncionarioInput, servidor = true, errorConf?: QueryError): Observable<Funcionario> {
+    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor, errorConf);
   }
 
   // onDeleteFuncionario(id, servidor = true) {

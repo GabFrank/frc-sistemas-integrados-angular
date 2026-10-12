@@ -17,7 +17,7 @@ import {
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { Subject, forkJoin, Observable, of } from "rxjs";
-import { takeUntil, tap, map, catchError, debounceTime, distinctUntilChanged, filter, switchMap, take } from "rxjs/operators";
+import { takeUntil, tap, map, catchError, debounceTime, distinctUntilChanged, filter, switchMap, take, timeout } from "rxjs/operators";
 
 import {
   AddEditItemDialogComponent,
@@ -94,6 +94,9 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { ContextoConsulta } from "../../../../generics/generic-crud.service";
+import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -123,6 +126,12 @@ import {
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+
+/** Panel de productos del proveedor: carga de fondo, 20 s sin el aviso del link (#390). */
+const CONSULTA_PRODUCTOS_PROVEEDOR: ContextoConsulta = {
+  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
+  silenciarAvisoTimeout: true,
+};
 
 interface PedidoHeader {
   id?: number;
@@ -324,6 +333,8 @@ export class GestionComprasComponent
   // Cotización del pedido — fuente del prefill (mercado / manual / pedido guardado)
   cotizacionFromMercado = false;
   cotizacionRefreshing = false;
+  /** Descarta la respuesta de una consulta de cotización anterior (cambios rápidos de moneda). */
+  private cotizacionConsulta = 0;
 
   // Forms
   datosGeneralesForm: FormGroup;
@@ -436,6 +447,11 @@ export class GestionComprasComponent
 
   // Data lists for selects
   monedas: Moneda[] = [];
+  /**
+   * Monedas, formas de pago o sucursales no cargaron. Sin ellas el formulario no puede quedar válido (no hay
+   * opciones), así que no se guarda; la pantalla arranca igual y ofrece «Reintentar» (#390).
+   */
+  datosInicialesFallo = false;
   formasPago: FormaPago[] = [];
   sucursales: Sucursal[] = [];
   sucursalesEntregaFiltradas: Sucursal[] = []; // Sucursales de entrega: deposito=true y activo=true
@@ -665,12 +681,23 @@ export class GestionComprasComponent
   }
 
   private loadInitialData(): Observable<any> {
+    // Cada fuente falla por su cuenta (null = no se pudo leer); el aviso es el de acá abajo, no el del genérico.
+    // Antes la pantalla no arrancaba ni avisaba (#390).
+    const sinRespuesta = <T>(o: Observable<T>) => o.pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), catchError(() => of(null as T)));
     return forkJoin({
-      monedas: this.monedaService.onGetAll(),
-      formasPago: this.formaPagoService.onGetAllFormaPago(),
-      sucursales: this.sucursalService.onGetAllSucursales()
+      monedas: sinRespuesta(this.monedaService.onGetAll(true, SIN_AVISO_DEL_GENERICO)),
+      formasPago: sinRespuesta(this.formaPagoService.onGetAllFormaPago(true, SIN_AVISO_DEL_GENERICO)),
+      sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(catchError(() => of(null)))
     }).pipe(
       tap(({ monedas, formasPago, sucursales }) => {
+        this.datosInicialesFallo = monedas == null || formasPago == null || sucursales == null;
+        if (this.datosInicialesFallo) {
+          this.notificacionService.openWarn("No se pudieron cargar monedas, formas de pago o sucursales: usá «Reintentar».", 6);
+        }
+        monedas = monedas ?? [];
+        formasPago = formasPago ?? [];
+        sucursales = sucursales ?? [];
         this.monedas = monedas;
         this.formasPago = formasPago;
         this.sucursales = sucursales;
@@ -691,6 +718,10 @@ export class GestionComprasComponent
       }),
       takeUntil(this.destroy$)
     );
+  }
+
+  reintentarDatosIniciales(): void {
+    this.loadInitialData().subscribe(() => this.updateComputedProperties());
   }
 
   /**
@@ -749,6 +780,12 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
+          if (!result.pedido) {
+            // Error GraphQL o no encontrado: el servicio ya avisó
+            this.loadingPedido = false;
+            this.updateComputedProperties();
+            return;
+          }
           this.currentPedido = result.pedido;
           this.loadPedidoIntoForm(result.pedido);
 
@@ -768,8 +805,9 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error("Error cargando datos del pedido existente:", error);
-          this.notificacionService.openAlgoSalioMal("Error al cargar los datos del pedido existente");
+          this.notificacionService.openWarn("No se pudo cargar el pedido: el servidor no responde. Usá «Actualizar».", 6);
           this.loadingPedido = false;
+          this.updateComputedProperties();
         },
       });
   }
@@ -782,6 +820,10 @@ export class GestionComprasComponent
 
     this.pedidoService.onGetPedidoResumen(this.pedidoId).subscribe({
       next: (resumen) => {
+        if (!resumen) {
+          // Error GraphQL: queda el cálculo local, como en el error de red
+          return;
+        }
         this.pedidoResumen = resumen;
         
         // Inicializar o sincronizar el valor total del pedido desde el backend
@@ -822,6 +864,11 @@ export class GestionComprasComponent
     });
   }
 
+  /** La acción ya quedó en el servidor: no se repite, solo se recarga con «Actualizar» (#390). */
+  private avisarRecargaFallida(): void {
+    this.notificacionService.openWarn("La acción se registró, pero no se pudo recargar el pedido: usá «Actualizar».", 6);
+  }
+
   /**
    * Actualiza los datos del pedido recargándolos desde el backend
    */
@@ -853,6 +900,11 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
+          if (!result.pedido) {
+            this.loadingPedido = false;
+            this.updateComputedProperties();
+            return;
+          }
           // Actualizar pedido actual
           this.currentPedido = result.pedido;
           
@@ -873,7 +925,7 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error("Error recargando componente:", error);
-          this.notificacionService.openAlgoSalioMal("Error al recargar los datos del pedido");
+          this.notificacionService.openWarn("No se pudo recargar el pedido: el servidor no responde. Intentá de nuevo con «Actualizar».", 6);
           this.loadingPedido = false;
         },
       });
@@ -1070,7 +1122,9 @@ export class GestionComprasComponent
 
   shouldDisableStep1Button(): boolean {
     // make disabled if form is not touched by user
-    return this.datosGeneralesForm.invalid || this.datosGeneralesTabState !== "editable" || !this.datosGeneralesForm.dirty;
+    return this.datosGeneralesForm.invalid || this.datosGeneralesTabState !== "editable" || !this.datosGeneralesForm.dirty
+      // Sin monedas/formas de pago/sucursales, o con el pedido sin cargar, no se guarda la cabecera (#390)
+      || this.datosInicialesFallo || (this.isEditMode && !this.currentPedido);
   }
 
   /**
@@ -1141,6 +1195,9 @@ export class GestionComprasComponent
 
   // Step 1: Modificar el comportamiento del botón
   onContinuarStep1(): void {
+    if (this.datosInicialesFallo || (this.isEditMode && !this.currentPedido)) {
+      return;
+    }
     if (this.datosGeneralesForm.valid) {
       if (this.isEditMode) {
         this.updatePedidoCabecera();
@@ -1208,6 +1265,12 @@ export class GestionComprasComponent
               .pipe(takeUntil(this.destroy$))
               .subscribe({
                 next: (pedidoCompleto) => {
+                  if (!pedidoCompleto) {
+                    this.avisarRecargaFallida();
+                    this.updateComputedProperties();
+                    this.updateItemsComputedProperties();
+                    return;
+                  }
                   this.currentPedido = pedidoCompleto;
                   
                   // Actualizar propiedades computadas después de recargar
@@ -1219,6 +1282,7 @@ export class GestionComprasComponent
                 error: (error) => {
                   console.error("Error recargando pedido completo:", error);
                   // Continuar con el resultado del save aunque falle la recarga
+                  this.avisarRecargaFallida();
                   this.updateComputedProperties();
                   this.updateItemsComputedProperties();
                 }
@@ -1295,6 +1359,12 @@ export class GestionComprasComponent
               .pipe(takeUntil(this.destroy$))
               .subscribe({
                 next: (pedidoCompleto) => {
+                  if (!pedidoCompleto) {
+                    this.avisarRecargaFallida();
+                    this.updateComputedProperties();
+                    this.updateItemsComputedProperties();
+                    return;
+                  }
                   this.currentPedido = pedidoCompleto;
                   
                   // Actualizar propiedades computadas después de recargar
@@ -1307,6 +1377,7 @@ export class GestionComprasComponent
                 error: (error) => {
                   console.error("Error recargando pedido completo:", error);
                   // Continuar con el resultado del save aunque falle la recarga
+                  this.avisarRecargaFallida();
                   this.updateComputedProperties();
                   this.updateItemsComputedProperties();
                 }
@@ -1922,56 +1993,62 @@ export class GestionComprasComponent
   onVerificarDevolucionesPendientes(proveedorId: number): void {
     if (proveedorId == null) return;
     this.devolucionService
-      .onGetDevolucionesPendientesPorProveedor(proveedorId)
+      .onGetDevolucionesPendientesPorProveedor(proveedorId, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
       .pipe(takeUntil(this.destroy$))
-      .subscribe((devoluciones) => {
-        const estadosEnEspera = [
-          DevolucionEstado.PENDIENTE,
-          DevolucionEstado.SEPARADO,
-          // COLECTADO también está a la espera de que el proveedor retire.
-          DevolucionEstado.COLECTADO,
-          ...(this.devolucionAlertaIncluyeRetirado
-            ? [DevolucionEstado.RETIRADO]
-            : []),
-        ];
-        const enEspera = (devoluciones || []).filter((d) =>
-          estadosEnEspera.includes(d.estado)
-        );
-        if (enEspera.length === 0) return;
-
-        const proveedorNombre =
-          this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
-
-        // No bloqueante: solo notifica y no interrumpe.
-        if (!this.devolucionAlertaBloqueante) {
-          this.notificacionService.openWarn(
-            `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
-            5
+      .subscribe({
+        // Fail-open (la compra sigue), pero ya no en silencio (#390).
+        error: () => this.notificacionService.openWarn(
+          "No se pudo verificar si el proveedor tiene devoluciones pendientes.", 5),
+        next: (devoluciones) => {
+          const estadosEnEspera = [
+            DevolucionEstado.PENDIENTE,
+            DevolucionEstado.SEPARADO,
+            // COLECTADO también está a la espera de que el proveedor retire.
+            DevolucionEstado.COLECTADO,
+            ...(this.devolucionAlertaIncluyeRetirado
+              ? [DevolucionEstado.RETIRADO]
+              : []),
+          ];
+          const enEspera = (devoluciones || []).filter((d) =>
+            estadosEnEspera.includes(d.estado)
           );
-          return;
-        }
+          if (enEspera.length === 0) return;
 
-        this.dialog
-          .open(DevolucionesPendientesDialogComponent, {
-            data: { proveedorNombre, devoluciones: enEspera },
-            disableClose: true,
-            width: "640px",
-          })
-          .afterClosed()
-          .pipe(takeUntil(this.destroy$))
-          .subscribe((res: DevolucionesPendientesDialogResult) => {
-            if (res?.accion === "ir") {
-              // Abre el retiro consolidado con el proveedor ya filtrado.
-              this.tabService.addTab(
-                new Tab(
-                  RetiroProveedorComponent,
-                  "Retiro de proveedor",
-                  new TabData(undefined, this.selectedProveedorComputed),
-                  null
-                )
-              );
-            }
-          });
+          const proveedorNombre =
+            this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
+
+          // No bloqueante: solo notifica y no interrumpe.
+          if (!this.devolucionAlertaBloqueante) {
+            this.notificacionService.openWarn(
+              `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
+              5
+            );
+            return;
+          }
+
+          this.dialog
+            .open(DevolucionesPendientesDialogComponent, {
+              data: { proveedorNombre, devoluciones: enEspera },
+              disableClose: true,
+              width: "640px",
+            })
+            .afterClosed()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((res: DevolucionesPendientesDialogResult) => {
+              if (res?.accion === "ir") {
+                // Abre el retiro consolidado con el proveedor ya filtrado.
+                this.tabService.addTab(
+                  new Tab(
+                    RetiroProveedorComponent,
+                    "Retiro de proveedor",
+                    new TabData(undefined, this.selectedProveedorComputed),
+                    null
+                  )
+                );
+              }
+            });
+        },
       });
   }
 
@@ -2164,6 +2241,9 @@ export class GestionComprasComponent
     if (!cotizacionCtrl) return;
 
     if (!moneda || moneda.denominacion === 'GUARANI') {
+      // Descarta una consulta de cotización en vuelo de la moneda anterior
+      this.cotizacionConsulta++;
+      this.cotizacionRefreshing = false;
       cotizacionCtrl.setValue(null, { emitEvent: false });
       cotizacionCtrl.clearValidators();
       cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
@@ -2178,8 +2258,16 @@ export class GestionComprasComponent
     this.ensureDefaultFormaPago();
 
     const hadItems = this.itemsDataSource.data.length > 0;
-    this.prefillCotizacionFromMercado(moneda).subscribe(() => {
-      if (hadItems) {
+    // Mientras se consulta no queda a la vista la cotización de la moneda anterior (#390)
+    cotizacionCtrl.setValue(null, { emitEvent: false });
+    this.cotizacionFromMercado = false;
+    this.cotizacionRefreshing = true;
+    this.updateComputedProperties();
+    this.prefillCotizacionFromMercado(moneda).subscribe((ok) => {
+      this.cotizacionRefreshing = false;
+      if (!ok) {
+        this.notificacionService.openWarn("No se pudo obtener la cotización: el servidor no responde. Ingresala a mano.", 6);
+      } else if (hadItems) {
         this.notificacionService.openSucess(
           "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
         );
@@ -2192,12 +2280,18 @@ export class GestionComprasComponent
    * Llama al backend y prefilea el control cotización con el mejor valor disponible:
    * mercado compra → mercado venta → manual PDV → moneda.cambio → null.
    */
-  private prefillCotizacionFromMercado(moneda: Moneda): Observable<number | null> {
-    return new Observable<number | null>((observer) => {
-      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+  private prefillCotizacionFromMercado(moneda: Moneda, vaciarSiFalla = true): Observable<boolean> {
+    const consulta = ++this.cotizacionConsulta;
+    return new Observable<boolean>((observer) => {
+      this.cambioService.getUltimoCambioPorMonedaIdEnSegundoPlano(moneda.id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (cambio: any) => {
+            if (consulta !== this.cotizacionConsulta) {
+              // Respuesta de una moneda elegida antes: no pisa la actual
+              observer.complete();
+              return;
+            }
             const valor = cambio?.valorEnGsCompraMercado
               ?? cambio?.valorEnGsVentaMercado
               ?? cambio?.valorEnGs
@@ -2207,15 +2301,22 @@ export class GestionComprasComponent
             this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
             this.cotizacionFromMercado = fromMercado;
             this.updateComputedProperties();
-            observer.next(valor);
+            observer.next(true);
             observer.complete();
           },
           error: () => {
-            const fallback = moneda?.cambio ?? null;
-            this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
-            this.cotizacionFromMercado = false;
+            if (consulta !== this.cotizacionConsulta) {
+              observer.complete();
+              return;
+            }
+            // Al cambiar de moneda se vacía, no queda un valor heredado: el guardado exige cotización y el
+            // usuario la carga a mano. El refresco manual conserva la que había.
+            if (vaciarSiFalla) {
+              this.datosGeneralesForm.get("cotizacion")?.setValue(null, { emitEvent: false });
+              this.cotizacionFromMercado = false;
+            }
             this.updateComputedProperties();
-            observer.next(fallback);
+            observer.next(false);
             observer.complete();
           }
         });
@@ -2238,9 +2339,11 @@ export class GestionComprasComponent
         // "actualizada" sobre un valor viejo lleva a pricear una compra con una cotización
         // stale creyendo que se acaba de refrescar.
         next: (ok) => {
-          this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+          this.prefillCotizacionFromMercado(moneda, false).subscribe((leida) => {
             this.cotizacionRefreshing = false;
-            if (ok) {
+            if (!leida) {
+              this.notificacionService.openWarn("No se pudo leer la cotización: el servidor no responde. Se mantiene la cargada.", 6);
+            } else if (ok) {
               this.notificacionService.openSucess("Cotización de mercado actualizada");
             } else {
               this.notificacionService.openWarn(
@@ -2569,11 +2672,12 @@ export class GestionComprasComponent
     }
 
     this.buscadorComprasService
-      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .buscarProductosParaDialog(searchText, 0, 20, true, true)
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe({
         next: procesarResultados,
-        error: () => this.abrirDialogoBusquedaProducto(searchText),
+        // El diálogo volvería a consultar y a esperar: se avisa y se puede reintentar con Enter (#390)
+        error: () => this.notificacionService.openWarn("No se pudo buscar el producto: el servidor no responde. Intentá de nuevo."),
       });
   }
 
@@ -2736,7 +2840,11 @@ export class GestionComprasComponent
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: (pedidoCompleto) => {
-                this.currentPedido = pedidoCompleto;
+                if (pedidoCompleto) {
+                  this.currentPedido = pedidoCompleto;
+                } else {
+                  this.avisarRecargaFallida();
+                }
                 this.updateComputedProperties();
                 // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
                 if (this.selectedTabIndex !== 1) {
@@ -2745,6 +2853,7 @@ export class GestionComprasComponent
               },
               error: (error) => {
                 console.error("Error recargando pedido después de agregar item:", error);
+                this.avisarRecargaFallida();
                 this.updateComputedProperties();
                 if (this.selectedTabIndex !== 1) {
                   this.updateItemsComputedProperties();
@@ -2833,7 +2942,11 @@ export class GestionComprasComponent
     // Cargar distribuciones existentes del backend
     this.pedidoService.onGetPedidoItemDistribucionesByPedidoItemId(item.id).subscribe({
       next: (distribuciones) => {
-        
+        if (distribuciones == null) {
+          // Error GraphQL: el servicio ya avisó; no se abre con la lista vacía
+          return;
+        }
+
         const dialogData: DistributeItemDialogData = {
           item: item,
           distribuciones: distribuciones,
@@ -2878,50 +2991,8 @@ export class GestionComprasComponent
       },
       error: (error) => {
         console.error("Error cargando distribuciones:", error);
-        // Usar array vacío como fallback
-        const distribuciones: PedidoItemDistribucion[] = [];
-        
-        const dialogData: DistributeItemDialogData = {
-          item: item,
-          distribuciones: distribuciones,
-          sucursalesInfluencia: sucursalesInfluencia,
-          sucursalesEntrega: sucursalesEntrega,
-          title: `Distribuir: ${item.producto.descripcion}`
-        };
-
-        const dialogRef = this.dialog.open(DistributeItemDialogComponent, {
-          width: '80%',
-          height: '70%',
-          data: dialogData,
-          disableClose: true
-        });
-
-        dialogRef.afterClosed().subscribe(result => {
-          if (result?.success) {
-            // Solo recargar datos si la operación fue exitosa
-            // Marcar tab de ítems como no cargado para recargar en próxima visita
-            this.markTabAsUnloaded(1);
-            
-            // Si estamos en el tab de ítems, recargar inmediatamente
-            if (this.selectedTabIndex === 1) {
-              // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-            } else {
-              // Si no estamos en el tab 1, actualizar propiedades computadas
-              this.updateItemsComputedProperties();
-            }
-            
-            // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
-            this.markTabAsUnloaded(2);
-            
-            // Recargar resumen del pedido para actualizar header
-            if (this.isEditMode) {
-              this.loadPedidoResumen();
-            }
-            this.updateComputedProperties();
-          }
-        });
+        // Abrir el diálogo vacío y guardar pisaría las distribuciones reales (#390)
+        this.notificacionService.openWarn("No se pudieron cargar las distribuciones del ítem: el servidor no responde. Intentá de nuevo.", 5);
       }
     });
   }
@@ -3011,6 +3082,11 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          if (!response) {
+            // Error GraphQL: el servicio ya avisó
+            this.itemsLoading = false;
+            return;
+          }
           // Procesar los ítems y añadir propiedades computadas
           const processedItems = (response.getContent || []).map((item: PedidoItem) => 
             this.processItemForDisplay(item)
@@ -3051,6 +3127,10 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          if (!response) {
+            this.itemsPendientesLoading = false;
+            return;
+          }
           // El backend ya filtra por cantidad pendiente > 0, no necesitamos filtrar en el frontend
           // Procesar ítems para mostrar
           const processedItems = (response.getContent || []).map((item: PedidoItem) => {
@@ -3106,6 +3186,10 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          if (!response) {
+            this.notasRecepcionLoading = false;
+            return;
+          }
           // Procesar notas para mostrar (incluye notas normales y de rechazo)
           const processedNotas = (response.getContent || []).map((nota: NotaRecepcion) => {
             const mockNota = this.processNotaForDisplay(nota) as MockNotaRecepcion;
@@ -3199,6 +3283,10 @@ export class GestionComprasComponent
               .pipe(takeUntil(this.destroy$))
               .subscribe({
                 next: (result) => {
+                  if (!result.pedido) {
+                    this.avisarRecargaFallida();
+                    return;
+                  }
                   this.currentPedido = result.pedido;
                   this.loadPedidoIntoForm(result.pedido);
                   
@@ -3209,10 +3297,12 @@ export class GestionComprasComponent
                   // Recargar resumen del pedido para actualizar header y luego actualizar botones
                   this.pedidoService.onGetPedidoResumen(this.currentPedido.id).subscribe({
                     next: (resumen) => {
-                      this.pedidoResumen = resumen;
+                      if (resumen) {
+                        this.pedidoResumen = resumen;
+                      }
                       
                       // Actualizar monto total local si es necesario
-                      if (resumen.valorTotalPedido !== undefined && resumen.valorTotalPedido !== null) {
+                      if (resumen?.valorTotalPedido !== undefined && resumen?.valorTotalPedido !== null) {
                         if (this.montoTotalPedidoLocal === 0 || 
                             Math.abs(this.montoTotalPedidoLocal - resumen.valorTotalPedido) > 0.01) {
                           this.montoTotalPedidoLocal = resumen.valorTotalPedido;
@@ -3255,7 +3345,7 @@ export class GestionComprasComponent
                 },
                 error: (error) => {
                   console.error("Error recargando pedido después de finalizar:", error);
-                  this.notificacionService.openAlgoSalioMal("Error al recargar el pedido después de finalizar la planificación");
+                  this.avisarRecargaFallida();
                 }
               });
           },
@@ -3309,6 +3399,10 @@ export class GestionComprasComponent
               .pipe(takeUntil(this.destroy$))
               .subscribe({
                 next: (result) => {
+                  if (!result.pedido) {
+                    this.avisarRecargaFallida();
+                    return;
+                  }
                   this.currentPedido = result.pedido;
                   this.loadPedidoIntoForm(result.pedido);
                   
@@ -3326,10 +3420,12 @@ export class GestionComprasComponent
                   // Recargar resumen del pedido para actualizar header y luego actualizar botones
                   this.pedidoService.onGetPedidoResumen(this.currentPedido.id).subscribe({
                     next: (resumen) => {
-                      this.pedidoResumen = resumen;
+                      if (resumen) {
+                        this.pedidoResumen = resumen;
+                      }
                       
                       // Actualizar monto total local si es necesario
-                      if (resumen.valorTotalPedido !== undefined && resumen.valorTotalPedido !== null) {
+                      if (resumen?.valorTotalPedido !== undefined && resumen?.valorTotalPedido !== null) {
                         if (this.montoTotalPedidoLocal === 0 || 
                             Math.abs(this.montoTotalPedidoLocal - resumen.valorTotalPedido) > 0.01) {
                           this.montoTotalPedidoLocal = resumen.valorTotalPedido;
@@ -3354,7 +3450,7 @@ export class GestionComprasComponent
                 },
                 error: (error) => {
                   console.error("Error recargando pedido después de reabrir:", error);
-                  this.notificacionService.openAlgoSalioMal("Error al recargar el pedido después de reabrir la planificación");
+                  this.avisarRecargaFallida();
                 }
               });
           },
@@ -3544,7 +3640,11 @@ export class GestionComprasComponent
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: (pedidoActualizado) => {
-                this.currentPedido = pedidoActualizado;
+                if (pedidoActualizado) {
+                  this.currentPedido = pedidoActualizado;
+                } else {
+                  this.avisarRecargaFallida();
+                }
                 
                 // Recargar resumen del pedido para actualizar etapaActual
                 this.loadPedidoResumen();
@@ -3560,6 +3660,7 @@ export class GestionComprasComponent
               },
               error: (error) => {
                 console.error("Error recargando pedido después de crear nota:", error);
+                this.avisarRecargaFallida();
                 // Fallback: recargar solo el tab y resumen
                 setTimeout(() => {
                   this.markTabAsUnloaded(2);
@@ -3612,7 +3713,11 @@ export class GestionComprasComponent
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: (pedidoActualizado) => {
-                this.currentPedido = pedidoActualizado;
+                if (pedidoActualizado) {
+                  this.currentPedido = pedidoActualizado;
+                } else {
+                  this.avisarRecargaFallida();
+                }
                 
                 // Recargar resumen del pedido para actualizar etapaActual
                 this.loadPedidoResumen();
@@ -3628,6 +3733,7 @@ export class GestionComprasComponent
               },
               error: (error) => {
                 console.error("Error recargando pedido después de crear nota:", error);
+                this.avisarRecargaFallida();
                 // Fallback: recargar solo el tab y resumen
                 setTimeout(() => {
                   this.markTabAsUnloaded(2);
@@ -3749,7 +3855,11 @@ export class GestionComprasComponent
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: (pedidoActualizado) => {
-                this.currentPedido = pedidoActualizado;
+                if (pedidoActualizado) {
+                  this.currentPedido = pedidoActualizado;
+                } else {
+                  this.avisarRecargaFallida();
+                }
                 
                 // Recargar resumen del pedido para actualizar etapaActual
                 this.loadPedidoResumen();
@@ -3765,6 +3875,7 @@ export class GestionComprasComponent
               },
               error: (error) => {
                 console.error("Error recargando pedido después de editar nota:", error);
+                this.avisarRecargaFallida();
                 // Fallback: recargar solo el tab y resumen
                 setTimeout(() => {
                   this.markTabAsUnloaded(2);
@@ -4097,6 +4208,10 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
+          if (!result.pedido || !result.resumen) {
+            this.avisarRecargaFallida();
+            return;
+          }
           this.currentPedido = result.pedido;
           this.pedidoResumen = result.resumen;
 
@@ -4127,7 +4242,7 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error('Error recargando el pedido tras finalizar la recepción física:', error);
-          this.notificacionService.openAlgoSalioMal('Error al actualizar el pedido tras finalizar la recepción física');
+          this.avisarRecargaFallida();
         }
       });
   }
@@ -4169,21 +4284,32 @@ export class GestionComprasComponent
           searchText,
           this.productosProveedorPageIndex,
           this.productosProveedorPageSize,
-          pedidoId
+          pedidoId,
+          true,
+          PROPAGAR_ERROR_DE_RED,
+          CONSULTA_PRODUCTOS_PROVEEDOR
         )
       : this.productoProveedorService.getByProveedorId(
           proveedorId,
           "",
           this.productosProveedorPageIndex,
           this.productosProveedorPageSize,
-          pedidoId
+          pedidoId,
+          undefined,
+          PROPAGAR_ERROR_DE_RED,
+          CONSULTA_PRODUCTOS_PROVEEDOR
         );
 
     request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
+          if (!response) {
+            // Error GraphQL: el servicio ya avisó
+            this.productosProveedorLoading = false;
+            return;
+          }
+
           const productos = (response.getContent || []).map((pp: ProductoProveedor) => {
             const precioPrincipal = pp.producto?.precioPrincipal;
             
@@ -4351,7 +4477,10 @@ export class GestionComprasComponent
     }
 
     this.productoService
-      .onGetStockPorSucursales(productoId)
+      .onGetStockPorSucursales(productoId, true, true, {
+        networkError: { propagate: true, show: false },
+        graphError: { propagate: true, show: false },
+      }, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (stockPorSucursal: PorSucursal<number>) => {
@@ -4362,11 +4491,10 @@ export class GestionComprasComponent
           this.recalcularStockTotal(producto);
         },
         error: () => {
-          producto.stockPorSucursal.forEach(entry => {
-            entry.stock = 0;
-            entry.loading = false;
-          });
-          this.recalcularStockTotal(producto);
+          // Sin stock la fila muestra «-» (stockTotal null), no un 0 inventado (#390)
+          producto.stockPorSucursal.forEach(entry => { entry.loading = false; });
+          producto.stockTotal = null;
+          producto.stockTotalLoading = false;
         }
       });
   }

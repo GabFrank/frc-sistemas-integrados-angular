@@ -181,7 +181,7 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+      <button mat-stroked-button (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
       <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
         <mat-icon>save</mat-icon> Confirmar
       </button>

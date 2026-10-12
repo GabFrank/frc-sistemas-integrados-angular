@@ -112,6 +112,9 @@
         "
       ></tr>
     </table>
+    <div *ngIf="rolesNoDisponibles" style="color: #ffb74d; text-align: center; padding: 8px">
+      No se pudieron cargar los roles de este usuario: cerrá y volvé a abrir para verlos o cambiarlos.
+    </div>
     <br />
     <div style="width: 100%; text-align: center">
       <button
@@ -119,7 +122,7 @@
         color="primary"
         aria-label="adicionar usuarioRole"
         (click)="selectedUsuarioRole = null; onAddUsuarioRole()"
-        [disabled]="!(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))"
+        [disabled]="rolesNoDisponibles || !(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))"
         type="button"
       >
         <mat-icon>add</mat-icon>

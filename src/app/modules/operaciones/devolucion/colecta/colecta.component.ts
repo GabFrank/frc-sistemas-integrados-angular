@@ -1,3 +1,5 @@
+import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
@@ -55,10 +57,13 @@ export class ColectaComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sucursalService
-      .onGetAllSucursales(true)
+      .onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
       .pipe(takeUntil(this.destroy$))
-      .subscribe((res) => {
-        this.sucursales = (res || []).filter((s) => s.id != 0);
+      .subscribe({
+        next: (res) => {
+          this.sucursales = (res || []).filter((s) => s.id != 0);
+        },
+        error: () => this.notificacionService.openWarn("No se pudieron cargar las sucursales: el servidor no responde.", 5),
       });
     this.cargarSeparadas();
   }
@@ -104,7 +109,11 @@ export class ColectaComponent implements OnInit, OnDestroy {
         undefined,
         undefined,
         0,
-        200
+        200,
+        true,
+        undefined,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({

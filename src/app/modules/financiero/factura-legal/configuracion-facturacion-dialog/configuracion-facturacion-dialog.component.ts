@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -134,6 +135,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   historialCargando = false;
   /** null = sin filtro; GLOBAL = solo la fila "Todas"; id = una sucursal. */
   filtroHistorial: number = null;
+  historialTotal = 0;
+  historialPageIndex = 0;
+  historialPageSize = 15;
+  /** Número de la última consulta del historial: una respuesta de una anterior llega tarde y se descarta. */
+  private historialConsulta = 0;
 
   // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
   modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
@@ -163,7 +169,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       // La 0 es el SERVIDOR central: no tiene cajas ni factura, no lleva política propia.
       this.sucursales = (res != null ? res : [])
         .filter((s) => s.id != 0)
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+        .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     });
     this.cargar();
   }
@@ -176,11 +182,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
         // una lista vacía llega como []. Sin esto, el error se vería igual que "sin configuración".
         this.sinSoporte = res == null;
         const configs = (res != null ? res : []).map((r) => Object.assign(new ConfiguracionFacturacion(), r));
-        // La global primero; después las sucursales por nombre.
+        // La global primero; después las sucursales por id, como el selector.
         configs.sort((a, b) => {
           if (a.sucursal == null) return -1;
           if (b.sucursal == null) return 1;
-          return (a.sucursal.nombre || '').localeCompare(b.sucursal.nombre || '');
+          return (a.sucursal.id ?? 0) - (b.sucursal.id ?? 0);
         });
         this.filas = configs.map((c) => this.toFila(c));
         this.calcularEstado(configs);
@@ -363,19 +369,30 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   }
 
   onFiltroHistorialChange(): void {
+    this.historialPageIndex = 0;
+    this.cargarHistorial();
+  }
+
+  onHistorialPage(event: PageEvent): void {
+    this.historialPageIndex = event.pageIndex;
+    this.historialPageSize = event.pageSize;
     this.cargarHistorial();
   }
 
   private cargarHistorial(): void {
+    const consulta = ++this.historialConsulta;
     this.historialCargando = true;
-    this.configuracionService.onGetHistorial(this.filtroHistorial).subscribe({
+    this.configuracionService.onGetHistorialPage(this.filtroHistorial, this.historialPageIndex, this.historialPageSize).subscribe({
       next: (res) => {
-        // null = error (distinto de "sin cambios", que llega como []).
+        if (consulta !== this.historialConsulta) return;
+        // null = error (distinto de "sin cambios", que llega con getContent vacío).
         this.historialError = res == null;
-        this.historial = (res != null ? res : []).map((h) => this.toFilaHistorial(h));
+        this.historialTotal = res?.getTotalElements ?? 0;
+        this.historial = (res?.getContent ?? []).map((h) => this.toFilaHistorial(h));
         this.historialCargando = false;
       },
       error: () => {
+        if (consulta !== this.historialConsulta) return;
         this.historialError = true;
         this.historialCargando = false;
       }

@@ -4,6 +4,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { from, of } from 'rxjs';
 import { catchError, concatMap, map, toArray } from 'rxjs/operators';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -58,6 +59,8 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
   colas: ColaVista[] = [];
   buscando = false;
   guardando = false;
+  /** Algo se guardó o quedó sin confirmar: al cerrar, la lista de impresoras se relee. */
+  private huboCambios = false;
   buscoAlMenosUnaVez = false;
   errorBusqueda: string = null;
 
@@ -247,11 +250,24 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
     this.guardando = true;
     this.cdr.markForCheck();
 
+    // No hay unicidad de impresoras: reenviar una cola que sí se guardó crea otra igual. Por eso, al primer
+    // guardado sin respuesta no se sigue con las demás, y el diálogo queda abierto sin las ya enviadas (#390).
+    let exitosas = 0;
+    const lote = { enDuda: null as ColaVista | null };
     from(seleccionadas)
       .pipe(
-        concatMap((cola) => this.impresoraService.guardar(this.aInput(cola, sucursal.id), true).pipe(
-          map(() => true),
-          catchError(() => {
+        concatMap((cola) => lote.enDuda != null ? of(false) : this.impresoraService.guardar(this.aInput(cola, sucursal.id), true).pipe(
+          map(() => {
+            exitosas++;
+            cola.seleccionada = false;
+            return true;
+          }),
+          catchError((err) => {
+            if (erroresDeRechazo(err) == null) {
+              lote.enDuda = cola;
+              cola.seleccionada = false;
+              return of(false);
+            }
             this.notificacion.notification$.next({
               texto: 'Error al guardar ' + cola.nombre,
               color: NotificacionColor.warn,
@@ -263,9 +279,9 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
         toArray(),
         untilDestroyed(this),
       )
-      .subscribe((resultados) => {
+      .subscribe(() => {
         this.guardando = false;
-        const exitosas = resultados.filter(Boolean).length;
+        if (exitosas > 0 || lote.enDuda != null) this.huboCambios = true;
         if (exitosas > 0) {
           this.notificacion.notification$.next({
             texto: `${exitosas} impresora(s) agregada(s) desde ${sucursal.nombre}.`,
@@ -274,7 +290,16 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
           });
         }
         this.cdr.markForCheck();
-        this.dialogRef.close(exitosas > 0);
+        if (lote.enDuda != null) {
+          this.notificacion.notification$.next({
+            texto: `No se pudo confirmar si «${lote.enDuda.nombre}» se agregó, y las siguientes no se enviaron. `
+              + 'Cerrá y revisá la lista de impresoras antes de agregarla de nuevo.',
+            color: NotificacionColor.warn,
+            duracion: 12,
+          });
+          return;
+        }
+        this.dialogRef.close(this.huboCambios);
       });
   }
 
@@ -298,6 +323,7 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
   }
 
   cancelar(): void {
-    this.dialogRef.close();
+    // Si algo se guardó o quedó en duda antes de cancelar, quien abrió relee la lista.
+    this.dialogRef.close(this.huboCambios);
   }
 }

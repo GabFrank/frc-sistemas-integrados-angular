@@ -91,8 +91,12 @@ export class AdicionarNotaDialogComponent implements OnInit {
           this.updateComputedProperties();
         },
         error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al cargar notas');
+          // Sin filas de otra página o filtro a la vista (#390)
+          this.dataSource.data = [];
+          this.totalElements = 0;
           this.loading = false;
+          this.updateComputedProperties();
+          this.notificacionService.openWarn('No se pudieron cargar las notas disponibles: el servidor no responde. Intentá de nuevo.', 6);
         }
       });
   }

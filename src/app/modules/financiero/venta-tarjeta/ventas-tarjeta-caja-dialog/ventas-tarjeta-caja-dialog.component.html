@@ -26,7 +26,7 @@
       <mat-icon>qr_code_scanner</mat-icon>
       <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr" subscriptSizing="dynamic">
         <mat-label>Escaneá la seña del cobro</mat-label>
-        <input matInput class="input-qr" [formControl]="qrControl" autocomplete="off"
+        <input matInput frcLectorTeclado class="input-qr" [formControl]="qrControl" autocomplete="off"
                placeholder="Apuntá el lector al QR del comprobante"
                (keyup.enter)="onQrEscaneado()" />
       </mat-form-field>

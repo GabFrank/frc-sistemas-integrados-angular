@@ -19,6 +19,11 @@
             <mat-spinner diameter="20"></mat-spinner>
             <span>Cargando configuración inicial...</span>
           </div>
+          <div class="loading-indicator" *ngIf="!loadingSucursales && sucursalesFallo">
+            <mat-icon color="warn">error_outline</mat-icon>
+            <span>No se pudieron cargar las sucursales.</span>
+            <button mat-stroked-button type="button" (click)="reintentarSucursales()">Reintentar</button>
+          </div>
 
           <div class="config-item">
             <mat-label>Sucursales de Entrega:</mat-label>
@@ -421,8 +426,13 @@
             </div>
 
             <!-- No items message -->
+            <div *ngIf="!loadingItems && itemsFallo" class="no-items">
+              <mat-icon color="warn">error_outline</mat-icon>
+              <span>No se pudieron cargar los ítems de la nota.</span>
+              <button mat-stroked-button type="button" (click)="reintentarItems()">Reintentar</button>
+            </div>
             <div
-              *ngIf="!loadingItems && itemsDataSource.data.length === 0"
+              *ngIf="!loadingItems && !itemsFallo && itemsDataSource.data.length === 0"
               class="no-items"
             >
               <mat-icon>inventory_2</mat-icon>
@@ -542,8 +552,13 @@
             </div>
 
             <!-- No notas message -->
+            <div *ngIf="!loadingNotas && notasFallo" class="no-items">
+              <mat-icon color="warn">error_outline</mat-icon>
+              <span>No se pudieron cargar las notas de recepción.</span>
+              <button mat-stroked-button type="button" (click)="reintentarNotas()">Reintentar</button>
+            </div>
             <div
-              *ngIf="!loadingNotas && notasDataSource.data.length === 0"
+              *ngIf="!loadingNotas && !notasFallo && notasDataSource.data.length === 0"
               class="no-items"
             >
               <mat-icon>receipt_long</mat-icon>

@@ -94,6 +94,13 @@ const LEGACY_KEYS = {
 export class ConfiguracionService {
   private config: ConfiguracionSistema = null;
 
+  /**
+   * Canal de actualización guardado en config-backup.json (el que usa el updater del main), leído
+   * una sola vez al arrancar. Manda sobre el de localStorage: si no, una copia vieja o sin canal
+   * en localStorage pisaba el canal real de la PC (#384). null fuera de Electron o si no hay.
+   */
+  private canalDelMainAlArrancar: UpdateChannel | null = null;
+
   // Event emitter for configuration changes
   public configChanged = new Subject<ConfiguracionSistema>();
 
@@ -101,8 +108,33 @@ export class ConfiguracionService {
     private http: HttpClient,
     private dialog: MatDialog
   ) {
+    this.canalDelMainAlArrancar = this.leerCanalDelMain();
     // Ensure config is synchronized on service initialization
     this.ensureConfigSynced();
+  }
+
+  private leerCanalDelMain(): UpdateChannel | null {
+    try {
+      const isElectron = window && typeof window['require'] === 'function';
+      if (!isElectron) {
+        return null;
+      }
+      const canal = window['require']('electron').ipcRenderer.sendSync('get-update-channel');
+      return ['stable', 'beta', 'alpha', 'dev'].includes(canal) ? canal : null;
+    } catch (e) {
+      console.warn('No se pudo leer el canal de actualización del main:', e);
+      return null;
+    }
+  }
+
+  /** Devuelve la config con el canal guardado en el main, si hay uno y difiere. */
+  private adoptarCanalDelMain(config: ConfiguracionSistema): ConfiguracionSistema {
+    const canal = this.canalDelMainAlArrancar;
+    if (!config || !canal || config.updateChannel === canal) {
+      return config;
+    }
+    console.log(`Canal de actualización: se adopta el guardado (${canal}) en vez de ${config.updateChannel}`);
+    return { ...config, updateChannel: canal };
   }
 
   /**
@@ -116,7 +148,11 @@ export class ConfiguracionService {
     if (savedConfig) {
       try {
         // We have consolidated config, sync it to legacy keys
-        const parsedConfig = JSON.parse(savedConfig);
+        const guardada = JSON.parse(savedConfig);
+        const parsedConfig = this.adoptarCanalDelMain(guardada);
+        if (parsedConfig !== guardada) {
+          this.saveConfigToLocalStorage(parsedConfig);
+        }
         this.config = parsedConfig;
         this.syncToLegacyKeys(parsedConfig);
         console.log('Configuration loaded from localStorage');
@@ -143,7 +179,9 @@ export class ConfiguracionService {
     console.log('No valid localStorage configuration, checking backup sources...');
 
     // First check for backup file (highest priority after localStorage)
-    this.loadFromBackupFile().subscribe(backupConfig => {
+    this.loadFromBackupFile().subscribe(backupLeido => {
+      // El backup puede salir de la clave config_backup de localStorage: también ahí manda el main
+      const backupConfig = this.adoptarCanalDelMain(backupLeido);
       if (backupConfig) {
         console.log('Configuration loaded from backup file');
         this.config = backupConfig;
@@ -336,7 +374,9 @@ export class ConfiguracionService {
       pdvId: config.pdvId ?? DEFAULT_CONFIG.pdvId,
       isConfigured: config.isConfigured ?? DEFAULT_CONFIG.isConfigured,
       isLocal: config.isLocal ?? DEFAULT_CONFIG.isLocal,
-      updateChannel: config.updateChannel || DEFAULT_CONFIG.updateChannel,
+      // Una config armada desde cero (legacy, configuracion-local.json, DEFAULT) toma el canal del
+      // main en vez de quedar vacía; una elección del usuario nunca llega vacía (#384)
+      updateChannel: config.updateChannel || this.canalDelMainAlArrancar || DEFAULT_CONFIG.updateChannel,
       impresoraLocal: config.impresoraLocal || null,
       // FRONTEND sin impresora local no tiene dónde imprimir: se cae al flujo de siempre.
       modoImpresion: config.modoImpresion === 'FRONTEND' && config.impresoraLocal ? 'FRONTEND' : 'BACKEND',

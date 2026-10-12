@@ -31,6 +31,9 @@ export enum ROLES {
   // Notas electronicas (remision y credito). Se siembran en el central con V225.1.
   FACTURACION_VER = "FACTURACION VER",
   FACTURACION_EMITIR = "FACTURACION EMITIR",
+  // Crear e imprimir la nota de remision de una transferencia, sin el menu de Financiero: no va en
+  // ningun visibilityRoles. Se siembra en el central con V236.1.
+  NOTA_REMISION_EMITIR = "NOTA REMISION EMITIR",
   RECIBIR_PEDIDOS = "RECIBIR PEDIDOS",
   ANALISIS_FINANCIERO = "ANALISIS FINANCIERO",
   VER_STOCK_COMPRAS = "VER STOCK COMPRAS",

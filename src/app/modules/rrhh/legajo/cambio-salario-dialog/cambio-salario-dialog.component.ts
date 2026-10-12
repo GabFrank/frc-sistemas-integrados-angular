@@ -28,6 +28,8 @@ export class CambioSalarioDialogComponent implements OnInit {
   motivoControl = new FormControl(null);
 
   salarioMinimo: number = null;
+  /** No se pudo leer el mínimo legal: no es lo mismo que «no está configurado» (#390). */
+  minimoNoVerificado = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: CambioSalarioDialogData,
@@ -53,9 +55,13 @@ export class CambioSalarioDialogComponent implements OnInit {
         }
       });
     this.configuracionRrhhService.onSearch('SALARIO_MINIMO_LEGAL_PYG').pipe(untilDestroyed(this))
-      .subscribe((res: any[]) => {
-        const cfg = (res || []).find(c => c.clave === 'SALARIO_MINIMO_LEGAL_PYG');
-        if (cfg && cfg.valor) { this.salarioMinimo = Number(cfg.valor); }
+      .subscribe({
+        next: (res: any[]) => {
+          const cfg = (res || []).find(c => c.clave === 'SALARIO_MINIMO_LEGAL_PYG');
+          if (cfg && cfg.valor) { this.salarioMinimo = Number(cfg.valor); }
+        },
+        // No se bloquea el cambio por una consulta secundaria: se avisa y se pide confirmación al guardar.
+        error: () => this.minimoNoVerificado = true,
       });
   }
 
@@ -65,6 +71,14 @@ export class CambioSalarioDialogComponent implements OnInit {
       return;
     }
     const nuevo = Number(this.salarioControl.value);
+    if (this.minimoNoVerificado) {
+      this.dialogosService.confirm(
+        'Salario mínimo sin verificar',
+        'No se pudo leer el salario mínimo legal, así que no se puede comprobar el salario ingresado (' + nuevo + ').',
+        '¿Desea continuar de todos modos?', null, true, 'Sí, continuar', 'No'
+      ).pipe(untilDestroyed(this)).subscribe(r => { if (r === true) { this.guardar(); } });
+      return;
+    }
     if (this.salarioMinimo != null && nuevo < this.salarioMinimo) {
       this.dialogosService.confirm(
         'Salario por debajo del mínimo',

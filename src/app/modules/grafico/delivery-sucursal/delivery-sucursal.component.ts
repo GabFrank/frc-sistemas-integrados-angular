@@ -41,6 +41,7 @@ import {
   etiquetasFiltroPeriodoGrafico,
   nombreArchivoGraficoExcel,
 } from "../utils/grafico-excel-export.util";
+import { switchMapSinCortar } from '../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -133,7 +134,7 @@ export class DeliverySucursalComponent implements OnInit {
         startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(() => this.consultarDelivery()),
+        switchMapSinCortar(() => this.consultarDelivery()),
         untilDestroyed(this)
       )
       .subscribe((datos) => {

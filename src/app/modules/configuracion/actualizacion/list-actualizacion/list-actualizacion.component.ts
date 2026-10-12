@@ -66,6 +66,8 @@ export class ListActualizacionComponent implements OnInit {
     this.actualizacionService.onGetAll()
       .pipe(untilDestroyed(this))
       .subscribe(res => {
+        // null = no se pudo leer (#390): queda lo que había, en vez de vaciar la tabla al refrescar.
+        if (res == null) return;
         this.dataSource.data = res;
       })
   }

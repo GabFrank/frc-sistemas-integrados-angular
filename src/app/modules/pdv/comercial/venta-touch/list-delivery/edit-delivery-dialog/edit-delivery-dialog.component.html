@@ -48,6 +48,9 @@
           </mat-option>
         </mat-autocomplete>
       </mat-form-field>
+      <button *ngIf="preciosFallo" mat-stroked-button color="warn" type="button" (click)="reintentarPrecios()">
+        Reintentar tarifas
+      </button>
     </div>
     <!-- <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
       <div fxFlex="30" fxLayoutAlign="start center">

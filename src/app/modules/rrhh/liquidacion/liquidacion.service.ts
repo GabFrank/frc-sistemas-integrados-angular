@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { LiquidacionByIdGQL } from './graphql/LiquidacionById';
 import { LiquidacionesPorFuncionarioGQL } from './graphql/LiquidacionesPorFuncionario';
 import { LiquidacionesPorPeriodoGQL } from './graphql/LiquidacionesPorPeriodo';
@@ -25,6 +26,12 @@ import { ImprimirReciboItemLiquidacionGQL } from './graphql/ImprimirReciboItemLi
 
 /** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
 const TIMEOUT_GENERACION_MASIVA_MS = 300000;
+
+/**
+ * Consultas del detalle de una liquidación: sin esto, con el central sin responder no emiten nada
+ * y la pantalla queda como si no hubiera datos (#390). El que llama decide qué avisar.
+ */
+const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({ providedIn: 'root' })
 export class LiquidacionService {
@@ -55,7 +62,8 @@ export class LiquidacionService {
   ) { }
 
   onGetById(id: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.liquidacionByIdGQL, { id }, servidor);
+    return this.genericService.onCustomQuery(this.liquidacionByIdGQL, { id }, servidor, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_DETALLE);
   }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
@@ -67,7 +75,8 @@ export class LiquidacionService {
   }
 
   onGetItems(liquidacionId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.liquidacionItemsGQL, { liquidacionId }, servidor);
+    return this.genericService.onCustomQuery(this.liquidacionItemsGQL, { liquidacionId }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_DETALLE);
   }
 
   /** Padron del SaaS: lista paginada y filtrada en el backend. */
@@ -107,7 +116,8 @@ export class LiquidacionService {
    * "Buscando..." — es una carga de fondo, no una accion del usuario.
    */
   onGetConceptosParaItemManual(servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.conceptosParaItemManualGQL, {}, servidor, null, true);
+    return this.genericService.onCustomQuery(this.conceptosParaItemManualGQL, {}, servidor, PROPAGAR_ERROR_DE_RED, true,
+      CONSULTA_DETALLE);
   }
 
   /** Programa un item para la liquidacion de un periodo posterior (hasta 12 meses). */
@@ -118,7 +128,8 @@ export class LiquidacionService {
   }
 
   onGetItemsProgramados(funcionarioId: number, estado: string = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.itemsProgramadosGQL, { funcionarioId, estado }, servidor, null, true);
+    return this.genericService.onCustomQuery(this.itemsProgramadosGQL, { funcionarioId, estado }, servidor,
+      PROPAGAR_ERROR_DE_RED, true, CONSULTA_DETALLE);
   }
 
   onAnularItemProgramado(id: number, servidor = true): Observable<any> {

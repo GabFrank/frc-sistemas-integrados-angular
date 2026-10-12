@@ -8,6 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
+import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -123,6 +124,7 @@ import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -231,9 +233,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Monedas y formas de pago se piden recién con el PDV validado (validarPdvSucursal): con el filial
+    // sin responder su spinner de 60 s tapaba el aviso de la validación (#387).
     this.formaPagoList = [];
-    this.setPrecios();
-    this.getFormaPagos();
 
     setTimeout(() => {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
@@ -284,7 +286,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -300,7 +302,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         )
         .pipe(untilDestroyed(this))
         .subscribe(() => {
-          this.tabService.removeTab(this.tabService.currentIndex);
+          this.cerrarPestanaPropia();
         });
       return;
     }
@@ -309,86 +311,143 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (puntoDeVenta) => {
-          if (puntoDeVenta == null) {
-            this.dialogoService
-              .confirm(
-                'Error de Configuración',
-                `No se encontró el Punto de Venta con ID ${pdvId}.`,
-                'El pdvId no corresponde a la sucursal actual.',
-                ['Verifique la configuración del PDV en la Configuración del Sistema.'],
-                false
-              )
-              .pipe(untilDestroyed(this))
-              .subscribe(() => {
-                this.tabService.removeTab(this.tabService.currentIndex);
-              });
-            return;
-          }
+          // Una excepción acá no llega al `error:`: dejaría pdvValidado en false, sin aviso, y las
+          // puertas de cobro bloqueadas en silencio.
+          try {
+            if (puntoDeVenta == null) {
+              this.dialogoService
+                .confirm(
+                  'Error de Configuración',
+                  `No se encontró el Punto de Venta con ID ${pdvId}.`,
+                  'El pdvId no corresponde a la sucursal actual.',
+                  ['Verifique la configuración del PDV en la Configuración del Sistema.'],
+                  false
+                )
+                .pipe(untilDestroyed(this))
+                .subscribe(() => {
+                  this.cerrarPestanaPropia();
+                });
+              return;
+            }
 
-          const sucursalPdv = puntoDeVenta.sucursal;
-          if (sucursalPdv == null || sucursalPdv.id != sucursalActual.id) {
-            const sucursalPdvNombre = sucursalPdv?.nombre || 'Desconocida';
-            const sucursalActualNombre = sucursalActual.nombre || 'Desconocida';
-            this.dialogoService
-              .confirm(
-                'Error de Configuración - PDV no corresponde',
-                `El Punto de Venta "${puntoDeVenta.nombre}" (ID: ${pdvId}) pertenece a la sucursal "${sucursalPdvNombre}" (ID: ${sucursalPdv?.id}).`,
-                `Sin embargo, este servidor está configurado como sucursal "${sucursalActualNombre}" (ID: ${sucursalActual.id}). No se puede operar con un PDV de otra sucursal.`,
-                null,
-                false
-              )
-              .pipe(untilDestroyed(this))
-              .subscribe(() => {
-                this.tabService.removeTab(this.tabService.currentIndex);
-              });
+            const sucursalPdv = puntoDeVenta.sucursal;
+            if (sucursalPdv == null || sucursalPdv.id != sucursalActual.id) {
+              const sucursalPdvNombre = sucursalPdv?.nombre || 'Desconocida';
+              const sucursalActualNombre = sucursalActual.nombre || 'Desconocida';
+              this.dialogoService
+                .confirm(
+                  'Error de Configuración - PDV no corresponde',
+                  `El Punto de Venta "${puntoDeVenta.nombre}" (ID: ${pdvId}) pertenece a la sucursal "${sucursalPdvNombre}" (ID: ${sucursalPdv?.id}).`,
+                  `Sin embargo, este servidor está configurado como sucursal "${sucursalActualNombre}" (ID: ${sucursalActual.id}). No se puede operar con un PDV de otra sucursal.`,
+                  null,
+                  false
+                )
+                .pipe(untilDestroyed(this))
+                .subscribe(() => {
+                  this.cerrarPestanaPropia();
+                });
+              return;
+            }
+
+            this.pdvValidado = true;
+          } catch (e) {
+            this.avisarErrorDeValidacion(e);
             return;
           }
 
           // PDV válido - proceder con la carga de caja
-          this.pdvValidado = true;
+          this.setPrecios();
+          this.getFormaPagos();
           this.iniciarCargaDeCaja();
         },
-        error: (err) => {
-          console.error('Error al validar PDV:', err);
-          this.dialogoService
-            .confirm(
-              'Error de Validación',
-              'Ocurrió un error al validar el Punto de Venta.',
-              'Verifique la conexión con el servidor e intente nuevamente.',
-              null,
-              false
-            )
-            .pipe(untilDestroyed(this))
-            .subscribe(() => {
-              this.tabService.removeTab(this.tabService.currentIndex);
-            });
-        }
+        // Llega por error de red, timeout de 20 s o error del servidor: depende del `propagate` del servicio.
+        error: (err) => this.avisarErrorDeValidacion(err),
       });
+  }
+
+  private avisarErrorDeValidacion(err: any): void {
+    console.error('Error al validar PDV:', err);
+    // Un error GraphQL trae `errors` y su mensaje dice qué pasó; uno de red o de timeout, no.
+    const detalle = err?.errors != null && err?.message
+      ? `El servidor respondió: ${err.message}`
+      : 'Verifique la conexión con el servidor e intente nuevamente.';
+    this.dialogoService
+      .confirm(
+        'Error de Validación',
+        'Ocurrió un error al validar el Punto de Venta.',
+        detalle,
+        null,
+        false
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.cerrarPestanaPropia();
+      });
+  }
+
+  /**
+   * Cierra la pestaña de esta Venta, no la activa: la validación puede tardar hasta 20 s y el cajero
+   * pudo pasar a otra pestaña en el medio. `data` es el Tab de esta pantalla (tab-content lo asigna).
+   * Si ya no está (cerrada, o abierta como diálogo), no hace nada.
+   */
+  private cerrarPestanaPropia(): void {
+    const index = this.tabService.tabs.indexOf(this.data);
+    if (index !== -1) this.tabService.removeTab(index);
+  }
+
+  /**
+   * Las puertas que operan sobre la caja del turno esperan a que el PDV esté validado. El spinner
+   * de la validación ya bloquea la pantalla, pero su botón «Cerrar» (a los 10 s) la libera antes.
+   * Avisa en vez de no hacer nada: un atajo mudo parece una tecla rota (ver openUtilitarios).
+   */
+  private pdvSinValidar(): boolean {
+    if (this.pdvValidado) return false;
+    this.notificacionSnackbar.openWarn("Validando el punto de venta, esperá un momento...");
+    return true;
   }
 
   /**
    * Inicia la carga de caja después de que el PDV fue validado exitosamente.
    */
   private iniciarCargaDeCaja(): void {
+    // Con modal y corte de mostrador. `null` es «no tiene caja abierta» y ahí se ofrece abrir una; si la
+    // lectura falla NO se ofrece (podría tener una abierta) ni se sigue: las acciones de venta no miran si
+    // hay caja (#390).
     this.cajaService
-      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id, null, false)
+      .onGetAbiertaDelUsuario(this.mainService.usuarioActual.id, false, true)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        console.log('caja encontrada', res);
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.cajaService.selectedCaja = res;
 
-        if (res != null) {
-          this.cajaService.selectedCaja = res;
-
-          if (
-            this.cajaService.selectedCaja == null ||
-            this.cajaService.selectedCaja?.conteoApertura == null
-          ) {
+            if (
+              this.cajaService.selectedCaja == null ||
+              this.cajaService.selectedCaja?.conteoApertura == null
+            ) {
+              this.openSelectCajaDialog();
+            }
+          } else {
+            this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
-        } else {
-          this.cajaService.selectedCaja = null;
-          this.openSelectCajaDialog();
-        }
+        },
+        error: () => {
+          // No se toca `selectedCaja` (es compartida con otra pestaña de venta): este diálogo solo deja
+          // reintentar o salir, así que no se sigue vendiendo con la que hubiera.
+          this.dialogoService
+            .confirm(
+              'No se pudo leer la caja',
+              'No se pudo comprobar si tenés una caja abierta.',
+              'Para no abrir otra por error no se continuó. Revisá la conexión con el servidor y reintentá.',
+              null, true, 'Reintentar', 'Salir'
+            )
+            .pipe(untilDestroyed(this))
+            .subscribe((reintentar) => {
+              if (reintentar === true) this.iniciarCargaDeCaja();
+              else this.cerrarPestanaPropia();
+            });
+        },
       });
 
     setTimeout(() => {
@@ -585,7 +644,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.pdvCategoriaService
       .onGetGrupoProductosPorGrupoId(grupo.id, false)
       .pipe(
-        // onGetById no emite ni completa si la consulta falla: sin esto el grupo quedaria trabado.
+        // Corte propio (3 s); el error que llegue se ignora acá: sin esto el grupo quedaria trabado.
         // Si la filial no responde en 3 s, se abre con los favoritos ya cargados.
         timeout(3000),
         catchError(() => of(null)),
@@ -676,26 +735,36 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // servidor filial antes de decidir. Con las queries al día este camino no se usa: es la red
     // que evita que una query nueva que olvide el campo vuelva a desactivar el control.
     this.productoService
-      .onGetProductoPorId(item.producto.id, false)
+      .onGetProductoPorId(item.producto.id, false, LECTURA_ESTRICTA, CONTEXTO_MOSTRADOR)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (producto) => {
-          item.producto.lote = producto?.lote === true;
+          // El filial no devolvió el producto: tampoco se sabe si lleva lote.
+          if (producto == null) {
+            this.avisarLoteSinComprobar(item);
+            return;
+          }
+          item.producto.lote = producto.lote === true;
           if (item.producto.lote) {
             this.abrirSelectorDeLote(item);
           } else {
             this.addItem(item);
           }
         },
-        error: () => {
-          // Sin respuesta no se puede saber si lleva lote. Se agrega igual para no trabar el
-          // mostrador, avisando que el ítem puede quedar sin lote asignado.
-          this.notificacionSnackbar.openWarn(
-            "No se pudo verificar el control de lote del producto."
-          );
-          this.addItem(item);
-        },
+        error: () => this.avisarLoteSinComprobar(item),
       });
+  }
+
+  /**
+   * No se pudo saber si el producto lleva lote: no se agrega. Venderlo sin trazabilidad es peor que pedirle
+   * al cajero que lo escanee de nuevo (decidido el 2026-10-06, #390).
+   */
+  private avisarLoteSinComprobar(item: VentaItem): void {
+    this.notificacionSnackbar.openWarn(
+      `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. No se agregó a la venta: escanealo de nuevo.`,
+      8
+    );
+    this.buscadorFocusSub.next();
   }
 
   /** Abre el selector de lote y agrega el ítem con lo elegido. Cancelar no agrega el ítem. */
@@ -845,7 +914,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           item.activo = true;
           this.ventaService
             .onSaveVentaItem(item.toInput(), false)
-            .subscribe((ventaItemRes) => {
+            // El aviso lo da el genérico; sin error: el error quedaba sin manejar (#390).
+            .subscribe({ error: () => {}, next: (ventaItemRes) => {
               if (ventaItemRes != null) {
                 item.id = ventaItemRes.id;
                 item.sucursalId = ventaItemRes.sucursalId;
@@ -859,7 +929,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 venta.delivery = this.selectedDelivery;
                 this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
               }
-            });
+            } });
         } else {
           this.selectedItemList.push(item);
         }
@@ -1072,9 +1142,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onPagoClick() {
     if (this.modoConsulta || this.guardandoVenta) return;
+    if (this.pdvSinValidar()) return;
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
+    if (this.selectedDelivery?.cobroIncierto) {
+      // Reusaría los cobros en memoria, sin la línea sin confirmar: se podría cobrar dos veces (#390)
+      this.notificacionSnackbar.openWarn("Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista de deliverys.", 8);
+      return;
+    }
     this.isDialogOpen = true;
     this.mostrarPrecios = false;
     if (this.selectedItemList?.length > 0) {
@@ -1357,6 +1433,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onTicketClick(ticket?: boolean) {
     if (this.modoConsulta || this.guardandoVenta) return;
+    if (this.pdvSinValidar()) return;
     // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
     // facturación silenciosa); en delivery se cobra con onPagoClick, no por acá (#312).
     if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
@@ -1621,11 +1698,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
             // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
             // que necesita el caso caro de abajo.
-            // El discriminador es la forma de lo que emite GenericCrudService.onCustomMutation:
-            // un array de errores GraphQL si el servidor rechazó, el error crudo si fue transporte.
+            // El discriminador es esRechazoDelServidor: un array de errores GraphQL si el servidor rechazó.
+            // La respuesta vacía también llega como array pero es un «sin respuesta» (la venta pudo
+            // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
             // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
             // venta asociada, con el timbrado consumido y el stock sin descontar.
-            const rechazoDelServidor = Array.isArray(err);
+            const rechazoDelServidor = esRechazoDelServidor(err);
             if (!rechazoDelServidor || facturaLegalId != null) {
               this.notificacionSnackbar.notification$.next({
                 color: NotificacionColor.danger,
@@ -1643,6 +1721,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onDeliveryClick() {
     if (this.modoConsulta) return;
+    if (this.pdvSinValidar()) return;
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
       this.selectedDelivery = new Delivery();
@@ -1696,13 +1775,21 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 if (this.selectedDelivery.venta != null) {
                   this.ventaService
                     .onGetPorId(this.selectedDelivery.venta.id, null, null, false)
-                    .subscribe((ventaRes) => {
-                      if (ventaRes != null) {
-                        this.selectedDelivery.venta = ventaRes;
-                        this.selectedItemList =
-                          this.selectedDelivery.venta.ventaItemList;
-                        this.calcularTotales();
-                      }
+                    .subscribe({
+                      next: (ventaRes) => {
+                        if (ventaRes != null) {
+                          this.selectedDelivery.venta = ventaRes;
+                          this.selectedItemList =
+                            this.selectedDelivery.venta.ventaItemList;
+                          this.calcularTotales();
+                        }
+                      },
+                      // La pantalla ya había pasado a modo delivery con el carrito vacío: se vuelve al
+                      // carrito de antes, sin el delivery, en vez de quedar a medias y sin aviso (#390).
+                      error: () => {
+                        this.volverAlCarritoActivo();
+                        this.notificacionSnackbar.openWarn('No se pudo leer la venta del delivery: volvé a abrirlo desde la lista.', 8);
+                      },
                     });
                 }
               }
@@ -1742,6 +1829,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       return;
     }
+    if (this.pdvSinValidar()) return;
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
@@ -1820,7 +1908,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     return forkJoin(
       entries.map((entry) =>
         this.movimientoStockService
-          .onGetStockPorProducto(entry.productoId, sucursalId, false)
+          // Chequeo de fondo después de la venta: sin respuesta se descarta (catchError → null) en
+          // vez de dejar el forkJoin abierto (#390).
+          .onGetStockPorProducto(entry.productoId, sucursalId, false, PROPAGAR_ERROR_DE_RED, {
+            timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS,
+            silenciarAvisoTimeout: true,
+          })
           .pipe(
             catchError(() => of(null)),
             map((stock) => ({ entry, stock }))
@@ -1856,7 +1949,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         switchMap(() => {
           const cajaId = this.cajaService?.selectedCaja?.id;
           if (cajaId == null) {
-            return of(null);
+            // Sin caja no hay solicitudes: página vacía, distinta del null de una consulta que falló.
+            return of({ getContent: [] } as any);
           }
           return this.gastoService
             .preGastoFilter(
@@ -1875,6 +1969,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         untilDestroyed(this)
       )
       .subscribe((res) => {
+        // La consulta falló (corte o rechazo): los contadores conservan su valor hasta el próximo
+        // sondeo, en vez de ir a 0 y esconder una solicitud ya autorizada (#390).
+        if (res == null) {
+          return;
+        }
         const sucursalActualId =
           this.cajaService?.selectedCaja?.sucursalId ??
           this.cajaService?.selectedCaja?.sucursal?.id ??

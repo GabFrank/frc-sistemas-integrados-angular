@@ -1,3 +1,4 @@
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -62,7 +63,8 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     private moduloGastoService: ModuloGastoService,
     private cargoService: CargoService,
     private cargandoService: CargandoDialogService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private notificacion: NotificacionSnackbarService
   ) {
     if (data.tipoGasto != null) {
       this.selectedTipoGasto = data.tipoGasto;
@@ -82,13 +84,17 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       .pipe(startWith(this.naturezaControl.value), untilDestroyed(this))
       .subscribe(() => this.actualizarReglasModulo());
 
-    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe(modulos => {
-      this.moduloPadreList = modulos;
-      this.modulosActivos = modulos.filter((item) => item.grupo === 'ACTIVO');
-      this.modulosServicio = modulos.filter((item) => item.grupo === 'SERVICIO');
-      this.modulosOtros = modulos.filter((item) => item.grupo === 'OTRO');
-      this.actualizarReglasModulo();
-      this.cdr.markForCheck();
+    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe({
+      next: modulos => {
+        this.moduloPadreList = modulos;
+        this.modulosActivos = modulos.filter((item) => item.grupo === 'ACTIVO');
+        this.modulosServicio = modulos.filter((item) => item.grupo === 'SERVICIO');
+        this.modulosOtros = modulos.filter((item) => item.grupo === 'OTRO');
+        this.actualizarReglasModulo();
+        this.cdr.markForCheck();
+      },
+      // Sin catálogo el diálogo sigue, sin módulos para elegir (#390).
+      error: () => this.notificacion.openWarn('No se pudo cargar el catálogo de módulos de gasto: cerrá y volvé a abrir para reintentar.', 5)
     });
 
     this.cargoService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {

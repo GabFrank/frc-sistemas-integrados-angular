@@ -2,7 +2,7 @@ import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
   PdvCaja,
@@ -66,12 +66,16 @@ export class CajaService {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  onCajaBalancePorId(id: number, servidor: boolean = true): Observable<CajaBalance> {
-    return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor);
+  /** `silentLoad`: para quien carga en segundo plano, sin el modal «Buscando…». */
+  onCajaBalancePorId(id: number, servidor: boolean = true, silentLoad?: boolean, warningText?: string): Observable<CajaBalance> {
+    return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor, null, null, null, silentLoad,
+      null, warningText);
   }
 
-  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true): Observable<CajaBalance> {
-    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, null, true);
+  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true,
+                                  errorConf?: QueryError, contexto?: ContextoConsulta): Observable<CajaBalance> {
+    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, errorConf ?? null,
+      true, contexto);
   }
 
   onGetCajasWithFilters(
@@ -85,7 +89,9 @@ export class CajaService {
     verificado: boolean,
     page: number,
     size: number,
-    servidor: boolean = true
+    servidor: boolean = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ) {
     // Preparar los parámetros, convirtiendo null/undefined a null explícitamente
     const queryParams: any = {
@@ -101,7 +107,8 @@ export class CajaService {
       size: size || 15
     };
     
-    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor);
+    // errorConf/contexto: solo Últimas cajas del POS (#390); list-caja no los pasa y queda como antes.
+    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor, errorConf, undefined, contexto);
   }
 
   onGetCajasAnalisisDiferencias(
@@ -118,7 +125,9 @@ export class CajaService {
     page: number,
     size: number,
     difEstado: string = null,
-    servidor: boolean = true
+    servidor: boolean = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ) {
     return this.genericService.onCustomQuery(this.cajasAnalisisDiferencias, {
       cajaId,
@@ -134,7 +143,7 @@ export class CajaService {
       page,
       size,
       difEstado
-    }, servidor);
+    }, servidor, errorConf, undefined, contexto);
   }
 
   onGetByDate(inicio?: Date, fin?: Date, sucId?, servidor: boolean = true): Observable<PdvCaja[]> {
@@ -218,6 +227,19 @@ export class CajaService {
     );
   }
 
+  /**
+   * La caja abierta del usuario, para saber si un alta que quedó sin respuesta (o fue rechazada) dejó una caja
+   * creada. A diferencia de {@link onGetByUsuarioIdAndAbierto}, termina siempre: `null` es «no tiene», y si no se
+   * pudo consultar falla (sin aviso; corte de mostrador). Sin modal, salvo que se pida (#390).
+   */
+  onGetAbiertaDelUsuario(usuarioId: number, servidor: boolean = true, conModal = false): Observable<PdvCaja | null> {
+    return this.genericService.onGetById(
+      this.cajaPorUsuarioIdAndAbierto, usuarioId, null, null, servidor, null, null, null, !conModal, null, null,
+      { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
+      { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true }
+    );
+  }
+
   onDelete(id, showDialog?: boolean, servidor: boolean = true): Observable<any> {
     return this.genericService.onDelete(this.deleteCaja, id, "¿Eliminar caja?", null, showDialog, servidor, "¿Está seguro que desea eliminar esta caja?");
   }
@@ -233,7 +255,10 @@ export class CajaService {
       return this.impresionPos.imprimirTicketCentral("BALANCE", id, sucId, "El cierre de caja");
     }
     console.log('imprimir balance', 'id', id, 'printerName', this.configService.getConfig().printers["ticket"], 'local', this.configService.getConfig().local, 'sucId', sucId);
-    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId}, servidor, null, null);
+    return this.genericService
+      .onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId},
+        servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta("la impresión del balance"));
   }
 
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {

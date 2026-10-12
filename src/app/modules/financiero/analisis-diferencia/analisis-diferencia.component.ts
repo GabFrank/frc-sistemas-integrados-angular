@@ -44,6 +44,12 @@ import { Venta } from '../../operaciones/venta/venta.model';
 import { MonedaService } from '../moneda/moneda.service';
 import { Moneda } from '../moneda/moneda.model';
 import { of, forkJoin, combineLatest, BehaviorSubject } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
+import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, ContextoConsulta } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
+
+/** Consultas del análisis: sin esto, con un servidor sin responder la tabla no termina de cargar nunca (#390). */
+const CONSULTA_ANALISIS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -99,7 +105,10 @@ export class AnalisisDiferenciaComponent implements OnInit {
   
   globalCajaFilter = new FormControl('');
   
-  private verificarCompletado: () => void;
+  /** Las monedas no cargaron: no hay cotización para pasar reales y dólares a guaraníes. */
+  private monedasNoCargadas = false;
+  /** Número de la última carga de balances: el cierre de una carga anterior no pisa la tabla de la nueva. */
+  private cargaBalancesId = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -123,15 +132,25 @@ export class AnalisisDiferenciaComponent implements OnInit {
   loadInitialData(): void {
     this.isLoadingInitialData = true;
     
+    // Cada fuente falla por su cuenta: sin esto una sola colgaba el overlay de carga para siempre (#390).
+    // Las monedas llegan null si no se pudieron leer; el aviso es el de acá abajo, no el del genérico.
     forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales(true),
-      monedas: this.monedaService.onGetAll(false)
+      sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, CONSULTA_ANALISIS)
+        .pipe(catchError(() => of(null))),
+      monedas: this.monedaService.onGetAll(false, SIN_AVISO_DEL_GENERICO)
+        .pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), catchError(() => of(null)))
     }).pipe(untilDestroyed(this)).subscribe({
       next: (results) => {
         this.sucursalList = results.sucursales?.filter(sucursal => 
           sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS") || [];
         
         this.monedasList = results.monedas || [];
+        this.monedasNoCargadas = results.monedas == null;
+        if (results.sucursales == null || results.monedas == null) {
+          this.notificacionBar.openWarn(results.monedas == null
+            ? 'No se pudieron cargar las monedas: las cajas con diferencia en reales o dólares quedan sin datos.'
+            : 'No se pudieron cargar las sucursales para el filtro.', 5);
+        }
         
         setTimeout(() => {
           this.loadTablesData();
@@ -162,6 +181,10 @@ export class AnalisisDiferenciaComponent implements OnInit {
     const monedaReal = this.monedasList.find(m => m.denominacion === 'REAL');
     const monedaDolar = this.monedasList.find(m => m.denominacion === 'DOLAR');
     
+    // Sin monedas no hay cotización real: inventarla (130 / 7000) clasificaría mal la diferencia (#390).
+    if (this.monedasNoCargadas && ((diferenciaRs || 0) !== 0 || (diferenciaDs || 0) !== 0)) {
+      return 'SIN_DATOS';
+    }
     const cotizacionReal = monedaReal?.cambio || 130;
     const cotizacionDolar = monedaDolar?.cambio || 7000;
     
@@ -320,7 +343,10 @@ export class AnalisisDiferenciaComponent implements OnInit {
       null,  
       params.page,
       params.size,
-      filtrarDiferenciaFront ? estadoFiltrado : null
+      filtrarDiferenciaFront ? estadoFiltrado : null,
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      CONSULTA_ANALISIS
     ).pipe(untilDestroyed(this)).subscribe((response: any) => {
       
       const responseData = response?.data || response;
@@ -346,6 +372,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
       
     }, (error: any) => {
       console.error('Error en la petición:', error);
+      this.notificacionBar.openWarn('No se pudieron cargar las diferencias de maletín: el servidor no responde.', 5);
       
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
@@ -785,7 +812,10 @@ export class AnalisisDiferenciaComponent implements OnInit {
       null, 
       this.pageIndexCaja, 
       this.pageSizeCaja, 
-      null 
+      null,
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      CONSULTA_ANALISIS
     ).pipe(untilDestroyed(this)).subscribe((response: any) => {
       
       const responseData = response?.data || response;
@@ -806,6 +836,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
       
     }, (error: any) => {
       console.error(' Error en la petición de diferencias de caja:', error);
+      this.notificacionBar.openWarn('No se pudieron cargar las diferencias de caja: el servidor no responde.', 5);
       
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
@@ -821,6 +852,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     
     let cajasProcesadas = 0;
     const totalCajas = dataAugmented.length;
+    const cargaId = ++this.cargaBalancesId;
     
     if (totalCajas === 0) {
       this.diferenciaCajaDataSource.data = [];
@@ -841,51 +873,11 @@ export class AnalisisDiferenciaComponent implements OnInit {
       return;
     }
 
-    dataAugmented.forEach((item, index) => {
-      const cajaIdParaBalance = item.cajaAnteriorId || item.id;
-      
-      if (!cajaIdParaBalance || !item.sucursal?.id) {
-        console.warn('No se puede cargar balance para caja - faltan datos:', {
-          cajaId: cajaIdParaBalance,
-          sucursalId: item.sucursal?.id
-        });
-        cajasProcesadas++;
-        this.verificarCompletado();
-        return;
-      }
-
-      this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (balance) => {
-            if (balance) {
-              
-              item.balance = balance;
-              
-              const diferenciaGs = balance.diferenciaGs || 0;
-              const diferenciaRs = balance.diferenciaRs || 0;
-              const diferenciaDs = balance.diferenciaDs || 0;
-              
-              item.estadoDiferencia = this.calcularEstadoDiferencia(diferenciaGs, diferenciaRs, diferenciaDs);
-              
-            } else {
-              console.warn('No se encontró balance para la caja:', cajaIdParaBalance);
-              item.estadoDiferencia = 'SIN_DATOS';
-            }
-            
-            cajasProcesadas++;
-            this.verificarCompletado();
-          },
-          error: (error) => {
-            console.error('Error al cargar balance de caja:', error);
-            item.estadoDiferencia = 'SIN_DATOS';
-            cajasProcesadas++;
-            this.verificarCompletado();
-          }
-        });
-    });
-
+    // Local de esta carga (antes era un campo que se asignaba después del forEach): una caja sin datos lo
+    // llamaba antes de asignarlo, y con timeouts que ahora sí terminan un balance de una carga anterior
+    // podía cerrar la carga nueva (#390).
     const verificarCompletado = () => {
+      if (cargaId !== this.cargaBalancesId) return;
       if (cajasProcesadas === totalCajas) {
         
         let filteredData = dataAugmented;
@@ -911,7 +903,51 @@ export class AnalisisDiferenciaComponent implements OnInit {
       }
     };
 
-    this.verificarCompletado = verificarCompletado;
+    dataAugmented.forEach((item, index) => {
+      const cajaIdParaBalance = item.cajaAnteriorId || item.id;
+      
+      if (!cajaIdParaBalance || !item.sucursal?.id) {
+        console.warn('No se puede cargar balance para caja - faltan datos:', {
+          cajaId: cajaIdParaBalance,
+          sucursalId: item.sucursal?.id
+        });
+        cajasProcesadas++;
+        verificarCompletado();
+        return;
+      }
+
+      this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true,
+        PROPAGAR_ERROR_DE_RED, CONSULTA_ANALISIS)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (balance) => {
+            if (balance) {
+              
+              item.balance = balance;
+              
+              const diferenciaGs = balance.diferenciaGs || 0;
+              const diferenciaRs = balance.diferenciaRs || 0;
+              const diferenciaDs = balance.diferenciaDs || 0;
+              
+              item.estadoDiferencia = this.calcularEstadoDiferencia(diferenciaGs, diferenciaRs, diferenciaDs);
+              
+            } else {
+              console.warn('No se encontró balance para la caja:', cajaIdParaBalance);
+              item.estadoDiferencia = 'SIN_DATOS';
+            }
+            
+            cajasProcesadas++;
+            verificarCompletado();
+          },
+          error: (error) => {
+            console.error('Error al cargar balance de caja:', error);
+            item.estadoDiferencia = 'SIN_DATOS';
+            cajasProcesadas++;
+            verificarCompletado();
+          }
+        });
+    });
+
   }
 
   tieneDiferenciaEnCaja(caja: any) {
@@ -940,7 +976,8 @@ export class AnalisisDiferenciaComponent implements OnInit {
       return;
     }
 
-    this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true)
+    this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true,
+      PROPAGAR_ERROR_DE_RED, CONSULTA_ANALISIS)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (balance) => {

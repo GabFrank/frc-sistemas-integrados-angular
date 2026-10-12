@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PageInfo } from '../../../app.component';
 import { CajaVirtual, CajaVirtualTipo, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion, CajaVirtualConfiguracionInput } from './caja-virtual.model';
@@ -25,6 +26,12 @@ import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion'
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
 import { ImprimirReporteMovimientosCajaVirtualGQL } from './graphql/imprimirReporteMovimientosCajaVirtual';
 import { ImprimirReporteMovimientosBancariosGQL } from './graphql/imprimirReporteMovimientosBancarios';
+
+/**
+ * Consultas de la caja mayor: sin esto, con el central sin responder no emiten nada y la pantalla queda con
+ * datos viejos (saldos contra los que se ajusta un conteo) o cargando para siempre (#390).
+ */
+const CONSULTA_CAJA_MAYOR: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({
   providedIn: 'root'
@@ -62,7 +69,8 @@ export class CajaVirtualService {
   // el backend lo verifica, el front solo esconde la opcion.
 
   onGetAccesos(cajaVirtualId: number): Observable<any> {
-    return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId });
+    return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_CAJA_MAYOR);
   }
 
   onOtorgarAcceso(cajaVirtualId: number, usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean,
@@ -92,15 +100,15 @@ export class CajaVirtualService {
       sucursalId: filtros.sucursalId ?? null,
       activo: filtros.activo ?? null,
       page, size
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetPorTipo(tipo: CajaVirtualTipo): Observable<CajaVirtual[]> {
     return this.genericService.onCustomQuery(this.cajaVirtualesPorTipoGQL, { tipo });
   }
 
-  onGetActivas(): Observable<CajaVirtual[]> {
-    return this.genericService.onCustomQuery(this.cajaVirtualesActivasGQL, {});
+  onGetActivas(errorConf?: QueryError, contexto?: ContextoConsulta): Observable<CajaVirtual[]> {
+    return this.genericService.onCustomQuery(this.cajaVirtualesActivasGQL, {}, true, errorConf, undefined, contexto);
   }
 
   onSave(cajaVirtual: CajaVirtual, opciones?: { avisarExito?: boolean }): Observable<CajaVirtual> {
@@ -117,11 +125,13 @@ export class CajaVirtualService {
   }
 
   onGetMovimientos(cajaVirtualId: number, page = 0, size = 20): Observable<PageInfo<MovimientoCajaVirtual>> {
-    return this.genericService.onCustomQuery(this.movimientosGQL, { cajaVirtualId, page, size });
+    return this.genericService.onCustomQuery(this.movimientosGQL, { cajaVirtualId, page, size }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetMovimientosPorFecha(cajaVirtualId: number, inicio: string, fin: string, page = 0, size = 20): Observable<PageInfo<MovimientoCajaVirtual>> {
-    return this.genericService.onCustomQuery(this.movimientosPorFechaGQL, { cajaVirtualId, inicio, fin, page, size });
+    return this.genericService.onCustomQuery(this.movimientosPorFechaGQL, { cajaVirtualId, inicio, fin, page, size }, true,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onSaveMovimiento(movimiento: MovimientoCajaVirtual, opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {
@@ -138,11 +148,13 @@ export class CajaVirtualService {
   }
 
   onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
-    return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId });
+    return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
+      CONSULTA_CAJA_MAYOR);
   }
 
   onGetResumenBancario(cajaVirtualId: number): Observable<CuentaBancariaResumen[]> {
-    return this.genericService.onCustomQuery(this.resumenBancarioGQL, { cajaVirtualId });
+    return this.genericService.onCustomQuery(this.resumenBancarioGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetMovimientosFilter(cajaVirtualId: number,
@@ -156,7 +168,7 @@ export class CajaVirtualService {
       monedaId: filtros.monedaId ?? null,
       soloActivos: filtros.soloActivos ?? false,
       page, size
-    });
+    }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 
   /** PDF (base64) de los movimientos de caja mayor, con los mismos filtros que onGetMovimientosFilter. */
@@ -186,7 +198,9 @@ export class CajaVirtualService {
   }
 
   onGetConfiguracion(cajaVirtualId: number): Observable<CajaVirtualConfiguracion> {
-    return this.genericService.onCustomQuery(this.configuracionGQL, { cajaVirtualId });
+    // null = caja sin configuración (legítimo). El error de red se propaga: sus dos suscriptores lo manejan.
+    return this.genericService.onCustomQuery(this.configuracionGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onSaveConfiguracion(input: CajaVirtualConfiguracionInput, opciones?: { avisarExito?: boolean }): Observable<CajaVirtualConfiguracion> {

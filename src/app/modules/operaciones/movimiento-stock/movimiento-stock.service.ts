@@ -14,7 +14,18 @@ import { MovimientoStock } from "./movimiento-stock.model";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GetMovimientoStockPorFiltrosGQL } from "./graphql/getMovimientoStockByFilters";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
+import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
+
+/**
+ * Lecturas de stock de la lista de movimientos: el error de red y el del servidor llegan al llamador, sin aviso
+ * del servicio (avisa la pantalla, una vez). El central nunca devuelve `null` como stock: un `null` es un fallo (#390).
+ */
+const LECTURA_STOCK: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
+const CONSULTA_LISTA: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import { PageInfo } from "../../../app.component";
 import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
 import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
@@ -79,12 +90,13 @@ export class MovimientoStockService {
     }
   }
 
-  onGetStockPorProducto(id, sucursalId?: number, servidor = true): Observable<number> {
-    //use genericService        
+  /** `errorConf` y `contexto` son para el POS; el resto de las pantallas no los pasa y queda como antes. */
+  onGetStockPorProducto(id, sucursalId?: number, servidor = true,
+                        errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockPorProducto, {
       id,
       sucId: sucursalId
-    }, servidor);
+    }, servidor, errorConf, silentLoad, contexto);
   }
 
   onGetMovimientoStockPorFiltros(
@@ -99,6 +111,7 @@ export class MovimientoStockService {
     servidor = true,
     silentLoad = false
   ): Observable<PageInfo<MovimientoStock>> {
+    // Propaga el error de red (60 s): el llamador vacía la grilla y avisa (#390)
     return this.genericService.onCustomQuery(this.getMovimientoStockPorFilters, {
       inicio,
       fin,
@@ -108,7 +121,7 @@ export class MovimientoStockService {
       usuarioId,
       page,
       size,
-    }, servidor, undefined, silentLoad);
+    }, servidor, PROPAGAR_ERROR_DE_RED, silentLoad, CONSULTA_LISTA);
   }
 
   /**
@@ -130,15 +143,18 @@ export class MovimientoStockService {
     fin: String,
     sucursalList: number[],
     servidor = true,
-    silentLoad = true
+    silentLoad = true,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
   ): Observable<PorSucursal<CantidadSugeridaPorSucursal>> {
     return this.genericService
       .onCustomQuery(
         this.getCantidadSugeridaPorSucursalesGQL,
         { productoId, inicio, fin, sucursalList },
         servidor,
-        undefined,
-        silentLoad
+        errorConf,
+        silentLoad,
+        contexto
       )
       .pipe(
         map((filas: CantidadSugeridaPorSucursalRaw[]) => {
@@ -185,6 +201,7 @@ export class MovimientoStockService {
     usuarioId: number,
     servidor = true
   ): Observable<StockPorTipoMovimientoDto[]> {
+    // Sin modal y con el error al llamador (60 s): son N consultas en paralelo, una por sucursal (#390)
     return this.genericService.onCustomQuery(this.getStockPorTipoMovimiento, {
       inicio,
       fin,
@@ -192,7 +209,7 @@ export class MovimientoStockService {
       productoId,
       tipoMovimientoList,
       usuarioId
-    }, servidor);
+    }, servidor, LECTURA_STOCK, true, CONSULTA_LISTA);
   }
 
   // getStockByProductoAndSucursal(productoId: number, sucursalId: number): Observable<number> {
@@ -217,11 +234,15 @@ export class MovimientoStockService {
     }, servidor);
   }
 
+  /**
+   * Stock de un producto antes de una fecha (detalle de un movimiento). Sin modal, 20 s, y con el error de red y
+   * el del servidor al llamador: un stock anterior que no se pudo leer no es 0 (#390).
+   */
   onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, servidor = true): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockAntesDeFechaGQL, {
       productoId,
       sucursalId,
       fecha
-    }, servidor);
+    }, servidor, LECTURA_STOCK, true, { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 }

@@ -87,6 +87,12 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    * oculto en alta y quedaria clavado en DESCUENTO.
    */
   sinCatalogo = false;
+  /**
+   * El catalogo no llego (central sin responder o error): distinto de un catalogo vacio. No se
+   * activa sinCatalogo, porque el tipo elegido a mano podria cargar un bono con el signo
+   * equivocado; se oculta «Agregar» hasta reabrir. Editar un item existente sigue andando (#390).
+   */
+  conceptosNoCargados = false;
   conceptoControl = new FormControl(null, [Validators.required]);
   /**
    * Operación, escrita o elegida de la lista: tipear el número fijo del catálogo (1 = AJUSTE (HABER))
@@ -116,6 +122,18 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
    */
   netoNegativo = false;
 
+  /**
+   * Los items llegaron del servidor (tambien una lista vacia: una liquidacion sin items es legitima).
+   * Aprobar solo manda el id y el backend lee los montos: sin items a la vista se aprobaria sin
+   * ver. Solo gatea Aprobar; Pagar no, para no trabar una liquidacion ya aprobada si falla la
+   * recarga que sigue. No se baja al iniciar una recarga, para que el boton no parpadee (#390).
+   */
+  itemsCargados = false;
+  /** La ultima carga de items fallo: muestra el aviso con «Reintentar» (no mientras carga). */
+  itemsFallo = false;
+  /** Numero de la ultima carga de items: una respuesta de una carga anterior se descarta. */
+  private itemsPedido = 0;
+
   constructor(
     private tabService: TabService,
     private liquidacionService: LiquidacionService,
@@ -132,12 +150,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const esAdmin = this.mainService.usuarioActual?.nickname === 'ADMIN' || roles.includes('ADMIN');
     this.liquidacionService.onGetConceptosParaItemManual()
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.conceptos = res || [];
-        this.conceptosFiltrados = this.conceptos;
-        this.sinCatalogo = this.conceptos.length === 0;
-        if (this.sinCatalogo) { this.conceptoControl.clearValidators(); }
-        this.conceptoControl.updateValueAndValidity();
+      .subscribe({
+        next: res => {
+          if (res == null) { this.avisarConceptosNoCargados(); return; }
+          this.conceptos = res;
+          this.conceptosFiltrados = this.conceptos;
+          this.sinCatalogo = this.conceptos.length === 0;
+          if (this.sinCatalogo) { this.conceptoControl.clearValidators(); }
+          this.conceptoControl.updateValueAndValidity();
+        },
+        error: () => this.avisarConceptosNoCargados()
       });
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
@@ -156,21 +178,51 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   private recargar(id?: number) {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
-    this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) {
-        this.liq = res;
-        this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
-        this.cargarProgramados();
-      }
+    this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe({
+      next: (res: LiquidacionSueldo) => {
+        if (res != null) {
+          this.liq = res;
+          this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+          this.cargarProgramados();
+        }
+      },
+      error: () => this.avisar('No se pudo cargar la liquidación: el servidor no responde. Cerrá y volvé a abrirla.')
     });
     this.cargarItems(liqId);
   }
 
-  private cargarItems(id?: number) {
+  cargarItems(id?: number) {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
-    this.liquidacionService.onGetItems(liqId)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+    const pedido = ++this.itemsPedido;
+    this.liquidacionService.onGetItems(liqId).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (pedido !== this.itemsPedido) { return; }
+        if (res == null) { this.itemsNoCargados(); return; }
+        this.items.data = res;
+        this.itemsCargados = true;
+        this.itemsFallo = false;
+      },
+      error: () => { if (pedido === this.itemsPedido) { this.itemsNoCargados(); } }
+    });
+  }
+
+  private itemsNoCargados() {
+    this.itemsCargados = false;
+    this.itemsFallo = true;
+    this.avisar('No se pudieron cargar los ítems de la liquidación: no se puede aprobar hasta reintentar.');
+  }
+
+  private avisarConceptosNoCargados() {
+    this.conceptosNoCargados = true;
+    // Si el panel de alta ya estaba abierto, se cierra: sin catalogo no hay operacion que elegir.
+    if (this.mostrarAgregar && this.editandoItemId == null) { this.mostrarAgregar = false; }
+    this.avisar('No se pudieron cargar los conceptos: no se pueden agregar ítems manuales. '
+      + 'Reabrí la liquidación para reintentar.');
+  }
+
+  private avisar(texto: string) {
+    this.notificacion.notification$.next({ texto, color: NotificacionColor.warn, duracion: 5 });
   }
 
 
@@ -178,7 +230,10 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const funcionarioId = this.liq?.funcionario?.id;
     if (funcionarioId == null) { return; }
     this.liquidacionService.onGetItemsProgramados(funcionarioId, 'PENDIENTE')
-      .pipe(untilDestroyed(this)).subscribe({ next: res => { this.programados.data = res || []; }, error: () => {} });
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => { this.programados.data = res || []; },
+        error: () => this.avisar('No se pudieron cargar los ítems programados del funcionario.')
+      });
   }
 
   onAnularProgramado(p: any) {

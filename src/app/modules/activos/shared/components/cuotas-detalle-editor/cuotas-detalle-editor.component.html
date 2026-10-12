@@ -6,6 +6,15 @@
     </button>
   </div>
 
+  <!-- El cálculo falló (#390): la tabla se conserva pero puede no coincidir con lo cargado; no se guarda así -->
+  <div *ngIf="estadoPlan === 'error'" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px"
+    style="padding: 8px; border: 1px solid #ffb74d; border-radius: 6px">
+    <mat-icon>warning</mat-icon>
+    <span fxFlex>No se pudo recalcular el plan de cuotas: los montos de la tabla pueden no coincidir con lo cargado. No se puede guardar hasta recalcular.</span>
+    <button mat-stroked-button type="button" (click)="reintentarCalculo()">Reintentar</button>
+  </div>
+  <div *ngIf="estadoPlan === 'calculando'" class="total-cuotas">Calculando el plan de cuotas…</div>
+
   <div class="total-cuotas" *ngIf="cuotas.length">
     Total cuotas: <strong>{{ totalCuotasMonto | number:'1.0-2' }}</strong>
   </div>

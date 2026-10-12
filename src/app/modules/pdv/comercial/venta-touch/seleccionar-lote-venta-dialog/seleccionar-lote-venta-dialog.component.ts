@@ -7,6 +7,7 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
+import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
@@ -249,7 +250,8 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
         0,
         TAMANIO_UNIVERSO,
         false,
-        true
+        true,
+        TIMEOUT_CONSULTA_MOSTRADOR_MS
       )
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -287,7 +289,8 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
         this.pageIndex,
         this.pageSize,
         false,
-        true
+        true,
+        TIMEOUT_CONSULTA_MOSTRADOR_MS
       )
       .pipe(untilDestroyed(this))
       .subscribe({

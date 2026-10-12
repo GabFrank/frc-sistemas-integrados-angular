@@ -31,6 +31,10 @@
 <mat-divider style="opacity: 0.1;"></mat-divider>
 
 <mat-dialog-content style="padding-top: 20px;">
+  <app-bien-estado-carga [bien]="estado.bien" [cuotas]="estado.cuotas" [eraPagando]="estado.eraPagando"
+    [enteFallo]="estado.enteFallo" (reintentarBien)="cargarBien()" (reintentarCuotas)="cargarEnteYCuotas()"
+    [altaSinConfirmar]="estado.altaSinConfirmar" (cerrar)="onCancelar()">
+  </app-bien-estado-carga>
   <form
     [formGroup]="form"
     fxLayout="column"
@@ -330,14 +334,15 @@
               </div>
 
               <app-cuotas-detalle-editor
-                *ngIf="situacion === 'PAGANDO'"
+                *ngIf="situacion === 'PAGANDO' && !estado.planBloqueado"
                 [cantidadCuotas]="form.controls['cantidadCuotas'].value"
                 [cantidadCuotasPagadas]="form.controls['cantidadCuotasPagadas'].value"
                 [montoTotal]="form.controls['montoTotal'].value"
                 [montoYaPagado]="form.controls['montoYaPagado'].value"
                 [cuotas]="cuotasDetalle"
                 (cuotasChange)="onCuotasChange($event)"
-                (montoTotalChange)="onMontoTotalCuotasChange($event)">
+                (montoTotalChange)="onMontoTotalCuotasChange($event)"
+                (planSinCalcular)="onPlanSinCalcular($event)">
               </app-cuotas-detalle-editor>
 
               <div *ngIf="situacion === 'PAGADO'">
@@ -381,7 +386,7 @@
     mat-raised-button
     color="primary"
     (click)="onGuardar()"
-    [disabled]="form.invalid"
+    [disabled]="form.invalid || estado.guardarBloqueado"
   >
     {{ registroGuardado ? 'GUARDAR' : 'REGISTRAR EQUIPO' }}
   </button>

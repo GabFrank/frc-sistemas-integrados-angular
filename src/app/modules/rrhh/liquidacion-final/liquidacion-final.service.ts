@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { LiquidacionesFinalesPorFuncionarioGQL } from './graphql/LiquidacionesFinalesPorFuncionario';
 import { LiquidacionFinalItemsGQL } from './graphql/LiquidacionFinalItems';
 import { GenerarLiquidacionFinalGQL } from './graphql/GenerarLiquidacionFinal';
@@ -14,6 +15,12 @@ import { PreviewLiquidacionFinalGQL } from './graphql/PreviewLiquidacionFinal';
 import { AgregarItemLiquidacionFinalGQL } from './graphql/AgregarItemLiquidacionFinal';
 import { EditarItemLiquidacionFinalGQL } from './graphql/EditarItemLiquidacionFinal';
 import { EliminarItemLiquidacionFinalGQL } from './graphql/EliminarItemLiquidacionFinal';
+
+/**
+ * Consultas que deciden si se ofrece generar un finiquito o se habilita «Generar»: sin esto, con
+ * el central sin responder no emiten nada y quien llama no puede distinguirlo de «no hay» (#390).
+ */
+const CONSULTA_FINIQUITO: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 
 @Injectable({ providedIn: 'root' })
 export class LiquidacionFinalService {
@@ -36,7 +43,8 @@ export class LiquidacionFinalService {
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.porFuncionarioGQL, { funcionarioId }, servidor);
+    return this.genericService.onCustomQuery(this.porFuncionarioGQL, { funcionarioId }, servidor, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_FINIQUITO);
   }
 
   onGetItems(liquidacionFinalId: number, servidor = true): Observable<any> {
@@ -48,7 +56,8 @@ export class LiquidacionFinalService {
   }
 
   onPreview(funcionarioId: number, fechaEgreso: string, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.previewGQL, { funcionarioId, fechaEgreso }, servidor);
+    return this.genericService.onCustomQuery(this.previewGQL, { funcionarioId, fechaEgreso }, servidor,
+      PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_FINIQUITO);
   }
 
   onAprobar(id: number, aprobadoPorId: number, servidor = true): Observable<any> {
