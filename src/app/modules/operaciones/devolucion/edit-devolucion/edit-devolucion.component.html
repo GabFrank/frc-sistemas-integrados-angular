@@ -85,48 +85,37 @@
     <div class="boton" *ngIf="puedeEditarCabecera">
       <app-boton nombre="+ Agregar producto" (clickEvent)="onAddItem()"></app-boton>
     </div>
+    <!-- Máquina de estados: mismos botones y mismo tamaño que el resto de la columna. -->
+    <div class="boton" *ngIf="canAvanzarSeparado">
+      <app-boton nombre="Marcar como separado" [disableExpression]="procesando"
+        (clickEvent)="onAvanzar(DevolucionEstado.SEPARADO)"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canColectar">
+      <app-boton nombre="Enviar a depósito" [disableExpression]="procesando"
+        (clickEvent)="onColectar()"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canAvanzarRetirado">
+      <app-boton nombre="Marcar como retirado" [disableExpression]="procesando"
+        (clickEvent)="onAvanzar(DevolucionEstado.RETIRADO)"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canAvanzarDescartado">
+      <app-boton nombre="Descartar" [disableExpression]="procesando"
+        (clickEvent)="onAvanzar(DevolucionEstado.DESCARTADO)"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canCanjear && !canjeMode">
+      <app-boton nombre="Registrar canje" [disableExpression]="procesando"
+        (clickEvent)="onIniciarCanje()"></app-boton>
+    </div>
+    <div class="boton" *ngIf="puedeImprimirEtiquetas">
+      <app-boton nombre="Imprimir etiquetas" (clickEvent)="onImprimirEtiquetas()"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canRevertir">
+      <app-boton nombre="Revertir" [disableExpression]="procesando" (clickEvent)="onRevertir()"></app-boton>
+    </div>
     <div class="boton" *ngIf="canCancelar">
       <app-boton nombre="Cancelar devolución" (clickEvent)="onCancelar()"></app-boton>
     </div>
   </div>
-  </div>
-
-  <!-- Acciones: agregar item + máquina de estados (arriba de la tabla, a la derecha) -->
-  <div fxLayout="row wrap" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
-    *ngIf="selectedDevolucion?.id != null || puedeEditarCabecera">
-    <button mat-stroked-button color="primary" *ngIf="puedeImprimirEtiquetas"
-      (click)="onImprimirEtiquetas()">
-      <mat-icon>label</mat-icon> Imprimir etiquetas
-    </button>
-    <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado" [disabled]="procesando"
-      (click)="onAvanzar(DevolucionEstado.SEPARADO)">
-      Marcar como separado
-    </button>
-    <button mat-stroked-button color="primary" *ngIf="canColectar" [disabled]="procesando"
-      (click)="onColectar()">
-      <mat-icon>local_shipping</mat-icon> Enviar a depósito
-    </button>
-    <button mat-raised-button color="primary" *ngIf="canAvanzarRetirado" [disabled]="procesando"
-      (click)="onAvanzar(DevolucionEstado.RETIRADO)">
-      Marcar como retirado
-    </button>
-    <button mat-raised-button color="warn" *ngIf="canAvanzarDescartado" [disabled]="procesando"
-      (click)="onAvanzar(DevolucionEstado.DESCARTADO)">
-      Descartar
-    </button>
-    <button mat-raised-button color="accent" *ngIf="canCanjear && !canjeMode" [disabled]="procesando"
-      (click)="onIniciarCanje()">
-      Registrar canje
-    </button>
-    <!-- Acreditar per-devolución DEPRECADO: la acreditación ahora es consolidada
-         por retiro (dialogo "Registrar crédito" en el histórico de retiros). -->
-    <button mat-raised-button color="accent" *ngIf="false && canAcreditar && !acreditarMode" [disabled]="procesando"
-      (click)="onIniciarAcreditar()">
-      Acreditar (nota de crédito)
-    </button>
-    <button mat-stroked-button color="warn" *ngIf="canRevertir" [disabled]="procesando" (click)="onRevertir()">
-      <mat-icon>undo</mat-icon> Revertir
-    </button>
   </div>
 
   <!-- Acreditar inline -->
