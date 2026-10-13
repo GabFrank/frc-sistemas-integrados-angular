@@ -27,8 +27,8 @@
 
   <mat-form-field style="width: 100%" *ngIf="llevaLote">
     <mat-label>Lote del reingreso</mat-label>
-    <input matInput [formControl]="loteReingresoControl" />
-    <mat-hint>Número de lote de lo que entrega el proveedor</mat-hint>
+    <input matInput [formControl]="loteReingresoControl"
+      placeholder="Número de lote de lo que entrega el proveedor" />
   </mat-form-field>
 
   <div style="width: 100%; text-align: center">

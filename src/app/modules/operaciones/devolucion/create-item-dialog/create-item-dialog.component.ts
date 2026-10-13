@@ -62,6 +62,12 @@ export class CreateItemDialogComponent implements OnInit {
   llevaLote = false;
   opcionesLote: OpcionLote[] = [];
   cargandoLotes = false;
+  /**
+   * Número de lote que el ítem ya tenía y que no vino en la lista (el producto tiene más lotes
+   * de los que se traen). Si no se toca el selector, se reenvía tal cual para que el central
+   * conserve el lote en vez de borrarlo.
+   */
+  private loteFueraDeLista: string = null;
 
   formGroup = new FormGroup({
     presentacion: this.presentacionControl,
@@ -153,11 +159,11 @@ export class CreateItemDialogComponent implements OnInit {
     this.llevaLote = this.selectedProducto?.lote === true;
     if (!this.llevaLote || this.selectedProducto?.id == null) return;
 
-    // Elegir un lote trae su vencimiento, si el campo está vacío.
+    // Elegir un lote trae su vencimiento: al cambiar de lote no puede quedar el del anterior.
     this.loteElegidoControl.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((opcion) => {
-        if (opcion?.lote?.fechaVencimiento != null && this.vencimientoControl.value == null) {
+        if (opcion?.lote?.fechaVencimiento != null) {
           this.vencimientoControl.setValue(new Date(opcion.lote.fechaVencimiento));
         }
       });
@@ -177,6 +183,7 @@ export class CreateItemDialogComponent implements OnInit {
         if (numero != null) {
           const actual = this.opcionesLote.find((o) => o.lote.numeroLote === numero);
           if (actual != null) this.loteElegidoControl.setValue(actual, { emitEvent: false });
+          else this.loteFueraDeLista = numero;
         }
       });
   }
@@ -230,8 +237,9 @@ export class CreateItemDialogComponent implements OnInit {
     item.vencimiento = this.vencimientoControl.value;
     if (this.llevaLote) {
       const elegido = this.loteElegidoControl.value?.lote;
+      const conservar = elegido == null && this.loteElegidoControl.pristine;
       item.loteId = elegido?.loteId ?? null;
-      item.lote = elegido?.numeroLote ?? null;
+      item.lote = elegido?.numeroLote ?? (conservar ? this.loteFueraDeLista : null);
     } else {
       item.lote =
         this.loteControl.value != null
