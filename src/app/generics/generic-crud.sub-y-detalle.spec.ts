@@ -112,6 +112,16 @@ describe('GenericCrudService: onCustomSub y onSaveConDetalle', () => {
       expect(r.completo).toBeTrue();
     });
 
+    it('rechazo con la bandera error: emite solo { error }', () => {
+      const r = leer(service.onSaveConDetalle(mutacion(of({ data: null, errors: [{ message: 'timbrado vencido' }] })), {}, [], null, null, null, true, true));
+      expect(r.valores).toEqual([{ error: [{ message: 'timbrado vencido' }] }]);
+    });
+
+    it('errores con datos y la bandera error: emite los dos', () => {
+      const r = leer(service.onSaveConDetalle(mutacion(of({ data: { data: { id: 3 } }, errors: [{ message: 'fallo un campo' }] })), {}, [], null, null, null, true, true));
+      expect(r.valores).toEqual([{ error: [{ message: 'fallo un campo' }], data: { id: 3 } }]);
+    });
+
     it('rechazo: avisa y emite null (sin cambios)', () => {
       const r = leer(service.onSaveConDetalle(mutacion(of({ data: null, errors: [{ message: 'timbrado vencido' }] })), {}, []));
       expect(r.valores).toEqual([null]);

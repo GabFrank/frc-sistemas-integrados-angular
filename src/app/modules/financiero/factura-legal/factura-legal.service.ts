@@ -130,11 +130,16 @@ export class FacturaLegalService {
     );
   }
 
+  /**
+   * Emite `{ data }` con el timbrado si se guardó, o `{ error }`: un rechazo del servidor
+   * (`esRechazoDelServidor`, no hay factura y el motivo ya se avisó) o un «sin respuesta», en el que
+   * la factura pudo haberse emitido. Si llegan `error` y `data` juntos también es incierto (#470).
+   */
   onSaveFactura(
     input: FacturaLegalInput,
     facturaLegalItemInputList: FacturaLegalItemInput[],
     servidor: boolean = true
-  ): Observable<any> {
+  ): Observable<{ data?: TimbradoDetalle; error?: any }> {
     if (input?.nombre != null) input.nombre = input.nombre.toUpperCase();
     if (this.impresionPos.porCliente(servidor)) {
       // "Imprimir desde esta PC": sin printerName la filial guarda y no imprime (saveFacturaLegal
@@ -145,11 +150,11 @@ export class FacturaLegalService {
         facturaLegalItemInputList,
         null,
         null,
-        this.configService?.getConfig()?.pdvId, servidor
+        this.configService?.getConfig()?.pdvId, servidor, true
       ).pipe(
-        tap((res) => {
-          if (res?.facturaLegalId != null) {
-            this.impresionPos.imprimirTicket("FACTURA", res.facturaLegalId, "La factura").subscribe();
+        tap((res: any) => {
+          if (res?.error == null && res?.data?.facturaLegalId != null) {
+            this.impresionPos.imprimirTicket("FACTURA", res.data.facturaLegalId, "La factura").subscribe();
           }
         })
       );
@@ -160,7 +165,7 @@ export class FacturaLegalService {
       facturaLegalItemInputList,
       null,
       this.configService?.getConfig()?.printers?.ticket,
-      this.configService?.getConfig()?.pdvId, servidor
+      this.configService?.getConfig()?.pdvId, servidor, true
     );
   }
 

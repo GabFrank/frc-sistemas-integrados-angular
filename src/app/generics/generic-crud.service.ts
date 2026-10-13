@@ -1150,7 +1150,13 @@ export class GenericCrudService {
                 duracion: 5,
               });
               if (error) {
-                obs.next({ error: limpiarErroresGraphQL(res.errors) });
+                // Con errorPolicy "all" pueden venir errores y datos a la vez (un campo de la respuesta
+                // que falla después de guardar): se pasan los datos para que quien llama no lo lea
+                // como un rechazo (#470).
+                const data = res.data?.["data"];
+                obs.next(data != null
+                  ? { error: limpiarErroresGraphQL(res.errors), data }
+                  : { error: limpiarErroresGraphQL(res.errors) });
                 obs.complete();
               } else {
                 obs.next(null);
