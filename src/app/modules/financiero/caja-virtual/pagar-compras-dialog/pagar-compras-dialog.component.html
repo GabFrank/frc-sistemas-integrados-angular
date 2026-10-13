@@ -379,7 +379,7 @@
             <mat-label>Fuente</mat-label>
             <mat-select [(ngModel)]="draft.fuente" (selectionChange)="onFuenteChange(draft)">
               <mat-option value="CAJA_MAYOR">Efectivo (caja mayor)</mat-option>
-              <mat-option value="CUENTA_BANCARIA">Cuenta bancaria</mat-option>
+              <mat-option value="CUENTA_BANCARIA" *ngIf="!soloCaja">Cuenta bancaria</mat-option>
             </mat-select>
           </mat-form-field>
 

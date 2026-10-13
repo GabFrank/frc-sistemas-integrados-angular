@@ -23,6 +23,8 @@ import { PedidoDeMovimientos, PedidoDeTransferencias } from './pedido-en-lote';
 import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVirtual';
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
+import { CuentasBancariasParaDepositoGQL } from './graphql/cuentasBancariasParaDeposito';
+import { CuentaBancaria } from '../cuenta-bancaria/cuenta-bancaria.model';
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
@@ -57,6 +59,7 @@ export class CajaVirtualService {
     private anularMovimientoGQL: AnularMovimientoCajaVirtualGQL,
     private saldosGQL: CajaVirtualSaldosGQL,
     private resumenBancarioGQL: CajaVirtualResumenBancarioGQL,
+    private cuentasParaDepositoGQL: CuentasBancariasParaDepositoGQL,
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
@@ -164,6 +167,12 @@ export class CajaVirtualService {
   onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
     return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
       CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Cuentas habilitadas como destino de un depósito desde la caja. El error de red llega al llamador. */
+  onGetCuentasParaDeposito(cajaVirtualId: number): Observable<CuentaBancaria[]> {
+    return this.genericService.onCustomQuery(this.cuentasParaDepositoGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetResumenBancario(cajaVirtualId: number): Observable<CuentaBancariaResumen[]> {

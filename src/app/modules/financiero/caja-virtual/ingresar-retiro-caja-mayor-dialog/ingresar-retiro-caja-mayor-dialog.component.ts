@@ -1,4 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
+import { MainService } from '../../../../main.service';
+import { esSoloTesoreriaCaja } from '../rol-tesoreria-caja';
 import { FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -80,12 +82,21 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private verificacionService: RetiroVerificacionService,
     private dialog: MatDialog,
+    private mainService: MainService,
   ) {}
 
   ngOnInit(): void {
-    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.sucursalList = res.filter(s => s.id != 0);
-    });
+    if (esSoloTesoreriaCaja(this.mainService)) {
+      // El rol acotado ingresa a su caja solo los retiros de la sucursal de esa caja: el filtro queda fijo.
+      const sucursal = this.data?.cajaVirtual?.sucursal;
+      this.sucursalList = sucursal ? [sucursal] : [];
+      this.sucursalControl.setValue(sucursal || null, { emitEvent: false });
+      this.sucursalControl.disable({ emitEvent: false });
+    } else {
+      this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+      });
+    }
     if (this.data?.preseleccion?.length) {
       this.modoEscaneo = true;
       this.data.preseleccion.forEach(r => {

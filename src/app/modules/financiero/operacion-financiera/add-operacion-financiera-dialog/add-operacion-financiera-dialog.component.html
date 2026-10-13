@@ -118,6 +118,12 @@
                 {{ c.banco?.nombre }} · {{ c.nombre }} · {{ c.numero }} ({{ c.moneda?.simbolo }})
               </mat-option>
             </mat-select>
+            <mat-hint *ngIf="soloCaja && sinCuentasParaDeposito">
+              Esta caja no tiene cuentas habilitadas para depósito. Pedile a tesorería que las habilite.
+            </mat-hint>
+            <mat-hint *ngIf="soloCaja && !sinCuentasParaDeposito && !cajaMayorOrigenControl.value">
+              Elegí primero la caja de origen.
+            </mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="monedaDestinoEditable">

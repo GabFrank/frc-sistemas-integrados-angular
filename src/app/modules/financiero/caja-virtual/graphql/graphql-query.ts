@@ -126,6 +126,22 @@ export const cajaVirtualResumenBancarioQuery = gql`
   }
 `;
 
+/**
+ * Cuentas a las que se puede depositar desde la caja (las visibles de su configuración). Es la que usa
+ * el rol acotado TESORERIA CAJA, que no ve el resumen bancario; para ese rol el central no devuelve saldo.
+ */
+export const cuentasBancariasParaDepositoQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cuentasBancariasParaDeposito(cajaVirtualId: $cajaVirtualId) {
+      id
+      numero
+      nombre
+      banco { id nombre }
+      moneda { id denominacion simbolo }
+    }
+  }
+`;
+
 export const cajaVirtualConfiguracionQuery = gql`
   query ($cajaVirtualId: ID!) {
     data: cajaVirtualConfiguracion(cajaVirtualId: $cajaVirtualId) {

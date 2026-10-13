@@ -144,6 +144,11 @@
               <mat-icon>payments</mat-icon>
               Gestionar pago
             </button>
+            <button *ngIf="puedeAsignarCaja && (row.estado === 'SOLICITADO' || row.estado === 'PARCIAL')"
+                    mat-menu-item (click)="onAsignarCaja(row)">
+              <mat-icon>point_of_sale</mat-icon>
+              Asignar a caja
+            </button>
             <button mat-menu-item (click)="onImprimir(row)">
               <mat-icon>print</mat-icon>
               Imprimir PDF
