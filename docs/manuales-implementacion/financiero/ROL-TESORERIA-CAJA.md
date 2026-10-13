@@ -44,11 +44,11 @@ pantallas piden.
 - `cajasVirtualesReceptoras`: cajas marcadas «recibe envíos», solo con id, nombre y sucursal. La pide
   la operación financiera para armar el destino de «Transf. entre Cajas»: las cajas del usuario más las
   receptoras, que se muestran con el sufijo «(recibe envíos)» y nunca como origen.
-- `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibe envíos…»
+- `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibe envíos»
   del menú de la lista de cajas (responsable de la caja con `TESORERIA GESTIONAR`).
 
 - `cajaVirtual { sucursal sucursalesAdicionales }` y `guardarSucursalesDeCaja`: las pide el diálogo
-  «Sucursales que cubre…» del menú de la lista de cajas (responsable de la caja con
+  «Sucursales que cubre» del menú de la lista de cajas (responsable de la caja con
   `TESORERIA GESTIONAR`). La consulta también la usa el ingreso de retiros del rol acotado para armar
   el filtro «Sucursal de origen»: una sola sucursal queda fija; con varias se elige entre ellas.
 - `retirosFlotantes(cajaVirtualDestinoId)`: documento aparte (`retirosFlotantesDeCajaQuery`) que solo
