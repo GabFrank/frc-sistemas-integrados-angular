@@ -44,10 +44,18 @@ describe("itemConPrecioEnCero", () => {
     expect(itemConPrecioEnCero([negativo])).toBe(negativo);
   });
 
-  it("mira el precio del ítem cuando no vino el precio de venta", () => {
+  it("mira el precio del catálogo cuando el ítem no trae el suyo, y al revés", () => {
+    const soloCatalogo = item(0);
+    expect(itemConPrecioEnCero([soloCatalogo])).toBe(soloCatalogo);
     const enCero = item(undefined, 0);
     expect(itemConPrecioEnCero([enCero])).toBe(enCero);
     expect(itemConPrecioEnCero([item(undefined, 5000)])).toBeNull();
+  });
+
+  it("manda el precio del ítem, que es lo que se cobra, sobre el del catálogo", () => {
+    expect(itemConPrecioEnCero([item(0, 5000)])).toBeNull();
+    const enCero = item(5000, 0);
+    expect(itemConPrecioEnCero([enCero])).toBe(enCero);
   });
 
   it("un ítem sin ningún precio cargado no frena el cobro", () => {

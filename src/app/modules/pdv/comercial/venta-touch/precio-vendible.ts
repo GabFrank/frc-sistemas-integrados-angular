@@ -20,7 +20,9 @@ export function tienePrecioVendible(precio: PrecioPorSucursal): boolean {
 export function itemConPrecioEnCero(items: VentaItem[]): VentaItem {
   return (
     (items ?? []).find((item) => {
-      const precio = item?.precioVenta?.precio ?? item?.precio;
+      // `item.precio` es lo que se cobra (calcularTotales) y lo único que trae un delivery recuperado;
+      // el precio del catálogo pudo cambiar después de cargado el ítem.
+      const precio = item?.precio ?? item?.precioVenta?.precio;
       return typeof precio === "number" && isFinite(precio) && precio <= 0;
     }) ?? null
   );
