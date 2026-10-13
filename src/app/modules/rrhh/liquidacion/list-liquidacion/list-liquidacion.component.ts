@@ -17,6 +17,13 @@ import { ReporteService } from '../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { formatearPeriodo } from '../../../../commons/core/utils/dateUtils';
+import { liquidaAcotadoRrhh } from '../../rol-rrhh-sucursal';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
+import { FuncionariosACargoGQL } from '../../../personas/funcionarios/graphql/funcionariosACargo';
+import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { LiquidacionFinalService } from '../../liquidacion-final/liquidacion-final.service';
+import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
+import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -42,6 +49,9 @@ export class ListLiquidacionComponent implements OnInit {
   pageSize = 25;
   selectedPageInfo: PageInfo<LiquidacionSueldo>;
 
+  /** Rol RRHH SUCURSAL: ve y liquida solo a los funcionarios de sus sucursales. */
+  acotado = false;
+
   constructor(
     private liquidacionService: LiquidacionService,
     public mainService: MainService,
@@ -49,10 +59,13 @@ export class ListLiquidacionComponent implements OnInit {
     private tabService: TabService,
     private reporteService: ReporteService,
     private notificacion: NotificacionSnackbarService,
-    private impresionService: ImpresionService
+    private impresionService: ImpresionService,
+    private liquidacionFinalService: LiquidacionFinalService,
+    private funcionariosACargoGQL: FuncionariosACargoGQL
   ) { }
 
   ngOnInit(): void {
+    this.acotado = liquidaAcotadoRrhh(this.mainService);
     this.periodoControl.setValue(this.periodoActual());
     this.onFiltrar();
 
@@ -104,6 +117,65 @@ export class ListLiquidacionComponent implements OnInit {
       data: { periodo: this.periodoControl.value },
       width: '560px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+  }
+
+  /**
+   * Finiquito de un funcionario a cargo: se elige al funcionario y, igual que desde el legajo, se abre el
+   * finiquito vigente o el diálogo para generarlo.
+   */
+  onFiniquito() {
+    const data: SearchListtDialogData = {
+      titulo: 'Finiquito: elegir funcionario',
+      tableData: [
+        { id: 'id', nombre: 'Id', width: '10%' },
+        { id: 'nombre', nombre: 'Nombre', nested: true, nestedId: 'persona', nestedColumnId: 'personaNombre', width: '45%' },
+        { id: 'nombre', nombre: 'Cargo', nested: true, nestedId: 'cargo', nestedColumnId: 'cargoNombre', width: '25%' },
+        { id: 'nombre', nombre: 'Sucursal', nested: true, nestedId: 'sucursal', nestedColumnId: 'sucursalNombre', width: '20%' }
+      ],
+      query: this.funcionariosACargoGQL,
+      // También los ya egresados: su finiquito pagado se consulta desde acá.
+      queryData: { soloActivos: false },
+      fallbackToLocal: true
+    };
+    this.dialog.open(SearchListDialogComponent, {
+      data, height: '80vh', width: '70vw', panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((f: Funcionario) => {
+      if (f != null) this.abrirFiniquito(f);
+    });
+  }
+
+  private abrirFiniquito(f: Funcionario) {
+    const nombre = f.persona?.nombre || ('#' + f.id);
+    // Sin finiquito el backend responde una lista vacía, nunca null: null (error) o sin respuesta no se
+    // toman como «no hay», porque se ofrecería generar otro encima del vigente (#390).
+    this.liquidacionFinalService.onGetPorFuncionario(f.id).pipe(untilDestroyed(this)).subscribe({
+      next: (res: any[]) => {
+        if (res == null) { this.avisarFiniquitoNoConsultado(); return; }
+        if (res.find(l => l.estado !== 'ANULADA')) { this.abrirTabFiniquito(f.id, nombre); return; }
+        this.dialog.open(LiquidacionFinalGenerarDialogComponent, {
+          data: { funcionarioId: f.id, nombre, monedaId: null }, width: '640px', maxWidth: '95vw'
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(generado => {
+          if (generado != null) this.abrirTabFiniquito(f.id, nombre);
+        });
+      },
+      error: () => this.avisarFiniquitoNoConsultado()
+    });
+  }
+
+  private avisarFiniquitoNoConsultado() {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo consultar el finiquito del funcionario. Volvé a intentar.',
+      color: NotificacionColor.warn, duracion: 5
+    });
+  }
+
+  private abrirTabFiniquito(funcionarioId: number, nombre: string) {
+    this.tabService.addTab(new Tab(
+      LiquidacionFinalDialogComponent,
+      'Finiquito — ' + nombre,
+      new TabData(funcionarioId, { funcionarioId, nombre, monedaId: null }),
+      ListLiquidacionComponent
+    ));
   }
 
   onDetalle(liq: LiquidacionSueldo) {

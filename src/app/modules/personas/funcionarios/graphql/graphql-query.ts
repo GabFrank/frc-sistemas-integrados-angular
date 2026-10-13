@@ -141,6 +141,29 @@ export const funcionariosSearch = gql`
 // Version liviana del buscador y del lookup por persona: solo lo que necesita un
 // autocomplete (id + persona). No pide horario ni datos de RRHH, por eso se puede
 // usar contra la filial, donde administrativo.horario no se replica.
+/** Buscador del rol RRHH SUCURSAL: solo funcionarios de las sucursales a su cargo. */
+export const funcionariosACargoQuery = gql`
+  query ($texto: String, $soloActivos: Boolean) {
+    data: funcionariosACargo(texto: $texto, soloActivos: $soloActivos) {
+      id
+      activo
+      nickname
+      persona {
+        id
+        nombre
+      }
+      cargo {
+        id
+        nombre
+      }
+      sucursal {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const funcionariosSearchSimple = gql`
   query ($texto: String) {
     data: funcionariosSearch(texto: $texto) {

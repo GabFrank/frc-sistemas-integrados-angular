@@ -7,6 +7,7 @@ import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../
 import { PagarComprasDialogComponent, PagarComprasDialogData } from '../pagar-compras-dialog/pagar-compras-dialog.component';
 import { MainService } from '../../../../main.service';
 import { operaAcotadoCaja } from '../rol-tesoreria-caja';
+import { puedePagarRrhhDesdeCaja } from '../../../rrhh/rol-rrhh-sucursal';
 
 interface OpcionEgreso {
   tipo: string;
@@ -42,9 +43,11 @@ export class RegistrarEgresoDialogComponent {
     private dialog: MatDialog,
     mainService: MainService,
   ) {
-    // El rol acotado (TESORERIA CAJA) no hace ajustes de saldo ni opera maletines o pagos de RRHH.
+    // El rol acotado (TESORERIA CAJA) no hace ajustes de saldo ni opera maletines. De RRHH paga solo
+    // liquidaciones y finiquitos, y solo si además tiene el rol acotado de RRHH (el central acota de quiénes).
     if (operaAcotadoCaja(mainService)) {
       const permitidos = ['EFECTIVO', 'ENTRADA_VARIA', 'PAGO_CPP', 'GASTO'];
+      if (puedePagarRrhhDesdeCaja(mainService)) permitidos.push('LIQUIDACION', 'FINIQUITO');
       this.opciones = this.opciones.filter(o => permitidos.includes(o.tipo));
     }
   }

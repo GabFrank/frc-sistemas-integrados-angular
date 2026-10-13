@@ -44,6 +44,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
   // Gating por rol (UX; el backend valida). ADMIN por rol o nickname.
   puedeLiquidar = false;
+  puedeVolverBorrador = false;
   puedeAprobar = false;
   puedePagar = false;
 
@@ -89,7 +90,9 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
     const roles = this.mainService.usuarioActual?.roles || [];
     const esAdmin = this.mainService.usuarioActual?.nickname === 'ADMIN' || roles.includes('ADMIN');
-    this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
+    // El rol acotado (RRHH SUCURSAL) genera y edita; volver a borrador sigue siendo de RRHH LIQUIDAR.
+    this.puedeVolverBorrador = esAdmin || roles.includes('RRHH LIQUIDAR') || roles.includes('RRHH APROBAR');
+    this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR') || roles.includes('RRHH SUCURSAL');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
 
