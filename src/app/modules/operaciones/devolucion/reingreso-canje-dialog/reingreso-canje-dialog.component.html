@@ -13,6 +13,9 @@
   <mat-form-field style="width: 100%">
     <mat-label>Cantidad reingresada</mat-label>
     <input matInput type="number" [formControl]="cantidadReingresadaControl" />
+    <mat-error *ngIf="cantidadReingresadaControl.errors?.max">
+      No puede superar lo devuelto ({{ data?.item?.cantidad | number : "1.0-3" }})
+    </mat-error>
   </mat-form-field>
 
   <mat-form-field style="width: 100%">

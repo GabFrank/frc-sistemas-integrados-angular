@@ -1,6 +1,8 @@
 import { Component, ElementRef, Inject, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
+import { DateAdapter } from "@angular/material/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { FechaPyDateAdapter } from "../../../../shared/utils/fecha-py-date-adapter";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -25,6 +27,7 @@ export interface CreateDevolucionItemDialogData {
   selector: "app-create-devolucion-item-dialog",
   templateUrl: "./create-item-dialog.component.html",
   styleUrls: ["./create-item-dialog.component.scss"],
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class CreateItemDialogComponent implements OnInit {
   @ViewChild("cantidadInput", { static: true }) cantidadInput: ElementRef;
