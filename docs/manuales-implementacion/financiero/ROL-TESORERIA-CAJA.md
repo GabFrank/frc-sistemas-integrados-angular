@@ -47,6 +47,13 @@ pantallas piden.
 - `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibe envíos…»
   del menú de la lista de cajas (responsable de la caja con `TESORERIA GESTIONAR`).
 
+- `cajaVirtual { sucursal sucursalesAdicionales }` y `guardarSucursalesDeCaja`: las pide el diálogo
+  «Sucursales que cubre…» del menú de la lista de cajas (responsable de la caja con
+  `TESORERIA GESTIONAR`). La consulta también la usa el ingreso de retiros del rol acotado para armar
+  el filtro «Sucursal de origen»: una sola sucursal queda fija; con varias se elige entre ellas.
+- `retirosFlotantes(cajaVirtualDestinoId)`: documento aparte (`retirosFlotantesDeCajaQuery`) que solo
+  manda el rol acotado, para que el central le liste únicamente lo que esa caja puede recibir.
+
 La caja asignada y la marca «recibe envíos» **no** se agregaron a los listados existentes (solicitudes,
 pendientes de pago, cajas): un desktop nuevo contra un central que todavía no los conoce rompería esas pantallas para
 todos. En su consulta propia, lo peor que pasa es que el diálogo avise que no pudo leer la

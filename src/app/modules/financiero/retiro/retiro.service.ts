@@ -17,7 +17,7 @@ import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
-import { RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
+import { RetirosFlotantesDeCajaGQL, RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
 import { IngresarRetiroACajaMayorGQL } from "./graphql/ingresarRetiroACajaMayor";
 import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
@@ -41,6 +41,7 @@ export class RetiroService {
     private reimprimirRetiro: ReimprimirRetiroGQL,
     private filterRetiro: FilterRetirosGQL,
     private retirosFlotantesGQL: RetirosFlotantesGQL,
+    private retirosFlotantesDeCajaGQL: RetirosFlotantesDeCajaGQL,
     private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
     private cancelarRetiro: CancelarRetiroGQL,
     private configService: ConfiguracionService,
@@ -48,15 +49,22 @@ export class RetiroService {
     private impresionPos: ImpresionPosService
   ) { }
 
+  /**
+   * @param cajaVirtualDestinoId la caja mayor donde se van a ingresar: el central deja solo los retiros que
+   *        esa caja puede recibir. Lo manda el rol acotado; sin él la consulta es la de siempre.
+   */
   onGetFlotantes(sucId?: number, cajaId?: number, desde?: string, hasta?: string,
-                 page = 0, size = 10, servidor = true): Observable<PageInfo<Retiro>> {
-    return this.crudService.onCustomQuery(this.retirosFlotantesGQL, {
+                 page = 0, size = 10, servidor = true, cajaVirtualDestinoId?: number): Observable<PageInfo<Retiro>> {
+    const variables: any = {
       sucId: sucId ?? null,
       cajaId: cajaId ?? null,
       desde: desde ?? null,
       hasta: hasta ?? null,
       page, size
-    }, servidor, PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
+    };
+    if (cajaVirtualDestinoId != null) variables.cajaVirtualDestinoId = cajaVirtualDestinoId;
+    return this.crudService.onCustomQuery(
+      cajaVirtualDestinoId != null ? this.retirosFlotantesDeCajaGQL : this.retirosFlotantesGQL, variables, servidor, PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
   // servidor = true: la mutation vive en el central, igual que la lista que se

@@ -100,6 +100,7 @@ import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/ad
 import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { DetallePagoDialogComponent } from './caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { GestionarAccesosCajaDialogComponent } from './caja-virtual/gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
+import { SucursalesDeCajaDialogComponent } from './caja-virtual/sucursales-de-caja-dialog/sucursales-de-caja-dialog.component';
 import { AjustarSaldoCuentaDialogComponent } from './cuenta-bancaria/ajustar-saldo-cuenta-dialog/ajustar-saldo-cuenta-dialog.component';
 import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
@@ -204,6 +205,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     OperacionFinancieraDetalleDialogComponent,
     DetallePagoDialogComponent,
     GestionarAccesosCajaDialogComponent,
+    SucursalesDeCajaDialogComponent,
     AjustarSaldoCuentaDialogComponent,
     ChequesDashboardComponent,
     EmitirChequeDialogComponent,

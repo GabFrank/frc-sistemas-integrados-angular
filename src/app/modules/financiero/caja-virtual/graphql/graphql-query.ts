@@ -178,6 +178,41 @@ export const marcarCajaRecibeEnviosMutation = gql`
   }
 `;
 
+/**
+ * Las sucursales que cubre una caja: la propia y las adicionales. Consulta propia, igual que la marca
+ * «recibe envíos»: un central que no conoce el campo solo afecta a quien la pide.
+ */
+export const cajaVirtualSucursalesQuery = gql`
+  query ($id: ID!) {
+    data: cajaVirtual(id: $id) {
+      id
+      sucursal {
+        id
+        nombre
+        ciudad {
+          id
+        }
+      }
+      sucursalesAdicionales {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const guardarSucursalesDeCajaMutation = gql`
+  mutation ($cajaVirtualId: ID!, $sucursalIds: [ID!]!) {
+    data: guardarSucursalesDeCaja(cajaVirtualId: $cajaVirtualId, sucursalIds: $sucursalIds) {
+      id
+      sucursalesAdicionales {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const cajaVirtualConfiguracionQuery = gql`
   query ($cajaVirtualId: ID!) {
     data: cajaVirtualConfiguracion(cajaVirtualId: $cajaVirtualId) {

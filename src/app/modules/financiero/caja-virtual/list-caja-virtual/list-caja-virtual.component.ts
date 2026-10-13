@@ -17,6 +17,7 @@ import { CajaVirtualDashboardComponent } from '../caja-virtual-dashboard/caja-vi
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { GestionarAccesosCajaDialogComponent, GestionarAccesosCajaData } from '../gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
+import { SucursalesDeCajaDialogComponent, SucursalesDeCajaData } from '../sucursales-de-caja-dialog/sucursales-de-caja-dialog.component';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 
@@ -194,6 +195,12 @@ export class ListCajaVirtualComponent implements OnInit {
       },
       error: () => this.notificacion.openWarn('No se pudo leer si la caja recibe envíos. Volvé a intentar.', 5)
     });
+  }
+
+  /** Sucursales de las que la caja recibe retiros del PDV además de la propia. */
+  onSucursalesDeCaja(item: CajaVirtual) {
+    const data: SucursalesDeCajaData = { cajaVirtual: item };
+    this.dialog.open(SucursalesDeCajaDialogComponent, { width: '640px', maxWidth: '95vw', data });
   }
 
   onEdit(item: CajaVirtual) {

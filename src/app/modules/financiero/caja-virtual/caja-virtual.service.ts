@@ -27,6 +27,7 @@ import { CuentasBancariasParaDepositoGQL } from './graphql/cuentasBancariasParaD
 import {
   CajaVirtualDestino, CajaVirtualRecibeEnviosGQL, CajasVirtualesReceptorasGQL, MarcarCajaRecibeEnviosGQL
 } from './graphql/cajaRecibeEnvios';
+import { CajaVirtualSucursales, CajaVirtualSucursalesGQL, GuardarSucursalesDeCajaGQL } from './graphql/cajaSucursales';
 import { CuentaBancaria } from '../cuenta-bancaria/cuenta-bancaria.model';
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
@@ -66,6 +67,8 @@ export class CajaVirtualService {
     private receptorasGQL: CajasVirtualesReceptorasGQL,
     private recibeEnviosGQL: CajaVirtualRecibeEnviosGQL,
     private marcarRecibeEnviosGQL: MarcarCajaRecibeEnviosGQL,
+    private sucursalesDeCajaGQL: CajaVirtualSucursalesGQL,
+    private guardarSucursalesDeCajaGQL: GuardarSucursalesDeCajaGQL,
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
@@ -190,6 +193,18 @@ export class CajaVirtualService {
   /** Marca o desmarca la caja como receptora de envíos. El rechazo del central lo avisa el genérico. */
   onMarcarRecibeEnvios(cajaVirtualId: number, recibe: boolean): Observable<{ id: number; recibeEnvios: boolean }> {
     return this.genericService.onSaveCustom(this.marcarRecibeEnviosGQL, { cajaVirtualId, recibe }, true,
+      { avisarExito: false });
+  }
+
+  /** Las sucursales que cubre una caja (la propia y las adicionales). El error de red llega al llamador. */
+  onGetSucursalesDeCaja(id: number): Observable<CajaVirtualSucursales> {
+    return this.genericService.onCustomQuery(this.sucursalesDeCajaGQL, { id }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Reemplaza las sucursales adicionales de la caja. El rechazo del central lo avisa el genérico. */
+  onGuardarSucursalesDeCaja(cajaVirtualId: number, sucursalIds: number[]): Observable<CajaVirtualSucursales> {
+    return this.genericService.onSaveCustom(this.guardarSucursalesDeCajaGQL, { cajaVirtualId, sucursalIds }, true,
       { avisarExito: false });
   }
 

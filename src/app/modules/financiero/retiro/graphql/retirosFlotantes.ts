@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { retirosFlotantesQuery } from './graphql-query';
+import { retirosFlotantesDeCajaQuery, retirosFlotantesQuery } from './graphql-query';
 
 export interface Response {
   data: any;
@@ -9,4 +9,9 @@ export interface Response {
 @Injectable({ providedIn: 'root' })
 export class RetirosFlotantesGQL extends Query<Response> {
   document = retirosFlotantesQuery;
+}
+
+@Injectable({ providedIn: 'root' })
+export class RetirosFlotantesDeCajaGQL extends Query<Response> {
+  document = retirosFlotantesDeCajaQuery;
 }
