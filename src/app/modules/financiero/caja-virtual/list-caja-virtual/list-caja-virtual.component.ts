@@ -156,6 +156,46 @@ export class ListCajaVirtualComponent implements OnInit {
     });
   }
 
+  /**
+   * Marca o desmarca la caja como receptora de envíos: quien puede mover otra caja le puede transferir
+   * plata sin verla ni poder sacarle. Se lee el estado actual antes de preguntar, para no cambiarlo a ciegas.
+   */
+  onRecibeEnvios(item: CajaVirtual) {
+    this.cajaVirtualService.onGetRecibeEnvios(item.id).pipe(untilDestroyed(this)).subscribe({
+      next: actual => {
+        if (actual == null) {
+          this.notificacion.openWarn('No se pudo leer si la caja recibe envíos. Volvé a intentar.', 5);
+          return;
+        }
+        const recibe = actual.recibeEnvios === true;
+        this.dialogosService.confirm(
+          recibe ? 'Dejar de recibir envíos' : 'Recibir envíos',
+          recibe
+            ? `${item.nombre} hoy recibe envíos de otras cajas. ¿Dejar de recibirlos?`
+            : `¿Permitir que otras cajas le envíen plata a ${item.nombre}?`,
+          recibe
+            ? 'Solo quienes tengan acceso a esta caja van a poder transferirle.'
+            : 'Quien pueda mover otra caja va a poder transferirle, sin ver su saldo ni sus movimientos.',
+          null, true, recibe ? 'Sí, dejar de recibir' : 'Sí, recibir envíos', 'No'
+        ).pipe(untilDestroyed(this)).subscribe(res => {
+          if (res !== true) return;
+          this.cajaVirtualService.onMarcarRecibeEnvios(item.id, !recibe).pipe(untilDestroyed(this)).subscribe({
+            next: r => {
+              if (r == null) {
+                this.notificacion.openWarn('No se pudo confirmar el cambio. Abrí de nuevo «Recibe envíos» para ver cómo quedó.', 6);
+                return;
+              }
+              this.notificacion.openSucess(r.recibeEnvios ? `${item.nombre} ahora recibe envíos` : `${item.nombre} ya no recibe envíos`);
+            },
+            // El rechazo del central ya lo avisó el genérico.
+            error: () => {}
+          });
+        });
+      },
+      error: () => this.notificacion.openWarn('No se pudo leer si la caja recibe envíos. Volvé a intentar.', 5)
+    });
+  }
+
   onEdit(item: CajaVirtual) {
     this.dialog.open(AddCajaVirtualDialogComponent, {
       width: '500px',

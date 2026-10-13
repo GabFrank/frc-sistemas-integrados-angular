@@ -75,6 +75,13 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
    * caja, o transfiere entre sus cajas. Las cuentas se piden por caja, no el listado general.
    */
   soloCaja = false;
+  /**
+   * Destinos de una transferencia entre cajas: las cajas del usuario más las que reciben envíos (la caja
+   * mayor principal). De las segundas solo se conoce el nombre: no se ven ni se pueden usar como origen.
+   */
+  cajaDestinoTransferenciaList: CajaVirtual[] = [];
+  esTransferenciaEntreCajas = false;
+  private cajasReceptoras: CajaVirtual[] = [];
   /** La caja elegida no tiene ninguna cuenta habilitada para depósito (o no se pudieron cargar). */
   sinCuentasParaDeposito = false;
   private cuentasCargaId = 0;
@@ -177,8 +184,18 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     });
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cajaVirtualList = res; } else { noCargo('las cajas'); } },
+      next: res => { if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); } else { noCargo('las cajas'); } },
       error: () => noCargo('las cajas')
+    });
+    // Cajas que reciben envíos. Si no cargan (o el central todavía no las conoce), quedan solo las propias.
+    this.cajaVirtualService.onGetReceptoras().pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.cajasReceptoras = (res || []).map(r => Object.assign(new CajaVirtual(), {
+          id: r.id, nombre: r.nombre + ' (recibe envíos)',
+        }));
+        this.armarDestinosDeTransferencia();
+      },
+      error: () => {}
     });
     // Solo cuentas propias operables (no de terceros). El rol acotado las pide por caja, al elegirla.
     if (!this.soloCaja) {
@@ -329,6 +346,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.tituloActual = (this.tipoOperacionList.find(t => t.value === tipo)?.label) || 'Operación Financiera';
 
     const esCambio = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+    this.esTransferenciaEntreCajas = tipo === TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS;
     // Solo el cambio de divisa deja elegir la fuente de cada lado; el resto de los tipos la
     // tienen implícita en su definición (un depósito siempre sale de una caja, etc.).
     this.mostrarSelectorFuente = esCambio;
@@ -407,6 +425,13 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.cuentaBancariaList = [];
       this.sinCuentasParaDeposito = false;
     }
+  }
+
+  /** Las cajas propias primero; después las receptoras que no sean ya una caja propia. */
+  private armarDestinosDeTransferencia() {
+    const propias = this.cajaVirtualList || [];
+    const ids = new Set(propias.map(c => String(c.id)));
+    this.cajaDestinoTransferenciaList = [...propias, ...this.cajasReceptoras.filter(c => !ids.has(String(c.id)))];
   }
 
   /** Rol acotado: trae las cuentas habilitadas para depositar desde la caja de origen elegida. */

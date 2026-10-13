@@ -41,7 +41,13 @@ pantallas piden.
   `asignarSolicitudPagoACaja`: solo las pide el diálogo «Asignar a caja» de la lista de
   solicitudes de pago (roles `TESORERIA CPP PAGAR` o `GESTIONAR`).
 
-Los campos de la caja asignada **no** se agregaron al listado de solicitudes ni a los pendientes
-de pago: un desktop nuevo contra un central que todavía no los conoce rompería esas pantallas para
+- `cajasVirtualesReceptoras`: cajas marcadas «recibe envíos», solo con id, nombre y sucursal. La pide
+  la operación financiera para armar el destino de «Transf. entre Cajas»: las cajas del usuario más las
+  receptoras, que se muestran con el sufijo «(recibe envíos)» y nunca como origen.
+- `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibe envíos…»
+  del menú de la lista de cajas (responsable de la caja con `TESORERIA GESTIONAR`).
+
+La caja asignada y la marca «recibe envíos» **no** se agregaron a los listados existentes (solicitudes,
+pendientes de pago, cajas): un desktop nuevo contra un central que todavía no los conoce rompería esas pantallas para
 todos. En su consulta propia, lo peor que pasa es que el diálogo avise que no pudo leer la
 asignación.

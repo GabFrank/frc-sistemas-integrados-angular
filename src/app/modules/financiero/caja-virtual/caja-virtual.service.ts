@@ -24,6 +24,9 @@ import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVi
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
 import { CuentasBancariasParaDepositoGQL } from './graphql/cuentasBancariasParaDeposito';
+import {
+  CajaVirtualDestino, CajaVirtualRecibeEnviosGQL, CajasVirtualesReceptorasGQL, MarcarCajaRecibeEnviosGQL
+} from './graphql/cajaRecibeEnvios';
 import { CuentaBancaria } from '../cuenta-bancaria/cuenta-bancaria.model';
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
@@ -60,6 +63,9 @@ export class CajaVirtualService {
     private saldosGQL: CajaVirtualSaldosGQL,
     private resumenBancarioGQL: CajaVirtualResumenBancarioGQL,
     private cuentasParaDepositoGQL: CuentasBancariasParaDepositoGQL,
+    private receptorasGQL: CajasVirtualesReceptorasGQL,
+    private recibeEnviosGQL: CajaVirtualRecibeEnviosGQL,
+    private marcarRecibeEnviosGQL: MarcarCajaRecibeEnviosGQL,
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
@@ -167,6 +173,24 @@ export class CajaVirtualService {
   onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
     return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
       CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Cajas que reciben envíos de otras cajas (solo nombre y sucursal). El error de red llega al llamador. */
+  onGetReceptoras(): Observable<CajaVirtualDestino[]> {
+    return this.genericService.onCustomQuery(this.receptorasGQL, {}, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** La marca «recibe envíos» de una caja. El error de red llega al llamador. */
+  onGetRecibeEnvios(id: number): Observable<{ id: number; recibeEnvios: boolean }> {
+    return this.genericService.onCustomQuery(this.recibeEnviosGQL, { id }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Marca o desmarca la caja como receptora de envíos. El rechazo del central lo avisa el genérico. */
+  onMarcarRecibeEnvios(cajaVirtualId: number, recibe: boolean): Observable<{ id: number; recibeEnvios: boolean }> {
+    return this.genericService.onSaveCustom(this.marcarRecibeEnviosGQL, { cajaVirtualId, recibe }, true,
+      { avisarExito: false });
   }
 
   /** Cuentas habilitadas como destino de un depósito desde la caja. El error de red llega al llamador. */

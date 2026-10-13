@@ -142,6 +142,42 @@ export const cuentasBancariasParaDepositoQuery = gql`
   }
 `;
 
+/**
+ * Cajas marcadas «recibe envíos»: destinos de una transferencia para quien no tiene acceso sobre ellas.
+ * El central devuelve solo nombre y sucursal.
+ */
+export const cajasVirtualesReceptorasQuery = gql`
+  query {
+    data: cajasVirtualesReceptoras {
+      id
+      nombre
+      sucursalNombre
+    }
+  }
+`;
+
+/**
+ * La marca «recibe envíos» de una caja. Va en una consulta propia y no en los listados: así un central
+ * que todavía no conoce el campo solo afecta a la acción de marcarla.
+ */
+export const cajaVirtualRecibeEnviosQuery = gql`
+  query ($id: ID!) {
+    data: cajaVirtual(id: $id) {
+      id
+      recibeEnvios
+    }
+  }
+`;
+
+export const marcarCajaRecibeEnviosMutation = gql`
+  mutation ($cajaVirtualId: ID!, $recibe: Boolean!) {
+    data: marcarCajaRecibeEnvios(cajaVirtualId: $cajaVirtualId, recibe: $recibe) {
+      id
+      recibeEnvios
+    }
+  }
+`;
+
 export const cajaVirtualConfiguracionQuery = gql`
   query ($cajaVirtualId: ID!) {
     data: cajaVirtualConfiguracion(cajaVirtualId: $cajaVirtualId) {
