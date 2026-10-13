@@ -49,6 +49,8 @@ export enum ROLES {
   TESORERIA_GESTIONAR = "TESORERIA GESTIONAR",
   TESORERIA_CPC_COBRAR = "TESORERIA CPC COBRAR",
   TESORERIA_CPP_PAGAR = "TESORERIA CPP PAGAR",
+  /** Operador de caja acotado: opera las cajas a las que tiene acceso, sin ver nada global de tesorería. */
+  TESORERIA_CAJA = "TESORERIA CAJA",
   VENTA_TARJETA_COMPLETAR = "VENTA TARJETA COMPLETAR"
 }
 

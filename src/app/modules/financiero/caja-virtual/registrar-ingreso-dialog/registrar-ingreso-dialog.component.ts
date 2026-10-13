@@ -5,6 +5,8 @@ import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '.
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent, IngresarRetiroCajaMayorDialogData } from '../ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
+import { MainService } from '../../../../main.service';
+import { esSoloTesoreriaCaja } from '../rol-tesoreria-caja';
 
 interface OpcionIngreso {
   tipo: string;
@@ -33,7 +35,14 @@ export class RegistrarIngresoDialogComponent {
     private dialogRef: MatDialogRef<RegistrarIngresoDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { cajaVirtual: CajaVirtual },
     private dialog: MatDialog,
-  ) {}
+    mainService: MainService,
+  ) {
+    // El rol acotado (TESORERIA CAJA) no hace ajustes de saldo ni opera maletines o pagos de RRHH.
+    if (esSoloTesoreriaCaja(mainService)) {
+      const permitidos = ['EFECTIVO', 'RETIRO_PDV', 'ENTRADA_VARIA'];
+      this.opciones = this.opciones.filter(o => permitidos.includes(o.tipo));
+    }
+  }
 
   seleccionar(op: OpcionIngreso) {
     if (op.tipo === 'ENTRADA_VARIA') {

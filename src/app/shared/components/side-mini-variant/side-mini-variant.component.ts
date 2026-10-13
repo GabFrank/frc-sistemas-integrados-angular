@@ -450,7 +450,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       // grupo. checkItemVisibility exige el rol en CADA nivel --solo ADMIN hace bypass--, asi que
       // sin esto la mudanza desde 'Reportes y Analisis' le escondia Terminales POS justo al rol
       // que la usa todos los dias.
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.VENTA_TARJETA_COMPLETAR],
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.VENTA_TARJETA_COMPLETAR],
       items: [
         {
           name: 'Dashboard',
@@ -462,13 +462,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Caja y Operativa',
           icon: 'point_of_sale',
           isExpanded: false,
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
               name: 'Tesorería',
               icon: 'account_balance_wallet',
               action: 'list-caja-virtual',
-              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ADMIN]
             },
             {
               name: 'Operaciones Financieras',
@@ -1098,7 +1098,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "list-caja-virtual":
-        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
