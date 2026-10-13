@@ -44,7 +44,7 @@ pantallas piden.
 - `cajasVirtualesReceptoras`: cajas marcadas «recibe envíos», solo con id, nombre y sucursal. La pide
   la operación financiera para armar el destino de «Transf. entre Cajas»: las cajas del usuario más las
   receptoras, que se muestran con el sufijo «(recibe envíos)» y nunca como origen.
-- `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibe envíos»
+- `cajaVirtual { recibeEnvios }` y `marcarCajaRecibeEnvios`: solo las pide la acción «Recibir envíos» / «Dejar de recibir envíos»
   del menú de la lista de cajas (responsable de la caja con `TESORERIA GESTIONAR`).
 
 - `cajaVirtual { sucursal sucursalesAdicionales }` y `guardarSucursalesDeCaja`: las pide el diálogo

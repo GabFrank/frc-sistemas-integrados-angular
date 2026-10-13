@@ -105,6 +105,7 @@ export class ListCajaVirtualComponent implements OnInit {
           if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = this.marcarAdminAccesos(res.getContent);
+          this.marcarReceptoras();
         },
         error: () => {
           this.isSearching = false;
@@ -144,7 +145,31 @@ export class ListCajaVirtualComponent implements OnInit {
     return (rows || []).map(r => ({
       ...r,
       _puedeAdminAccesos: this.esAdmin || (!!yo && r?.usuario?.id === yo),
+      _etiquetaEnvios: 'Recibe envíos',
     }));
+  }
+
+  /**
+   * La opción del menú dice lo que va a hacer: «Recibir envíos» o «Dejar de recibir envíos». La marca no
+   * viene en el listado (un central que no la conoce lo rompería), así que se cruza con las cajas
+   * receptoras; si esa consulta falla queda el nombre neutro y la acción pregunta igual con el estado real.
+   */
+  private marcarReceptoras() {
+    if (!this.puedeGestionar) return;
+    this.cajaVirtualService.onGetReceptoras().pipe(untilDestroyed(this)).subscribe({
+      next: receptoras => {
+        if (receptoras == null) return;
+        const ids = new Set(receptoras.map(c => Number(c.id)));
+        this.dataSource.data = this.dataSource.data.map((r: any) => ({
+          ...r, _etiquetaEnvios: this.etiquetaEnvios(ids.has(Number(r.id))),
+        }));
+      },
+      error: () => {}
+    });
+  }
+
+  private etiquetaEnvios(recibe: boolean): string {
+    return recibe ? 'Dejar de recibir envíos' : 'Recibir envíos';
   }
 
   onGestionarAccesos(item: CajaVirtual) {
@@ -187,6 +212,8 @@ export class ListCajaVirtualComponent implements OnInit {
                 return;
               }
               this.notificacion.openSucess(r.recibeEnvios ? `${item.nombre} ahora recibe envíos` : `${item.nombre} ya no recibe envíos`);
+              this.dataSource.data = this.dataSource.data.map((f: any) => Number(f.id) === Number(item.id)
+                ? { ...f, _etiquetaEnvios: this.etiquetaEnvios(r.recibeEnvios === true) } : f);
             },
             // El rechazo del central ya lo avisó el genérico.
             error: () => {}
