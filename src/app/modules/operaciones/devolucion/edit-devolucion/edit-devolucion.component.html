@@ -25,16 +25,19 @@
       >
         · en {{ selectedDevolucion.sucursalUbicacion.nombre }}
       </span>
-      <button mat-stroked-button (click)="onVolver()">
-        <mat-icon>list</mat-icon> Lista
-      </button>
     </div>
   </div>
 
+  <!--
+    Datos a la izquierda y botones a la derecha, uno arriba del otro: la misma disposición que
+    las listas (app-generic-list). No hay botón Guardar: cada cambio de la cabecera se guarda solo.
+  -->
+  <div fxLayout="row" fxLayoutGap="10px" style="width: 100%">
+  <div fxFlex fxLayout="column">
   <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
     <mat-form-field fxFlex="20">
       <mat-label>Tipo</mat-label>
-      <mat-select [formControl]="tipoControl">
+      <mat-select [formControl]="tipoControl" (selectionChange)="onCabeceraCambiada()">
         <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
           {{ tipo | enumToString }}
         </mat-option>
@@ -57,7 +60,8 @@
 
     <mat-form-field fxFlex="25">
       <mat-label>Sucursal de origen</mat-label>
-      <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal">
+      <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal"
+        (selectionChange)="onCabeceraCambiada()">
         <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
           {{ sucursal.id }} - {{ sucursal.nombre }}
         </mat-option>
@@ -68,16 +72,28 @@
   <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
     <mat-form-field fxFlex="90">
       <mat-label>Observación</mat-label>
-      <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera" />
+      <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera"
+        (blur)="onObservacionEditada()" (keyup.enter)="onObservacionEditada()" />
     </mat-form-field>
+  </div>
+  </div>
+
+  <div fxFlex="12" fxLayout="column" fxLayoutAlign="start stretch" fxLayoutGap="5px">
+    <div class="boton">
+      <app-boton nombre="Lista" (clickEvent)="onVolver()"></app-boton>
+    </div>
+    <div class="boton" *ngIf="puedeEditarCabecera">
+      <app-boton nombre="+ Agregar producto" (clickEvent)="onAddItem()"></app-boton>
+    </div>
+    <div class="boton" *ngIf="canCancelar">
+      <app-boton nombre="Cancelar devolución" (clickEvent)="onCancelar()"></app-boton>
+    </div>
+  </div>
   </div>
 
   <!-- Acciones: agregar item + máquina de estados (arriba de la tabla, a la derecha) -->
   <div fxLayout="row wrap" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
     *ngIf="selectedDevolucion?.id != null || puedeEditarCabecera">
-    <button mat-raised-button color="primary" *ngIf="puedeEditarCabecera" (click)="onAddItem()">
-      <mat-icon>add</mat-icon> Agregar producto
-    </button>
     <button mat-stroked-button color="primary" *ngIf="puedeImprimirEtiquetas"
       (click)="onImprimirEtiquetas()">
       <mat-icon>label</mat-icon> Imprimir etiquetas
@@ -247,14 +263,4 @@
     </div>
   </div>
 
-  <!-- Guardar / Cancelar (abajo, a la derecha) -->
-  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
-    *ngIf="puedeEditarCabecera || canCancelar">
-    <button mat-raised-button color="accent" *ngIf="puedeEditarCabecera" (click)="onGuardarCabecera()">
-      <mat-icon>save</mat-icon> Guardar datos
-    </button>
-    <button mat-stroked-button color="warn" *ngIf="canCancelar" (click)="onCancelar()">
-      Cancelar devolución
-    </button>
-  </div>
 </div>
