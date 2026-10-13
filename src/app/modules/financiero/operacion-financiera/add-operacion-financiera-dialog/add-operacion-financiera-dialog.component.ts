@@ -17,7 +17,7 @@ import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { MainService } from '../../../../main.service';
-import { esSoloTesoreriaCaja } from '../../caja-virtual/rol-tesoreria-caja';
+import { operaAcotadoCaja } from '../../caja-virtual/rol-tesoreria-caja';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -143,7 +143,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.soloCaja = esSoloTesoreriaCaja(this.mainService);
+    this.soloCaja = operaAcotadoCaja(this.mainService);
     if (this.soloCaja) {
       const permitidos = [TipoOperacionFinanciera.DEPOSITO_BANCARIO, TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS];
       this.tipoOperacionList = this.tipoOperacionList.filter(t => permitidos.includes(t.value));

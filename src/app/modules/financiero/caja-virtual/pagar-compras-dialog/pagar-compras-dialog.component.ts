@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { MainService } from '../../../../main.service';
-import { esSoloTesoreriaCaja } from '../rol-tesoreria-caja';
+import { pagaAcotadoCaja } from '../rol-tesoreria-caja';
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -332,7 +332,7 @@ export class PagarComprasDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.soloCaja = esSoloTesoreriaCaja(this.mainService);
+    this.soloCaja = pagaAcotadoCaja(this.mainService);
     this.esGasto = this.data?.modo === 'GASTOS';
     this.esVale = this.data?.modo === 'VALES';
     this.esRrhh = this.data?.modo === 'LIQUIDACION' || this.data?.modo === 'FINIQUITO'
@@ -575,7 +575,8 @@ export class PagarComprasDialogComponent implements OnInit {
       _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(s.moneda),
       _planCheques: planCheques, _descripcion: s.observaciones, _categoria: s.tipoGasto?.descripcion || '',
       // Solo una compra todavía sin pagos se devuelve; la regla la vuelve a chequear el central.
-      _devolvible: !this.esGasto && s.estado === 'SOLICITADO',
+      // Devolver a compras es decisión de tesorería: el rol acotado no la toma.
+      _devolvible: !this.esGasto && s.estado === 'SOLICITADO' && !this.soloCaja,
     };
   }
 

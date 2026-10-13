@@ -21,7 +21,7 @@ import { ConfigurarCajaVirtualDialogComponent } from '../configurar-caja-virtual
 import { RegistrarIngresoDialogComponent } from '../registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { RegistrarEgresoDialogComponent } from '../registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { MainService } from '../../../../main.service';
-import { esSoloTesoreriaCaja, puedeOperarCaja } from '../rol-tesoreria-caja';
+import { esSoloTesoreriaCaja, operaAcotadoCaja, puedeOperarCaja } from '../rol-tesoreria-caja';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
@@ -212,6 +212,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
   puedeOperar = false;
   /** Rol acotado: sin cuentas bancarias, sin configuración, sin conteo, sin detalle de operaciones. */
   soloCaja = false;
+  /** Mueve plata como el rol acotado (TESORERIA CAJA sin GESTIONAR): sin conteo ni anular retiros. */
+  operaAcotado = false;
 
   tipoMovimientoList = [
     { label: 'Ingreso', value: CajaVirtualTipoMovimiento.INGRESO },
@@ -284,6 +286,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
     this.puedeOperar = puedeOperarCaja(this.mainService);
     this.soloCaja = esSoloTesoreriaCaja(this.mainService);
+    this.operaAcotado = operaAcotadoCaja(this.mainService);
     this.permisosAnulacionBanco = {
       gestionar: this.puedeGestionar,
       pagarCpp: this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR]),
@@ -757,7 +760,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   private esAnulable(m: MovimientoCajaVirtual): boolean {
     // Deshacer la acreditación de un retiro anula su verificación, que no entra en el rol acotado.
-    if (this.soloCaja && m.origenTipo === 'RETIRO_CAJA') return false;
+    if (this.operaAcotado && m.origenTipo === 'RETIRO_CAJA') return false;
     return this.puedeOperar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false

@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MainService } from '../../../../main.service';
-import { esSoloTesoreriaCaja } from '../rol-tesoreria-caja';
+import { operaAcotadoCaja } from '../rol-tesoreria-caja';
 import { FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -86,7 +86,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    if (esSoloTesoreriaCaja(this.mainService)) {
+    if (operaAcotadoCaja(this.mainService)) {
       // El rol acotado ingresa a su caja solo los retiros de la sucursal de esa caja: el filtro queda fijo.
       const sucursal = this.data?.cajaVirtual?.sucursal;
       this.sucursalList = sucursal ? [sucursal] : [];
