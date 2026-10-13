@@ -19,6 +19,7 @@ import { Observable, Subject, of } from "rxjs";
 import { map, switchMap } from "rxjs/operators";
 import { MainService } from "../../../../main.service";
 import { FacturaSimilar } from "../factura-similar.model";
+import { esRechazoDelServidor } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { getDigitoVerificadorString } from "../../../../commons/core/utils/rucUtils";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -947,17 +948,14 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       // timbrado. Emitir es irreversible, así que ante la duda se avisa al cajero en
       // vez de re-emitir: la factura pudo haberse guardado y hay que mirar la lista
       // antes de volver a intentar.
+      //
+      // Un rechazo del servidor no es duda: el backend corta antes de escribir y el
+      // motivo ya se avisó, así que solo se libera el botón para corregir y emitir (#470).
       this.facturaService
         .onSaveFactura(facturaInput, facturaItemInputList, false)
         .pipe(untilDestroyed(this))
         .subscribe({
-          next: (res: TimbradoDetalle) => {
-            if (res != null) {
-              this.handleFacturaSuccess(res);
-            } else {
-              this.onFacturaNoConfirmada();
-            }
-          },
+          next: (res) => this.alResponderLaEmision(res),
           error: (err) => {
             console.error("Error al guardar la factura legal:", err);
             this.onFacturaNoConfirmada();
@@ -1044,6 +1042,16 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
           },
         });
     }, 1000);
+  }
+
+  alResponderLaEmision(res: { data?: TimbradoDetalle; error?: any }) {
+    if (res?.data != null && res.error == null) {
+      this.handleFacturaSuccess(res.data);
+    } else if (res?.data == null && esRechazoDelServidor(res?.error)) {
+      this.guardando = false;
+    } else {
+      this.onFacturaNoConfirmada();
+    }
   }
 
   /**
