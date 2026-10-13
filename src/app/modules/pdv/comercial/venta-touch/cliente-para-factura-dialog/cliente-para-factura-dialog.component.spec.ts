@@ -3,7 +3,7 @@ import { ComponentFixture, fakeAsync, TestBed, tick } from "@angular/core/testin
 import { ReactiveFormsModule } from "@angular/forms";
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { ApolloError } from "@apollo/client/core";
-import { NEVER, of, throwError } from "rxjs";
+import { NEVER, of, Subject, throwError } from "rxjs";
 import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../../generics/generic-crud.constantes";
 import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { ClienteService } from "../../../../personas/clientes/cliente.service";
@@ -87,15 +87,18 @@ describe("ClienteParaFacturaDialogComponent", () => {
     );
     component.onBuscar();
     expect(component.cliente).toBeNull();
-    expect(component.mensaje).toContain("No hay un cliente");
+    expect(component.mensaje).toContain("No se encontró un cliente");
 
     // El filial responde con error si el documento tampoco es de un contribuyente de SET.
     clienteService.onGetClientePorPersonaDocumento.and.returnValue(
-      throwError(() => [{ message: "El cliente no es contribuyente de SET" }])
+      throwError(() => ({
+        message: "El cliente no es contribuyente de SET",
+        errors: [{ message: "El cliente no es contribuyente de SET" }],
+      }))
     );
     component.onBuscar();
     expect(component.cliente).toBeNull();
-    expect(component.mensaje).toContain("No hay un cliente");
+    expect(component.mensaje).toContain("No se encontró un cliente");
 
     component.onAceptar();
     expect(dialogRef.close).not.toHaveBeenCalled();
@@ -131,6 +134,29 @@ describe("ClienteParaFacturaDialogComponent", () => {
     component.onBuscarPorNombre();
     expect(clienteService.onGetClientePorPersonaDocumento).toHaveBeenCalledWith("1234567", false);
     expect(component.cliente.id).toBe(5);
+  });
+
+  it("si el documento cambia después de encontrar un cliente, hay que buscar de nuevo", () => {
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(of(cliente(5, "JUAN PEREZ", "1234567")));
+    component.documentoControl.setValue("1234567");
+    component.onBuscar();
+    expect(component.cliente.id).toBe(5);
+    component.documentoControl.setValue("7654321");
+    expect(component.cliente).toBeNull();
+    component.onAceptar();
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it("descarta la respuesta de una búsqueda si el documento cambió mientras tanto", () => {
+    const respuesta = new Subject<Cliente>();
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(respuesta);
+    component.documentoControl.setValue("1234567");
+    component.onBuscar();
+    component.documentoControl.setValue("7654321");
+    respuesta.next(cliente(5, "JUAN PEREZ", "1234567"));
+    respuesta.complete();
+    expect(component.cliente).toBeNull();
+    expect(component.buscando).toBeFalse();
   });
 
   it("cancelar devuelve null", () => {

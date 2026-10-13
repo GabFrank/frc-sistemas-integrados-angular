@@ -1,4 +1,4 @@
-import { Component, ElementRef, Inject, ViewChild } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, ViewChild } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -15,7 +15,11 @@ import { PersonaSearchGQL } from "../../../../personas/persona/graphql/personaSe
 import { Persona } from "../../../../personas/persona/persona.model";
 import { esClienteNominado } from "./cliente-nominado";
 
-const SIN_CLIENTE = "No hay un cliente con ese documento. Para cargarlo, cancele y cobre con el botón de factura.";
+const SIN_CLIENTE = "No se encontró un cliente con ese documento. Para cargarlo, cancele y cobre con el botón de factura.";
+
+function normalizarDocumento(valor: any): string {
+  return ((valor || "") + "").trim().split("-")[0];
+}
 
 export class ClienteParaFacturaDialogData {
   totalGs: number;
@@ -32,7 +36,7 @@ export class ClienteParaFacturaDialogData {
   templateUrl: "./cliente-para-factura-dialog.component.html",
   styleUrls: ["./cliente-para-factura-dialog.component.scss"],
 })
-export class ClienteParaFacturaDialogComponent {
+export class ClienteParaFacturaDialogComponent implements AfterViewInit, OnDestroy {
   @ViewChild("documentoInput", { static: false }) documentoInput: ElementRef;
 
   documentoControl = new FormControl<string>(null);
@@ -48,17 +52,43 @@ export class ClienteParaFacturaDialogComponent {
     private clienteService: ClienteService,
     private personaSearch: PersonaSearchGQL,
     private dialog: MatDialog
-  ) {}
+  ) {
+    // El cliente mostrado vale solo para el documento con el que se lo buscó: si el cajero lo
+    // cambia, hay que buscar de nuevo antes de poder guardar.
+    this.documentoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((valor) => {
+      if (this.cliente != null && normalizarDocumento(valor) !== this.documentoBuscado) this.limpiarCliente();
+    });
+  }
+
+  private documentoBuscado: string = null;
+  private focoInicial: any = null;
+
+  // El diálogo se abre mientras se cierra el de «Guardando…», que al terminar le devuelve el foco
+  // al buscador del PDV: sin esto el cajero escribiría el documento ahí.
+  ngAfterViewInit(): void {
+    this.focoInicial = setTimeout(() => this.documentoInput?.nativeElement?.focus(), 400);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.focoInicial);
+  }
+
+  private limpiarCliente() {
+    this.cliente = null;
+    this.clienteNombre = null;
+    this.clienteDocumento = null;
+  }
 
   onBuscar() {
     if (this.buscando) return;
-    const documento = ((this.documentoControl.value || "") + "").trim().split("-")[0];
+    const documento = normalizarDocumento(this.documentoControl.value);
     if (documento === "") {
       this.onBuscarPorNombre();
       return;
     }
+    this.limpiarCliente();
     this.documentoControl.setValue(documento);
-    this.cliente = null;
+    this.documentoBuscado = documento;
     this.mensaje = null;
     this.buscando = true;
     // Contra el filial: es quien después resuelve el clienteId de la venta. No sirve la consulta
@@ -73,6 +103,8 @@ export class ClienteParaFacturaDialogComponent {
       )
       .subscribe({
         next: (encontrado: Cliente) => {
+          // El documento cambió mientras se buscaba: esta respuesta ya no es la del campo.
+          if (normalizarDocumento(this.documentoControl.value) !== documento) return;
           if (esClienteNominado(encontrado)) {
             this.cliente = encontrado;
             this.clienteNombre = (encontrado.persona?.nombre ?? encontrado.nombre)?.toUpperCase();
@@ -85,13 +117,16 @@ export class ClienteParaFacturaDialogComponent {
         },
         error: (err) => {
           // El filial responde con error cuando el documento no es de un cliente ni de un
-          // contribuyente de SET. Cualquier otra falla es no haber podido buscar.
-          this.mensaje = erroresDeRechazo(err) != null ? SIN_CLIENTE : "No se pudo buscar el cliente. Intente de nuevo.";
+          // contribuyente de SET; onGetByTexto lo entrega como { message, errors }. Cualquier otra
+          // falla (red, corte por tiempo) es no haber podido buscar.
+          const rechazo = erroresDeRechazo(err?.errors) != null && !err?.networkError;
+          this.mensaje = rechazo ? SIN_CLIENTE : "No se pudo buscar el cliente. Intente de nuevo.";
         },
       });
   }
 
   onBuscarPorNombre() {
+    if (this.buscando) return;
     const data: SearchListtDialogData = {
       titulo: "Buscar Persona",
       query: this.personaSearch,

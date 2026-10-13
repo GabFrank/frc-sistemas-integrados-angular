@@ -184,6 +184,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   // cerrado un diálogo que sigue abierto. Los atajos se bloquean con cualquiera de los dos.
   isCargando = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
+  /** Abierto el diálogo que pide el cliente de una venta rechazada por factura sin nombre (#473). */
+  private pidiendoClienteParaFacturar = false;
   /**
    * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
    * vale depende de la moneda (9455 son 94,55 reales o 9.455 guaraníes), así que el parser
@@ -802,6 +804,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addItem(item: VentaItem, index?) {
+    if (this.pidiendoClienteParaFacturar) {
+      // El escáner sigue leyendo aunque haya un diálogo: lo que entre ahora no estaría en la venta
+      // que se va a reenviar y se perdería al limpiar el carrito (#473).
+      this.notificacionSnackbar.openWarn("Cargue el cliente o cancele antes de agregar productos.", 4);
+      return;
+    }
     item.precio = item?.precioVenta?.precio;
     let cantidad: number = +item.cantidad;
     if (item.producto.balanza != true) {
@@ -1104,6 +1112,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   private pedirClienteYReintentar(venta: Venta, cobro, ticket, facturar, pedidos: number): void {
     // Mientras se elige el cliente no se vende ni se toca el carrito: F8/F11 y el buscador miran esto.
     this.isDialogOpen = true;
+    this.pidiendoClienteParaFacturar = true;
     this.dialog
       .open(ClienteParaFacturaDialogComponent, {
         data: { totalGs: cobro?.totalGs ?? venta.totalGs },
@@ -1114,6 +1123,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((cliente: Cliente) => {
         this.isDialogOpen = false;
+        this.pidiendoClienteParaFacturar = false;
         if (cliente?.id == null) {
           this.avisarVentaSinGuardarPorCliente("La venta no se guardó: falta el cliente para facturar.");
           this.buscadorFocusSub.next();

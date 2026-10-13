@@ -169,8 +169,35 @@ habilitado, scheduler apagado), PDV 25 de SUC. KM2 con timbrado electrónico, 12
 | Documento de un cliente existente no contribuyente | lo encuentra (con la consulta simple) |
 | Guardar con ese cliente | una sola venta, con el cliente y factura electrónica a su nombre (con CDC) |
 
-Sin probar en runtime: F11 con política que facture, diálogo de pago, pago con tarjeta, convenio,
-timbrado no electrónico, filial apagado, escáner con el diálogo abierto y el segundo rechazo.
+Segunda tanda, el mismo día, con las correcciones de la auditoría del diff ya aplicadas:
+
+| Caso | Resultado |
+|---|---|
+| F8 de 650.000 sin cliente | se guarda sin diálogo, con factura electrónica sin nombre |
+| F11 con política «todas» | rechazo, diálogo, y con el cliente una sola venta con su factura |
+| Diálogo de pago, efectivo, «Finalizar» | igual: rechazo, diálogo y venta única con el mismo cobro |
+| Atajos F8 y F11 con el diálogo abierto | no envían nada |
+| Ingreso de un producto con el diálogo abierto | no entra al carrito (ver hallazgo abajo) |
+| Cambiar el documento después de encontrar un cliente | el cliente se borra y hay que buscar de nuevo |
+| Pago con tarjeta pendiente y cancelar | aviso «Hay un cobro con tarjeta ya pasado…»; el pendiente se vacía |
+| Pago con tarjeta pendiente y cliente cargado | una venta y un solo registro de tarjeta, contra esa venta |
+| El filial rechaza también con el cliente elegido | se pide una vez más y al segundo rechazo corta con aviso; carrito intacto, ninguna venta |
+| Filial apagado | «No se pudo guardar la venta. Verifique antes de continuar.», sin diálogo, carrito intacto |
+| Filial con SIFEN deshabilitado | la venta se guarda sin diálogo |
+
+Cómo se simuló lo que no se podía hacer de verdad: el pago con tarjeta se cargó a mano en el estado del
+componente (sin pasar por un POS); el segundo rechazo se forzó quitando el `clienteId` del envío en el
+navegador; «sin factura electrónica» fue SIFEN deshabilitado, porque la base local no tiene un
+timbrado no electrónico activo (el filial guardó la venta sin factura).
+
+**Hallazgo de la prueba:** el diálogo se abre mientras se cierra el de «Guardando…», que al terminar le
+devuelve el foco al buscador del PDV. Una lectura del escáner agregaba un producto al carrito con el
+diálogo abierto. Se corrigió por dos lados: el diálogo toma el foco al abrirse y `addItem` no acepta
+productos mientras se pide el cliente.
+
+Sin probar en runtime: convenio (el central local, de otra sesión, estaba apagado y la búsqueda de
+cliente del crédito depende de él; lo cubre la spec de `debePedirClienteParaFacturar`) y una venta
+facturada con timbrado no electrónico real.
 
 ## Datos nuevos
 
@@ -223,6 +250,20 @@ Dos auditores independientes; cada hallazgo se verificó contra el código antes
 
 Confirmado por el eje B, leyendo el filial: el rechazo sale antes de cualquier escritura y la
 transacción revierte venta, cobro e ítems, así que el reintento no duplica.
+
+## Auditoría del diff (paso 8, 13/10/2026)
+
+Dos lentes: estado y corrección, y contrato con el filial. `N/A para desktop` los fijos de
+autorización por resolver y de esquema/migración: el diff no toca resolvers, permisos ni persistencia.
+
+| Hallazgo | Verificado | Qué se hizo |
+|---|---|---|
+| Cambiar el documento después de una búsqueda dejaba el cliente anterior y se podía guardar con él | sí | el cliente se invalida al cambiar el documento y se descarta una respuesta tardía; dos specs |
+| Un documento inexistente llegaba como `{ message, errors }` y mostraba «No se pudo buscar» | sí (`generic-crud.service.ts`, `onGetByTexto`) | se clasifica por `errors`; spec |
+| Con SET o el central caídos el filial responde vacío y el mensaje decía «No hay un cliente» | sí, leído | mensaje neutro: «No se encontró un cliente con ese documento» |
+| El aviso «Buscando…» del genérico no se cierra cuando el diálogo corta a los 10 s | sí, leído | sin cambio: tiene su botón «Cerrar» y se cierra al responder el filial |
+| La búsqueda actualiza al cliente desde SET (nombre, dirección, `tributa`) | sí, leído | sin cambio: es el comportamiento que ya tiene esa consulta en el filial |
+| El cableado en `venta-touch.component.ts` no tiene spec | sí | sin cambio: cubierto por la prueba de runtime |
 
 ## Decisiones (aprobadas por Franco el 13/10/2026)
 
