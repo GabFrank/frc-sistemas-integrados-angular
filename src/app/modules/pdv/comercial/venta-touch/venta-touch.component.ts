@@ -43,6 +43,7 @@ import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.model";
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
+import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
 import { Venta } from "../../../operaciones/venta/venta.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import {
@@ -722,6 +723,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * sin abrir el selector.
    */
   agregarConLote(item: VentaItem): void {
+    // Antes del selector de lote: que el cajero no elija lote para enterarse después.
+    if (item?.precioVenta != null && !tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
+      return;
+    }
     const controlaLote = item?.producto?.lote;
 
     if (controlaLote === true) {
@@ -826,7 +832,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (item.precioVenta == null) {
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item.presentacion.precios?.find(
-          (p) => p.principal == true && p.activo == true
+          (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -835,9 +842,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item.precioVenta = item?.presentacion?.precios.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
       }
+    }
+
+    // Por acá entran todos los ítems (buscador, selector, lotes, envases): sin un precio mayor a
+    // cero no hay venta. Un precio en cero no es un regalo, es un error del catálogo (#473).
+    if (!tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
+      this.selectedTipoPrecio = this.tiposPrecios[0];
+      this.cantidadControl.setValue(1);
+      return;
     }
 
     let presentacionCaja: Presentacion;
@@ -861,7 +878,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       item2.lotes = null;
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item2.precioVenta = item2.presentacion?.precios?.find(
-          (precio) => precio?.principal == true && precio.activo == true
+          (precio) => precio?.principal == true && precio.activo == true &&
+            tienePrecioVendible(precio)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -870,11 +888,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item2.precioVenta = item2.presentacion?.precios?.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
       }
 
-      if (item2.precioVenta != null) {
+      // Sin precio vendible en la caja las unidades se quedan en la presentación original: si no,
+      // el rechazo de la caja se llevaría parte de la cantidad en silencio.
+      if (tienePrecioVendible(item2.precioVenta)) {
         let factor = Math.floor(
           (cantidad * item.presentacion.cantidad) / item2.presentacion.cantidad
         );
@@ -1058,7 +1079,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (precio == null) {
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item?.presentacion?.precios?.find(
-          (p) => p.principal == true && p.activo == true
+          (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -1067,11 +1089,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item.precioVenta = item?.presentacion?.precios?.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
         if (item.precioVenta == null) {
           item.precioVenta = item?.presentacion?.precios?.find(
-            (p) => p.principal == true && p.activo == true
+            (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
           );
         }
       }
@@ -1085,11 +1109,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         duracion: 2,
         color: NotificacionColor.warn,
       });
+    } else if (!tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
     } else {
       this.agregarConLote(item);
     }
     this.buscadorFocusSub.next();
     this.cantidadControl.setValue(1);
+  }
+
+  private avisarSinPrecioVendible(item: VentaItem): void {
+    const nombre = item?.producto?.descripcion ?? "El producto";
+    this.notificacionSnackbar.openWarn(`${nombre} no tiene un precio válido. Avise al encargado.`, 5);
+  }
+
+  /**
+   * Un ítem recuperado de una venta guardada o de un delivery abierto no pasó por `addItem`: si
+   * está en cero no se cobra hasta quitarlo.
+   */
+  private carritoConPrecioEnCero(): boolean {
+    const enCero = itemConPrecioEnCero(this.selectedItemList);
+    if (enCero == null) return false;
+    const nombre = enCero.producto?.descripcion ?? "Un producto";
+    this.notificacionSnackbar.openWarn(`${nombre} está a precio cero: quítelo del carrito para cobrar.`, 6);
+    return true;
   }
 
   cambiarTipoPrecio(tipo) {
@@ -1214,6 +1257,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
+    if (this.carritoConPrecioEnCero()) return;
     if (this.selectedDelivery?.cobroIncierto) {
       // Reusaría los cobros en memoria, sin la línea sin confirmar: se podría cobrar dos veces (#390)
       this.notificacionSnackbar.openWarn("Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista de deliverys.", 8);
@@ -1508,6 +1552,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.buscadorFocusSub.next();
       return;
     }
+    if (this.carritoConPrecioEnCero()) return;
     // Evita reentradas mientras se procesa un cobro rápido en curso.
     if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
