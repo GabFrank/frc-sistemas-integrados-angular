@@ -5,8 +5,9 @@ import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
 
 export class AdicionarUsuarioDialogData {
-  persona: Persona;
-  usuario: Usuario;
+  /** Persona del usuario nuevo (Personas → «Crear usuario»). Sin ella se elige en el diálogo. */
+  persona?: Persona;
+  usuario?: Usuario;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -20,6 +21,8 @@ import { Observable } from 'rxjs';
 import { ROLES } from '../../roles/roles.enum';
 import { MainService } from '../../../../main.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { BuscarPersonaDialogComponent } from '../../persona/buscar-persona-dialog/buscar-persona-dialog.component';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -35,6 +38,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   selectedPersona: Persona;
   nicknameControl = new FormControl(null, Validators.required)
   activoControl = new FormControl(true)
+  /** Solo al crear: al editar la clave no se toca (se resetea desde la lista de usuarios). */
+  passwordControl = new FormControl(null, Validators.required)
   formGroup: FormGroup;
   isEditting = false;
   usuarioRoleList = new MatTableDataSource<UsuarioRole>([])
@@ -45,12 +50,13 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   selectedUsuarioRole;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) private data: AdicionarUsuarioDialogData,
+    @Inject(MAT_DIALOG_DATA) public data: AdicionarUsuarioDialogData,
     private dialogRef: MatDialogRef<AdicionarUsuarioDialogComponent>,
     private usuarioService: UsuarioService,
     private matDialog: MatDialog,
     private roleService: RoleService,
-    public mainService: MainService
+    public mainService: MainService,
+    private notificacionService: NotificacionSnackbarService
   ) {
   }
 
@@ -67,6 +73,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
         this.cargarDatos()
       }, 500);
     } else {
+      this.selectedPersona = this.data?.persona;
       this.isEditting = true
     }
 
@@ -100,14 +107,40 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     this.selectedUsuario.nickname = this.nicknameControl.value?.trim()
     this.selectedUsuario.activo = this.activoControl.value
     this.selectedUsuario.persona = this.selectedPersona;
-    this.selectedUsuario.password = '123';
+    const esNuevo = this.selectedUsuario.id == null;
+    // Sin clave en el input el central conserva la que tiene.
+    this.selectedUsuario.password = esNuevo ? this.passwordControl.value?.trim() : null;
     this.usuarioService.onSaveUsuario(this.selectedUsuario.toInput())
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        if (res != null) {
+        if (res == null) return;
+        if (!esNuevo) {
           this.dialogRef.close(res)
+          return;
         }
+        // Recién creado: el diálogo queda abierto para asignarle los roles.
+        this.selectedUsuario.id = res.id;
+        this.selectedUsuario.password = null;
+        this.passwordControl.reset();
+        this.isEditting = false;
+        this.formGroup.disable();
+        this.notificacionService.openSucess('Usuario creado. Ahora podés asignarle los roles.', 4);
       })
+  }
+
+  onSeleccionarPersona() {
+    this.matDialog.open(BuscarPersonaDialogComponent, {
+      data: {},
+      width: '60%',
+      height: '70%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((persona: Persona) => {
+      if (persona == null) return;
+      if (persona.isUsuario) {
+        this.notificacionService.openWarn('Esa persona ya tiene usuario.');
+        return;
+      }
+      this.selectedPersona = persona;
+    })
   }
 
   onDeleteUsuarioRole(usuarioRole, usuarioRoleIndex) {

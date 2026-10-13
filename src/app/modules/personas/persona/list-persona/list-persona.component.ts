@@ -6,10 +6,11 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { TabService } from '../../../../layouts/tab/tab.service';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
-import { AdicionarUsuarioDialogComponent } from '../../usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
+import { AdicionarUsuarioDialogComponent, AdicionarUsuarioDialogData } from '../../usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { AdicionarPersonaDialogComponent } from '../adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
+import { UsuarioService } from '../../usuarios/usuario.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 
@@ -58,7 +59,8 @@ export class ListPersonaComponent implements OnInit {
   constructor(
     public service: PersonaService,
     public windowInfoService: WindowInfoService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private usuarioService: UsuarioService
   ) { }
 
   ngOnInit(): void {
@@ -128,10 +130,24 @@ export class ListPersonaComponent implements OnInit {
     }
   }
 
-  abrirUsuario(persona) {
+  abrirUsuario(persona: Persona) {
+    if (!persona?.isUsuario) {
+      this.abrirDialogoUsuario({ persona });
+      return;
+    }
+    // «Ir a usuario»: se abre el usuario que ya tiene, no uno nuevo para la misma persona.
+    this.usuarioService.onGetUsuarioPorPersonaId(persona.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(usuario => {
+        if (usuario != null) this.abrirDialogoUsuario({ usuario });
+      })
+  }
+
+  private abrirDialogoUsuario(data: AdicionarUsuarioDialogData) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
-      data : {personaId: persona?.id},
-      width: '60%'
+      data,
+      width: '60%',
+      height: '80%'
     })
   }
 

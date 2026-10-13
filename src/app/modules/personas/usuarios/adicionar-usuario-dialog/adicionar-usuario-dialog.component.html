@@ -5,6 +5,26 @@
         <h3 *ngIf="selectedUsuario?.id != null">Editar Usuario</h3>
         <h3 *ngIf="selectedUsuario?.id == null">Nuevo Usuario</h3>
       </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+        <mat-form-field fxFlex>
+          <mat-label>Persona</mat-label>
+          <input
+            matInput
+            readonly
+            [value]="selectedPersona?.nombre | uppercase"
+            placeholder="Sin persona"
+          />
+        </mat-form-field>
+        <button
+          *ngIf="selectedUsuario?.id == null && data?.persona == null"
+          mat-stroked-button
+          type="button"
+          (click)="onSeleccionarPersona()"
+        >
+          <mat-icon>person_search</mat-icon>
+          Elegir persona
+        </button>
+      </div>
       <div fxFlex fxLayout="row" fxLayoutGap="20px">
         <div fxFlex="50%">
           <mat-form-field style="width: 100%">
@@ -26,6 +46,18 @@
           }}</mat-slide-toggle>
         </div>
       </div>
+      <div *ngIf="selectedUsuario?.id == null" fxFlex fxLayout="row" fxLayoutGap="20px">
+        <mat-form-field fxFlex="50%">
+          <mat-label>Contraseña</mat-label>
+          <input
+            type="password"
+            matInput
+            [formControl]="passwordControl"
+            autocomplete="new-password"
+          />
+          <mat-hint>No distingue mayúsculas y minúsculas</mat-hint>
+        </mat-form-field>
+      </div>
       <br />
       <div fxFlex fxLayout="row">
         <div fxFlex="50%" style="text-align: center">
@@ -33,7 +65,13 @@
             style="width: 70%"
             mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
-            [disabled]="isEditting ? !formGroup.valid : false"
+            [disabled]="
+              isEditting
+                ? !formGroup.valid ||
+                  (selectedUsuario?.id == null &&
+                    (passwordControl.invalid || selectedPersona == null))
+                : false
+            "
             (click)="
               isEditting ? onSave() : (isEditting = true);
               formGroup.enable();
@@ -50,7 +88,7 @@
             color="primary"
             (click)="onCancel()"
           >
-            Cancelar
+            {{ selectedUsuario?.id == null ? "Cancelar" : "Cerrar" }}
           </button>
         </div>
       </div>
@@ -112,6 +150,9 @@
         "
       ></tr>
     </table>
+    <div *ngIf="selectedUsuario?.id == null" style="text-align: center; padding: 8px">
+      Guardá el usuario para asignarle roles.
+    </div>
     <div *ngIf="rolesNoDisponibles" style="color: #ffb74d; text-align: center; padding: 8px">
       No se pudieron cargar los roles de este usuario: cerrá y volvé a abrir para verlos o cambiarlos.
     </div>
@@ -122,7 +163,7 @@
         color="primary"
         aria-label="adicionar usuarioRole"
         (click)="selectedUsuarioRole = null; onAddUsuarioRole()"
-        [disabled]="rolesNoDisponibles || !(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))"
+        [disabled]="selectedUsuario?.id == null || rolesNoDisponibles || !(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))"
         type="button"
       >
         <mat-icon>add</mat-icon>

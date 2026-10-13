@@ -56,6 +56,7 @@ export class ListUsuarioComponent implements OnInit {
   roleList: Role[] = [];
   rolesResumen = '';
   private rolesFiltrados = '';
+  puedeCrearUsuario = false;
 
   constructor(
     public service: UsuarioService,
@@ -66,6 +67,9 @@ export class ListUsuarioComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    const roles = this.mainService.usuarioActual?.roles ?? [];
+    this.puedeCrearUsuario = roles.includes(ROLES.ADMIN) || roles.includes(ROLES.EDITAR_USUARIOS);
+
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -162,6 +166,14 @@ export class ListUsuarioComponent implements OnInit {
       width: '60%',
       height: '80%'
     })
+  }
+
+  onNuevoUsuario() {
+    this.matDialog.open(AdicionarUsuarioDialogComponent, {
+      data: {},
+      width: '60%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar())
   }
 
   onEditRoles(usuario, i) {
