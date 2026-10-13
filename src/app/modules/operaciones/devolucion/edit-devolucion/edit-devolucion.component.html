@@ -31,45 +31,60 @@
     </div>
   </div>
 
-  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
-    <mat-form-field fxFlex="20">
-      <mat-label>Tipo</mat-label>
-      <mat-select [formControl]="tipoControl">
-        <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
-          {{ tipo | enumToString }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+  <!-- Cabecera: campos a la izquierda, Guardar / Cancelar apilados arriba a la derecha -->
+  <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="width: 100%">
+    <div fxFlex fxLayout="column">
+      <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+        <mat-form-field fxFlex="20">
+          <mat-label>Tipo</mat-label>
+          <mat-select [formControl]="tipoControl">
+            <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
+              {{ tipo | enumToString }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
-    <mat-form-field fxFlex="30" *ngIf="esConProveedor">
-      <mat-label>Proveedor</mat-label>
-      <input matInput [(ngModel)]="proveedorTexto" placeholder="Buscar proveedor..."
-        [disabled]="!puedeEditarCabecera" (keyup.enter)="onBuscarProveedor()" />
-      <button mat-icon-button matSuffix type="button" [disabled]="!puedeEditarCabecera"
-        (click)="onBuscarProveedor()">
-        <mat-icon>search</mat-icon>
+        <mat-form-field fxFlex="30" *ngIf="esConProveedor">
+          <mat-label>Proveedor</mat-label>
+          <input matInput [(ngModel)]="proveedorTexto" placeholder="Buscar proveedor..."
+            [disabled]="!puedeEditarCabecera" (keyup.enter)="onBuscarProveedor()" />
+          <button mat-icon-button matSuffix type="button" [disabled]="!puedeEditarCabecera"
+            (click)="onBuscarProveedor()">
+            <mat-icon>search</mat-icon>
+          </button>
+          <button *ngIf="selectedProveedor != null" mat-icon-button matSuffix type="button"
+            [disabled]="!puedeEditarCabecera" (click)="onRemoverProveedor()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <mat-form-field fxFlex="25">
+          <mat-label>Sucursal de origen</mat-label>
+          <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal">
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+              {{ sucursal.id }} - {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+        <mat-form-field fxFlex="90">
+          <mat-label>Observación</mat-label>
+          <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div fxLayout="column" fxLayoutGap="10px" *ngIf="puedeEditarCabecera || canCancelar">
+      <button mat-raised-button color="accent" style="width: 100%" *ngIf="puedeEditarCabecera"
+        (click)="onGuardarCabecera()">
+        <mat-icon>save</mat-icon> Guardar datos
       </button>
-      <button *ngIf="selectedProveedor != null" mat-icon-button matSuffix type="button"
-        [disabled]="!puedeEditarCabecera" (click)="onRemoverProveedor()">
-        <mat-icon>close</mat-icon>
+      <button mat-stroked-button color="warn" style="width: 100%" *ngIf="canCancelar" (click)="onCancelar()">
+        Cancelar devolución
       </button>
-    </mat-form-field>
-
-    <mat-form-field fxFlex="25">
-      <mat-label>Sucursal de origen</mat-label>
-      <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal">
-        <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
-          {{ sucursal.id }} - {{ sucursal.nombre }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-  </div>
-
-  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
-    <mat-form-field fxFlex="90">
-      <mat-label>Observación</mat-label>
-      <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera" />
-    </mat-form-field>
+    </div>
   </div>
 
   <!-- Acciones: agregar item + máquina de estados (arriba de la tabla, a la derecha) -->
@@ -245,16 +260,5 @@
         </button>
       </div>
     </div>
-  </div>
-
-  <!-- Guardar / Cancelar (abajo, a la derecha) -->
-  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
-    *ngIf="puedeEditarCabecera || canCancelar">
-    <button mat-raised-button color="accent" *ngIf="puedeEditarCabecera" (click)="onGuardarCabecera()">
-      <mat-icon>save</mat-icon> Guardar datos
-    </button>
-    <button mat-stroked-button color="warn" *ngIf="canCancelar" (click)="onCancelar()">
-      Cancelar devolución
-    </button>
   </div>
 </div>
