@@ -7,8 +7,8 @@ import { Cliente } from "../../../../personas/clientes/cliente.model";
  */
 export function esClienteNominado(cliente: Cliente): boolean {
   if (cliente?.id == null) return false;
-  const nombre = (cliente.persona?.nombre ?? "").trim();
-  const documento = (cliente.persona?.documento ?? "").trim();
+  const nombre = (cliente.persona?.nombre ?? cliente.nombre ?? "").trim();
+  const documento = (cliente.persona?.documento ?? cliente.documento ?? "").trim();
   if (nombre === "" || nombre.toUpperCase() === "SIN NOMBRE") return false;
   if (documento === "" || documento === "0") return false;
   return true;

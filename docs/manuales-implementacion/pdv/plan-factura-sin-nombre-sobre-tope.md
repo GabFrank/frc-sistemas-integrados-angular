@@ -78,9 +78,12 @@ que despliega solo al mergear, para ganar poco sobre la degradación de arriba.
 
 - Componente nuevo `pdv/comercial/venta-touch/cliente-para-factura-dialog/`, declarado en el módulo
   del PDV. Recibe el total y el motivo; devuelve un `Cliente` con `id`, o `null`.
-- Campo de documento. Busca con `ClienteService.onGetClientePorPersonaDocumentoDetallado(documento, false)`,
-  la misma consulta del diálogo de factura legal (`add-factura-legal-dialog.component.ts:361`). Va
+- Campo de documento. Busca con `ClienteService.onGetClientePorPersonaDocumento(documento, false)`,
   **contra el filial**, que es quien después resuelve `clienteId` en `saveVenta`.
+  **Cambio respecto del plan aprobado** (prueba de runtime, 13/10): la consulta «detallada» del
+  diálogo de factura legal devuelve sin cliente a uno que existe pero no es contribuyente («El
+  cliente no es contribuyente de SET»), que es el caso común con cédula. La consulta simple lo
+  devuelve, y responde con error cuando el documento no es de un cliente ni de un contribuyente.
 - Búsqueda por nombre con `SearchListDialogComponent`, igual que `onClienteSearch` (`:808`). Devuelve
   una **persona**, no un cliente del filial: de ese resultado solo se toma el documento y se vuelve
   a buscar por documento. Nunca se usa su `id`.
@@ -153,6 +156,22 @@ que despliega solo al mergear, para ganar poco sobre la degradación de arriba.
 - Documentación: nota en `docs/manuales-implementacion/pdv/` sobre el reintento con cliente; este
   plan se borra en el PR final.
 
+### Resultado de la prueba de runtime (13/10/2026)
+
+Desktop de la rama con `ng serve -c web`, filial local en `develop` (`5e66403`, perfil `dev`, SIFEN
+habilitado, scheduler apagado), PDV 25 de SUC. KM2 con timbrado electrónico, 120 × 65.000 = 7.800.000.
+
+| Caso | Resultado |
+|---|---|
+| F8 y F11 con política «a pedido» (la que tenía la sucursal en la base local) | la venta se guarda sin factura y sin diálogo: el filial no factura, no hay rechazo |
+| F8 con política «todas», sin cliente | el filial rechaza con el texto completo; aparece el diálogo; carrito intacto |
+| Cancelar el diálogo | carrito intacto, aviso «La venta no se guardó…», ninguna venta guardada |
+| Documento de un cliente existente no contribuyente | lo encuentra (con la consulta simple) |
+| Guardar con ese cliente | una sola venta, con el cliente y factura electrónica a su nombre (con CDC) |
+
+Sin probar en runtime: F11 con política que facture, diálogo de pago, pago con tarjeta, convenio,
+timbrado no electrónico, filial apagado, escáner con el diálogo abierto y el segundo rechazo.
+
 ## Datos nuevos
 
 Ninguno. No hay campo, columna, query ni mutation nuevos: `clienteId` ya viaja en `VentaInput`.
@@ -178,10 +197,8 @@ Ninguno. No hay campo, columna, query ni mutation nuevos: `clienteId` ya viaja e
 
 ## Sin verificar
 
-- Que el rechazo llegue al desktop con el texto completo por `saveVenta`: el #172 lo probó por la
-  API REST, no por GraphQL. Es lo primero que se mira en la prueba de runtime.
-- Qué hace `onGetClientePorPersonaDocumentoDetallado` con un documento que no existe en el filial
-  ni en el central (si crea el cliente o devuelve solo datos básicos).
+- Qué responde la búsqueda con un documento que no existe en el filial ni en SET (leído en el
+  filial: error; no ejecutado para no consultar SET con un documento inventado).
 - Que el reintento inmediato pase el control de ventas duplicadas y recupere el turno de la
   política. Leído en el código (la huella no incluye al cliente y el `catch` libera la reserva),
   no ejecutado; ese `catch` no tiene test en el filial.

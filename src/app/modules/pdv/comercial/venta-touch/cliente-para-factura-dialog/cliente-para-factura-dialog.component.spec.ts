@@ -18,6 +18,7 @@ function cliente(id: number, nombre: string, documento: string): Cliente {
 describe("esClienteNominado", () => {
   it("acepta un cliente con id, nombre y documento", () => {
     expect(esClienteNominado(cliente(5, "JUAN PEREZ", "1234567"))).toBeTrue();
+    expect(esClienteNominado({ id: 5, nombre: "JUAN PEREZ", documento: "1234567" } as Cliente)).toBeTrue();
   });
 
   it("rechaza lo que el filial factura sin nombre", () => {
@@ -40,7 +41,7 @@ describe("ClienteParaFacturaDialogComponent", () => {
 
   beforeEach(async () => {
     dialogRef = jasmine.createSpyObj("MatDialogRef", ["close"]);
-    clienteService = jasmine.createSpyObj("ClienteService", ["onGetClientePorPersonaDocumentoDetallado"]);
+    clienteService = jasmine.createSpyObj("ClienteService", ["onGetClientePorPersonaDocumento"]);
     dialog = jasmine.createSpyObj("MatDialog", ["open"]);
     await TestBed.configureTestingModule({
       declarations: [ClienteParaFacturaDialogComponent],
@@ -61,28 +62,36 @@ describe("ClienteParaFacturaDialogComponent", () => {
 
   it("busca contra el filial y cierra con el cliente encontrado", () => {
     const encontrado = cliente(5, "JUAN PEREZ", "1234567");
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(
-      of({ cliente: encontrado, warnings: [], errores: [] })
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
+      of(encontrado)
     );
     component.documentoControl.setValue("1234567-8");
     component.onBuscar();
-    expect(clienteService.onGetClientePorPersonaDocumentoDetallado).toHaveBeenCalledWith("1234567", false);
+    expect(clienteService.onGetClientePorPersonaDocumento).toHaveBeenCalledWith("1234567", false);
     expect(component.cliente).toBe(encontrado);
     component.onAceptar();
     expect(dialogRef.close).toHaveBeenCalledWith(encontrado);
   });
 
   it("no acepta un cliente sin nombre ni uno que no existe", () => {
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(
-      of({ cliente: cliente(5, "SIN NOMBRE", "1234567"), warnings: [], errores: [] })
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
+      of(cliente(5, "SIN NOMBRE", "1234567"))
     );
     component.documentoControl.setValue("1234567");
     component.onBuscar();
     expect(component.cliente).toBeNull();
     expect(component.mensaje).toContain("no tiene nombre");
 
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(
-      of({ cliente: null, datosBasicos: { razonSocial: "X" }, warnings: [], errores: [] })
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
+      of(null)
+    );
+    component.onBuscar();
+    expect(component.cliente).toBeNull();
+    expect(component.mensaje).toContain("No hay un cliente");
+
+    // El filial responde con error si el documento tampoco es de un contribuyente de SET.
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
+      throwError(() => [{ message: "El cliente no es contribuyente de SET" }])
     );
     component.onBuscar();
     expect(component.cliente).toBeNull();
@@ -93,7 +102,7 @@ describe("ClienteParaFacturaDialogComponent", () => {
   });
 
   it("un error de red deja el diálogo usable", () => {
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
       throwError(() => new ApolloError({ networkError: new Error("Failed to fetch") }))
     );
     component.documentoControl.setValue("1234567");
@@ -104,7 +113,7 @@ describe("ClienteParaFacturaDialogComponent", () => {
   });
 
   it("una búsqueda que no responde se corta sola", fakeAsync(() => {
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(NEVER);
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(NEVER);
     component.documentoControl.setValue("1234567");
     component.onBuscar();
     expect(component.buscando).toBeTrue();
@@ -116,11 +125,11 @@ describe("ClienteParaFacturaDialogComponent", () => {
   it("de la búsqueda por nombre solo toma el documento y vuelve a buscar el cliente", () => {
     const encontrado = cliente(5, "JUAN PEREZ", "1234567");
     dialog.open.and.returnValue({ afterClosed: () => of({ id: 999, nombre: "JUAN PEREZ", documento: "1234567" }) } as any);
-    clienteService.onGetClientePorPersonaDocumentoDetallado.and.returnValue(
-      of({ cliente: encontrado, warnings: [], errores: [] })
+    clienteService.onGetClientePorPersonaDocumento.and.returnValue(
+      of(encontrado)
     );
     component.onBuscarPorNombre();
-    expect(clienteService.onGetClientePorPersonaDocumentoDetallado).toHaveBeenCalledWith("1234567", false);
+    expect(clienteService.onGetClientePorPersonaDocumento).toHaveBeenCalledWith("1234567", false);
     expect(component.cliente.id).toBe(5);
   });
 

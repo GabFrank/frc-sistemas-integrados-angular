@@ -26,8 +26,8 @@
   <div fxFlex style="text-align: center; min-height: 48px">
     <mat-spinner *ngIf="buscando" diameter="30" style="margin: auto"></mat-spinner>
     <div *ngIf="cliente != null">
-      <div>{{ cliente.persona?.nombre | uppercase }}</div>
-      <div>{{ cliente.persona?.documento }}</div>
+      <div>{{ clienteNombre }}</div>
+      <div>{{ clienteDocumento }}</div>
     </div>
     <div *ngIf="mensaje != null" style="color: #f44336">{{ mensaje }}</div>
   </div>
