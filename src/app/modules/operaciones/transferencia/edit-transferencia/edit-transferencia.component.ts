@@ -1306,7 +1306,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   /**
    * Igual que la PWA: antes de verificar para transporte se eligen chofer, vehiculo y acompañantes.
-   * El chofer elegido —no quien toca el boton— queda como responsable de la etapa.
+   * El chofer elegido —no quien toca el boton— queda como responsable de la etapa. Si en el dialogo
+   * se continua sin chofer, avanza por el flujo normal y el responsable es el usuario logueado.
    */
   onVerificarParaTransporte() {
     const data: VerificarTransporteDialogData = {
