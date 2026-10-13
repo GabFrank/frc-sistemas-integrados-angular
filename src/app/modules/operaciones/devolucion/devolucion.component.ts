@@ -499,6 +499,13 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         action: () => this.abrir(ColectaComponent, "Colecta interna"),
       });
     }
+    // Directo a la lista, sin pasar por el diálogo de Histórico: es lo que más se abre.
+    this.accesos.push({
+      icon: "list_alt",
+      title: "Lista de devoluciones",
+      color: "#607d8b",
+      action: () => this.abrir(ListDevolucionComponent, "Lista de devoluciones"),
+    });
     this.accesos.push({
       icon: "menu_book",
       title: "Guía del módulo",
