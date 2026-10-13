@@ -81,3 +81,15 @@ Los dos auditores coincidieron en que no hay otros llamadores y en que el filial
 
 Karma sobre los tres specs: 26 de 26. Con el genérico y el servicio sin el cambio: 6 fallan (los del servicio y
 «errores con datos» del genérico).
+
+## Prueba de runtime (2026-10-13)
+
+Desktop de la rama en `:4200` (`ng serve -c web`), central local `:8081` y filial local `:8082` en
+`origin/develop` (perfil `dev`, scheduler de SIFEN apagado). PDV 25 (Caja 1, SUC. KM2), venta de un ítem por
+2.000 Gs. cobrada en efectivo, «Finalizar con Factura».
+
+| Caso | Resultado |
+|---|---|
+| Timbrado sin teléfono en detalle ni cabecera (base local) | un solo aviso, «Ups!! Algo salio mal: Error al guardar factura legal: TIMBRADO_SIN_TELEFONO…»; sin «No se pudo confirmar…»; botón habilitado; ninguna factura nueva y `numero_actual` sin avanzar |
+| Filial apagado | «No se pudo confirmar la factura. Verifique en la lista…»; botón habilitado |
+| Teléfono restaurado y filial arriba, mismo diálogo | «Guardado con éxito!!» y «Venta guardada con éxito»; una sola factura (número 14412) ligada a la venta |
