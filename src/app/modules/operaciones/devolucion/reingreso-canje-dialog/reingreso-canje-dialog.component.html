@@ -25,13 +25,19 @@
     <mat-datepicker #picker></mat-datepicker>
   </mat-form-field>
 
+  <mat-form-field style="width: 100%" *ngIf="llevaLote">
+    <mat-label>Lote del reingreso</mat-label>
+    <input matInput [formControl]="loteReingresoControl"
+      placeholder="Número de lote de lo que entrega el proveedor" />
+  </mat-form-field>
+
   <div style="width: 100%; text-align: center">
     <button mat-raised-button color="primary" style="width: 150px" (click)="onCancelar()">
       Cancelar
     </button>
     <button mat-raised-button color="accent" style="width: 150px; margin-left: 10px"
       (click)="onGuardar()"
-      [disabled]="cantidadReingresadaControl.invalid || vencimientoControl.invalid">
+      [disabled]="cantidadReingresadaControl.invalid || vencimientoControl.invalid || loteReingresoControl.invalid">
       Aceptar
     </button>
   </div>

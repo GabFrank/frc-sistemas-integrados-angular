@@ -572,6 +572,7 @@ export class EditDevolucionComponent implements OnInit {
           presentacion: res?.presentacion,
           tipo: this.selectedDevolucion.tipo,
           motivosAveria: this.motivosAveria,
+          sucursalId: this.selectedDevolucion?.sucursalOrigen?.id,
         },
         width: "40%",
         disableClose: true,
@@ -838,6 +839,7 @@ export class EditDevolucionComponent implements OnInit {
         if (res != null) {
           item.cantidadReingresada = res.cantidadReingresada;
           item.vencimientoReingreso = res.vencimientoReingreso;
+          item.loteReingreso = res.loteReingreso;
           // Nueva referencia para refrescar la tabla.
           this.dataSource.data = [...this.dataSource.data];
         }

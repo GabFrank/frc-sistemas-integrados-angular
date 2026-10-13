@@ -13,6 +13,8 @@ import {
   TipoDevolucion,
 } from "../devolucion.model";
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LoteDeProducto } from "../../lote/lote.model";
+import { LoteService } from "../../lote/lote.service";
 
 export interface CreateDevolucionItemDialogData {
   item?: DevolucionItem;
@@ -20,6 +22,8 @@ export interface CreateDevolucionItemDialogData {
   presentacion?: Presentacion;
   tipo?: TipoDevolucion;
   motivosAveria?: MotivoAveria[];
+  /** Sucursal de origen de la devolución: el saldo de cada lote se muestra para esa sucursal. */
+  sucursalId?: number;
 }
 
 @UntilDestroy()
@@ -46,6 +50,16 @@ export class CreateItemDialogComponent implements OnInit {
   loteControl = new FormControl(null);
   motivoControl = new FormControl(null);
 
+  /** El producto lleva control de lote: el lote se busca en el maestro en vez de tipearse. */
+  llevaLote = false;
+  /**
+   * Lote elegido en el buscador. Queda en null al editar un ítem que ya tenía lote: el central no
+   * devuelve su id, así que mientras no se elija otro se reenvía el número y el central lo conserva.
+   */
+  loteElegido: LoteDeProducto = null;
+  /** Lo que muestra el campo: el número del lote, y su vencimiento y saldo si se acaba de elegir. */
+  loteTexto: string = null;
+
   formGroup = new FormGroup({
     presentacion: this.presentacionControl,
     cantidad: this.cantidadControl,
@@ -62,7 +76,8 @@ export class CreateItemDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: CreateDevolucionItemDialogData,
     private matDialogRef: MatDialogRef<CreateItemDialogComponent>,
-    private presentacionService: PresentacionService
+    private presentacionService: PresentacionService,
+    private loteService: LoteService
   ) {}
 
   ngOnInit(): void {
@@ -98,6 +113,8 @@ export class CreateItemDialogComponent implements OnInit {
       this.matDialogRef.close();
     }
 
+    this.prepararLotes();
+
     setTimeout(() => {
       if (this.cantidadInput != null) {
         this.cantidadInput.nativeElement.select();
@@ -122,6 +139,49 @@ export class CreateItemDialogComponent implements OnInit {
           this.presentacionControl.setValue(target);
         }
       });
+  }
+
+  /**
+   * Con un producto con control de lote, el lote se elige con el buscador genérico. Al separar,
+   * la baja se descuenta del lote elegido; sin elegir, el central reparte por vencimiento más próximo.
+   */
+  private prepararLotes() {
+    this.llevaLote = this.selectedProducto?.lote === true;
+    if (this.llevaLote) this.loteTexto = this.selectedItem?.lote ?? null;
+  }
+
+  /** Abre el buscador genérico de lotes del producto, con el saldo en la sucursal de origen. */
+  onBuscarLote() {
+    if (this.selectedProducto?.id == null) return;
+    this.loteService
+      .onBuscarLoteDeProducto(this.selectedProducto.id, this.data?.sucursalId)
+      .pipe(untilDestroyed(this))
+      .subscribe((lote) => {
+        if (lote == null) return;
+        this.loteElegido = lote;
+        this.loteControl.setValue(lote.numeroLote);
+        this.loteTexto = this.textoDeLote(lote);
+        // El vencimiento es el del lote: al cambiar de lote no puede quedar el del anterior.
+        if (lote.fechaVencimiento != null) {
+          this.vencimientoControl.setValue(new Date(lote.fechaVencimiento));
+        }
+      });
+  }
+
+  /** Deja el ítem sin lote: al separar, el central reparte por vencimiento más próximo. */
+  onQuitarLote() {
+    this.loteElegido = null;
+    this.loteControl.setValue(null);
+    this.loteTexto = null;
+  }
+
+  private textoDeLote(lote: LoteDeProducto): string {
+    const partes = [lote.numeroLote];
+    if (lote.fechaVencimiento != null) {
+      partes.push("vence " + new Date(lote.fechaVencimiento).toLocaleDateString("es-PY"));
+    }
+    partes.push("saldo " + (lote.saldo ?? 0));
+    return partes.join(" · ");
   }
 
   cargarItem(item: DevolucionItem) {
@@ -160,10 +220,16 @@ export class CreateItemDialogComponent implements OnInit {
     item.motivoAveria = this.motivoAveriaControl.value;
     item.costoUnitario = this.costoUnitarioControl.value;
     item.vencimiento = this.vencimientoControl.value;
-    item.lote =
-      this.loteControl.value != null
-        ? ("" + this.loteControl.value).toUpperCase()
-        : null;
+    if (this.llevaLote) {
+      // Sin elegir uno nuevo viaja solo el número que ya tenía (o nada, si se quitó).
+      item.loteId = this.loteElegido?.loteId ?? null;
+      item.lote = this.loteControl.value ?? null;
+    } else {
+      item.lote =
+        this.loteControl.value != null
+          ? ("" + this.loteControl.value).toUpperCase()
+          : null;
+    }
     item.motivo =
       this.motivoControl.value != null
         ? ("" + this.motivoControl.value).toUpperCase()

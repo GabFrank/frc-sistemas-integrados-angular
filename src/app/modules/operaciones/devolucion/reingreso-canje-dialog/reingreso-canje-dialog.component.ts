@@ -12,6 +12,8 @@ export interface ReingresoCanjeDialogData {
 export interface ReingresoCanjeDialogResult {
   cantidadReingresada: number;
   vencimientoReingreso: Date;
+  /** Número del lote que entrega el proveedor. Solo para productos con control de lote. */
+  loteReingreso?: string;
 }
 
 @Component({
@@ -26,6 +28,10 @@ export class ReingresoCanjeDialogComponent implements OnInit {
     Validators.min(0),
   ]);
   vencimientoControl = new FormControl(null, Validators.required);
+  loteReingresoControl = new FormControl<string>(null);
+
+  /** El producto lleva control de lote: lo repuesto entra al lote que entrega el proveedor. */
+  llevaLote = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ReingresoCanjeDialogData,
@@ -34,6 +40,12 @@ export class ReingresoCanjeDialogComponent implements OnInit {
 
   ngOnInit(): void {
     const item = this.data?.item;
+    this.llevaLote = item?.producto?.lote === true;
+    if (this.llevaLote) {
+      // El central rechaza el canje de un producto con lote sin este número.
+      this.loteReingresoControl.addValidators(Validators.required);
+      this.loteReingresoControl.setValue(item?.loteReingreso ?? null);
+    }
     // No se reingresa más de lo devuelto (el central lo vuelve a validar).
     if (item?.cantidad != null) {
       this.cantidadReingresadaControl.addValidators(Validators.max(item.cantidad));
@@ -54,12 +66,19 @@ export class ReingresoCanjeDialogComponent implements OnInit {
   }
 
   onGuardar() {
-    if (this.cantidadReingresadaControl.invalid || this.vencimientoControl.invalid) {
+    if (
+      this.cantidadReingresadaControl.invalid ||
+      this.vencimientoControl.invalid ||
+      this.loteReingresoControl.invalid
+    ) {
       return;
     }
     const result: ReingresoCanjeDialogResult = {
       cantidadReingresada: this.cantidadReingresadaControl.value,
       vencimientoReingreso: this.vencimientoControl.value,
+      loteReingreso: this.llevaLote
+        ? ("" + this.loteReingresoControl.value).trim().toUpperCase()
+        : undefined,
     };
     this.dialogRef.close(result);
   }

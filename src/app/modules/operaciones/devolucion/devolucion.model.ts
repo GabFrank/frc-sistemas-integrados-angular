@@ -97,6 +97,13 @@ export class DevolucionItem {
   costoUnitario: number;
   cantidadReingresada: number;
   vencimientoReingreso: Date;
+  /**
+   * Lote del maestro elegido (productos con control de lote). No se lee del central: lo que
+   * vuelve es `lote`, con su número. Solo viaja en el input cuando hay uno elegido.
+   */
+  loteId?: number;
+  /** Número del lote que entrega el proveedor en un canje. Solo viaja cuando se carga. */
+  loteReingreso?: string;
 
   toInput(): DevolucionItemInput {
     let input = new DevolucionItemInput();
@@ -116,6 +123,10 @@ export class DevolucionItem {
     input.costoUnitario = this.costoUnitario;
     input.cantidadReingresada = this.cantidadReingresada;
     input.vencimientoReingreso = dateToString(this.vencimientoReingreso);
+    // Los dos campos de lote se mandan solo con valor: un central que todavía no los conoce
+    // rechazaría el input entero, y así sigue aceptando todo lo que no lleva lote.
+    if (this.loteId != null) input.loteId = this.loteId;
+    if (this.loteReingreso) input.loteReingreso = this.loteReingreso;
     return input;
   }
 }
@@ -134,4 +145,6 @@ export class DevolucionItemInput {
   costoUnitario: number;
   cantidadReingresada: number;
   vencimientoReingreso: string;
+  loteId?: number;
+  loteReingreso?: string;
 }
