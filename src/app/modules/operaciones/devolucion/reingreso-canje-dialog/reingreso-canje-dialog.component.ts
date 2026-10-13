@@ -42,6 +42,8 @@ export class ReingresoCanjeDialogComponent implements OnInit {
     this.cantidadReingresadaControl.setValue(
       item?.cantidadReingresada != null ? item.cantidadReingresada : item?.cantidad
     );
+    // Un valor precargado fuera de tope tiene que mostrar su error sin esperar a que se toque el campo.
+    this.cantidadReingresadaControl.markAsTouched();
     if (item?.vencimientoReingreso != null) {
       this.vencimientoControl.setValue(new Date(item.vencimientoReingreso));
     }
