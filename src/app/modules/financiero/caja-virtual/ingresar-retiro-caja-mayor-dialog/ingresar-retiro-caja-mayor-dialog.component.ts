@@ -131,9 +131,21 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
    */
   private cargaId = 0;
 
+  /** N° de caja con el que se hizo la última carga: salir del campo sin cambiarlo no recarga. */
+  private cajaCargada: any = null;
+
+  /**
+   * Al salir del filtro de caja se recarga solo si cambió. Recargar siempre redibuja la tabla justo cuando
+   * el usuario hace clic en «Procesar» (el clic es lo que saca el foco del campo) y ese clic se pierde.
+   */
+  onCajaBlur() {
+    if ((this.cajaControl.value ?? null) !== (this.cajaCargada ?? null)) this.onFiltroChange();
+  }
+
   cargar() {
     this.isLoading = true;
     const id = ++this.cargaId;
+    this.cajaCargada = this.cajaControl.value;
     const sucId = this.sucursalControl.value?.id ?? null;
     const cajaId = this.cajaControl.value ? Number(this.cajaControl.value) : null;
     const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
