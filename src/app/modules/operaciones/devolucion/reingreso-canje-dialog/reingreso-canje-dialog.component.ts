@@ -1,6 +1,8 @@
 import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
+import { DateAdapter } from "@angular/material/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { FechaPyDateAdapter } from "../../../../shared/utils/fecha-py-date-adapter";
 import { DevolucionItem } from "../devolucion.model";
 
 export interface ReingresoCanjeDialogData {
@@ -16,6 +18,7 @@ export interface ReingresoCanjeDialogResult {
   selector: "app-reingreso-canje-dialog",
   templateUrl: "./reingreso-canje-dialog.component.html",
   styleUrls: ["./reingreso-canje-dialog.component.scss"],
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class ReingresoCanjeDialogComponent implements OnInit {
   cantidadReingresadaControl = new FormControl(null, [
@@ -31,10 +34,16 @@ export class ReingresoCanjeDialogComponent implements OnInit {
 
   ngOnInit(): void {
     const item = this.data?.item;
+    // No se reingresa más de lo devuelto (el central lo vuelve a validar).
+    if (item?.cantidad != null) {
+      this.cantidadReingresadaControl.addValidators(Validators.max(item.cantidad));
+    }
     // Pre-carga: cant. reingresada = cantidad devuelta (caso mas comun: canje total).
     this.cantidadReingresadaControl.setValue(
       item?.cantidadReingresada != null ? item.cantidadReingresada : item?.cantidad
     );
+    // Un valor precargado fuera de tope tiene que mostrar su error sin esperar a que se toque el campo.
+    this.cantidadReingresadaControl.markAsTouched();
     if (item?.vencimientoReingreso != null) {
       this.vencimientoControl.setValue(new Date(item.vencimientoReingreso));
     }

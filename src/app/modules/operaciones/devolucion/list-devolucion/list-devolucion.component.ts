@@ -82,6 +82,16 @@ export class ListDevolucionComponent implements OnInit {
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
 
+    // Abierta desde el aviso de compras: las devoluciones en espera de ese proveedor,
+    // sin rango de fechas (una pendiente puede tener más de una semana).
+    const proveedorInicial: Proveedor = this.data?.tabData?.data?.proveedor;
+    if (proveedorInicial != null) {
+      this.selectedProveedor = proveedorInicial;
+      this.proveedorTexto = proveedorInicial.persona?.nombre ?? "";
+      this.fechaInicioControl.setValue(null);
+      this.fechaFinControl.setValue(null);
+    }
+
     this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).subscribe({
       // Con null (error del servidor) res.filter lanzaba TypeError (#390).
       next: (res) => { this.sucursalList = (res ?? []).filter((s) => s.id != 0); },

@@ -12,9 +12,9 @@ import { MainService } from "../../../main.service";
 import { ROLES } from "../../personas/roles/roles.enum";
 import {
   formatoEjeCompacto,
-  formatoMonedaPy,
   GRAFICO_COLORES,
 } from "../../../shared/utils/grafico-echarts.theme";
+import { formatoMontoMoneda } from "../../../shared/utils/moneda-format.util";
 import { EditDevolucionComponent } from "./edit-devolucion/edit-devolucion.component";
 import { GuiaDevolucionComponent } from "./guia-devolucion/guia-devolucion.component";
 import { ListDevolucionComponent } from "./list-devolucion/list-devolucion.component";
@@ -344,13 +344,13 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         icon: "payments",
         color: "primary",
         label: "Valor devuelto",
-        value: formatoMonedaPy(r.valorTotal || 0),
+        value: formatoMontoMoneda(r.valorTotal || 0),
       },
       {
         icon: "delete_sweep",
         color: "error",
         label: "Merma valorizada",
-        value: formatoMonedaPy(r.valorMerma || 0),
+        value: formatoMontoMoneda(r.valorMerma || 0),
       },
     ];
   }
@@ -371,7 +371,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       valorSecundario:
         r.secundarioSufijo != null
           ? `${r.secundario || 0}${r.secundarioSufijo}`
-          : formatoMonedaPy(r.secundario || 0),
+          : formatoMontoMoneda(r.secundario || 0),
       porcentaje: ((r.principal || 0) / max) * 100,
     }));
   }
