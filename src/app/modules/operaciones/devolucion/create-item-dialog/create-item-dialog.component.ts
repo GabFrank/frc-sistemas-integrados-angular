@@ -13,6 +13,14 @@ import {
   TipoDevolucion,
 } from "../devolucion.model";
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { EstadoLote, LoteDeProducto } from "../../lote/lote.model";
+import { LoteService } from "../../lote/lote.service";
+
+/** Un lote del producto, con el texto que muestra el selector ya armado. */
+interface OpcionLote {
+  lote: LoteDeProducto;
+  texto: string;
+}
 
 export interface CreateDevolucionItemDialogData {
   item?: DevolucionItem;
@@ -20,6 +28,8 @@ export interface CreateDevolucionItemDialogData {
   presentacion?: Presentacion;
   tipo?: TipoDevolucion;
   motivosAveria?: MotivoAveria[];
+  /** Sucursal de origen de la devolución: el saldo de cada lote se muestra para esa sucursal. */
+  sucursalId?: number;
 }
 
 @UntilDestroy()
@@ -44,7 +54,14 @@ export class CreateItemDialogComponent implements OnInit {
   costoUnitarioControl = new FormControl(null);
   vencimientoControl = new FormControl(null);
   loteControl = new FormControl(null);
+  /** Lote del maestro elegido, para productos con control de lote. null = sin elegir. */
+  loteElegidoControl = new FormControl<OpcionLote>(null);
   motivoControl = new FormControl(null);
+
+  /** El producto lleva control de lote: el lote se elige del maestro en vez de tipearse. */
+  llevaLote = false;
+  opcionesLote: OpcionLote[] = [];
+  cargandoLotes = false;
 
   formGroup = new FormGroup({
     presentacion: this.presentacionControl,
@@ -62,7 +79,8 @@ export class CreateItemDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: CreateDevolucionItemDialogData,
     private matDialogRef: MatDialogRef<CreateItemDialogComponent>,
-    private presentacionService: PresentacionService
+    private presentacionService: PresentacionService,
+    private loteService: LoteService
   ) {}
 
   ngOnInit(): void {
@@ -98,6 +116,8 @@ export class CreateItemDialogComponent implements OnInit {
       this.matDialogRef.close();
     }
 
+    this.prepararLotes();
+
     setTimeout(() => {
       if (this.cantidadInput != null) {
         this.cantidadInput.nativeElement.select();
@@ -122,6 +142,53 @@ export class CreateItemDialogComponent implements OnInit {
           this.presentacionControl.setValue(target);
         }
       });
+  }
+
+  /**
+   * Con un producto con control de lote, trae sus lotes con el saldo en la sucursal de origen.
+   * Al separar, la baja se descuenta del lote elegido; sin elegir, el central reparte por
+   * vencimiento más próximo.
+   */
+  private prepararLotes() {
+    this.llevaLote = this.selectedProducto?.lote === true;
+    if (!this.llevaLote || this.selectedProducto?.id == null) return;
+
+    // Elegir un lote trae su vencimiento, si el campo está vacío.
+    this.loteElegidoControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((opcion) => {
+        if (opcion?.lote?.fechaVencimiento != null && this.vencimientoControl.value == null) {
+          this.vencimientoControl.setValue(new Date(opcion.lote.fechaVencimiento));
+        }
+      });
+
+    this.cargandoLotes = true;
+    this.loteService
+      .onBuscarLotesDeProducto(this.selectedProducto.id, this.data?.sucursalId, null, 0, 100)
+      .pipe(terminarSiFalla(() => (this.cargandoLotes = false)), untilDestroyed(this))
+      .subscribe((res) => {
+        this.cargandoLotes = false;
+        this.opcionesLote = (res?.getContent ?? []).map((lote) => ({
+          lote,
+          texto: this.textoDeLote(lote),
+        }));
+        // Al editar, el lote se vuelve a marcar por su número: el central no devuelve el id.
+        const numero = this.selectedItem?.lote;
+        if (numero != null) {
+          const actual = this.opcionesLote.find((o) => o.lote.numeroLote === numero);
+          if (actual != null) this.loteElegidoControl.setValue(actual, { emitEvent: false });
+        }
+      });
+  }
+
+  private textoDeLote(lote: LoteDeProducto): string {
+    const partes = [lote.numeroLote];
+    if (lote.fechaVencimiento != null) {
+      partes.push("vence " + new Date(lote.fechaVencimiento).toLocaleDateString("es-PY"));
+    }
+    partes.push("saldo " + (lote.saldo ?? 0));
+    if (lote.estado != null && lote.estado !== EstadoLote.LIBERADO) partes.push("" + lote.estado);
+    return partes.join(" · ");
   }
 
   cargarItem(item: DevolucionItem) {
@@ -151,7 +218,8 @@ export class CreateItemDialogComponent implements OnInit {
   }
 
   onGuardar() {
-    if (this.formGroup.invalid) return;
+    // Con los lotes a medio cargar todavía no se sabe cuál estaba elegido: guardar lo borraría.
+    if (this.formGroup.invalid || this.cargandoLotes) return;
     let item = new DevolucionItem();
     Object.assign(item, this.selectedItem);
     item.producto = this.selectedProducto;
@@ -160,10 +228,16 @@ export class CreateItemDialogComponent implements OnInit {
     item.motivoAveria = this.motivoAveriaControl.value;
     item.costoUnitario = this.costoUnitarioControl.value;
     item.vencimiento = this.vencimientoControl.value;
-    item.lote =
-      this.loteControl.value != null
-        ? ("" + this.loteControl.value).toUpperCase()
-        : null;
+    if (this.llevaLote) {
+      const elegido = this.loteElegidoControl.value?.lote;
+      item.loteId = elegido?.loteId ?? null;
+      item.lote = elegido?.numeroLote ?? null;
+    } else {
+      item.lote =
+        this.loteControl.value != null
+          ? ("" + this.loteControl.value).toUpperCase()
+          : null;
+    }
     item.motivo =
       this.motivoControl.value != null
         ? ("" + this.motivoControl.value).toUpperCase()
