@@ -2,8 +2,9 @@
   [data]="dataSource.data"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
-  [isAdicionar]="puedeCrearUsuario"
+  [isAdicionar]="puedeEditarUsuarios"
   (adicionar)="onNuevoUsuario()"
+  titulo="Lista de usuarios"
 >
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%;">

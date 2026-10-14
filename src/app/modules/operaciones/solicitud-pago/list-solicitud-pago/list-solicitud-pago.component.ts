@@ -29,6 +29,10 @@ import {
   AddEditNotaRecepcionDialogData
 } from '../../compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
 import { GestionPagoDialogComponent } from '../gestion-pago-dialog/gestion-pago-dialog.component';
+import {
+  AsignarCajaSolicitudDialogComponent, AsignarCajaSolicitudDialogData
+} from '../asignar-caja-solicitud-dialog/asignar-caja-solicitud-dialog.component';
+import { ROLES } from '../../../personas/roles/roles.enum';
 
 @UntilDestroy()
 @Component({
@@ -93,6 +97,9 @@ export class ListSolicitudPagoComponent implements OnInit {
   pageSize = 25;
   pageIndex = 0;
 
+  /** Asignar una solicitud a una caja es decidir quién la paga: lo hace tesorería. */
+  puedeAsignarCaja = false;
+
   constructor(
     private solicitudPagoService: SolicitudPagoService,
     private tabService: TabService,
@@ -105,6 +112,7 @@ export class ListSolicitudPagoComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.puedeAsignarCaja = this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR, ROLES.TESORERIA_GESTIONAR]);
     const hoy = new Date();
     const hace7Dias = new Date(hoy);
     hace7Dias.setDate(hace7Dias.getDate() - 7);
@@ -234,6 +242,12 @@ export class ListSolicitudPagoComponent implements OnInit {
         this.loadPage();
       }
     });
+  }
+
+  /** Abre la asignación a caja. No recarga la lista: la asignación no es un dato del listado. */
+  onAsignarCaja(solicitud: SolicitudPago): void {
+    const data: AsignarCajaSolicitudDialogData = { solicitudPago: solicitud };
+    this.dialog.open(AsignarCajaSolicitudDialogComponent, { width: '480px', maxWidth: '95vw', data });
   }
 
   onGestionarPago(row: SolicitudPago): void {

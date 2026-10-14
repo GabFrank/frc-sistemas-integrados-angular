@@ -16,6 +16,8 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { MainService } from '../../../../main.service';
+import { operaAcotadoCaja } from '../../caja-virtual/rol-tesoreria-caja';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -67,6 +69,22 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   cajaVirtualList: CajaVirtual[] = [];
   cuentaBancariaList: CuentaBancaria[] = [];
   monedaList: Moneda[] = [];
+
+  /**
+   * Rol acotado (TESORERIA CAJA): solo deposita desde una de sus cajas a una cuenta habilitada para esa
+   * caja, o transfiere entre sus cajas. Las cuentas se piden por caja, no el listado general.
+   */
+  soloCaja = false;
+  /**
+   * Destinos de una transferencia entre cajas: las cajas del usuario más las que reciben envíos (la caja
+   * mayor principal). De las segundas solo se conoce el nombre: no se ven ni se pueden usar como origen.
+   */
+  cajaDestinoTransferenciaList: CajaVirtual[] = [];
+  esTransferenciaEntreCajas = false;
+  private cajasReceptoras: CajaVirtual[] = [];
+  /** La caja elegida no tiene ninguna cuenta habilitada para depósito (o no se pudieron cargar). */
+  sinCuentasParaDeposito = false;
+  private cuentasCargaId = 0;
 
   // Flags de visibilidad — calculados en TS, nunca en el HTML.
   mostrarCajaOrigen = false;
@@ -128,9 +146,15 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private cambioService: CambioService,
     private notificacion: NotificacionSnackbarService,
+    private mainService: MainService,
   ) { }
 
   ngOnInit(): void {
+    this.soloCaja = operaAcotadoCaja(this.mainService);
+    if (this.soloCaja) {
+      const permitidos = [TipoOperacionFinanciera.DEPOSITO_BANCARIO, TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS];
+      this.tipoOperacionList = this.tipoOperacionList.filter(t => permitidos.includes(t.value));
+    }
     this.formGroup = new FormGroup({
       tipoOperacionControl: this.tipoOperacionControl,
       categoriaControl: this.categoriaControl,
@@ -160,15 +184,27 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     });
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cajaVirtualList = res; } else { noCargo('las cajas'); } },
+      next: res => { if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); } else { noCargo('las cajas'); } },
       error: () => noCargo('las cajas')
     });
-    // Solo cuentas propias operables (no de terceros).
-    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
-      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
-      error: () => noCargo('las cuentas bancarias')
+    // Cajas que reciben envíos. Si no cargan (o el central todavía no las conoce), quedan solo las propias.
+    this.cajaVirtualService.onGetReceptoras().pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.cajasReceptoras = (res || []).map(r => Object.assign(new CajaVirtual(), {
+          id: r.id, nombre: r.nombre + ' (recibe envíos)',
+        }));
+        this.armarDestinosDeTransferencia();
+      },
+      error: () => {}
     });
+    // Solo cuentas propias operables (no de terceros). El rol acotado las pide por caja, al elegirla.
+    if (!this.soloCaja) {
+      this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+        next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
+        error: () => noCargo('las cuentas bancarias')
+      });
+    }
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
@@ -195,7 +231,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.recalcular();
     });
 
-    this.seleccionarTipo(TipoOperacionFinanciera.CAMBIO_DIVISA);
+    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.CAMBIO_DIVISA);
   }
 
   private ajustandoMontos = false;
@@ -310,6 +346,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.tituloActual = (this.tipoOperacionList.find(t => t.value === tipo)?.label) || 'Operación Financiera';
 
     const esCambio = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+    this.esTransferenciaEntreCajas = tipo === TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS;
     // Solo el cambio de divisa deja elegir la fuente de cada lado; el resto de los tipos la
     // tienen implícita en su definición (un depósito siempre sale de una caja, etc.).
     this.mostrarSelectorFuente = esCambio;
@@ -346,8 +383,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       || tipo === TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA;
     this.labelMontoOrigen = this.mostrarMontoDestino ? 'Monto Origen' : 'Monto';
 
-    // Depósito bancario: primero se elige el banco (destino), luego la caja (origen).
-    const destinoPrimero = tipo === TipoOperacionFinanciera.DEPOSITO_BANCARIO;
+    // Depósito bancario: primero se elige el banco (destino), luego la caja (origen). En el rol acotado
+    // es al revés: las cuentas habilitadas dependen de la caja.
+    const destinoPrimero = tipo === TipoOperacionFinanciera.DEPOSITO_BANCARIO && !this.soloCaja;
     this.ordenOrigen = destinoPrimero ? 2 : 1;
     this.ordenDestino = destinoPrimero ? 1 : 2;
 
@@ -382,6 +420,40 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.cotizacionOrigenLabel = '';
     this.campoActual = 'cotizacion';
     this.campoAnterior = 'destino';
+    if (this.soloCaja) {
+      this.cuentasCargaId++;
+      this.cuentaBancariaList = [];
+      this.sinCuentasParaDeposito = false;
+    }
+  }
+
+  /** Las cajas propias primero; después las receptoras que no sean ya una caja propia. */
+  private armarDestinosDeTransferencia() {
+    const propias = this.cajaVirtualList || [];
+    const ids = new Set(propias.map(c => String(c.id)));
+    this.cajaDestinoTransferenciaList = [...propias, ...this.cajasReceptoras.filter(c => !ids.has(String(c.id)))];
+  }
+
+  /** Rol acotado: trae las cuentas habilitadas para depositar desde la caja de origen elegida. */
+  private cargarCuentasParaDeposito() {
+    const caja: CajaVirtual = this.cajaMayorOrigenControl.value;
+    const carga = ++this.cuentasCargaId;
+    this.cuentaBancariaList = [];
+    this.sinCuentasParaDeposito = false;
+    this.cuentaBancariaDestinoControl.setValue(null);
+    if (!caja?.id) return;
+    this.cajaVirtualService.onGetCuentasParaDeposito(caja.id).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (carga !== this.cuentasCargaId) return;
+        this.cuentaBancariaList = res || [];
+        this.sinCuentasParaDeposito = this.cuentaBancariaList.length === 0;
+      },
+      error: () => {
+        if (carga !== this.cuentasCargaId) return;
+        this.sinCuentasParaDeposito = true;
+        this.notificacion.openWarn('No se pudieron cargar las cuentas habilitadas para esta caja.', 5);
+      }
+    });
   }
 
   /** Cambia la fuente de un lado del cambio de divisa entre caja mayor y cuenta bancaria. */
@@ -531,6 +603,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   /** Elegir la caja no cambia montos, pero sí habilita el cálculo cuando ya hay monedas. */
   onCajaChange() {
+    if (this.soloCaja && this.tipoOperacionControl.value === TipoOperacionFinanciera.DEPOSITO_BANCARIO) {
+      this.cargarCuentasParaDeposito();
+    }
     this.recalcular();
   }
 

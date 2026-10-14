@@ -20,6 +20,8 @@ import { ProveedorService } from '../../proveedor/proveedor.service';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../roles/roles.enum';
 
 
 
@@ -65,6 +67,8 @@ export class ListPersonaComponent implements OnInit {
   timer: ReturnType<typeof setTimeout>;
 
   buscarControl = new FormControl(null)
+  puedeVerUsuarios = false;
+  puedeEditarUsuarios = false;
 
   constructor(
     public service: PersonaService,
@@ -74,10 +78,13 @@ export class ListPersonaComponent implements OnInit {
     private clienteService: ClienteService,
     private funcionarioService: FuncionarioService,
     private proveedorService: ProveedorService,
-    private tabService: TabService
+    private tabService: TabService,
+    private mainService: MainService
   ) { }
 
   ngOnInit(): void {
+    this.puedeEditarUsuarios = this.mainService.tieneAlgunRol([ROLES.EDITAR_USUARIOS]);
+    this.puedeVerUsuarios = this.puedeEditarUsuarios || this.mainService.tieneAlgunRol([ROLES.VER_USUARIOS]);
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -175,8 +182,9 @@ export class ListPersonaComponent implements OnInit {
   private abrirDialogoUsuario(data: AdicionarUsuarioDialogData) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data,
-      width: '60%',
-      height: '80%'
+      width: '560px'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) this.onFiltrar();
     })
   }
 

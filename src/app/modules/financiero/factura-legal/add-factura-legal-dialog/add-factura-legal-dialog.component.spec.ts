@@ -70,3 +70,84 @@ describe('AddFacturaLegalDialogComponent: respuesta de la emisión', () => {
     expect(avisos.length).toBe(1);
   });
 });
+
+describe('AddFacturaLegalDialogComponent: envío de la factura a un filial (#471)', () => {
+  // Textos reales del central (FacturaLegalFilialService + FacturaLegalGraphQL), ya sin el prefijo de graphql-java.
+  const PREFIJO = 'Error al crear factura en servidor filial: ';
+  let component: AddFacturaLegalDialogComponent;
+  let avisos: string[];
+  let guardados: number;
+  let cierres: any[];
+
+  beforeEach(() => {
+    avisos = [];
+    guardados = 0;
+    cierres = [];
+    const args: any[] = new Array(16).fill(null);
+    args[0] = {};
+    args[1] = { close: (r: any) => cierres.push(r) };
+    args[2] = {};
+    args[4] = {
+      openAlgoSalioMal: (texto: string) => avisos.push(texto),
+      openGuardadoConExito: () => guardados++,
+    };
+    component = new (AddFacturaLegalDialogComponent as any)(...args);
+    component.guardando = true;
+  });
+
+  it('rechazo del filial: libera el botón sin sumar aviso (el motivo lo mostró el genérico)', () => {
+    component.alFallarElEnvioAFilial([
+      { message: PREFIJO + 'Error al crear factura legal: El timbrado detalle no está disponible: sin teléfono' },
+    ]);
+    expect(component.guardando).toBeFalse();
+    expect(avisos).toEqual([]);
+    expect(cierres).toEqual([]);
+  });
+
+  it('corte con el filial (timeout del central): avisa que no se pudo confirmar', () => {
+    component.alFallarElEnvioAFilial([
+      { message: PREFIJO + 'Error al conectar con el servidor filial: I/O error on POST request: Read timed out' },
+    ]);
+    expect(component.guardando).toBeFalse();
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+  });
+
+  it('500 del filial: avisa que no se pudo confirmar', () => {
+    component.alFallarElEnvioAFilial([{ message: PREFIJO + 'Error del servidor filial: could not execute statement' }]);
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+  });
+
+  it('error de red con el central: avisa que no se pudo confirmar', () => {
+    component.alFallarElEnvioAFilial(
+      Object.assign(new Error('Failed to fetch'), { networkError: new TypeError('Failed to fetch') })
+    );
+    expect(component.guardando).toBeFalse();
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+  });
+
+  it('respuesta vacía: avisa que no se pudo confirmar', () => {
+    component.alFallarElEnvioAFilial([{ message: 'Respuesta vacía del servidor' }]);
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+  });
+
+  it('respuesta sin id de factura: avisa que no se pudo confirmar y no cierra', () => {
+    component.alResponderElEnvioAFilial({ facturaId: null } as any, false);
+    expect(component.guardando).toBeFalse();
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+    expect(cierres).toEqual([]);
+    expect(guardados).toBe(0);
+  });
+
+  it('guardada sin imprimir: avisa y cierra el diálogo como facturado', () => {
+    component.alResponderElEnvioAFilial({ facturaId: 12 } as any, false);
+    expect(guardados).toBe(1);
+    expect(cierres.length).toBe(1);
+    expect(cierres[0].facturado).toBeTrue();
+    expect(avisos).toEqual([]);
+  });
+});

@@ -1,3 +1,51 @@
 input {
     text-transform: uppercase;
 }
+
+.usuario-dialog {
+    padding: 16px 20px 12px;
+}
+
+.titulo {
+    margin: 0 0 12px;
+}
+
+.secundario {
+    opacity: 0.7;
+}
+
+.roles-cabecera {
+    // Mismo alto con o sin el «+» (solo en edición): el diálogo no salta al presionar Editar.
+    min-height: 48px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    font-weight: 500;
+}
+
+.roles-lista {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.rol {
+    min-height: 48px;
+    padding-left: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.quitar mat-icon {
+    color: #ef5350;
+}
+
+.vacio {
+    padding: 8px 4px;
+}
+
+.aviso {
+    color: #ffb74d;
+    padding: 8px 4px;
+}
+
+.acciones {
+    margin-top: 16px;
+}

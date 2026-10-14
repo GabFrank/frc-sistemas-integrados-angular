@@ -19,7 +19,7 @@
   <div class="alcance">
     <label class="alcance-label">Alcance</label>
     <mat-radio-group [formControl]="alcanceControl" fxLayout="column" fxLayoutGap="4px">
-      <mat-radio-button value="TODOS">Todos los funcionarios activos</mat-radio-button>
+      <mat-radio-button value="TODOS">{{ acotado ? 'Todos los funcionarios activos de mis sucursales' : 'Todos los funcionarios activos' }}</mat-radio-button>
       <mat-radio-button value="ALGUNOS">Funcionarios seleccionados</mat-radio-button>
     </mat-radio-group>
   </div>
@@ -27,6 +27,8 @@
   <div *ngIf="alcanceControl.value === 'ALGUNOS'" class="seleccion" fxLayout="column" fxLayoutGap="8px">
     <app-select-funcionario
       titulo="Agregar funcionario"
+      [soloACargo]="acotado"
+      [soloActivos]="acotado"
       [funcionarioId]="funcionarioSeleccionadoId"
       (funcionarioSelected)="onAgregarFuncionario($event)">
     </app-select-funcionario>

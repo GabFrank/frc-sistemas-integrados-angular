@@ -112,6 +112,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
 
   // Gating por rol (UX; el backend valida de todas formas). ADMIN por rol o nickname.
   puedeLiquidar = false;
+  puedeProgramar = false;
   puedeAprobar = false;
   puedePagar = false;
 
@@ -161,7 +162,10 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         },
         error: () => this.avisarConceptosNoCargados()
       });
-    this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
+    // El rol acotado (RRHH SUCURSAL) genera y edita; programar para otro período, anular un programado y
+    // volver a borrador siguen siendo de RRHH LIQUIDAR.
+    this.puedeProgramar = esAdmin || roles.includes('RRHH LIQUIDAR');
+    this.puedeLiquidar = this.puedeProgramar || roles.includes('RRHH SUCURSAL');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
     this.operacionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.filtrarOperaciones(v));

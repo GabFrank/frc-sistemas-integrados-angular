@@ -33,7 +33,8 @@
 
   <mat-form-field style="width: 100%">
     <mat-label>Costo unitario</mat-label>
-    <input matInput type="number" [formControl]="costoUnitarioControl" />
+    <input matInput type="text" currencyMask [options]="costoUnitarioOptions"
+      [formControl]="costoUnitarioControl" />
   </mat-form-field>
 
   <mat-form-field style="width: 100%" *ngIf="!llevaLote">

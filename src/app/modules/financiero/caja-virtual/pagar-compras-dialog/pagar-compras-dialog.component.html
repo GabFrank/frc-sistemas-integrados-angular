@@ -379,7 +379,7 @@
             <mat-label>Fuente</mat-label>
             <mat-select [(ngModel)]="draft.fuente" (selectionChange)="onFuenteChange(draft)">
               <mat-option value="CAJA_MAYOR">Efectivo (caja mayor)</mat-option>
-              <mat-option value="CUENTA_BANCARIA">Cuenta bancaria</mat-option>
+              <mat-option value="CUENTA_BANCARIA" *ngIf="!soloCaja">Cuenta bancaria</mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -395,7 +395,8 @@
             Pagar con cheque
           </mat-slide-toggle>
 
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-moneda" *ngIf="draft.fuente === 'CAJA_MAYOR'">
+          <!-- El rol acotado paga en la moneda de la deuda: sin selector, no hay cotización que cargar. -->
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-moneda" *ngIf="draft.fuente === 'CAJA_MAYOR' && !soloCaja">
             <mat-label>Moneda</mat-label>
             <mat-select [(ngModel)]="draft.moneda" (selectionChange)="onMonedaLineaChange(draft)">
               <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
