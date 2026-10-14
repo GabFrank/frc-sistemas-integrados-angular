@@ -189,7 +189,9 @@ export class CreateItemDialogComponent implements OnInit {
     this.selectedProducto = item.producto;
     this.cantidadControl.setValue(item.cantidad);
     this.motivoAveriaControl.setValue(item.motivoAveria);
-    this.costoUnitarioControl.setValue(item.costoUnitario);
+    this.costoUnitarioControl.setValue(
+      item.costoUnitario != null ? Math.round(item.costoUnitario) : null
+    );
     this.loteControl.setValue(item.lote);
     this.motivoControl.setValue(item.motivo);
     this.vencimientoControl.setValue(
@@ -203,7 +205,8 @@ export class CreateItemDialogComponent implements OnInit {
     const costoMedio = presentacion?.producto?.costo?.costoMedio;
     if (costoMedio == null) return null;
     const factor = presentacion?.cantidad ?? 1;
-    return costoMedio * factor;
+    // El costo medio guarda decimales del promedio ponderado; en guaraníes no van.
+    return Math.round(costoMedio * factor);
   }
 
   onCancelar() {
