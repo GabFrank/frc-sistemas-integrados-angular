@@ -171,6 +171,16 @@ es real. `cancelarVerificacion`, `cancelarRechazo` y `deshacerVerificacionTodoPo
   arreglo que mezcla respuesta vacía con otro error, `ApolloError` con `networkError` HTTP 401/500, el objeto exacto
   del central offline, y que el texto interpole `queSeHizo`. La prueba de runtime cubre además #6, #7 y #8.
 
+## Ajustes durante la implementación
+
+- **Operaciones múltiples: la recarga va a los 5 s también tras un rechazo.** `forkJoin` y `Promise.all` cortan en el
+  primer error, pero las otras mutations siguen en vuelo (el `Observable` de `onCustomMutation` no cancela el pedido
+  al desuscribirse). Recargar al instante podía mostrar a medias lo que todavía se está aplicando.
+- **Punto 8:** su recarga de 500 ms (vía `actualizarUIDespuesRechazo`) se reemplaza por la de 5 s, por la misma
+  razón. En un «sin respuesta» el texto dice «no se pudo confirmar si se marcó la cantidad restante…».
+- **Punto 14, validación sin respuesta:** «No se pudo validar la finalización: el servidor no respondió. No se
+  finalizó nada; podés reintentar.». En un rechazo no se suma nada: el motivo lo mostró el genérico.
+
 ## Auditoría del plan (paso 5, 2026-10-14)
 
 | Eje | Hallazgo | Sev. | Qué se hizo |
