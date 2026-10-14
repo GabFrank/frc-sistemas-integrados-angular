@@ -32,6 +32,7 @@ import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esPrecioGuardable } from '../precio-guardable';
 
 /** Lectura de precios antes de guardar: error de red y de servidor llegan acá (un solo aviso, el del diálogo). */
 const LECTURA_PRECIOS: QueryError = {
@@ -181,6 +182,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       });
       return;
     }
+    if (this.precioSinValor()) return;
 
     this.precioInput.precio = this.precioControl.value;
     // El toggle manda: un precio de promoción no se guarda activo aunque el toggle se haya habilitado
@@ -294,7 +296,19 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       'No se pudieron leer los precios de la presentación: no se guardó nada. Volvé a intentar.', 6);
   }
 
+  /**
+   * Avisa y devuelve true si el precio no se puede guardar. Se mira al guardar y no con un
+   * validador del control: un precio viejo en cero tiene que poder editarse sin tocar el valor.
+   */
+  private precioSinValor(): boolean {
+    if (esPrecioGuardable(this.precioControl.value, this.selectedPrecioPorSucursal?.precio)) return false;
+    this.notificacionSnackBar.openWarn("El precio tiene que ser de 1 o más.", 4);
+    return true;
+  }
+
   private continuarGuardado() {
+    // De nuevo acá: el precio mínimo sugerido por margen se aplica después del chequeo de onSave.
+    if (this.precioSinValor()) return;
     const { requestId } = this.cargandoDialog.openDialog();
 
     if (this.principalControl.value !== true) {
