@@ -1,9 +1,11 @@
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, Inject, Input, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -93,7 +95,9 @@ export class FuncionarioWizardComponent implements OnInit {
 
     this.selectedPreRegistro = new PreRegistroFuncionario;
     Object.assign(this.selectedPreRegistro, this.data.preRegistroFuncionario as PreRegistroFuncionario)
-    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursales(true).pipe(
+      terminarSiFalla(() => this.cargandoService.closeDialog(requestId))
+    ).subscribe((res) => {
       this.cargandoService.closeDialog(requestId)
       this.sucursalList = res.filter(s => s.id != 0);
       this.cargarDatos()
@@ -135,8 +139,13 @@ export class FuncionarioWizardComponent implements OnInit {
                 })
               } else {
                 const documento = this.documentoPersona.value?.toString().trim();
-                this.personaService.onGetPorDocumento(documento)
-                  .pipe(untilDestroyed(this))
+                this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA)
+                  .pipe(
+                    // Sin saber si la persona ya existe no se guarda: crearía un duplicado (#390).
+                    terminarSiFalla(() => this.notificacionService.openWarn(
+                      'No se pudo verificar si la persona ya existe: no se guardó. Volvé a intentar.', 5)),
+                    untilDestroyed(this)
+                  )
                   .subscribe(personaExistente => {
                     if (personaExistente?.id != null) {
                       if (personaExistente.isFuncionario && personaExistente.isCliente) {

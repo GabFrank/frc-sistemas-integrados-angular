@@ -92,13 +92,17 @@ export const operacionFinancieraCategoriasQuery = gql`
   }
 `;
 
-export const registrarOperacionFinancieraMutation = gql`
-  mutation registrarOperacionFinanciera($input: OperacionFinancieraInput!) {
-    data: registrarOperacionFinanciera(input: $input) {
+// Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+const registrarOperacionFinanciera = (conClave: boolean) => gql`
+  mutation registrarOperacionFinanciera($input: OperacionFinancieraInput!${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: registrarOperacionFinanciera(input: $input${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
       ${operacionFinancieraFields}
     }
   }
 `;
+export const registrarOperacionFinancieraMutation = registrarOperacionFinanciera(true);
+export const registrarOperacionFinancieraSinClaveMutation = registrarOperacionFinanciera(false);
 
 export const anularOperacionFinancieraMutation = gql`
   mutation anularOperacionFinanciera($id: ID!, $motivo: String) {

@@ -183,12 +183,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Marcar horario',
           icon: 'login',
           action: 'marcar-horario'
-        },
-        {
-          name: 'Lista de horarios',
-          icon: 'list_alt',
-          action: 'list-marcacion',
-          visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
         }
       ]
     },
@@ -197,7 +191,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'groups',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.ADMIN],
       items: [
         {
           name: 'Manual de uso',
@@ -313,7 +307,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Liquidaciones',
           icon: 'receipt_long',
           action: 'list-liquidacion',
-          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.ADMIN]
+          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.RRHH_SUCURSAL, ROLES.ADMIN]
         },
         {
           name: 'Configuración',
@@ -456,7 +450,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       // grupo. checkItemVisibility exige el rol en CADA nivel --solo ADMIN hace bypass--, asi que
       // sin esto la mudanza desde 'Reportes y Analisis' le escondia Terminales POS justo al rol
       // que la usa todos los dias.
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.VENTA_TARJETA_COMPLETAR],
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.VENTA_TARJETA_COMPLETAR],
       items: [
         {
           name: 'Dashboard',
@@ -468,13 +462,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Caja y Operativa',
           icon: 'point_of_sale',
           isExpanded: false,
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
               name: 'Tesorería',
               icon: 'account_balance_wallet',
               action: 'list-caja-virtual',
-              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ADMIN]
             },
             {
               name: 'Operaciones Financieras',
@@ -758,6 +752,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'manage_accounts',
           action: 'list-usuario',
           visibilityRoles: [ROLES.VER_USUARIOS]
+        },
+        {
+          name: 'Personas',
+          icon: 'badge',
+          action: 'list-persona',
+          visibilityRoles: [ROLES.VER_PERSONAS]
         },
         {
           name: 'Proveedores',
@@ -1104,7 +1104,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "list-caja-virtual":
-        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
@@ -1245,7 +1245,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
         break;
       case "list-liquidacion":
-        this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");
+        // Los mismos roles que muestran la entrada: con solo RRHH VER, quien liquida la veía y no entraba.
+        this.openTabIfAuthorized([ROLES.RRHH_VER, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL], ListLiquidacionComponent, "Liquidaciones");
         break;
       case "legajo-funcionario":
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
@@ -1379,13 +1380,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
-        break;
-      case "list-marcacion":
-        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
-          this.tabService.addTab(new Tab(ListMarcacionComponent, "Lista de horarios", null, null));
-        } else {
-          this.notificacionService.openWarn('No tenés acceso a esta opción.');
-        }
         break;
       case "devoluciones":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");

@@ -13,13 +13,16 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { ImprimirEnSucursalDialogComponent } from "../imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component";
+import { EnviarFacturaCorreoDialogComponent } from "../enviar-factura-correo-dialog/enviar-factura-correo-dialog.component";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
 import { EditFacturaLegalDialogComponent } from "../edit-factura-legal-dialog/edit-factura-legal-dialog.component";
 import { EstadoDE } from "../../documento-electronico/documento-electronico.model";
+import { facturaActiva, puedeCancelarseFactura } from "../factura-legal-estado";
 import { MainService } from "../../../../main.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
+import { mensajeDeError } from "../../venta-tarjeta/qr-pos/mensaje-error";
 import { AddNotaCreditoDialogComponent } from "../../nota-credito/add-nota-credito-dialog/add-nota-credito-dialog.component";
 import {
   animate,
@@ -160,6 +163,7 @@ export class ListFacturaLegalComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+    this.puedeCancelarFactura = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
 
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
@@ -576,6 +580,8 @@ export class ListFacturaLegalComponent implements OnInit {
 
   /** Rol para emitir notas de crédito; se calcula una vez, nunca desde el HTML. */
   puedeEmitirNotaCredito = false;
+  /** Cancelar una factura exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
+  puedeCancelarFactura = false;
 
   /**
    * Abre la nota de crédito de una factura. Es el camino cuando SIFEN ya no acepta la cancelación
@@ -608,7 +614,7 @@ export class ListFacturaLegalComponent implements OnInit {
       return factura.documentoElectronico?.estado || 'N/A';
     } else {
       // Factura papel - mostrar activo/inactivo
-      return factura.activo ? 'ACTIVA' : 'INACTIVA';
+      return facturaActiva(factura) ? 'ACTIVA' : 'INACTIVA';
     }
   }
 
@@ -629,7 +635,7 @@ export class ListFacturaLegalComponent implements OnInit {
           return 'estado-default';
       }
     } else {
-      return factura.activo ? 'estado-activo' : 'estado-inactivo';
+      return facturaActiva(factura) ? 'estado-activo' : 'estado-inactivo';
     }
   }
 
@@ -638,18 +644,7 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   calcularPuedeCancelarFactura(factura: FacturaLegal): boolean {
-    // Solo se puede cancelar si:
-    // - Tiene activo = true, O
-    // - Si es electrónica, el estado del documento electrónico es APROBADO
-    if (factura.activo === true) {
-      return true;
-    }
-
-    if (this.esElectronica(factura) && factura.documentoElectronico?.estado === EstadoDE.APROBADO) {
-      return true;
-    }
-
-    return false;
+    return puedeCancelarseFactura(factura);
   }
 
   onCancelarFactura(factura: FacturaLegal) {
@@ -716,7 +711,8 @@ export class ListFacturaLegalComponent implements OnInit {
         error: (error) => {
           this.cargandoService.closeDialog(requestId);
           console.error('Error al cancelar factura:', error);
-          this.notificacionService.openAlgoSalioMal('Error al cancelar la factura');
+          // Si el central la rechazó (por ejemplo, falta el rol) se muestra su motivo, no un texto genérico
+          this.notificacionService.openAlgoSalioMal(mensajeDeError(error, 'Error al cancelar la factura'));
         }
       });
   }
@@ -846,6 +842,14 @@ export class ListFacturaLegalComponent implements OnInit {
     this.matDialog.open(ImprimirEnSucursalDialogComponent, {
       data: { tipo: 'NORMAL', factura },
       width: '900px',
+    });
+  }
+
+  /** Envío manual del PDF de la factura al correo que se confirme en el diálogo. */
+  onEnviarPorCorreo(factura: FacturaLegal): void {
+    this.matDialog.open(EnviarFacturaCorreoDialogComponent, {
+      data: { factura },
+      width: '480px',
     });
   }
 }

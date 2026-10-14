@@ -3,7 +3,8 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo } from '../operacion-financiera.model';
-import { OperacionFinancieraService } from '../operacion-financiera.service';
+import { OperacionFinancieraService, PedidoDeOperacionFinanciera } from '../operacion-financiera.service';
+import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
@@ -15,6 +16,8 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { MainService } from '../../../../main.service';
+import { operaAcotadoCaja } from '../../caja-virtual/rol-tesoreria-caja';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -67,6 +70,22 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   cuentaBancariaList: CuentaBancaria[] = [];
   monedaList: Moneda[] = [];
 
+  /**
+   * Rol acotado (TESORERIA CAJA): solo deposita desde una de sus cajas a una cuenta habilitada para esa
+   * caja, o transfiere entre sus cajas. Las cuentas se piden por caja, no el listado general.
+   */
+  soloCaja = false;
+  /**
+   * Destinos de una transferencia entre cajas: las cajas del usuario más las que reciben envíos (la caja
+   * mayor principal). De las segundas solo se conoce el nombre: no se ven ni se pueden usar como origen.
+   */
+  cajaDestinoTransferenciaList: CajaVirtual[] = [];
+  esTransferenciaEntreCajas = false;
+  private cajasReceptoras: CajaVirtual[] = [];
+  /** La caja elegida no tiene ninguna cuenta habilitada para depósito (o no se pudieron cargar). */
+  sinCuentasParaDeposito = false;
+  private cuentasCargaId = 0;
+
   // Flags de visibilidad — calculados en TS, nunca en el HTML.
   mostrarCajaOrigen = false;
   mostrarCuentaOrigen = false;
@@ -105,6 +124,19 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   isSaving = false;
 
+  /**
+   * La operación que se mandó y quedó sin respuesta: el input ya armado y su clave. Mientras exista solo se
+   * puede reenviar o cerrar: un pedido nuevo saldría con otra clave y se registraría otra vez
+   * (franco-system-backend-servidor#376).
+   */
+  private pedidoPendiente: PedidoDeOperacionFinanciera | null = null;
+  private pendienteOriginal: OperacionFinanciera | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
+  /** El central no conoce la clave: no protege la repetición, así que no se ofrece «Reintentar». */
+  private centralSinClave = false;
+
   constructor(
     private dialogRef: MatDialogRef<AddOperacionFinancieraDialogComponent>,
     @Optional() @Inject(MAT_DIALOG_DATA) public data: any,
@@ -114,9 +146,15 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private cambioService: CambioService,
     private notificacion: NotificacionSnackbarService,
+    private mainService: MainService,
   ) { }
 
   ngOnInit(): void {
+    this.soloCaja = operaAcotadoCaja(this.mainService);
+    if (this.soloCaja) {
+      const permitidos = [TipoOperacionFinanciera.DEPOSITO_BANCARIO, TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS];
+      this.tipoOperacionList = this.tipoOperacionList.filter(t => permitidos.includes(t.value));
+    }
     this.formGroup = new FormGroup({
       tipoOperacionControl: this.tipoOperacionControl,
       categoriaControl: this.categoriaControl,
@@ -146,15 +184,27 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     });
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cajaVirtualList = res; } else { noCargo('las cajas'); } },
+      next: res => { if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); } else { noCargo('las cajas'); } },
       error: () => noCargo('las cajas')
     });
-    // Solo cuentas propias operables (no de terceros).
-    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
-      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
-      error: () => noCargo('las cuentas bancarias')
+    // Cajas que reciben envíos. Si no cargan (o el central todavía no las conoce), quedan solo las propias.
+    this.cajaVirtualService.onGetReceptoras().pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.cajasReceptoras = (res || []).map(r => Object.assign(new CajaVirtual(), {
+          id: r.id, nombre: r.nombre + ' (recibe envíos)',
+        }));
+        this.armarDestinosDeTransferencia();
+      },
+      error: () => {}
     });
+    // Solo cuentas propias operables (no de terceros). El rol acotado las pide por caja, al elegirla.
+    if (!this.soloCaja) {
+      this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+        next: res => { if (res != null) { this.cuentaBancariaList = res; } else { noCargo('las cuentas bancarias'); } },
+        error: () => noCargo('las cuentas bancarias')
+      });
+    }
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
@@ -181,7 +231,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.recalcular();
     });
 
-    this.seleccionarTipo(TipoOperacionFinanciera.CAMBIO_DIVISA);
+    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.CAMBIO_DIVISA);
   }
 
   private ajustandoMontos = false;
@@ -296,6 +346,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.tituloActual = (this.tipoOperacionList.find(t => t.value === tipo)?.label) || 'Operación Financiera';
 
     const esCambio = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+    this.esTransferenciaEntreCajas = tipo === TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS;
     // Solo el cambio de divisa deja elegir la fuente de cada lado; el resto de los tipos la
     // tienen implícita en su definición (un depósito siempre sale de una caja, etc.).
     this.mostrarSelectorFuente = esCambio;
@@ -332,8 +383,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       || tipo === TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA;
     this.labelMontoOrigen = this.mostrarMontoDestino ? 'Monto Origen' : 'Monto';
 
-    // Depósito bancario: primero se elige el banco (destino), luego la caja (origen).
-    const destinoPrimero = tipo === TipoOperacionFinanciera.DEPOSITO_BANCARIO;
+    // Depósito bancario: primero se elige el banco (destino), luego la caja (origen). En el rol acotado
+    // es al revés: las cuentas habilitadas dependen de la caja.
+    const destinoPrimero = tipo === TipoOperacionFinanciera.DEPOSITO_BANCARIO && !this.soloCaja;
     this.ordenOrigen = destinoPrimero ? 2 : 1;
     this.ordenDestino = destinoPrimero ? 1 : 2;
 
@@ -368,6 +420,40 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.cotizacionOrigenLabel = '';
     this.campoActual = 'cotizacion';
     this.campoAnterior = 'destino';
+    if (this.soloCaja) {
+      this.cuentasCargaId++;
+      this.cuentaBancariaList = [];
+      this.sinCuentasParaDeposito = false;
+    }
+  }
+
+  /** Las cajas propias primero; después las receptoras que no sean ya una caja propia. */
+  private armarDestinosDeTransferencia() {
+    const propias = this.cajaVirtualList || [];
+    const ids = new Set(propias.map(c => String(c.id)));
+    this.cajaDestinoTransferenciaList = [...propias, ...this.cajasReceptoras.filter(c => !ids.has(String(c.id)))];
+  }
+
+  /** Rol acotado: trae las cuentas habilitadas para depositar desde la caja de origen elegida. */
+  private cargarCuentasParaDeposito() {
+    const caja: CajaVirtual = this.cajaMayorOrigenControl.value;
+    const carga = ++this.cuentasCargaId;
+    this.cuentaBancariaList = [];
+    this.sinCuentasParaDeposito = false;
+    this.cuentaBancariaDestinoControl.setValue(null);
+    if (!caja?.id) return;
+    this.cajaVirtualService.onGetCuentasParaDeposito(caja.id).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (carga !== this.cuentasCargaId) return;
+        this.cuentaBancariaList = res || [];
+        this.sinCuentasParaDeposito = this.cuentaBancariaList.length === 0;
+      },
+      error: () => {
+        if (carga !== this.cuentasCargaId) return;
+        this.sinCuentasParaDeposito = true;
+        this.notificacion.openWarn('No se pudieron cargar las cuentas habilitadas para esta caja.', 5);
+      }
+    });
   }
 
   /** Cambia la fuente de un lado del cambio de divisa entre caja mayor y cuenta bancaria. */
@@ -517,6 +603,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   /** Elegir la caja no cambia montos, pero sí habilita el cálculo cuando ya hay monedas. */
   onCajaChange() {
+    if (this.soloCaja && this.tipoOperacionControl.value === TipoOperacionFinanciera.DEPOSITO_BANCARIO) {
+      this.cargarCuentasParaDeposito();
+    }
     this.recalcular();
   }
 
@@ -572,7 +661,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.formGroup.invalid || this.isSaving) return;
+    if (this.formGroup.invalid || this.isSaving || this.hayPendiente) return;
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
 
     // Operaciones de monto único (depósito/retiro/transf. entre cajas): el destino espeja al
@@ -617,32 +706,88 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       operacion.diferenciaObservacion = this.diferenciaObservacionControl.value;
     }
 
+    this.pendienteDescripcion = this.describir(operacion);
+    // Una clave por cada «Guardar». El input se arma una sola vez y se guarda con ella: armarlo de nuevo desde el
+    // formulario puede redondear distinto, y el central lo tomaría por otro pedido.
+    this.enviar({ input: operacion.toInput(), claveIdempotencia: nuevaClaveIdempotencia() }, operacion, false);
+  }
+
+  /**
+   * Reenvía la operación que quedó sin respuesta, idéntica y con su misma clave: si el central ya la había
+   * registrado devuelve esa operación, y si no, la registra ahora. Nunca dos.
+   */
+  reenviar() {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, this.pendienteOriginal, true);
+  }
+
+  private enviar(pedido: PedidoDeOperacionFinanciera, original: OperacionFinanciera, esReenvio: boolean) {
     this.isSaving = true;
     // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no releería nada.
     this.dialogRef.disableClose = true;
-    this.operacionFinancieraService.onRegistrar(operacion, { avisarExito: false })
+    // El aviso de éxito es propio (más específico); el de un rechazo lo da onSaveCustom.
+    this.operacionFinancieraService.onRegistrar(pedido, { avisarExito: false, esReenvio, sinClave: () => this.centralSinClave = true })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
           this.isSaving = false;
+          if (res == null) { this.quedoSinConfirmar(pedido, original, true); return; }
           this.dialogRef.disableClose = false;
-          if (res != null) {
-            this.notificacion.openSucess('Operación financiera registrada correctamente');
-            this.dialogRef.close(res);
-          } else {
-            this.sinConfirmar(operacion, true);
-          }
+          this.notificacion.openSucess('Operación financiera registrada correctamente');
+          this.dialogRef.close(res);
         },
         error: err => {
           this.isSaving = false;
-          this.dialogRef.disableClose = false;
-          // Rechazo: no se registró nada y el motivo ya lo mostró GenericCrudService (repetirlo acá deja
-          // dos snackbars diciendo lo mismo). El formulario queda para corregir y reintentar.
-          if (erroresDeRechazo(err)) return;
+          if (erroresDeRechazo(err)) {
+            if (esReenvio && centralNoConoceLaClave(err)) {
+              // El central volvió a una versión que no conoce la clave: reenviar sin ella podría registrar dos.
+              this.notificacion.openWarn('El servidor ya no reconoce este reintento. Cerrá y revisá antes de repetirlo.', 10);
+              return;
+            }
+            if (esReenvio) {
+              // Rechazo al reintentar (el motivo ya se mostró). Si el primer envío había entrado, volver al
+              // formulario dejaría cargarlo otra vez con otra clave: se cierra para que se revise.
+              this.dialogRef.disableClose = false;
+              this.sinConfirmar(original, true);
+              return;
+            }
+            // No se registró nada (el motivo ya lo mostró onSaveCustom): vuelve al formulario para corregir.
+            this.pedidoPendiente = null;
+            this.pendienteOriginal = null;
+            this.hayPendiente = false;
+            this.dialogRef.disableClose = false;
+            return;
+          }
           // El corte del link ya avisó que pudo haberse aplicado.
-          this.sinConfirmar(operacion, !esTimeoutDeLink(err));
+          this.quedoSinConfirmar(pedido, original, !esTimeoutDeLink(err) || esReenvio);
         }
       });
+  }
+
+  /**
+   * La operación pudo haberse registrado. El diálogo queda abierto solo para reenviarla (seguro, por la clave) o
+   * cerrar: no se vuelve al formulario, porque un pedido nuevo saldría con otra clave. `disableClose` sigue en
+   * true: Esc y el clic afuera cerrarían sin que quien abrió el diálogo relea. Contra un central que no conoce
+   * la clave no hay reintento seguro: se cierra, como antes.
+   */
+  private quedoSinConfirmar(pedido: PedidoDeOperacionFinanciera, original: OperacionFinanciera, avisar: boolean) {
+    if (this.centralSinClave) {
+      this.dialogRef.disableClose = false;
+      this.sinConfirmar(original, avisar);
+      return;
+    }
+    this.pedidoPendiente = pedido;
+    this.pendienteOriginal = original;
+    this.hayPendiente = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si se registró: podés reintentar sin riesgo de registrarla dos veces.', 8);
+    }
+  }
+
+  /** Cierra sin confirmar, con el aviso de qué revisar. Cierra con `true` para que quien abrió relea. */
+  cerrarSinConfirmar() {
+    if (this.isSaving || !this.pendienteOriginal) return;
+    this.sinConfirmar(this.pendienteOriginal, true);
   }
 
   /**
@@ -652,15 +797,20 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
    */
   private sinConfirmar(operacion: OperacionFinanciera, avisar: boolean) {
     if (avisar) {
-      const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
-      const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
-      let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
-      // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
-      if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
       this.notificacion.openWarn(
-        `No se pudo confirmar si la operación se registró (${tipo}, ${monto}): buscala en Operaciones financieras antes de repetirla.`, 10);
+        `No se pudo confirmar si la operación se registró (${this.describir(operacion)}): buscala en Operaciones financieras antes de repetirla.`, 10);
     }
     this.dialogRef.close(true);
+  }
+
+  /** «Tipo, monto» de una operación, para los avisos. */
+  private describir(operacion: OperacionFinanciera): string {
+    const tipo = this.tipoOperacionList.find(t => t.value === operacion.tipoOperacion)?.label || 'operación';
+    const fmt = (moneda: Moneda, valor: number) => `${moneda?.simbolo || ''} ${(valor || 0).toLocaleString('es-PY')}`.trim();
+    let monto = fmt(operacion.monedaOrigen, operacion.montoOrigen);
+    // En un cambio de divisa el destino va en otra moneda: sin él no se distingue de otro cambio parecido.
+    if (operacion.monedaOrigen?.id !== operacion.monedaDestino?.id) monto += ` → ${fmt(operacion.monedaDestino, operacion.montoDestino)}`;
+    return `${tipo}, ${monto}`;
   }
 
   private err(msg: string) {

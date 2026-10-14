@@ -82,6 +82,81 @@ const jornadaFragment = `
   actualizadoEn
 `;
 
+/** La jornada con dónde se hizo cada marcación y lo que el central calcula de ella: solo la pide el historial. */
+const jornadaHistorialFragment = `
+  minutosLlegadaTardiaTotal
+  distanciaMaximaMetros
+  tieneUbicacion
+  puedeAjustarA8Horas
+  id
+  sucursalId
+  usuario {
+    id
+    persona {
+      nombre
+    }
+  }
+  fecha
+  marcacionEntrada {
+    id
+    tipo
+    fechaEntrada
+    fechaSalida
+    latitud
+    longitud
+    precisionGps
+    distanciaSucursalMetros
+    sucursalEntrada {
+      id
+      nombre
+      localizacion
+    }
+  }
+  marcacionSalidaAlmuerzo {
+    id
+    tipo
+    fechaEntrada
+    fechaSalida
+    latitud
+    longitud
+    precisionGps
+    distanciaSucursalMetros
+  }
+  marcacionEntradaAlmuerzo {
+    id
+    tipo
+    fechaEntrada
+    fechaSalida
+    latitud
+    longitud
+    precisionGps
+    distanciaSucursalMetros
+  }
+  marcacionSalida {
+    id
+    tipo
+    fechaEntrada
+    fechaSalida
+    latitud
+    longitud
+    precisionGps
+    distanciaSucursalMetros
+    sucursalSalida {
+      id
+      nombre
+      localizacion
+    }
+  }
+  minutosTrabajados
+  minutosExtras
+  minutosLlegadaTardia
+  minutosLlegadaTardiaAlmuerzo
+  turno
+  estado
+  observacion
+  actualizadoEn
+`;
+
 export const marcacionQuery = gql`
   query ($id: ID!, $sucursalId: ID!) {
     data: marcacion(id: $id, sucursalId: $sucursalId) {
@@ -150,6 +225,25 @@ export const jornadasQuery = gql`
   query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
     data: jornadas(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       ${jornadaFragment}
+    }
+  }
+`;
+
+export const jornadasHistorialQuery = gql`
+  query ($usuarioId: ID, $fechaInicio: String!, $fechaFin: String!, $turno: Turno, $sucursalEntradaId: ID, $sucursalSalidaId: ID, $page: Int, $size: Int) {
+    data: jornadasHistorial(usuarioId: $usuarioId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, turno: $turno, sucursalEntradaId: $sucursalEntradaId, sucursalSalidaId: $sucursalSalidaId, page: $page, size: $size) {
+      pagina {
+        getTotalElements
+        getContent {
+          ${jornadaHistorialFragment}
+        }
+      }
+      resumen {
+        diasTrabajados
+        minutosTrabajados
+        minutosExtras
+        minutosLlegadaTardia
+      }
     }
   }
 `;

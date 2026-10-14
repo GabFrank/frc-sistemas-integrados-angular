@@ -751,3 +751,55 @@ export const reabrirInventarioQuery = gql`
     reabrirInventario(id: $id)
   }
 `;
+
+export const controlStockNegativoQuery = gql`
+  query (
+    $fechaInicio: String!
+    $fechaFin: String!
+    $sucursalId: ID
+    $tipo: TipoControlStock
+    $texto: String
+    $stock: FiltroStockControl
+    $page: Int!
+    $size: Int!
+  ) {
+    data: controlStockNegativo(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalId: $sucursalId
+      tipo: $tipo
+      texto: $texto
+      stock: $stock
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      getContent {
+        id
+        tipo
+        cantidad
+        stockPrevio
+        stockActual
+        fecha
+        referenciaId
+        itemId
+        sucursal {
+          id
+          nombre
+        }
+        producto {
+          id
+          descripcion
+        }
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;

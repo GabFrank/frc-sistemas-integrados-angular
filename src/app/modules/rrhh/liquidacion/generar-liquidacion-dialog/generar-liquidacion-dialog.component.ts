@@ -6,6 +6,8 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../noti
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { LiquidacionService } from '../liquidacion.service';
+import { MainService } from '../../../../main.service';
+import { liquidaAcotadoRrhh } from '../../rol-rrhh-sucursal';
 
 
 export interface GenerarLiquidacionDialogData {
@@ -46,15 +48,20 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
 
   generando = false;
 
+  /** Rol RRHH SUCURSAL: «todos» son los de sus sucursales y el buscador solo trae a esos. */
+  acotado = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: GenerarLiquidacionDialogData,
     private dialogRef: MatDialogRef<GenerarLiquidacionDialogComponent>,
     private liquidacionService: LiquidacionService,
     private monedaService: MonedaService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private mainService: MainService
   ) { }
 
   ngOnInit(): void {
+    this.acotado = liquidaAcotadoRrhh(this.mainService);
     if (this.data?.periodo) {
       this.periodoControl.setValue(this.data.periodo);
     } else {

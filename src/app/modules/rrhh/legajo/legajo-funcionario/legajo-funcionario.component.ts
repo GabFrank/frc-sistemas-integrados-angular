@@ -7,10 +7,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
+import { Persona } from '../../../personas/persona/persona.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { LegajoService } from '../legajo.service';
-import { FuncionarioCargoHistorico, FuncionarioSalarioHistorico, FuncionarioDocumento } from '../legajo.model';
+import { FuncionarioCargoHistorico, FuncionarioSalarioHistorico, FuncionarioDocumento, AsistenciaResumen } from '../legajo.model';
+import {
+  ESTADO_ASISTENCIA_TEXTO, PeriodoAsistencia, esPeriodoActual, fechaCorta, motivoSinAsistencia, moverPeriodo,
+  periodoActual, textoPeriodo, textoPuntaje
+} from '../asistencia.util';
 import { CambioCargoDialogComponent } from '../cambio-cargo-dialog/cambio-cargo-dialog.component';
 import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
@@ -40,15 +45,29 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   funcionarioControl = new FormControl(null);
   funcionario: Funcionario = null;
+  /** Legajo nuevo abierto desde Personas («Crear funcionario»): persona a precargar. */
+  personaNueva: Persona = null;
   // Avatar de la cabecera: lo emite el tab "Información general" (documento FOTO_PERFIL).
   fotoPerfilSrc: string = null;
 
   // Métricas del dashboard. PLACEHOLDER hasta que existan los módulos que las alimentan
-  // (TODO-5 valoración, TODO-6 asistencia, TODO-7 metas/comisiones — ver plan de testeo RRHH).
+  // (TODO-5 valoración, TODO-7 metas/comisiones — ver plan de testeo RRHH).
   puntuacionFuncionario = 7.6;   // 1..10
-  puntuacionAsistencia = 8.4;    // 1..10
   metasLogradas = 4;
   metasTotal = 11;
+
+  /** Puntaje de asistencia del mes en curso. NO es placeholder: lo calcula el central. */
+  puntuacionAsistenciaTexto = '—';
+
+  // Pestaña "Asistencia": detalle día por día del mes elegido.
+  asistenciaPeriodo: PeriodoAsistencia = periodoActual();
+  asistenciaPeriodoTexto = textoPeriodo(this.asistenciaPeriodo);
+  asistenciaEsMesActual = true;
+  asistenciaCargando = false;
+  asistenciaMensaje: string = null;
+  asistenciaResumenTexto = '';
+  asistenciaColumns = ['fecha', 'estado', 'tardanzaEntrada', 'tardanzaAlmuerzo', 'justificativo'];
+  asistenciaDias = new MatTableDataSource<any>([]);
 
   /**
    * Amonestaciones no anuladas del funcionario. A diferencia de los otros tres chips,
@@ -91,6 +110,7 @@ export class LegajoFuncionarioComponent implements OnInit {
     this.puedeLiquidar = this.mainService.tieneAlgunRol(['RRHH LIQUIDAR']);
     // El legajo se abre siempre apuntando a un funcionario (desde la lista de
     // funcionarios → acción de fila). Ya no hay selector interno.
+    this.personaNueva = this.data?.tabData?.data?.persona ?? null;
     const preId = this.data?.tabData?.data?.id;
     if (preId != null) {
       this.funcionarioControl.setValue(preId);
@@ -127,7 +147,49 @@ export class LegajoFuncionarioComponent implements OnInit {
       });
     this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
       .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });
+    this.asistenciaPeriodo = periodoActual();
+    this.cargarAsistencia();
     this.recargar();
+  }
+
+  onMoverMesAsistencia(delta: number) {
+    if (delta > 0 && this.asistenciaEsMesActual) { return; }
+    this.asistenciaPeriodo = moverPeriodo(this.asistenciaPeriodo, delta);
+    this.cargarAsistencia();
+  }
+
+  /** Lee la asistencia del mes de la pestaña. Si es el mes en curso, también alimenta la card. */
+  private cargarAsistencia() {
+    const id = this.funcionarioControl.value;
+    const periodo = this.asistenciaPeriodo;
+    this.asistenciaPeriodoTexto = textoPeriodo(periodo);
+    this.asistenciaEsMesActual = esPeriodoActual(periodo);
+    if (id == null) { return; }
+    this.asistenciaCargando = true;
+    const aplicar = (r: AsistenciaResumen) => {
+      // llegó la respuesta de un mes o funcionario que ya no es el que está en pantalla
+      if (periodo !== this.asistenciaPeriodo || id !== this.funcionarioControl.value) { return; }
+      this.asistenciaCargando = false;
+      this.setAsistencia(r);
+    };
+    this.legajoService.onGetAsistencia(id, periodo.anho, periodo.mes)
+      .pipe(untilDestroyed(this)).subscribe({ next: aplicar, error: () => aplicar(null) });
+  }
+
+  private setAsistencia(r: AsistenciaResumen) {
+    if (this.asistenciaEsMesActual) { this.puntuacionAsistenciaTexto = textoPuntaje(r); }
+    this.asistenciaMensaje = motivoSinAsistencia(r);
+    this.asistenciaResumenTexto = this.asistenciaMensaje != null ? '' :
+      `Puntaje ${textoPuntaje(r)} · ${r.diasTrabajados} de ${r.diasEsperados} días trabajados · ` +
+      `${r.llegadasTardias} llegadas tardías · ${r.ausenciasInjustificadas} ausencias injustificadas`;
+    this.asistenciaDias.data = (r?.dias || []).map(d => ({
+      fecha: fechaCorta(d.fecha),
+      estado: d.estado,
+      estadoTexto: ESTADO_ASISTENCIA_TEXTO[d.estado] || d.estado,
+      tardanzaEntrada: d.minutosLlegadaTardia > 0 ? `${d.minutosLlegadaTardia} min` : '—',
+      tardanzaAlmuerzo: d.minutosLlegadaTardiaAlmuerzo > 0 ? `${d.minutosLlegadaTardiaAlmuerzo} min` : '—',
+      justificativo: d.justificativo || '—',
+    }));
   }
 
   /**
@@ -175,7 +237,8 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   onVerAsistencia() {
     this.dialog.open(LegajoMetricaDialogComponent, {
-      data: { tipo: 'asistencia', nombre: this.funcionario?.persona?.nombre }, width: '460px'
+      data: { tipo: 'asistencia', nombre: this.funcionario?.persona?.nombre, funcionarioId: this.funcionario?.id },
+      width: '460px'
     });
   }
 

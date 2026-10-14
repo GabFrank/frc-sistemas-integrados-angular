@@ -24,7 +24,7 @@
 
             <div class="aviso-responsable">
                 <mat-icon>info</mat-icon>
-                <span>El chofer queda como responsable de la verificación para transporte.</span>
+                <span>Si elegís un chofer, queda como responsable de la verificación para transporte. Sin chofer, el responsable sos vos.</span>
             </div>
 
             <!-- CHOFER -->
@@ -104,6 +104,10 @@
 
     <mat-dialog-actions class="dialog-footer">
         <button mat-button class="btn-cancelar" (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
+        <button mat-stroked-button class="btn-sin-chofer" (click)="onContinuarSinChofer()"
+            [disabled]="sinChoferDeshabilitado">
+            Continuar sin chofer
+        </button>
         <button mat-flat-button class="btn-guardar" (click)="onConfirmar()" [disabled]="confirmarDeshabilitado">
             <mat-spinner *ngIf="isSaving" diameter="18" class="btn-spinner"></mat-spinner>
             <mat-icon *ngIf="!isSaving">check</mat-icon>

@@ -126,6 +126,93 @@ export const cajaVirtualResumenBancarioQuery = gql`
   }
 `;
 
+/**
+ * Cuentas a las que se puede depositar desde la caja (las visibles de su configuración). Es la que usa
+ * el rol acotado TESORERIA CAJA, que no ve el resumen bancario; para ese rol el central no devuelve saldo.
+ */
+export const cuentasBancariasParaDepositoQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cuentasBancariasParaDeposito(cajaVirtualId: $cajaVirtualId) {
+      id
+      numero
+      nombre
+      banco { id nombre }
+      moneda { id denominacion simbolo }
+    }
+  }
+`;
+
+/**
+ * Cajas marcadas «recibe envíos»: destinos de una transferencia para quien no tiene acceso sobre ellas.
+ * El central devuelve solo nombre y sucursal.
+ */
+export const cajasVirtualesReceptorasQuery = gql`
+  query {
+    data: cajasVirtualesReceptoras {
+      id
+      nombre
+      sucursalNombre
+    }
+  }
+`;
+
+/**
+ * La marca «recibe envíos» de una caja. Va en una consulta propia y no en los listados: así un central
+ * que todavía no conoce el campo solo afecta a la acción de marcarla.
+ */
+export const cajaVirtualRecibeEnviosQuery = gql`
+  query ($id: ID!) {
+    data: cajaVirtual(id: $id) {
+      id
+      recibeEnvios
+    }
+  }
+`;
+
+export const marcarCajaRecibeEnviosMutation = gql`
+  mutation ($cajaVirtualId: ID!, $recibe: Boolean!) {
+    data: marcarCajaRecibeEnvios(cajaVirtualId: $cajaVirtualId, recibe: $recibe) {
+      id
+      recibeEnvios
+    }
+  }
+`;
+
+/**
+ * Las sucursales que cubre una caja: la propia y las adicionales. Consulta propia, igual que la marca
+ * «recibe envíos»: un central que no conoce el campo solo afecta a quien la pide.
+ */
+export const cajaVirtualSucursalesQuery = gql`
+  query ($id: ID!) {
+    data: cajaVirtual(id: $id) {
+      id
+      sucursal {
+        id
+        nombre
+        ciudad {
+          id
+        }
+      }
+      sucursalesAdicionales {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const guardarSucursalesDeCajaMutation = gql`
+  mutation ($cajaVirtualId: ID!, $sucursalIds: [ID!]!) {
+    data: guardarSucursalesDeCaja(cajaVirtualId: $cajaVirtualId, sucursalIds: $sucursalIds) {
+      id
+      sucursalesAdicionales {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const cajaVirtualConfiguracionQuery = gql`
   query ($cajaVirtualId: ID!) {
     data: cajaVirtualConfiguracion(cajaVirtualId: $cajaVirtualId) {
@@ -269,6 +356,18 @@ export const saveMovimientoCajaVirtualMutation = gql`
   }
 `;
 
+// El desktop manda el saldo que tenía en pantalla y lo contado; la diferencia la calcula el central
+// (franco-system-backend-servidor#376).
+export const ajustarCajaVirtualPorConteoMutation = gql`
+  mutation ajustarCajaVirtualPorConteo($cajaVirtualId: ID!, $monedaId: ID!, $saldoEsperado: Float!, $contado: Float!) {
+    data: ajustarCajaVirtualPorConteo(
+      cajaVirtualId: $cajaVirtualId, monedaId: $monedaId, saldoEsperado: $saldoEsperado, contado: $contado
+    ) {
+      ${movimientoFields}
+    }
+  }
+`;
+
 export const anularMovimientoCajaVirtualMutation = gql`
   mutation anularMovimientoCajaVirtual($id: ID!, $motivo: String) {
     data: anularMovimientoCajaVirtual(id: $id, motivo: $motivo) {
@@ -277,22 +376,40 @@ export const anularMovimientoCajaVirtualMutation = gql`
   }
 `;
 
-export const realizarTransferenciaQuery = gql`
-  mutation realizarTransferenciaCajaVirtual(
+// Un solo pedido con todos los montos: el central registra todo o nada. La clave de idempotencia hace que
+// repetirlo no registre de nuevo (franco-system-backend-servidor#376).
+export const registrarMovimientosCajaVirtualMutation = gql`
+  mutation registrarMovimientosCajaVirtual(
+    $cajaVirtualId: ID!
+    $tipoMovimiento: CajaVirtualTipoMovimiento!
+    $montos: [MontoCajaVirtualInput!]!
+    $descripcion: String
+    $claveIdempotencia: String
+  ) {
+    data: registrarMovimientosCajaVirtual(
+      cajaVirtualId: $cajaVirtualId
+      tipoMovimiento: $tipoMovimiento
+      montos: $montos
+      descripcion: $descripcion
+      claveIdempotencia: $claveIdempotencia
+    )
+  }
+`;
+
+export const realizarTransferenciasCajaVirtualMutation = gql`
+  mutation realizarTransferenciasCajaVirtual(
     $origenId: ID!
     $destinoId: ID!
-    $cantidad: Float!
-    $monedaId: ID!
+    $montos: [MontoCajaVirtualInput!]!
     $descripcion: String
-    $usuarioId: ID
+    $claveIdempotencia: String
   ) {
-    data: realizarTransferenciaCajaVirtual(
+    data: realizarTransferenciasCajaVirtual(
       origenId: $origenId
       destinoId: $destinoId
-      cantidad: $cantidad
-      monedaId: $monedaId
+      montos: $montos
       descripcion: $descripcion
-      usuarioId: $usuarioId
+      claveIdempotencia: $claveIdempotencia
     )
   }
 `;

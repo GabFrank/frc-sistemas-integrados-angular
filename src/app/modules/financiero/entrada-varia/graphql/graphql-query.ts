@@ -68,13 +68,17 @@ export const entradaVariaCategoriasQuery = gql`
   }
 `;
 
-export const registrarEntradaVariaMutation = gql`
-  mutation registrarEntradaVaria($input: EntradaVariaInput!) {
-    data: registrarEntradaVaria(input: $input) {
+// Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+const registrarEntradaVaria = (conClave: boolean) => gql`
+  mutation registrarEntradaVaria($input: EntradaVariaInput!${conClave ? ', $claveIdempotencia: String' : ''}) {
+    data: registrarEntradaVaria(input: $input${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
       ${entradaVariaFields}
     }
   }
 `;
+export const registrarEntradaVariaMutation = registrarEntradaVaria(true);
+export const registrarEntradaVariaSinClaveMutation = registrarEntradaVaria(false);
 
 export const anularEntradaVariaMutation = gql`
   mutation anularEntradaVaria($id: ID!, $motivo: String) {

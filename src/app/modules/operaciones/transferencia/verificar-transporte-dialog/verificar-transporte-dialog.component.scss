@@ -14,3 +14,9 @@
         flex-shrink: 0;
     }
 }
+
+/* Accion secundaria: avanza por el flujo normal, sin chofer ni hoja de ruta. */
+.btn-sin-chofer:not([disabled]) {
+    color: #ffa726 !important;
+    border-color: rgba(255, 167, 38, 0.5) !important;
+}

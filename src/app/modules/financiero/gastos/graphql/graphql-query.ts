@@ -769,7 +769,7 @@ export const gastoRendicionesByPreGastoQuery = gql`
 `;
 
 export const cancelarGasto = gql`
-  mutation cancelarGasto($id: ID!, $sucId: ID) {
-    data: cancelarGasto(id: $id, sucId: $sucId)
+  mutation cancelarGasto($id: ID!, $sucId: ID, $cancelar: Boolean) {
+    data: cancelarGasto(id: $id, sucId: $sucId, cancelar: $cancelar)
   }
 `;

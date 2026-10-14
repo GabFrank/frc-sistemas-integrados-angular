@@ -1,3 +1,4 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -106,6 +107,17 @@ export class AddClienteDialogComponent implements OnInit {
       this.emailControl.setValue(this.selectedPersona?.email)
       this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
       this.direccionControl.setValue(this.selectedPersona?.direccion)
+    } else if (this.data?.persona != null) {
+      // Alta desde Personas («Crear cliente»): la persona ya está elegida.
+      this.selectedPersona = new Persona;
+      Object.assign(this.selectedPersona, this.data.persona);
+      this.nombreControl.setValue(this.selectedPersona.nombre)
+      this.apodoControl.setValue(this.selectedPersona?.apodo)
+      this.documentoControl.setValue(this.selectedPersona?.documento)
+      this.telefonoControl.setValue(this.selectedPersona?.telefono)
+      this.emailControl.setValue(this.selectedPersona?.email)
+      this.nacimientoControl.setValue(this.selectedPersona?.nacimiento != null ? new Date(this.selectedPersona.nacimiento) : null)
+      this.direccionControl.setValue(this.selectedPersona?.direccion)
     }
 
   }
@@ -207,7 +219,7 @@ export class AddClienteDialogComponent implements OnInit {
     newPersona.email = this.emailControl.value;
     newPersona.telefono = this.telefonoControl.value;
     
-    this.personaService.onSavePersona(newPersona.toInput()).pipe(untilDestroyed(this)).subscribe((personaRes: Persona) => {
+    this.personaService.onSavePersona(newPersona.toInput()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaRes: Persona) => {
       if (personaRes != null) {
         this.selectedPersona = personaRes;
         let esClienteNuevo = this.selectedCliente == null;
@@ -229,7 +241,12 @@ export class AddClienteDialogComponent implements OnInit {
           newCliente.verificadoSet = false;
         }
 
-        this.clienteService.onSaveCliente(newCliente.toInput()).pipe(untilDestroyed(this)).subscribe((clienteRes: Cliente) => {
+        this.clienteService.onSaveCliente(newCliente.toInput()).pipe(
+          // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
+          terminarSiFalla(() => this.notificacionService.openWarn(
+            'Los datos de la persona se guardaron, pero el cliente no. Volvé a guardar.', 6)),
+          untilDestroyed(this)
+        ).subscribe((clienteRes: Cliente) => {
           if (clienteRes != null) {
             this.selectedCliente = clienteRes;
             this.notificacionService.openGuardadoConExito();

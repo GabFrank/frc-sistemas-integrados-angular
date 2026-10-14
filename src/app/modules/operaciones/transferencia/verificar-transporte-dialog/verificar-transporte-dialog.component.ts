@@ -5,7 +5,7 @@ import { finalize } from 'rxjs/operators';
 import { TransferenciaService } from '../transferencia.service';
 import { Persona } from '../../../personas/persona/persona.model';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
-import { VerificarParaTransporteInput } from '../transferencia.model';
+import { EtapaTransferencia, Transferencia, VerificarParaTransporteInput } from '../transferencia.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PersonaSearchPageGQL } from '../../../personas/persona/graphql/personaSearchPage';
@@ -27,6 +27,9 @@ export interface VerificarTransporteDialogData {
  *
  * El chofer elegido queda como responsable de la etapa, no quien tiene la sesion abierta: por eso se
  * elige un `Usuario` y el central toma su persona para la hoja de ruta, que crea siempre nueva.
+ *
+ * El chofer es opcional: "Continuar sin chofer" avanza por el flujo normal (avanzarEtapaTransferencia),
+ * con el usuario logueado como responsable y sin hoja de ruta nueva.
  *
  * El dialogo hace la mutation el mismo y se cierra con `true` cuando hay que recargar la transferencia.
  * Si el central la rechaza queda abierto con lo cargado.
@@ -52,6 +55,7 @@ export class VerificarTransporteDialogComponent implements OnInit {
   acompanhantesView: AcompanhanteView[] = [];
   cantidadAcompanhantes = 0;
   confirmarDeshabilitado = true;
+  sinChoferDeshabilitado = true;
   isLoading = false;
   isSaving = false;
 
@@ -223,6 +227,43 @@ export class VerificarTransporteDialogComponent implements OnInit {
       });
   }
 
+  /**
+   * Flujo normal de avance de etapa: el responsable es quien tiene la sesion abierta. Lo cargado de
+   * chofer, vehiculo o acompañantes se descarta y la hoja que la transferencia ya tuviera no se toca.
+   * La confirmacion la pide el servicio.
+   */
+  onContinuarSinChofer(): void {
+    if (this.sinChoferDeshabilitado) return;
+
+    const transferencia = new Transferencia();
+    transferencia.id = this.data.transferenciaId;
+
+    this.isSaving = true;
+    this.actualizarResumen();
+    this.transferenciaService.onAvanzarEtapa(transferencia, EtapaTransferencia.TRANSPORTE_VERIFICACION)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: res => {
+          if (res) {
+            this.dialogRef.close(true);
+            return;
+          }
+          // No confirmo el aviso (o el central devolvio false): queda abierto.
+          this.isSaving = false;
+          this.actualizarResumen();
+        },
+        error: err => {
+          // Mismo criterio que verificar(): sin respuesta se recarga, un rechazo deja el dialogo abierto.
+          if (erroresDeRechazo(err) == null) {
+            this.dialogRef.close(true);
+            return;
+          }
+          this.isSaving = false;
+          this.actualizarResumen();
+        }
+      });
+  }
+
   onCancel(): void {
     this.dialogRef.close();
   }
@@ -261,6 +302,7 @@ export class VerificarTransporteDialogComponent implements OnInit {
     }));
     this.cantidadAcompanhantes = this.acompanhantesView.length;
 
+    this.sinChoferDeshabilitado = this.isSaving || this.isLoading;
     this.confirmarDeshabilitado = this.isSaving
       || this.isLoading
       || this.selectedVehiculo == null

@@ -116,8 +116,8 @@ export class SucursalService {
     return this.onGetAllSucursalesByActive(servidor, true);
   }
 
-  onGetSucursalActual(servidor: boolean = true): Observable<Sucursal> {
-    return this.genericService.onCustomQuery(this.getSucursalActual, {}, servidor);
+  onGetSucursalActual(servidor: boolean = true, contexto?: ContextoConsulta): Observable<Sucursal> {
+    return this.genericService.onCustomQuery(this.getSucursalActual, {}, servidor, null, undefined, contexto);
   }
 
   // getSucursalesAdmin(servidor: boolean = true): Observable<any> {

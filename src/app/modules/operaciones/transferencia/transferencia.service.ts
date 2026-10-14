@@ -98,9 +98,9 @@ export class TransferenciaService {
   /**
    * Avisa cuando alguien escaneó el QR de una transferencia desde el móvil.
    *
-   * Emite una sola vez y completa —así resuelve `onCustomSub`—, que es
-   * justo lo que hace falta para cerrar el diálogo del QR: después del
-   * primer escaneo ya no hay nada que escuchar.
+   * El canal es de todos los desktops: emite cada escaneo, de cualquier
+   * transferencia, hasta que quien llama deja de escuchar (al cerrar el
+   * diálogo del QR). Quien llama filtra el suyo.
    */
   qrEscaneadoSub() {
     return this.genericCrudService.onCustomSub(this.transferenciaQrEscaneadoSub, null, true, false);
@@ -112,11 +112,22 @@ export class TransferenciaService {
       ticket: ticket,
       printerName: this.configService?.getConfig()?.printers?.ticket,
       servidor: servidor
-    }).subscribe(res => {
-      if (res != null) {
-        this.reporteService.onAdd('Transferencia ' + id, res)
-        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
-      }
+    }).subscribe({
+      next: res => {
+        if (res != null) {
+          this.reporteService.onAdd('Transferencia ' + id, res)
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
+        }
+      },
+      // El ticket lo imprime el servidor: si se pierde la respuesta puede haber salido igual, así que no
+      // se invita a reintentar a ciegas (#390). Con este aviso el genérico no agrega el suyo.
+      error: () => this.notificacionService.notification$.next({
+        texto: ticket
+          ? 'No se pudo confirmar la impresión de la transferencia ' + id + ': puede haber salido. Verificá antes de reimprimir.'
+          : 'No se pudo generar el documento de la transferencia ' + id + '.',
+        color: NotificacionColor.warn,
+        duracion: 6,
+      }),
     })
   }
 

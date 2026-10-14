@@ -41,6 +41,57 @@ export function esRechazoDelServidor(error: any): boolean {
 }
 
 /**
+ * ¿El filial rechazó la venta porque lleva factura electrónica sin nombre y llega a 7.000.000? El rechazo no trae
+ * código: se reconoce por el texto de `VentaNoFacturableException` (filial, `FacturaLegalBuilder`). Si el filial
+ * cambia el texto esto da false y el cajero ve el aviso de siempre. Exige un rechazo: un guardado sin
+ * confirmar nunca se reintenta (#473).
+ */
+export function esRechazoPorFacturaSinNombre(error: any): boolean {
+  return esRechazoDelServidor(error)
+    && error.some((e) => typeof e?.message === "string" && /facturar sin nombre/i.test(e.message));
+}
+
+const ENVIO_A_FILIAL_SIN_CONFIRMAR =
+  /^Error al crear factura en servidor filial: (Error al conectar con el servidor filial|Error del servidor filial|Error al crear factura en servidor filial\. Código)/;
+
+/**
+ * ¿El central no pudo confirmar si el filial emitió la factura? `saveFacturaLegalToFilial` devuelve todo fallo con la
+ * forma de un rechazo, pero un corte con el filial (incluido el timeout de lectura del central, 30 s) o un 500 del
+ * filial no dicen que no se emitió: el filial pudo terminar y guardar. Tampoco una respuesta del filial que no es
+ * 201 ni error («… Código: 200»). Se reconoce por el texto de `FacturaLegalFilialService` (central), anclado a su
+ * prefijo para que un rechazo que mencione esas frases no cuente; si el texto cambia, esto da false y se trata como
+ * rechazo, como antes (#471).
+ */
+export function esEnvioAFilialSinConfirmar(error: any): boolean {
+  return Array.isArray(error)
+    && error.some((e) => typeof e?.message === "string" && ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
+}
+
+/** Veces que se le pide el cliente al cajero por una misma venta antes de cortar. */
+export const MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR = 2;
+
+/**
+ * ¿Hay que pedirle el cliente al cajero y reenviar la venta? Solo ante el rechazo por factura sin nombre de una
+ * venta común: con factura manual ya emitida el filial no factura de nuevo, en crédito o convenio el cliente
+ * viaja también en el crédito y cambiarlo acá los dejaría distintos, y el delivery se cobra por otro camino.
+ * `pedidos` son las veces que ya se pidió para esta venta: después de la primera, la venta trae el cliente
+ * que eligió el cajero y el filial lo volvió a rechazar.
+ */
+export function debePedirClienteParaFacturar(caso: {
+  error: any;
+  tieneCliente: boolean;
+  facturaManualEmitida: boolean;
+  esCredito: boolean;
+  esDelivery: boolean;
+  pedidos: number;
+}): boolean {
+  if (!esRechazoPorFacturaSinNombre(caso.error)) return false;
+  if (caso.facturaManualEmitida || caso.esCredito || caso.esDelivery) return false;
+  if (caso.pedidos >= MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR) return false;
+  return caso.pedidos > 0 || !caso.tieneCliente;
+}
+
+/**
  * Los errores de un **rechazo** del servidor, en cualquiera de las formas en que llegan: el arreglo de `onSave` /
  * `onCustomMutation`, o un objeto con `graphQLErrors` (`onSaveCustom`, `PagarComprasService`). `null` si no es un
  * rechazo sino un «sin respuesta» (error de red, corte por tiempo, central offline, respuesta vacía): ahí la

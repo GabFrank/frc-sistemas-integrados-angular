@@ -21,6 +21,9 @@ import { AgregarNotaASolicitudPagoGQL } from './graphql/agregarNotaASolicitudPag
 import { RemoverNotaDeSolicitudPagoGQL } from './graphql/removerNotaDeSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
 import { CancelarSolicitudPagoGQL } from './graphql/cancelarSolicitudPago';
+import {
+  AsignarSolicitudPagoACajaGQL, SolicitudPagoCajaAsignada, SolicitudPagoCajaAsignadaGQL
+} from './graphql/solicitudPagoCajaAsignada';
 import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
@@ -56,6 +59,8 @@ export class SolicitudPagoService {
     private removerNotaDeSolicitudPagoGQL: RemoverNotaDeSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
     private cancelarSolicitudPagoGQL: CancelarSolicitudPagoGQL,
+    private solicitudPagoCajaAsignadaGQL: SolicitudPagoCajaAsignadaGQL,
+    private asignarSolicitudPagoACajaGQL: AsignarSolicitudPagoACajaGQL,
     private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
@@ -332,6 +337,18 @@ export class SolicitudPagoService {
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
+  }
+
+  /** Caja a la que está asignada la solicitud. El error de red llega al llamador. */
+  onGetCajaAsignada(id: number): Observable<SolicitudPagoCajaAsignada> {
+    return this.genericCrudService.onCustomQuery(
+      this.solicitudPagoCajaAsignadaGQL, { id }, true, PROPAGAR_ERROR_DE_RED, true, CONSULTA_SOLICITUD);
+  }
+
+  /** Asigna la solicitud a una caja para que la pague su operador; `cajaVirtualId` nulo la desasigna. */
+  onAsignarACaja(id: number, cajaVirtualId: number | null): Observable<SolicitudPagoCajaAsignada> {
+    return this.genericCrudService.onCustomMutation(
+      this.asignarSolicitudPagoACajaGQL, { solicitudPagoId: id, cajaVirtualId });
   }
 
   /** Cancela la solicitud con un motivo. Si ya tiene pagos, el central la rechaza con su mensaje. */

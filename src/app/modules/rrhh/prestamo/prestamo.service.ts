@@ -5,9 +5,17 @@ import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PrestamosPorFuncionarioGQL } from './graphql/PrestamosPorFuncionario';
 import { PrestamosPageGQL } from './graphql/PrestamosPage';
 import { PrestamoCuotasGQL } from './graphql/PrestamoCuotas';
-import { CrearPrestamoGQL } from './graphql/CrearPrestamo';
+import { CrearPrestamoGQL, CrearPrestamoSinClaveGQL } from './graphql/CrearPrestamo';
+import { centralNoConoceLaClave, conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../commons/core/utils/claveIdempotencia';
 import { CobrarCuotaGQL } from './graphql/CobrarCuota';
 import { Prestamo, PrestamoCuota } from './prestamo.model';
+
+/** Un préstamo listo para enviar: las variables de la mutation y la clave de ese intento. */
+export interface PedidoDePrestamo {
+  prestamo: any;
+  cajaVirtualId: number;
+  claveIdempotencia: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PrestamoService {
@@ -17,7 +25,8 @@ export class PrestamoService {
     private prestamosPageGQL: PrestamosPageGQL,
     private prestamoCuotasGQL: PrestamoCuotasGQL,
     private crearPrestamoGQL: CrearPrestamoGQL,
-    private cobrarCuotaGQL: CobrarCuotaGQL
+    private cobrarCuotaGQL: CobrarCuotaGQL,
+    private crearPrestamoSinClaveGQL: CrearPrestamoSinClaveGQL
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
@@ -35,8 +44,17 @@ export class PrestamoService {
       undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
-  onCrear(prestamo: any, cajaVirtualId: number, servidor = true): Observable<Prestamo> {
-    return this.genericService.onSaveCustom<Prestamo>(this.crearPrestamoGQL, { prestamo, cajaVirtualId }, servidor);
+  /**
+   * Crea el préstamo y lo desembolsa. El pedido va tal como viene, con su clave: un reintento manda exactamente
+   * lo mismo y el central no desembolsa dos veces. `opciones.sinClave` avisa si el central no conoce la clave.
+   */
+  onCrear(pedido: PedidoDePrestamo, opciones?: OpcionesDePedidoConClave): Observable<Prestamo> {
+    const { claveIdempotencia, ...variables } = pedido;
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.genericService.onSaveCustom<Prestamo>(this.crearPrestamoGQL, pedido, true,
+          { silenciarRechazo: centralNoConoceLaClave })
+      : this.genericService.onSaveCustom<Prestamo>(this.crearPrestamoSinClaveGQL, variables, true),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   /**

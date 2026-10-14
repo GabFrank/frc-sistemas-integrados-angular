@@ -187,7 +187,8 @@ export class MainService implements OnDestroy {
         resolve(false);
       }, 5000);
 
-      this.sucursalService.onGetSucursalActual(!isLocal)
+      // Corre en el arranque, antes de que haya pantalla: sin el aviso del genérico (#390).
+      this.sucursalService.onGetSucursalActual(!isLocal, { sinAviso: true })
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (res) => {

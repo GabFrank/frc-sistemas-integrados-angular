@@ -27,18 +27,47 @@
       <div fxLayout="row" fxLayoutGap="16px">
         <mat-form-field appearance="outline" fxFlex="60">
           <mat-label>Razón Social / Nombre</mat-label>
-          <input matInput formControlName="nombre" placeholder="Ingrese nombre o razón social">
+          <input matInput #nombreInput formControlName="nombre" placeholder="Ingrese nombre o razón social"
+            [matAutocomplete]="autoNombre" (input)="onEscribir(nombreInput.value, false)">
+          <mat-autocomplete #autoNombre="matAutocomplete" [displayWith]="mostrarNombre"
+            (optionSelected)="onSugerenciaElegida($event)">
+            <mat-option *ngFor="let cliente of sugerencias" [value]="cliente">
+              {{ cliente.persona?.nombre }} — {{ cliente.persona?.documento || 'SIN RUC' }}
+            </mat-option>
+          </mat-autocomplete>
           <mat-error *ngIf="nombreControl.hasError('required')">
             Este campo es requerido
           </mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline" fxFlex="40">
           <mat-label>RUC</mat-label>
-          <input matInput formControlName="ruc" placeholder="Ingrese RUC">
+          <input matInput #rucInput formControlName="ruc" placeholder="Ingrese RUC"
+            [matAutocomplete]="autoRuc" (input)="onEscribir(rucInput.value, true)">
+          <mat-autocomplete #autoRuc="matAutocomplete" [displayWith]="mostrarRuc" panelWidth="420px"
+            (optionSelected)="onSugerenciaElegida($event)">
+            <mat-option *ngFor="let cliente of sugerencias" [value]="cliente">
+              {{ cliente.persona?.documento || 'SIN RUC' }} — {{ cliente.persona?.nombre }}
+            </mat-option>
+            <mat-option *ngIf="rucParaSet" [value]="{ buscarEnSet: rucParaSet }">
+              <mat-icon>travel_explore</mat-icon>
+              Buscar {{ rucParaSet }} en la SET
+            </mat-option>
+          </mat-autocomplete>
           <mat-error *ngIf="rucControl.hasError('required')">
             Este campo es requerido
           </mat-error>
         </mat-form-field>
+      </div>
+
+      <div class="cliente-estado" [class.vinculado]="clienteVinculadoTexto" *ngIf="puedeEditarComputed">
+        <mat-icon>{{ clienteVinculadoTexto ? 'how_to_reg' : (buscandoSugerencias ? 'hourglass_empty' : 'person_off') }}</mat-icon>
+        <span *ngIf="clienteVinculadoTexto">
+          Cliente: {{ clienteVinculadoTexto }} · {{ clienteVinculadoEmail || 'sin correo guardado' }}
+        </span>
+        <span *ngIf="!clienteVinculadoTexto && buscandoSugerencias">Buscando clientes…</span>
+        <span *ngIf="!clienteVinculadoTexto && !buscandoSugerencias">
+          Sin cliente vinculado: elegí uno de la lista para que la factura quede a su nombre.
+        </span>
       </div>
 
       <mat-form-field appearance="outline" class="full-width">

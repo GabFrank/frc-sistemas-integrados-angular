@@ -28,6 +28,8 @@ export interface QueryError {
 export interface ContextoConsulta {
   timeoutMs?: number;
   silenciarAvisoTimeout?: boolean;
+  /** Sin el aviso del genérico ante un error de red. No es `silentLoad`, que solo saca el «Buscando…». */
+  sinAviso?: boolean;
 }
 
 /** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
@@ -35,9 +37,9 @@ export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
 /** Lo que espera un cajero de pie (escanear, elegir un lote) antes de que se le diga algo (#390). */
 export const TIMEOUT_CONSULTA_MOSTRADOR_MS = 10000;
 /**
- * Para quien maneja el error de red con su propio `error:`: sin esto onCustomQuery no emite nada si
- * el servidor no responde, y el que llama queda esperando para siempre. Solo red: un error GraphQL
- * sigue llegando como `null` (#390).
+ * Para quien maneja el error de red con su propio `error:` y no quiere el aviso del genérico. Solo red: un
+ * error GraphQL sigue llegando como `null` (#390). Sin ningún `errorConf` el error de red también llega, con
+ * el aviso «No se pudo consultar…» si quien llama no avisa.
  */
 export const PROPAGAR_ERROR_DE_RED: QueryError = { networkError: { propagate: true, show: false } };
 /**
@@ -52,3 +54,5 @@ export const LECTURA_ESTRICTA: QueryError = {
 export const CONTEXTO_MOSTRADOR: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 /** Para quien ya avisa por su cuenta cuando onGetAll le devuelve `null`: sin aviso del genérico. */
 export const SIN_AVISO_DEL_GENERICO: QueryError = { graphError: { show: false }, networkError: { show: false } };
+/** Para un sondeo: corte corto, y ni el link ni el genérico avisan (el próximo intento vuelve a preguntar). */
+export const CONTEXTO_SONDEO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true, sinAviso: true };

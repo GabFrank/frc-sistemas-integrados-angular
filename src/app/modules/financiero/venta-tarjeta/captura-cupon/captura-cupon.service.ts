@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { merge, Observable, timer } from 'rxjs';
 import { distinctUntilChanged, filter, map, takeWhile } from 'rxjs/operators';
-import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { GenericCrudService, CONTEXTO_SONDEO } from '../../../../generics/generic-crud.service';
 import { CapturaCupon, CapturaCuponQr } from './captura-cupon.model';
 import { CapturaCuponGQL, CapturaCuponSubGQL, CrearCapturaCuponGQL } from './graphql/capturaCupon';
 import { switchMapSinCortar } from '../../../../commons/core/utils/rxjsUtils';
@@ -153,7 +153,7 @@ export class CapturaCuponService {
    */
   private consultar(token: string): Observable<CapturaCupon> {
     return this.genericService
-      .onCustomQuery(this.consultarGQL, { token }, false, null, true)
+      .onCustomQuery(this.consultarGQL, { token }, false, null, true, CONTEXTO_SONDEO)
       .pipe(
         map((res) => res as CapturaCupon),
         filter((c) => c != null)

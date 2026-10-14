@@ -19,6 +19,8 @@ import { Observable, Subject, of } from "rxjs";
 import { map, switchMap } from "rxjs/operators";
 import { MainService } from "../../../../main.service";
 import { FacturaSimilar } from "../factura-similar.model";
+import { SaveFacturaLegalToFilialResponse } from "../graphql/saveFacturaLegalToFilial";
+import { esEnvioAFilialSinConfirmar, esRechazoDelServidor } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { getDigitoVerificadorString } from "../../../../commons/core/utils/rucUtils";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -947,17 +949,14 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       // timbrado. Emitir es irreversible, así que ante la duda se avisa al cajero en
       // vez de re-emitir: la factura pudo haberse guardado y hay que mirar la lista
       // antes de volver a intentar.
+      //
+      // Un rechazo del servidor no es duda: el backend corta antes de escribir y el
+      // motivo ya se avisó, así que solo se libera el botón para corregir y emitir (#470).
       this.facturaService
         .onSaveFactura(facturaInput, facturaItemInputList, false)
         .pipe(untilDestroyed(this))
         .subscribe({
-          next: (res: TimbradoDetalle) => {
-            if (res != null) {
-              this.handleFacturaSuccess(res);
-            } else {
-              this.onFacturaNoConfirmada();
-            }
-          },
+          next: (res) => this.alResponderLaEmision(res),
           error: (err) => {
             console.error("Error al guardar la factura legal:", err);
             this.onFacturaNoConfirmada();
@@ -978,30 +977,42 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       )
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (res: any) => {
-          if (res && res.facturaId) {
-            this.notificacionService.openGuardadoConExito();
-            
-            // Si el usuario quiere imprimir, esperar replicación y luego imprimir
-            if (deseaImprimir) {
-              this.esperarReplicacionEImprimir(res.facturaId, this.selectedSucursal.id);
-            } else {
-              this.matDialogRef.close({
-                facturado: true,
-                cliente: this.selectedCliente,
-              });
-            }
-          } else {
-            this.guardando = false;
-            this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial");
-          }
-        },
-        error: (error) => {
-          this.guardando = false;
-          console.error("Error al guardar factura en filial:", error);
-          this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial: " + (error.message || "Error desconocido"));
-        },
+        next: (res: SaveFacturaLegalToFilialResponse) => this.alResponderElEnvioAFilial(res, deseaImprimir),
+        error: (error) => this.alFallarElEnvioAFilial(error),
       });
+  }
+
+  alResponderElEnvioAFilial(res: SaveFacturaLegalToFilialResponse, deseaImprimir: boolean) {
+    if (res?.facturaId == null) {
+      // El central siempre devuelve el id o falla; sin id no hay confirmación de que no se emitió.
+      this.onFacturaNoConfirmada();
+      return;
+    }
+    this.notificacionService.openGuardadoConExito();
+    // Si el usuario quiere imprimir, esperar replicación y luego imprimir
+    if (deseaImprimir) {
+      this.esperarReplicacionEImprimir(res.facturaId, this.selectedSucursal.id);
+    } else {
+      this.matDialogRef.close({
+        facturado: true,
+        cliente: this.selectedCliente,
+      });
+    }
+  }
+
+  /**
+   * Solo un rechazo del filial libera el botón sin más: el motivo ya lo mostró `onCustomMutation`
+   * (se llama sin `silentLoad`), así que acá no se suma otro aviso (#471). Un corte entre el central
+   * y el filial o un 500 del filial llegan con la misma forma que un rechazo, pero la factura pudo
+   * haberse emitido: se avisa que no se pudo confirmar, como ante un error de red.
+   */
+  alFallarElEnvioAFilial(error: any) {
+    console.error("Error al guardar factura en filial:", error);
+    if (esRechazoDelServidor(error) && !esEnvioAFilialSinConfirmar(error)) {
+      this.guardando = false;
+    } else {
+      this.onFacturaNoConfirmada();
+    }
   }
   
   esperarReplicacionEImprimir(facturaId: number, sucursalId: number) {
@@ -1044,6 +1055,16 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
           },
         });
     }, 1000);
+  }
+
+  alResponderLaEmision(res: { data?: TimbradoDetalle; error?: any }) {
+    if (res?.data != null && res.error == null) {
+      this.handleFacturaSuccess(res.data);
+    } else if (res?.data == null && esRechazoDelServidor(res?.error)) {
+      this.guardando = false;
+    } else {
+      this.onFacturaNoConfirmada();
+    }
   }
 
   /**

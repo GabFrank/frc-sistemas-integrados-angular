@@ -71,6 +71,7 @@ export class ResumenFiscalVentasComponent implements OnInit {
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
+      catchError(() => of([] as Sucursal[])),
       map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
       shareReplay(1)
     );

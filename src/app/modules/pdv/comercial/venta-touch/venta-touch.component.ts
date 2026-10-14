@@ -8,7 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+import { CONTEXTO_MOSTRADOR, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS, CONTEXTO_SONDEO } from "../../../../generics/generic-crud.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -43,6 +43,7 @@ import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.model";
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
+import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
 import { Venta } from "../../../operaciones/venta/venta.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import {
@@ -124,7 +125,9 @@ import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
-import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { debePedirClienteParaFacturar, esRechazoDelServidor, esRechazoPorFacturaSinNombre } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { Cliente } from '../../../personas/clientes/cliente.model';
+import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -182,6 +185,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   // cerrado un diálogo que sigue abierto. Los atajos se bloquean con cualquiera de los dos.
   isCargando = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
+  /** Abierto el diálogo que pide el cliente de una venta rechazada por factura sin nombre (#473). */
+  private pidiendoClienteParaFacturar = false;
   /**
    * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
    * vale depende de la moneda (9455 son 94,55 reales o 9.455 guaraníes), así que el parser
@@ -718,6 +723,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * sin abrir el selector.
    */
   agregarConLote(item: VentaItem): void {
+    // Antes del selector de lote: que el cajero no elija lote para enterarse después.
+    if (item?.precioVenta != null && !tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
+      return;
+    }
     const controlaLote = item?.producto?.lote;
 
     if (controlaLote === true) {
@@ -800,6 +810,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addItem(item: VentaItem, index?) {
+    if (this.pidiendoClienteParaFacturar) {
+      // El escáner sigue leyendo aunque haya un diálogo: lo que entre ahora no estaría en la venta
+      // que se va a reenviar y se perdería al limpiar el carrito (#473).
+      this.notificacionSnackbar.openWarn("Cargue el cliente o cancele antes de agregar productos.", 4);
+      return;
+    }
     item.precio = item?.precioVenta?.precio;
     let cantidad: number = +item.cantidad;
     if (item.producto.balanza != true) {
@@ -816,7 +832,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (item.precioVenta == null) {
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item.presentacion.precios?.find(
-          (p) => p.principal == true && p.activo == true
+          (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -825,9 +842,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item.precioVenta = item?.presentacion?.precios.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
       }
+    }
+
+    // Por acá entran todos los ítems (buscador, selector, lotes, envases): sin un precio mayor a
+    // cero no hay venta. Un precio en cero no es un regalo, es un error del catálogo (#473).
+    if (!tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
+      this.selectedTipoPrecio = this.tiposPrecios[0];
+      this.cantidadControl.setValue(1);
+      return;
     }
 
     let presentacionCaja: Presentacion;
@@ -851,7 +878,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       item2.lotes = null;
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item2.precioVenta = item2.presentacion?.precios?.find(
-          (precio) => precio?.principal == true && precio.activo == true
+          (precio) => precio?.principal == true && precio.activo == true &&
+            tienePrecioVendible(precio)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -860,11 +888,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item2.precioVenta = item2.presentacion?.precios?.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
       }
 
-      if (item2.precioVenta != null) {
+      // Sin precio vendible en la caja las unidades se quedan en la presentación original: si no,
+      // el rechazo de la caja se llevaría parte de la cantidad en silencio.
+      if (tienePrecioVendible(item2.precioVenta)) {
         let factor = Math.floor(
           (cantidad * item.presentacion.cantidad) / item2.presentacion.cantidad
         );
@@ -1048,7 +1079,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (precio == null) {
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item?.presentacion?.precios?.find(
-          (p) => p.principal == true && p.activo == true
+          (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
         );
       } else if (
         this.modoPrecio?.includes("MIXTO") ||
@@ -1057,11 +1089,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item.precioVenta = item?.presentacion?.precios?.find(
           (p) =>
             this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
-            p.activo == true
+            p.activo == true &&
+            tienePrecioVendible(p)
         );
         if (item.precioVenta == null) {
           item.precioVenta = item?.presentacion?.precios?.find(
-            (p) => p.principal == true && p.activo == true
+            (p) => p.principal == true && p.activo == true &&
+            tienePrecioVendible(p)
           );
         }
       }
@@ -1075,11 +1109,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         duracion: 2,
         color: NotificacionColor.warn,
       });
+    } else if (!tienePrecioVendible(item.precioVenta)) {
+      this.avisarSinPrecioVendible(item);
     } else {
       this.agregarConLote(item);
     }
     this.buscadorFocusSub.next();
     this.cantidadControl.setValue(1);
+  }
+
+  private avisarSinPrecioVendible(item: VentaItem): void {
+    const nombre = item?.producto?.descripcion ?? "El producto";
+    this.notificacionSnackbar.openWarn(`${nombre} no tiene un precio válido. Avise al encargado.`, 5);
+  }
+
+  /**
+   * Un ítem recuperado de una venta guardada o de un delivery abierto no pasó por `addItem`: si
+   * está en cero no se cobra hasta quitarlo.
+   */
+  private carritoConPrecioEnCero(): boolean {
+    const enCero = itemConPrecioEnCero(this.selectedItemList);
+    if (enCero == null) return false;
+    const nombre = enCero.producto?.descripcion ?? "Un producto";
+    this.notificacionSnackbar.openWarn(`${nombre} está a precio cero: quítelo del carrito para cobrar.`, 6);
+    return true;
   }
 
   cambiarTipoPrecio(tipo) {
@@ -1093,6 +1146,64 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       texto,
       duracion: 10,
     });
+  }
+
+  /**
+   * El filial rechazó la venta porque lleva factura electrónica sin nombre y llega a 7.000.000: no guardó
+   * nada. Se pide el cliente y se reenvía la misma venta con el mismo cobro, sin volver a cobrar (#473).
+   */
+  private pedirClienteYReintentar(venta: Venta, cobro, ticket, facturar, pedidos: number): void {
+    // Mientras se elige el cliente no se vende ni se toca el carrito: F8/F11 y el buscador miran esto.
+    this.isDialogOpen = true;
+    this.pidiendoClienteParaFacturar = true;
+    this.dialog
+      .open(ClienteParaFacturaDialogComponent, {
+        data: { totalGs: cobro?.totalGs ?? venta.totalGs },
+        autoFocus: true,
+        restoreFocus: true,
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((cliente: Cliente) => {
+        this.isDialogOpen = false;
+        this.pidiendoClienteParaFacturar = false;
+        if (cliente?.id == null) {
+          this.avisarVentaSinGuardarPorCliente("La venta no se guardó: falta el cliente para facturar.");
+          this.buscadorFocusSub.next();
+          return;
+        }
+        venta.cliente = cliente;
+        this.onSaveVenta(venta, cobro, ticket, facturar, null, null, null, pedidos + 1)?.subscribe();
+      });
+  }
+
+  /**
+   * La venta quedó sin guardar por falta de cliente. Un cobro con tarjeta ya pasado por el POS se
+   * descarta acá con aviso: si quedara pendiente se registraría contra la próxima venta que se guarde.
+   */
+  private avisarVentaSinGuardarPorCliente(texto: string): void {
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.warn,
+      texto,
+      duracion: 6,
+    });
+    if (this._pendingTarjetaPagos?.length > 0) {
+      this._pendingTarjetaPagos = [];
+      this.isDialogOpen = true;
+      this.dialogoService
+        .confirm(
+          "Atención!!",
+          "Hay un cobro con tarjeta ya pasado y la venta no se guardó.",
+          "Avise al encargado antes de volver a cobrar esta venta.",
+          null,
+          false
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(() => {
+          this.isDialogOpen = false;
+          this.buscadorFocusSub.next();
+        });
+    }
   }
 
   /** Carrito del PDV activo. Fuera de delivery, selectedItemList siempre apunta a este array. */
@@ -1146,6 +1257,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
+    if (this.carritoConPrecioEnCero()) return;
     if (this.selectedDelivery?.cobroIncierto) {
       // Reusaría los cobros en memoria, sin la línea sin confirmar: se podría cobrar dos veces (#390)
       this.notificacionSnackbar.openWarn("Un cobro de este delivery quedó sin confirmar: abrilo de nuevo desde la lista de deliverys.", 8);
@@ -1440,6 +1552,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.buscadorFocusSub.next();
       return;
     }
+    if (this.carritoConPrecioEnCero()) return;
     // Evita reentradas mientras se procesa un cobro rápido en curso.
     if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
@@ -1524,7 +1637,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     facturar?,
     ventaCreditoInput?,
     ventaCreditoCuotaInputList?,
-    facturaLegalId?: number
+    facturaLegalId?: number,
+    pedidosCliente = 0
   ): Observable<Venta> {
     if (facturar == null) {
       // Solo el Cobro Rapido + Ticket (F11) pide factura explicita. Para el Cobro
@@ -1536,6 +1650,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.isDelivery) venta.delivery = this.selectedDelivery;
     if (this.modoConsulta) return;
+    // Foto de los ítems: la lista es la del carrito vivo, y si el filial pide el cliente la venta se
+    // reenvía con el total y el cobro de este intento (#473).
+    if (venta.ventaItemList != null) venta.ventaItemList = [...venta.ventaItemList];
     return new Observable((obs) => {
       // Se levanta acá, dentro del observable y después del chequeo de modoConsulta, y se baja en el
       // finalize del pipe interno: onTicketClick hace .subscribe().unsubscribe() sobre este observable
@@ -1703,6 +1820,25 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
             // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
             // venta asociada, con el timbrado consumido y el stock sin descontar.
+            if (debePedirClienteParaFacturar({
+              error: err,
+              tieneCliente: venta.cliente?.id != null,
+              facturaManualEmitida: facturaLegalId != null,
+              esCredito: ventaCreditoInput != null,
+              esDelivery: this.isDelivery,
+              pedidos: pedidosCliente,
+            })) {
+              this.pedirClienteYReintentar(venta, cobro, ticket, facturar, pedidosCliente);
+              obs.next(null);
+              return;
+            }
+            if (pedidosCliente > 0 && esRechazoPorFacturaSinNombre(err)) {
+              this.avisarVentaSinGuardarPorCliente(
+                "El servidor volvió a rechazar la factura con ese cliente. La venta no se guardó: cobre con el botón de factura."
+              );
+              obs.next(null);
+              return;
+            }
             const rechazoDelServidor = esRechazoDelServidor(err);
             if (!rechazoDelServidor || facturaLegalId != null) {
               this.notificacionSnackbar.notification$.next({
@@ -1962,7 +2098,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               0,
               200,
               ["AUTORIZADO", "RECHAZADO"],
-              true
+              true,
+              null,
+              // Trae hasta 200 solicitudes: un minuto, no los 20 s de un sondeo corto.
+              { ...CONTEXTO_SONDEO, timeoutMs: 60000 }
             )
             .pipe(catchError(() => of(null)));
         }),

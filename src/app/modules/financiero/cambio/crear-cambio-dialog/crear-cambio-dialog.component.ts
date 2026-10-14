@@ -59,10 +59,14 @@ export class CrearCambioDialogComponent implements OnInit {
     input.valorEnGsCompraMercado = this.compraMercadoControl.value;
     this.cambioService.onSaveCambio(input)
     .pipe(untilDestroyed(this))
-    .subscribe(res => {
-      if(res != null){
-        this.matDialogRef.close({cambio: res});
-      }
+    .subscribe({
+      next: res => {
+        if(res != null){
+          this.matDialogRef.close({cambio: res});
+        }
+      },
+      // El rechazo (sin rol, valor inválido) ya lo avisa onSave; el diálogo queda abierto para corregir.
+      error: () => {}
     });
   }
 

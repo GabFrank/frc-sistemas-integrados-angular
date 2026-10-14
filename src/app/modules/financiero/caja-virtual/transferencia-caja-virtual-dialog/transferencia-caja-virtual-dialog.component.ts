@@ -2,7 +2,9 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { enviarEnSerie, resumirLote } from '../enviar-en-serie';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { MontoCajaVirtual, PedidoDeTransferencias } from '../pedido-en-lote';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -37,6 +39,12 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
 
   cajasList: CajaVirtual[] = [];
   isSaving = false;
+
+  /** El pedido que quedó sin respuesta. Mientras exista solo se puede reenviarlo o cerrar. */
+  private pedidoPendiente: PedidoDeTransferencias | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
 
   constructor(
     private dialogRef: MatDialogRef<TransferenciaCajaVirtualDialogComponent>,
@@ -80,10 +88,10 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
   }
 
   onSave() {
+    if (this.hayPendiente || this.isSaving) return;
     if (this.formGroup.invalid) return;
 
     const cajaDestino: CajaVirtual = this.cajaDestinoControl.value;
-    const items: { cantidad: number; moneda: Moneda }[] = [];
 
     const amtGs = this.cantidadGsControl.value;
     const amtRs = this.cantidadRsControl.value;
@@ -94,48 +102,87 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
       return;
     }
 
-    if (amtGs > 0 && this.monedaGs) items.push({ cantidad: amtGs, moneda: this.monedaGs });
-    if (amtRs > 0 && this.monedaRs) items.push({ cantidad: amtRs, moneda: this.monedaRs });
-    if (amtDs > 0 && this.monedaDs) items.push({ cantidad: amtDs, moneda: this.monedaDs });
+    const montos: MontoCajaVirtual[] = [];
+    const nombres: string[] = [];
+    const agregar = (cantidad: number, moneda: Moneda) => {
+      if (!(cantidad > 0) || !moneda) return;
+      montos.push({ monedaId: moneda.id, cantidad });
+      nombres.push(moneda.denominacion);
+    };
+    agregar(amtGs, this.monedaGs);
+    agregar(amtRs, this.monedaRs);
+    agregar(amtDs, this.monedaDs);
 
-    if (items.length === 0) return;
+    if (montos.length === 0) return;
 
+    // Un solo pedido con todas las monedas: el central transfiere todo o nada. Antes iba uno por moneda y un
+    // rechazo de la segunda dejaba la primera transferida. Una clave por cada «Transferir»; el pedido se guarda
+    // entero, con ella, para poder reenviarlo idéntico.
+    this.pendienteDescripcion = `${nombres.join(', ')} a ${cajaDestino.nombre}`;
+    this.enviar({
+      origenId: this.cajaOrigen.id,
+      destinoId: cajaDestino.id,
+      montos,
+      descripcion: this.descripcionControl.value?.toUpperCase() || null,
+      claveIdempotencia: nuevaClaveIdempotencia(),
+    }, false);
+  }
+
+  /**
+   * Reenvía el pedido que quedó sin respuesta, idéntico y con su misma clave: si el central ya lo había
+   * registrado no lo repite, y si no, lo registra ahora (franco-system-backend-servidor#376).
+   */
+  reenviar() {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, true);
+  }
+
+  private enviar(pedido: PedidoDeTransferencias, esReenvio: boolean) {
     this.isSaving = true;
     // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no refrescaría la caja.
     this.dialogRef.disableClose = true;
-    enviarEnSerie(items, it => this.createTransferObs(it.cantidad, it.moneda.id, cajaDestino.id))
-      .pipe(untilDestroyed(this))
-      .subscribe(resultados => {
+    // Sin «Guardado con éxito» genérico: el aviso lo da este diálogo.
+    this.cajaVirtualService.onRealizarTransferencias(pedido, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
         this.isSaving = false;
-        this.dialogRef.disableClose = false;
-        const resumen = resumirLote(resultados, it => it.moneda.denominacion);
-        if (resumen.todoOk) {
-          this.notificacion.openSucess('Transferencia(s) realizada(s) correctamente');
-          this.dialogRef.close(true);
+        if (res == null) { this.quedoSinConfirmar(pedido, true); return; }
+        this.notificacion.openSucess('Transferencia realizada correctamente');
+        this.dialogRef.close(true);
+      },
+      error: err => {
+        this.isSaving = false;
+        if (erroresDeRechazo(err)) {
+          // El central dijo que no, y como es todo o nada no quedó ninguna moneda adentro (el motivo ya lo
+          // mostró onSaveCustom). Queda el formulario para corregir; el próximo intento sale con otra clave.
+          this.pedidoPendiente = null;
+          this.hayPendiente = false;
+          this.dialogRef.disableClose = false;
           return;
         }
-        // Rechazo de la primera moneda: no se transfirió nada (el motivo ya lo mostró onSaveCustom) y se
-        // puede corregir y reintentar.
-        if (resumen.nadaCambio) return;
-        // Algo se transfirió o quedó en duda: con el formulario abierto, reintentar repetiría lo que ya entró.
-        // Se cierra y la caja se relee. Si fue una sola moneda y la cortó el link, su aviso ya lo dijo.
-        const soloElCorteDelLink = resultados.length === 1 && esTimeoutDeLink(resultados[0].error);
-        if (!soloElCorteDelLink) this.notificacion.openWarn(resumen.texto, 12);
-        this.dialogRef.close(true);
-      });
+        // El corte del link ya avisó que pudo haberse aplicado.
+        this.quedoSinConfirmar(pedido, !esTimeoutDeLink(err) || esReenvio);
+      },
+    });
   }
 
-  // Cada transferencia del lote va sin «Guardado con éxito»: el aviso agregado lo da onSave.
-  createTransferObs(cantidad: number, monedaId: number, cajaDestinoId: number) {
-    return this.cajaVirtualService.onRealizarTransferencia(
-      this.cajaOrigen.id,
-      cajaDestinoId,
-      cantidad,
-      monedaId,
-      this.descripcionControl.value?.toUpperCase() || null,
-      this.mainService.usuarioActual?.id,
-      { avisarExito: false }
-    );
+  /**
+   * El pedido pudo haberse registrado. El diálogo queda abierto solo para reenviarlo (seguro, por la clave) o
+   * cerrar: no se vuelve al formulario, porque un pedido nuevo saldría con otra clave y se sumaría a este.
+   * `disableClose` sigue en true: Esc y el clic afuera cerrarían sin que la caja se relea.
+   */
+  private quedoSinConfirmar(pedido: PedidoDeTransferencias, avisar: boolean) {
+    this.pedidoPendiente = pedido;
+    this.hayPendiente = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si la transferencia se realizó: podés reintentar sin riesgo de repetirlo.', 8);
+    }
+  }
+
+  /** Cierra con el pedido sin confirmar. Cierra con `true` para que la caja se relea. */
+  cerrarSinConfirmar() {
+    if (this.isSaving) return;
+    this.notificacion.openWarn('No se pudo confirmar si la transferencia se realizó: revisá los movimientos de la caja antes de cargarlo de nuevo.', 12);
+    this.dialogRef.close(true);
   }
 
   onCancel() {

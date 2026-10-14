@@ -36,15 +36,15 @@
       </div>
     </div>
 
-    <!-- Métricas (placeholder — abren detalle) -->
+    <!-- Métricas (abren detalle). Puntuación funcionario y metas son placeholder; asistencia sale del backend. -->
     <div class="dash-stats-row">
       <dash-stat-chip class="clickable" (click)="onVerPuntuacion()" icon="star" color="info"
         [value]="(puntuacionFuncionario | number:'1.1-1') + ' / 10'" label="Puntuación funcionario"></dash-stat-chip>
       <dash-stat-chip class="clickable" (click)="onVerAsistencia()" icon="fingerprint" color="success"
-        [value]="(puntuacionAsistencia | number:'1.1-1') + ' / 10'" label="Puntuación asistencia"></dash-stat-chip>
+        [value]="puntuacionAsistenciaTexto" label="Puntuación asistencia"></dash-stat-chip>
       <dash-stat-chip class="clickable" (click)="onVerMetas()" icon="flag" color="warning"
         [value]="metasLogradas + ' / ' + metasTotal" label="Metas y objetivos del mes"></dash-stat-chip>
-      <!-- A diferencia de los tres de arriba, este NO es placeholder: sale del backend. -->
+      <!-- Este tampoco es placeholder: sale del backend. -->
       <dash-stat-chip icon="gavel" [color]="advertencias > 0 ? 'danger' : 'success'"
         [value]="advertencias" label="Amonestaciones"></dash-stat-chip>
     </div>
@@ -75,7 +75,7 @@
       <mat-tab-group class="legajo-tabs" animationDuration="0ms">
 
         <mat-tab label="Información general">
-          <app-informacion-general [funcionarioId]="funcionario?.id"
+          <app-informacion-general [funcionarioId]="funcionario?.id" [persona]="personaNueva"
             (guardado)="onGuardado($event)"
             (fotoCambiada)="fotoPerfilSrc = $event"></app-informacion-general>
         </mat-tab>
@@ -150,11 +150,43 @@
           </mat-tab>
 
           <mat-tab label="Asistencia">
-            <div class="proximamente">
-              <mat-icon>construction</mat-icon>
-              <p>Métricas de asistencia en desarrollo.</p>
-              <span>Aquí se verán las marcaciones, tardanzas y ausencias del funcionario.</span>
+            <div class="tab-acciones asistencia-periodo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+              <button mat-icon-button (click)="onMoverMesAsistencia(-1)" [disabled]="asistenciaCargando" matTooltip="Mes anterior">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <b class="periodo-texto">{{ asistenciaPeriodoTexto }}</b>
+              <button mat-icon-button (click)="onMoverMesAsistencia(1)" [disabled]="asistenciaCargando || asistenciaEsMesActual" matTooltip="Mes siguiente">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+              <span class="resumen-asistencia">{{ asistenciaResumenTexto }}</span>
             </div>
+            <div class="tabla-container" *ngIf="asistenciaDias.data.length > 0">
+              <table mat-table [dataSource]="asistenciaDias" class="mat-elevation-z1">
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                  <td mat-cell *matCellDef="let row">{{ row.fecha }}</td>
+                </ng-container>
+                <ng-container matColumnDef="estado">
+                  <th mat-header-cell *matHeaderCellDef>Estado</th>
+                  <td mat-cell *matCellDef="let row"><span class="estado-asistencia" [ngClass]="row.estado">{{ row.estadoTexto }}</span></td>
+                </ng-container>
+                <ng-container matColumnDef="tardanzaEntrada">
+                  <th mat-header-cell *matHeaderCellDef>Tardanza entrada</th>
+                  <td mat-cell *matCellDef="let row">{{ row.tardanzaEntrada }}</td>
+                </ng-container>
+                <ng-container matColumnDef="tardanzaAlmuerzo">
+                  <th mat-header-cell *matHeaderCellDef>Tardanza almuerzo</th>
+                  <td mat-cell *matCellDef="let row">{{ row.tardanzaAlmuerzo }}</td>
+                </ng-container>
+                <ng-container matColumnDef="justificativo">
+                  <th mat-header-cell *matHeaderCellDef>Justificativo</th>
+                  <td mat-cell *matCellDef="let row">{{ row.justificativo }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="asistenciaColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: asistenciaColumns"></tr>
+              </table>
+            </div>
+            <div class="vacio" *ngIf="!asistenciaCargando && asistenciaMensaje">{{ asistenciaMensaje }}</div>
           </mat-tab>
 
           <mat-tab label="Puntuaciones">

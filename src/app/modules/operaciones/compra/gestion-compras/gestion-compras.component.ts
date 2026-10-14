@@ -103,8 +103,10 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
-import { DevolucionEstado } from "../../devolucion/devolucion.model";
+import { Devolucion, DevolucionEstado } from "../../devolucion/devolucion.model";
 import { RetiroProveedorComponent } from "../../devolucion/retiro-proveedor/retiro-proveedor.component";
+import { ListDevolucionComponent } from "../../devolucion/list-devolucion/list-devolucion.component";
+import { EditDevolucionComponent } from "../../devolucion/edit-devolucion/edit-devolucion.component";
 import { DevolucionConfiguracionService } from "../../devolucion/configuracion/devolucion-configuracion.service";
 import {
   DevolucionesPendientesDialogComponent,
@@ -2037,19 +2039,50 @@ export class GestionComprasComponent
             .pipe(takeUntil(this.destroy$))
             .subscribe((res: DevolucionesPendientesDialogResult) => {
               if (res?.accion === "ir") {
-                // Abre el retiro consolidado con el proveedor ya filtrado.
-                this.tabService.addTab(
-                  new Tab(
-                    RetiroProveedorComponent,
-                    "Retiro de proveedor",
-                    new TabData(undefined, this.selectedProveedorComputed),
-                    null
-                  )
-                );
+                this.abrirGestionDeDevoluciones(enEspera);
               }
             });
         },
       });
+  }
+
+  /**
+   * Lleva a donde se puede hacer algo con las devoluciones del aviso. El retiro
+   * consolidado solo lista las que ya están SEPARADO o COLECTADO: si alguna sigue
+   * PENDIENTE todavía hay que separarla, y eso se hace en la devolución misma.
+   */
+  private abrirGestionDeDevoluciones(enEspera: Devolucion[]): void {
+    const hayPendientes = enEspera.some((d) => d.estado === DevolucionEstado.PENDIENTE);
+    if (!hayPendientes) {
+      this.tabService.addTab(
+        new Tab(
+          RetiroProveedorComponent,
+          "Retiro de proveedor",
+          new TabData(undefined, this.selectedProveedorComputed),
+          null
+        )
+      );
+      return;
+    }
+    if (enEspera.length === 1) {
+      this.tabService.addTab(
+        new Tab(
+          EditDevolucionComponent,
+          "Devol. " + enEspera[0].id,
+          new TabData(enEspera[0].id),
+          null
+        )
+      );
+      return;
+    }
+    this.tabService.addTab(
+      new Tab(
+        ListDevolucionComponent,
+        "Devoluciones en espera",
+        new TabData(undefined, { proveedor: this.selectedProveedorComputed }),
+        null
+      )
+    );
   }
 
   // Step 1: Datos Generales methods

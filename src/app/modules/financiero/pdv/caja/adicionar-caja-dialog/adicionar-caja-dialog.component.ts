@@ -512,7 +512,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.cajaService
       .onGetCajasAnalisisDiferencias(
         this.selectedCaja.id, null, null, null, null, null, null, null,
-        this.selectedCaja.sucursal.id, null, 0, 1, null, true
+        this.selectedCaja.sucursal.id, null, 0, 1, null, true,
+        // Hasta 16 intentos cada 2 s: el genérico no avisa cada uno (#390).
+        null, { sinAviso: true }
       )
       .pipe(untilDestroyed(this))
       .subscribe({

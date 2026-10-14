@@ -153,10 +153,14 @@ export class ChequeService {
     return this.mutar(this.anularChequeGQL, { chequeId, motivo });
   }
 
-  /** Emite un cheque suelto (no ligado a un pago CPP). */
+  /**
+   * Emite un cheque suelto (no ligado a un pago CPP). Reenviar las mismas variables con la misma
+   * `claveIdempotencia` devuelve el cheque ya emitido en vez de emitir otro (franco-system-backend-servidor#376).
+   */
   onEmitirManual(vars: {
     chequeraId: number; total: number; diferido: boolean;
     monedaId?: number; cuentaBancariaId?: number; fechaPago?: string; concepto?: string;
+    claveIdempotencia?: string;
   }): Observable<Cheque> {
     return this.mutar(this.emitirChequeGQL, vars);
   }

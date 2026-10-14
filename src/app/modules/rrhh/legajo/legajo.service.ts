@@ -13,6 +13,7 @@ import { RevertirEgresoFuncionarioGQL } from './graphql/RevertirEgresoFuncionari
 import { EgresoVigenteGQL } from './graphql/EgresoVigente';
 import { SaveDocumentoGQL } from './graphql/SaveDocumento';
 import { AnularDocumentoGQL } from './graphql/AnularDocumento';
+import { AsistenciaFuncionarioGQL } from './graphql/AsistenciaFuncionario';
 
 @Injectable({ providedIn: 'root' })
 export class LegajoService {
@@ -29,7 +30,8 @@ export class LegajoService {
     private revertirEgresoFuncionarioGQL: RevertirEgresoFuncionarioGQL,
     private egresoVigenteGQL: EgresoVigenteGQL,
     private saveDocumentoGQL: SaveDocumentoGQL,
-    private anularDocumentoGQL: AnularDocumentoGQL
+    private anularDocumentoGQL: AnularDocumentoGQL,
+    private asistenciaFuncionarioGQL: AsistenciaFuncionarioGQL
   ) { }
 
   onGetCargoHistoricos(funcionarioId: number, servidor = true): Observable<any> {
@@ -42,6 +44,11 @@ export class LegajoService {
 
   onGetDocumentos(funcionarioId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.documentosGQL, { funcionarioId }, servidor);
+  }
+
+  /** Asistencia del mes (`mes` 1..12), calculada en el central. `null` si no se pudo leer. */
+  onGetAsistencia(funcionarioId: number, anho: number, mes: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.asistenciaFuncionarioGQL, { funcionarioId, anho, mes }, servidor);
   }
 
   onGetDocumentoContenido(id: number, servidor = true): Observable<any> {

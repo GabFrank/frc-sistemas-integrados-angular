@@ -1,6 +1,17 @@
 <h2 mat-dialog-title>{{ titulo }}</h2>
 
-<mat-dialog-content>
+<mat-dialog-content *ngIf="hayPendiente">
+  <div class="aviso-sin-confirmar">
+    <mat-icon>warning</mat-icon>
+    <div>
+      <div><b>No se pudo confirmar si el egreso de {{ pendienteDescripcion }} se registró.</b></div>
+      <div class="aviso-detalle">Reintentá: si ya se había registrado no se registra otro, y si no, se registra ahora.
+        Si cerrás, revisá los movimientos de la caja antes de repetirlo.</div>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-content *ngIf="!hayPendiente">
   <div fxLayout="column" fxLayoutGap="12px" class="maletin-form">
 
     <mat-form-field appearance="outline">
@@ -55,7 +66,14 @@
   </div>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
+<mat-dialog-actions align="end" *ngIf="hayPendiente">
+  <button mat-stroked-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+  <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+    <mat-icon>replay</mat-icon> {{ isSaving ? 'Reintentando…' : 'Reintentar' }}
+  </button>
+</mat-dialog-actions>
+
+<mat-dialog-actions align="end" *ngIf="!hayPendiente">
   <button mat-stroked-button (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
   <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving">
     <mat-icon>save</mat-icon> Confirmar

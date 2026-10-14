@@ -1,7 +1,18 @@
 <div class="emitir-cheque-dialog">
   <h2 class="titulo-center" style="font-weight: 500;">Emitir cheque</h2>
 
-  <mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+  <mat-dialog-content *ngIf="hayPendiente" style="padding: 16px 0;">
+    <div class="aviso-sin-confirmar">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <div><b>No se pudo confirmar si el cheque {{ pendienteDescripcion }} se emitió.</b></div>
+        <div class="aviso-detalle">Reenviálo: si ya se había emitido no se emite otro, y si no, se emite ahora.
+          Si cerrás, revisá la chequera antes de emitirlo de nuevo.</div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-content *ngIf="!hayPendiente" [formGroup]="formGroup" style="padding: 16px 0;">
     <div fxLayout="column" fxLayoutGap="14px">
 
       <mat-form-field appearance="outline">
@@ -53,10 +64,17 @@
     </div>
   </mat-dialog-content>
 
-  <mat-dialog-actions align="end">
+  <mat-dialog-actions align="end" *ngIf="!hayPendiente">
     <button mat-stroked-button (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
     <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
       <mat-icon>send</mat-icon> Emitir
+    </button>
+  </mat-dialog-actions>
+
+  <mat-dialog-actions align="end" *ngIf="hayPendiente">
+    <button mat-stroked-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+    <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+      <mat-icon>replay</mat-icon> {{ isSaving ? 'Reenviando…' : 'Reenviar cheque' }}
     </button>
   </mat-dialog-actions>
 </div>
