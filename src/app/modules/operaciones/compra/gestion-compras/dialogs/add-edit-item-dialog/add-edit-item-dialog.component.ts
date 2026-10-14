@@ -36,6 +36,7 @@ import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
+import { avisoTrasMutacion, erroresDeRechazo } from "../../../../../../commons/core/utils/graphqlErrorUtils";
 import { PorSucursal } from "../../../../../../commons/core/utils/por-sucursal";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
@@ -78,6 +79,8 @@ export interface AddEditItemDialogResult {
   item: PedidoItem;
   action: "save" | "cancel";
   lastSearchText?: string;
+  /** Alta sin respuesta: el ítem pudo guardarse y reintentar lo duplicaría; quien abrió el diálogo recarga (#488). */
+  recargar?: boolean;
 }
 
 export interface DistribucionItem {
@@ -150,6 +153,11 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Loading state
   savingComputed = false;
+  /**
+   * Ítem que ya quedó guardado aunque fallaron sus distribuciones: el reintento lo actualiza en vez de crear otro,
+   * y cancelar lo devuelve como guardado para que el pedido lo muestre (#488).
+   */
+  private itemYaGuardado: PedidoItem | null = null;
 
   private _distribucionModo: 'COMPLETA' | 'SIMPLIFICADA' = 'COMPLETA';
   
@@ -1315,10 +1323,17 @@ export class AddEditItemDialogComponent implements OnInit {
           },
           error: (error) => {
             console.error("Error guardando distribuciones:", error);
-            // El PedidoItem ya fue guardado, pero las distribuciones fallaron
-            this.notificacionService.openAlgoSalioMal(
-              "El ítem fue guardado, pero hubo un error al guardar las distribuciones. Puede intentar guardarlas nuevamente."
-            );
+            // El PedidoItem ya fue guardado: el reintento lo actualiza (con su id) en vez de crear otro, y
+            // mergePedidoItemDistribuciones empareja por sucursales, así que tampoco duplica distribuciones
+            this.data.item = savedItem;
+            this.itemYaGuardado = Object.assign(new PedidoItem(), {
+              ...savedItem,
+              presentacion: formValue.presentacion,
+              precioUnitarioPorPresentacion: formValue.precioUnitarioPorPresentacion,
+            });
+            this.notificacionService.openWarn(erroresDeRechazo(error) != null
+              ? "El ítem se guardó, pero no sus distribuciones: corregilas y guardá de nuevo (se actualiza el mismo ítem)."
+              : "El ítem se guardó, pero no se pudo confirmar si se guardaron sus distribuciones: guardá de nuevo para asegurarlas (no duplica el ítem).", 10);
             this.savingComputed = false;
             this.updateComputedProperties();
           }
@@ -1326,21 +1341,36 @@ export class AddEditItemDialogComponent implements OnInit {
       },
       error: (error) => {
         console.error("Error guardando PedidoItem:", error);
-        this.notificacionService.openAlgoSalioMal(
-          "Error al guardar el ítem del pedido"
-        );
         this.savingComputed = false;
         this.updateComputedProperties();
+        // En un rechazo el genérico ya mostró el motivo y el diálogo queda para corregir
+        if (erroresDeRechazo(error) != null) {
+          return;
+        }
+        const esAlta = !this.data.item?.id;
+        const aviso = avisoTrasMutacion(error, esAlta ? "se agregó el ítem" : "se actualizó el ítem");
+        if (aviso != null) {
+          this.notificacionService.openWarn(aviso, 8);
+        }
+        if (esAlta) {
+          // Reintentar agregaría el ítem otra vez: se cierra y el pedido recarga
+          const result: AddEditItemDialogResult = {
+            item: {} as PedidoItem,
+            action: "cancel",
+            lastSearchText: this.originalSearchText,
+            recargar: true,
+          };
+          this.dialogRef.close(result);
+        }
       },
     });
   }
 
   onCancel(): void {
-    const result: AddEditItemDialogResult = {
-      item: {} as PedidoItem,
-      action: "cancel",
-      lastSearchText: this.originalSearchText,
-    };
+    // Con el ítem ya guardado (fallaron solo sus distribuciones) se cierra como guardado: el pedido lo tiene que mostrar
+    const result: AddEditItemDialogResult = this.itemYaGuardado
+      ? { item: this.itemYaGuardado, action: "save", lastSearchText: this.originalSearchText }
+      : { item: {} as PedidoItem, action: "cancel", lastSearchText: this.originalSearchText };
     this.dialogRef.close(result);
   }
 

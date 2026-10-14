@@ -8,6 +8,7 @@ import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface DistributeItemDialogData {
   item: PedidoItem;
@@ -21,6 +22,8 @@ export interface DistributeItemDialogResult {
   success: boolean;
   action: 'save' | 'delete' | 'cancel';
   message?: string;
+  /** Sin respuesta del servidor: las distribuciones pudieron cambiar y quien abrió el diálogo recarga (#488). */
+  recargar?: boolean;
 }
 
 @Component({
@@ -641,8 +644,7 @@ export class DistributeItemDialogComponent implements OnInit {
       error: (error) => {
         console.error('Error al guardar distribuciones:', error);
         this.savingComputed = false;
-        this.notificacionService.openAlgoSalioMal('Error al guardar las distribuciones');
-        this.dialogRef.close({ success: false, action: 'save' });
+        this.trasFallo(error, 'save', 'se guardó la distribución');
       }
     });
   }
@@ -716,10 +718,25 @@ export class DistributeItemDialogComponent implements OnInit {
       error: (error) => {
         console.error('Error al eliminar distribuciones:', error);
         this.savingComputed = false;
-        this.notificacionService.openAlgoSalioMal('Error al eliminar las distribuciones');
-        this.dialogRef.close({ success: false, action: 'delete' });
+        this.trasFallo(error, 'delete', 'se eliminaron las distribuciones');
       }
     });
+  }
+
+  /**
+   * En un rechazo el genérico ya mostró el motivo y el diálogo queda abierto con lo cargado, para corregir. Sin
+   * respuesta se avisa (salvo el corte por tiempo, que avisó el link) y se cierra para que el pedido recargue (#488).
+   */
+  private trasFallo(error: any, action: 'save' | 'delete', queSeHizo: string): void {
+    if (erroresDeRechazo(error) != null) {
+      return;
+    }
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    const result: DistributeItemDialogResult = { success: false, action, recargar: true };
+    this.dialogRef.close(result);
   }
 
   onCancel(): void {

@@ -2833,6 +2833,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.recargar) {
+        this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+      }
       if (result?.lastSearchText !== undefined) {
         this.lastItemSearchText = result.lastSearchText;
       }
@@ -2931,6 +2934,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.recargar) {
+        this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+      }
       if (result && result.action === "save") {
         // Guardar el item original antes de la edición para calcular el delta
         const oldItem = item;
@@ -3008,7 +3014,10 @@ export class GestionComprasComponent
           disableClose: true
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result: DistributeItemDialogResult) => {
+          if (result?.recargar) {
+            this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+          }
           if (result?.success) {
             // Solo recargar datos si la operación fue exitosa
             // Marcar tab de ítems como no cargado para recargar en próxima visita
@@ -3973,7 +3982,14 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: DividirItemDialogResult) => {
-      if (result?.success) {
+      if (result?.recargar) {
+        // Alguna parte se guardó (o pudo guardarse): un solo aviso, sin el éxito (#488)
+        if (result.message) {
+          this.notificacionService.openWarn(result.message, 8);
+        }
+        this.recargarRecepcionDocumentalTrasCorte();
+        this.programarRecargaTrasFallo(() => this.recargarRecepcionDocumentalTrasCorte());
+      } else if (result?.success) {
         this.notificacionService.openSucess(result.message || 'Ítem dividido exitosamente');
         
         // Recargar datos del tab 3
@@ -4892,6 +4908,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result?.recargar) {
+            this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+          }
           if (result && result.action === "save") {
             if (result.item?.producto?.id) {
               this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
