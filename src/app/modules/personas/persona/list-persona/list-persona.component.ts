@@ -182,7 +182,8 @@ export class ListPersonaComponent implements OnInit {
   private abrirDialogoUsuario(data: AdicionarUsuarioDialogData) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data,
-      width: '560px'
+      width: '720px',
+      maxWidth: '90vw'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.onFiltrar();
     })

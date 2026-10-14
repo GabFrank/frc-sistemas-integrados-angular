@@ -161,14 +161,16 @@ export class ListUsuarioComponent implements OnInit {
       data: {
         usuario
       },
-      width: '560px'
+      width: '720px',
+      maxWidth: '90vw'
     })
   }
 
   onNuevoUsuario() {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data: {},
-      width: '560px'
+      width: '720px',
+      maxWidth: '90vw'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
       // Siempre: cerrar con Esc después del alta no devuelve el usuario creado.
       this.onFiltrar();

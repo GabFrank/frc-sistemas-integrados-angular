@@ -1,6 +1,28 @@
 <div class="usuario-dialog">
   <h3 class="titulo">{{ esAlta ? "Nuevo usuario" : (isEditting ? "Editar usuario" : "Usuario") }}</h3>
 
+  <div class="persona" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="8px">
+    <div class="persona-datos" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <mat-icon>person</mat-icon>
+      <span *ngIf="selectedPersona != null">
+        <b>{{ selectedPersona?.nombre }}</b>
+        <span *ngIf="selectedPersona?.documento" class="secundario"> · {{ selectedPersona?.documento }}</span>
+      </span>
+      <span *ngIf="selectedPersona == null && !buscandoPersona" class="secundario">Sin persona elegida</span>
+      <span *ngIf="buscandoPersona" class="secundario">Verificando...</span>
+    </div>
+    <button
+      *ngIf="esAlta && !personaFija"
+      mat-stroked-button
+      type="button"
+      [disabled]="buscandoPersona || guardando"
+      (click)="onBuscarPersona()"
+    >
+      <mat-icon>search</mat-icon>
+      {{ selectedPersona == null ? "Buscar" : "Cambiar" }}
+    </button>
+  </div>
+
   <form [formGroup]="formGroup" class="formulario">
     <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
       <mat-form-field fxFlex="50">
@@ -13,23 +35,6 @@
           autocomplete="off"
           oninput="this.value == ' ' ? this.value = '': null"
         />
-        <button
-          *ngIf="esAlta && !personaFija"
-          mat-icon-button
-          matSuffix
-          type="button"
-          matTooltip="Elegir persona"
-          aria-label="Elegir persona"
-          [disabled]="buscandoPersona || guardando"
-          (click)="onBuscarPersona()"
-        >
-          <mat-icon>person_search</mat-icon>
-        </button>
-        <mat-hint *ngIf="buscandoPersona">Verificando...</mat-hint>
-        <mat-hint *ngIf="!buscandoPersona && selectedPersona != null">
-          {{ selectedPersona?.nombre }}<span *ngIf="selectedPersona?.documento"> · {{ selectedPersona?.documento }}</span>
-        </mat-hint>
-        <mat-hint *ngIf="!buscandoPersona && selectedPersona == null">Elegí la persona del usuario</mat-hint>
       </mat-form-field>
       <mat-form-field *ngIf="esAlta" fxFlex="50">
         <mat-label>Clave</mat-label>
