@@ -29,7 +29,7 @@ import { RecepcionMercaderiaRechazarItemDialogComponent, RecepcionMercaderiaRech
 import { VerificacionRapidaSucursalesDialogComponent } from './verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 import { MainService } from '../../../../../main.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
-import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
 
 // Enums y interfaces reales
@@ -39,12 +39,6 @@ export enum RecepcionMercaderiaEstado {
   FINALIZADA = 'FINALIZADA',
   CANCELADA = 'CANCELADA'
 }
-
-/**
- * Espera antes de recargar tras una mutation sin respuesta: el link de central offline corta a los 3 s sin cancelar
- * el pedido, y recargar al instante mostraría pendiente lo que el central todavía está aplicando (#488).
- */
-const RECARGA_TRAS_CORTE_MS = 5000;
 
 export interface RecepcionMercaderia {
   id?: number;

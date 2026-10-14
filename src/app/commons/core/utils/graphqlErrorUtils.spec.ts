@@ -7,6 +7,7 @@ import {
   esRechazoPorFacturaSinNombre,
   MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR,
   MENSAJE_RESPUESTA_VACIA,
+  motivoDelRechazo,
 } from "./graphqlErrorUtils";
 
 // Texto de VentaNoFacturableException en el filial (FacturaLegalBuilder.ensayarDE).
@@ -162,5 +163,38 @@ describe('avisoTrasMutacion (#488)', () => {
 
   it('el texto nombra la operación', () => {
     expect(avisoTrasMutacion(null, 'se recepcionaron los ítems')).toContain('No se pudo confirmar si se recepcionaron los ítems:');
+  });
+});
+
+describe('motivoDelRechazo (#488)', () => {
+  it('devuelve el primer mensaje de un rechazo en arreglo', () => {
+    expect(motivoDelRechazo([{ message: 'El pedido ya está finalizado' }, { message: 'otro' }])).toBe('El pedido ya está finalizado');
+  });
+
+  it('acepta un objeto con graphQLErrors y un ApolloError', () => {
+    expect(motivoDelRechazo({ graphQLErrors: [{ message: 'No existe la nota' }] })).toBe('No existe la nota');
+    expect(motivoDelRechazo(new ApolloError({ graphQLErrors: [{ message: 'No existe la nota' } as any] }))).toBe('No existe la nota');
+  });
+
+  it('quita el prefijo de graphql-java', () => {
+    expect(motivoDelRechazo([{ message: 'Exception while fetching data (/desvincularProductoProveedor) : Producto no encontrado' }]))
+      .toBe('Producto no encontrado');
+  });
+
+  it('saltea mensajes vacíos y usa el siguiente', () => {
+    expect(motivoDelRechazo([{ message: '' }, { message: 'Motivo real' }])).toBe('Motivo real');
+  });
+
+  it('null si el rechazo no trae ningún texto', () => {
+    expect(motivoDelRechazo([{ message: '  ' }, {}])).toBeNull();
+  });
+
+  it('null si no es un rechazo', () => {
+    expect(motivoDelRechazo(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }))).toBeNull();
+    expect(motivoDelRechazo({ networkError: {}, graphQLErrors: [{ message: 'x' }] })).toBeNull();
+    expect(motivoDelRechazo([{ message: MENSAJE_RESPUESTA_VACIA }])).toBeNull();
+    expect(motivoDelRechazo([])).toBeNull();
+    expect(motivoDelRechazo(null)).toBeNull();
+    expect(motivoDelRechazo(undefined)).toBeNull();
   });
 });
