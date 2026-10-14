@@ -25,12 +25,13 @@ import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
-import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
-import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
+import { EditNotaRecepcionItemDialogComponent, ItemDeNotaSinConfirmar } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
+import { RechazarItemDialogComponent, RechazarItemDialogResult } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 import { MainService } from '../../../../../../main.service';
 import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
+import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Cotización de la nota: 20 s sin el aviso genérico del link; avisa el diálogo (#390). */
 const CONSULTA_COTIZACION: ContextoConsulta = {
@@ -173,6 +174,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   
   // Bandera para rastrear si se hicieron cambios en el diálogo
   private changesMade: boolean = false;
+
+  /** Número de la nota cuya alta quedó sin respuesta: el próximo «Crear» busca si quedó guardada (#488). */
+  private numeroAltaSinConfirmar: number | null = null;
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
   
   // Propiedades para asignación automática de ítems
   private selectedItemsToAssign: any[] = [];
@@ -372,6 +378,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -453,6 +462,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           next: (items: NotaRecepcionItem[]) => {
             // null = error GraphQL (el servicio ya avisó)
             this.itemsDataSource.data = items ?? [];
+            if (items != null) {
+              // Los agregados en la sesión que ya no existen (borrados antes de un fallo) salen de la lista
+              const existentes = new Set(items.map(i => i.id));
+              this.itemsAgregadosEnSesion = this.itemsAgregadosEnSesion.filter(id => existentes.has(id));
+            }
             this.loadingItems = false;
             this.updateComputedProperties();
           },
@@ -896,10 +910,15 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     });
 
     // Manejar resultado del diálogo
-    dialogRef.afterClosed().subscribe((result: NotaRecepcionItem) => {
-      if (result?.id) {
+    dialogRef.afterClosed().subscribe((result: NotaRecepcionItem | ItemDeNotaSinConfirmar) => {
+      if (result != null && 'recargar' in result) {
+        this.trasAltaDeItemSinConfirmar(result.aviso);
+        return;
+      }
+      const item = result as NotaRecepcionItem;
+      if (item?.id) {
         if (this.initialIsEdit || this.notaCreada) {
-          this.itemsAgregadosEnSesion.push(result.id);
+          this.itemsAgregadosEnSesion.push(item.id);
         }
         this.changesMade = true;
         this.loadItems();
@@ -974,7 +993,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         },
         error: (error) => {
           console.error('Error al eliminar ítem:', error);
-          this.notificacionService.openAlgoSalioMal('Error al eliminar el ítem');
+          this.trasFalloDeMutacion(error, 'se eliminó el ítem', () => this.loadItems());
         }
       });
   }
@@ -1090,8 +1109,16 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       disableClose: true
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.success) {
+    dialogRef.afterClosed().subscribe((result: RechazarItemDialogResult) => {
+      if (result?.recargar) {
+        // Rechazo a medias o sin confirmar: un solo aviso, sin el éxito (#488)
+        if (result.message) {
+          this.notificacionService.openWarn(result.message, 8);
+        }
+        this.changesMade = true;
+        this.loadItems();
+        this.programarRecargaTrasFallo(() => this.loadItems());
+      } else if (result?.success) {
         this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
         // Marcar que se hicieron cambios
         this.changesMade = true;
@@ -1173,16 +1200,21 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       .subscribe({
         next: (resultados) => {
           const huboError = resultados.some(success => !success);
-          this.itemsAgregadosEnSesion = [];
           this.deletingNota = false;
 
           if (huboError) {
+            if (resultados.some(success => success)) {
+              this.changesMade = true;
+            }
             this.notificacionService.openAlgoSalioMal('No se pudieron eliminar todos los ítems. No se cerró el diálogo.');
+            // La recarga saca de la lista los que sí se borraron
+            this.loadItems();
             this.actualizarEstadoAcciones();
             this.cdr.markForCheck();
             return;
           }
 
+          this.itemsAgregadosEnSesion = [];
           this.changesMade = true;
           this.cerrarDialogo();
         },
@@ -1191,7 +1223,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           this.deletingNota = false;
           this.actualizarEstadoAcciones();
           this.cdr.markForCheck();
-          this.notificacionService.openAlgoSalioMal('Error al limpiar ítems antes de salir');
+          this.trasFalloDeOperacionMultiple(error, 'se eliminaron los ítems agregados', idsAEliminar.length,
+            () => this.loadItems());
         }
       });
   }
@@ -1262,8 +1295,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       .subscribe({
         next: (resultados) => {
           const huboError = resultados.some(success => !success);
-          this.itemsAgregadosEnSesion = [];
+          if (!huboError) {
+            this.itemsAgregadosEnSesion = [];
+          }
           this.revertirFormulario();
+          // La recarga saca de la lista los que se borraron; los que fallaron siguen ahí
           this.loadItems();
           this.deletingNota = false;
           this.changesMade = !huboError;
@@ -1280,7 +1316,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           this.deletingNota = false;
           this.actualizarEstadoAcciones();
           this.cdr.markForCheck();
-          this.notificacionService.openAlgoSalioMal('Error al cancelar los cambios');
+          this.trasFalloDeOperacionMultiple(error, 'se eliminaron los ítems agregados', idsAEliminar.length,
+            () => this.loadItems());
         }
       });
   }
@@ -1321,9 +1358,18 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
             error: (error) => {
               console.error('Error al cancelar creación de nota:', error);
               this.deletingNota = false;
+              if (erroresDeRechazo(error) == null) {
+                // La nota pudo borrarse: se cierra para que la pantalla del pedido muestre lo que quedó (#488)
+                const aviso = avisoTrasMutacion(error, 'se canceló la creación de la nota');
+                if (aviso != null) {
+                  this.notificacionService.openWarn(aviso, 8);
+                }
+                this.changesMade = true;
+                this.cerrarDialogo();
+                return;
+              }
               this.actualizarEstadoAcciones();
               this.cdr.markForCheck();
-              this.notificacionService.openAlgoSalioMal('Error al cancelar la creación de la nota');
             }
           });
       });
@@ -1408,8 +1454,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         return;
       }
 
-      // Validar nota duplicada antes de guardar
       const proveedorId = this.data.pedido?.proveedor?.id;
+      if (!this.data.isEdit && this.numeroAltaSinConfirmar != null && !(await this.retomarAltaSinConfirmar(proveedorId))) {
+        return;
+      }
+
+      // Validar nota duplicada antes de guardar
       const numero = Number(cleanFormValue.numero);
       const notaId = this.data.isEdit && this.data.nota ? this.data.nota.id : undefined;
       
@@ -1462,7 +1512,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               this.savingNota = false;
               this.actualizarEstadoAcciones();
               this.cdr.markForCheck();
-              this.notificacionService.openAlgoSalioMal('Error al actualizar la nota de recepción');
+              // Actualizar con id no duplica: el formulario queda para reintentar
+              this.trasFalloDeMutacion(error, 'se actualizó la nota');
             }
           });
         
@@ -1522,7 +1573,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               this.savingNota = false;
               this.actualizarEstadoAcciones();
               this.cdr.markForCheck();
-              this.notificacionService.openAlgoSalioMal('Error al crear la nota de recepción');
+              if (erroresDeRechazo(error) != null) {
+                return;
+              }
+              // Sin respuesta la nota pudo crearse: el próximo «Crear» la busca antes de crear otra
+              this.numeroAltaSinConfirmar = notaInput.numero;
+              this.changesMade = true;
+              this.notificacionService.openWarn(
+                'No se pudo confirmar si se creó la nota. Al volver a «Crear» se busca primero si quedó guardada.', 8);
             }
           });
       }
@@ -1603,7 +1661,13 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         error: (error) => {
           this.assigningItems = false;
           console.error('Error al asignar ítems automáticamente:', error);
-          this.notificacionService.openAlgoSalioMal('Error al asignar ítems automáticamente');
+          if (erroresDeRechazo(error) != null) {
+            // No pasa por el genérico: nadie mostró el motivo
+            this.notificacionService.openAlgoSalioMal('La nota se creó, pero no se asignaron los ítems: '
+              + (motivoDelRechazo(error) ?? 'el servidor rechazó la asignación'));
+            return;
+          }
+          this.trasFalloDeMutacion(error, 'se asignaron los ítems a la nota', () => this.loadItemsAfterAssignment());
         }
       });
   }
@@ -1641,6 +1705,120 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.notificacionService.openWarn(pendientes
       ? 'La nota se guardó, pero no se pudieron recargar sus ítems ni asignar los seleccionados: cerrá y volvé a abrirla.'
       : 'La nota se guardó, pero no se pudieron recargar sus ítems: cerrá y volvé a abrirla.', 6);
+  }
+
+  /**
+   * Fallo de una mutation (#488). En un rechazo el genérico ya mostró el motivo y no se aplicó nada. Sin respuesta
+   * pudo haberse aplicado: se avisa (salvo el corte por tiempo, que avisó el link), la pantalla del pedido recarga al
+   * cerrar y `recargar` corre a los 5 s.
+   */
+  private trasFalloDeMutacion(error: any, queSeHizo: string, recargar?: () => void): void {
+    if (erroresDeRechazo(error) != null) {
+      return;
+    }
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    this.changesMade = true;
+    if (recargar) {
+      this.programarRecargaTrasFallo(recargar);
+    }
+  }
+
+  /**
+   * Fallo de varias mutations en paralelo: cada una es su transacción y las demás pudieron aplicarse, así que se
+   * recarga siempre a los 5 s (#488).
+   */
+  private trasFalloDeOperacionMultiple(error: any, queSeHizo: string, operaciones: number, recargar: () => void): void {
+    if (erroresDeRechazo(error) != null) {
+      if (operaciones > 1) {
+        this.notificacionService.openWarn('Algunas operaciones pudieron haberse aplicado: se recargan los ítems.', 6);
+      }
+    } else {
+      const aviso = avisoTrasMutacion(error, queSeHizo);
+      if (aviso != null) {
+        this.notificacionService.openWarn(aviso, 8);
+      }
+    }
+    this.changesMade = true;
+    this.programarRecargaTrasFallo(recargar);
+  }
+
+  /** La recarga corre solo si el diálogo sigue abierto y con la misma nota. */
+  private programarRecargaTrasFallo(recargar: () => void): void {
+    if (this.destruido) {
+      return;
+    }
+    const notaId = this.data.nota?.id;
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (this.destruido || this.data.nota?.id !== notaId) {
+        return;
+      }
+      recargar();
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
+  }
+
+  /** El alta de un ítem quedó sin respuesta: pudo guardarse, así que se recargan los ítems. */
+  private trasAltaDeItemSinConfirmar(aviso: string | null): void {
+    // Su id no se conoce: si se guardó, «Cancelar» no lo borra
+    const nota = this.initialIsEdit ? 'Si aparece al recargar, al cancelar los cambios no se borra: eliminalo a mano si no va.' : null;
+    const texto = [aviso, nota].filter(t => t != null).join(' ');
+    if (texto) {
+      this.notificacionService.openWarn(texto, 10);
+    }
+    this.changesMade = true;
+    this.programarRecargaTrasFallo(() => this.loadItems());
+  }
+
+  /**
+   * Antes de crear otra nota tras un alta sin respuesta: si la nota de este pedido con ese número quedó guardada, se
+   * sigue sobre ella en vez de crear otra (#488). false si no se pudo verificar: no se guarda a ciegas.
+   */
+  private async retomarAltaSinConfirmar(proveedorId: number | undefined): Promise<boolean> {
+    const sinVerificar = 'No se pudo verificar si la nota anterior quedó creada: el servidor no responde. Intentá de nuevo en unos segundos.';
+    if (!proveedorId) {
+      this.notificacionService.openWarn(sinVerificar, 8);
+      return false;
+    }
+    let encontrada: NotaRecepcion | undefined;
+    try {
+      const notas = await this.pedidoService.onBuscarNotasPorProveedorYNumero(proveedorId, this.numeroAltaSinConfirmar)
+        .pipe(first()).toPromise();
+      if (notas == null) {
+        this.notificacionService.openWarn(sinVerificar, 8);
+        return false;
+      }
+      encontrada = notas.find(n => !n.esNotaRechazo && Number(n.pedido?.id) === Number(this.data.pedido?.id));
+    } catch (error) {
+      console.error('Error al buscar la nota sin confirmar:', error);
+      this.notificacionService.openWarn(sinVerificar, 8);
+      return false;
+    }
+    if (encontrada == null) {
+      this.numeroAltaSinConfirmar = null;
+      return true;
+    }
+    let nota: NotaRecepcion | null = null;
+    try {
+      nota = await this.pedidoService.onGetNotaRecepcionById(encontrada.id).pipe(first()).toPromise();
+    } catch (error) {
+      console.error('Error al cargar la nota sin confirmar:', error);
+    }
+    if (nota == null) {
+      this.notificacionService.openWarn(sinVerificar, 8);
+      return false;
+    }
+    this.numeroAltaSinConfirmar = null;
+    this.data.nota = nota;
+    this.data.isEdit = true;
+    this.notaCreada = true;
+    this.dialogTitle = 'Editar Nota de Recepción';
+    this.actionButtonText = 'Actualizar';
+    this.notificacionService.openWarn(`La nota ${nota.numero} ya se había creado: los datos se guardan sobre ella.`, 6);
+    return true;
   }
 
   private focusSalirButton(): void {

@@ -4002,7 +4002,14 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: RechazarItemDialogResult) => {
-      if (result?.success) {
+      if (result?.recargar) {
+        // Rechazo a medias o sin confirmar: un solo aviso, sin el éxito (#488)
+        if (result.message) {
+          this.notificacionService.openWarn(result.message, 8);
+        }
+        this.recargarRecepcionDocumentalTrasCorte();
+        this.programarRecargaTrasFallo(() => this.recargarRecepcionDocumentalTrasCorte());
+      } else if (result?.success) {
         this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
         
         // Recargar datos del tab 3
