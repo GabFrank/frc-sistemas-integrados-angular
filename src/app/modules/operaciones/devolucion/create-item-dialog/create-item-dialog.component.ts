@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { DateAdapter } from "@angular/material/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { FechaPyDateAdapter } from "../../../../shared/utils/fecha-py-date-adapter";
+import { CurrencyMask } from "../../../../commons/core/utils/numbersUtils";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -46,6 +47,9 @@ export class CreateItemDialogComponent implements OnInit {
   ]);
   motivoAveriaControl = new FormControl(null);
   costoUnitarioControl = new FormControl(null);
+  // El costo medio esta siempre en guaranies (aunque la compra haya sido en otra moneda).
+  // nullable: el costo es opcional; vaciarlo no debe guardar un 0.
+  costoUnitarioOptions = { ...new CurrencyMask().currencyOptionsGuarani, nullable: true };
   vencimientoControl = new FormControl(null);
   loteControl = new FormControl(null);
   motivoControl = new FormControl(null);
@@ -189,7 +193,9 @@ export class CreateItemDialogComponent implements OnInit {
     this.selectedProducto = item.producto;
     this.cantidadControl.setValue(item.cantidad);
     this.motivoAveriaControl.setValue(item.motivoAveria);
-    this.costoUnitarioControl.setValue(item.costoUnitario);
+    this.costoUnitarioControl.setValue(
+      item.costoUnitario != null ? Math.round(item.costoUnitario) : null
+    );
     this.loteControl.setValue(item.lote);
     this.motivoControl.setValue(item.motivo);
     this.vencimientoControl.setValue(
@@ -203,7 +209,8 @@ export class CreateItemDialogComponent implements OnInit {
     const costoMedio = presentacion?.producto?.costo?.costoMedio;
     if (costoMedio == null) return null;
     const factor = presentacion?.cantidad ?? 1;
-    return costoMedio * factor;
+    // El costo medio guarda decimales del promedio ponderado; en guaraníes no van.
+    return Math.round(costoMedio * factor);
   }
 
   onCancelar() {
