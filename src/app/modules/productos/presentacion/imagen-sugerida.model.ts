@@ -6,7 +6,7 @@ export interface ImagenSugerida {
   alto?: number;
   titulo?: string;
   sitio?: string;
-  fuente: 'OPEN_FOOD_FACTS' | 'SEARXNG' | 'BRAVE';
+  fuente: 'OPEN_FOOD_FACTS' | 'BING' | 'BRAVE';
 }
 
 export interface SugerenciasImagen {
