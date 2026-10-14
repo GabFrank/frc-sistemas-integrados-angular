@@ -1031,6 +1031,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
             console.log('Items a guardar:', itemsToSave);
 
             // Guardar todos los items en paralelo
+            const notaId = this.notaSeleccionada?.id;
             forkJoin(
               itemsToSave.map(itemInput =>
                 this.pedidoService.onSaveRecepcionMercaderiaItem(itemInput)
@@ -1060,7 +1061,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               },
               error: (error) => {
                 console.error('Error al guardar items:', error);
-                this.notificacionService.openAlgoSalioMal('Error al verificar ítem(es): ' + (error.message || 'Error desconocido'));
+                this.trasFalloDeOperacionMultiple(error, 'se verificaron los ítems', itemsToSave.length,
+                  () => this.recargarTrasCorte(notaId, true));
               }
             });
           } else {
@@ -1483,6 +1485,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Para cada sucursal seleccionada, cancelar la verificación
+    const notaId = this.notaSeleccionada?.id;
     const cancelaciones = this.sucursalesSeleccionadas.map(sucursal =>
       this.pedidoService.onCancelarVerificacion(item.id, sucursal.id).toPromise()
     );
@@ -1506,7 +1509,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     }).catch(error => {
       console.error('Error al deshacer verificación:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
+      this.trasFalloDeOperacionMultiple(error, 'se deshizo la verificación', cancelaciones.length,
+        () => this.recargarTrasCorte(notaId, false));
     });
   }
 
@@ -1523,6 +1527,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Para cada sucursal seleccionada, cancelar el rechazo
+    const notaId = this.notaSeleccionada?.id;
     const cancelaciones = this.sucursalesSeleccionadas.map(sucursal =>
       this.pedidoService.onCancelarRechazo(item.id, sucursal.id).toPromise()
     );
@@ -1546,7 +1551,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     }).catch(error => {
       console.error('Error al deshacer rechazo:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
+      this.trasFalloDeOperacionMultiple(error, 'se deshizo el rechazo', cancelaciones.length,
+        () => this.recargarTrasCorte(notaId, false));
     });
   }
 
@@ -1838,6 +1844,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
           });
 
           // Ejecutar todas las verificaciones
+          const notaId = this.notaSeleccionada?.id;
           Promise.all(promesas)
             .then((results) => {
               console.log('Todas las verificaciones detalladas completadas:', results);
@@ -1865,7 +1872,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
             })
             .catch((error) => {
               console.error('Error en verificación detallada:', error);
-              this.notificacionService.openAlgoSalioMal('Error al guardar verificación detallada: ' + (error.message || 'Error desconocido'));
+              this.trasFalloDeOperacionMultiple(error, 'se guardó la verificación detallada', promesas.length,
+                () => this.recargarTrasCorte(notaId, true));
             });
         },
         error: (error) => {
@@ -2017,6 +2025,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
           // Ejecutar todas las recepciones automáticas
           if (promesasRecepcion.length > 0) {
+            const notaId = this.notaSeleccionada?.id;
             Promise.all(promesasRecepcion)
               .then((results) => {
                 console.log('Recepciones automáticas completadas:', results);
@@ -2058,10 +2067,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               })
               .catch((error) => {
                 console.error('Error en recepción automática:', error);
-                this.notificacionService.openAlgoSalioMal(
-                  'Rechazo registrado, pero hubo un error al marcar la cantidad restante como recibida: ' +
-                  (error.message || 'Error desconocido')
-                );
+                // El motivo de un rechazo ya lo mostró el genérico; sin respuesta, las recepciones pueden seguir
+                // aplicándose (#488)
+                this.notificacionService.openWarn(erroresDeRechazo(error) != null
+                  ? 'Rechazo registrado, pero no se pudo marcar la cantidad restante como recibida.'
+                  : 'Rechazo registrado, pero no se pudo confirmar si se marcó la cantidad restante como recibida: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.', 8);
 
                 // Aún así actualizar UI con el rechazo
                 const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
@@ -2071,13 +2081,18 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
                 const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
                 const cantidadRecibidaActual = item.cantidadRecibida || 0;
 
+                // Sin el aviso verde, que contradiría al de arriba, y con la recarga a los 5 s: otras recepciones
+                // pueden seguir en vuelo
                 this.actualizarUIDespuesRechazo(
                   item,
                   cantidadRechazadaNueva,
                   cantidadRecibidaActual,
                   cantidadEsperada,
-                  cantidadPendiente
+                  cantidadPendiente,
+                  false,
+                  false
                 );
+                this.programarRecargaTrasFallo(() => this.recargarTrasCorte(notaId, false));
               });
           } else {
             // No hay recepciones automáticas que crear (no debería ocurrir si cantidadPendiente > 0)
@@ -2131,6 +2146,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
    * @param cantidadEsperada Cantidad esperada total
    * @param cantidadPendiente Cantidad pendiente restante
    * @param recargarDesdeBackend Si debe recargar desde el backend (por defecto true)
+   * @param avisarExito Si muestra el aviso verde (no, cuando falló la recepción automática del restante)
    */
   private actualizarUIDespuesRechazo(
     item: NotaRecepcionItem,
@@ -2138,7 +2154,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     cantidadRecibidaNueva: number,
     cantidadEsperada: number,
     cantidadPendiente: number,
-    recargarDesdeBackend: boolean = true
+    recargarDesdeBackend: boolean = true,
+    avisarExito: boolean = true
   ): void {
     // Actualizar cantidades del item localmente (temporal hasta recargar desde backend)
     item.cantidadRechazada = cantidadRechazadaNueva;
@@ -2167,7 +2184,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Notificar éxito con mensaje descriptivo
-    if (mensaje) {
+    if (mensaje && avisarExito) {
       this.notificacionService.openSucess(mensaje);
     }
 
@@ -2535,6 +2552,30 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     if (erroresDeRechazo(error) != null) {
       return;
     }
+    this.programarRecargaTrasFallo(recargar);
+  }
+
+  /**
+   * Fallo de una operación múltiple (`forkJoin` / `Promise.all` de mutations, #488). Cortan en el primer error, pero
+   * cada mutation es su propia transacción en el central: las demás pueden haberse aplicado o seguir en vuelo. Por
+   * eso se recarga siempre, a los 5 s. En un rechazo el motivo ya lo mostró el genérico y se agrega que otras pudieron
+   * aplicarse si se lanzó más de una; en un «sin respuesta» va un solo aviso.
+   */
+  private trasFalloDeOperacionMultiple(error: any, queSeHizo: string, operaciones: number, recargar: () => void): void {
+    if (erroresDeRechazo(error) != null) {
+      if (operaciones > 1) {
+        this.notificacionService.openWarn('Algunas operaciones pudieron haberse aplicado: se recargan los ítems.', 6);
+      }
+    } else {
+      const aviso = avisoTrasMutacion(error, queSeHizo);
+      if (aviso != null) {
+        this.notificacionService.openWarn(aviso, 8);
+      }
+    }
+    this.programarRecargaTrasFallo(recargar);
+  }
+
+  private programarRecargaTrasFallo(recargar: () => void): void {
     const timeout = setTimeout(() => {
       this.recargasTrasCorte.delete(timeout);
       recargar();
@@ -3204,6 +3245,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Crear array de promesas para cancelar verificación de los items seleccionados
+    const notaId = this.notaSeleccionada?.id;
     const cancelaciones: Promise<boolean>[] = [];
 
     itemsVerificados.forEach(item => {
@@ -3257,7 +3299,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     }).catch(error => {
       console.error('Error al deshacer verificación:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
+      // Sin limpiar, un reintento reenviaría cancelaciones que pudieron haberse aplicado
+      this.selectedItems = [];
+      this.selectAllItems = false;
+      this.trasFalloDeOperacionMultiple(error, 'se deshizo la verificación', cancelaciones.length,
+        () => this.recargarTrasCorte(notaId, false));
     });
   }
 
@@ -3310,6 +3356,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Crear array de promesas para cancelar rechazo de todos los items
+    const notaId = this.notaSeleccionada?.id;
     const cancelaciones: Promise<boolean>[] = [];
 
     itemsRechazados.forEach(item => {
@@ -3355,7 +3402,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     }).catch(error => {
       console.error('Error al deshacer rechazo:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
+      // Sin limpiar, un reintento reenviaría cancelaciones que pudieron haberse aplicado
+      this.selectedItems = [];
+      this.selectAllItems = false;
+      this.trasFalloDeOperacionMultiple(error, 'se deshizo el rechazo', cancelaciones.length,
+        () => this.recargarTrasCorte(notaId, false));
     });
   }
 
@@ -3416,6 +3467,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     // Crear array de promesas para cancelar rechazo de los items seleccionados
+    const notaId = this.notaSeleccionada?.id;
     const cancelaciones: Promise<boolean>[] = [];
 
     itemsRechazados.forEach(item => {
@@ -3469,7 +3521,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     }).catch(error => {
       console.error('Error al deshacer rechazo:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
+      // Sin limpiar, un reintento reenviaría cancelaciones que pudieron haberse aplicado
+      this.selectedItems = [];
+      this.selectAllItems = false;
+      this.trasFalloDeOperacionMultiple(error, 'se deshizo el rechazo', cancelaciones.length,
+        () => this.recargarTrasCorte(notaId, false));
     });
   }
 } 
