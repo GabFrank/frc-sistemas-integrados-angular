@@ -6,6 +6,7 @@ const devolucionItemFields = `
     id
     descripcion
     codigoPrincipal
+    lote
   }
   presentacion {
     id

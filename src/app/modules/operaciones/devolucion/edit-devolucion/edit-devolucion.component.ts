@@ -129,6 +129,9 @@ export class EditDevolucionComponent implements OnInit {
   canCanjear = false;
   canAcreditar = false;
   canCancelar = false;
+  /** Hay un guardado de la cabecera en curso, y si llegó otro cambio mientras tanto. */
+  private guardandoCabecera = false;
+  private guardarCabeceraPendiente = false;
   canRevertir = false;
   procesando = false; // evita doble-submit de las acciones de estado
   canjeMode = false;
@@ -442,6 +445,9 @@ export class EditDevolucionComponent implements OnInit {
         this.canAcreditar = true;
         this.canRevertir = true; // RETIRADO -> COLECTADO/SEPARADO
         break;
+      case DevolucionEstado.CANJEADO:
+        this.canRevertir = true; // CANJEADO -> RETIRADO (saca del stock lo reingresado)
+        break;
       default:
         break;
     }
@@ -455,6 +461,7 @@ export class EditDevolucionComponent implements OnInit {
         if (res != null) {
           this.selectedProveedor = res;
           this.proveedorTexto = res.persona?.nombre;
+          this.onCabeceraCambiada();
         }
       });
   }
@@ -462,6 +469,40 @@ export class EditDevolucionComponent implements OnInit {
   onRemoverProveedor() {
     this.selectedProveedor = null;
     this.proveedorTexto = "";
+    this.onCabeceraCambiada();
+  }
+
+  /**
+   * Guarda la cabecera apenas cambia: no hay botón Guardar. Se llama desde los eventos del
+   * usuario (elegir tipo, sucursal o proveedor; salir de la observación), no desde
+   * `valueChanges`, para que cargar la pantalla no dispare un guardado.
+   *
+   * Si todavía falta algo —una devolución con proveedor sin proveedor elegido— no guarda ni
+   * avisa: se guarda cuando esté completo. Los guardados van de a uno: dos seguidos sobre una
+   * devolución nueva crearían dos.
+   */
+  onCabeceraCambiada() {
+    if (!this.puedeEditarCabecera) return;
+    if (this.sucursalControl.invalid || this.tipoControl.invalid) return;
+    if (this.tipoControl.value == TipoDevolucion.CON_PROVEEDOR && this.selectedProveedor == null) return;
+    if (this.guardandoCabecera) {
+      this.guardarCabeceraPendiente = true;
+      return;
+    }
+    this.guardandoCabecera = true;
+    const alTerminar = () => {
+      this.guardandoCabecera = false;
+      if (this.guardarCabeceraPendiente) {
+        this.guardarCabeceraPendiente = false;
+        this.onCabeceraCambiada();
+      }
+    };
+    this.onGuardarCabecera().then(alTerminar, alTerminar);
+  }
+
+  /** La observación se guarda al salir del campo, y solo si cambió. */
+  onObservacionEditada() {
+    if (this.observacionControl.dirty) this.onCabeceraCambiada();
   }
 
   onGuardarCabecera(): Promise<Devolucion> {
@@ -526,6 +567,8 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onAddItem() {
+    // Con un guardado en curso la devolución todavía puede no tener id: se espera.
+    if (this.guardandoCabecera) return;
     if (this.selectedDevolucion?.id == null) {
       this.onGuardarCabecera().then(() => this.abrirBusquedaProducto(), () => {});
     } else {
@@ -569,6 +612,7 @@ export class EditDevolucionComponent implements OnInit {
           presentacion: res?.presentacion,
           tipo: this.selectedDevolucion.tipo,
           motivosAveria: this.motivosAveria,
+          sucursalId: this.selectedDevolucion?.sucursalOrigen?.id,
         },
         width: "40%",
         disableClose: true,
@@ -676,8 +720,14 @@ export class EditDevolucionComponent implements OnInit {
 
   /** Revierte la devolución un estado hacia atrás (transición segura del backend). */
   onRevertir() {
+    const esCanje = this.selectedDevolucion?.estado === DevolucionEstado.CANJEADO;
     this.dialogosService
-      .confirm("Atención!!", "¿Revertir la devolución un estado hacia atrás?")
+      .confirm(
+        "Atención!!",
+        esCanje
+          ? "¿Revertir el canje? Se saca del stock lo que se había reingresado y la devolución vuelve a RETIRADO."
+          : "¿Revertir la devolución un estado hacia atrás?"
+      )
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (!confirmado) return;
@@ -694,6 +744,8 @@ export class EditDevolucionComponent implements OnInit {
                 this.canjeMode = false;
                 this.acreditarMode = false;
                 this.computeEstadoFlags();
+                // Al deshacer un canje los ítems conservan lo reingresado: se releen para corregirlo.
+                if (esCanje) this.getItems(true);
               }
             },
             () => (this.procesando = false)
@@ -827,6 +879,7 @@ export class EditDevolucionComponent implements OnInit {
         if (res != null) {
           item.cantidadReingresada = res.cantidadReingresada;
           item.vencimientoReingreso = res.vencimientoReingreso;
+          item.loteReingreso = res.loteReingreso;
           // Nueva referencia para refrescar la tabla.
           this.dataSource.data = [...this.dataSource.data];
         }
@@ -860,6 +913,8 @@ export class EditDevolucionComponent implements OnInit {
           },
           // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
           () => {
+            // Cada ítem se guarda por separado: si uno falla, se relee lo que quedó en el servidor.
+            if (!huboError) this.getItems(true);
             huboError = true;
             this.cargandoService.closeDialog(requestId);
           }
