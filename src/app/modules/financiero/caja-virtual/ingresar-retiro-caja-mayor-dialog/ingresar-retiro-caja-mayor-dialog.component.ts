@@ -1,4 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
+import { MainService } from '../../../../main.service';
+import { operaAcotadoCaja } from '../rol-tesoreria-caja';
 import { FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -6,6 +8,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CajaVirtual } from '../caja-virtual.model';
+import { CajaVirtualService } from '../caja-virtual.service';
 import { Retiro } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -53,6 +56,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   desdeControl = new FormControl(null);
   hastaControl = new FormControl(null);
   sucursalList: Sucursal[] = [];
+  /** Rol acotado: solo se listan los retiros que la caja destino puede recibir. */
+  private acotado = false;
 
   // Selección multi por clave `${id}_${sucursalId}`.
   seleccionados = new Map<string, RetiroRow>();
@@ -80,12 +85,29 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private verificacionService: RetiroVerificacionService,
     private dialog: MatDialog,
+    private mainService: MainService,
+    private cajaVirtualService: CajaVirtualService,
   ) {}
 
   ngOnInit(): void {
-    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.sucursalList = res.filter(s => s.id != 0);
-    });
+    if (operaAcotadoCaja(this.mainService)) {
+      // El rol acotado ingresa a su caja solo los retiros de las sucursales que la caja cubre.
+      this.acotado = true;
+      this.fijarSucursales(this.data?.cajaVirtual?.sucursal ? [this.data.cajaVirtual.sucursal] : []);
+      this.cajaVirtualService.onGetSucursalesDeCaja(this.data?.cajaVirtual?.id).pipe(untilDestroyed(this)).subscribe({
+        next: c => {
+          if (c == null) return;
+          const todas = [c.sucursal, ...(c.sucursalesAdicionales || [])].filter(s => s != null);
+          if (todas.length > 1) { this.fijarSucursales(todas); this.onFiltroChange(); }
+        },
+        // Sin la lista queda la sucursal de la caja: el central igual devuelve los de todas las que cubre.
+        error: () => {}
+      });
+    } else {
+      this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+      });
+    }
     if (this.data?.preseleccion?.length) {
       this.modoEscaneo = true;
       this.data.preseleccion.forEach(r => {
@@ -120,14 +142,39 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
    */
   private cargaId = 0;
 
+  /** N° de caja con el que se hizo la última carga: salir del campo sin cambiarlo no recarga. */
+  private cajaCargada: any = null;
+
+  /**
+   * Al salir del filtro de caja se recarga solo si cambió. Recargar siempre redibuja la tabla justo cuando
+   * el usuario hace clic en «Procesar» (el clic es lo que saca el foco del campo) y ese clic se pierde.
+   */
+  onCajaBlur() {
+    if ((this.cajaControl.value ?? null) !== (this.cajaCargada ?? null)) this.onFiltroChange();
+  }
+
+  /** Una sola sucursal: filtro fijo en ella. Varias: se elige entre ellas, y «Todas» son solo esas. */
+  private fijarSucursales(sucursales: Sucursal[]) {
+    this.sucursalList = sucursales;
+    if (sucursales.length > 1) {
+      this.sucursalControl.setValue(null, { emitEvent: false });
+      this.sucursalControl.enable({ emitEvent: false });
+    } else {
+      this.sucursalControl.setValue(sucursales[0] || null, { emitEvent: false });
+      this.sucursalControl.disable({ emitEvent: false });
+    }
+  }
+
   cargar() {
     this.isLoading = true;
     const id = ++this.cargaId;
+    this.cajaCargada = this.cajaControl.value;
     const sucId = this.sucursalControl.value?.id ?? null;
     const cajaId = this.cajaControl.value ? Number(this.cajaControl.value) : null;
     const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
     const hasta = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
-    this.retiroService.onGetFlotantes(sucId, cajaId, desde, hasta, this.pageIndex, this.pageSize)
+    const destinoId = this.acotado ? this.data?.cajaVirtual?.id : undefined;
+    this.retiroService.onGetFlotantes(sucId, cajaId, desde, hasta, this.pageIndex, this.pageSize, true, destinoId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -215,7 +262,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   }
 
   limpiarFiltros() {
-    this.sucursalControl.reset();
+    // Con el filtro fijo en una sola sucursal no hay nada que limpiar.
+    if (this.sucursalControl.enabled) this.sucursalControl.reset();
     this.cajaControl.reset();
     this.desdeControl.reset();
     this.hastaControl.reset();

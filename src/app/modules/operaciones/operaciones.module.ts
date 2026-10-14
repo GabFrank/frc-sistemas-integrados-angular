@@ -71,6 +71,7 @@ import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-
 import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
+import { AsignarCajaSolicitudDialogComponent } from './solicitud-pago/asignar-caja-solicitud-dialog/asignar-caja-solicitud-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
 import { DevolucionesPendientesDialogComponent } from './compra/gestion-compras/dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component';
 import { ConfiguracionDevolucionDialogComponent } from './devolucion/configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component';
@@ -161,6 +162,7 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     AdicionarNotaDialogComponent,
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
+    AsignarCajaSolicitudDialogComponent,
     GenericListVentaComponent,
     LucroPorFuncionarioComponent,
     DevolucionComponent,

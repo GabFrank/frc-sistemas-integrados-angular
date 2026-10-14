@@ -308,6 +308,53 @@ export const retirosFlotantesQuery = gql`
   }
 `;
 
+/**
+ * Los flotantes que puede recibir una caja mayor. Va en un documento aparte y solo lo usa el rol acotado:
+ * así un central que todavía no conoce el argumento no le rompe el listado al resto.
+ */
+export const retirosFlotantesDeCajaQuery = gql`
+  query ($sucId: ID, $cajaId: ID, $desde: String, $hasta: String, $page: Int, $size: Int, $cajaVirtualDestinoId: ID) {
+    data: retirosFlotantes(sucId: $sucId, cajaId: $cajaId, desde: $desde, hasta: $hasta, page: $page, size: $size, cajaVirtualDestinoId: $cajaVirtualDestinoId) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        responsable {
+          id
+          persona {
+            nombre
+          }
+        }
+        estado
+        cajaSalida {
+          id
+          sucursalId
+        }
+        creadoEn
+        retiroGs
+        retiroRs
+        retiroDs
+        cajaVirtualId
+        movimientoCajaVirtualId
+        retiroDetalleList {
+          id
+          cantidad
+          moneda { id denominacion simbolo decimales }
+        }
+        sucursal {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
 export const ingresarRetiroACajaMayorMutation = gql`
   mutation ingresarRetiroACajaMayor($retiroId: ID!, $sucId: ID!, $cajaVirtualId: ID!) {
     data: ingresarRetiroACajaMayor(retiroId: $retiroId, sucId: $sucId, cajaVirtualId: $cajaVirtualId) {

@@ -1,4 +1,6 @@
 import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { MainService } from '../../../../main.service';
+import { pagaAcotadoCaja } from '../rol-tesoreria-caja';
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -308,6 +310,9 @@ export class PagarComprasDialogComponent implements OnInit {
 
   private _draftInit = false;
 
+  /** Rol acotado (TESORERIA CAJA): paga solo en efectivo desde esta caja; sin cuentas ni cheques. */
+  soloCaja = false;
+
   constructor(
     private dialogRef: MatDialogRef<PagarComprasDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PagarComprasDialogData,
@@ -323,9 +328,11 @@ export class PagarComprasDialogComponent implements OnInit {
     private motivoValeService: MotivoValeService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
+    private mainService: MainService,
   ) {}
 
   ngOnInit(): void {
+    this.soloCaja = pagaAcotadoCaja(this.mainService);
     this.esGasto = this.data?.modo === 'GASTOS';
     this.esVale = this.data?.modo === 'VALES';
     this.esRrhh = this.data?.modo === 'LIQUIDACION' || this.data?.modo === 'FINIQUITO'
@@ -393,15 +400,18 @@ export class PagarComprasDialogComponent implements OnInit {
         }
       }
     });
-    this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
-      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => {
-        if (res) { this.cuentaList = res; return; }
-        this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5);
-      },
-      error: () => this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5)
-    });
-    this.cargarChequerasActivas();
+    // El rol acotado paga solo en efectivo: no pide cuentas ni chequeras (el central se las niega).
+    if (!this.soloCaja) {
+      this.cuentaBancariaService.onGetAllOperables(PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res) { this.cuentaList = res; return; }
+          this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5);
+        },
+        error: () => this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias: solo se puede pagar desde caja.', 5)
+      });
+      this.cargarChequerasActivas();
+    }
     this.cargar();
     this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
   }
@@ -544,7 +554,8 @@ export class PagarComprasDialogComponent implements OnInit {
 
   private toRow(s: any): SolicitudRow {
     const saldo = Math.max(0, (s.montoTotal || 0) - (s.montoPagado || 0));
-    const planCheques: PlanCheque[] = (s.detalles || [])
+    // El plan de cheques de la solicitud no aplica al rol acotado, que paga en efectivo.
+    const planCheques: PlanCheque[] = (this.soloCaja ? [] : (s.detalles || []))
       .filter((d: any) => (d.formaPago?.descripcion || '').toUpperCase().includes('CHEQUE'))
       .map((d: any) => ({
         valor: d.valor || 0,
@@ -564,7 +575,8 @@ export class PagarComprasDialogComponent implements OnInit {
       _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(s.moneda),
       _planCheques: planCheques, _descripcion: s.observaciones, _categoria: s.tipoGasto?.descripcion || '',
       // Solo una compra todavía sin pagos se devuelve; la regla la vuelve a chequear el central.
-      _devolvible: !this.esGasto && s.estado === 'SOLICITADO',
+      // Devolver a compras es decisión de tesorería: el rol acotado no la toma.
+      _devolvible: !this.esGasto && s.estado === 'SOLICITADO' && !this.soloCaja,
     };
   }
 
