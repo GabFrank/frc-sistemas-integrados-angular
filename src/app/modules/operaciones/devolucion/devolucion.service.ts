@@ -18,6 +18,7 @@ import { CancelarDevolucionGQL } from "./graphql/cancelarDevolucion";
 import { DeleteDevolucionItemGQL } from "./graphql/deleteDevolucionItem";
 import { GetDevolucionGQL } from "./graphql/getDevolucion";
 import { GetDevolucionItemsPorDevolucionGQL } from "./graphql/getDevolucionItemsPorDevolucion";
+import { GetDevolucionItemsPorDevolucionPageGQL } from "./graphql/getDevolucionItemsPorDevolucionPage";
 import { GetDevolucionesConFiltrosGQL } from "./graphql/getDevolucionesConFiltros";
 import { GetDevolucionesPendientesPorProveedorGQL } from "./graphql/getDevolucionesPendientesPorProveedor";
 import { GetMotivosAveriaGQL } from "./graphql/getMotivosAveria";
@@ -36,6 +37,7 @@ export class DevolucionService {
     private getDevolucionesConFiltrosGQL: GetDevolucionesConFiltrosGQL,
     private getDevolucionesPendientesPorProveedorGQL: GetDevolucionesPendientesPorProveedorGQL,
     private getDevolucionItemsPorDevolucionGQL: GetDevolucionItemsPorDevolucionGQL,
+    private getDevolucionItemsPorDevolucionPageGQL: GetDevolucionItemsPorDevolucionPageGQL,
     private getMotivosAveriaGQL: GetMotivosAveriaGQL,
     private saveDevolucionGQL: SaveDevolucionGQL,
     private saveDevolucionItemGQL: SaveDevolucionItemGQL,
@@ -122,6 +124,26 @@ export class DevolucionService {
     return this.genericCrudService.onCustomQuery(
       this.getDevolucionItemsPorDevolucionGQL,
       { devolucionId },
+      servidor,
+      errorConf ?? null,
+      silentLoad,
+      contexto
+    );
+  }
+
+  /** Ítems de la devolución por página, los últimos cargados primero. */
+  onGetDevolucionItemsPorDevolucionPage(
+    devolucionId: number,
+    page: number,
+    size: number,
+    servidor = true,
+    silentLoad?: boolean,
+    errorConf?: QueryError,
+    contexto?: ContextoConsulta
+  ): Observable<PageInfo<DevolucionItem>> {
+    return this.genericCrudService.onCustomQuery(
+      this.getDevolucionItemsPorDevolucionPageGQL,
+      { devolucionId, page, size },
       servidor,
       errorConf ?? null,
       silentLoad,

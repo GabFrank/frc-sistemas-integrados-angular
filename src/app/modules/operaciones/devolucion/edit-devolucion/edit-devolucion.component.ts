@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, ViewChild } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { MatPaginator } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { EMPTY, Subscription } from "rxjs";
@@ -12,8 +12,6 @@ import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link
 /** Abrir una devolución y sus ítems: lo espera el usuario (#390). */
 const CONSULTA_PANTALLA = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
 import {
-  updateDataSource,
-  updateDataSourceInsertFirst,
   updateDataSourceWithId,
 } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -39,7 +37,6 @@ import { MainService } from "../../../../main.service";
 import {
   NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
-import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
@@ -138,6 +135,11 @@ export class EditDevolucionComponent implements OnInit {
   acreditarMode = false;
   private refrescoSub: Subscription;
 
+  /** Los ítems se piden al central de a una página: una devolución puede tener muchos productos. */
+  itemsPageIndex = 0;
+  itemsPageSize = 20;
+  totalItems = 0;
+
   columnsToDisplay = [
     "producto",
     "presentacion",
@@ -162,7 +164,6 @@ export class EditDevolucionComponent implements OnInit {
     private matDialog: MatDialog,
     public mainService: MainService,
     private devolucionService: DevolucionService,
-    private cargandoService: CargandoDialogService,
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private sucursalService: SucursalService,
@@ -275,7 +276,6 @@ export class EditDevolucionComponent implements OnInit {
       this.selectedDevolucion.montoAcreditado
     );
     this.marcarSinCambios();
-    this.dataSource.data = this.selectedDevolucion.items ?? [];
     this.getItems(silencioso);
     this.computeEstadoFlags();
   }
@@ -353,8 +353,10 @@ export class EditDevolucionComponent implements OnInit {
   getItems(silencioso = false) {
     if (this.selectedDevolucion?.id == null) return;
     this.devolucionService
-      .onGetDevolucionItemsPorDevolucion(
+      .onGetDevolucionItemsPorDevolucionPage(
         this.selectedDevolucion.id,
+        this.itemsPageIndex,
+        this.itemsPageSize,
         true,
         silencioso,
         PROPAGAR_ERROR_DE_RED,
@@ -364,16 +366,30 @@ export class EditDevolucionComponent implements OnInit {
       .subscribe({
         next: (res) => {
           if (res == null) { this.marcarItemsFallidos(silencioso); return; }
+          // Se borró lo último de una página que ya no existe: se vuelve a la anterior.
+          if ((res.getContent?.length ?? 0) == 0 && this.itemsPageIndex > 0 && res.getTotalElements > 0) {
+            this.itemsPageIndex = Math.max(0, (res.getTotalPages ?? 1) - 1);
+            this.getItems(silencioso);
+            return;
+          }
           this.itemsFallo = false;
-          this.dataSource.data = res;
+          this.totalItems = res.getTotalElements ?? 0;
+          this.dataSource.data = res.getContent ?? [];
           this.computeEstadoFlags();
         },
         error: () => this.marcarItemsFallidos(silencioso)
       });
   }
 
+  onItemsPage(e: PageEvent) {
+    this.itemsPageIndex = e.pageIndex;
+    this.itemsPageSize = e.pageSize;
+    this.getItems();
+  }
+
   private marcarItemsFallidos(silencioso: boolean) {
     this.itemsFallo = true;
+    this.totalItems = 0;
     this.dataSource.data = [];
     this.computeEstadoFlags();
     if (!silencioso) {
@@ -640,10 +656,9 @@ export class EditDevolucionComponent implements OnInit {
         next: (res) => {
           if (res != null) {
             if (isNew) {
-              this.dataSource.data = updateDataSourceInsertFirst(
-                this.dataSource.data,
-                res
-              );
+              // Los nuevos van primero: se vuelve a la primera página.
+              this.itemsPageIndex = 0;
+              this.getItems(true);
             } else {
               this.dataSource.data = updateDataSourceWithId(
                 this.dataSource.data,
@@ -665,18 +680,12 @@ export class EditDevolucionComponent implements OnInit {
     this.abrirCreateItem(res, item);
   }
 
-  onDeleteItem(item: DevolucionItem, index: number) {
+  onDeleteItem(item: DevolucionItem) {
     this.devolucionService
       .onDeleteDevolucionItem(item.id)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res) {
-          this.dataSource.data = updateDataSource(
-            this.dataSource.data,
-            null,
-            index
-          );
-        }
+        if (res) this.getItems(true);
       });
   }
 
@@ -767,8 +776,17 @@ export class EditDevolucionComponent implements OnInit {
 
   /** Abre el diálogo de impresión de etiquetas de separado. */
   onImprimirEtiquetas() {
-    const items = this.dataSource?.data || [];
-    if (!this.selectedDevolucion?.id || items.length === 0) return;
+    if (!this.selectedDevolucion?.id || this.totalItems === 0) return;
+    // La tabla tiene una sola página: las etiquetas necesitan todos los ítems.
+    this.devolucionService
+      .onGetDevolucionItemsPorDevolucion(this.selectedDevolucion.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((items) => {
+        if (items?.length > 0) this.abrirDialogoEtiquetas(items);
+      });
+  }
+
+  private abrirDialogoEtiquetas(items: DevolucionItem[]) {
     this.matDialog
       .open(ImprimirEtiquetasDialogComponent, {
         data: {
@@ -863,7 +881,11 @@ export class EditDevolucionComponent implements OnInit {
     this.acreditarMode = false;
   }
 
-  /** Abre el dialogo de reingreso para un item y guarda el resultado en el item. */
+  /**
+   * Abre el diálogo de reingreso para un ítem y lo guarda en el central en el momento: la tabla
+   * muestra una página, así que «Confirmar canje» no tiene todos los ítems para mandarlos juntos.
+   * Lo guardado no mueve stock hasta confirmar el canje.
+   */
   onRegistrarReingreso(item: DevolucionItem) {
     this.isDialogOpen = true;
     this.matDialog
@@ -876,50 +898,39 @@ export class EditDevolucionComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res: ReingresoCanjeDialogResult) => {
         this.isDialogOpen = false;
-        if (res != null) {
-          item.cantidadReingresada = res.cantidadReingresada;
-          item.vencimientoReingreso = res.vencimientoReingreso;
-          item.loteReingreso = res.loteReingreso;
-          // Nueva referencia para refrescar la tabla.
-          this.dataSource.data = [...this.dataSource.data];
-        }
+        if (res == null) return;
+        const aux = new DevolucionItem();
+        Object.assign(aux, item);
+        aux.cantidadReingresada = res.cantidadReingresada;
+        aux.vencimientoReingreso = res.vencimientoReingreso;
+        aux.loteReingreso = res.loteReingreso;
+        aux.devolucion = this.selectedDevolucion;
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.devolucionService
+          .onSaveDevolucionItem(aux.toInput())
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: (guardado) => {
+              if (guardado == null) return;
+              item.cantidadReingresada = res.cantidadReingresada;
+              item.vencimientoReingreso = res.vencimientoReingreso;
+              item.loteReingreso = res.loteReingreso;
+              // Nueva referencia para refrescar la tabla.
+              this.dataSource.data = [...this.dataSource.data];
+            },
+            error: () => {}
+          });
       });
   }
 
+  /** Los reingresos ya se guardaron uno por uno al registrarlos: solo falta avanzar a CANJEADO. */
   onConfirmarCanje() {
     if (this.itemsFallo) return;
-    const items = this.dataSource.data ?? [];
-    if (items.length == 0) {
+    if (this.totalItems == 0) {
       this.notificacionService.openWarn("No hay items para canjear");
       return;
     }
-    const { requestId } = this.cargandoService.openDialog(false, "Guardando canje...");
-    let pendientes = items.length;
-    let huboError = false;
-    items.forEach((item) => {
-      let aux = new DevolucionItem();
-      Object.assign(aux, item);
-      aux.devolucion = this.selectedDevolucion;
-      this.devolucionService
-        .onSaveDevolucionItem(aux.toInput())
-        .pipe(untilDestroyed(this))
-        .subscribe(
-          () => {
-            pendientes--;
-            if (pendientes == 0 && !huboError) {
-              this.cargandoService.closeDialog(requestId);
-              this.ejecutarAvanzar(DevolucionEstado.CANJEADO);
-            }
-          },
-          // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-          () => {
-            // Cada ítem se guarda por separado: si uno falla, se relee lo que quedó en el servidor.
-            if (!huboError) this.getItems(true);
-            huboError = true;
-            this.cargandoService.closeDialog(requestId);
-          }
-        );
-    });
+    this.ejecutarAvanzar(DevolucionEstado.CANJEADO);
   }
 
   onIniciarAcreditar() {
