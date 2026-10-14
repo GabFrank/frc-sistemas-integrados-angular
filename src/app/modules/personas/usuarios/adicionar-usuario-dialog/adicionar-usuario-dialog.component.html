@@ -1,132 +1,123 @@
-<div style="padding: 10px;">
-  <form [formGroup]="formGroup">
-    <div fxLayout="column" fxLayoutAlign="start">
-      <div fxFlex style="width: 100%; text-align: center">
-        <h3 *ngIf="selectedUsuario?.id != null">Editar Usuario</h3>
-        <h3 *ngIf="selectedUsuario?.id == null">Nuevo Usuario</h3>
-      </div>
-      <div fxFlex fxLayout="row" fxLayoutGap="20px">
-        <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
-            <mat-label>Nombre de usuario</mat-label>
-            <input
-              #nombreInput
-              type="text"
-              matInput
-              formControlName="nickname"
-              autocomplete="off"
-              oninput="this.value == ' ' ? this.value = '': null"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="center center">
-          <mat-label fxFlex="30">Activo</mat-label>
-          <mat-slide-toggle fxFlex="30" formControlName="activo">{{
-            activoControl.value == true ? "Si" : "No"
-          }}</mat-slide-toggle>
-        </div>
-      </div>
-      <br />
-      <div fxFlex fxLayout="row">
-        <div fxFlex="50%" style="text-align: center">
-          <button
-            style="width: 70%"
-            mat-raised-button
-            [color]="isEditting ? 'accent' : 'primary'"
-            [disabled]="isEditting ? !formGroup.valid : false"
-            (click)="
-              isEditting ? onSave() : (isEditting = true);
-              formGroup.enable();
-              nombreInput.focus()
-            "
-          >
-            {{ isEditting ? "Guardar" : "Editar" }}
-          </button>
-        </div>
-        <div fxFlex="50%" style="text-align: center">
-          <button
-            style="width: 70%"
-            mat-raised-button
-            color="primary"
-            (click)="onCancel()"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
+<div class="usuario-dialog">
+  <h3 class="titulo">{{ esAlta ? "Nuevo usuario" : (isEditting ? "Editar usuario" : "Usuario") }}</h3>
+
+  <div class="persona" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="8px">
+    <div class="persona-datos" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <mat-icon>person</mat-icon>
+      <span *ngIf="selectedPersona != null">
+        <b>{{ selectedPersona?.nombre }}</b>
+        <span *ngIf="selectedPersona?.documento" class="secundario"> · {{ selectedPersona?.documento }}</span>
+      </span>
+      <span *ngIf="selectedPersona == null && !buscandoPersona" class="secundario">Sin persona elegida</span>
+      <span *ngIf="buscandoPersona" class="secundario">Verificando...</span>
+    </div>
+    <button
+      *ngIf="esAlta && !personaFija"
+      mat-stroked-button
+      type="button"
+      [disabled]="buscandoPersona || guardando"
+      (click)="onBuscarPersona()"
+    >
+      <mat-icon>search</mat-icon>
+      {{ selectedPersona == null ? "Buscar" : "Cambiar" }}
+    </button>
+  </div>
+
+  <form [formGroup]="formGroup" class="formulario">
+    <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex="50">
+        <mat-label>Nombre de usuario</mat-label>
+        <input
+          #nombreInput
+          type="text"
+          matInput
+          formControlName="nickname"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
+      </mat-form-field>
+      <mat-form-field *ngIf="esAlta" fxFlex="50">
+        <mat-label>Clave</mat-label>
+        <input
+          [type]="verPassword ? 'text' : 'password'"
+          matInput
+          formControlName="password"
+          autocomplete="new-password"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="verPassword = !verPassword"
+          [attr.aria-label]="verPassword ? 'Ocultar clave' : 'Ver clave'"
+        >
+          <mat-icon>{{ verPassword ? "visibility_off" : "visibility" }}</mat-icon>
+        </button>
+      </mat-form-field>
     </div>
   </form>
-  <br>
-  <div style="width: 100%;" fxLayout="column" fxLayoutAlign="start center">
-    <table
-      mat-table
-      #usuarioRoleTable
-      [dataSource]="usuarioRoleList"
-      class="mat-elevation-z8"
-      style="background-color: rgb(43, 43, 43); width: 60%;"
-    >
-      <!--- Note that these columns can be defined in any order.
-        The actual rendered columns are set as a property on the row definition" -->
 
-      <!-- Position Column -->
-      <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>Id</th>
-        <td mat-cell *matCellDef="let usuarioRole">
-          {{ usuarioRole?.role?.id }}
-        </td>
-      </ng-container>
-
-      <!-- Name Column -->
-      <ng-container matColumnDef="nombre">
-        <th mat-header-cell *matHeaderCellDef>Descripción</th>
-        <td mat-cell *matCellDef="let usuarioRole">
-          {{ usuarioRole?.role.nombre | titlecase }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="eliminar">
-        <th mat-header-cell *matHeaderCellDef style="width: 5%"></th>
-        <td
-          mat-cell
-          *matCellDef="let usuarioRole; let usuarioRoleIndex = index"
-          style="width: 5%"
-        >
-          <mat-icon
-            style="color: red; cursor: pointer"
-            (click)="
-              onDeleteUsuarioRole(usuarioRole, usuarioRoleIndex);
-              $event.stopPropagation()
-            "
-            >clear</mat-icon
-          >
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="usuarioRoleColumnsToDisplay"></tr>
-      <tr
-        mat-row
-        *matRowDef="
-          let row;
-          columns: usuarioRoleColumnsToDisplay;
-          let usuarioRoleIndex = index
-        "
-      ></tr>
-    </table>
-    <div *ngIf="rolesNoDisponibles" style="color: #ffb74d; text-align: center; padding: 8px">
-      No se pudieron cargar los roles de este usuario: cerrá y volvé a abrir para verlos o cambiarlos.
-    </div>
-    <br />
-    <div style="width: 100%; text-align: center">
+  <div *ngIf="!esAlta" class="roles">
+    <div class="roles-cabecera" fxLayout="row" fxLayoutAlign="space-between center">
+      <span>Roles</span>
       <button
-        mat-fab
-        color="primary"
-        aria-label="adicionar usuarioRole"
-        (click)="selectedUsuarioRole = null; onAddUsuarioRole()"
-        [disabled]="rolesNoDisponibles || !(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))"
+        *ngIf="puedeAsignarRoles && isEditting"
+        mat-icon-button
         type="button"
+        aria-label="Agregar roles"
+        [disabled]="rolesNoDisponibles"
+        (click)="selectedUsuarioRole = null; onAddUsuarioRole()"
       >
         <mat-icon>add</mat-icon>
       </button>
     </div>
+    <div class="roles-lista">
+      <div
+        *ngFor="let usuarioRole of usuarioRoleList.data; let usuarioRoleIndex = index"
+        class="rol"
+        fxLayout="row"
+        fxLayoutAlign="space-between center"
+      >
+        <span>{{ usuarioRole?.role?.nombre | titlecase }}</span>
+        <button
+          *ngIf="puedeAsignarRoles && isEditting"
+          mat-icon-button
+          type="button"
+          class="quitar"
+          aria-label="Quitar rol"
+          (click)="onDeleteUsuarioRole(usuarioRole, usuarioRoleIndex)"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div *ngIf="usuarioRoleList.data.length == 0 && !rolesNoDisponibles" class="secundario vacio">
+        Sin roles
+      </div>
+      <div *ngIf="rolesNoDisponibles" class="aviso">
+        No se pudieron cargar los roles de este usuario: cerrá y volvé a abrir para verlos o cambiarlos.
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
+    <span fxFlex></span>
+    <button mat-stroked-button type="button" (click)="onCancel()">
+      {{ usuarioCreado ? "Cerrar" : "Cancelar" }}
+    </button>
+    <button
+      *ngIf="puedeEditarUsuarios"
+      mat-raised-button
+      type="button"
+      color="primary"
+      [disabled]="isEditting ? (!formGroup.valid || !puedeGuardar) : false"
+      (click)="
+        isEditting ? onSave() : (isEditting = true);
+        formGroup.enable();
+        nombreInput.focus()
+      "
+    >
+      {{ isEditting ? "Guardar" : "Editar" }}
+    </button>
   </div>
 </div>

@@ -11,6 +11,8 @@ import { AdicionarPersonaDialogComponent } from '../adicionar-persona-dialog/adi
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../roles/roles.enum';
 
 
 
@@ -54,14 +56,19 @@ export class ListPersonaComponent implements OnInit {
   isSearching = false;
 
   buscarControl = new FormControl(null, Validators.required)
+  puedeVerUsuarios = false;
+  puedeEditarUsuarios = false;
 
   constructor(
     public service: PersonaService,
     public windowInfoService: WindowInfoService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private mainService: MainService
   ) { }
 
   ngOnInit(): void {
+    this.puedeEditarUsuarios = this.mainService.tieneAlgunRol([ROLES.EDITAR_USUARIOS]);
+    this.puedeVerUsuarios = this.puedeEditarUsuarios || this.mainService.tieneAlgunRol([ROLES.VER_USUARIOS]);
     this.cargarMasDatos()
   }
 
@@ -130,8 +137,10 @@ export class ListPersonaComponent implements OnInit {
 
   abrirUsuario(persona) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
-      data : {personaId: persona?.id},
-      width: '60%'
+      data: { persona },
+      width: '560px'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null && persona != null) persona.isUsuario = true;
     })
   }
 

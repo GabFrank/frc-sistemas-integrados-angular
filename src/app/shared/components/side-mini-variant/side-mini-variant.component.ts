@@ -754,6 +754,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_USUARIOS]
         },
         {
+          name: 'Personas',
+          icon: 'badge',
+          action: 'list-persona',
+          visibilityRoles: [ROLES.VER_PERSONAS]
+        },
+        {
           name: 'Proveedores',
           icon: 'local_shipping',
           action: 'list-proveedor'
