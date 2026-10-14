@@ -131,3 +131,35 @@ Factura legal en modo servidor hacia la sucursal del filial local:
 | BAJA: `next` sin `facturaId` puede ser un 201 sin `id`, con factura creada | A | ya va a «no se pudo confirmar» |
 | BAJA: falta el caso timeout en runtime | A | §8: no reproducible en local sin tocar el filial; cubierto por test |
 | BAJA: versiones desalineadas | B | línea en §3 |
+
+## 10. Auditoría del diff (paso 8)
+
+Tres fijos; ningún condicional (el diff no toca release, migraciones ni replicación).
+
+| Hallazgo | Eje | Qué se hizo |
+|---|---|---|
+| Sin superficie nueva de autorización ni de datos | Fijo 1 | — |
+| BAJA, preexistente: en un corte, el motivo que muestra el genérico trae la URL del filial (`http://<ip>:<puerto>/api/facturas-legales`) | Fijo 1 | fuera de alcance; se informa por privado (el repo del central es público) |
+| BAJA: el texto no estaba anclado; un rechazo que mencionara «Error del servidor filial» contaba como corte | Fijo 2 | anclado al prefijo del central (commit `23c4351e`) |
+| BAJA: una respuesta del filial que no es 201 ni error («… Código: 200») se trataba como rechazo | Fijo 2 | reconocida como sin confirmar (`23c4351e`) |
+| BAJA: faltaban tests del helper aislado | Fijo 2 | 4 casos en `graphqlErrorUtils.spec.ts` |
+| Textos iguales en `develop`, `release/beta` y `master` del central; en beta/stable del filial una validación por `GraphQLException` sale como 500 y se ve «No se pudo confirmar» además del motivo | Fijo 3 | aceptado (lado seguro), ya anotado en §2 |
+
+## 11. Verificación
+
+- Karma (a mano, el CI no lo corre): 26 de 26 en el spec del diálogo y en `graphqlErrorUtils.spec.ts`. Con la lógica
+  vieja dentro de los métodos nuevos fallan los 6 casos que cambian. «Some of your tests did a full page reload» sale
+  igual en `develop` sin el cambio (15 de 15): preexistente.
+- `npm run check` limpio sobre cada SHA pusheado; `npm run verificar:imports` OK.
+- Runtime el 14/10/2026: desktop de la rama (`ng serve -c web`), central y filial locales en `develop` (perfil `dev`,
+  scheduler de SIFEN apagado). Lista de facturas → Adicionar, SUC. KM2, timbrado 18270044-001 (detalle 108), un ítem,
+  «Imprimir» → «No»:
+
+| Caso | Avisos | Botón | Base del filial |
+|---|---|---|---|
+| Timbrado sin teléfono en detalle y cabecera | uno: «…Error al crear factura legal: El timbrado detalle no está disponible: TIMBRADO_SIN_TELEFONO…» | habilitado | sin factura nueva, `numero_actual` sin avanzar |
+| Filial apagado | el motivo «…Error al conectar con el servidor filial… Connection refused» y luego «No se pudo confirmar la factura…» | habilitado | — |
+| Central apagado con el diálogo abierto | uno: «No se pudo confirmar la factura…» | habilitado | — |
+| Teléfono restaurado, todo arriba | «Guardado con éxito», cierra | — | una factura (n.º 14418) |
+
+Antes del cambio, el primer caso terminaba en «Error desconocido» y los otros dos liberaban el botón sin avisar de la duda.
