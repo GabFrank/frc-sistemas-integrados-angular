@@ -138,7 +138,8 @@ export class ListPersonaComponent implements OnInit {
   abrirUsuario(persona) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data: { persona },
-      width: '560px'
+      width: '720px',
+      maxWidth: '90vw'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null && persona != null) persona.isUsuario = true;
     })
