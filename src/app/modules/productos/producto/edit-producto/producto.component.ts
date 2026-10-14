@@ -1204,6 +1204,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.entity = row;
     data.service = this.presentacionService;
     data.url = "productos/presentaciones";
+    // El visor devuelve la misma fila modificada: se guarda la foto de antes para saber si cambió.
+    const fotoAnterior = row.imagenPrincipal;
     this.matDialog
       .open(VizualizarImagenDialogComponent, {
         data,
@@ -1219,6 +1221,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
             (p) => p.id == row.id
           );
           this.presentacionesDataSource.data[presentacionIndex] = res;
+          // Una foto cambiada desde el visor (subida o de internet) también es la del resumen si es la principal.
+          if (res.principal == true && res.imagenPrincipal != null && res.imagenPrincipal !== fotoAnterior) {
+            this.imagenPrincipal = res.imagenPrincipal;
+            this.imagenPrincipalGrande = res.imagenPrincipal;
+          }
         }
       });
   }

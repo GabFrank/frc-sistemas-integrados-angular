@@ -5,6 +5,8 @@ import { DOC_ORIENTATION, NgxImageCompressService } from 'ngx-image-compress';
 import { ImageCroppedEvent } from 'ngx-image-cropper';
 
 
+const LADO_MAXIMO = 1200;
+
 export interface CortarImagenData {
   /** Evento `change` de un input de archivo. */
   imagen?: any;
@@ -30,12 +32,62 @@ export class CortarImagenDialogComponent implements OnInit {
     private imageCompress : NgxImageCompressService,
     private copyToClip: Clipboard
   ) {
-    if (data.imagenBase64 != null) {
-      this.imageBase64 = data.imagenBase64;
-      this.isCropping = true;
-    } else {
-      this.fileChangeEvent(data.imagen)
-    }
+    const original = data.imagenBase64 != null ? Promise.resolve(data.imagenBase64) : this.leerArchivo(data.imagen);
+    original
+      .then((b64) => this.encuadrar(b64))
+      .then((cuadrada) => {
+        this.imageBase64 = cuadrada;
+        this.isCropping = true;
+      })
+      .catch(() => {
+        // No se pudo encuadrar: el recorte de siempre, con la imagen tal cual.
+        if (data.imagenBase64 != null) {
+          this.imageBase64 = data.imagenBase64;
+          this.isCropping = true;
+        } else {
+          this.fileChangeEvent(data.imagen);
+        }
+      });
+  }
+
+  private leerArchivo(event: any): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const file: File = event?.target?.files?.[0];
+      if (file == null) return reject();
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * La foto entera dentro de un cuadrado blanco. El recorte es 1:1 y arranca con el cuadrado más grande que entra:
+   * sobre una foto alargada (una lata, una botella) cortaba arriba y abajo; sobre el cuadrado abarca todo. El
+   * lado queda en hasta {@link LADO_MAXIMO} px, de sobra para el POS y el kiosco.
+   */
+  private encuadrar(src: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const mayor = Math.max(img.naturalWidth, img.naturalHeight);
+        if (mayor === 0) return reject();
+        const lado = Math.min(mayor, LADO_MAXIMO);
+        const escala = lado / mayor;
+        const ancho = Math.round(img.naturalWidth * escala);
+        const alto = Math.round(img.naturalHeight * escala);
+        const canvas = document.createElement('canvas');
+        canvas.width = lado;
+        canvas.height = lado;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, lado, lado);
+        ctx.drawImage(img, Math.round((lado - ancho) / 2), Math.round((lado - alto) / 2), ancho, alto);
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
   }
 
   ngOnInit(

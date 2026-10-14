@@ -138,7 +138,7 @@ export const deletePresentacionQuery = gql`
 
 export const saveImagenPresentacionQuery = gql`
   mutation saveImagenPresentacion($image: String!, $filename: String!) {
-    saveImagenPresentacion(image: $image, filename: $filename)
+    data: saveImagenPresentacion(image: $image, filename: $filename)
   }
 `;
 

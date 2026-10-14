@@ -13,7 +13,8 @@ import { PresentacionService } from '../presentacion.service';
 
 export interface SugerenciasImagenPanelData {
   presentacion: Presentacion;
-  producto: Producto;
+  /** Solo para el encabezado. */
+  producto?: Producto;
 }
 
 /** Lo que pinta cada miniatura, calculado una vez (nada de funciones en el template). */

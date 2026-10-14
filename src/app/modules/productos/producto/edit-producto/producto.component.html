@@ -1641,6 +1641,16 @@
                             "
                           />
                         </div>
+                        <div style="text-align: center; margin-top: 8px">
+                          <button
+                            mat-stroked-button
+                            type="button"
+                            (click)="$event.stopPropagation(); abrirSugerenciasImagen(element)"
+                          >
+                            <mat-icon>travel_explore</mat-icon>
+                            Buscar en internet
+                          </button>
+                        </div>
                         <br />
                         <!-- <div>
                         <button
