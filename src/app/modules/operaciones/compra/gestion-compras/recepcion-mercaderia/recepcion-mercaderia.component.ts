@@ -30,6 +30,7 @@ import { VerificacionRapidaSucursalesDialogComponent } from './verificacion-rapi
 import { MainService } from '../../../../../main.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
 
 // Enums y interfaces reales
 export enum RecepcionMercaderiaEstado {
@@ -181,6 +182,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   private timeoutsVerificacion: Map<number, any> = new Map();
   // Recargas programadas tras una mutation sin respuesta (#488)
   private recargasTrasCorte = new Set<any>();
+  private destruido = false;
   itemsParpadeando: Set<number> = new Set();
 
   // Filtro de texto para búsqueda
@@ -234,6 +236,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       clearTimeout(timeout);
     });
     this.timeoutsVerificacion.clear();
+    this.destruido = true;
     this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
     this.recargasTrasCorte.clear();
 
@@ -2425,8 +2428,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     }
 
     this.loading = true;
-    // En qué paso falló: la validación no escribe y se reintenta; la finalización pudo haberse aplicado
-    let finalizando = false;
+    // En qué paso falló: la validación no escribe y se reintenta; la finalización pudo haberse aplicado; después de
+    // finalizada, un error ya no es de la operación
+    let paso: 'validando' | 'finalizando' | 'finalizada' = 'validando';
 
     try {
       const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
@@ -2450,9 +2454,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
       if (confirmar) {
         // Finalizar recepción física
-        finalizando = true;
+        paso = 'finalizando';
         await this.pedidoService.onFinalizarRecepcionFisicaPorPedido(this.pedidoId, sucursalesIds).toPromise();
-        finalizando = false;
+        paso = 'finalizada';
 
         // 1. Mostrar notificación de éxito
         this.notificacionService.openSucess('Recepción física finalizada exitosamente');
@@ -2490,7 +2494,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
 
     } catch (error) {
-      if (finalizando) {
+      if (paso === 'finalizada') {
+        // Ya se avisó el éxito y se recargó: no es un fallo de la finalización
+        console.error('Error después de finalizar la recepción física:', error);
+      } else if (paso === 'finalizando') {
         console.error('Error al finalizar la recepción física:', error);
         this.trasFalloDeMutacion(error, 'se finalizó la recepción física', () => {
           this.loadNotasRecepcion();
@@ -2498,8 +2505,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         });
       } else {
         console.error('Error al validar finalización:', error);
-        // En un rechazo el motivo ya lo mostró el genérico
-        if (erroresDeRechazo(error) == null) {
+        // En un rechazo el motivo ya lo mostró el genérico, y en un corte por tiempo avisó el link
+        if (erroresDeRechazo(error) == null && !esTimeoutDeLink(error)) {
           this.notificacionService.openWarn('No se pudo validar la finalización: el servidor no respondió. No se finalizó nada; podés reintentar.', 6);
         }
       }
@@ -2576,6 +2583,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   }
 
   private programarRecargaTrasFallo(recargar: () => void): void {
+    // Un error que llega después de salir de la pantalla no recarga nada
+    if (this.destruido) {
+      return;
+    }
     const timeout = setTimeout(() => {
       this.recargasTrasCorte.delete(timeout);
       recargar();
