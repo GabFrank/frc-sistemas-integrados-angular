@@ -1,0 +1,46 @@
+<div fxLayout="column" fxLayoutGap="10px" style="width: 500px; padding: 10px">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h3>Falta el cliente para facturar</h3>
+  </div>
+  <div fxFlex style="text-align: center">
+    Esta venta de {{ data?.totalGs | number: "1.0-0" }} Gs. lleva factura electrónica. Desde
+    7.000.000 no se puede facturar sin nombre.
+  </div>
+  <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex>
+      <mat-label>CI o RUC del cliente</mat-label>
+      <input
+        #documentoInput
+        matInput
+        type="text"
+        cdkFocusInitial
+        [formControl]="documentoControl"
+        autocomplete="off"
+        (keyup.enter)="onBuscar(); $event.stopPropagation()"
+      />
+    </mat-form-field>
+    <button mat-icon-button type="button" matTooltip="Buscar por nombre" (click)="onBuscarPorNombre()">
+      <mat-icon>search</mat-icon>
+    </button>
+  </div>
+  <div fxFlex style="text-align: center; min-height: 48px">
+    <mat-spinner *ngIf="buscando" diameter="30" style="margin: auto"></mat-spinner>
+    <div *ngIf="cliente != null">
+      <div>{{ clienteNombre }}</div>
+      <div>{{ clienteDocumento }}</div>
+    </div>
+    <div *ngIf="mensaje != null" style="color: #f44336">{{ mensaje }}</div>
+  </div>
+  <div fxFlex style="height: 35px">
+    <app-boton nombre="Cancelar" color="primary" (clickEvent)="onCancelar()" style="height: 35px"></app-boton>
+  </div>
+  <div fxFlex style="height: 35px">
+    <app-boton
+      nombre="Guardar la venta con este cliente"
+      color="accent"
+      [disableExpression]="cliente == null"
+      (clickEvent)="onAceptar()"
+      style="height: 35px"
+    ></app-boton>
+  </div>
+</div>
