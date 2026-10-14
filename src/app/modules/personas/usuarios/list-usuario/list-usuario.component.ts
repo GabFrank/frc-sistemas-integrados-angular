@@ -34,6 +34,7 @@ import { UsuarioService } from '../usuario.service';
 export class ListUsuarioComponent implements OnInit {
 
   readonly ROLES = ROLES
+  puedeEditarUsuarios = false;
 
   @ViewChild('buscar', { static: true }) buscar: ElementRef;
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -66,6 +67,7 @@ export class ListUsuarioComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.puedeEditarUsuarios = this.mainService.tieneAlgunRol([ROLES.EDITAR_USUARIOS]);
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -159,8 +161,17 @@ export class ListUsuarioComponent implements OnInit {
       data: {
         usuario
       },
-      width: '60%',
-      height: '80%'
+      width: '560px'
+    })
+  }
+
+  onNuevoUsuario() {
+    this.matDialog.open(AdicionarUsuarioDialogComponent, {
+      data: {},
+      width: '560px'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+      // Siempre: cerrar con Esc después del alta no devuelve el usuario creado.
+      this.onFiltrar();
     })
   }
 
