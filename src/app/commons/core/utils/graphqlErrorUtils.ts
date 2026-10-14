@@ -51,6 +51,18 @@ export function esRechazoPorFacturaSinNombre(error: any): boolean {
     && error.some((e) => typeof e?.message === "string" && /facturar sin nombre/i.test(e.message));
 }
 
+/**
+ * ¿El central no pudo confirmar si el filial emitió la factura? `saveFacturaLegalToFilial` devuelve todo fallo con la
+ * forma de un rechazo, pero un corte con el filial (incluido el timeout de lectura del central, 30 s) o un 500 del
+ * filial no dicen que no se emitió: el filial pudo terminar y guardar. Se reconoce por el texto de
+ * `FacturaLegalFilialService` (central); si cambia, esto da false y se trata como rechazo, como antes (#471).
+ */
+export function esEnvioAFilialSinConfirmar(error: any): boolean {
+  return Array.isArray(error)
+    && error.some((e) => typeof e?.message === "string"
+      && /(Error al conectar con el servidor filial|Error del servidor filial)/i.test(e.message));
+}
+
 /** Veces que se le pide el cliente al cajero por una misma venta antes de cortar. */
 export const MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR = 2;
 
