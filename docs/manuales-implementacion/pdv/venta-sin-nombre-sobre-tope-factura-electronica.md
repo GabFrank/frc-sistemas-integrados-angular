@@ -43,6 +43,7 @@ Un chequeo en el desktop bloquearía ventas que no iban a facturarse.
 
 ## Sin cubrir
 
-- El ítem a precio cero: el filial guarda la venta sin factura y no devuelve ninguna señal.
+- El ítem a precio cero lo frenan el PDV y el catálogo antes de vender: ver
+  [item-precio-cero.md](item-precio-cero.md).
 - Delivery: el filial responde «Delivery no encontrado» en este caso.
 - El cableado en `venta-touch.component.ts` no tiene spec; se probó en runtime.
