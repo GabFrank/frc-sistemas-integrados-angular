@@ -191,7 +191,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'groups',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.ADMIN],
       items: [
         {
           name: 'Manual de uso',
@@ -307,7 +307,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Liquidaciones',
           icon: 'receipt_long',
           action: 'list-liquidacion',
-          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.ADMIN]
+          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.RRHH_SUCURSAL, ROLES.ADMIN]
         },
         {
           name: 'Configuración',
@@ -1239,7 +1239,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
         break;
       case "list-liquidacion":
-        this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");
+        // Los mismos roles que muestran la entrada: con solo RRHH VER, quien liquida la veía y no entraba.
+        this.openTabIfAuthorized([ROLES.RRHH_VER, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL], ListLiquidacionComponent, "Liquidaciones");
         break;
       case "legajo-funcionario":
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");

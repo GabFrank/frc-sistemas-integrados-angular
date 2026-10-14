@@ -4,6 +4,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Funcionario } from '../../../modules/personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../modules/personas/funcionarios/funcionario.service';
 import { FuncionarioSearchGQL } from '../../../modules/personas/funcionarios/graphql/funcionarioSearch';
+import { FuncionariosACargoGQL } from '../../../modules/personas/funcionarios/graphql/funcionariosACargo';
 import { SearchListDialogComponent, SearchListtDialogData } from '../search-list-dialog/search-list-dialog.component';
 import { terminarSiFalla } from '../../../commons/core/utils/rxjsUtils';
 
@@ -41,6 +42,11 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
    * hay pantallas (liquidacion final, legajo) que justamente trabajan sobre egresados.
    */
   @Input() soloActivos = false;
+  /**
+   * Busca solo entre los funcionarios de las sucursales a cargo del usuario (rol RRHH SUCURSAL). El
+   * central es quien acota; el buscador general le mostraría nombres que después no puede usar.
+   */
+  @Input() soloACargo = false;
 
   @Output() idSelected = new EventEmitter<number>();
   @Output() funcionarioSelected = new EventEmitter<Funcionario>();
@@ -51,6 +57,7 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
   constructor(
     private funcionarioService: FuncionarioService,
     private searchFuncionario: FuncionarioSearchGQL,
+    private searchACargo: FuncionariosACargoGQL,
     private dialog: MatDialog
   ) { }
 
@@ -86,7 +93,8 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
         { id: 'nombre', nombre: 'Cargo', nested: true, nestedId: 'cargo', nestedColumnId: 'cargoNombre', width: '25%' },
         { id: 'nickname', nombre: 'Usuario', width: '20%' }
       ],
-      query: this.searchFuncionario,
+      query: this.soloACargo ? this.searchACargo : this.searchFuncionario,
+      queryData: this.soloACargo ? { soloActivos: this.soloActivos } : undefined,
       fallbackToLocal: true,
       filtro: this.soloActivos ? (f: Funcionario) => f?.activo !== false : undefined
     };

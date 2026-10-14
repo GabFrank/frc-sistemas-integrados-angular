@@ -20,6 +20,11 @@
         <mat-option *ngFor="let e of estadoOpciones" [value]="e">{{ e }}</mat-option>
       </mat-select>
     </mat-form-field>
+
+    <!-- El rol acotado no entra al legajo: el finiquito de un funcionario suyo se abre desde acá. -->
+    <button mat-stroked-button type="button" class="btn-finiquito" *ngIf="acotado" (click)="onFiniquito()">
+      <mat-icon>logout</mat-icon> Finiquito
+    </button>
   </div>
 
   <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">

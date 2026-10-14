@@ -43,6 +43,8 @@ export enum ROLES {
   RRHH_APROBAR = "RRHH APROBAR",
   RRHH_PAGAR = "RRHH PAGAR",
   RRHH_CONFIG = "RRHH CONFIG",
+  /** RRHH acotado: liquida sueldos y finiquitos de los funcionarios de las sucursales a su cargo. */
+  RRHH_SUCURSAL = "RRHH SUCURSAL",
   COMISION_GESTIONAR = "COMISION GESTIONAR",
   COMISION_APROBAR = "COMISION APROBAR",
   TESORERIA_VER = "TESORERIA VER",
