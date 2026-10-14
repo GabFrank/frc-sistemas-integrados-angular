@@ -1,6 +1,7 @@
 import { ApolloError } from "@apollo/client/core";
 import {
   debePedirClienteParaFacturar,
+  esEnvioAFilialSinConfirmar,
   esRechazoPorFacturaSinNombre,
   MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR,
   MENSAJE_RESPUESTA_VACIA,
@@ -74,5 +75,32 @@ describe("debePedirClienteParaFacturar", () => {
         pedidos: MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR,
       })
     ).toBeFalse();
+  });
+});
+
+describe('esEnvioAFilialSinConfirmar (#471)', () => {
+  // Prefijo de FacturaLegalGraphQL.saveFacturaLegalToFilial, ya sin el de graphql-java.
+  const PREFIJO = 'Error al crear factura en servidor filial: ';
+  const con = (texto: string) => [{ message: PREFIJO + texto }];
+
+  it('corte con el filial, 500 y respuesta que no es 201: sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar(con('Error al conectar con el servidor filial: Read timed out'))).toBeTrue();
+    expect(esEnvioAFilialSinConfirmar(con('Error del servidor filial: could not execute statement'))).toBeTrue();
+    expect(esEnvioAFilialSinConfirmar(con('Error al crear factura en servidor filial. Código: 200 OK'))).toBeTrue();
+  });
+
+  it('rechazo del filial (4xx) y fallas del central antes de enviar: no', () => {
+    expect(esEnvioAFilialSinConfirmar(con('Error al crear factura legal: El timbrado detalle no está disponible: x'))).toBeFalse();
+    expect(esEnvioAFilialSinConfirmar(con('Sucursal no encontrada: 9'))).toBeFalse();
+    expect(esEnvioAFilialSinConfirmar(con('La sucursal no tiene IP configurada'))).toBeFalse();
+  });
+
+  it('un rechazo que menciona esas frases no cuenta: el texto va anclado al prefijo del central', () => {
+    expect(esEnvioAFilialSinConfirmar(con('Error al crear factura legal: Error del servidor filial anterior'))).toBeFalse();
+  });
+
+  it('lo que no es un arreglo de errores GraphQL: no', () => {
+    expect(esEnvioAFilialSinConfirmar(null)).toBeFalse();
+    expect(esEnvioAFilialSinConfirmar(new Error(PREFIJO + 'Error del servidor filial: x'))).toBeFalse();
   });
 });

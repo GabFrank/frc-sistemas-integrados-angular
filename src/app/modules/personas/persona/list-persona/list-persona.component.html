@@ -120,7 +120,7 @@
             <button mat-menu-item (click)="onAddPersona(persona, i)">
               Editar datos
             </button>
-            <button mat-menu-item (click)="irA('usuario', persona)">
+            <button mat-menu-item (click)="irA('usuario', persona)" *ngIf="persona?.isUsuario ? puedeVerUsuarios : puedeEditarUsuarios">
               {{persona?.isUsuario ? 'Ir a usuario' : 'Crear usuario'}}
             </button>
             <button mat-menu-item (click)="irA('cliente', persona)">
