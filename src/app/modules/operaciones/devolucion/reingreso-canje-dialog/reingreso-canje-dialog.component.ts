@@ -11,7 +11,8 @@ export interface ReingresoCanjeDialogData {
 
 export interface ReingresoCanjeDialogResult {
   cantidadReingresada: number;
-  vencimientoReingreso: Date;
+  /** Opcional: el proveedor no siempre informa el vencimiento de lo que repone. */
+  vencimientoReingreso?: Date;
   /** Número del lote que entrega el proveedor. Solo para productos con control de lote. */
   loteReingreso?: string;
 }
@@ -27,7 +28,8 @@ export class ReingresoCanjeDialogComponent implements OnInit {
     Validators.required,
     Validators.min(0),
   ]);
-  vencimientoControl = new FormControl(null, Validators.required);
+  // Opcional: el central acepta el canje sin vencimiento.
+  vencimientoControl = new FormControl<Date>(null);
   loteReingresoControl = new FormControl<string>(null);
 
   /** El producto lleva control de lote: lo repuesto entra al lote que entrega el proveedor. */
