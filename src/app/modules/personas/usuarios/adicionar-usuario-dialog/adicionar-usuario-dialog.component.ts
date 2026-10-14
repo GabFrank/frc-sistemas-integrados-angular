@@ -74,6 +74,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
       }, 500);
     } else {
       this.selectedPersona = this.data?.persona;
+      // El nombre de usuario arranca con el de la persona; se puede cambiar.
+      this.nicknameControl.setValue(this.selectedPersona?.nombre?.toUpperCase() ?? null)
       this.isEditting = true
     }
 
@@ -140,6 +142,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
         return;
       }
       this.selectedPersona = persona;
+      this.nicknameControl.setValue(persona.nombre?.toUpperCase() ?? null);
     })
   }
 

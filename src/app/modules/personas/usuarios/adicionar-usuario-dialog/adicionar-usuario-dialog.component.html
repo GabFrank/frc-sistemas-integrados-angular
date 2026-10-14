@@ -5,29 +5,9 @@
         <h3 *ngIf="selectedUsuario?.id != null">Editar Usuario</h3>
         <h3 *ngIf="selectedUsuario?.id == null">Nuevo Usuario</h3>
       </div>
-      <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
-        <mat-form-field fxFlex>
-          <mat-label>Persona</mat-label>
-          <input
-            matInput
-            readonly
-            [value]="selectedPersona?.nombre | uppercase"
-            placeholder="Sin persona"
-          />
-        </mat-form-field>
-        <button
-          *ngIf="selectedUsuario?.id == null && data?.persona == null"
-          mat-stroked-button
-          type="button"
-          (click)="onSeleccionarPersona()"
-        >
-          <mat-icon>person_search</mat-icon>
-          Elegir persona
-        </button>
-      </div>
       <div fxFlex fxLayout="row" fxLayoutGap="20px">
-        <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+          <mat-form-field fxFlex>
             <mat-label>Nombre de usuario</mat-label>
             <input
               #nombreInput
@@ -37,7 +17,19 @@
               autocomplete="off"
               oninput="this.value == ' ' ? this.value = '': null"
             />
+            <mat-hint *ngIf="selectedUsuario?.id == null && selectedPersona == null">
+              Elegí la persona del usuario
+            </mat-hint>
           </mat-form-field>
+          <button
+            *ngIf="selectedUsuario?.id == null && data?.persona == null"
+            mat-icon-button
+            type="button"
+            matTooltip="Elegir persona"
+            (click)="onSeleccionarPersona()"
+          >
+            <mat-icon>person_search</mat-icon>
+          </button>
         </div>
         <div fxFlex="50%" fxLayout="row" fxLayoutAlign="center center">
           <mat-label fxFlex="30">Activo</mat-label>
