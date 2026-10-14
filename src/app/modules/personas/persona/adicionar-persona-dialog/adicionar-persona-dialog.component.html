@@ -3,25 +3,23 @@
     {{ selectedPersona == null ? "Nueva Persona" : (selectedPersona.nombre | titlecase) }}
   </h3>
 
+  <div fxLayout="column">
+    <mat-form-field class="form-element">
+      <mat-label class="required-field">Nombre</mat-label>
+      <input matInput formControlName="nombre" class="required-field" (keyup.enter)="apodo.focus()"/>
+    </mat-form-field>
+    <span *ngIf="!formGroup.controls['nombre'].valid && formGroup.controls['nombre'].touched" class="error">
+      Este campo es obligatorio.
+    </span>
+  </div>
+
   <div fxLayout="row" fxLayoutGap="16px">
-    <div class="col-nombre" fxLayout="column">
-      <mat-form-field class="form-element">
-        <mat-label class="required-field">Nombre</mat-label>
-        <input matInput formControlName="nombre" class="required-field" (keyup.enter)="apodo.focus()"/>
-      </mat-form-field>
-      <span *ngIf="!formGroup.controls['nombre'].valid && formGroup.controls['nombre'].touched" class="error">
-        Este campo es obligatorio.
-      </span>
-    </div>
     <div fxFlex fxLayout="column">
       <mat-form-field class="form-element">
         <mat-label class="required-field">Nickname</mat-label>
         <input #apodo matInput formControlName="apodo" (keyup.enter)="documento.focus()"/>
       </mat-form-field>
     </div>
-  </div>
-
-  <div fxLayout="row" fxLayoutGap="16px">
     <div fxFlex fxLayout="column">
       <mat-form-field class="form-element">
         <mat-label class="required-field">C.I / RUC</mat-label>
@@ -31,7 +29,10 @@
         Este campo es obligatorio.
       </span>
     </div>
-    <div fxFlex fxLayout="column">
+  </div>
+
+  <div fxLayout="row" fxLayoutGap="16px">
+    <div fxFlex="35" fxLayout="column">
       <mat-form-field class="form-element">
         <mat-label class="required-field">Teléfono</mat-label>
         <input #telefono matInput formControlName="telefono" (keyup.enter)="direccion.focus()"/>
@@ -40,12 +41,11 @@
         Número de teléfono no válido.
       </span>
     </div>
+    <mat-form-field fxFlex class="form-element">
+      <mat-label>Dirección</mat-label>
+      <input #direccion matInput formControlName="direccion" (keyup.enter)="nacimiento.focus()"/>
+    </mat-form-field>
   </div>
-
-  <mat-form-field class="form-element">
-    <mat-label>Dirección</mat-label>
-    <input #direccion matInput formControlName="direccion" (keyup.enter)="nacimiento.focus()"/>
-  </mat-form-field>
 
   <div fxLayout="row" fxLayoutGap="16px">
     <mat-form-field fxFlex>
