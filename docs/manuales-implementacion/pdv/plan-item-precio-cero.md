@@ -130,6 +130,37 @@ Ninguno.
 | Precios legítimos menores a 1 | A y B | no hay ninguno (mínimo: 250 en bodega, 100 en farmacia) | sin cambio |
 | Pesable cuyo total redondea a 0 | B | sí, leído | fuera de alcance |
 
+## Auditoría del diff (paso 8, 13/10/2026)
+
+Un auditor, sin defectos bloqueantes.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| Al cobrar se miraba primero el precio del catálogo y después el del ítem: un catálogo cambiado a 0 después de cargar el ítem frenaba una venta con precio correcto | se mira primero `item.precio`, que es el que suma el total y el único que trae un delivery |
+| Envase con precio 0: el producto entra y el envase no, con un aviso que nombra al envase | sin cambio: en bodega no hay ninguno |
+| El cableado en `venta-touch.component.ts` no tiene spec | cubierto por la prueba de runtime |
+| El PDV acepta un precio mayor a 0 y el catálogo exige 1 o más | sin cambio: no hay precios entre 0 y 1 |
+
+## Prueba de runtime (paso 9, 14/10/2026)
+
+Desktop de la rama con `ng serve -c web`, filial `develop` (8084, SIFEN sin scheduler), central `develop`
+(8081, perfil `dev`), base local. Producto BRAHMA DUPLO MALTE LATA 350ML (798): unidad 1130, caja x 12 1131.
+
+| Caso | Resultado |
+|---|---|
+| Unidad en 0, por botón de categoría | aviso «… no tiene un precio válido. Avise al encargado.», carrito vacío |
+| Unidad en 0, por buscador | mismo aviso, carrito vacío |
+| Unidad en 0, por código de barras (`crearItem`) | «El producto no tiene precio», carrito vacío |
+| Caja en 0, unidad 6.000, cantidad 12 | 12 unidades a 6.000 (72.000), sin pasar a caja |
+| Unidad con dos precios principales, el primero de la lista en 0 y otro de 6.000 | entra con el de 6.000 |
+| Ítem del carrito puesto en 0 a mano (como uno recuperado) | F8, F11 y F12 no cobran, avisan «… está a precio cero: quítelo del carrito para cobrar.»; 0 ventas guardadas |
+| Alta de precio en 0 y en 0,5 | no guarda, avisa |
+| Alta de precio de 7.000 | guarda |
+| Edición de ese precio a 0 | no guarda, avisa |
+| Precio viejo en 0, inactivarlo sin cambiar el valor | guarda (pasa antes por el aviso de margen, que ya existía) |
+
+Corregido en la prueba: el aviso del alta decía «mayor a cero» y rechazaba 0,5; ahora dice «de 1 o más».
+
 ## Sin verificar
 
 - Si algún producto de farmacia se vende a propósito a precio 0. En bodega no hay ni un caso en 12
