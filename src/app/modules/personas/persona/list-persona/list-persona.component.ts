@@ -143,7 +143,8 @@ export class ListPersonaComponent implements OnInit {
       data: {
         persona
       },
-      width: '60%',
+      width: '700px',
+      maxWidth: '90vw',
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.onFiltrar();
     })
