@@ -141,3 +141,22 @@ export const saveImagenPresentacionQuery = gql`
     saveImagenPresentacion(image: $image, filename: $filename)
   }
 `;
+
+export const sugerenciasImagenPresentacionQuery = gql`
+  query ($presentacionId: ID!, $codigo: String, $texto: String) {
+    data: sugerenciasImagenPresentacion(presentacionId: $presentacionId, codigo: $codigo, texto: $texto) {
+      codigo
+      codigoDescartado
+      texto
+      porCodigo { url miniatura ancho alto titulo sitio fuente }
+      porDescripcion { url miniatura ancho alto titulo sitio fuente }
+      avisos
+    }
+  }
+`;
+
+export const descargarImagenSugeridaQuery = gql`
+  query ($url: String!) {
+    data: descargarImagenSugerida(url: $url)
+  }
+`;

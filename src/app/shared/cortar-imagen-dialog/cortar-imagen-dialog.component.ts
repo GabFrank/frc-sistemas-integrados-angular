@@ -6,7 +6,10 @@ import { ImageCroppedEvent } from 'ngx-image-cropper';
 
 
 export interface CortarImagenData {
-  imagen: string;
+  /** Evento `change` de un input de archivo. */
+  imagen?: any;
+  /** La imagen ya leída, como data URL (p. ej. una foto bajada de internet). */
+  imagenBase64?: string;
 }
 
 @Component({
@@ -17,6 +20,7 @@ export interface CortarImagenData {
 export class CortarImagenDialogComponent implements OnInit {
 
   imageChangedEvent = '';
+  imageBase64 = '';
   isCropping = false;
   croppedImage = '';
   isSend = false;
@@ -26,7 +30,12 @@ export class CortarImagenDialogComponent implements OnInit {
     private imageCompress : NgxImageCompressService,
     private copyToClip: Clipboard
   ) {
-    this.fileChangeEvent(data.imagen)
+    if (data.imagenBase64 != null) {
+      this.imageBase64 = data.imagenBase64;
+      this.isCropping = true;
+    } else {
+      this.fileChangeEvent(data.imagen)
+    }
   }
 
   ngOnInit(
