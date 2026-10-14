@@ -124,7 +124,9 @@ import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
-import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { debePedirClienteParaFacturar, esRechazoDelServidor, esRechazoPorFacturaSinNombre } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { Cliente } from '../../../personas/clientes/cliente.model';
+import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -182,6 +184,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   // cerrado un diálogo que sigue abierto. Los atajos se bloquean con cualquiera de los dos.
   isCargando = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
+  /** Abierto el diálogo que pide el cliente de una venta rechazada por factura sin nombre (#473). */
+  private pidiendoClienteParaFacturar = false;
   /**
    * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
    * vale depende de la moneda (9455 son 94,55 reales o 9.455 guaraníes), así que el parser
@@ -800,6 +804,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addItem(item: VentaItem, index?) {
+    if (this.pidiendoClienteParaFacturar) {
+      // El escáner sigue leyendo aunque haya un diálogo: lo que entre ahora no estaría en la venta
+      // que se va a reenviar y se perdería al limpiar el carrito (#473).
+      this.notificacionSnackbar.openWarn("Cargue el cliente o cancele antes de agregar productos.", 4);
+      return;
+    }
     item.precio = item?.precioVenta?.precio;
     let cantidad: number = +item.cantidad;
     if (item.producto.balanza != true) {
@@ -1093,6 +1103,64 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       texto,
       duracion: 10,
     });
+  }
+
+  /**
+   * El filial rechazó la venta porque lleva factura electrónica sin nombre y llega a 7.000.000: no guardó
+   * nada. Se pide el cliente y se reenvía la misma venta con el mismo cobro, sin volver a cobrar (#473).
+   */
+  private pedirClienteYReintentar(venta: Venta, cobro, ticket, facturar, pedidos: number): void {
+    // Mientras se elige el cliente no se vende ni se toca el carrito: F8/F11 y el buscador miran esto.
+    this.isDialogOpen = true;
+    this.pidiendoClienteParaFacturar = true;
+    this.dialog
+      .open(ClienteParaFacturaDialogComponent, {
+        data: { totalGs: cobro?.totalGs ?? venta.totalGs },
+        autoFocus: true,
+        restoreFocus: true,
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((cliente: Cliente) => {
+        this.isDialogOpen = false;
+        this.pidiendoClienteParaFacturar = false;
+        if (cliente?.id == null) {
+          this.avisarVentaSinGuardarPorCliente("La venta no se guardó: falta el cliente para facturar.");
+          this.buscadorFocusSub.next();
+          return;
+        }
+        venta.cliente = cliente;
+        this.onSaveVenta(venta, cobro, ticket, facturar, null, null, null, pedidos + 1)?.subscribe();
+      });
+  }
+
+  /**
+   * La venta quedó sin guardar por falta de cliente. Un cobro con tarjeta ya pasado por el POS se
+   * descarta acá con aviso: si quedara pendiente se registraría contra la próxima venta que se guarde.
+   */
+  private avisarVentaSinGuardarPorCliente(texto: string): void {
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.warn,
+      texto,
+      duracion: 6,
+    });
+    if (this._pendingTarjetaPagos?.length > 0) {
+      this._pendingTarjetaPagos = [];
+      this.isDialogOpen = true;
+      this.dialogoService
+        .confirm(
+          "Atención!!",
+          "Hay un cobro con tarjeta ya pasado y la venta no se guardó.",
+          "Avise al encargado antes de volver a cobrar esta venta.",
+          null,
+          false
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(() => {
+          this.isDialogOpen = false;
+          this.buscadorFocusSub.next();
+        });
+    }
   }
 
   /** Carrito del PDV activo. Fuera de delivery, selectedItemList siempre apunta a este array. */
@@ -1524,7 +1592,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     facturar?,
     ventaCreditoInput?,
     ventaCreditoCuotaInputList?,
-    facturaLegalId?: number
+    facturaLegalId?: number,
+    pedidosCliente = 0
   ): Observable<Venta> {
     if (facturar == null) {
       // Solo el Cobro Rapido + Ticket (F11) pide factura explicita. Para el Cobro
@@ -1536,6 +1605,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.isDelivery) venta.delivery = this.selectedDelivery;
     if (this.modoConsulta) return;
+    // Foto de los ítems: la lista es la del carrito vivo, y si el filial pide el cliente la venta se
+    // reenvía con el total y el cobro de este intento (#473).
+    if (venta.ventaItemList != null) venta.ventaItemList = [...venta.ventaItemList];
     return new Observable((obs) => {
       // Se levanta acá, dentro del observable y después del chequeo de modoConsulta, y se baja en el
       // finalize del pipe interno: onTicketClick hace .subscribe().unsubscribe() sobre este observable
@@ -1703,6 +1775,25 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
             // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
             // venta asociada, con el timbrado consumido y el stock sin descontar.
+            if (debePedirClienteParaFacturar({
+              error: err,
+              tieneCliente: venta.cliente?.id != null,
+              facturaManualEmitida: facturaLegalId != null,
+              esCredito: ventaCreditoInput != null,
+              esDelivery: this.isDelivery,
+              pedidos: pedidosCliente,
+            })) {
+              this.pedirClienteYReintentar(venta, cobro, ticket, facturar, pedidosCliente);
+              obs.next(null);
+              return;
+            }
+            if (pedidosCliente > 0 && esRechazoPorFacturaSinNombre(err)) {
+              this.avisarVentaSinGuardarPorCliente(
+                "El servidor volvió a rechazar la factura con ese cliente. La venta no se guardó: cobre con el botón de factura."
+              );
+              obs.next(null);
+              return;
+            }
             const rechazoDelServidor = esRechazoDelServidor(err);
             if (!rechazoDelServidor || facturaLegalId != null) {
               this.notificacionSnackbar.notification$.next({
