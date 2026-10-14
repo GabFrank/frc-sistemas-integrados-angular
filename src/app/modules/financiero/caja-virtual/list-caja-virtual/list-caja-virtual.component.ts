@@ -17,6 +17,7 @@ import { CajaVirtualDashboardComponent } from '../caja-virtual-dashboard/caja-vi
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { GestionarAccesosCajaDialogComponent, GestionarAccesosCajaData } from '../gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
+import { SucursalesDeCajaDialogComponent, SucursalesDeCajaData } from '../sucursales-de-caja-dialog/sucursales-de-caja-dialog.component';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 
@@ -104,6 +105,7 @@ export class ListCajaVirtualComponent implements OnInit {
           if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = this.marcarAdminAccesos(res.getContent);
+          this.marcarReceptoras();
         },
         error: () => {
           this.isSearching = false;
@@ -143,7 +145,31 @@ export class ListCajaVirtualComponent implements OnInit {
     return (rows || []).map(r => ({
       ...r,
       _puedeAdminAccesos: this.esAdmin || (!!yo && r?.usuario?.id === yo),
+      _etiquetaEnvios: 'Recibe envíos',
     }));
+  }
+
+  /**
+   * La opción del menú dice lo que va a hacer: «Recibir envíos» o «Dejar de recibir envíos». La marca no
+   * viene en el listado (un central que no la conoce lo rompería), así que se cruza con las cajas
+   * receptoras; si esa consulta falla queda el nombre neutro y la acción pregunta igual con el estado real.
+   */
+  private marcarReceptoras() {
+    if (!this.puedeGestionar) return;
+    this.cajaVirtualService.onGetReceptoras().pipe(untilDestroyed(this)).subscribe({
+      next: receptoras => {
+        if (receptoras == null) return;
+        const ids = new Set(receptoras.map(c => Number(c.id)));
+        this.dataSource.data = this.dataSource.data.map((r: any) => ({
+          ...r, _etiquetaEnvios: this.etiquetaEnvios(ids.has(Number(r.id))),
+        }));
+      },
+      error: () => {}
+    });
+  }
+
+  private etiquetaEnvios(recibe: boolean): string {
+    return recibe ? 'Dejar de recibir envíos' : 'Recibir envíos';
   }
 
   onGestionarAccesos(item: CajaVirtual) {
@@ -154,6 +180,54 @@ export class ListCajaVirtualComponent implements OnInit {
       // La transferencia de responsabilidad cambia quién puede administrar: recargar.
       if (res != null) this.onFiltrar();
     });
+  }
+
+  /**
+   * Marca o desmarca la caja como receptora de envíos: quien puede mover otra caja le puede transferir
+   * plata sin verla ni poder sacarle. Se lee el estado actual antes de preguntar, para no cambiarlo a ciegas.
+   */
+  onRecibeEnvios(item: CajaVirtual) {
+    this.cajaVirtualService.onGetRecibeEnvios(item.id).pipe(untilDestroyed(this)).subscribe({
+      next: actual => {
+        if (actual == null) {
+          this.notificacion.openWarn('No se pudo leer si la caja recibe envíos. Volvé a intentar.', 5);
+          return;
+        }
+        const recibe = actual.recibeEnvios === true;
+        this.dialogosService.confirm(
+          recibe ? 'Dejar de recibir envíos' : 'Recibir envíos',
+          recibe
+            ? `${item.nombre} hoy recibe envíos de otras cajas. ¿Dejar de recibirlos?`
+            : `¿Permitir que otras cajas le envíen plata a ${item.nombre}?`,
+          recibe
+            ? 'Solo quienes tengan acceso a esta caja van a poder transferirle.'
+            : 'Quien pueda mover otra caja va a poder transferirle, sin ver su saldo ni sus movimientos.',
+          null, true, recibe ? 'Sí, dejar de recibir' : 'Sí, recibir envíos', 'No'
+        ).pipe(untilDestroyed(this)).subscribe(res => {
+          if (res !== true) return;
+          this.cajaVirtualService.onMarcarRecibeEnvios(item.id, !recibe).pipe(untilDestroyed(this)).subscribe({
+            next: r => {
+              if (r == null) {
+                this.notificacion.openWarn('No se pudo confirmar el cambio. Abrí de nuevo «Recibe envíos» para ver cómo quedó.', 6);
+                return;
+              }
+              this.notificacion.openSucess(r.recibeEnvios ? `${item.nombre} ahora recibe envíos` : `${item.nombre} ya no recibe envíos`);
+              this.dataSource.data = this.dataSource.data.map((f: any) => Number(f.id) === Number(item.id)
+                ? { ...f, _etiquetaEnvios: this.etiquetaEnvios(r.recibeEnvios === true) } : f);
+            },
+            // El rechazo del central ya lo avisó el genérico.
+            error: () => {}
+          });
+        });
+      },
+      error: () => this.notificacion.openWarn('No se pudo leer si la caja recibe envíos. Volvé a intentar.', 5)
+    });
+  }
+
+  /** Sucursales de las que la caja recibe retiros del PDV además de la propia. */
+  onSucursalesDeCaja(item: CajaVirtual) {
+    const data: SucursalesDeCajaData = { cajaVirtual: item };
+    this.dialog.open(SucursalesDeCajaDialogComponent, { width: '640px', maxWidth: '95vw', data });
   }
 
   onEdit(item: CajaVirtual) {

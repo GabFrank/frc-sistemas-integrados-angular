@@ -1,0 +1,42 @@
+<div class="sucursales-de-caja-dialog">
+  <h2 class="titulo-dialog">Sucursales que cubre la caja</h2>
+  <div class="subtitulo-dialog">{{ data.cajaVirtual?.nombre }}</div>
+
+  <mat-dialog-content class="sc-content">
+    <p class="sc-hint">
+      Quien opera esta caja con el rol <strong>Tesorería caja</strong> ingresa en ella los retiros del PDV de
+      su sucursal y de las que marques acá.
+    </p>
+
+    <div class="sc-estado" *ngIf="isLoading">Cargando…</div>
+    <div class="sc-estado" *ngIf="!isLoading && !cargado">
+      No se pudieron cargar las sucursales de la caja.
+      <button mat-button type="button" (click)="cargar()">Reintentar</button>
+    </div>
+
+    <ng-container *ngIf="!isLoading && cargado">
+      <div class="sc-propia">
+        Sucursal de la caja: <strong>{{ propia?.nombre || 'sin sucursal' }}</strong>
+        <span *ngIf="propia"> — siempre incluida.</span>
+      </div>
+
+      <button mat-stroked-button type="button" class="sc-ciudad" (click)="marcarLasDeLaCiudad()"
+              [disabled]="!hayDeLaCiudad || isSaving">
+        <mat-icon>location_city</mat-icon> Marcar las de la misma ciudad
+      </button>
+
+      <div class="sc-lista">
+        <mat-checkbox *ngFor="let f of filas" [(ngModel)]="f.marcada" [disabled]="isSaving">
+          {{ f.nombre }}
+        </mat-checkbox>
+      </div>
+    </ng-container>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="sc-acciones">
+    <button mat-button type="button" (click)="cerrar()">Cancelar</button>
+    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="!cargado || isSaving">
+      Guardar
+    </button>
+  </mat-dialog-actions>
+</div>

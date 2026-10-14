@@ -1909,6 +1909,30 @@ export const cancelarSolicitudPagoMutation = gql`
   }
 `;
 
+/**
+ * Caja a la que tesorería asignó la solicitud. Va en una consulta propia, no en los listados: así un
+ * central que todavía no conoce estos campos solo afecta al diálogo de asignación.
+ */
+export const solicitudPagoCajaAsignadaQuery = gql`
+  query ($id: ID!) {
+    data: solicitudPago(id: $id) {
+      id
+      cajaVirtualAsignadaId
+      cajaVirtualAsignadaNombre
+    }
+  }
+`;
+
+export const asignarSolicitudPagoACajaMutation = gql`
+  mutation ($solicitudPagoId: ID!, $cajaVirtualId: ID) {
+    data: asignarSolicitudPagoACaja(solicitudPagoId: $solicitudPagoId, cajaVirtualId: $cajaVirtualId) {
+      id
+      cajaVirtualAsignadaId
+      cajaVirtualAsignadaNombre
+    }
+  }
+`;
+
 export const imprimirSolicitudPagoPDFMutation = gql`
   mutation ($solicitudPagoId: ID!) {
     data: imprimirSolicitudPagoPDF(solicitudPagoId: $solicitudPagoId)

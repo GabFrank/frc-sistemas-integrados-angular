@@ -21,6 +21,7 @@ import { ConfigurarCajaVirtualDialogComponent } from '../configurar-caja-virtual
 import { RegistrarIngresoDialogComponent } from '../registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { RegistrarEgresoDialogComponent } from '../registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { MainService } from '../../../../main.service';
+import { esSoloTesoreriaCaja, operaAcotadoCaja, puedeOperarCaja } from '../rol-tesoreria-caja';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
@@ -112,6 +113,12 @@ function fechaHoyArchivo(): string {
 
 const SIN_CONFIRMAR_ANULACION = 'No se pudo confirmar la anulación: se vuelve a leer la caja para verificarla.';
 
+/**
+ * Orígenes cuyo «ir al origen» abre una pantalla que el rol acotado no puede leer: el detalle de una
+ * operación financiera (trae cuentas bancarias) y la lista de vales de RRHH.
+ */
+const ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO = ['OPERACION_FINANCIERA', 'RRHH_VALE'];
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -201,6 +208,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
   showFiltros = false;
 
   puedeGestionar = false;
+  /** Mover el efectivo de la caja: GESTIONAR o el rol acotado TESORERIA CAJA. */
+  puedeOperar = false;
+  /** Rol acotado: sin cuentas bancarias, sin configuración, sin conteo, sin detalle de operaciones. */
+  soloCaja = false;
+  /** Mueve plata como el rol acotado (TESORERIA CAJA sin GESTIONAR): sin conteo ni anular retiros. */
+  operaAcotado = false;
 
   tipoMovimientoList = [
     { label: 'Ingreso', value: CajaVirtualTipoMovimiento.INGRESO },
@@ -271,6 +284,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.cajaVirtual = this.data?.tabData?.data as CajaVirtual;
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.puedeOperar = puedeOperarCaja(this.mainService);
+    this.soloCaja = esSoloTesoreriaCaja(this.mainService);
+    this.operaAcotado = operaAcotadoCaja(this.mainService);
     this.permisosAnulacionBanco = {
       gestionar: this.puedeGestionar,
       pagarCpp: this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR]),
@@ -362,6 +378,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   cargarConfigYBancos() {
     if (!this.cajaVirtual?.id) return;
+    if (this.soloCaja) {
+      // El rol acotado no ve la configuración ni los saldos bancarios: el central los rechaza. Queda
+      // solo la caja como fuente, sin aviso de error.
+      this.config = null;
+      this.resumenBancario = [];
+      this.bancoCards = [];
+      this.construirFuentes();
+      return;
+    }
     this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
       .pipe(untilDestroyed(this)).subscribe({
         next: cfg => {
@@ -541,7 +566,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       row._origenLabel = 'Ver detalle del pago';
       row._origenIcon = 'receipt_long';
     } else {
-      row._verOrigen = !!nav;
+      row._verOrigen = !!nav && !(this.soloCaja && ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO.includes(m.origenTipo as any));
       row._origenLabel = nav?.label;
       row._origenIcon = nav?.icon;
     }
@@ -734,7 +759,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   private esAnulable(m: MovimientoCajaVirtual): boolean {
-    return this.puedeGestionar
+    // Deshacer la acreditación de un retiro anula su verificación, que no entra en el rol acotado.
+    if (this.operaAcotado && m.origenTipo === 'RETIRO_CAJA') return false;
+    return this.puedeOperar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false
       && !this.anulacionesPendientes.has(this.claveAnulacion(m));
