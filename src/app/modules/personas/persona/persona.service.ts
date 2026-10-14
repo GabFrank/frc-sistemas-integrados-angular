@@ -15,6 +15,8 @@ import { GenericCrudService, QueryError } from "../../../generics/generic-crud.s
 import { DeletePersonaGQL } from "./graphql/deletePersona";
 import { PersonasGQL } from "./graphql/personasQuery";
 import { PersonaPorDocumentoGQL } from "./graphql/personaPorDocumento";
+import { PersonasPaginadasGQL } from "./graphql/personasPaginadas";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -29,11 +31,17 @@ export class PersonaService {
     private genericService: GenericCrudService,
     private deletePersona: DeletePersonaGQL,
     private getPersonas: PersonasGQL,
-    private personaPorDocumento: PersonaPorDocumentoGQL
+    private personaPorDocumento: PersonaPorDocumentoGQL,
+    private personasPaginadas: PersonasPaginadasGQL
   ) { }
 
   onGetAll(page, servidor: boolean = true): Observable<Persona[]> {
     return this.genericService.onGetAll(this.getPersonas, page, null, servidor)
+  }
+
+  /** Sin texto trae todas las personas, ordenadas por id. */
+  onSearchConFiltros(texto: string, page: number, size: number, servidor: boolean = true): Observable<PageInfo<Persona>> {
+    return this.genericService.onCustomQuery(this.personasPaginadas, { texto, page, size }, servidor)
   }
 
   onSearch(texto, servidor: boolean = true): Observable<Persona[]> {

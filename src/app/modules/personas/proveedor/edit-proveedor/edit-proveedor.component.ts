@@ -28,6 +28,8 @@ import { MainService } from "../../../../main.service";
 export interface EditProveedorData {
   proveedor?: Proveedor;
   isEditing?: boolean;
+  /** Alta desde Personas («Crear proveedor»): la persona ya elegida. */
+  persona?: Persona;
 }
 
 export interface EditProveedorResult {
@@ -144,6 +146,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
             else this.loadExistingProveedorData();
           }
         });
+    } else if (this.data?.persona != null) {
+      this.onSelectPersona(this.data.persona);
     } else {
       this.loadExistingProveedorData();
     }
@@ -299,6 +303,12 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
+          // Es la persona ya elegida (de la lista o de Personas): no se pregunta si usarla.
+          if (persona?.id != null && persona.id == this.selectedPersona?.id) {
+            this.clearDocumentVerification();
+            this.cdr.markForCheck();
+            return;
+          }
           if (persona?.id) {
             this.foundPersona = persona;
             this.documentVerificationState = "found";

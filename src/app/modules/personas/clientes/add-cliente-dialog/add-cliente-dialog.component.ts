@@ -107,6 +107,17 @@ export class AddClienteDialogComponent implements OnInit {
       this.emailControl.setValue(this.selectedPersona?.email)
       this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
       this.direccionControl.setValue(this.selectedPersona?.direccion)
+    } else if (this.data?.persona != null) {
+      // Alta desde Personas («Crear cliente»): la persona ya está elegida.
+      this.selectedPersona = new Persona;
+      Object.assign(this.selectedPersona, this.data.persona);
+      this.nombreControl.setValue(this.selectedPersona.nombre)
+      this.apodoControl.setValue(this.selectedPersona?.apodo)
+      this.documentoControl.setValue(this.selectedPersona?.documento)
+      this.telefonoControl.setValue(this.selectedPersona?.telefono)
+      this.emailControl.setValue(this.selectedPersona?.email)
+      this.nacimientoControl.setValue(this.selectedPersona?.nacimiento != null ? new Date(this.selectedPersona.nacimiento) : null)
+      this.direccionControl.setValue(this.selectedPersona?.direccion)
     }
 
   }

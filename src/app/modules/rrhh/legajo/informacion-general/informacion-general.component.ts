@@ -41,6 +41,8 @@ const AVATAR_DEFAULT = 'assets/avatar-3x4.png';
 export class InformacionGeneralComponent implements OnInit, OnChanges {
 
   @Input() funcionarioId: number;
+  /** Alta desde Personas («Crear funcionario»): la persona ya elegida, para no buscarla por documento. */
+  @Input() persona: Persona;
   @Output() guardado = new EventEmitter<number>();
   // Notifica al legajo padre la foto vigente (data URL) para pintar el avatar de la cabecera.
   @Output() fotoCambiada = new EventEmitter<string>();
@@ -190,6 +192,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       this.cargaFallida = false;
       this.cargandoFuncionario = false;
       this.limpiarFormulario();
+      if (this.persona != null) {
+        this.documentoControl.setValue(this.persona.documento);
+        this.precargarPersona(this.persona);
+      }
       return;
     }
     this.cargandoFuncionario = true;
@@ -295,15 +301,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       untilDestroyed(this)
     ).subscribe((p: Persona) => {
       if (p != null) {
-        this.personaActual = p;
-        this.personaId = p.id;
-        this.nombreControl.setValue(p.nombre);
-        this.nacimientoControl.setValue(p.nacimiento ? stringToLocalDate(p.nacimiento as any) : null);
-        this.sexoControl.setValue(p.sexo);
-        this.direccionControl.setValue(p.direccion);
-        this.telefonoControl.setValue(p.telefono);
-        this.emailControl.setValue(p.email);
-        this.ciudadControl.setValue(p.ciudad?.id);
+        this.precargarPersona(p);
         this.notificacion.openSucess('Persona encontrada, datos precargados');
       } else {
         this.personaActual = null;
@@ -311,6 +309,18 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
         this.notificacion.openWarn('No se encontró una persona con ese documento. Complete los datos para crear una nueva.');
       }
     });
+  }
+
+  private precargarPersona(p: Persona): void {
+    this.personaActual = p;
+    this.personaId = p.id;
+    this.nombreControl.setValue(p.nombre);
+    this.nacimientoControl.setValue(p.nacimiento ? stringToLocalDate(p.nacimiento as any) : null);
+    this.sexoControl.setValue(p.sexo);
+    this.direccionControl.setValue(p.direccion);
+    this.telefonoControl.setValue(p.telefono);
+    this.emailControl.setValue(p.email);
+    this.ciudadControl.setValue(p.ciudad?.id);
   }
 
   private cargarFoto(): void {

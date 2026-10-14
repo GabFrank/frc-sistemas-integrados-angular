@@ -5,8 +5,9 @@ import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
 
 export class AdicionarUsuarioDialogData {
-  persona: Persona;
-  usuario: Usuario;
+  /** Persona del usuario nuevo (Personas → «Crear usuario»). Sin ella se elige en el diálogo. */
+  persona?: Persona;
+  usuario?: Usuario;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -165,6 +166,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
           this.abrirUsuarioExistente(usuario);
         } else {
           this.selectedPersona = persona;
+          // El nombre de usuario arranca con el de la persona; se puede cambiar.
+          this.nicknameControl.setValue(persona.nombre?.toUpperCase() ?? null);
         }
         this.actualizarPuedeGuardar();
       })
