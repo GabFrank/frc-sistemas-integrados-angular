@@ -1,5 +1,7 @@
 import { ApolloError } from "@apollo/client/core";
+import { MENSAJE_TIMEOUT_MUTATION } from "../../../shared/services/timeout-link";
 import {
+  avisoTrasMutacion,
   debePedirClienteParaFacturar,
   esEnvioAFilialSinConfirmar,
   esRechazoPorFacturaSinNombre,
@@ -102,5 +104,63 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
   it('lo que no es un arreglo de errores GraphQL: no', () => {
     expect(esEnvioAFilialSinConfirmar(null)).toBeFalse();
     expect(esEnvioAFilialSinConfirmar(new Error(PREFIJO + 'Error del servidor filial: x'))).toBeFalse();
+  });
+});
+
+describe('avisoTrasMutacion (#488)', () => {
+  const QUE = 'se verificó el ítem';
+  const AVISO = `No se pudo confirmar si ${QUE}: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.`;
+
+  // Error que arma el link de central offline de GraphqlConnectionService al cortar a los 3 s.
+  const centralOffline = () => {
+    const err: any = new Error('El servidor central no responde (offline).');
+    err.networkError = true;
+    return err;
+  };
+  // Error que arma crearTimeoutLink al vencer una mutation.
+  const timeoutDeLink = () => {
+    const err: any = new Error(MENSAJE_TIMEOUT_MUTATION);
+    err.esTimeout = true;
+    return err;
+  };
+
+  it('rechazo del servidor: null, el motivo ya lo avisó el genérico', () => {
+    expect(avisoTrasMutacion([{ message: 'La nota ya está verificada' }], QUE)).toBeNull();
+    expect(avisoTrasMutacion({ graphQLErrors: [{ message: 'La nota ya está verificada' }] }, QUE)).toBeNull();
+  });
+
+  it('corte por tiempo del link: null, el link ya avisó', () => {
+    expect(avisoTrasMutacion(timeoutDeLink(), QUE)).toBeNull();
+    expect(avisoTrasMutacion(new ApolloError({ networkError: timeoutDeLink() }), QUE)).toBeNull();
+  });
+
+  it('respuesta vacía, sola o junto a otro error: avisa que no se pudo confirmar', () => {
+    expect(avisoTrasMutacion([{ message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([{ message: 'otro' }, { message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+  });
+
+  it('errores GraphQL con networkError: avisa, manda lo incierto', () => {
+    expect(avisoTrasMutacion({ networkError: {}, graphQLErrors: [{ message: 'x' }] }, QUE)).toBe(AVISO);
+  });
+
+  it('error de red de Apollo, con o sin status HTTP: avisa', () => {
+    expect(avisoTrasMutacion(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('401'), { status: 401 }) }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('500'), { status: 500 }) }), QUE)).toBe(AVISO);
+  });
+
+  it('central offline, suelto o envuelto por Apollo: avisa', () => {
+    expect(avisoTrasMutacion(centralOffline(), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: centralOffline() }), QUE)).toBe(AVISO);
+  });
+
+  it('sin error reconocible (null, undefined, arreglo vacío): avisa', () => {
+    expect(avisoTrasMutacion(null, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(undefined, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([], QUE)).toBe(AVISO);
+  });
+
+  it('el texto nombra la operación', () => {
+    expect(avisoTrasMutacion(null, 'se recepcionaron los ítems')).toContain('No se pudo confirmar si se recepcionaron los ítems:');
   });
 });
