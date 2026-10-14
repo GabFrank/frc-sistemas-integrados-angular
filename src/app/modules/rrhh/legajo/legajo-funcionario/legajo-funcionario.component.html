@@ -75,7 +75,7 @@
       <mat-tab-group class="legajo-tabs" animationDuration="0ms">
 
         <mat-tab label="Información general">
-          <app-informacion-general [funcionarioId]="funcionario?.id"
+          <app-informacion-general [funcionarioId]="funcionario?.id" [persona]="personaNueva"
             (guardado)="onGuardado($event)"
             (fotoCambiada)="fotoPerfilSrc = $event"></app-informacion-general>
         </mat-tab>

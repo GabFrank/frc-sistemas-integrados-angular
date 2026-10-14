@@ -7,6 +7,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
+import { Persona } from '../../../personas/persona/persona.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { LegajoService } from '../legajo.service';
@@ -44,6 +45,8 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   funcionarioControl = new FormControl(null);
   funcionario: Funcionario = null;
+  /** Legajo nuevo abierto desde Personas («Crear funcionario»): persona a precargar. */
+  personaNueva: Persona = null;
   // Avatar de la cabecera: lo emite el tab "Información general" (documento FOTO_PERFIL).
   fotoPerfilSrc: string = null;
 
@@ -107,6 +110,7 @@ export class LegajoFuncionarioComponent implements OnInit {
     this.puedeLiquidar = this.mainService.tieneAlgunRol(['RRHH LIQUIDAR']);
     // El legajo se abre siempre apuntando a un funcionario (desde la lista de
     // funcionarios → acción de fila). Ya no hay selector interno.
+    this.personaNueva = this.data?.tabData?.data?.persona ?? null;
     const preId = this.data?.tabData?.data?.id;
     if (preId != null) {
       this.funcionarioControl.setValue(preId);

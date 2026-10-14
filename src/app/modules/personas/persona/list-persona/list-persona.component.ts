@@ -1,17 +1,25 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { TabService } from '../../../../layouts/tab/tab.service';
+import { PageInfo } from '../../../../app.component';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { AdicionarUsuarioDialogComponent, AdicionarUsuarioDialogData } from '../../usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { AdicionarPersonaDialogComponent } from '../adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
 import { UsuarioService } from '../../usuarios/usuario.service';
-import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { AddClienteDialogComponent, AdicionarClienteData } from '../../clientes/add-cliente-dialog/add-cliente-dialog.component';
+import { ClienteService } from '../../clientes/cliente.service';
+import { FuncionarioService } from '../../funcionarios/funcionario.service';
+import { EditProveedorComponent, EditProveedorData, EditProveedorResult } from '../../proveedor/edit-proveedor/edit-proveedor.component';
+import { ProveedorService } from '../../proveedor/proveedor.service';
+import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 
 
 
@@ -34,6 +42,7 @@ import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 export class ListPersonaComponent implements OnInit {
 
   @ViewChild('buscar', { static: true }) buscar: ElementRef;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<Persona>([]);
   selectedPersona: Persona;
@@ -50,44 +59,76 @@ export class ListPersonaComponent implements OnInit {
 
   expandedPersona: Persona;
 
-  page = -1;
-  isLastPage = false;
-  isSearching = false;
+  pageSize = 25;
+  pageIndex = 0;
+  selectedPageInfo: PageInfo<Persona>;
+  timer: ReturnType<typeof setTimeout>;
 
-  buscarControl = new FormControl(null, Validators.required)
+  buscarControl = new FormControl(null)
 
   constructor(
     public service: PersonaService,
     public windowInfoService: WindowInfoService,
     private matDialog: MatDialog,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private clienteService: ClienteService,
+    private funcionarioService: FuncionarioService,
+    private proveedorService: ProveedorService,
+    private tabService: TabService
   ) { }
 
   ngOnInit(): void {
-    this.cargarMasDatos()
+    setTimeout(() => {
+      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
+      this.pageSize = this.paginator.pageSizeOptions[1];
+      this.onFiltrar();
+    }, 0);
+
+    this.buscarControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.irAPrimeraPagina();
+        if (this.timer != null) {
+          clearTimeout(this.timer);
+        }
+        this.timer = setTimeout(() => {
+          this.onFiltrar();
+        }, 500);
+      });
   }
 
   rowSelectedEvent(e) {
   }
 
   onFiltrar() {
-    this.dataSource.data = []
-    if (this.buscarControl.valid) {
-      this.isSearching = true;
-      this.service.onSearch(this.buscarControl.value)
-        // Sin esto quedaba «buscando» para siempre (#390).
-        .pipe(terminarSiFalla(() => this.isSearching = false), untilDestroyed(this))
-        .subscribe(res => {
-          this.isSearching = false;
-          this.isLastPage = true;
-          this.buscar.nativeElement.select()
-          this.dataSource.data = res;
-        })
-    } else {
-      this.page = -1;
-      this.isLastPage = false;
-      this.cargarMasDatos()
-    }
+    const texto = this.buscarControl.value?.toString().trim() || null;
+    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.selectedPageInfo = res;
+          this.dataSource.data = this.selectedPageInfo?.getContent || [];
+        }
+      })
+  }
+
+  resetFiltro() {
+    this.irAPrimeraPagina();
+    this.dataSource.data = [];
+    this.selectedPageInfo = null;
+    // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca.
+    this.buscarControl.setValue(null);
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
+  }
+
+  private irAPrimeraPagina() {
+    this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
   }
 
   onAddPersona(persona?: Persona, index?) {
@@ -96,21 +137,9 @@ export class ListPersonaComponent implements OnInit {
         persona
       },
       width: '60%',
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) this.onFiltrar();
     })
-  }
-
-  cargarMasDatos() {
-    this.isSearching = true;
-    this.page++;
-    this.service.onGetAll(this.page)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.isSearching = false;
-        // null = la página no se pudo leer (#390): se vuelve atrás para pedirla de nuevo, sin dar la lista por terminada.
-        if (res == null) { this.page--; return; }
-        if (res.length == 0) this.isLastPage = true;
-        this.dataSource.data = this.dataSource.data.concat(res)
-      })
   }
 
   irA(opcion, persona) {
@@ -151,15 +180,71 @@ export class ListPersonaComponent implements OnInit {
     })
   }
 
-  abrirCliente(persona) {
-
+  abrirCliente(persona: Persona) {
+    if (!persona?.isCliente) {
+      this.abrirDialogoCliente({ persona });
+      return;
+    }
+    this.clienteService.onGetByPersonaId(persona.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(cliente => {
+        if (cliente != null) this.abrirDialogoCliente({ cliente });
+      })
   }
 
-  abrirFuncionario(persona) {
-
+  private abrirDialogoCliente(data: AdicionarClienteData) {
+    this.matDialog.open(AddClienteDialogComponent, {
+      data,
+      width: '60%',
+      disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) this.onFiltrar();
+    })
   }
 
-  abrirProveedor(persona) {
+  abrirFuncionario(persona: Persona) {
+    if (!persona?.isFuncionario) {
+      // El alta de funcionarios vive en el legajo (igual que en la lista de funcionarios).
+      this.tabService.addTab(new Tab(
+        LegajoFuncionarioComponent,
+        'Nuevo funcionario — ' + persona?.nombre,
+        new TabData(null, { persona }),
+        null
+      ));
+      return;
+    }
+    this.funcionarioService.onGetFuncionarioPorPersona(persona.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(funcionario => {
+        if (funcionario == null) return;
+        // Título único por funcionario: el TabService deduplica por título.
+        this.tabService.addTab(new Tab(
+          LegajoFuncionarioComponent,
+          'Legajo — ' + (persona?.nombre || ('#' + funcionario.id)),
+          new TabData(funcionario.id, { id: funcionario.id }),
+          null
+        ));
+      })
+  }
 
+  abrirProveedor(persona: Persona) {
+    if (!persona?.isProveedor) {
+      this.abrirDialogoProveedor({ persona });
+      return;
+    }
+    this.proveedorService.onGetPorPersona(persona.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(proveedor => {
+        if (proveedor != null) this.abrirDialogoProveedor({ proveedor, isEditing: true });
+      })
+  }
+
+  private abrirDialogoProveedor(data: EditProveedorData) {
+    this.matDialog.open(EditProveedorComponent, {
+      width: '600px',
+      data
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: EditProveedorResult) => {
+      if (res?.saved) this.onFiltrar();
+    })
   }
 }

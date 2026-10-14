@@ -56,6 +56,44 @@ export const personasSearch = gql`
   }
 `;
 
+// Lista de Administración → Personas: mismos campos que `personas`, paginada en el central.
+export const personasPaginadas = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: personaSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        apodo
+        nacimiento
+        documento
+        sexo
+        direccion
+        telefono
+        socialMedia
+        creadoEn
+        email
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        isFuncionario
+        isCliente
+        isProveedor
+        isUsuario
+      }
+    }
+  }
+`;
+
 export const personaPorDocumento = gql`
   query ($texto: String) {
     data: personaPorDocumento(texto: $texto) {
