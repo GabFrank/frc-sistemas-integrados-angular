@@ -302,7 +302,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
    */
   private precioSinValor(): boolean {
     if (esPrecioGuardable(this.precioControl.value, this.selectedPrecioPorSucursal?.precio)) return false;
-    this.notificacionSnackBar.openWarn("El precio tiene que ser un número mayor a cero.", 4);
+    this.notificacionSnackBar.openWarn("El precio tiene que ser de 1 o más.", 4);
     return true;
   }
 
