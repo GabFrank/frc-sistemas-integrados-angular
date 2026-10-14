@@ -27,3 +27,9 @@ input {
 .acciones {
     margin-top: 8px;
 }
+
+// 15px más que la mitad de la fila (cada mitad es 50% - 8px por el gap de 16px).
+.col-nombre {
+    flex: 0 0 calc(50% + 7px);
+    min-width: 0;
+}
