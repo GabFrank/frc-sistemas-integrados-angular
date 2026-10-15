@@ -32,6 +32,8 @@ Qué hacer tras el corte depende de lo que pase si se reintenta. Eso lo dice el 
 | El central lo rechaza o queda igual | aviso; la lista se recarga a los 5 s (`RECARGA_TRAS_CORTE_MS`) |
 | Duplica | aviso y no se deja repetir desde la misma pantalla sin recargar |
 
+Lo que decide es `erroresDeRechazo(err)`, no si `avisoTrasMutacion` devolvió null. Ese null también sale en el timeout del link: el link ya avisó, pero la operación pudo aplicarse igual, así que el bloqueo y la recarga van en todo lo que no sea rechazo (ajuste de la auditoría del diff).
+
 Las recargas diferidas usan `timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this))`, salvo donde ya hay una con guarda (inventario).
 
 ## Cambios
@@ -43,7 +45,7 @@ Las recargas diferidas usan `timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(th
 | 1 | `autorizar-gasto-dialog` `registrarDevolucion` | resta otra vez si el saldo era parcial | aviso; montos a 0 y botón bloqueado (`devolucionSinConfirmar`) con «cerrá el diálogo: la lista se actualiza» |
 | 2 | ídem `autorizar` / `rechazar` | queda igual (re-sella) | aviso; el diálogo queda |
 | 3 | ídem `finalizar` (completar) | puede repetir el descuento de la cuota o el alta del activo | aviso y Finalizar bloqueado (`finalizarSinConfirmar`) |
-| 1-3b | ídem, al cerrar | — | con algún flag puesto, `cancelar()` cierra con `{ sinConfirmar: true }`. `list-pre-gastos.autorizarGasto` recarga en ese caso y quita la selección, que tiene la copia vieja. Hoy reabrir reusa el objeto viejo de la lista. `markForCheck` en cada rama, porque el diálogo es OnPush |
+| 1-3b | ídem, al cerrar | — | tras una escritura sin respuesta, o tras una devolución registrada, `cancelar()` cierra con `{ recargar: true }`. `list-pre-gastos.autorizarGasto` recarga en ese caso y quita la selección, que tiene la copia vieja. Hoy reabrir reusa el objeto viejo de la lista. `markForCheck` en cada rama, porque el diálogo es OnPush |
 | 4 | `list-pre-gastos` `onEnviarATesoreria` | **crea otra solicitud de pago** | aviso. El id queda en `enviosSinConfirmar` (mapa id → true que lee el template) y el botón se oculta para ese pre-gasto aunque se vuelva a elegir la fila vieja. Se quita la selección y la lista se recarga a los 5 s. «Actualizar» limpia el mapa |
 | 5 | ídem `onImprimirSolicitud` | solo genera el PDF | en un corte, «No se pudo generar la solicitud para imprimir: revisá la conexión y volvé a intentar.»; en el timeout del link, nada |
 | 6 | `list-gastos` `onCancelarGasto` | manda el estado final; queda igual | en un rechazo, recarga inmediata (como hoy); en un corte, aviso y recarga a los 5 s |
