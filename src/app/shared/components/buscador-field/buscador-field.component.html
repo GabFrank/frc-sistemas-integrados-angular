@@ -2,6 +2,8 @@
   <mat-label>{{ titulo }}</mat-label>
   <input #input matInput type="text" autocomplete="off"
     [formControl]="textoControl"
+    [matAutocomplete]="lista"
+    [matAutocompleteDisabled]="!rapido"
     [readonly]="!rapido"
     [required]="requerido"
     [placeholder]="placeholder || (rapido ? 'Id o nombre' : 'Click para buscar')"
@@ -19,3 +21,10 @@
   </button>
   <mat-hint *ngIf="aviso" [class.aviso-error]="avisoError">{{ aviso }}</mat-hint>
 </mat-form-field>
+<mat-autocomplete #lista="matAutocomplete" [displayWith]="mostrar" (optionSelected)="onOpcion($event)">
+  <mat-option *ngFor="let op of listaRapida" [value]="op.item">{{ op.texto }}</mat-option>
+  <mat-option *ngIf="listaRapida.length > 0" [value]="buscarMas" class="opcion-buscar-mas">
+    <mat-icon>search</mat-icon>
+    Buscar más… ({{ totalCandidatos }} coincidencias)
+  </mat-option>
+</mat-autocomplete>
