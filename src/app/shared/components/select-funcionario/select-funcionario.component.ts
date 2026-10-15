@@ -1,16 +1,13 @@
 import { Component, EventEmitter, Input, OnInit, Output, SimpleChanges, OnChanges } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Funcionario } from '../../../modules/personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../modules/personas/funcionarios/funcionario.service';
-import { FuncionarioSearchGQL } from '../../../modules/personas/funcionarios/graphql/funcionarioSearch';
-import { FuncionariosACargoGQL } from '../../../modules/personas/funcionarios/graphql/funcionariosACargo';
-import { SearchListDialogComponent, SearchListtDialogData } from '../search-list-dialog/search-list-dialog.component';
+import { BuscadorService } from '../../services/buscador.service';
 import { terminarSiFalla } from '../../../commons/core/utils/rxjsUtils';
 
 /**
- * Selector de funcionario. Abre el buscador generico del proyecto
- * (SearchListDialogComponent) contra funcionariosSearch.
+ * Selector de funcionario por id. Abre el buscador generico del proyecto con el preset `funcionario`
+ * de BuscadorService. Para un control que guarda el objeto, usar `app-buscador-field tipo="funcionario"`.
  *
  * Padron del SaaS: un mat-select plano solo sirve para listas acotadas. Los funcionarios
  * crecen con la operacion, por lo que cargarlos con onGetAllFuncionarios(0, 500) deja al
@@ -56,9 +53,7 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
 
   constructor(
     private funcionarioService: FuncionarioService,
-    private searchFuncionario: FuncionarioSearchGQL,
-    private searchACargo: FuncionariosACargoGQL,
-    private dialog: MatDialog
+    private buscador: BuscadorService
   ) { }
 
   ngOnInit(): void {
@@ -85,28 +80,12 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
 
   onBuscar(): void {
     if (this.disabled) return;
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar funcionario',
-      tableData: [
-        { id: 'id', nombre: 'Id', width: '10%' },
-        { id: 'nombre', nombre: 'Nombre', nested: true, nestedId: 'persona', nestedColumnId: 'personaNombre', width: '45%' },
-        { id: 'nombre', nombre: 'Cargo', nested: true, nestedId: 'cargo', nestedColumnId: 'cargoNombre', width: '25%' },
-        { id: 'nickname', nombre: 'Usuario', width: '20%' }
-      ],
-      query: this.soloACargo ? this.searchACargo : this.searchFuncionario,
-      queryData: this.soloACargo ? { soloActivos: this.soloActivos } : undefined,
-      fallbackToLocal: true,
-      filtro: this.soloActivos ? (f: Funcionario) => f?.activo !== false : undefined
-    };
-    this.dialog.open(SearchListDialogComponent, {
-      data: data,
-      height: '80vh',
-      width: '70vw',
-      panelClass: 'search-dialog-dark'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Funcionario) => {
-      if (res == null) return;
-      this.aplicar(res, true);
-    });
+    this.buscador.abrir('funcionario', { soloActivos: this.soloActivos, soloACargo: this.soloACargo })
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Funcionario) => {
+        if (res == null) return;
+        this.aplicar(res, true);
+      });
   }
 
   onLimpiar(event: MouseEvent): void {
@@ -116,12 +95,7 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
 
   private aplicar(f: Funcionario, emitir: boolean): void {
     this.seleccionado = f;
-    if (f == null) {
-      this.etiqueta = null;
-    } else {
-      const nombre = f.persona != null && f.persona.nombre != null ? f.persona.nombre : f.nickname;
-      this.etiqueta = f.id + ' - ' + (nombre != null ? nombre : 'SIN NOMBRE');
-    }
+    this.etiqueta = f != null ? this.buscador.etiqueta('funcionario', f) : null;
     if (emitir) {
       this.funcionarioSelected.emit(f);
       this.idSelected.emit(f != null ? f.id : null);

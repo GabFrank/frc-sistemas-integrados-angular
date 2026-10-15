@@ -41,6 +41,7 @@ import { CopiarAClipboardDirective } from './directives/copiar-a-clipboard.direc
 import { BootstrapModule } from '../commons/core/bootstrap.module';
 import { FrcSearchableSelectComponent } from './components/frc-searchable-select/frc-searchable-select.component';
 import { SelectFuncionarioComponent } from './components/select-funcionario/select-funcionario.component';
+import { BuscadorFieldComponent } from './components/buscador-field/buscador-field.component';
 import { FrcMultiDatepickerComponent } from './components/frc-multi-datepicker/frc-multi-datepicker.component';
 import { PrevisualizarImgenDirective } from './directives/previsualizar-imagen.directive';
 import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.directive';
@@ -110,6 +111,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CopiarAClipboardDirective,
     FrcSearchableSelectComponent,
     SelectFuncionarioComponent,
+    BuscadorFieldComponent,
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
@@ -175,6 +177,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CopiarAClipboardDirective,
     FrcSearchableSelectComponent,
     SelectFuncionarioComponent,
+    BuscadorFieldComponent,
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
