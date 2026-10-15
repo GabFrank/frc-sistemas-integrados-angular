@@ -31,6 +31,7 @@ import { LoteService } from '../../../operaciones/lote/lote.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { Producto } from '../producto.model';
+import { avisoTrasMutacion } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Tolerancia al comparar cantidades en punto flotante, igual que en el backend. */
 const EPSILON = 0.0001;
@@ -460,10 +461,15 @@ export class AjustarStockLoteDialogComponent implements OnInit {
           this.notificacionService.openGuardadoConExito();
           this.dialogRef.close(resultado);
         },
-        error: () => {
+        // En un rechazo el genérico ya mostró el motivo. La cantidad es absoluta: si ya se aplicó, repetir lo rechaza
+        // el servidor, así que el diálogo queda (#488)
+        error: (error) => {
           this.cargandoService.closeDialog(requestId);
           this.guardando = false;
-          this.notificacionService.openAlgoSalioMal('No se pudo guardar el ajuste.');
+          const aviso = avisoTrasMutacion(error, 'se guardó el ajuste');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
           this.cdr.markForCheck();
         }
       });

@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { mensajeDeError } from '../../mensaje-error';
+import { mensajeDeError } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';

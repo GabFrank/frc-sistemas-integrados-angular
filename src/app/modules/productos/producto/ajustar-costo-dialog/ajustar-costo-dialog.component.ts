@@ -8,6 +8,8 @@ import { MainService } from '../../../../main.service';
 import { Producto } from '../producto.model';
 import { CostoPorProductoService, CostoPorProductoInput } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface AjustarCostoDialogData {
   producto: Producto;
@@ -189,7 +191,15 @@ export class AjustarCostoDialogComponent implements OnInit {
         },
         error: (error) => {
           this.cargandoService.closeDialog(requestId);
-          this.notificacionService.openAlgoSalioMal('No se pudo guardar el ajuste de costo.');
+          // En un rechazo el genérico ya mostró el motivo y no se guardó: el diálogo queda (#488)
+          if (erroresDeRechazo(error) != null) {
+            return;
+          }
+          // Sin respuesta pudo guardarse: reintentar duplicaría la fila de costo, así que se cierra y la lista recarga
+          if (!esTimeoutDeLink(error)) {
+            this.notificacionService.openWarn('No se pudo confirmar si se guardó el ajuste de costo: revisá antes de repetir.', 8);
+          }
+          this.dialogRef.close(true);
         }
       });
   }

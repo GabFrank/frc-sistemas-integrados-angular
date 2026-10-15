@@ -13,6 +13,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { PuntoDeVentaService } from '../../punto-de-venta/punto-de-venta.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface AddTimbradoDetalleDialogData {
   timbrado?: any; // Timbrado padre al que pertenece el detalle
@@ -250,6 +251,8 @@ export class AddTimbradoDetalleDialogComponent implements OnInit {
 
       this.selectedTimbradoDetalle.cantidad = this.cantidadControl.value;
     }
+    // Antes de la mutación: alta o edición decide qué hacer si no responde (#488)
+    const esAlta = !this.selectedTimbradoDetalle.id;
     if (!this.selectedTimbradoDetalle.id) {
 
       this.selectedTimbradoDetalle.rangoDesde = 1;
@@ -284,7 +287,18 @@ export class AddTimbradoDetalleDialogComponent implements OnInit {
         this.matDialogRef.close(true);
       },
       error: (error) => {
-        this.notificacionService.openAlgoSalioMal('Error al guardar: ' + (error.message || error));
+        // En un rechazo el genérico ya mostró el motivo (#488)
+        if (erroresDeRechazo(error) != null) {
+          return;
+        }
+        const aviso = avisoTrasMutacion(error, 'se guardó el timbrado');
+        if (aviso != null) {
+          this.notificacionService.openWarn(aviso, 8);
+        }
+        // Un alta repetida duplicaría la habilitación: se cierra y la lista recarga
+        if (esAlta) {
+          this.matDialogRef.close(true);
+        }
       }
     });
   }

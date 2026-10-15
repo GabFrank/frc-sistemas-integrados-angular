@@ -22,7 +22,7 @@ import { EstadoDE } from "../../documento-electronico/documento-electronico.mode
 import { facturaActiva, puedeCancelarseFactura } from "../factura-legal-estado";
 import { MainService } from "../../../../main.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
-import { mensajeDeError } from "../../venta-tarjeta/qr-pos/mensaje-error";
+import { mensajeDeError } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { AddNotaCreditoDialogComponent } from "../../nota-credito/add-nota-credito-dialog/add-nota-credito-dialog.component";
 import {
   animate,

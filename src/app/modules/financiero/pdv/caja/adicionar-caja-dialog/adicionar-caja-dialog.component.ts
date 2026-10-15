@@ -70,6 +70,7 @@ import { GastoService } from "../../../gastos/service/gasto.service";
 import { VentaTarjetaService } from "../../../venta-tarjeta/venta-tarjeta.service";
 import { MonedaService } from "../../../moneda/moneda.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
+import { avisoTrasMutacion } from "../../../../../commons/core/utils/graphqlErrorUtils";
 
 @UntilDestroy()
 @Component({
@@ -881,10 +882,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
           next: () => {
             this.irAlCierre();
           },
-          error: () => {
-            this.notificacionBar.openWarn(
-              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
-            );
+          // En un rechazo el genérico ya mostró el motivo; marcar es idempotente (#488)
+          error: (error) => {
+            const aviso = avisoTrasMutacion(error, "se actualizaron las ventas con tarjeta pendientes");
+            if (aviso != null) {
+              this.notificacionBar.openWarn(aviso, 8);
+            }
           },
         });
     });
