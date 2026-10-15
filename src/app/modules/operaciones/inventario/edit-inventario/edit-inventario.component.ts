@@ -19,7 +19,7 @@ import { QrData, QrCodeComponent } from '../../../../shared/qr-code/qr-code.comp
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
-import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 interface ZonaDisplay {
   inventarioProducto: InventarioProducto;
@@ -36,6 +36,8 @@ interface ZonaDisplay {
 export class EditInventarioComponent implements OnInit, OnDestroy {
   private recargasTrasCorte = new Set<any>();
   private destruido = false;
+  /** Finalizar quedó sin respuesta: bloqueado hasta reabrir la pestaña (#501). */
+  finalizarSinConfirmar = false;
 
   @Input() data: Tab;
 
@@ -369,10 +371,21 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
   private finalizarInventario() {
     this.inventarioService.onFinalizarInventario(this.selectedInventario.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res) {
-          this.notificacionService.openSucess('Inventario finalizado correctamente');
-          this.cargarDatos(this.selectedInventario.id);
+      .subscribe({
+        next: res => {
+          if (res) {
+            this.notificacionService.openSucess('Inventario finalizado correctamente');
+            this.cargarDatos(this.selectedInventario.id);
+          }
+        },
+        // En un rechazo el genérico ya mostró el motivo. Sin respuesta el central puede seguir finalizando, y otra
+        // pasada mientras tanto duplicaría los ajustes: Finalizar queda bloqueado y se relee después (#501)
+        error: err => {
+          const aviso = avisoTrasMutacion(err, 'se finalizó el inventario');
+          if (aviso == null) return;
+          this.finalizarSinConfirmar = true;
+          this.notificacionService.openWarn(aviso, 8);
+          this.programarRecargaTrasFallo(() => this.recargarInventarioTrasCorte());
         }
       });
   }

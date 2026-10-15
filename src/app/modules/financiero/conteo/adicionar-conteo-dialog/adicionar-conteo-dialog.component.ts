@@ -14,7 +14,8 @@ import {
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription, timer } from "rxjs";
+import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -93,6 +94,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   enEdicion = false;
   // Evita que un doble clic mande dos ediciones con el mismo conteoAnteriorId.
   guardandoEdicion = false;
+  /** La edición quedó sin respuesta: pudo guardarse, así que no se repite hasta releer la caja (#501). */
+  edicionSinConfirmar = false;
 
   guaraniList: MonedaBillete[];
   realList: MonedaBillete[];
@@ -165,7 +168,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     // no tiene que terminar guardando un conteo nuevo sobre la caja.
     const editando = this.enEdicion;
     if (editando) {
-      if (this.guardandoEdicion) return;
+      if (this.guardandoEdicion || this.edicionSinConfirmar) return;
       this.guardandoEdicion = true;
     }
     setTimeout(() => {
@@ -211,6 +214,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   cancelarEdicion() {
     this.enEdicion = false;
+    this.edicionSinConfirmar = false;
     this.gsFormGroup.reset();
     this.rsFormGroup.reset();
     this.dsFormGroup.reset();
@@ -419,7 +423,12 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
           this.conteoService
             .onSave(conteo, this.cajaId, apertura, !this.isVentaTouch)
             .pipe(untilDestroyed(this))
-            .subscribe((res) => {
+            .subscribe({ error: (err) => {
+              // En un rechazo el genérico ya mostró el motivo. Repetir es seguro: el central devuelve el conteo que
+              // ya tuviera la caja (#501)
+              const aviso = avisoTrasMutacion(err, "se guardó el conteo");
+              if (aviso != null) this.notificacionBar.openWarn(aviso, 8);
+            }, next: (res) => {
               if (res != null) {
                 // Sin el id, "Editar montos" sobre este conteo no tendria conteoAnteriorId.
                 conteo.id = res.id != null ? +res.id : null;
@@ -440,7 +449,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                   }
                 }, 500);
               }
-            });
+            } });
         }
       });
 
@@ -507,10 +516,16 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 };
                 this.onGetConteoMoneda.emit(response);
               }
-            }, () => {
+            }, (err) => {
               this.guardandoEdicion = false;
               // El motivo lo muestra el snackbar del servicio. Se mantiene el modo edicion
               // con los montos ya tipeados para que el usuario pueda reintentar.
+              const aviso = avisoTrasMutacion(err, "se guardó la corrección del conteo");
+              if (aviso == null) return;
+              // Sin respuesta pudo guardarse: se bloquea Guardar y se relee la caja (#501)
+              this.edicionSinConfirmar = true;
+              this.notificacionBar.openWarn(aviso, 8);
+              timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.cancelarEdicion());
             });
         } else {
           this.guardandoEdicion = false;

@@ -2,6 +2,8 @@ import { Component, OnInit } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { PageEvent } from "@angular/material/paginator";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { timer } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -156,7 +158,7 @@ export class HistorialRetirosComponent implements OnInit {
               this.procesando = false;
               if (r != null) this.cargar();
             },
-            () => (this.procesando = false)
+            (err) => this.trasErrorDeReversa(err)
           );
       });
   }
@@ -190,7 +192,7 @@ export class HistorialRetirosComponent implements OnInit {
               this.procesando = false;
               if (r != null) this.cargar();
             },
-            () => (this.procesando = false)
+            (err) => this.trasErrorDeReversa(err)
           );
       });
   }
@@ -210,8 +212,26 @@ export class HistorialRetirosComponent implements OnInit {
               this.procesando = false;
               if (r != null) this.cargar();
             },
-            () => (this.procesando = false)
+            (err) => this.trasErrorDeReversa(err)
           );
       });
+  }
+
+  /**
+   * Tras el error de una reversa. En un rechazo el genérico ya mostró el motivo y no se aplicó nada. Sin respuesta
+   * pudo aplicarse y repetirla desharía de más: se avisa y se relee a los 5 s, con los botones deshabilitados hasta
+   * entonces (#501).
+   */
+  private trasErrorDeReversa(err: any): void {
+    if (erroresDeRechazo(err) != null) {
+      this.procesando = false;
+      return;
+    }
+    const aviso = avisoTrasMutacion(err, "se revirtió");
+    if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+      this.procesando = false;
+      this.cargar();
+    });
   }
 }
