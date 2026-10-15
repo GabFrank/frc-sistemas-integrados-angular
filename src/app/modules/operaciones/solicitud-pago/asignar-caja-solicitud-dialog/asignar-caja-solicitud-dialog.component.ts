@@ -4,6 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin } from 'rxjs';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { avisoTrasMutacion } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { CajaVirtual } from '../../../financiero/caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../../financiero/caja-virtual/caja-virtual.service';
@@ -89,8 +90,15 @@ export class AsignarCajaSolicitudDialogComponent implements OnInit {
             : 'Solicitud sin caja asignada');
           this.dialogRef.close(true);
         },
-        // El rechazo del central ya lo avisó el genérico; acá solo se libera el botón.
-        error: () => { this.guardando = false; }
+        // El rechazo ya lo avisó el genérico. Sin respuesta nadie avisaba: asignar es idempotente, así que el diálogo
+        // queda para revisar y reintentar (#488)
+        error: (error) => {
+          this.guardando = false;
+          const aviso = avisoTrasMutacion(error, 'se asignó la caja');
+          if (aviso != null) {
+            this.notificacion.openWarn(aviso, 8);
+          }
+        }
       });
   }
 

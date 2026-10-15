@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -12,11 +12,19 @@ import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { FormaPagoService } from '../../../financiero/forma-pago/forma-pago.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { MainService } from '../../../../main.service';
 import { AdicionarNotaDialogComponent } from '../adicionar-nota-dialog/adicionar-nota-dialog.component';
 import { AdicionarFormaPagoDialogComponent } from '../adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
+
+/**
+ * Espera antes de volver a leer la solicitud tras una mutación sin respuesta: el link de central offline corta a los 3 s
+ * sin cancelar el pedido (#488).
+ */
+const RECARGA_TRAS_CORTE_MS = 5000;
 
 /** Nota de recepción con los campos de display que consume la tabla del diálogo. */
 export type NotaRecepcionConDisplay = NotaRecepcion & {
@@ -50,7 +58,7 @@ export interface CreateEditSolicitudPagoDialogData {
     ])
   ]
 })
-export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterViewInit {
+export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('proveedorInput') proveedorInput: ElementRef<HTMLInputElement>;
 
   form: FormGroup;
@@ -81,6 +89,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   creacionIncierta = false;
   /** Una mutación quedó sin confirmar y la recarga no llegó: lo que se ve puede no ser lo del servidor. */
   pantallaDesactualizada = false;
+  /** Recargas de la solicitud pendientes tras un corte (#488): mientras haya una, la pantalla sigue bloqueada. */
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
 
   /** Modo edición: true cuando se abre con solicitudPago existente. */
   isEditMode = false;
@@ -148,6 +159,12 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
   }
 
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
+  }
+
   ngOnInit(): void {
     if (this.data?.solicitudPago) {
       this.isEditMode = true;
@@ -180,11 +197,25 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
    * Una mutación de nota o forma de pago sin respuesta pudo haberse aplicado igual: en vez de corregir la pantalla
    * a mano se vuelve a leer la solicitud del servidor (#390).
    */
-  private recargarSolicitud(aviso: string): void {
-    this.notificacionService.openWarn(aviso, 8);
+  private recargarSolicitud(aviso: string | null, otraVezTrasCorte = false): void {
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
     this.pantallaDesactualizada = true; // hasta que la recarga llegue
-    if (this.solicitudPagoId != null) {
-      this.loadSolicitudParaEdicion(true);
+    if (this.solicitudPagoId == null) {
+      return;
+    }
+    this.loadSolicitudParaEdicion(true);
+    // Tras un corte se vuelve a leer a los 5 s: el link de central offline corta a los 3 s sin cancelar el pedido, y
+    // la primera lectura puede no ver lo que el central todavía está aplicando (#488)
+    if (otraVezTrasCorte && !this.destruido) {
+      const timeout = setTimeout(() => {
+        this.recargasTrasCorte.delete(timeout);
+        if (!this.destruido) {
+          this.loadSolicitudParaEdicion(true);
+        }
+      }, RECARGA_TRAS_CORTE_MS);
+      this.recargasTrasCorte.add(timeout);
     }
   }
 
@@ -195,7 +226,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.cargaSolicitudFallida(recarga);
           return;
         }
-        this.pantallaDesactualizada = false;
+        // Con una segunda recarga pendiente la pantalla sigue bloqueada hasta que llegue
+        this.pantallaDesactualizada = this.recargasTrasCorte.size > 0;
         this.selectedProveedor = sp.proveedor;
         this.solicitudPagoEstado = sp.estado ?? null;
         this.proveedorNombreDisplay = (sp?.proveedor?.persona?.nombre || '').toString().toUpperCase();
@@ -384,21 +416,36 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         // Cada nota cuenta, falle o no; si alguna falló se recarga la solicitud al final: la nota se mostró y sumó
         // antes de la mutación y, sin respuesta, pudo haberse vinculado igual (#390)
         let terminadas = 0;
-        let fallidas = 0;
+        let rechazadas = 0;
+        let sinRespuesta = 0;
+        let sinAvisoDelLink = 0;
         const total = queue.length;
         const terminar = () => {
           terminadas++;
           if (terminadas < total) return;
           this.saving = false;
-          if (fallidas > 0) {
-            this.recargarSolicitud(`No se pudo confirmar ${fallidas} de ${total} nota(s): revisá la solicitud antes de reintentar.`);
+          if (sinRespuesta > 0) {
+            // El corte por tiempo ya lo avisó el link (#488)
+            this.recargarSolicitud(sinAvisoDelLink > 0
+              ? `No se pudo confirmar si se agregaron ${sinRespuesta} de ${total} nota(s): revisá la solicitud antes de reintentar.`
+              : null, true);
+          } else if (rechazadas > 0) {
+            // El motivo ya lo mostró el genérico; se recarga porque las notas se mostraron antes de la respuesta
+            this.recargarSolicitud(null);
           }
         };
         queue.forEach((obs) => {
           obs.subscribe({
             next: () => terminar(),
-            error: () => {
-              fallidas++;
+            error: (error) => {
+              if (erroresDeRechazo(error) != null) {
+                rechazadas++;
+              } else {
+                sinRespuesta++;
+                if (!esTimeoutDeLink(error)) {
+                  sinAvisoDelLink++;
+                }
+              }
               terminar();
             }
           });
@@ -430,9 +477,13 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.updatePuedeEditarProveedor();
               this.saving = false;
             },
-            error: () => {
+            error: (error) => {
               this.saving = false;
-              this.recargarSolicitud('No se pudo confirmar que la nota se quitó: revisá la solicitud antes de reintentar.');
+              // En un rechazo la fila sigue (se quita recién en el next) y el motivo ya lo mostró el genérico
+              if (erroresDeRechazo(error) != null) {
+                return;
+              }
+              this.recargarSolicitud(avisoTrasMutacion(error, 'se quitó la nota'), true);
             }
           });
         } else {
@@ -475,8 +526,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       // El diálogo devuelve un array: 1 forma, o N (una por cheque si se eligieron cuotas).
       if ((detalles as any)?.recargar) {
         // Alguna alta quedó sin confirmar (el diálogo ya avisó): lo que vale es lo del servidor (#390)
-        this.pantallaDesactualizada = true;
-        this.loadSolicitudParaEdicion(true);
+        this.recargarSolicitud(null, true);
         return;
       }
       if (!detalles?.length) return;
@@ -556,15 +606,20 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
                 this.updateResumenFormasPago();
                 this.saving = false;
               },
-              error: () => {
+              error: (error) => {
                 this.saving = false;
-                this.recargarSolicitud('La forma de pago anterior se eliminó, pero no se pudo confirmar la nueva: revisá la solicitud antes de reintentar.');
+                if (erroresDeRechazo(error) != null) {
+                  this.recargarSolicitud('La forma de pago anterior se eliminó y la nueva se rechazó: se recarga la solicitud.');
+                  return;
+                }
+                this.recargarSolicitud('La forma de pago anterior se eliminó, pero no se pudo confirmar la nueva: revisá la solicitud antes de reintentar.', true);
               }
             });
           },
           error: () => {
             this.saving = false;
-            this.recargarSolicitud('No se pudo confirmar el cambio de la forma de pago: revisá la solicitud antes de reintentar.');
+            // El borrado (onDelete) ya avisó, sea rechazo o corte, y no dice cuál: solo se recarga
+            this.recargarSolicitud(null, true);
           }
         });
       } else {
@@ -594,8 +649,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         if (!confirmed) return;
         const tieneId = detalle.id != null && this.isEditMode;
         if (tieneId) {
+          // Con saving, un segundo clic no manda otro borrado del mismo id
+          this.saving = true;
           this.solicitudPagoService.onEliminarSolicitudPagoDetalle(detalle.id).subscribe({
             next: () => {
+              this.saving = false;
               this.detallesAgregados = this.detallesAgregados.filter((_, i) => i !== index);
               this.detallesTableDataSource.data = this.detallesAgregados;
               this.updateTotalFormasPago();
@@ -603,7 +661,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
               this.updatePuedeEditarProveedor();
             },
             error: () => {
-              this.recargarSolicitud('No se pudo confirmar que la forma de pago se eliminó: revisá la solicitud antes de reintentar.');
+              this.saving = false;
+              // El borrado (onDelete) ya avisó, sea rechazo o corte, y no dice cuál: solo se recarga
+              this.recargarSolicitud(null, true);
             }
           });
         } else {
@@ -648,7 +708,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
 
   /** Solicitar: valida la solicitud (borrador → SOLICITADO, lista para pagar). */
   onSolicitar(): void {
-    if (!this.puedeSolicitar || this.solicitudPagoId == null) return;
+    if (!this.puedeSolicitar || this.solicitudPagoId == null || this.accionBloqueada()) return;
     this.dialogosService
       .confirm('Solicitar pago', 'La solicitud quedará lista para pagar (Solicitado). ¿Continuar?')
       .subscribe((ok) => {
@@ -659,17 +719,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
             this.notificacionService.openSucess('Solicitud lista para pagar (Solicitado)');
             this.dialogRef.close(true);
           },
-          error: () => {
-            this.saving = false;
-            this.notificacionService.openAlgoSalioMal('No se pudo solicitar');
-          }
+          error: (error) => this.trasFalloDeCambioDeEstado(error, 'se solicitó el pago')
         });
       });
   }
 
   /** Reabrir: SOLICITADO → PENDIENTE (borrador editable), in-place. */
   onReabrir(): void {
-    if (!this.esSolicitado || this.solicitudPagoId == null) return;
+    if (!this.esSolicitado || this.solicitudPagoId == null || this.accionBloqueada()) return;
     this.dialogosService
       .confirm('Reabrir solicitud', 'Volverá a borrador (Pendiente) y podrá editarse. ¿Continuar?')
       .subscribe((ok) => {
@@ -686,12 +743,27 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
             this.updatePuedeEditarProveedor();
             this.notificacionService.openSucess('Solicitud reabierta (Pendiente)');
           },
-          error: () => {
-            this.saving = false;
-            this.notificacionService.openAlgoSalioMal('No se pudo reabrir');
-          }
+          error: (error) => this.trasFalloDeCambioDeEstado(error, 'se reabrió la solicitud')
         });
       });
+  }
+
+  /**
+   * Fallo de solicitar o reabrir (#488). En un rechazo el genérico ya mostró el motivo: el diálogo queda abierto y se
+   * relee la solicitud, por si el rechazo vino de un estado viejo. Sin respuesta el cambio pudo aplicarse: se avisa y
+   * se cierra, para que la lista muestre el estado real.
+   */
+  private trasFalloDeCambioDeEstado(error: any, queSeHizo: string): void {
+    this.saving = false;
+    if (erroresDeRechazo(error) != null) {
+      this.recargarSolicitud(null);
+      return;
+    }
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    this.dialogRef.close(true);
   }
 
   private updateResumenFormasPago(): void {
