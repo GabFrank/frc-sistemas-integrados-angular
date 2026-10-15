@@ -507,33 +507,14 @@
         </mat-form-field>
       </div>
       <div fxFlex="70%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Cliente</mat-label>
-          <input
-            #clienteInput
-            type="text"
-            matInput
-            [formControl]="clienteControl"
-            oninput="this.value == ' ' ? this.value = '': null"
-            [matAutocomplete]="autoCliente"
-            (keyup.enter)="onClienteEnter()"
-          />
-          <span matSuffix style="cursor: pointer">(F9)</span>
-
-          <mat-autocomplete
-            #autoCliente="matAutocomplete"
-            (optionSelected)="onClienteSelect($event.option.value)"
-            (closed)="onClienteAutocompleteClose()"
-          >
-            <mat-option
-              *ngFor="let cliente of filteredClienteList"
-              [value]="cliente"
-            >
-              {{ cliente?.persona?.id }} -
-              {{ cliente?.persona?.nombre | uppercase }}
-            </mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
+        <app-buscador-field
+          #clienteField
+          tipo="cliente"
+          titulo="Cliente"
+          [rapido]="true"
+          [formControl]="clienteControl"
+          (enter)="onClienteEnter()"
+        ></app-buscador-field>
       </div>
     </div>
   </div>
