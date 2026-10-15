@@ -1,3 +1,5 @@
+import { esTimeoutDeLink } from "../../../shared/services/timeout-link";
+
 // Prefijo que graphql-java antepone a toda excepción lanzada por un resolver:
 // "Exception while fetching data (/data) : <mensaje real>". El path entre paréntesis varía.
 const PREFIJO_GRAPHQL_JAVA = /^Exception while fetching data \([^)]*\) : /;
@@ -119,3 +121,37 @@ export function mensajeErrorTransporte(error: any): string {
   }
   return "Error de red";
 }
+
+/**
+ * Aviso que suma la pantalla cuando falla una mutation de `onCustomMutation`, o `null` si no hace falta. En un
+ * rechazo el genérico ya mostró el motivo del servidor, y en el central cada mutation es una transacción: no se
+ * aplicó nada. En un corte por tiempo ya avisó el timeout link. En cualquier otro «sin respuesta» (error de red,
+ * central offline, respuesta vacía) nadie avisó y la operación pudo haberse aplicado o seguir corriendo: el link
+ * de central offline corta a los 3 s sin cancelar el pedido. `queSeHizo` completa «No se pudo confirmar si …»
+ * (p. ej. «se verificó el ítem») (#488).
+ */
+export function avisoTrasMutacion(error: any, queSeHizo: string): string | null {
+  if (erroresDeRechazo(error) != null || esTimeoutDeLink(error)) return null;
+  return `No se pudo confirmar si ${queSeHizo}: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.`;
+}
+
+/**
+ * Motivo de un rechazo del servidor (el primer mensaje con texto, sin el prefijo de graphql-java), o `null` si no es
+ * un rechazo o no trae texto. Para las mutations que no pasan por el genérico (`apollo.mutate` a mano): ahí nadie
+ * muestra el motivo y lo tiene que mostrar la pantalla (#488).
+ */
+export function motivoDelRechazo(error: any): string | null {
+  const errores = erroresDeRechazo(error);
+  if (errores == null) return null;
+  for (const e of errores) {
+    const msg = limpiarMensajeGraphQL(e?.message);
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return null;
+}
+
+/**
+ * Espera antes de recargar tras una mutation sin respuesta: el link de central offline corta a los 3 s sin cancelar
+ * el pedido, y recargar al instante mostraría pendiente lo que el central todavía está aplicando (#488).
+ */
+export const RECARGA_TRAS_CORTE_MS = 5000;

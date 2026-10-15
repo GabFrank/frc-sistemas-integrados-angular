@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { finalize } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,6 +14,8 @@ import { TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { ReporteService } from '../../../../reportes/reporte.service';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
 
 @UntilDestroy()
 @Component({
@@ -21,7 +23,7 @@ import { ReporteService } from '../../../../reportes/reporte.service';
   templateUrl: './solicitud-pago-compra.component.html',
   styleUrls: ['./solicitud-pago-compra.component.scss']
 })
-export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
+export class SolicitudPagoCompraComponent implements OnInit, OnChanges, OnDestroy {
   
   @Input() pedido!: Pedido;
   @Input() isEditMode: boolean = false;
@@ -49,6 +51,9 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
   // Table configuration
   displayedColumns: string[] = ['numero', 'fecha', 'monto', 'estado', 'notas', 'acciones'];
 
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
+
   constructor(
     private dialog: MatDialog,
     private solicitudPagoService: SolicitudPagoService,
@@ -60,6 +65,12 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     // Component initialization
+  }
+
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -235,8 +246,7 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
         },
         error: (error) => {
           console.error('Error al actualizar estado:', error);
-          this.notificacionService.openAlgoSalioMal('Error al actualizar estado');
-          this.loading = false;
+          this.trasFalloDeMutacion(error, 'se actualizó el estado de la solicitud');
         }
       });
   }
@@ -264,9 +274,9 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
               this.notificacionService.openSucess(`Solicitud ${solicitud.numeroSolicitud} cancelada`);
               this.loadData();
             },
-            // El servicio genérico ya mostró el mensaje del central.
-            error: () => {
-              this.loading = false;
+            // En un rechazo el genérico ya mostró el mensaje del central; sin respuesta nadie avisaba
+            error: (error) => {
+              this.trasFalloDeMutacion(error, 'se canceló la solicitud');
             }
           });
       });
@@ -304,7 +314,10 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
         },
         error: (error) => {
           console.error('Error al imprimir solicitud:', error);
-          this.notificacionService.openAlgoSalioMal('Error al generar el reporte');
+          // En un rechazo el genérico ya mostró el motivo y en un corte por tiempo avisó el link
+          if (erroresDeRechazo(error) == null && !esTimeoutDeLink(error)) {
+            this.notificacionService.openWarn('Error al generar el reporte: el servidor no respondió.', 6);
+          }
         }
       });
   }
@@ -315,5 +328,33 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
    */
   private isNotaDisponibleHelper(nota: NotaRecepcion): boolean {
     return nota.estado === 'CONCILIADA' && !nota.pagado;
+  }
+
+  /**
+   * Fallo de una mutation de la solicitud (#488). En un rechazo el genérico ya mostró el motivo y no se aplicó nada.
+   * Sin respuesta pudo haberse aplicado: se avisa (salvo el corte por tiempo, que avisó el link) y se recarga a los
+   * 5 s, si la pestaña sigue abierta con el mismo pedido.
+   */
+  private trasFalloDeMutacion(error: any, queSeHizo: string): void {
+    this.loading = false;
+    if (erroresDeRechazo(error) != null) {
+      return;
+    }
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    if (this.destruido) {
+      return;
+    }
+    const pedidoId = this.pedido?.id;
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (this.destruido || this.pedido?.id !== pedidoId) {
+        return;
+      }
+      this.loadData();
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
   }
 }

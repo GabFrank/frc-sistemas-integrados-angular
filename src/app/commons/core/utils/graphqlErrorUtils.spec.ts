@@ -1,10 +1,13 @@
 import { ApolloError } from "@apollo/client/core";
+import { MENSAJE_TIMEOUT_MUTATION } from "../../../shared/services/timeout-link";
 import {
+  avisoTrasMutacion,
   debePedirClienteParaFacturar,
   esEnvioAFilialSinConfirmar,
   esRechazoPorFacturaSinNombre,
   MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR,
   MENSAJE_RESPUESTA_VACIA,
+  motivoDelRechazo,
 } from "./graphqlErrorUtils";
 
 // Texto de VentaNoFacturableException en el filial (FacturaLegalBuilder.ensayarDE).
@@ -102,5 +105,96 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
   it('lo que no es un arreglo de errores GraphQL: no', () => {
     expect(esEnvioAFilialSinConfirmar(null)).toBeFalse();
     expect(esEnvioAFilialSinConfirmar(new Error(PREFIJO + 'Error del servidor filial: x'))).toBeFalse();
+  });
+});
+
+describe('avisoTrasMutacion (#488)', () => {
+  const QUE = 'se verificó el ítem';
+  const AVISO = `No se pudo confirmar si ${QUE}: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.`;
+
+  // Error que arma el link de central offline de GraphqlConnectionService al cortar a los 3 s.
+  const centralOffline = () => {
+    const err: any = new Error('El servidor central no responde (offline).');
+    err.networkError = true;
+    return err;
+  };
+  // Error que arma crearTimeoutLink al vencer una mutation.
+  const timeoutDeLink = () => {
+    const err: any = new Error(MENSAJE_TIMEOUT_MUTATION);
+    err.esTimeout = true;
+    return err;
+  };
+
+  it('rechazo del servidor: null, el motivo ya lo avisó el genérico', () => {
+    expect(avisoTrasMutacion([{ message: 'La nota ya está verificada' }], QUE)).toBeNull();
+    expect(avisoTrasMutacion({ graphQLErrors: [{ message: 'La nota ya está verificada' }] }, QUE)).toBeNull();
+  });
+
+  it('corte por tiempo del link: null, el link ya avisó', () => {
+    expect(avisoTrasMutacion(timeoutDeLink(), QUE)).toBeNull();
+    expect(avisoTrasMutacion(new ApolloError({ networkError: timeoutDeLink() }), QUE)).toBeNull();
+  });
+
+  it('respuesta vacía, sola o junto a otro error: avisa que no se pudo confirmar', () => {
+    expect(avisoTrasMutacion([{ message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([{ message: 'otro' }, { message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+  });
+
+  it('errores GraphQL con networkError: avisa, manda lo incierto', () => {
+    expect(avisoTrasMutacion({ networkError: {}, graphQLErrors: [{ message: 'x' }] }, QUE)).toBe(AVISO);
+  });
+
+  it('error de red de Apollo, con o sin status HTTP: avisa', () => {
+    expect(avisoTrasMutacion(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('401'), { status: 401 }) }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('500'), { status: 500 }) }), QUE)).toBe(AVISO);
+  });
+
+  it('central offline, suelto o envuelto por Apollo: avisa', () => {
+    expect(avisoTrasMutacion(centralOffline(), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: centralOffline() }), QUE)).toBe(AVISO);
+  });
+
+  it('sin error reconocible (null, undefined, arreglo vacío): avisa', () => {
+    expect(avisoTrasMutacion(null, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(undefined, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([], QUE)).toBe(AVISO);
+  });
+
+  it('el texto nombra la operación', () => {
+    expect(avisoTrasMutacion(null, 'se recepcionaron los ítems')).toContain('No se pudo confirmar si se recepcionaron los ítems:');
+  });
+});
+
+describe('motivoDelRechazo (#488)', () => {
+  it('devuelve el primer mensaje de un rechazo en arreglo', () => {
+    expect(motivoDelRechazo([{ message: 'El pedido ya está finalizado' }, { message: 'otro' }])).toBe('El pedido ya está finalizado');
+  });
+
+  it('acepta un objeto con graphQLErrors y un ApolloError', () => {
+    expect(motivoDelRechazo({ graphQLErrors: [{ message: 'No existe la nota' }] })).toBe('No existe la nota');
+    expect(motivoDelRechazo(new ApolloError({ graphQLErrors: [{ message: 'No existe la nota' } as any] }))).toBe('No existe la nota');
+  });
+
+  it('quita el prefijo de graphql-java', () => {
+    expect(motivoDelRechazo([{ message: 'Exception while fetching data (/desvincularProductoProveedor) : Producto no encontrado' }]))
+      .toBe('Producto no encontrado');
+  });
+
+  it('saltea mensajes vacíos y usa el siguiente', () => {
+    expect(motivoDelRechazo([{ message: '' }, { message: 'Motivo real' }])).toBe('Motivo real');
+  });
+
+  it('null si el rechazo no trae ningún texto', () => {
+    expect(motivoDelRechazo([{ message: '  ' }, {}])).toBeNull();
+  });
+
+  it('null si no es un rechazo', () => {
+    expect(motivoDelRechazo(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }))).toBeNull();
+    expect(motivoDelRechazo({ networkError: {}, graphQLErrors: [{ message: 'x' }] })).toBeNull();
+    expect(motivoDelRechazo([{ message: MENSAJE_RESPUESTA_VACIA }])).toBeNull();
+    expect(motivoDelRechazo([])).toBeNull();
+    expect(motivoDelRechazo(null)).toBeNull();
+    expect(motivoDelRechazo(undefined)).toBeNull();
   });
 });

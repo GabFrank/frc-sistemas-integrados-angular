@@ -8,6 +8,7 @@ import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
+import { avisoTrasMutacion } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface DistributeNotaRecepcionItemDialogData {
   item: NotaRecepcionItem;
@@ -688,61 +689,44 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     this.executeSaveOperations(distribuciones, distribucionesToDelete);
   }
 
+  /**
+   * `distribuciones` es el estado completo que se quiere y el central reemplaza todo en una transacción: alcanza una
+   * sola llamada, y el diálogo cierra recién con la respuesta (#488). Antes salían en paralelo un reemplazo con la
+   * lista y otro con [] (el resultado dependía del orden de llegada) y, con una sola de las dos, cerraba con el
+   * éxito antes de que respondiera el central.
+   */
   private executeSaveOperations(distribuciones: NotaRecepcionItemDistribucionInput[], distribucionesToDelete: number[]): void {
-    let operationsCompleted = 0;
-    let totalOperations = 0;
-    let hasErrors = false;
-
-    if (distribuciones.length > 0) totalOperations++;
-    if (distribucionesToDelete.length > 0) totalOperations++;
-
-    const checkCompletion = () => {
-      operationsCompleted++;
-      if (operationsCompleted >= totalOperations) {
-        this.savingComputed = false;
-        if (!hasErrors) {
-          this.notificacionService.openSucess('Distribución guardada correctamente');
-          this.dialogRef.close({
-            success: true,
-            action: 'save',
-            message: 'Distribución actualizada correctamente'
-          });
-        }
-      }
-    };
-
-    // Save new/updated distributions
-    if (distribuciones.length > 0) {
-      this.pedidoService.onReplaceNotaRecepcionItemDistribuciones(this.data.item.id, distribuciones).subscribe({
-        next: (result) => {
-          checkCompletion();
-        },
-        error: (error) => {
-          console.error('Error al guardar distribuciones:', error);
-          hasErrors = true;
-          this.notificacionService.openAlgoSalioMal('Error al guardar las distribuciones');
-          checkCompletion();
-        }
-      });
-    } else {
-      checkCompletion();
+    if (distribuciones.length === 0 && distribucionesToDelete.length === 0) {
+      // Nada que guardar ni que borrar: un reemplazo con [] borraría distribuciones que no llegaron a cargarse
+      this.savingComputed = false;
+      this.dialogRef.close({ success: false, action: 'cancel' });
+      return;
     }
 
-    // Delete distributions
-    if (distribucionesToDelete.length > 0) {
-      this.pedidoService.onReplaceNotaRecepcionItemDistribuciones(this.data.item.id, []).subscribe({
-        next: (result) => {
-          checkCompletion();
-        },
-        error: (error) => {
-          console.error('Error al eliminar distribuciones:', error);
-          hasErrors = true;
-          this.notificacionService.openAlgoSalioMal('Error al eliminar las distribuciones');
-          checkCompletion();
-        }
-      });
-    } else {
-      checkCompletion();
+    this.pedidoService.onReplaceNotaRecepcionItemDistribuciones(this.data.item.id, distribuciones).subscribe({
+      next: () => {
+        this.savingComputed = false;
+        this.notificacionService.openSucess('Distribución guardada correctamente');
+        this.dialogRef.close({
+          success: true,
+          action: 'save',
+          message: 'Distribución actualizada correctamente'
+        });
+      },
+      error: (error) => {
+        console.error('Error al guardar distribuciones:', error);
+        this.savingComputed = false;
+        // Reemplazar es idempotente: el diálogo queda abierto para corregir o reintentar
+        this.avisarSinRespuesta(error, 'se guardó la distribución');
+      }
+    });
+  }
+
+  /** En un rechazo el genérico ya mostró el motivo; sin respuesta se avisa (salvo el corte por tiempo, que avisó el link). */
+  private avisarSinRespuesta(error: any, queSeHizo: string): void {
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
     }
   }
 
@@ -802,7 +786,7 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
       error: (error) => {
         console.error('Error al eliminar distribuciones:', error);
         this.savingComputed = false;
-        this.notificacionService.openAlgoSalioMal('Error al eliminar las distribuciones');
+        this.avisarSinRespuesta(error, 'se eliminaron las distribuciones');
       }
     });
   }

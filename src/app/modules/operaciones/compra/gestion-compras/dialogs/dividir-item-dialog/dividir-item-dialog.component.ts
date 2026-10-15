@@ -14,6 +14,7 @@ import { PresentacionService } from '../../../../../productos/presentacion/prese
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface DividirItemDialogData {
   pedidoItem: PedidoItem;
@@ -26,6 +27,8 @@ export interface DividirItemDialogResult {
   success: boolean;
   notaRecepcionItems?: NotaRecepcionItem[];
   message?: string;
+  /** Alguna parte se guardó (o pudo guardarse) y reintentar duplicaría: quien abrió el diálogo recarga (#488). */
+  recargar?: boolean;
 }
 
 @UntilDestroy()
@@ -288,7 +291,20 @@ export class DividirItemDialogComponent implements OnInit {
         error: (error) => {
           this.isLoading = false;
           console.error('Error guardando ítem:', error);
-          this.notificacionService.openAlgoSalioMal('Error al dividir el ítem');
+          const rechazo = erroresDeRechazo(error) != null;
+          if (rechazo && index === 0) {
+            // No se guardó nada y el genérico ya mostró el motivo: el diálogo queda para corregir
+            return;
+          }
+          // Cada parte es un alta: reintentar duplicaría las que ya se guardaron
+          const dialogResult: DividirItemDialogResult = {
+            success: false,
+            recargar: true,
+            message: rechazo
+              ? `Se guardaron ${index} de ${items.length} partes y la siguiente se rechazó. Se recargan los ítems.`
+              : avisoTrasMutacion(error, 'se guardaron todas las partes') ?? undefined,
+          };
+          this.dialogRef.close(dialogResult);
         }
       });
   }
