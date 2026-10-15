@@ -27,6 +27,11 @@ export class PersonaSearchPageGQL extends Query<Response> {
                     nombre
                     apodo
                     documento
+                    telefono
+                    isFuncionario
+                    isCliente
+                    isProveedor
+                    isUsuario
                     usuario {
                         id
                         nickname
