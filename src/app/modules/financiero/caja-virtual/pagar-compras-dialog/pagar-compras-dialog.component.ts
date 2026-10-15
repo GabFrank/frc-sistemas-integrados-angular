@@ -22,16 +22,13 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { GastoService } from '../../gastos/service/gasto.service';
-import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
 import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { MatStepper } from '@angular/material/stepper';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
-import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
@@ -280,9 +277,8 @@ export class PagarComprasDialogComponent implements OnInit {
   // El vale se paga entero o no se paga: la liquidación descuenta el monto total del vale,
   // así que entregar de menos dejaría plata fuera de caja que nunca se recupera del sueldo.
   montoEditable = true;
-  funcionarioFiltrados: Funcionario[] = [];
   motivoList: any[] = [];
-  nvFuncionarioControl = new FormControl(null);
+  nvFuncionarioControl = new FormControl<Funcionario>(null);
   nvMotivoControl = new FormControl(null);
   nvMontoControl = new FormControl(null);
   nvEsAdelantoControl = new FormControl(true);
@@ -293,17 +289,13 @@ export class PagarComprasDialogComponent implements OnInit {
   filtroCategoriaControl = new FormControl('');
   filtroDescripcionControl = new FormControl('');
   // Form de nuevo gasto
-  proveedorFiltrados: Proveedor[] = [];
-  tipoGastoFiltrados: any[] = [];
   nuevoGastoCurrencyOpts: any;
-  ngBeneficiarioControl = new FormControl(null);
-  ngTipoGastoControl = new FormControl(null);          // autocomplete (categoría obligatoria)
+  ngBeneficiarioControl = new FormControl<Proveedor>(null);
+  ngTipoGastoControl = new FormControl(null);          // categoría obligatoria
   ngDescripcionControl = new FormControl('');
   ngMonedaControl = new FormControl(null);
   ngMontoControl = new FormControl(null);
   ngVencimientoControl = new FormControl(null);
-  displayProveedor = (p: Proveedor): string => (p && p.persona) ? (p.persona.nombre || '') : '';
-  displayTipoGasto = (t: any): string => (t && t.descripcion) ? t.descripcion : '';
 
   // Caché de cotización a Guaraní por moneda (valorEnGsCompraMercado). Principal = 1.
   private rateGs: Record<number, number> = {};
@@ -323,8 +315,6 @@ export class PagarComprasDialogComponent implements OnInit {
     private chequeraService: ChequeraService,
     private notificacion: NotificacionSnackbarService,
     private gastoService: GastoService,
-    private proveedorService: ProveedorService,
-    private funcionarioService: FuncionarioService,
     private motivoValeService: MotivoValeService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
@@ -358,13 +348,6 @@ export class PagarComprasDialogComponent implements OnInit {
       this.motivoValeService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) this.motivoList = res;
       });
-      // Autocomplete de funcionario por nombre (server-side).
-      this.nvFuncionarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
-        if (typeof val === 'string' && val.trim().length >= 2) {
-          this.funcionarioService.onFuncionarioSearch(val.trim()).pipe(untilDestroyed(this))
-            .subscribe(r => this.funcionarioFiltrados = r || []);
-        } else if (typeof val !== 'string') { this.funcionarioFiltrados = []; }
-      });
       // Filtros de la tabla: N° / Funcionario / Motivo (client-side sobre lo cargado).
       this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
       this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
@@ -372,18 +355,6 @@ export class PagarComprasDialogComponent implements OnInit {
     if (this.esGasto) {
       this.titulo = 'Pagar Gasto';
       this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar'];
-      // Autocomplete de beneficiario (proveedor, opcional).
-      this.ngBeneficiarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
-        if (typeof val === 'string' && val.trim().length >= 2) {
-          this.proveedorService.onSearch(val.trim()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(r => this.proveedorFiltrados = r || []);
-        } else if (typeof val !== 'string') { this.proveedorFiltrados = []; }
-      });
-      // Autocomplete de categoría (server-side; pueden ser cientos).
-      this.ngTipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
-        if (typeof val === 'string' && val.trim().length >= 1) {
-          this.gastoService.tipoGastoOnSearch(val.trim()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(r => this.tipoGastoFiltrados = r || []);
-        } else if (typeof val !== 'string') { this.tipoGastoFiltrados = []; }
-      });
       // Filtros de la tabla (client-side sobre lo cargado).
       this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
       this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
@@ -649,7 +620,7 @@ export class PagarComprasDialogComponent implements OnInit {
 
   crearGasto() {
     const cat: any = this.ngTipoGastoControl.value;
-    if (!cat || typeof cat === 'string' || !cat.id) {
+    if (!cat?.id) {
       this.notificacion.openAlgoSalioMal('La categoría es obligatoria');
       return;
     }
@@ -666,7 +637,7 @@ export class PagarComprasDialogComponent implements OnInit {
       descripcion: desc,
       monedaId: moneda.id,
       monto,
-      beneficiarioProveedorId: (ben && typeof ben !== 'string') ? ben.id : undefined,
+      beneficiarioProveedorId: ben?.id ?? undefined,
       fechaVencimiento: this.ngVencimientoControl.value ? dateToString(this.ngVencimientoControl.value) : undefined,
     };
     // Una clave por cada «Crear». El input se guarda con ella, para poder reenviarlo idéntico.
@@ -690,8 +661,8 @@ export class PagarComprasDialogComponent implements OnInit {
 
   crearVale() {
     const funcionario: any = this.nvFuncionarioControl.value;
-    if (!funcionario || typeof funcionario === 'string' || !funcionario.id) {
-      this.notificacion.openAlgoSalioMal('Seleccioná un funcionario válido de la lista');
+    if (!funcionario?.id) {
+      this.notificacion.openAlgoSalioMal('Seleccioná el funcionario');
       return;
     }
     const moneda: any = this.ngMonedaControl.value;
