@@ -4,6 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { SolicitudPago, SolicitudPagoEstado } from '../../compra/gestion-compras/solicitud-pago.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @Component({
   selector: 'app-gestion-pago-dialog',
@@ -49,9 +50,18 @@ export class GestionPagoDialogComponent implements OnInit {
         this.notificacionService.openSucess('Estado actualizado');
         this.dialogRef.close(true);
       },
-      error: () => {
+      error: (error) => {
         this.saving = false;
-        this.notificacionService.openAlgoSalioMal('Error al actualizar estado');
+        // En un rechazo el genérico ya mostró el motivo y el diálogo queda abierto
+        if (erroresDeRechazo(error) != null) {
+          return;
+        }
+        // Sin respuesta el cambio pudo aplicarse: se cierra para que la lista muestre el estado real (#488)
+        const aviso = avisoTrasMutacion(error, 'se actualizó el estado');
+        if (aviso != null) {
+          this.notificacionService.openWarn(aviso, 8);
+        }
+        this.dialogRef.close(true);
       }
     });
   }
