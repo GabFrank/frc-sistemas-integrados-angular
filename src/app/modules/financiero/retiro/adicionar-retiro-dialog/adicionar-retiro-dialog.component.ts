@@ -32,6 +32,7 @@ import { NotificationHttpService } from '../../../../shared/services/notificatio
 import { Moneda } from '../../moneda/moneda.model';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -262,7 +263,9 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
                 return;
               }
               // Sin respuesta pudo haberse guardado: reintentar crearía otro retiro y descontaría dos veces
-              this.notificacionService.openWarn('No se pudo confirmar si se guardó el retiro: revisá la caja antes de repetir.', 8);
+              if (!esTimeoutDeLink(err)) {
+                this.notificacionService.openWarn('No se pudo confirmar si se guardó el retiro: revisá la caja antes de repetir.', 8);
+              }
               this.dialogRef.close(true);
             }
           });

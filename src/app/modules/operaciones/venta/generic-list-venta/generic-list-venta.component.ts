@@ -28,7 +28,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { MainService } from "../../../../main.service";
-import { erroresDeRechazo, mensajeDeError, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
@@ -559,9 +559,9 @@ export class GenericListVentaComponent implements OnInit {
                   "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
                 return;
               }
-              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y no hay qué confirmar
+              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y el genérico ya mostró el
+              // motivo (#488)
               if (erroresDeRechazo(e?.error) != null) {
-                this.notificacionService.openAlgoSalioMal(mensajeDeError(e.error, `No se pudo ${accion} la venta.`));
                 return;
               }
               // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.

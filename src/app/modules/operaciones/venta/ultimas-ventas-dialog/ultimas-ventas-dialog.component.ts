@@ -16,7 +16,7 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../.
 /** Diálogo del POS contra la sucursal: el cajero espera de pie (#390). */
 const CONSULTA_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
-import { erroresDeRechazo, mensajeDeError, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 class UltimasVentasDialogData {
   caja: PdvCaja;
@@ -197,9 +197,8 @@ export class UltimasVentasDialogComponent implements OnInit {
                   "No se pudo verificar la venta " + venta.id + " en el servidor central: no se envió nada. Intentá de nuevo.", 6);
                 return;
               }
-              // El central respondió que no: no se aplicó nada (#488)
+              // El central respondió que no: no se aplicó nada y el genérico ya mostró el motivo (#488)
               if (erroresDeRechazo(err?.error) != null) {
-                this.notificacionSnackBar.openAlgoSalioMal(mensajeDeError(err.error, "No se pudo cancelar la venta " + venta.id + "."));
                 return;
               }
               // Sin respuesta pudo haberse cancelado. Reintentar es seguro: se relee antes y no se reactiva.

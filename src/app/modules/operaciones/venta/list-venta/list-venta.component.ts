@@ -38,7 +38,7 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/pages/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
-import { erroresDeRechazo, mensajeDeError, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
@@ -479,9 +479,9 @@ export class ListVentaComponent implements OnInit {
                   "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
                 return;
               }
-              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y no hay qué confirmar
+              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y el genérico ya mostró el
+              // motivo (#488)
               if (erroresDeRechazo(e?.error) != null) {
-                this.notificacionService.openAlgoSalioMal(mensajeDeError(e.error, `No se pudo ${accion} la venta.`));
                 return;
               }
               // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.

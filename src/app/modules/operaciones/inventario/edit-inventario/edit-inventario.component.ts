@@ -93,10 +93,6 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
     if (index >= 0) this.tabService.removeTab(index);
   }
 
-  /**
-   * La acción ya se guardó; lo que falló es volver a leer el inventario. Sin aviso la pantalla queda como
-   * antes y parece que no se guardó (#390).
-   */
   /** Relee el inventario tras un corte, sin tocar la zona elegida. */
   private recargarInventarioTrasCorte(): void {
     if (!this.selectedInventario?.id) {
@@ -115,6 +111,10 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * La acción ya se guardó; lo que falló es volver a leer el inventario. Sin aviso la pantalla queda como
+   * antes y parece que no se guardó (#390).
+   */
   private avisarPantallaDesactualizada(): void {
     this.notificacionService.openWarn(
       'Se guardó, pero no se pudo actualizar la pantalla: cerrá y volvé a abrir el inventario antes de seguir.', 10);
