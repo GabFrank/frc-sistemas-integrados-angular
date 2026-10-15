@@ -29,6 +29,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PersonaInput } from "../../persona/persona/persona-input.model";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { MainService } from "../../../../main.service";
+import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 export interface AdicionarProveedorData {
   proveedor?: Proveedor;
@@ -417,7 +418,11 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
           console.error('Error creating persona:', error);
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al crear la persona");
+          // El genérico ya avisó. Tras un corte la persona pudo crearse: se vuelve a verificar el documento, que la
+          // ofrece si existe (el documento es único: repetir no la duplica) (#488)
+          if (erroresDeRechazo(error) == null) {
+            this.onDocumentVerification(personaInput.documento);
+          }
         }
       });
   }
@@ -468,7 +473,7 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
           console.error('Error saving proveedor:', error);
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al guardar el proveedor");
+          // El genérico ya avisó, rechazo o corte (#488)
         }
       });
   }

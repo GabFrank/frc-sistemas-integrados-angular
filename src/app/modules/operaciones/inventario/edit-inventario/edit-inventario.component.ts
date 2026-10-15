@@ -11,7 +11,7 @@ import { InventarioService } from './../inventario.service';
 import { CreateInventarioDialogComponent } from './../create-inventario-dialog/create-inventario-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { TabService } from './../../../../layouts/tab/tab.service';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Inventario, InventarioEstado, InventarioProducto, InventarioProductoItem } from '../inventario.model';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
@@ -19,6 +19,7 @@ import { QrData, QrCodeComponent } from '../../../../shared/qr-code/qr-code.comp
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 interface ZonaDisplay {
   inventarioProducto: InventarioProducto;
@@ -32,7 +33,9 @@ interface ZonaDisplay {
   templateUrl: './edit-inventario.component.html',
   styleUrls: ['./edit-inventario.component.scss']
 })
-export class EditInventarioComponent implements OnInit {
+export class EditInventarioComponent implements OnInit, OnDestroy {
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
 
   @Input() data: Tab;
 
@@ -94,6 +97,24 @@ export class EditInventarioComponent implements OnInit {
    * La acción ya se guardó; lo que falló es volver a leer el inventario. Sin aviso la pantalla queda como
    * antes y parece que no se guardó (#390).
    */
+  /** Relee el inventario tras un corte, sin tocar la zona elegida. */
+  private recargarInventarioTrasCorte(): void {
+    if (!this.selectedInventario?.id) {
+      return;
+    }
+    this.inventarioService.onGetInventario(this.selectedInventario.id)
+      .pipe(terminarSiFalla(() => this.notificacionService.openWarn(
+        'No se pudo actualizar la pantalla: cerrá y volvé a abrir el inventario antes de seguir.', 10)), untilDestroyed(this))
+      .subscribe(inventario => {
+        if (inventario) {
+          this.selectedInventario = inventario;
+          this.isEstadoAbierto = inventario.estado === InventarioEstado.ABIERTO;
+          this.updateInventarioStatusClass();
+          this.cargarZonasDisponibles();
+        }
+      });
+  }
+
   private avisarPantallaDesactualizada(): void {
     this.notificacionService.openWarn(
       'Se guardó, pero no se pudo actualizar la pantalla: cerrá y volvé a abrir el inventario antes de seguir.', 10);
@@ -285,7 +306,10 @@ export class EditInventarioComponent implements OnInit {
         },
         error: (err) => {
           console.error('Error al finalizar zona:', err);
-          this.notificacionService.openAlgoSalioMal('No se pudo finalizar la zona');
+          // El genérico ya avisó (rechazo o corte); tras un corte la zona pudo cambiar: se relee (#488)
+          if (erroresDeRechazo(err) == null) {
+            this.programarRecargaTrasFallo(() => this.recargarInventarioTrasCorte());
+          }
         }
       });
   }
@@ -429,7 +453,10 @@ export class EditInventarioComponent implements OnInit {
         },
         error: (err) => {
           console.error('Error al reabrir zona:', err);
-          this.notificacionService.openAlgoSalioMal('No se pudo reabrir la zona');
+          // El genérico ya avisó (rechazo o corte); tras un corte la zona pudo cambiar: se relee (#488)
+          if (erroresDeRechazo(err) == null) {
+            this.programarRecargaTrasFallo(() => this.recargarInventarioTrasCorte());
+          }
         }
       });
   }
@@ -465,4 +492,23 @@ export class EditInventarioComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
+  }
+
+  /** Recarga tras un corte: a los 5 s y solo si la pantalla sigue abierta (#488). */
+  private programarRecargaTrasFallo(recargar: () => void): void {
+    if (this.destruido) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (!this.destruido) {
+        recargar();
+      }
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
+  }
 }

@@ -27,6 +27,8 @@ import { ImpresoraService } from '../impresora.service';
 import { AdicionarImpresoraDialogComponent } from '../adicionar-impresora-dialog/adicionar-impresora-dialog.component';
 import { AgregarDesdeSucursalDialogComponent } from '../agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
 import { ElectronService } from '../../../../commons/core/electron/electron.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 interface ImpresoraVista {
   ref: Impresora;
@@ -281,7 +283,16 @@ export class ListImpresorasComponent implements OnInit {
             this.notificarFallo(impresora, 'verificá que la sucursal esté online y la cola exista');
           }
         },
-        error: (e) => this.notificarFallo(impresora, e?.message),
+        // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link (#488)
+        error: (e) => {
+          if (erroresDeRechazo(e) == null && !esTimeoutDeLink(e)) {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo confirmar si se imprimió en ' + impresora.nombre + '.',
+              color: NotificacionColor.warn,
+              duracion: 4,
+            });
+          }
+        },
       });
   }
 

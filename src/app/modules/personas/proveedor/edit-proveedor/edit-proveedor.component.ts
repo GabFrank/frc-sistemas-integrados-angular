@@ -24,6 +24,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PersonaInput } from "../../persona/persona/persona-input.model";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { MainService } from "../../../../main.service";
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface EditProveedorData {
   proveedor?: Proveedor;
@@ -412,7 +413,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
         error: () => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al actualizar la persona");
+          // El genérico ya avisó, rechazo o corte (#488)
         }
       });
   }
@@ -437,10 +438,14 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
             this.notificacionService.openWarn("Error al crear la persona");
           }
         },
-        error: () => {
+        error: (error) => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al crear la persona");
+          // El genérico ya avisó. Tras un corte la persona pudo crearse: se vuelve a verificar el documento, que la
+          // ofrece si existe (el documento es único: repetir no la duplica) (#488)
+          if (erroresDeRechazo(error) == null) {
+            this.onDocumentVerification(personaInput.documento);
+          }
         }
       });
   }
@@ -486,7 +491,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
         error: () => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al guardar el proveedor");
+          // El genérico ya avisó, rechazo o corte (#488)
         }
       });
   }
