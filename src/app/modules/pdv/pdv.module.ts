@@ -6,7 +6,6 @@ import { BootstrapModule } from "../../commons/core/bootstrap.module";
 import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
 import { AdicionarPdvProductoDialogComponent } from "./comercial/venta-touch/adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
-import { DeliveryDialogComponent } from "./comercial/venta-touch/delivery-dialog/delivery-dialog.component";
 import { DeliveryPresupuestoDialogComponent } from './comercial/venta-touch/delivery-presupuesto-dialog/delivery-presupuesto-dialog.component';
 import { EditItemDialogComponent } from "./comercial/venta-touch/edit-item-dialog/edit-item-dialog.component";
 import { DeliveryOpcionesDialogComponent } from './comercial/venta-touch/list-delivery/delivery-opciones-dialog/delivery-opciones-dialog.component';
@@ -32,7 +31,6 @@ import { BuscadorComponent } from './layout/buscador/buscador.component';
 import { FavoritosComponent } from './layout/favoritos/favoritos.component';
 import { ItemListComponent } from './layout/item-list/item-list.component';
 import { TotalesComponent } from './layout/totales/totales.component';
-import { RestaurantComponent } from "./restaurant/restaurant.component";
 import { GarantiaDevolucionDialogComponent } from './venta-touch/garantia-devolucion-dialog/garantia-devolucion-dialog.component';
 import { DevolucionDialogComponent } from './venta-touch/garantia-devolucion/devolucion-dialog/devolucion-dialog.component';
 import { EditCantidadEnvasesDialogComponent } from './venta-touch/garantia-devolucion/garantia-dialog/edit-cantidad-envases-dialog/edit-cantidad-envases-dialog.component';
@@ -42,7 +40,6 @@ import { DynamicFontSizeDirective } from "../../shared/directives/dynamic-font-s
 
 @NgModule({
   declarations: [
-    RestaurantComponent,
     VentaTouchComponent,
     SeleccionarLoteVentaDialogComponent,
     ProductoCategoriaDialogComponent,
@@ -53,7 +50,6 @@ import { DynamicFontSizeDirective } from "../../shared/directives/dynamic-font-s
     SeleccionarBilletesTouchComponent,
     DescuentoDialogComponent,
     TarjetaDialogComponent,
-    DeliveryDialogComponent,
     RedondeoDialogComponent,
     SelectProductosDialogComponent,
     AddCategoriaDialogComponent,
