@@ -14,8 +14,8 @@ import {
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { Observable, Subscription, timer } from "rxjs";
-import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { Observable, Subscription } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -94,7 +94,10 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   enEdicion = false;
   // Evita que un doble clic mande dos ediciones con el mismo conteoAnteriorId.
   guardandoEdicion = false;
-  /** La edición quedó sin respuesta: pudo guardarse, así que no se repite hasta releer la caja (#501). */
+  /**
+   * La edición quedó sin respuesta: pudo guardarse, y este diálogo no relee el conteo del servidor. No se ofrece editar de
+   * nuevo hasta reabrir la caja (#501).
+   */
   edicionSinConfirmar = false;
 
   guaraniList: MonedaBillete[];
@@ -214,7 +217,6 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   cancelarEdicion() {
     this.enEdicion = false;
-    this.edicionSinConfirmar = false;
     this.gsFormGroup.reset();
     this.rsFormGroup.reset();
     this.dsFormGroup.reset();
@@ -521,14 +523,14 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
               // En un rechazo el motivo lo muestra el snackbar del servicio, y se mantiene el modo edicion
               // con los montos ya tipeados para que el usuario pueda reintentar.
               if (erroresDeRechazo(err) != null) return;
-              // Sin respuesta pudo guardarse: se bloquea Guardar y se relee la caja, saliendo de la edicion (#501)
+              // Sin respuesta pudo guardarse, y lo que hay en pantalla es el conteo de antes: se sale de la edicion
+              // y no se ofrece editar de nuevo hasta reabrir la caja (#501)
               this.edicionSinConfirmar = true;
               const aviso = avisoTrasMutacion(err, "se guardó la corrección del conteo");
-              if (aviso != null) this.notificacionBar.openWarn(aviso, 8);
-              // Si mientras tanto canceló a mano (y quizá volvió a editar), no se le pisa la edición nueva
-              timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
-                if (this.edicionSinConfirmar) this.cancelarEdicion();
-              });
+              this.notificacionBar.openWarn(
+                (aviso ?? "No se pudo confirmar si se guardó la corrección del conteo.") +
+                " Cerrá y volvé a abrir la caja para ver el conteo actual.", 10);
+              this.cancelarEdicion();
             });
         } else {
           this.guardandoEdicion = false;

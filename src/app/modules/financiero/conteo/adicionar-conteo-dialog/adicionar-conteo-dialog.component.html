@@ -570,7 +570,7 @@
       <button
         mat-stroked-button
         color="accent"
-        *ngIf="puedeEditar && selectedConteo != null && !enEdicion"
+        *ngIf="puedeEditar && selectedConteo != null && !enEdicion && !edicionSinConfirmar"
         (click)="activarEdicion()"
       >
         <mat-icon>edit</mat-icon>
