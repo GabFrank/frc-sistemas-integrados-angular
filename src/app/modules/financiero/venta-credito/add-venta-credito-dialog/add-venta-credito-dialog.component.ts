@@ -9,14 +9,12 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { PROPAGAR_ERROR_DE_RED, LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
+import { BuscadorFieldComponent } from '../../../../shared/components/buscador-field/buscador-field.component';
 import { DigitarContrasenaDialogComponent } from '../../../../shared/digitar-contrasena-dialog/digitar-contrasena-dialog.component';
 import { QrCodeComponent, QrData } from '../../../../shared/qr-code/qr-code.component';
 import { Cliente, TipoCliente } from '../../../personas/clientes/cliente.model';
-import { ClienteService } from '../../../personas/clientes/cliente.service';
 import { Persona } from '../../../personas/persona/persona.model';
-import { PersonaService } from '../../../personas/persona/persona.service';
 import { EstadoVentaCredito, TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from '../venta-credito.model';
 import { VentaCreditoService } from '../venta-credito.service';
 import { isNumber } from 'util';
@@ -42,8 +40,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   @ViewChild('appBtn', { static: false }) appBtn: BotonComponent;
   @ViewChild('container', { read: ElementRef }) container: ElementRef;
 
-  @ViewChild('idInput', { static: false }) idInput: ElementRef
-  @ViewChild('nombreInput', { static: false }) nombreInput: ElementRef
+  @ViewChild('clienteField', { static: false }) clienteField: BuscadorFieldComponent
   selectedTipoConfirmacion = 1;
   tipoConfirmacion: TipoConfirmacion;
   creditoDisponible = 0;
@@ -51,10 +48,8 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
   selectedPersona: Persona
   selectedCliente: Cliente
-  clienteList: Cliente[]
   saldoEnCredito = 0;
-  idClienteControl = new FormControl(null, [Validators.required, Validators.minLength(1)])
-  nombreClienteControl = new FormControl(null, [Validators.required, Validators.minLength(1)])
+  clienteControl = new FormControl<Cliente>(null)
   cuotasControl = new FormControl(1, [Validators.required])
   interesControl = new FormControl(0, [Validators.required])
   facturaControl = new FormControl(false);
@@ -62,7 +57,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   displayedColumns = ['id', 'vencimiento', 'valor', 'acciones']
   total = 0;
   ventaSub: Subscription;
-  searchTimer;
 
   vencimientoControl = new FormControl(getLastDayOfNextMonth())
   today = new Date();
@@ -70,7 +64,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AddVentaCreditoData,
     private dialogRef: MatDialogRef<AddVentaCreditoDialogComponent>,
-    private clienteService: ClienteService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private mainService: MainService,
@@ -84,35 +77,12 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     }
     this.cuotasControl.disable()
     this.interesControl.disable()
-
-    this.nombreClienteControl.valueChanges.subscribe(res => {
-      // Al elegir de la lista, mat-autocomplete escribe el cliente (un objeto) marcando el control dirty, y recién
-      // después llama a onClienteSelect: eso es elegir, no editar. Antes borraba al elegido (15/10).
-      if (res != null && typeof res !== 'string') return;
-      if (this.nombreClienteControl.dirty) {
-        // Apenas se edita el texto deja de valer el cliente elegido (también durante la espera de 1 s) y
-        // cualquier búsqueda en vuelo (#390)
-        this.busquedaCliente++;
-        this.quitarClienteSeleccionado();
-        if (this.searchTimer != null) {
-          clearTimeout(this.searchTimer);
-        }
-        if (this.nombreClienteControl.valid) {
-          this.searchTimer = setTimeout(() => {
-            this.onSearch()
-          }, 1000);
-        } else {
-          this.clienteList = [];
-        }
-      }
-
-    })
   }
 
   ngAfterViewInit(): void {
 
     setTimeout(() => {
-      this.nombreInput.nativeElement.focus();
+      this.clienteField.focus();
     }, 500);
 
     this.container.nativeElement.addEventListener('keydown', (e) => {
@@ -152,95 +122,26 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   /**
-   * Una búsqueda nueva deja de valer el cliente anterior: antes, si fallaba, quedaba seleccionado con su saldo y
-   * la venta a crédito se confirmaba contra él (#390).
+   * Editar el texto o limpiar el campo deja de valer el cliente elegido: antes, si la búsqueda fallaba, quedaba
+   * seleccionado con su saldo y la venta a crédito se confirmaba contra él (#390). El campo descarta además las
+   * respuestas de búsquedas anteriores.
    */
-  /** Solo aplica la respuesta de la última búsqueda de cliente. */
-  private busquedaCliente = 0;
-
-  private quitarClienteSeleccionado(): void {
-    this.selectedCliente = null;
-    this.saldoEnCredito = null;
-  }
-
-  private busquedaDeClienteFallida(): void {
-    this.quitarClienteSeleccionado();
-    this.notificacionService.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 5);
-  }
-
-  onSearch() {
-    if (this.nombreClienteControl.valid) {
-      const busqueda = ++this.busquedaCliente;
-      this.quitarClienteSeleccionado();
-      if (isNaN(this.nombreClienteControl.value) == false) {
-        this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value, PROPAGAR_ERROR_DE_RED).subscribe({ error: () => {
-          if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
-        }, next: res => {
-          if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
-          if (res != null) {
-            this.onClienteSelect(res)
-          } else {
-            this.onSearchByNombre()
-          }
-        } })
-      } else {
-        this.onSearchByNombre()
-      }
-
-      this.nombreClienteControl.markAsPristine()
-      this.nombreInput.nativeElement.select()
+  onClienteSelect(e: Cliente) {
+    if (e?.id == null) {
+      this.selectedCliente = null;
+      this.saldoEnCredito = null;
+      return;
     }
-  }
-
-  onSearchByNombre() {
-    const busqueda = ++this.busquedaCliente;
-    this.quitarClienteSeleccionado();
-    this.clienteService.onSearchFromServer(this.nombreClienteControl.value, LECTURA_ESTRICTA).subscribe({ error: () => {
-      if (busqueda === this.busquedaCliente) this.busquedaDeClienteFallida();
-    }, next: res2 => {
-      if (busqueda !== this.busquedaCliente) return; // respuesta de un texto anterior
-      if (res2 != null) {
-        if (res2.length == 1) {
-          this.onClienteSelect(res2[0])
-          this.onClienteAutocompleteClose();
-        } else if (res2.length > 1) {
-          this.clienteList = res2;
-
-        } else {
-          this.onClienteAutocompleteClose();
-          this.onClienteSelect(null);
-        }
-      }
-    } })
-  }
-
-  onClienteSelect(e) {
-    console.log(e);
-
-    if (e?.id != null) {
-      // Elegido el cliente, ninguna búsqueda pendiente o en vuelo puede reemplazarlo.
-      clearTimeout(this.searchTimer);
-      this.busquedaCliente++;
-      this.selectedCliente = e;
-      // Escribir el nombre del elegido no es editar: no tiene que invalidar la selección (#390).
-      this.nombreClienteControl.setValue(e?.persona?.id + " - " + e?.persona?.nombre, { emitEvent: false });
-      this.nombreClienteControl.markAsPristine();
-      this.saldoEnCredito = e?.saldo;
-      if (this.total <= this.saldoEnCredito) {
-        setTimeout(() => {
-          this.setTipoConfirmacion(2)
-        }, 500);
-      } else {
-        this.nombreInput.nativeElement.select()
-        this.notificacionService.openWarn('No posee saldo suficiente. Verifique en el aplicativo.')
-      }
+    this.selectedCliente = e;
+    this.saldoEnCredito = e?.saldo;
+    if (this.total <= this.saldoEnCredito) {
+      setTimeout(() => {
+        this.setTipoConfirmacion(2)
+      }, 500);
+    } else {
+      this.clienteField.select()
+      this.notificacionService.openWarn('No posee saldo suficiente. Verifique en el aplicativo.')
     }
-  }
-
-  onClienteAutocompleteClose() {
-    setTimeout(() => {
-      this.nombreInput.nativeElement.select();
-    }, 100);
   }
 
   addItem(valor: number) {
