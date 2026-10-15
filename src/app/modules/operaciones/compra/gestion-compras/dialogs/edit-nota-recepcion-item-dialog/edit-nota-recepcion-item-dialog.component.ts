@@ -19,6 +19,7 @@ import { Producto } from '../../../../../productos/producto/producto.model';
 import { PedidoService } from '../../../pedido.service';
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface EditNotaRecepcionItemDialogData {
   item?: NotaRecepcionItem; // Opcional para crear nuevos ítems
@@ -30,6 +31,15 @@ export interface EditNotaRecepcionItemDialogData {
    * `notaRecepcion` todavía llega con el id solo, así que la cotización la pasa el diálogo padre.
    */
   cotizacion?: number;
+}
+
+/**
+ * Cierre tras un alta sin respuesta: el ítem pudo quedar guardado y reintentar lo agregaría otra vez, así que
+ * quien abrió el diálogo recarga los ítems. `aviso` es el texto a mostrar (null si ya avisó el link) (#488).
+ */
+export interface ItemDeNotaSinConfirmar {
+  recargar: true;
+  aviso: string | null;
 }
 
 @Component({
@@ -858,8 +868,20 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
           error: (error) => {
             console.error('Error al guardar ítem:', error);
             this.saving = false;
-            const mensaje = this.isNewItem ? 'Error al agregar el ítem' : 'Error al actualizar el ítem';
-            this.notificacionService.openAlgoSalioMal(mensaje);
+            // En un rechazo el genérico ya mostró el motivo y el diálogo queda para corregir
+            if (erroresDeRechazo(error) != null) {
+              return;
+            }
+            const aviso = avisoTrasMutacion(error, this.isNewItem ? 'se agregó el ítem' : 'se actualizó el ítem');
+            if (this.isNewItem) {
+              const resultado: ItemDeNotaSinConfirmar = { recargar: true, aviso };
+              this.dialogRef.close(resultado);
+              return;
+            }
+            // Editar con id no duplica: el diálogo queda para reintentar
+            if (aviso != null) {
+              this.notificacionService.openWarn(aviso, 8);
+            }
           }
         });
     } else {

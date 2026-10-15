@@ -14,6 +14,7 @@ import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { debounceTime } from 'rxjs/operators';
 import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
@@ -38,6 +39,10 @@ export interface RechazarItemDialogResult {
   success: boolean;
   notaRecepcionItem?: NotaRecepcionItem;
   message?: string;
+  /** El ítem se rechazó, pero no todas sus distribuciones: `message` lo explica en vez del éxito (#488). */
+  parcial?: boolean;
+  /** Algo pudo haberse aplicado y reintentar duplicaría: quien abrió el diálogo recarga (#488). */
+  recargar?: boolean;
 }
 
 export enum MotivoRechazo {
@@ -405,15 +410,16 @@ export class RechazarItemDialogComponent implements OnInit {
               },
               error: (error) => {
                 console.error('Error al crear ítem rechazado parcial:', error);
-                this.notificacionService.openAlgoSalioMal('Error al crear el ítem de rechazo parcial');
-                this.isLoading = false;
+                this.cerrarParaRecargar(error, 'Se redujo la cantidad del ítem, pero no se creó el ítem rechazado.',
+                  'se creó el ítem rechazado');
               }
             });
         },
         error: (error) => {
           console.error('Error al actualizar ítem original:', error);
-          this.notificacionService.openAlgoSalioMal('Error al actualizar el ítem original');
           this.isLoading = false;
+          // Reintentar no duplica: vuelve a dejar la misma cantidad restante
+          this.avisarSinRespuesta(error, 'se actualizó la cantidad del ítem');
         }
       });
   }
@@ -471,17 +477,21 @@ export class RechazarItemDialogComponent implements OnInit {
       .subscribe({
         next: (notaCreada) => {
           notaRecepcionItem.notaRecepcion = notaCreada;
-          this.guardarItemYRechazarDistribuciones(notaRecepcionItem);
+          this.guardarItemYRechazarDistribuciones(notaRecepcionItem, true);
         },
         error: (error) => {
           console.error('Error al crear nota:', error);
-          this.notificacionService.openAlgoSalioMal('Error al crear la nota de recepción');
           this.isLoading = false;
+          // En un rechazo no se creó nada y el diálogo queda para corregir; sin respuesta la nota pudo crearse
+          // y reintentar crearía otra
+          if (erroresDeRechazo(error) == null) {
+            this.cerrarParaRecargar(error, '', 'se creó la nota');
+          }
         }
       });
   }
 
-  private guardarItemYRechazarDistribuciones(notaRecepcionItem: NotaRecepcionItem): void {
+  private guardarItemYRechazarDistribuciones(notaRecepcionItem: NotaRecepcionItem, notaCreadaAca = false): void {
     // Primero guardar el ítem rechazado
     this.pedidoService.onSaveNotaRecepcionItem(notaRecepcionItem.toInput())
       .pipe(untilDestroyed(this))
@@ -498,8 +508,17 @@ export class RechazarItemDialogComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error al guardar ítem rechazado:', error);
-          this.notificacionService.openAlgoSalioMal('Error al rechazar el ítem');
           this.isLoading = false;
+          if (notaCreadaAca) {
+            // Reintentar crearía otra nota
+            this.cerrarParaRecargar(error, 'La nota nueva se creó, pero no se guardó el ítem rechazado.',
+              'se guardó el ítem rechazado en la nota nueva');
+          } else if (notaRecepcionItem.id || erroresDeRechazo(error) != null) {
+            // Rechazo, o edición de un ítem existente (reintentar no duplica): el diálogo queda abierto
+            this.avisarSinRespuesta(error, 'se rechazó el ítem');
+          } else {
+            this.cerrarParaRecargar(error, '', 'se rechazó el ítem');
+          }
         }
       });
   }
@@ -528,8 +547,17 @@ export class RechazarItemDialogComponent implements OnInit {
       })
       .catch(error => {
         console.error('Error al rechazar distribuciones:', error);
-        this.notificacionService.openWarn('Ítem rechazado pero hubo errores al rechazar las distribuciones');
-        this.finalizarRechazo(null);
+        // Un solo aviso, sin el éxito detrás: el ítem quedó rechazado y las distribuciones a medias (#488)
+        this.isLoading = false;
+        const result: RechazarItemDialogResult = {
+          success: true,
+          parcial: true,
+          recargar: true,
+          message: erroresDeRechazo(error) != null
+            ? 'Ítem rechazado, pero no se pudieron rechazar todas las distribuciones. Se recargan los ítems.'
+            : 'Ítem rechazado, pero no se pudo confirmar si se rechazaron todas las distribuciones: revisalas antes de repetir.',
+        };
+        this.dialogRef.close(result);
       });
   }
 
@@ -546,6 +574,27 @@ export class RechazarItemDialogComponent implements OnInit {
       message: mensaje
     };
     
+    this.dialogRef.close(result);
+  }
+
+  /** Sin respuesta avisa (salvo el corte por tiempo, que avisó el link); en un rechazo el genérico ya mostró el motivo. */
+  private avisarSinRespuesta(error: any, queSeHizo: string): void {
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+  }
+
+  /**
+   * Cierra cuando ya se aplicó algo (o pudo aplicarse) y reintentar duplicaría: quien abrió el diálogo recarga.
+   * `siRechazo` explica qué quedó hecho cuando el servidor rechazó el paso siguiente (#488).
+   */
+  private cerrarParaRecargar(error: any, siRechazo: string, queSeHizo: string): void {
+    this.isLoading = false;
+    const message = erroresDeRechazo(error) != null
+      ? `${siRechazo} Se recargan los ítems.`
+      : avisoTrasMutacion(error, queSeHizo) ?? undefined;
+    const result: RechazarItemDialogResult = { success: false, recargar: true, message };
     this.dialogRef.close(result);
   }
 
