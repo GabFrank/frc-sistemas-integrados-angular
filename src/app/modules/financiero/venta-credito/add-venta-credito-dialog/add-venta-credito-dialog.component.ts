@@ -86,6 +86,9 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     this.interesControl.disable()
 
     this.nombreClienteControl.valueChanges.subscribe(res => {
+      // Al elegir de la lista, mat-autocomplete escribe el cliente (un objeto) marcando el control dirty, y recién
+      // después llama a onClienteSelect: eso es elegir, no editar. Antes borraba al elegido (15/10).
+      if (res != null && typeof res !== 'string') return;
       if (this.nombreClienteControl.dirty) {
         // Apenas se edita el texto deja de valer el cliente elegido (también durante la espera de 1 s) y
         // cualquier búsqueda en vuelo (#390)
@@ -213,15 +216,16 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
   onClienteSelect(e) {
     console.log(e);
-    
+
     if (e?.id != null) {
+      // Elegido el cliente, ninguna búsqueda pendiente o en vuelo puede reemplazarlo.
+      clearTimeout(this.searchTimer);
+      this.busquedaCliente++;
       this.selectedCliente = e;
-      this.nombreClienteControl.setValue(
-        this.selectedCliente?.persona?.id +
-        " - " +
-        this.selectedCliente?.persona?.nombre
-      );
-      this.saldoEnCredito = this.selectedCliente?.saldo;
+      // Escribir el nombre del elegido no es editar: no tiene que invalidar la selección (#390).
+      this.nombreClienteControl.setValue(e?.persona?.id + " - " + e?.persona?.nombre, { emitEvent: false });
+      this.nombreClienteControl.markAsPristine();
+      this.saldoEnCredito = e?.saldo;
       if (this.total <= this.saldoEnCredito) {
         setTimeout(() => {
           this.setTipoConfirmacion(2)
