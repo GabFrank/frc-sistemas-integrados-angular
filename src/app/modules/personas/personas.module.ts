@@ -3,15 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ListPersonaComponent } from './persona/list-persona/list-persona.component';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { PersonaComponent } from './persona/persona/persona.component';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { PersonaDetalleDialogoComponent } from './persona/persona-detalle-dialogo/persona-detalle-dialogo.component';
-import { BuscarPersonaDialogComponent } from './persona/buscar-persona-dialog/buscar-persona-dialog.component';
 import { AdicionarPersonaDialogComponent } from './persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { AdicionarUsuarioDialogComponent } from './usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { ListUsuarioComponent } from './usuarios/list-usuario/list-usuario.component';
-import { UsuarioComponent } from './usuarios/usuario.component';
 import { EditProveedorComponent } from './proveedor/edit-proveedor/edit-proveedor.component';
 import { ListProveedorComponent } from './proveedor/list-proveedor/list-proveedor.component';
 import { AdicionarFuncionarioDialogComponent } from './funcionarios/adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
@@ -33,11 +30,9 @@ import { ListProveedorServicioComponent } from './proveedor-servicio/list-provee
 @NgModule({
   declarations: [
     ListPersonaComponent,
-    PersonaComponent,
     PersonaDetalleDialogoComponent,
-    BuscarPersonaDialogComponent,
     AdicionarPersonaDialogComponent,
-    UsuarioComponent, ListUsuarioComponent,
+    ListUsuarioComponent,
     AdicionarUsuarioDialogComponent,
     EditProveedorComponent,
     ListProveedorComponent,

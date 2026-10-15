@@ -721,3 +721,11 @@ mat-form-field.transferencia-input-field {
     opacity: 1;
   }
 }
+
+// app-buscador-field: ultima fila de la lista rapida («Buscar mas…»). La lista vive en el overlay, fuera del
+// host del componente, por eso va aca y no en su scss.
+.opcion-buscar-mas {
+  opacity: 0.8;
+  font-style: italic;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}

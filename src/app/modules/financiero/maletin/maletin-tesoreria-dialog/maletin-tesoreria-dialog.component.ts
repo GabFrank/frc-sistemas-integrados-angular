@@ -5,6 +5,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { Maletin } from '../maletin.model';
 import { MaletinService, PedidoDeEgresoMaletin } from '../maletin.service';
+import { OpcionesBuscador } from '../../../../shared/services/buscador.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -30,17 +31,15 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
   esEgreso = false;
   titulo = '';
 
-  maletinControl = new FormControl(null, Validators.required);
+  maletinControl = new FormControl<Maletin>(null, Validators.required);
   monedaControl = new FormControl(null, Validators.required);
   montoControl = new FormControl(null, [Validators.required, Validators.min(0.01)]);
   descripcionControl = new FormControl('');
 
-  maletinList: Maletin[] = [];
-  maletinFiltrados: Maletin[] = [];
   monedaList: Moneda[] = [];
 
-  // El maletín se identifica por su descripción (código de barras): autocomplete con lector o tipeo.
-  displayMaletin = (m: Maletin): string => (m && m.descripcion) ? m.descripcion : '';
+  // El maletín se identifica por su descripción (código de barras): se escanea o se tipea. Los inactivos no se ofrecen.
+  readonly opcionesMaletin: OpcionesBuscador = { filtro: (m: Maletin) => m?.activo !== false };
   // Valor por moneda dentro del maletín (solo ingreso): del último cierre de la caja que lo usó.
   valorItems: ValorItem[] = [];
   cargandoValor = false;
@@ -71,24 +70,6 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     this.esEgreso = !!this.data?.esEgreso;
     this.titulo = this.esEgreso ? 'Egreso de Maletín' : 'Ingreso de Maletín';
 
-    this.maletinService.onGetAll(0, 500).pipe(untilDestroyed(this)).subscribe(res => {
-      const items = res?.getContent || res || [];
-      this.maletinList = (items as Maletin[]).filter(m => m.activo !== false);
-      this.maletinFiltrados = this.maletinList.slice(0, 50);
-    });
-
-    // Autocomplete de maletín por código (descripción). El usuario tipea/escanea; al seleccionar
-    // una opción el control pasa a tener el objeto Maletin. Mientras tipea, el valor es un string.
-    this.maletinControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
-      if (typeof val === 'string') {
-        const t = val.trim().toUpperCase();
-        this.maletinFiltrados = t
-          ? this.maletinList.filter(m => (m.descripcion || '').toUpperCase().includes(t)).slice(0, 50)
-          : this.maletinList.slice(0, 50);
-      } else {
-        this.maletinFiltrados = [];
-      }
-    });
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
@@ -98,7 +79,11 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     // El valor precargado solo aplica al ingreso (lo que quedó físicamente en el maletín).
     if (this.esEgreso) return;
     const maletin: Maletin = this.maletinControl.value;
-    if (!maletin?.id) return;
+    if (!maletin?.id) {
+      this.valorItems = [];
+      this.recalcularSeleccion();
+      return;
+    }
     this.cargandoValor = true;
     this.valorItems = [];
     this.maletinService.onGetValor(maletin.id).pipe(untilDestroyed(this)).subscribe({
@@ -155,7 +140,7 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
 
   onSave() {
     if (this.hayPendiente || this.isSaving) return;
-    if (!this.maletinControl.value?.id) return this.err('Seleccione un maletín válido de la lista');
+    if (!this.maletinControl.value?.id) return this.err('Seleccione el maletín');
     const cajaId = this.data.cajaVirtual?.id;
     const maletinId = this.maletinControl.value?.id;
     const desc = this.descripcionControl.value;

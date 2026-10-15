@@ -14,18 +14,9 @@
 <mat-dialog-content *ngIf="!hayPendiente">
   <div fxLayout="column" fxLayoutGap="12px" class="maletin-form">
 
-    <mat-form-field appearance="outline">
-      <mat-label class="required-field">Maletín (código)</mat-label>
-      <input matInput [formControl]="maletinControl" [matAutocomplete]="autoMaletin"
-             placeholder="Escaneá o escribí el código" autocomplete="off" />
-      <mat-icon matSuffix>qr_code_scanner</mat-icon>
-      <mat-autocomplete #autoMaletin="matAutocomplete" [displayWith]="displayMaletin"
-                        [autoActiveFirstOption]="true" (optionSelected)="onMaletinChange()">
-        <mat-option *ngFor="let m of maletinFiltrados" [value]="m">
-          {{ m.descripcion }}<span *ngIf="m.abierto"> · (en uso)</span>
-        </mat-option>
-      </mat-autocomplete>
-    </mat-form-field>
+    <app-buscador-field appearance="outline" tipo="maletin" titulo="Maletín (código)" [rapido]="true"
+      [requerido]="true" [opciones]="opcionesMaletin" placeholder="Escaneá o escribí el código"
+      [formControl]="maletinControl" (seleccionado)="onMaletinChange()"></app-buscador-field>
 
     <!-- INGRESO: valor por moneda del cierre; se tildan las monedas a ingresar (valor fijo, no editable) -->
     <div class="valor-maletin" *ngIf="!esEgreso && maletinControl.value">

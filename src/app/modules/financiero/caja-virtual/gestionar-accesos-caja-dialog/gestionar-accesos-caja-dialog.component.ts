@@ -5,7 +5,6 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -51,8 +50,7 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
   isSaving = false;
 
   /** Alta: buscador de usuario + los dos permisos. */
-  usuarioControl = new FormControl(null);
-  usuariosFiltrados: Usuario[] = [];
+  usuarioControl = new FormControl<Usuario>(null);
   nuevoPuedeEscribir = false;
 
   responsableNombre = '';
@@ -64,7 +62,6 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<GestionarAccesosCajaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: GestionarAccesosCajaData,
     private cajaVirtualService: CajaVirtualService,
-    private usuarioService: UsuarioService,
     private dialogos: DialogosService,
     private notificacion: NotificacionSnackbarService,
   ) {}
@@ -74,16 +71,6 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
     this.responsableNombre = resp
       ? (resp.persona?.nombre ? `${resp.persona.nombre} (${resp.nickname})` : resp.nickname)
       : '—';
-
-    this.usuarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
-      if (typeof val === 'string' && val.trim().length >= 2) {
-        this.usuarioService.onSearchUsuarioPaginated(val.trim(), 0, 10)
-          .pipe(untilDestroyed(this))
-          .subscribe(r => this.usuariosFiltrados = (r?.getContent as Usuario[]) || []);
-      } else if (typeof val !== 'string') {
-        this.usuariosFiltrados = [];
-      }
-    });
 
     this.cargar();
   }
@@ -120,13 +107,12 @@ export class GestionarAccesosCajaDialogComponent implements OnInit {
 
   /** Alta desde el buscador. El backend rechaza otorgarle acceso al propio responsable. */
   onAgregar(): void {
-    const u: any = this.usuarioControl.value;
-    if (!u || typeof u === 'string' || !u.id) {
-      return this.err('Elegí un usuario de la lista');
+    const u = this.usuarioControl.value;
+    if (!u?.id) {
+      return this.err('Elegí el usuario');
     }
     this.guardar(u.id, true, this.nuevoPuedeEscribir, () => {
       this.usuarioControl.setValue(null);
-      this.usuariosFiltrados = [];
       this.nuevoPuedeEscribir = false;
     });
   }
