@@ -61,10 +61,14 @@ Persistencia/migraciones: N/A para desktop porque el cambio es solo de UI.
   en vuelo) por el bug; con el fix **5 de 5**. El «full page reload» que imprime Karma aparece
   igual en las corridas sin fix: es del launcher.
 - `npm run check` (AOT): OK.
+- Prueba en pantalla (15/10, desktop web de esta rama en `127.0.0.1:4201`, central `:8081` y filial `:8082`
+  locales con perfil dev, sucursal 24, usuario de prueba 601): venta de 11.000 → Convenio → escribir
+  «FRANCO AREVALOS» → **clic en «934 - FARMACIA FRANCO AREVALOS S.A» de la lista**. Carga cliente 798 con
+  saldo 6.224.306 (base local), QR y Firma habilitados, sin aviso, y sigue así pasados 3 s. Editar el texto
+  después borra cliente y saldo (#390). No se guardó ninguna venta.
 
 ## Qué queda sin verificar
 
-- Prueba en pantalla contra un central real: se verifica sirviendo el desktop por web
-  (`ng serve -c web`) y eligiendo el cliente de la lista. Si no se hace, se dice.
+- Elegir con **Enter** sobre una opción de la lista (mismo camino de Material que el clic; probado solo el clic).
 - Karma solo tiene launcher Electron; si no corre, el test se verifica como indica la memoria
   (tsc + node), y se informa así.
