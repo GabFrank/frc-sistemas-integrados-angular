@@ -27,8 +27,9 @@ export interface CambioCargoDialogData {
 })
 export class CambioCargoDialogComponent implements OnInit {
 
-  cargos: Cargo[] = [];
-  cargoControl = new FormControl(null, Validators.required);
+  /** Cargo elegido con el buscador generico; el input muestra su nombre. */
+  cargoControl = new FormControl<Cargo>(null, Validators.required);
+  cargoNombreControl = new FormControl<string>(null, Validators.required);
   fechaControl = new FormControl(new Date());
   motivoControl = new FormControl(null);
   actualizarSalarioControl = new FormControl(false);
@@ -48,8 +49,6 @@ export class CambioCargoDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargoService.onGetAll().pipe(untilDestroyed(this))
-      .subscribe((res: Cargo[]) => { this.cargos = res || []; });
     this.monedaService.onGetAll().pipe(untilDestroyed(this))
       .subscribe((res: Moneda[]) => {
         this.monedas = res || [];
@@ -63,8 +62,19 @@ export class CambioCargoDialogComponent implements OnInit {
       });
   }
 
+  /** No ofrece el cargo actual: cambiar a ese mismo no tiene sentido. */
+  onBuscarCargo() {
+    this.cargoService.onBuscarCargo(this.data.cargoActualId)
+      .pipe(untilDestroyed(this))
+      .subscribe(cargo => {
+        this.cargoControl.setValue(cargo);
+        this.cargoNombreControl.setValue(cargo.nombre);
+        this.onCargoChange();
+      });
+  }
+
   onCargoChange() {
-    const c = this.cargos.find(x => x.id === this.cargoControl.value);
+    const c = this.cargoControl.value;
     this.cargoSeleccionadoSueldo = (c && c.sueldoBase != null) ? c.sueldoBase : null;
     // proponer actualizar el salario si el cargo tiene sueldo base distinto al actual
     this.actualizarSalarioControl.setValue(
@@ -74,12 +84,13 @@ export class CambioCargoDialogComponent implements OnInit {
 
   onGuardar() {
     if (this.cargoControl.invalid) {
+      this.cargoNombreControl.markAsTouched();
       this.notificacion.notification$.next({ texto: 'Seleccione un cargo', color: NotificacionColor.warn, duracion: 3 });
       return;
     }
     const input = {
       funcionarioId: this.data.funcionarioId,
-      cargoId: this.cargoControl.value,
+      cargoId: this.cargoControl.value.id,
       fecha: dateToString(this.fechaControl.value),
       motivo: this.motivoControl.value ? this.motivoControl.value.toUpperCase() : null,
       autorizadoPorId: this.mainService.usuarioActual?.id

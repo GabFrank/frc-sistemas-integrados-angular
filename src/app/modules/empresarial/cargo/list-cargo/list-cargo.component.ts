@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
+import { PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
@@ -9,6 +10,7 @@ import { Cargo } from '../cargo.model';
 import { CargoService } from '../cargo.service';
 import { EditCargoDialogComponent } from '../edit-cargo-dialog/edit-cargo-dialog.component';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { PageInfo } from '../../../../app.component';
 
 /**
  * ABM de cargos. El backend ya existia entero (CargoGraphQL); lo que faltaba era esta
@@ -27,6 +29,10 @@ export class ListCargoComponent implements OnInit {
 
   textoControl = new FormControl(null);
 
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<Cargo>;
+
   constructor(
     private cargoService: CargoService,
     public mainService: MainService,
@@ -38,12 +44,32 @@ export class ListCargoComponent implements OnInit {
     this.onFiltrar();
   }
 
+  /** Un filtro nuevo vuelve a la primera pagina: la actual puede no existir con menos resultados. */
   onFiltrar() {
-    const texto = this.textoControl.value;
-    const obs = texto ? this.cargoService.onSearch(texto) : this.cargoService.onGetAll();
-    obs.pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
-      if (res != null) { this.dataSource.data = res || []; }
-    });
+    this.pageIndex = 0;
+    this.cargarPagina();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.cargarPagina();
+  }
+
+  private cargarPagina() {
+    this.cargoService.onGetAllWithPage(this.pageIndex, this.pageSize, this.textoControl.value || null)
+      .pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          // Borrar el ultimo cargo de la ultima pagina la deja vacia: retroceder una.
+          if (!res.getContent?.length && this.pageIndex > 0) {
+            this.pageIndex--;
+            this.cargarPagina();
+            return;
+          }
+          this.selectedPageInfo = res;
+          this.dataSource.data = res.getContent || [];
+        }
+      });
   }
 
   onResetFiltro() {
@@ -53,12 +79,12 @@ export class ListCargoComponent implements OnInit {
 
   onNuevo() {
     this.dialog.open(EditCargoDialogComponent, { width: '520px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargarPagina(); });
   }
 
   onEditar(cargo: Cargo) {
     this.dialog.open(EditCargoDialogComponent, { data: { cargo }, width: '520px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargarPagina(); });
   }
 
   onEliminar(cargo: Cargo) {
@@ -69,7 +95,7 @@ export class ListCargoComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.cargoService.onDelete(cargo.id)
-          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onFiltrar(); });
+          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.cargarPagina(); });
       }
     });
   }
