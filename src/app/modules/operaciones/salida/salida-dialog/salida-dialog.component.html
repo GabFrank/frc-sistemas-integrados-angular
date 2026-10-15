@@ -53,31 +53,15 @@
           </div>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
             <div fxFlex="35%">
-              <mat-form-field style="width: 100%">
-                <mat-label>Responsable</mat-label>
-                <input
-                  #responsableInput
-                  type="text"
-                  matInput
-                  [formControl]="usuarioInputControl"
-                  oninput="this.value == ' ' ? this.value = '': null"
-                  [matAutocomplete]="auto"
-                  (keyup.enter)="setFocusToTipoSalida()"
-                />
-                <mat-autocomplete
-                  #auto="matAutocomplete"
-                  (optionSelected)="onResponsableSelect($event.option.value)"
-                  (closed)="onResponsableAutocompleteClose()"
-                >
-                  <mat-option
-                    *ngFor="let usuario of usuarioList"
-                    [value]="usuario"
-                  >
-                    {{ usuario.id }} -
-                    {{ usuario?.persona?.nombre | titlecase }}
-                  </mat-option>
-                </mat-autocomplete>
-              </mat-form-field>
+              <app-buscador-field
+                #responsableField
+                tipo="usuario"
+                titulo="Responsable"
+                [rapido]="true"
+                [formControl]="usuarioInputControl"
+                (seleccionado)="onResponsableSelect($event)"
+                (enter)="setFocusToTipoSalida()"
+              ></app-buscador-field>
             </div>
             <div fxFlex="30%">
               <mat-form-field style="width: 100%">
