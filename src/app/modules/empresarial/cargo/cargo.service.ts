@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CargosGQL } from './graphql/Cargos';
 import { CargosSearchGQL } from './graphql/CargosSearch';
+import { CargosWithPageGQL } from './graphql/CargosWithPage';
 import { SaveCargoGQL } from './graphql/SaveCargo';
 import { DeleteCargoGQL } from './graphql/DeleteCargo';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { Cargo } from './cargo.model';
+import { PageInfo } from '../../../app.component';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +18,7 @@ export class CargoService {
     private genericService: GenericCrudService,
     private getAllCargos: CargosGQL,
     private cargosSearch: CargosSearchGQL,
+    private cargosWithPage: CargosWithPageGQL,
     private saveCargoGQL: SaveCargoGQL,
     private deleteCargoGQL: DeleteCargoGQL
   ) { }
@@ -26,6 +29,11 @@ export class CargoService {
 
   onSearch(texto, servidor = true): Observable<any> {
     return this.genericService.onGetByTexto(this.cargosSearch, texto, servidor);
+  }
+
+  /** Lista del ABM: pagina y filtra en el backend. onGetAll/onSearch quedan para los selectores. */
+  onGetAllWithPage(page: number, size: number, texto?: string, servidor = true): Observable<PageInfo<Cargo>> {
+    return this.genericService.onCustomQuery(this.cargosWithPage, { page, size, texto }, servidor);
   }
 
   onSave(input: any, servidor = true): Observable<Cargo> {

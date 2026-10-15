@@ -45,5 +45,8 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex" [pageSize]="pageSize" [length]="selectedPageInfo?.getTotalElements"
+      (page)="handlePageEvent($event)" style="width: 100%" showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>
