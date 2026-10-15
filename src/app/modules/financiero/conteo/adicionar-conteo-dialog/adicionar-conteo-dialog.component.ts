@@ -444,10 +444,14 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                   };
                   this.onGetConteoMoneda.emit(response);
                   this.selectedConteo = conteo;
-                  if (apertura) {
-                    this.cajaService.selectedCaja.conteoApertura = conteo;
-                  } else {
-                    this.cajaService.selectedCaja.conteoCierre = conteo;
+                  // Fuera del PDV (lista de cajas) no hay caja seleccionada en el servicio (#501)
+                  const cajaSeleccionada = this.cajaService.selectedCaja;
+                  if (cajaSeleccionada != null) {
+                    if (apertura) {
+                      cajaSeleccionada.conteoApertura = conteo;
+                    } else {
+                      cajaSeleccionada.conteoCierre = conteo;
+                    }
                   }
                 }, 500);
               }
@@ -504,10 +508,15 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 conteo.creadoEn = new Date();
                 conteo.conteoAnterior = this.selectedConteo;
                 this.selectedConteo = conteo;
-                if (apertura) {
-                  this.cajaService.selectedCaja.conteoApertura = conteo;
-                } else {
-                  this.cajaService.selectedCaja.conteoCierre = conteo;
+                // Abierto desde la lista de cajas no hay caja seleccionada en el servicio: la excepción cortaba el
+                // emit y el resumen de la caja quedaba con el monto anterior (#501)
+                const cajaSeleccionada = this.cajaService.selectedCaja;
+                if (cajaSeleccionada != null) {
+                  if (apertura) {
+                    cajaSeleccionada.conteoApertura = conteo;
+                  } else {
+                    cajaSeleccionada.conteoCierre = conteo;
+                  }
                 }
                 let response: AdicionarConteoResponse = {
                   apertura: this.apertura,

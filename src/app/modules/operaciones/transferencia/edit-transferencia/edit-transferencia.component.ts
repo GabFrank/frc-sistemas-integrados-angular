@@ -1180,10 +1180,16 @@ export class EditTransferenciaComponent implements OnInit {
           this.actualizarAlertasPaginaActual();
           this.onVerificarConfirmados();
         },
-        // En un rechazo el genérico ya mostró el motivo. Repetir es seguro (#501)
+        // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo desconfirmarse y la grilla lo seguiría
+        // mostrando confirmado: se relee después. Repetir es seguro (#501)
         error: (err) => {
+          if (erroresDeRechazo(err) != null) return;
           const aviso = avisoTrasMutacion(err, "se desconfirmó el ítem");
           if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          const id = this.selectedTransferencia?.id;
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);
+          });
         },
       });
   }
