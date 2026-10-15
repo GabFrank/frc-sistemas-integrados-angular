@@ -15,6 +15,7 @@ import { Input } from '@angular/core';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { CargoService } from '../../../empresarial/cargo/cargo.service';
+import { Cargo } from '../../../empresarial/cargo/cargo.model';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
 import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
@@ -59,11 +60,10 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   sucursalControl = new FormControl(null)
   // null = Todos; true/false = valor concreto
   estadoControl = new FormControl(null)   // activo
-  cargoControl = new FormControl(null)     // cargoId
+  cargoControl = new FormControl<Cargo>(null)     // se filtra por su id; lo elige el buscador
   diaristaControl = new FormControl(null)
   fasePruebaControl = new FormControl(null)
   cobraBancoControl = new FormControl(null)
-  cargoList: any[] = [];
 
   length = 25;
   pageSize = 25;
@@ -110,10 +110,6 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         }
       });
     })
-
-    this.cargoService.onGetAll(true).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargoList = res || [];
-    })
   }
 
   ngAfterViewInit(): void {
@@ -146,7 +142,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.nombreControl.value?.toUpperCase(),
       sucursalIdList.length > 0 ? sucursalIdList : null,
       this.estadoControl.value,
-      this.cargoControl.value,
+      this.cargoControl.value?.id,
       this.diaristaControl.value,
       this.fasePruebaControl.value,
       this.cobraBancoControl.value
@@ -156,6 +152,17 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         this.dataSource.data = this.selectedPageInfo?.getContent;
       }
     })
+  }
+
+  onBuscarCargo() {
+    this.cargoService.onBuscarCargo()
+      .pipe(untilDestroyed(this))
+      .subscribe(cargo => this.onSelectCargo(cargo));
+  }
+
+  onSelectCargo(cargo: Cargo) {
+    this.cargoControl.setValue(cargo);
+    this.onFiltrar();
   }
 
   onResetFiltro() {

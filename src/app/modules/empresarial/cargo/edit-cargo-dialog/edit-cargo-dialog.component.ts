@@ -25,10 +25,8 @@ export class EditCargoDialogComponent implements OnInit {
   nombreControl = new FormControl(null, [Validators.required]);
   descripcionControl = new FormControl(null);
   sueldoBaseControl = new FormControl(null);
-  supervisadoPorControl = new FormControl(null);
-
-  /** Opciones de "depende de". Excluye el propio cargo: nadie se supervisa a si mismo. */
-  cargosSupervisores: Cargo[] = [];
+  /** Guarda el Cargo superior entero (no el id): lo elige el buscador generico. */
+  supervisadoPorControl = new FormControl<Cargo>(null);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: CargoDialogData,
@@ -47,17 +45,11 @@ export class EditCargoDialogComponent implements OnInit {
       supervisadoPor: this.supervisadoPorControl
     });
 
-    this.cargoService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      // No hay validacion de ciclos en el backend, asi que al menos no ofrecemos el
-      // propio cargo como su supervisor.
-      this.cargosSupervisores = (res || []).filter(c => c.id !== this.selectedCargo.id);
-    });
-
     if (this.selectedCargo.id) {
       this.nombreControl.setValue(this.selectedCargo.nombre);
       this.descripcionControl.setValue(this.selectedCargo.descripcion);
       this.sueldoBaseControl.setValue(this.selectedCargo.sueldoBase);
-      this.supervisadoPorControl.setValue(this.selectedCargo.supervisadoPor?.id);
+      this.supervisadoPorControl.setValue(this.selectedCargo.supervisadoPor);
       this.formGroup.disable();
     } else {
       this.isEditting = true;
@@ -67,6 +59,14 @@ export class EditCargoDialogComponent implements OnInit {
   onHabilitarEdicion() {
     this.isEditting = true;
     this.formGroup.enable();
+  }
+
+  /** El buscador no ofrece el propio cargo: nadie se supervisa a si mismo (el backend valida los ciclos). */
+  onBuscarSupervisor() {
+    if (!this.isEditting) { return; }
+    this.cargoService.onBuscarCargo(this.selectedCargo.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(cargo => this.supervisadoPorControl.setValue(cargo));
   }
 
   onCancelar() {
@@ -81,9 +81,7 @@ export class EditCargoDialogComponent implements OnInit {
     aux.nombre = this.nombreControl.value?.toUpperCase();
     aux.descripcion = this.descripcionControl.value ? this.descripcionControl.value.toUpperCase() : null;
     aux.sueldoBase = this.sueldoBaseControl.value;
-    aux.supervisadoPor = this.supervisadoPorControl.value
-      ? this.cargosSupervisores.find(c => c.id === this.supervisadoPorControl.value)
-      : null;
+    aux.supervisadoPor = this.supervisadoPorControl.value;
     aux.usuario = this.mainService.usuarioActual;
 
     this.cargoService.onSave(aux.toInput())
