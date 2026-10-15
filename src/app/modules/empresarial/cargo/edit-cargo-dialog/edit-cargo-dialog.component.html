@@ -19,10 +19,16 @@
     </mat-form-field>
     <mat-form-field style="width: 100%">
       <mat-label>Depende de</mat-label>
-      <mat-select [formControl]="supervisadoPorControl">
-        <mat-option [value]="null">Ninguno</mat-option>
-        <mat-option *ngFor="let c of cargosSupervisores" [value]="c.id">{{ c.nombre }}</mat-option>
-      </mat-select>
+      <input matInput readonly placeholder="Ninguno" [value]="supervisadoPorControl.value?.nombre || ''"
+        (click)="onBuscarSupervisor()" (keyup.enter)="onBuscarSupervisor()" [style.cursor]="isEditting ? 'pointer' : null" />
+      <button *ngIf="isEditting && supervisadoPorControl.value" mat-icon-button matSuffix type="button"
+        matTooltip="Quitar" (click)="supervisadoPorControl.setValue(null)">
+        <mat-icon>clear</mat-icon>
+      </button>
+      <button *ngIf="isEditting" mat-icon-button matSuffix type="button" matTooltip="Buscar cargo"
+        (click)="onBuscarSupervisor()">
+        <mat-icon>search</mat-icon>
+      </button>
     </mat-form-field>
   </form>
 
