@@ -52,7 +52,21 @@
       <button mat-stroked-button type="button" (click)="buscar()">Reintentar</button>
     </div>
 
+    <button class="sip-volver" type="button" *ngIf="anterior && !buscando" (click)="volverAnterior()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a la búsqueda anterior
+    </button>
+
     <ng-container *ngIf="resultado && !buscando && !error">
+      <section class="sip-seccion" *ngIf="parecidas.length > 0">
+        <h3>{{ tituloParecidas }}</h3>
+        <div class="sip-grid">
+          <ng-container *ngFor="let img of parecidas">
+            <ng-container *ngTemplateOutlet="tile; context: { $implicit: img }"></ng-container>
+          </ng-container>
+        </div>
+      </section>
+
       <section class="sip-seccion" *ngIf="porCodigo.length > 0">
         <h3>
           Por código de barras
@@ -60,21 +74,19 @@
         </h3>
         <div class="sip-grid">
           <ng-container *ngFor="let img of porCodigo">
-            <button
-              *ngIf="!img.oculta"
-              type="button"
-              class="sip-tile"
-              [class.sel]="seleccionada === img"
-              (click)="seleccionar(img)"
-              [matTooltip]="img.titulo || img.sitio"
-            >
-              <img [src]="img.miniatura" loading="lazy" referrerpolicy="no-referrer" alt="" (error)="onMiniaturaError(img)" />
-              <span class="sip-exacta" *ngIf="img.esExacta">Exacta</span>
-              <span class="sip-meta">
-                <span class="sip-sitio">{{ img.sitio }}</span>
-                <span class="sip-tamano" *ngIf="img.tamano">{{ img.tamano }}</span>
-              </span>
-            </button>
+            <ng-container *ngTemplateOutlet="tile; context: { $implicit: img }"></ng-container>
+          </ng-container>
+        </div>
+      </section>
+
+      <section class="sip-seccion" *ngIf="porPack.length > 0">
+        <h3>
+          Pack
+          <span class="sip-chip">{{ resultado.pack }}</span>
+        </h3>
+        <div class="sip-grid">
+          <ng-container *ngFor="let img of porPack">
+            <ng-container *ngTemplateOutlet="tile; context: { $implicit: img }"></ng-container>
           </ng-container>
         </div>
       </section>
@@ -83,20 +95,7 @@
         <h3>Por descripción</h3>
         <div class="sip-grid">
           <ng-container *ngFor="let img of porDescripcion">
-            <button
-              *ngIf="!img.oculta"
-              type="button"
-              class="sip-tile"
-              [class.sel]="seleccionada === img"
-              (click)="seleccionar(img)"
-              [matTooltip]="img.titulo || img.sitio"
-            >
-              <img [src]="img.miniatura" loading="lazy" referrerpolicy="no-referrer" alt="" (error)="onMiniaturaError(img)" />
-              <span class="sip-meta">
-                <span class="sip-sitio">{{ img.sitio }}</span>
-                <span class="sip-tamano" *ngIf="img.tamano">{{ img.tamano }}</span>
-              </span>
-            </button>
+            <ng-container *ngTemplateOutlet="tile; context: { $implicit: img }"></ng-container>
           </ng-container>
         </div>
       </section>
@@ -107,6 +106,24 @@
       </div>
     </ng-container>
   </div>
+
+  <ng-template #tile let-img>
+    <button
+      *ngIf="!img.oculta"
+      type="button"
+      class="sip-tile"
+      [class.sel]="seleccionada === img"
+      (click)="seleccionar(img)"
+      [matTooltip]="img.titulo || img.sitio"
+    >
+      <img [src]="img.miniatura" loading="lazy" referrerpolicy="no-referrer" alt="" (error)="onMiniaturaError(img)" />
+      <span class="sip-exacta" *ngIf="img.esExacta">Exacta</span>
+      <span class="sip-meta">
+        <span class="sip-sitio">{{ img.sitio }}</span>
+        <span class="sip-tamano" *ngIf="img.tamano">{{ img.tamano }}</span>
+      </span>
+    </button>
+  </ng-template>
 
   <footer class="sip-preview" *ngIf="seleccionada">
     <div class="sip-preview-img">
@@ -124,6 +141,16 @@
       </div>
       <div class="sip-preview-acciones">
         <button mat-stroked-button type="button" (click)="limpiarSeleccion()" [disabled]="descargando">Volver</button>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="buscarParecidas()"
+          [disabled]="descargando"
+          matTooltip="Buscar fotos que se parezcan a esta"
+        >
+          <mat-icon>image_search</mat-icon>
+          Buscar parecidas
+        </button>
         <button mat-raised-button color="primary" type="button" (click)="usar()" [disabled]="descargando">
           <mat-icon>{{ descargando ? 'hourglass_top' : 'check' }}</mat-icon>
           {{ descargando ? 'Bajando…' : 'Usar esta imagen' }}

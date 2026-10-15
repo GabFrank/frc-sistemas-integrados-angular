@@ -18,7 +18,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SaveImagenPresentacionGQL } from './graphql/saveImagenPresentacion';
 import { SugerenciasImagenPresentacionGQL } from './graphql/sugerenciasImagenPresentacion';
 import { DescargarImagenSugeridaGQL } from './graphql/descargarImagenSugerida';
-import { SugerenciasImagen } from './imagen-sugerida.model';
+import { ImagenesParecidasDeGQL } from './graphql/imagenesParecidasDe';
+import { ParecidasImagen, SugerenciasImagen } from './imagen-sugerida.model';
 
 /** El panel de sugerencias muestra los errores en su lugar: sin cartel ni «Buscando…» del genérico. */
 const ERRORES_AL_PANEL: QueryError = {
@@ -46,7 +47,8 @@ export class PresentacionService {
     private dialogoService: DialogosService,
     private genericService: GenericCrudService,
     private sugerenciasImagen: SugerenciasImagenPresentacionGQL,
-    private descargarImagenSugerida: DescargarImagenSugeridaGQL
+    private descargarImagenSugerida: DescargarImagenSugeridaGQL,
+    private imagenesParecidasDe: ImagenesParecidasDeGQL
   ) { }
 
   onGetPresentacionesPorProductoId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Presentacion[]>{
@@ -114,6 +116,15 @@ export class PresentacionService {
    */
   onGetSugerenciasImagen(presentacionId: number, codigo?: string, texto?: string): Observable<SugerenciasImagen> {
     return this.genericService.onCustomQuery(this.sugerenciasImagen, { presentacionId, codigo, texto }, true,
+      ERRORES_AL_PANEL, true, { timeoutMs: 30000, silenciarAvisoTimeout: true });
+  }
+
+  /**
+   * Fotos parecidas a una sugerida: Brave visual y, si no responde, Bing con `texto` (el título de la foto).
+   * Falla con `{ message }` solo si no responde ninguno.
+   */
+  onGetImagenesParecidasDe(url: string, texto: string, similares?: string): Observable<ParecidasImagen> {
+    return this.genericService.onCustomQuery(this.imagenesParecidasDe, { url, texto, similares }, true,
       ERRORES_AL_PANEL, true, { timeoutMs: 30000, silenciarAvisoTimeout: true });
   }
 

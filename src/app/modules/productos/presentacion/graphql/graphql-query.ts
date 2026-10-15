@@ -148,9 +148,21 @@ export const sugerenciasImagenPresentacionQuery = gql`
       codigo
       codigoDescartado
       texto
-      porCodigo { url miniatura ancho alto titulo sitio fuente }
-      porDescripcion { url miniatura ancho alto titulo sitio fuente }
+      pack
+      porCodigo { url miniatura ancho alto titulo sitio fuente exacta similares }
+      porPack { url miniatura ancho alto titulo sitio fuente exacta similares }
+      porDescripcion { url miniatura ancho alto titulo sitio fuente exacta similares }
       avisos
+    }
+  }
+`;
+
+export const imagenesParecidasDeQuery = gql`
+  query ($url: String!, $texto: String, $similares: String) {
+    data: imagenesParecidasDe(url: $url, texto: $texto, similares: $similares) {
+      aproximada
+      porTexto
+      imagenes { url miniatura ancho alto titulo sitio fuente exacta similares }
     }
   }
 `;

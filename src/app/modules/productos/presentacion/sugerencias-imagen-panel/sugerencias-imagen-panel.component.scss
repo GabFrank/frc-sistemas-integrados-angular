@@ -122,6 +122,31 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   padding: 4px 20px 20px;
 }
 
+.sip-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid $borde;
+  border-radius: 16px;
+  background: $fondo-alto;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $acento;
+  }
+
+  &:hover {
+    border-color: rgba($acento, 0.5);
+  }
+}
+
 .sip-estado {
   display: flex;
   flex-direction: column;
@@ -309,6 +334,7 @@ $texto-suave: rgba(255, 255, 255, 0.6);
 .sip-preview-acciones {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }

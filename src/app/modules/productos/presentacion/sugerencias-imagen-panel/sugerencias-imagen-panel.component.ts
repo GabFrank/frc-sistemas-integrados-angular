@@ -24,6 +24,32 @@ interface VistaImagen extends ImagenSugerida {
   oculta: boolean;
 }
 
+/** Lo que hay en pantalla antes de «Buscar parecidas», para volver sin buscar de nuevo. */
+interface BusquedaAnterior {
+  codigo: string;
+  texto: string;
+  resultado: SugerenciasImagen;
+  porCodigo: VistaImagen[];
+  porPack: VistaImagen[];
+  porDescripcion: VistaImagen[];
+  parecidas: VistaImagen[];
+  tituloParecidas: string;
+}
+
+/**
+ * El título de la página de la foto, para que el central la ubique en Brave: sin el sitio («… | CASA YUGOVICH»,
+ * «… - Rappi»), emojis ni puntos suspensivos, y hasta 10 palabras (Bing busca peor con más).
+ * Vacío si no queda nada que buscar.
+ */
+export function textoDeTitulo(titulo: string): string {
+  let s = (titulo ?? '').replace(/[^\p{L}\p{N}\s.,/()%×|–—-]/gu, ' ').replace(/\.{2,}|…/g, ' ').trim();
+  const corte = s.search(/\s[|–—-]\s/);
+  if (corte > 0 && s.slice(0, corte).trim().split(/\s+/).length >= 2) s = s.slice(0, corte);
+  const palabras = s.replace(/[|–—]/g, ' ').trim().split(/\s+/);
+  // Una sola palabra suele ser el nombre de la tienda («Baratote»), no el producto.
+  return palabras.length >= 2 ? palabras.slice(0, 10).join(' ') : '';
+}
+
 /** Diálogo pegado al borde derecho, a alto completo: deja ver la tabla de presentaciones detrás. */
 export const SUGERENCIAS_IMAGEN_PANEL_CONFIG: MatDialogConfig = {
   panelClass: 'sugerencias-imagen-panel',
@@ -56,10 +82,18 @@ export class SugerenciasImagenPanelComponent implements OnInit {
   error: string = null;
   resultado: SugerenciasImagen = null;
   porCodigo: VistaImagen[] = [];
+  porPack: VistaImagen[] = [];
   porDescripcion: VistaImagen[] = [];
+  /** Resultado de «Buscar parecidas» visual (Brave); mientras hay, las otras listas están vacías. */
+  parecidas: VistaImagen[] = [];
+  tituloParecidas = '';
+  /** Hay una búsqueda de parecidas en pantalla y se puede volver a la de antes. */
+  anterior: BusquedaAnterior = null;
   sinResultados = false;
 
   seleccionada: VistaImagen = null;
+  /** El título limpio de la seleccionada: con él el central la ubica en Brave o, si Brave no responde, busca en Bing. */
+  textoParecidas = '';
   previewSrc: string = null;
   descargando = false;
   errorDescarga: string = null;
@@ -98,9 +132,11 @@ export class SugerenciasImagenPanelComponent implements OnInit {
           }
           this.resultado = res;
           this.form.patchValue({ codigo: res.codigo ?? res.codigoDescartado ?? '', texto: res.texto }, { emitEvent: false });
-          this.porCodigo = res.porCodigo.map((i) => this.vista(i, true));
-          this.porDescripcion = res.porDescripcion.map((i) => this.vista(i, false));
-          this.sinResultados = this.porCodigo.length + this.porDescripcion.length === 0;
+          this.porCodigo = res.porCodigo.map((i) => this.vista(i));
+          this.porPack = (res.porPack ?? []).map((i) => this.vista(i));
+          this.porDescripcion = res.porDescripcion.map((i) => this.vista(i));
+          this.parecidas = [];
+          this.actualizarSinResultados();
         },
         error: (e) => {
           this.buscando = false;
@@ -111,8 +147,81 @@ export class SugerenciasImagenPanelComponent implements OnInit {
 
   seleccionar(img: VistaImagen): void {
     this.seleccionada = img;
+    this.textoParecidas = textoDeTitulo(img.titulo);
     this.previewSrc = img.url;
     this.errorDescarga = null;
+  }
+
+  /**
+   * Fotos parecidas a la elegida. El central prueba Brave visual (con su ruta de parecidas o ubicándola por
+   * el título; `aproximada` si no está) y, si Brave no responde, Bing con el título (`porTexto`): siempre
+   * trae algo. Se descarta lo que ya estaba en pantalla, para no repetir la lista.
+   */
+  buscarParecidas(): void {
+    const img = this.seleccionada;
+    if (img == null || this.buscando) return;
+    if (this.resultado != null) {
+      this.anterior = {
+        codigo: this.form.value.codigo,
+        texto: this.form.value.texto,
+        resultado: this.resultado,
+        porCodigo: this.porCodigo,
+        porPack: this.porPack,
+        porDescripcion: this.porDescripcion,
+        parecidas: this.parecidas,
+        tituloParecidas: this.tituloParecidas,
+      };
+    }
+    // Sin título, lo que se buscó: el respaldo en Bing necesita algún texto.
+    const texto = this.textoParecidas || (this.form.value.texto ?? '').trim();
+    const enPantalla = new Set(
+      [...this.porCodigo, ...this.porPack, ...this.porDescripcion, ...this.parecidas].map((i) => i.url)
+    );
+    this.busqueda?.unsubscribe();
+    this.buscando = true;
+    this.error = null;
+    this.limpiarSeleccion();
+    this.busqueda = this.presentacionService
+      .onGetImagenesParecidasDe(img.url, texto, img.similares)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          this.buscando = false;
+          const todas = res?.imagenes ?? [];
+          // Lo que ya estaba en pantalla no suma; si no queda nada nuevo, se muestra igual.
+          const nuevas = todas.filter((i) => !enPantalla.has(i.url));
+          this.porCodigo = [];
+          this.porPack = [];
+          this.porDescripcion = [];
+          this.parecidas = (nuevas.length > 0 ? nuevas : todas).map((i) => this.vista(i));
+          this.tituloParecidas = res?.porTexto
+            ? 'Relacionadas con la elegida'
+            : res?.aproximada ? 'Parecidas a una foto similar' : 'Parecidas a la elegida';
+          this.actualizarSinResultados();
+        },
+        error: (e) => {
+          this.buscando = false;
+          this.error = e?.message || 'No se pudieron buscar parecidas. Revisá la conexión con el servidor.';
+        },
+      });
+  }
+
+  volverAnterior(): void {
+    const a = this.anterior;
+    if (a == null) return;
+    this.busqueda?.unsubscribe();
+    this.buscando = false;
+    this.error = null;
+    this.limpiarSeleccion();
+    this.form.patchValue({ codigo: a.codigo, texto: a.texto }, { emitEvent: false });
+    this.resultado = a.resultado;
+    this.porCodigo = a.porCodigo;
+    this.porPack = a.porPack;
+    this.porDescripcion = a.porDescripcion;
+    this.parecidas = a.parecidas;
+    this.tituloParecidas = a.tituloParecidas;
+    this.actualizarSinResultados();
+    this.anterior = null;
   }
 
   limpiarSeleccion(): void {
@@ -195,11 +304,15 @@ export class SugerenciasImagenPanelComponent implements OnInit {
       .subscribe();
   }
 
-  private vista(i: ImagenSugerida, porCodigo: boolean): VistaImagen {
+  private actualizarSinResultados(): void {
+    this.sinResultados = this.porCodigo.length + this.porPack.length + this.porDescripcion.length + this.parecidas.length === 0;
+  }
+
+  private vista(i: ImagenSugerida): VistaImagen {
     return {
       ...i,
       tamano: i.ancho && i.alto ? `${i.ancho}×${i.alto}` : '',
-      esExacta: porCodigo && i.fuente === 'OPEN_FOOD_FACTS',
+      esExacta: !!i.exacta,
       oculta: false,
     };
   }
