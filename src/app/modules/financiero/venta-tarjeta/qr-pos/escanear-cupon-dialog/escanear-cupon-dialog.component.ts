@@ -12,7 +12,7 @@ import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import {
   DecimalesPorMoneda,
   formatoCruzado,

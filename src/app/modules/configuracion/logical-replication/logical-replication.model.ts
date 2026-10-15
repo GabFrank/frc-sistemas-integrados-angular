@@ -24,4 +24,6 @@ export class LogicalReplication {
 export class ReplicationStatus {
   success: boolean;
   message: string;
+  /** Sin respuesta del servidor: la operación pudo aplicarse igual (#488). */
+  sinConfirmar?: boolean;
 } 

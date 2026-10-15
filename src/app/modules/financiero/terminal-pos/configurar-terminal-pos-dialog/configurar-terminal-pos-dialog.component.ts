@@ -5,7 +5,7 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from '../../../../notificacion-snackbar.service';
-import { mensajeDeError } from '../../venta-tarjeta/qr-pos/mensaje-error';
+import { mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { TerminalPos } from '../terminal-pos.model';
 import { TerminalPosService } from '../terminal-pos.service';
 

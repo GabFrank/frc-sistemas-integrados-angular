@@ -1,5 +1,5 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
@@ -33,6 +33,7 @@ import { ESTADO_LOTE_LABELS, EstadoLote, StockLote, StockLoteSucursal } from '..
 import { LoteService } from '../lote.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Fila del desglose por sucursal que se abre al expandir un lote. */
 interface SucursalStockRow {
@@ -120,7 +121,9 @@ const DIAS_POR_VENCER = 30;
     ])
   ]
 })
-export class ListStockLoteComponent implements OnInit {
+export class ListStockLoteComponent implements OnInit, OnDestroy {
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
 
   titulo = 'Stock por lotes';
 
@@ -642,8 +645,15 @@ export class ListStockLoteComponent implements OnInit {
             this.onBuscar(true);
           }
         },
-        error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al cambiar el estado del lote');
+        // En un rechazo el genérico ya mostró el motivo; sin respuesta se avisa y se recarga a los 5 s (#488)
+        error: (error) => {
+          const aviso = avisoTrasMutacion(error, 'se cambió el estado del lote');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+          if (erroresDeRechazo(error) == null) {
+            this.programarRecargaTrasFallo(() => this.onBuscar(true));
+          }
         }
       });
   }
@@ -751,5 +761,25 @@ export class ListStockLoteComponent implements OnInit {
     if (diasRestantes < 0) return 'fila-vencida';
     if (diasRestantes <= 30) return 'fila-por-vencer';
     return '';
+  }
+
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
+  }
+
+  /** Recarga tras un corte: a los 5 s y solo si la pantalla sigue abierta (#488). */
+  private programarRecargaTrasFallo(recargar: () => void): void {
+    if (this.destruido) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (!this.destruido) {
+        recargar();
+      }
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
   }
 }

@@ -31,6 +31,8 @@ import { CajaService } from '../../pdv/caja/caja.service';
 import { NotificationHttpService } from '../../../../shared/services/notification-http.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -256,7 +258,15 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
             },
             error: (err) => {
               console.error("Error al guardar retiro:", err);
-              this.notificacionService.openAlgoSalioMal('Ocurrió un error al guardar el retiro');
+              // En un rechazo el genérico ya mostró el motivo y no se guardó: el diálogo queda para corregir (#488)
+              if (erroresDeRechazo(err) != null) {
+                return;
+              }
+              // Sin respuesta pudo haberse guardado: reintentar crearía otro retiro y descontaría dos veces
+              if (!esTimeoutDeLink(err)) {
+                this.notificacionService.openWarn('No se pudo confirmar si se guardó el retiro: revisá la caja antes de repetir.', 8);
+              }
+              this.dialogRef.close(true);
             }
           });
         }

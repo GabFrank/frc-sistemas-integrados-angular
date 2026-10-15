@@ -16,6 +16,8 @@ import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearc
 import { Persona } from '../../../personas/persona/persona.model';
 import { EstadoDE } from '../../documento-electronico/documento-electronico.model';
 import { facturaActiva } from '../factura-legal-estado';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -344,10 +346,11 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
             console.error('Error updating factura:', err);
-            const mensaje = Array.isArray(err)
-              ? err[0]?.message
-              : err?.message;
-            this.notificacionSnackbar.openAlgoSalioMal(mensaje || 'Error al actualizar factura');
+            // En un rechazo el genérico ya mostró el motivo; editar es idempotente y el diálogo queda (#488)
+            const aviso = avisoTrasMutacion(err, 'se actualizó la factura');
+            if (aviso != null) {
+              this.notificacionSnackbar.openWarn(aviso, 8);
+            }
           }
         });
     } catch (err) {
@@ -377,7 +380,13 @@ export class EditFacturaLegalDialogComponent implements OnInit {
         error: (err) => {
           this.cargandoService.closeDialog(requestId);
           console.error('Error nominando factura:', err);
-          this.notificacionSnackbar.openWarn('Factura actualizada pero error al nominar: ' + (err?.message || ''));
+          // El motivo de un rechazo ya lo mostró el genérico; sin respuesta no se sabe qué hizo SIFEN (#488)
+          if (erroresDeRechazo(err) != null) {
+            this.notificacionSnackbar.openWarn('Factura actualizada, pero no se nominó.', 8);
+          } else if (!esTimeoutDeLink(err)) {
+            this.notificacionSnackbar.openWarn(
+              'Factura actualizada, pero no se pudo confirmar si se nominó en SIFEN: revisá antes de repetir.', 8);
+          }
           this.dialogRef.close(true);
         }
       });

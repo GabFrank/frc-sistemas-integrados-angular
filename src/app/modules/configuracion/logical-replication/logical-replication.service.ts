@@ -37,6 +37,8 @@ import { RefreshRemoteSubscriptionGQL } from './graphql/refresh-remote-subscript
 import { RefreshAllRemoteSubscriptionsGQL } from './graphql/refresh-all-remote-subscriptions-gql';
 import { SyncPublicationsWithReplicationTableGQL } from './graphql/sync-publications-with-replication-table-gql';
 import { GetReplicationSetupStateGQL, ReplicationSetupState } from './graphql/get-replication-setup-state-gql';
+import { erroresDeRechazo, motivoDelRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../shared/services/timeout-link';
 
 @Injectable({
   providedIn: 'root'
@@ -284,8 +286,16 @@ export class LogicalReplicationService {
       }),
       catchError(error => {
         console.error('Error in setupReplicationAdvanced', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
-        return of({ success: false, message: error?.message || 'Error desconocido' });
+        // En un rechazo el genérico ya mostró el motivo: queda en el log del diálogo, sin otro aviso (#488)
+        if (erroresDeRechazo(error) != null) {
+          return of({ success: false, message: motivoDelRechazo(error) ?? 'El servidor rechazó la configuración.' });
+        }
+        // Sin respuesta: es una operación larga y pudo seguir aplicándose. El corte por tiempo ya lo avisó el link
+        const texto = 'No se pudo confirmar si se configuró la replicación: es una operación larga, revisá el estado antes de repetir.';
+        if (!esTimeoutDeLink(error)) {
+          this.notificacionSnackBar.openWarn(texto, 8);
+        }
+        return of({ success: false, message: texto, sinConfirmar: true });
       })
     );
   }

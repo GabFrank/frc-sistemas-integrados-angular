@@ -38,8 +38,7 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/pages/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
-import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
-import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
+import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
@@ -465,7 +464,10 @@ export class ListVentaComponent implements OnInit {
                 venta.estado = VentaEstado.CANCELADA;
                 this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
                   next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
-                  error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                  error: (err) => {
+                    console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err);
+                    this.avisarCancelacionTarjetaRechazada(err);
+                  }
                 });
               }
               this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
@@ -477,9 +479,9 @@ export class ListVentaComponent implements OnInit {
                   "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
                 return;
               }
-              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y no hay qué confirmar
+              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y el genérico ya mostró el
+              // motivo (#488)
               if (erroresDeRechazo(e?.error) != null) {
-                this.notificacionService.openAlgoSalioMal(mensajeDeError(e.error, `No se pudo ${accion} la venta.`));
                 return;
               }
               // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.
@@ -501,7 +503,10 @@ export class ListVentaComponent implements OnInit {
           // La cancelación sí se había aplicado: se cancela también su registro de tarjeta (escribe CANCELADO:
           // repetirlo no cambia nada), igual que en el camino confirmado
           this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
-            error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+            error: (err) => {
+              console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err);
+              this.avisarCancelacionTarjetaRechazada(err);
+            }
           });
         }
         this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
@@ -643,5 +648,18 @@ export class ListVentaComponent implements OnInit {
 
   onToggleConAumento(selected: boolean) {
     this.conAumentoControl.setValue(selected);
+  }
+
+  /**
+   * La cancelación del cobro con tarjeta en la sucursal es un respaldo: el central ya lo cancela con la venta. Un corte no
+   * se avisa (en un desktop sin filial saltaría siempre); un rechazo sí, con su motivo, porque es silenciosa (#488).
+   */
+  private avisarCancelacionTarjetaRechazada(err: any): void {
+    if (erroresDeRechazo(err) == null) {
+      console.warn('[VentaTarjeta] sin respuesta de la sucursal al cancelar el cobro con tarjeta: lo cancela el central', err);
+      return;
+    }
+    this.notificacionService.openWarn(
+      `La venta se canceló, pero la sucursal rechazó cancelar su cobro con tarjeta: ${motivoDelRechazo(err) ?? 'sin detalle'}.`, 8);
   }
 }

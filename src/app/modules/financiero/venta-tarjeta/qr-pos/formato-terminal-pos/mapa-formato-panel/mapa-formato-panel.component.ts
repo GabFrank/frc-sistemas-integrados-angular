@@ -6,7 +6,7 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from '../../../../../../notificacion-snackbar.service';
-import { mensajeDeError } from '../../mensaje-error';
+import { mensajeDeError } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { FormatoTerminalPos } from '../formato-terminal-pos.model';
 import { MapaFormatoService } from '../mapa-formato.service';
 import {

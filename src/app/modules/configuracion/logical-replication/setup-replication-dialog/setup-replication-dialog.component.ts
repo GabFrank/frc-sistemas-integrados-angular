@@ -49,6 +49,8 @@ export class SetupReplicationDialogComponent implements OnInit {
   /** Step-by-step log from backend after setup finishes (null while not yet run or after reset). */
   resultLog: string | null = null;
   resultSuccess: boolean | null = null;
+  /** La configuración quedó sin confirmar: al cerrar, la lista recarga igual (#488). */
+  private resultSinConfirmar = false;
 
   readonly targetOptions: { value: string; label: string }[] = [
     { value: 'BOTH', label: 'TODO' },
@@ -261,6 +263,7 @@ export class SetupReplicationDialogComponent implements OnInit {
           this.errorMessage = null;
           this.resultLog = status?.message ?? '';
           this.resultSuccess = status?.success ?? false;
+          this.resultSinConfirmar = status?.sinConfirmar === true;
         },
         error: (error) => {
           this.isSubmitting = false;
@@ -276,7 +279,7 @@ export class SetupReplicationDialogComponent implements OnInit {
   }
 
   closeAfterResult(): void {
-    this.dialogRef.close(this.resultSuccess === true);
+    this.dialogRef.close(this.resultSuccess === true || this.resultSinConfirmar);
   }
 
   onCancel(): void {

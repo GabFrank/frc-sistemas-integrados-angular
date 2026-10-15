@@ -16,7 +16,7 @@ import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.m
 import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {

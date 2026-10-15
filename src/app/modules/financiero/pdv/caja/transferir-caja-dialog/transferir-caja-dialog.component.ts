@@ -5,6 +5,8 @@ import { CajaService } from '../caja.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { LoginService } from '../../../../login/login.service';
 import { TabService } from '../../../../../layouts/tab/tab.service';
+import { erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
 
 export interface TransferirCajaData {
   cajaId: number;
@@ -62,9 +64,15 @@ export class TransferirCajaDialogComponent implements OnInit {
         setTimeout(() => {
           this.tabService.removeCurrentTab();
         }, 500);
+      } else {
+        this.notificacionService.openWarn('No se pudo transferir la caja.');
       }
     }, err => {
-      this.notificacionService.openWarn(err.message);
+      // En un rechazo el genérico ya mostró el motivo; si se transfirió, repetir lo rechaza el servidor (#488)
+      if (erroresDeRechazo(err) == null && !esTimeoutDeLink(err)) {
+        this.notificacionService.openWarn(
+          'No se pudo confirmar si se transfirió la caja: si se transfirió, esta pestaña ya no corresponde. Revisá antes de repetir.', 8);
+      }
     })
   }
 

@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, of, throwError } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { mensajeDeError } from '../../mensaje-error';
+import { mensajeDeError } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
