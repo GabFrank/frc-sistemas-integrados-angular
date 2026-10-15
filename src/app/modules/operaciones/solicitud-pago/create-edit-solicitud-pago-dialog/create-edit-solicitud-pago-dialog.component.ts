@@ -12,19 +12,13 @@ import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { FormaPagoService } from '../../../financiero/forma-pago/forma-pago.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { MainService } from '../../../../main.service';
 import { AdicionarNotaDialogComponent } from '../adicionar-nota-dialog/adicionar-nota-dialog.component';
 import { AdicionarFormaPagoDialogComponent } from '../adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
-
-/**
- * Espera antes de volver a leer la solicitud tras una mutación sin respuesta: el link de central offline corta a los 3 s
- * sin cancelar el pedido (#488).
- */
-const RECARGA_TRAS_CORTE_MS = 5000;
 
 /** Nota de recepción con los campos de display que consume la tabla del diálogo. */
 export type NotaRecepcionConDisplay = NotaRecepcion & {
