@@ -42,15 +42,17 @@ export class CargoService {
 
   /**
    * Buscador generico de cargos (paginado en el backend). Emite solo si se elige uno.
-   * excluirId saca un cargo de los resultados: en "depende de", el propio cargo.
+   * excluirId saca un cargo de los resultados: en "depende de" el propio cargo, al cambiar
+   * de cargo el actual.
    */
   onBuscarCargo(excluirId?: number): Observable<Cargo> {
     const data: SearchListtDialogData = {
       titulo: 'Buscar cargo',
       tableData: [
         { id: 'id', nombre: 'Id', width: '10%' },
-        { id: 'nombre', nombre: 'Nombre', width: '40%' },
-        { id: 'descripcion', nombre: 'Descripción', width: '50%' }
+        { id: 'nombre', nombre: 'Nombre', width: '35%' },
+        { id: 'descripcion', nombre: 'Descripción', width: '40%' },
+        { id: 'sueldoBase', nombre: 'Sueldo base', width: '15%', pipe: 'number', pipeArgs: '1.0-0' }
       ],
       query: this.cargosWithPage,
       paginator: true,
