@@ -177,6 +177,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   /** Número de la nota cuya alta quedó sin respuesta: el próximo «Crear» busca si quedó guardada (#488). */
   private numeroAltaSinConfirmar: number | null = null;
+  /** Cuándo quedó sin respuesta: hasta pasados 5 s la nota puede seguir creándose en el central. */
+  private momentoAltaSinConfirmar = 0;
+  /** Notas con ese número que ya existían antes del alta: no son la que quedó sin confirmar. */
+  private idsPreviosAlAltaSinConfirmar: number[] = [];
+  /** Lo que encontró la última verificación de duplicado (antes del alta). */
+  private idsConMismoNumero: number[] = [];
   private recargasTrasCorte = new Set<any>();
   private destruido = false;
   
@@ -1455,7 +1461,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       }
 
       const proveedorId = this.data.pedido?.proveedor?.id;
-      if (!this.data.isEdit && this.numeroAltaSinConfirmar != null && !(await this.retomarAltaSinConfirmar(proveedorId))) {
+      if (!this.data.isEdit && this.numeroAltaSinConfirmar != null
+        && !(await this.retomarAltaSinConfirmar(proveedorId, Number(cleanFormValue.numero)))) {
         return;
       }
 
@@ -1578,6 +1585,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               }
               // Sin respuesta la nota pudo crearse: el próximo «Crear» la busca antes de crear otra
               this.numeroAltaSinConfirmar = notaInput.numero;
+              this.momentoAltaSinConfirmar = Date.now();
+              this.idsPreviosAlAltaSinConfirmar = [...this.idsConMismoNumero];
               this.changesMade = true;
               this.notificacionService.openWarn(
                 'No se pudo confirmar si se creó la nota. Al volver a «Crear» se busca primero si quedó guardada.', 8);
@@ -1777,8 +1786,20 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
    * Antes de crear otra nota tras un alta sin respuesta: si la nota de este pedido con ese número quedó guardada, se
    * sigue sobre ella en vez de crear otra (#488). false si no se pudo verificar: no se guarda a ciegas.
    */
-  private async retomarAltaSinConfirmar(proveedorId: number | undefined): Promise<boolean> {
+  private async retomarAltaSinConfirmar(proveedorId: number | undefined, numeroActual: number): Promise<boolean> {
     const sinVerificar = 'No se pudo verificar si la nota anterior quedó creada: el servidor no responde. Intentá de nuevo en unos segundos.';
+    if (numeroActual !== this.numeroAltaSinConfirmar) {
+      // Cambió el número: es otra nota. La anterior no se toma ni se renombra; se avisa para que la revisen
+      this.notificacionService.openWarn(
+        `La nota ${this.numeroAltaSinConfirmar} pudo haber quedado creada: revisala en la lista de notas del pedido.`, 8);
+      this.numeroAltaSinConfirmar = null;
+      return true;
+    }
+    if (Date.now() - this.momentoAltaSinConfirmar < RECARGA_TRAS_CORTE_MS) {
+      // El central puede seguir creándola: buscar ahora no la encontraría y se crearía otra
+      this.notificacionService.openWarn('Esperá unos segundos antes de volver a crear la nota.', 5);
+      return false;
+    }
     if (!proveedorId) {
       this.notificacionService.openWarn(sinVerificar, 8);
       return false;
@@ -1791,7 +1812,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         this.notificacionService.openWarn(sinVerificar, 8);
         return false;
       }
-      encontrada = notas.find(n => !n.esNotaRechazo && Number(n.pedido?.id) === Number(this.data.pedido?.id));
+      encontrada = notas.find(n => !n.esNotaRechazo && Number(n.pedido?.id) === Number(this.data.pedido?.id)
+        && !this.idsPreviosAlAltaSinConfirmar.includes(Number(n.id)));
     } catch (error) {
       console.error('Error al buscar la nota sin confirmar:', error);
       this.notificacionService.openWarn(sinVerificar, 8);
@@ -1863,6 +1885,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       console.error('Error al validar nota duplicada:', error);
       notasExistentes = null;
     }
+    this.idsConMismoNumero = (notasExistentes ?? []).map(n => Number(n.id));
     if (notasExistentes == null) {
       // Error de red o GraphQL: antes se guardaba sin verificar. Ahora se pregunta (#390).
       return await this.dialogosService.confirm(

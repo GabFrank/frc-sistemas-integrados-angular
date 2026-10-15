@@ -4223,6 +4223,9 @@ export class GestionComprasComponent
       this.loadItemsData();
     } else {
       this.updateItemsComputedProperties();
+      if (this.selectedTabIndex === 2) {
+        this.reloadTabData(2);
+      }
     }
     if (this.isEditMode) {
       this.loadPedidoResumen();
