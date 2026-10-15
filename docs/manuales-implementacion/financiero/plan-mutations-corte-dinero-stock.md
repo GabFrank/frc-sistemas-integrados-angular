@@ -67,7 +67,7 @@ Las recargas diferidas usan `timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(th
 | # | Dónde | Reintento | Cambio |
 |---|---|---|---|
 | 9 | `edit-transferencia` `onAvanzarEtapa` | la misma etapa se re-ejecuta sin mover stock otra vez | aviso y `cargarDatos` a los 5 s |
-| 10 | ídem `onDesconfirm` | idempotente | aviso |
+| 10 | ídem `onDesconfirm` | idempotente | aviso y `cargarDatos` a los 5 s: la prueba de runtime mostró que la grilla seguía mostrando el ítem «Verificado» ya desconfirmado y dejaba «Finalizar» habilitado |
 | 10b | `verificar-transporte-dialog` (verificar y continuar sin chofer) | ídem 9 | hoy cierra con `true` sin avisar. Suma el aviso antes de cerrar |
 
 ### Crédito y clientes
@@ -94,6 +94,13 @@ Quedan fuera:
 
 - `onDeleteTransferenciaItem`: va por `onDelete`, que ya avisa el corte y emite null.
 - `onCancelarInventario` / `onReabrirInventario`: ninguna pantalla los llama.
+
+## Hallazgos de la prueba de runtime
+
+- `adicionar-conteo-dialog`: tras guardar o editar un conteo abierto desde la lista de cajas, `cajaService.selectedCaja` es `undefined` y la asignación tiraba una excepción. Eso cortaba el `emit`, y el resumen de la caja quedaba con el monto anterior. Ya pasaba en `develop`. Se protege con un `if`.
+- Sin acceso desde la UI, así que no se pueden probar por pantalla:
+  - `list-pre-gastos.onImprimirSolicitud`: ningún template ni código lo llama;
+  - `edit-devolucion.onConfirmarAcreditar`: el bloque solo aparece con `acreditarMode`, y ningún botón llama a `onIniciarAcreditar`. Hoy la acreditación se hace desde el historial de retiros (8f, probado).
 
 ## Fuera de alcance
 
