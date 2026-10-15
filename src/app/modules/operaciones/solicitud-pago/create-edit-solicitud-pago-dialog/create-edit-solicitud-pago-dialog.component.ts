@@ -201,10 +201,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     if (aviso != null) {
       this.notificacionService.openWarn(aviso, 8);
     }
-    this.pantallaDesactualizada = true; // hasta que la recarga llegue
     if (this.solicitudPagoId == null) {
       return;
     }
+    this.pantallaDesactualizada = true; // hasta que la recarga llegue
     this.loadSolicitudParaEdicion(true);
     // Tras un corte se vuelve a leer a los 5 s: el link de central offline corta a los 3 s sin cancelar el pedido, y
     // la primera lectura puede no ver lo que el central todavía está aplicando (#488)
@@ -276,6 +276,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     if (recarga) {
       // La solicitud ya estaba abierta: no se cierra, se avisa que lo que se ve puede no estar al día
       this.pantallaDesactualizada = true;
+      if (this.recargasTrasCorte.size > 0) {
+        return; // a los 5 s se vuelve a leer: avisar ahora sería pedir que cierre algo que se arregla solo
+      }
       this.notificacionService.openWarn('No se pudo recargar la solicitud: cerrá y volvé a abrirla antes de seguir.', 8);
       return;
     }
