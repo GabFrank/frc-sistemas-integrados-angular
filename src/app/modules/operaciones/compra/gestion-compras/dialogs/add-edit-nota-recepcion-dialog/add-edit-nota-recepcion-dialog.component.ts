@@ -1370,8 +1370,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
                 if (aviso != null) {
                   this.notificacionService.openWarn(aviso, 8);
                 }
-                this.changesMade = true;
-                this.cerrarDialogo();
+                // Sin mensaje: la pantalla del pedido recarga, pero no tapa el aviso con un éxito
+                const result: AddEditNotaRecepcionDialogResult = { success: false, changesMade: true };
+                this.dialogRef.close(result);
                 return;
               }
               this.actualizarEstadoAcciones();
