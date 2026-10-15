@@ -13,7 +13,7 @@ import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/lis
 import { PdvCaja } from '../../../pdv/caja/caja.model';
 import { PageEvent } from '@angular/material/paginator';
 import { combineLatest, BehaviorSubject, Observable, of, timer } from 'rxjs';
-import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
@@ -170,13 +170,13 @@ export class ListGastosComponent implements OnInit {
         },
         // El motivo del rechazo ya lo avisó onCustomMutation. Se relee por si la lista estaba vieja.
         error: (err) => {
-          const aviso = avisoTrasMutacion(err, estabaCancelado ? 'se habilitó el gasto' : 'se canceló el gasto');
-          if (aviso == null) {
+          if (erroresDeRechazo(err) != null) {
             this.onFiltrar();
             return;
           }
           // Sin respuesta pudo seguir aplicándose: se relee después. Repetir es seguro (manda el estado final) (#501)
-          this.notificacion.openWarn(aviso, 8);
+          const aviso = avisoTrasMutacion(err, estabaCancelado ? 'se habilitó el gasto' : 'se canceló el gasto');
+          if (aviso != null) this.notificacion.openWarn(aviso, 8);
           timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
         }
       });

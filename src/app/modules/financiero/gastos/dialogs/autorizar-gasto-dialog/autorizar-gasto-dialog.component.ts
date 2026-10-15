@@ -6,7 +6,7 @@ import { PreGasto } from '../../models/pre-gasto.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../../main.service';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
-import { avisoTrasMutacion } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 interface ResumenMontoPorMoneda {
@@ -110,14 +110,11 @@ export class AutorizarGastoDialogComponent implements OnInit {
       error: (err) => {
         this.registrandoDevolucion = false;
         // Sin respuesta pudo registrarse, y repetirla resta otra vez el saldo: no se deja repetir con estos datos (#501)
-        const aviso = avisoTrasMutacion(err, 'se registró la devolución del saldo');
-        if (aviso != null) {
+        if (this.avisarSinConfirmar(err, 'se registró la devolución del saldo')) {
           this.devolucionSinConfirmar = true;
-          this.recargarListaAlCerrar = true;
           this.devolucionGsControl.setValue(0, { emitEvent: false });
           this.devolucionRsControl.setValue(0, { emitEvent: false });
           this.devolucionDsControl.setValue(0, { emitEvent: false });
-          this.notificacion.openWarn(`${aviso} Cerrá el diálogo: la lista se actualiza.`, 10);
         }
         this.cdr.markForCheck();
       },
@@ -219,14 +216,14 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   /**
-   * En un rechazo el genérico ya mostró el motivo. Sin respuesta, se avisa que pudo haberse aplicado; devuelve si
-   * fue así (#501).
+   * En un rechazo el genérico ya mostró el motivo y no se aplicó nada: devuelve false. Sin respuesta (también en el
+   * timeout del link, que ya avisó) pudo haberse aplicado: se avisa si hace falta y devuelve true (#501).
    */
   private avisarSinConfirmar(err: any, queSeHizo: string): boolean {
-    const aviso = avisoTrasMutacion(err, queSeHizo);
-    if (aviso == null) return false;
+    if (erroresDeRechazo(err) != null) return false;
     this.recargarListaAlCerrar = true;
-    this.notificacion.openWarn(`${aviso} Cerrá el diálogo: la lista se actualiza.`, 10);
+    const aviso = avisoTrasMutacion(err, queSeHizo);
+    if (aviso != null) this.notificacion.openWarn(`${aviso} Cerrá el diálogo: la lista se actualiza.`, 10);
     return true;
   }
 

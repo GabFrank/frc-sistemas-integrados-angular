@@ -15,7 +15,7 @@ import {
 import { FormGroup, FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { Observable, Subscription, timer } from "rxjs";
-import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -518,14 +518,17 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
               }
             }, (err) => {
               this.guardandoEdicion = false;
-              // El motivo lo muestra el snackbar del servicio. Se mantiene el modo edicion
+              // En un rechazo el motivo lo muestra el snackbar del servicio, y se mantiene el modo edicion
               // con los montos ya tipeados para que el usuario pueda reintentar.
-              const aviso = avisoTrasMutacion(err, "se guardó la corrección del conteo");
-              if (aviso == null) return;
-              // Sin respuesta pudo guardarse: se bloquea Guardar y se relee la caja (#501)
+              if (erroresDeRechazo(err) != null) return;
+              // Sin respuesta pudo guardarse: se bloquea Guardar y se relee la caja, saliendo de la edicion (#501)
               this.edicionSinConfirmar = true;
-              this.notificacionBar.openWarn(aviso, 8);
-              timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.cancelarEdicion());
+              const aviso = avisoTrasMutacion(err, "se guardó la corrección del conteo");
+              if (aviso != null) this.notificacionBar.openWarn(aviso, 8);
+              // Si mientras tanto canceló a mano (y quizá volvió a editar), no se le pisa la edición nueva
+              timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+                if (this.edicionSinConfirmar) this.cancelarEdicion();
+              });
             });
         } else {
           this.guardandoEdicion = false;

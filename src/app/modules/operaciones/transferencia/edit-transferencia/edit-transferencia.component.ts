@@ -86,7 +86,7 @@ import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Observable, Subscription, of, timer } from "rxjs";
-import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, finalize, map, switchMap } from "rxjs/operators";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
@@ -1311,9 +1311,9 @@ export class EditTransferenciaComponent implements OnInit {
         },
         // En un rechazo el genérico ya mostró el motivo. Sin respuesta la etapa pudo avanzar: se relee después (#501)
         error: (err) => {
+          if (erroresDeRechazo(err) != null) return;
           const aviso = avisoTrasMutacion(err, "avanzó la etapa");
-          if (aviso == null) return;
-          this.notificacionService.openWarn(aviso, 8);
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
           const id = this.selectedTransferencia?.id;
           timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
             if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);

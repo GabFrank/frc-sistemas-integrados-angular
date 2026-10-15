@@ -20,7 +20,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
 import { forkJoin, timer } from 'rxjs';
-import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -335,9 +335,9 @@ export class ListClientesComponent implements OnInit {
               },
               // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo cobrarse: se relee después (#501)
               error: err => {
+                if (erroresDeRechazo(err) != null) return;
                 const aviso = avisoTrasMutacion(err, 'se cobraron las ventas');
-                if (aviso == null) return;
-                this.notificacionService.openWarn(aviso, 8);
+                if (aviso != null) this.notificacionService.openWarn(aviso, 8);
                 timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar(true));
               }
             });

@@ -39,7 +39,7 @@ import {
 } from "../../../pdv/comercial/venta-touch/pago-touch/pago-touch.component";
 import { CajaService } from "../../pdv/caja/caja.service";
 import { Observable, forkJoin, timer } from "rxjs";
-import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { PdvCaja } from "../../pdv/caja/caja.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { VentaTouchComponent } from "../../../pdv/comercial/venta-touch/venta-touch.component";
@@ -442,9 +442,9 @@ export class ListVentaCreditoComponent implements OnInit {
                 .subscribe({ error: (err) => {
                   // Del menú, de a una: nadie más avisa. En un rechazo el genérico ya mostró el motivo; sin respuesta
                   // pudo finalizarse y se relee después. Repetir es seguro (#501)
-                  const aviso = avisoTrasMutacion(err, "se finalizó la venta a crédito");
-                  if (aviso != null) {
-                    this.notificacionService.openWarn(aviso, 8);
+                  if (erroresDeRechazo(err) == null) {
+                    const aviso = avisoTrasMutacion(err, "se finalizó la venta a crédito");
+                    if (aviso != null) this.notificacionService.openWarn(aviso, 8);
                     timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
                   }
                   obs.next(null);

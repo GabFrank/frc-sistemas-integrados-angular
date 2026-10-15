@@ -381,10 +381,10 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
         // En un rechazo el genérico ya mostró el motivo. Sin respuesta el central puede seguir finalizando, y otra
         // pasada mientras tanto duplicaría los ajustes: Finalizar queda bloqueado y se relee después (#501)
         error: err => {
-          const aviso = avisoTrasMutacion(err, 'se finalizó el inventario');
-          if (aviso == null) return;
+          if (erroresDeRechazo(err) != null) return;
           this.finalizarSinConfirmar = true;
-          this.notificacionService.openWarn(aviso, 8);
+          const aviso = avisoTrasMutacion(err, 'se finalizó el inventario');
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
           this.programarRecargaTrasFallo(() => this.recargarInventarioTrasCorte());
         }
       });

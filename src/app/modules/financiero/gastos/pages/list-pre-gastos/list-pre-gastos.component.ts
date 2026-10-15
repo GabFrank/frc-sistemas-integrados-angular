@@ -296,10 +296,11 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       error: (err) => {
         this.cargandoSubject.next(false);
         console.error('Error al enviar a tesorería:', err);
+        if (erroresDeRechazo(err) != null) return;
+        // Repetirlo crearía otra solicitud de pago: no se ofrece de nuevo hasta recargar. También tras el timeout del
+        // link, que ya avisó (#501)
         const aviso = avisoTrasMutacion(err, 'se envió a tesorería');
-        if (aviso == null) return;
-        // Repetirlo crearía otra solicitud de pago: no se ofrece de nuevo hasta recargar (#501)
-        this.notificacionAviso.openWarn(aviso, 10);
+        if (aviso != null) this.notificacionAviso.openWarn(aviso, 10);
         this.enviosSinConfirmar = { ...this.enviosSinConfirmar, [preGasto.id]: true };
         this.preGastoSeleccionadoSubject.next(null);
         timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.refetchSubject.next());
