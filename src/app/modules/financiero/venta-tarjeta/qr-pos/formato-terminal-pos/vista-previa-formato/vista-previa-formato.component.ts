@@ -12,7 +12,7 @@ import {
   NotificacionSnackbarService,
 } from '../../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { mensajeDeError } from '../../mensaje-error';
+import { mensajeDeError } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { MuestraGuardada, RegionFormato } from '../mapa-formato.model';
 

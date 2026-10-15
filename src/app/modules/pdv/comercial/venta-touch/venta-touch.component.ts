@@ -123,9 +123,8 @@ import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
-import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
-import { debePedirClienteParaFacturar, esRechazoDelServidor, esRechazoPorFacturaSinNombre } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { debePedirClienteParaFacturar, esRechazoDelServidor, esRechazoPorFacturaSinNombre, mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { Cliente } from '../../../personas/clientes/cliente.model';
 import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
 

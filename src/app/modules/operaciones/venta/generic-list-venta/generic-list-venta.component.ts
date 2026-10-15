@@ -28,8 +28,7 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { MainService } from "../../../../main.service";
-import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
-import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
+import { erroresDeRechazo, mensajeDeError, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
@@ -545,7 +544,10 @@ export class GenericListVentaComponent implements OnInit {
                 venta.estado = VentaEstado.CANCELADA;
                 this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
                   next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
-                  error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                  error: (err) => {
+                    console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err);
+                    this.avisarCancelacionTarjetaRechazada(err);
+                  }
                 });
               }
               this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
@@ -581,7 +583,10 @@ export class GenericListVentaComponent implements OnInit {
           // La cancelación sí se había aplicado: se cancela también su registro de tarjeta (escribe CANCELADO:
           // repetirlo no cambia nada), igual que en el camino confirmado
           this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
-            error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+            error: (err) => {
+              console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err);
+              this.avisarCancelacionTarjetaRechazada(err);
+            }
           });
         }
         this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
@@ -637,5 +642,18 @@ export class GenericListVentaComponent implements OnInit {
       fechaInicio,
       fechaFin
     );
+  }
+
+  /**
+   * La cancelación del cobro con tarjeta en la sucursal es un respaldo: el central ya lo cancela con la venta. Un corte no
+   * se avisa (en un desktop sin filial saltaría siempre); un rechazo sí, con su motivo, porque es silenciosa (#488).
+   */
+  private avisarCancelacionTarjetaRechazada(err: any): void {
+    if (erroresDeRechazo(err) == null) {
+      console.warn('[VentaTarjeta] sin respuesta de la sucursal al cancelar el cobro con tarjeta: lo cancela el central', err);
+      return;
+    }
+    this.notificacionService.openWarn(
+      `La venta se canceló, pero la sucursal rechazó cancelar su cobro con tarjeta: ${motivoDelRechazo(err) ?? 'sin detalle'}.`, 8);
   }
 }

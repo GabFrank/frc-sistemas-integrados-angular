@@ -16,7 +16,7 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../.
 /** Diálogo del POS contra la sucursal: el cajero espera de pie (#390). */
 const CONSULTA_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
-import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
+import { erroresDeRechazo, mensajeDeError, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 class UltimasVentasDialogData {
   caja: PdvCaja;
@@ -183,7 +183,10 @@ export class UltimasVentasDialogComponent implements OnInit {
               // debajo de este cambio, esto sigue cancelando la venta con tarjeta en la sucursal.
               // Las dos escriben CANCELADO: repetirlo no cambia nada.
               this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
-                error: (err) => console.error('[VentaTarjeta] no se pudo cancelar el registro de tarjeta:', err),
+                error: (err) => {
+                  console.error('[VentaTarjeta] no se pudo cancelar el registro de tarjeta:', err);
+                  this.avisarCancelacionTarjetaRechazada(err);
+                },
               });
               this.reimpresionVenta(venta.id);
             },
@@ -194,9 +197,14 @@ export class UltimasVentasDialogComponent implements OnInit {
                   "No se pudo verificar la venta " + venta.id + " en el servidor central: no se envió nada. Intentá de nuevo.", 6);
                 return;
               }
+              // El central respondió que no: no se aplicó nada (#488)
+              if (erroresDeRechazo(err?.error) != null) {
+                this.notificacionSnackBar.openAlgoSalioMal(mensajeDeError(err.error, "No se pudo cancelar la venta " + venta.id + "."));
+                return;
+              }
               // Sin respuesta pudo haberse cancelado. Reintentar es seguro: se relee antes y no se reactiva.
-              this.notificacionSnackBar.openAlgoSalioMal(
-                mensajeDeError(err?.error, "No se pudo confirmar si la venta " + venta.id + " se canceló. Revisá la conexión con el servidor central y volvé a intentar."));
+              this.notificacionSnackBar.openWarn(
+                "No se pudo confirmar si la venta " + venta.id + " se canceló. Revisá la conexión con el servidor central y volvé a intentar.", 8);
             },
           });
         }
@@ -213,5 +221,18 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   salir() {
     this.matDialogRef.close();
+  }
+
+  /**
+   * La cancelación del cobro con tarjeta en la sucursal es un respaldo: el central ya lo cancela con la venta. Un corte no
+   * se avisa (en un desktop sin filial saltaría siempre); un rechazo sí, con su motivo, porque es silenciosa (#488).
+   */
+  private avisarCancelacionTarjetaRechazada(err: any): void {
+    if (erroresDeRechazo(err) == null) {
+      console.warn('[VentaTarjeta] sin respuesta de la sucursal al cancelar el cobro con tarjeta: lo cancela el central', err);
+      return;
+    }
+    this.notificacionSnackBar.openWarn(
+      `La venta se canceló, pero la sucursal rechazó cancelar su cobro con tarjeta: ${motivoDelRechazo(err) ?? 'sin detalle'}.`, 8);
   }
 }

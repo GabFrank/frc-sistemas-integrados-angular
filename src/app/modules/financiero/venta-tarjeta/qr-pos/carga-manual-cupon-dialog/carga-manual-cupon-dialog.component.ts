@@ -2,7 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { aNumero } from '../monto-cupon';
 import {
   NotificacionColor,

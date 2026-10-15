@@ -22,7 +22,7 @@ import { descodificarQr } from '../../../../shared/qr-code/qr-code.component';
 import { LectorTecladoDirective } from '../../../../shared/lector-teclado/lector-teclado.directive';
 import { lecturasAProbar } from '../../../../shared/lector-teclado/teclado-lector';
 import { debounceTime, filter, map } from 'rxjs/operators';
-import { mensajeDeError } from '../qr-pos/mensaje-error';
+import { mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import {
   NotificacionColor,
   NotificacionSnackbarService,

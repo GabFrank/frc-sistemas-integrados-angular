@@ -5,6 +5,7 @@ import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { timeout } from 'rxjs/operators';
+import { motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import {
     EmbeddingGaleria,
     construirGaleriaDesdeCapturas,
@@ -313,9 +314,11 @@ export class ReconocimientoFacialHelperService {
             this.notificarResultadoIncorporacion(this.normalizarResultadoIncorporacion(resultado));
         } catch (error) {
             console.warn('No se pudo enriquecer la galería facial tras marcación', error);
+            // Un rechazo del servidor no es un error de conexión: se dice el motivo (es silenciosa) (#488)
+            const motivo = motivoDelRechazo(error);
             this.notificarResultadoIncorporacion({
                 resultado: 'ERROR_RED',
-                mensaje: MENSAJE_ERROR_RED_CLIENTE
+                mensaje: motivo != null ? `No se pudo actualizar el perfil facial: ${motivo}` : MENSAJE_ERROR_RED_CLIENTE
             });
         }
     }
