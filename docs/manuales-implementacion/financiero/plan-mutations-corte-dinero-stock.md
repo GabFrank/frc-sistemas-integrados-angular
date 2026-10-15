@@ -81,7 +81,7 @@ Las recargas diferidas usan `timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(th
 
 | # | Dónde | Reintento | Cambio |
 |---|---|---|---|
-| 13 | `adicionar-conteo-dialog` `editarConteo` | el filial lo rechaza (`conteoAnteriorId` ya no es el vigente) | en un corte: aviso, Guardar bloqueado (`edicionSinConfirmar`) y `cancelarEdicion()` a los 5 s, que relee la caja. Un rechazo sigue igual: si el proxy del central no tuvo respuesta del filial, el mensaje ya dice «vuelva a abrir la caja» |
+| 13 | `adicionar-conteo-dialog` `editarConteo` | el filial lo rechaza (`conteoAnteriorId` ya no es el vigente) | en un corte: aviso con «cerrá y volvé a abrir la caja», sale de la edición y no ofrece «Editar montos» hasta reabrir (`edicionSinConfirmar`). El diálogo no relee el conteo del servidor (`cargarDatos` repinta el de memoria): lo vio la prueba de runtime. Un rechazo sigue igual: si el proxy del central no tuvo respuesta del filial, el mensaje ya dice «vuelva a abrir la caja» |
 | 13b | ídem `guardarConteo` | devuelve el conteo que ya tenía la caja | aviso; hoy el error no se captura |
 
 ### Inventario
