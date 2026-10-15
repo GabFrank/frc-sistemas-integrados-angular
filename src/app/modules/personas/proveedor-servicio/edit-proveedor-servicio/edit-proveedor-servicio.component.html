@@ -10,37 +10,13 @@
       <div class="section-header">
         <span>Buscar Persona Existente</span>
       </div>
-      <div class="search-content">
-        <div class="search-field-wrapper">
-          <frc-searchable-select
-            titulo="Buscar por nombre o documento"
-            [list]="personaList"
-            [compareFields]="['nombre', 'documento']"
-            [currentData]="selectedPersona"
-            (selectionChanged)="onPersonaSelectionChange($event)"
-            (inputChanged)="onPersonaInputChange($event)"
-            [isFilter]="false"
-            [initialValue]="false"
-          >
-            <ng-template let-item>
-              {{ item.id }} - {{ item.nombre }} - {{ item.documento }}
-            </ng-template>
-          </frc-searchable-select>
-        </div>
-        <button
-          mat-icon-button
-          color="primary"
-          [disabled]="!hasPersonaSelectedComputed"
-          (click)="onClearPersonaSelection()"
-          class="clear-button"
-        >
-          <mat-icon>clear</mat-icon>
-        </button>
-      </div>
-      <div class="search-loading" *ngIf="isSearching">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-        <span>Buscando personas...</span>
-      </div>
+      <app-buscador-field
+        tipo="persona"
+        titulo="Buscar por nombre o documento"
+        [opciones]="opcionesPersona"
+        [formControl]="personaControl"
+        (seleccionado)="onPersonaSelectionChange($event)"
+      ></app-buscador-field>
     </div>
 
     <div class="form-section">
