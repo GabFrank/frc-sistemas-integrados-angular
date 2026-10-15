@@ -16,6 +16,16 @@ import { PresentacionInput } from "./presentacion.model-input";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SaveImagenPresentacionGQL } from './graphql/saveImagenPresentacion';
+import { SugerenciasImagenPresentacionGQL } from './graphql/sugerenciasImagenPresentacion';
+import { DescargarImagenSugeridaGQL } from './graphql/descargarImagenSugerida';
+import { ImagenesParecidasDeGQL } from './graphql/imagenesParecidasDe';
+import { ParecidasImagen, SugerenciasImagen } from './imagen-sugerida.model';
+
+/** El panel de sugerencias muestra los errores en su lugar: sin cartel ni «Buscando…» del genérico. */
+const ERRORES_AL_PANEL: QueryError = {
+  graphError: { show: false, propagate: true },
+  networkError: { show: false, propagate: true },
+};
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -35,7 +45,10 @@ export class PresentacionService {
     private saveImage: SaveImagenPresentacionGQL,
     private notificacionSnack: NotificacionSnackbarService,
     private dialogoService: DialogosService,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private sugerenciasImagen: SugerenciasImagenPresentacionGQL,
+    private descargarImagenSugerida: DescargarImagenSugeridaGQL,
+    private imagenesParecidasDe: ImagenesParecidasDeGQL
   ) { }
 
   onGetPresentacionesPorProductoId(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Presentacion[]>{
@@ -95,6 +108,30 @@ export class PresentacionService {
       image,
       filename
     }, servidor);
+  }
+
+  /**
+   * Fotos de internet para la presentación, por código de barras y por descripción. `codigo` null = el de la
+   * presentación, '' = sin código; `texto` null = producto + presentación. Falla con `{ message }`.
+   */
+  onGetSugerenciasImagen(presentacionId: number, codigo?: string, texto?: string): Observable<SugerenciasImagen> {
+    return this.genericService.onCustomQuery(this.sugerenciasImagen, { presentacionId, codigo, texto }, true,
+      ERRORES_AL_PANEL, true, { timeoutMs: 30000, silenciarAvisoTimeout: true });
+  }
+
+  /**
+   * Fotos parecidas a una sugerida: Brave visual y, si no responde, Bing con `texto` (el título de la foto).
+   * Falla con `{ message }` solo si no responde ninguno.
+   */
+  onGetImagenesParecidasDe(url: string, texto: string, similares?: string): Observable<ParecidasImagen> {
+    return this.genericService.onCustomQuery(this.imagenesParecidasDe, { url, texto, similares }, true,
+      ERRORES_AL_PANEL, true, { timeoutMs: 30000, silenciarAvisoTimeout: true });
+  }
+
+  /** La foto elegida, bajada por el central, como data URL. Falla con `{ message }`. */
+  onDescargarImagenSugerida(url: string): Observable<string> {
+    return this.genericService.onCustomQuery(this.descargarImagenSugerida, { url }, true,
+      ERRORES_AL_PANEL, true, { timeoutMs: 30000, silenciarAvisoTimeout: true });
   }
 
   onGetPresentacion(id: number, servidor = true) {

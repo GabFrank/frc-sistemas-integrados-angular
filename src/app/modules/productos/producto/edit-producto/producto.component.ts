@@ -86,6 +86,11 @@ import {
 } from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
 import { Presentacion } from "../../presentacion/presentacion.model";
 import { PresentacionService } from "../../presentacion/presentacion.service";
+import {
+  SugerenciasImagenPanelComponent,
+  SugerenciasImagenPanelData,
+  SUGERENCIAS_IMAGEN_PANEL_CONFIG,
+} from "../../presentacion/sugerencias-imagen-panel/sugerencias-imagen-panel.component";
 import { AddSubfamiliaDialogComponent } from "../../sub-familia/add-subfamilia-dialog/add-subfamilia-dialog.component";
 import { Subfamilia } from "../../sub-familia/sub-familia.model";
 import { SubFamiliaService } from "../../sub-familia/sub-familia.service";
@@ -1125,6 +1130,28 @@ export class ProductoComponent implements OnInit, OnDestroy {
         }
         // Presentación de promoción: sigue con su precio. Va con el objeto guardado: la tabla todavía recarga
         if (res?.id != null && res.promocion === true) this.abrirPrecio(res, null, true);
+        // Las demás siguen con su foto. La promo no, para no apilarlo sobre precio → sucursales: la busca desde la fila.
+        else if (res?.id != null) this.abrirSugerenciasImagen(res);
+      });
+  }
+
+  /** Panel lateral con fotos de internet para la presentación; la elegida queda guardada al cerrar. */
+  abrirSugerenciasImagen(presentacion: Presentacion) {
+    const data: SugerenciasImagenPanelData = { presentacion, producto: this.selectedProducto };
+    this.matDialog
+      .open(SugerenciasImagenPanelComponent, { ...SUGERENCIAS_IMAGEN_PANEL_CONFIG, data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((imagen: string) => {
+        if (imagen == null) return;
+        // La tabla puede haberse recargado mientras el panel estaba abierto: se busca la fila por id.
+        const fila = this.presentacionesDataSource.data.find((p) => p.id == presentacion.id);
+        if (fila != null) fila.imagenPrincipal = imagen;
+        if ((fila ?? presentacion)?.principal == true) {
+          this.imagenPrincipal = imagen;
+          this.imagenPrincipalGrande = imagen;
+        }
+        this.notificacionService.openSucess('Imagen guardada');
       });
   }
 
@@ -1177,6 +1204,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.entity = row;
     data.service = this.presentacionService;
     data.url = "productos/presentaciones";
+    // El visor devuelve la misma fila modificada: se guarda la foto de antes para saber si cambió.
+    const fotoAnterior = row.imagenPrincipal;
     this.matDialog
       .open(VizualizarImagenDialogComponent, {
         data,
@@ -1192,6 +1221,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
             (p) => p.id == row.id
           );
           this.presentacionesDataSource.data[presentacionIndex] = res;
+          // Una foto cambiada desde el visor (subida o de internet) también es la del resumen si es la principal.
+          if (res.principal == true && res.imagenPrincipal != null && res.imagenPrincipal !== fotoAnterior) {
+            this.imagenPrincipal = res.imagenPrincipal;
+            this.imagenPrincipalGrande = res.imagenPrincipal;
+          }
         }
       });
   }

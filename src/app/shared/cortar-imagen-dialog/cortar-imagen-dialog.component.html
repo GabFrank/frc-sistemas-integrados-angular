@@ -3,9 +3,11 @@
         <image-cropper
         *ngIf="isCropping"
         [imageChangedEvent]="imageChangedEvent"
+        [imageBase64]="imageBase64"
         [maintainAspectRatio]="true"
         [aspectRatio]="4 / 4"
-        format="png"
+        format="jpeg"
+        [imageQuality]="92"
         (imageCropped)="imageCropped($event)"
         (imageLoaded)="imageLoaded()"
         (cropperReady)="cropperReady()"

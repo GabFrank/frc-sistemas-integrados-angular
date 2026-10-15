@@ -3,6 +3,11 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dial
 import { Presentacion } from '../../../modules/productos/presentacion/presentacion.model';
 import { PresentacionService } from '../../../modules/productos/presentacion/presentacion.service';
 import { CortarImagenDialogComponent } from '../../cortar-imagen-dialog/cortar-imagen-dialog.component';
+import {
+  SugerenciasImagenPanelComponent,
+  SugerenciasImagenPanelData,
+  SUGERENCIAS_IMAGEN_PANEL_CONFIG,
+} from '../../../modules/productos/presentacion/sugerencias-imagen-panel/sugerencias-imagen-panel.component';
 import { ImagesService } from '../images.service';
 
 export class VizualizarImagenData {
@@ -22,6 +27,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 export class VizualizarImagenDialogComponent implements OnInit {
 
   img: string;
+  /** Las sugerencias de internet son por presentación. */
+  esPresentacion = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VizualizarImagenData,
@@ -32,6 +39,21 @@ export class VizualizarImagenDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.img = this.data?.entity?.imagenPrincipal;
+    this.esPresentacion = this.data?.url === 'productos/presentaciones' && this.data?.entity?.id != null;
+  }
+
+  /** Panel de fotos de internet; la elegida ya vuelve guardada. */
+  onBuscarEnInternet() {
+    const data: SugerenciasImagenPanelData = {
+      presentacion: this.data.entity,
+      producto: this.data.entity?.producto,
+    };
+    this.matDialog
+      .open(SugerenciasImagenPanelComponent, { ...SUGERENCIAS_IMAGEN_PANEL_CONFIG, data })
+      .afterClosed().pipe(untilDestroyed(this))
+      .subscribe((imagen: string) => {
+        if (imagen != null) this.img = imagen;
+      });
   }
 
   onCancelar(){
@@ -59,15 +81,11 @@ export class VizualizarImagenDialogComponent implements OnInit {
         .subscribe((res) => {
           if (res != null) {
             this.img = res;
+            // La mutation devuelve un Boolean: la foto a mostrar es la recortada.
             this.presentacionService.onImageSave(
               res,
               `${id}.jpg`
             ).pipe(untilDestroyed(this)).subscribe({
-              next: (res2) => {
-                if(res2 != null){
-                  this.img = res2;
-                }
-              },
               error: (error) => {
                 console.error('Error al guardar imagen:', error);
               }

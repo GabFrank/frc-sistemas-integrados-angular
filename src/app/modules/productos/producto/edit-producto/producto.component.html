@@ -1343,6 +1343,10 @@
                       <mat-icon>add_circle_outline</mat-icon>
                       <span>Precio</span>
                     </button>
+                    <button mat-menu-item (click)="abrirSugerenciasImagen(element)">
+                      <mat-icon>travel_explore</mat-icon>
+                      <span>Buscar imagen</span>
+                    </button>
                     <button
                       mat-menu-item
                       (click)="
@@ -1636,6 +1640,16 @@
                                 : onImageClick(element)
                             "
                           />
+                        </div>
+                        <div style="text-align: center; margin-top: 8px">
+                          <button
+                            mat-stroked-button
+                            type="button"
+                            (click)="$event.stopPropagation(); abrirSugerenciasImagen(element)"
+                          >
+                            <mat-icon>travel_explore</mat-icon>
+                            Buscar en internet
+                          </button>
                         </div>
                         <br />
                         <!-- <div>
