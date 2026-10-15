@@ -26,6 +26,7 @@ import {
   ProveedorServicioInput,
 } from "../proveedor-servicio.model";
 import { ProveedorServicioService } from "../proveedor-servicio.service";
+import { OpcionesBuscador } from "../../../../shared/services/buscador.service";
 
 export interface EditProveedorServicioData {
   proveedorServicio?: ProveedorServicio;
@@ -67,12 +68,14 @@ export class EditProveedorServicioComponent implements OnInit {
     numeroContacto: new FormControl(""),
   });
 
-  personaList: Persona[] = [];
+
+  personaControl = new FormControl<Persona>(null);
+  /** «Adicionar» del buscador abre el alta de persona. */
+  readonly opcionesPersona: OpcionesBuscador = { adicionar: true };
   selectedPersona: Persona | null = null;
   selectedProveedorServicio: ProveedorServicio | null = null;
 
   isLoading = false;
-  isSearching = false;
   isSaving = false;
 
   dialogTitleComputed = "";
@@ -191,38 +194,18 @@ export class EditProveedorServicioComponent implements OnInit {
     this.updateComputedProperties();
   }
 
-  onPersonaInputChange(searchText: string): void {
-    if (!searchText || searchText.trim().length < 2) {
-      this.personaList = [];
-      return;
-    }
-    this.isSearching = true;
-    this.cdr.markForCheck();
-    this.personaService
-      .onSearchSilent(searchText.trim(), true)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (personas) => {
-          this.personaList = personas || [];
-          this.isSearching = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.personaList = [];
-          this.isSearching = false;
-          this.cdr.markForCheck();
-        },
-      });
-  }
-
+  /** Elegir carga sus datos; limpiar el campo (su botón ✕) vuelve el formulario a una persona nueva. */
   onPersonaSelectionChange(persona: Persona): void {
     if (persona?.id) {
       this.onSelectPersona(persona);
+    } else {
+      this.onClearPersonaSelection();
     }
   }
 
   onSelectPersona(persona: Persona): void {
     this.selectedPersona = persona;
+    this.personaControl.setValue(persona);
     this.proveedorServicioFormGroup.patchValue({
       nombre: persona.nombre,
       apodo: persona.apodo || "",
@@ -265,8 +248,8 @@ export class EditProveedorServicioComponent implements OnInit {
 
   onClearPersonaSelection(): void {
     this.selectedPersona = null;
+    this.personaControl.setValue(null);
     this.selectedProveedorServicio = null;
-    this.personaList = [];
     this.proveedorServicioFormGroup.patchValue({
       nombre: "",
       apodo: "",
