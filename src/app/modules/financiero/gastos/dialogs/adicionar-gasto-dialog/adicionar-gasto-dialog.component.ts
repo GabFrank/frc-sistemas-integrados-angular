@@ -10,7 +10,6 @@ import { FormControl, Validators } from "@angular/forms";
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
-import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { of, Subscription, TimeoutError } from "rxjs";
 import { erroresDeRechazo } from "../../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, debounceTime, distinctUntilChanged, finalize, take, timeout } from 'rxjs/operators';
@@ -27,7 +26,6 @@ import {
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
-import { FuncionarioService } from "../../../../personas/funcionarios/funcionario.service";
 import { MonedaService } from "../../../moneda/moneda.service";
 import { CajaBalance, esBalanceVerificable, PdvCaja } from "../../../pdv/caja/caja.model";
 import { GastoService } from "../../service/gasto.service";
@@ -46,14 +44,13 @@ import { NotificacionSnackbarService } from "../../../../../notificacion-snackba
 import { CajaService } from "../../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
 import { TipoGasto } from "../../models/tipo-gasto.model";
-import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { TipoGastoSearchGQL } from "../../graphql/tipoGastosSearch";
 import { SolicitudGastoSimpleDialogComponent } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
 import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple-data.interface";
 import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 import { RetiroPreGastoData, RetiroPreGastoDialogComponent } from "../retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component";
-import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
+import { BuscadorFieldComponent } from '../../../../../shared/components/buscador-field/buscador-field.component';
+import { BuscadorService, OpcionesBuscador } from '../../../../../shared/services/buscador.service';
 /** Monto como número, venga como número o como texto del control. */
 function monto(valor: any): number {
   const n = Number(valor);
@@ -82,17 +79,13 @@ export function esElMismoGasto(leido: Gasto, enviado: Gasto): boolean {
   styleUrls: ["./adicionar-gasto-dialog.component.scss"],
 })
 export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
-  @ViewChild("responsableInput", { static: false })
-  responsableInput: ElementRef;
+  @ViewChild("responsableField", { static: false })
+  responsableField: BuscadorFieldComponent;
   @ViewChild("tipoGastoInput", { static: false }) tipoGastoInput: ElementRef;
-  @ViewChild("autorizadoPorInput", { static: false })
-  autorizadoPorInput: ElementRef;
   @ViewChild("guaraniVueltoGs", { static: false })
   guaraniVueltoGsInput: ElementRef;
   @ViewChild("obs", { static: false }) observacionInput: ElementRef;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
-  @ViewChild("responsableInput", { read: MatAutocompleteTrigger, static: false })
-  responsableAutocomplete: MatAutocompleteTrigger;
 
   isVuelto = false;
 
@@ -138,9 +131,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   selectedAutorizadoPor: Funcionario;
   selectedGasto: Gasto;
 
-  responsableControl = new FormControl();
+  responsableControl = new FormControl<Funcionario>(null);
   tipoGastoControl = new FormControl();
-  autorizadoPorControl = new FormControl();
+  autorizadoPorControl = new FormControl<Funcionario>(null);
+  /** El gasto se registra en la filial: funcionarios y tipos de gasto se buscan en su base. */
+  readonly opcionesFilial: OpcionesBuscador = { servidor: false };
   observacionControl = new FormControl(null, Validators.required);
   guaraniControl = new FormControl(0);
   realControl = new FormControl(0);
@@ -149,16 +144,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   realVueltoControl = new FormControl(0);
   dolarVueltoControl = new FormControl(0);
 
-  responsableList: Funcionario[];
-  autorizadoPorList: Funcionario[];
   tipoGastoList: TipoGasto[];
 
-  responsableSub: Subscription;
-  responsableTimer;
   tipoGastoSub: Subscription;
   tipoGastoTimer;
-  autorizadoPorTimer;
-  autorizadoPorSub: Subscription;
 
   currencyMask = new CurrencyMask();
 
@@ -173,7 +162,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
     private matDialogRef: MatDialogRef<AdicionarGastoDialogComponent>,
-    public funcionarioService: FuncionarioService,
     private cargandoDialog: CargandoDialogService,
     private dialogService: DialogosService,
     private gastoService: GastoService,
@@ -183,7 +171,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private notificationHttpService: NotificationHttpService,
     private matDialog: MatDialog,
-    private tipoGastoSearchGQL: TipoGastoSearchGQL
+    private buscador: BuscadorService
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -193,57 +181,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.responsableList = [];
-    this.autorizadoPorList = [];
     this.tipoGastoList = [];
 
     this.guaraniControl.disable();
     this.realControl.disable();
     this.dolarControl.disable();
     this.tipoGastoControl.disable();
-
-    this.responsableSub = this.responsableControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res == "") this.selectedResponsable = null;
-        if (this.responsableTimer != null) {
-          clearTimeout(this.responsableTimer);
-        }
-        if (res != null && res.length != 0) {
-          this.responsableTimer = setTimeout(() => {
-            this.onFuncionarioSearch();
-          }, 1000);
-        } else {
-          this.responsableList = [];
-        }
-      });
-
-    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res == "") this.selectedAutorizadoPor = null;
-        if (this.autorizadoPorTimer != null) {
-          clearTimeout(this.autorizadoPorTimer);
-        }
-        if (res != null && res.length != 0) {
-          this.autorizadoPorTimer = setTimeout(() => {
-            this.funcionarioService
-              .onFuncionarioSearchSimple(res, false)
-              .pipe(untilDestroyed(this))
-              .subscribe((response) => {
-                this.autorizadoPorList = response;
-                if (this.autorizadoPorList.length == 1) {
-                  this.onAutorizadoPorSelect(this.autorizadoPorList[0]);
-                } else if (this.autorizadoPorList.length == 0) {
-                  this.onAutorizadoPorSelect(null);
-                  this.onAutorizadoPorAutocompleteClose();
-                }
-              });
-          }, 500);
-        } else {
-          this.autorizadoPorList = [];
-        }
-      });
 
     this.guaraniVueltoControl.disable();
     this.realVueltoControl.disable();
@@ -262,33 +205,15 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       .subscribe(() => this.aplicarFiltrosSolicitudesProcesadas());
 
     setTimeout(() => {
-      this.responsableInput.nativeElement.focus();
+      this.responsableField.focus();
     }, 500);
   }
 
-  onResponsableSelect(e) {
+  /** Lo emite el campo al elegir, al limpiar y al editar el texto: sin responsable no hay tipo de gasto. */
+  onResponsableSelect(e: Funcionario) {
     if (e?.id != null) {
       this.selectedResponsable = e;
       this.tipoGastoControl.enable();
-      this.responsableControl.setValue(
-        this.selectedResponsable?.id +
-        " - " +
-        this.selectedResponsable?.persona?.nombre,
-        { emitEvent: false }
-      );
-
-      if (this.responsableTimer != null) {
-        clearTimeout(this.responsableTimer);
-      }
-      this.responsableList = [];
-      this.responsableAutocomplete?.closePanel();
-
-      setTimeout(() => {
-        this.responsableInput?.nativeElement?.blur();
-        setTimeout(() => {
-          this.responsableInput?.nativeElement?.select();
-        }, 50);
-      }, 0);
     } else {
       this.selectedResponsable = null;
       this.selectedTipoGasto = null;
@@ -297,63 +222,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  onFuncionarioSearch() {
-    if (this.responsableControl.valid) {
-      if (isNaN(this.responsableControl.value) == false) {
-        this.funcionarioService
-          .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
-          .pipe(terminarSiFalla())
-          .subscribe((res) => {
-            if (res != null) {
-              this.onResponsableSelect(res);
-            } else {
-              this.onSearchFuncionarioPorNombre();
-            }
-          });
-      } else {
-        this.onSearchFuncionarioPorNombre();
-      }
-    }
-  }
-
-  onSearchFuncionarioPorNombre() {
-    this.funcionarioService
-      .onFuncionarioSearchSimple(this.responsableControl.value, false)
-      .pipe(untilDestroyed(this))
-      .subscribe((response) => {
-        this.responsableList = response;
-        if (this.responsableList.length == 1) {
-          this.onResponsableSelect(response[0]);
-        } else if (this.responsableList.length == 0) {
-          this.onResponsableSelect(null);
-          this.onResponsableAutocompleteClose();
-        }
-      });
-  }
-
   onSearchTipoGasto() {
     if (!this.selectedResponsable || this.tipoGastoControl.disabled) {
       return;
     }
 
-    const data = new SearchListtDialogData();
-    data.titulo = 'Seleccionar tipo de gasto';
-    data.query = this.tipoGastoSearchGQL;
-    data.isServidor = false;
-    data.searchFieldName = 'texto';
-    data.inicialSearch = true;
-    data.paginator = false;
-    data.tableData = [
-      { id: 'id', nombre: 'ID', width: '70px' },
-      { id: 'descripcion', nombre: 'Descripción', width: 'auto' },
-      { id: 'autorizacion', nombre: 'Requiere autorización', width: '220px', pipe: 'booleanLock' },
-    ];
-
-    this.matDialog.open(SearchListDialogComponent, {
-      data,
-      width: '80%',
-      height: '80%'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+    this.buscador.abrir('tipoGasto', this.opcionesFilial).pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.onTipoGastoSelect(res);
       }
@@ -498,44 +372,9 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  onResponsableAutocompleteClose() {
-    setTimeout(() => {
-      this.responsableInput.nativeElement.blur();
-      if (!this.selectedResponsable) {
-        setTimeout(() => {
-          this.responsableInput.nativeElement.select();
-        }, 50);
-      }
-    }, 100);
-  }
-
-  onAutorizadoPorSelect(e) {
+  onAutorizadoPorSelect(e: Funcionario) {
     this.autorizado = true;
-    if (e?.id != null) {
-      this.selectedAutorizadoPor = e;
-      this.autorizadoPorControl.setValue(
-        this.selectedAutorizadoPor?.id +
-        " - " +
-        this.selectedAutorizadoPor?.persona?.nombre,
-        { emitEvent: false }
-      );
-
-      setTimeout(() => {
-        this.autorizadoPorInput?.nativeElement?.blur();
-        setTimeout(() => {
-          this.autorizadoPorInput?.nativeElement?.select();
-        }, 50);
-      }, 0);
-    }
-  }
-
-  onAutorizadoPorAutocompleteClose() {
-    setTimeout(() => {
-      this.autorizadoPorInput?.nativeElement?.blur();
-      setTimeout(() => {
-        this.autorizadoPorInput?.nativeElement?.select();
-      }, 50);
-    }, 100);
+    this.selectedAutorizadoPor = e?.id != null ? e : null;
   }
 
   onGuardar() {
@@ -691,6 +530,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.selectedGasto = null;
     this.selectedTipoGasto = null;
     this.selectedAutorizadoPor = null;
+    this.selectedResponsable = null;
     this.responsableControl.setValue(null);
     this.tipoGastoControl.setValue(null);
     this.autorizadoPorControl.setValue(null);
@@ -712,7 +552,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.realControl.enable();
     this.dolarControl.enable();
     setTimeout(() => {
-      this.responsableInput.nativeElement.focus();
+      this.responsableField.focus();
     }, 0);
   }
 
@@ -959,12 +799,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
-    this.responsableSub.unsubscribe();
-    this.autorizadoPorSub.unsubscribe();
   }
 
   cargarDatos(gasto: Gasto) {
     this.selectedGasto = gasto;
+    this.responsableControl.setValue(gasto?.responsable ?? null);
     this.onResponsableSelect(gasto?.responsable);
     this.selectedTipoGasto = gasto?.tipoGasto;
     this.tipoGastoControl.setValue(
@@ -972,12 +811,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       { emitEvent: false }
     );
     this.selectedAutorizadoPor = gasto?.autorizadoPor;
-    this.autorizadoPorControl.setValue(
-      this.selectedAutorizadoPor?.id != null
-        ? `${this.selectedAutorizadoPor.id} - ${this.selectedAutorizadoPor?.persona?.nombre ?? "-"}`
-        : null,
-      { emitEvent: false }
-    );
+    this.autorizadoPorControl.setValue(this.selectedAutorizadoPor?.id != null ? this.selectedAutorizadoPor : null);
     this.autorizado = true;
     this.observacionControl.setValue(gasto?.observacion);
     this.guaraniControl.setValue(gasto?.retiroGs);
