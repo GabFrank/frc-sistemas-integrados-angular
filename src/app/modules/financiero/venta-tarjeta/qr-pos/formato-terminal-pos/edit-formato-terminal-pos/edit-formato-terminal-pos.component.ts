@@ -117,8 +117,6 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    */
   incompletos = { aparato: false, lectura: false, campos: false };
 
-  proveedores: ProveedorServicio[] = [];
-
   /** Se ofrece como punto de partida: es el formato que ya está en producción. */
   readonly mapeoEjemplo = JSON.stringify(
     {
@@ -160,15 +158,20 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       ejemplo: new FormControl(f?.ejemplo || null, Validators.required),
       activo: new FormControl(f?.activo !== false),
       // null = comodín: se prueba cuando la terminal no tiene un formato propio asignado.
-      proveedorServicioId: new FormControl(
-        f?.proveedorServicioId ?? f?.proveedorServicio?.id ?? null
+      proveedorServicio: new FormControl<ProveedorServicio>(
+        (f?.proveedorServicio as ProveedorServicio) ?? (f?.proveedorServicioId != null ? { id: f.proveedorServicioId } as ProveedorServicio : null)
       ),
     });
 
-    this.proveedorServicioService
-      .onGetPaginated(0, 200)
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => (this.proveedores = res?.getContent ?? []));
+    // Del filial llega solo el id: se busca el proveedor para poder mostrar su nombre.
+    if (f?.proveedorServicio == null && f?.proveedorServicioId != null) {
+      this.proveedorServicioService
+        .onGetPorId(f.proveedorServicioId)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res?.id != null) this.formGroup.get('proveedorServicio').setValue(res);
+        });
+    }
 
     // El preview se recalcula solo. Es la única forma de que quien carga el formato vea, antes de
     // guardar, que el patrón separa los campos donde corresponde: un grupo corrido deja el importe
@@ -370,7 +373,7 @@ export class EditFormatoTerminalPosComponent implements OnInit {
         mapeo: v.mapeo,
         ejemplo: v.ejemplo,
         activo: v.activo,
-        proveedorServicioId: v.proveedorServicioId ?? null,
+        proveedorServicioId: v.proveedorServicio?.id ?? null,
         usuarioId: this.mainService?.usuarioActual?.id,
       })
       .pipe(
