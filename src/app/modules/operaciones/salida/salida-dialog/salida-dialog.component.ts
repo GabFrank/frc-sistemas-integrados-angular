@@ -10,7 +10,6 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
-import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { Presentacion } from '../../../productos/presentacion/presentacion.model';
 import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from '../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
 import { Producto } from '../../../productos/producto/producto.model';
@@ -24,7 +23,6 @@ export interface SalidaDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -33,7 +31,6 @@ import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
   styleUrls: ["./salida-dialog.component.scss"],
 })
 export class SalidaDialogComponent implements OnInit {
-  @ViewChild("responsableInput", { static: false }) responsableInput: ElementRef;
   @ViewChild("productoInput", { static: false }) productoInput: ElementRef;
   @ViewChild("cantidadInput", { static: false }) cantidadInput: ElementRef;
   @ViewChild("tipoSalidaSelect", { static: true })
@@ -47,9 +44,7 @@ export class SalidaDialogComponent implements OnInit {
   creadoEnControl = new FormControl();
   observacionControl = new FormControl();
   formGroup: FormGroup;
-  usuarioInputControl = new FormControl();
-  usuarioList: Usuario[];
-  timer = null;
+  usuarioInputControl = new FormControl<Usuario>(null);
   selectedResponsable: Usuario;
   tipoSalidasList: any[];
   selectedTipoSalida: TipoSalida;
@@ -81,7 +76,6 @@ export class SalidaDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SalidaDialogData,
     private matDialogRef: MatDialogRef<SalidaDialogComponent>,
-    private usuarioService: UsuarioService,
     private sucursalService: SucursalService,
     private salidaService: SalidaService,
     private notificicacionBar: NotificacionSnackbarService,
@@ -96,7 +90,6 @@ export class SalidaDialogComponent implements OnInit {
   ngOnInit(): void {
     const { requestId } = this.cargandoService.openDialog()
     //inicializar arrays
-    this.usuarioList = [];
     this.tipoSalidasList = [];
     this.sucursalList = [];
     this.itemDataSource.data = []
@@ -105,27 +98,6 @@ export class SalidaDialogComponent implements OnInit {
     this.buscarSucursales();
 
     //listeners de los controls
-    this.usuarioInputControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (this.timer != null) {
-        clearTimeout(this.timer);
-      }
-      if (res != null && res.length != 0) {
-        this.timer = setTimeout(() => {
-          this.usuarioService.onSeachUsuario(res).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((response) => {
-            this.usuarioList = response["data"];
-            if (this.usuarioList.length == 1) {
-              this.onResponsableSelect(this.usuarioList[0]);
-              this.onResponsableAutocompleteClose();
-            } else {
-              this.onResponsableAutocompleteClose();
-              this.onResponsableSelect(null);
-            }
-          })
-        }, 500);
-      } else {
-        this.usuarioList = [];
-      }
-    });
 
     if (this.data?.salida != null) this.cargarDatos();
     if (this.data?.id != null) this.buscarSalida(this.data.id)
@@ -178,6 +150,7 @@ export class SalidaDialogComponent implements OnInit {
     this.isEditar = false;
     this.idControl.setValue(this.selectedSalida.id);
     this.creadoEnControl.setValue(this.selectedSalida.creadoEn);
+    this.usuarioInputControl.setValue(this.selectedSalida?.responsableCarga ?? null);
     this.onResponsableSelect(this.selectedSalida?.responsableCarga);
     this.onSelectTipoSalida(this.selectedSalida?.tipoSalida);
     this.onSelectSucursal(this.selectedSalida?.sucursal);
@@ -197,23 +170,8 @@ export class SalidaDialogComponent implements OnInit {
     }
   }
 
-  onUsuarioInput() { }
-
-  onResponsableSelect(e) {
-    if (e?.id != null) {
-      this.selectedResponsable = e;
-      this.usuarioInputControl.setValue(
-        this.selectedResponsable?.id +
-        " - " +
-        this.selectedResponsable?.persona?.nombre
-      );
-    }
-  }
-
-  onResponsableAutocompleteClose() {
-    setTimeout(() => {
-      this.responsableInput.nativeElement.select();
-    }, 0);
+  onResponsableSelect(e: Usuario) {
+    this.selectedResponsable = e?.id != null ? e : null;
   }
 
   onSelectTipoSalida(e) {
