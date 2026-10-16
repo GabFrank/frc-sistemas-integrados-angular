@@ -7,10 +7,13 @@
   width: calc(100% + 48px);
 }
 
+// styles.scss deja en 0 el alto del subscript de todos los mat-form-field: sin este gap la
+// etiqueta flotante de un campo outline se monta sobre el borde del campo de arriba.
 .paso {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 20px;
+  padding-top: 8px;
 
   mat-form-field {
     width: 100%;
@@ -18,7 +21,7 @@
 }
 
 .explicacion {
-  margin: 0 0 12px;
+  margin: 0;
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
   line-height: 1.5;
@@ -28,7 +31,6 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 16px;
   padding: 12px 14px;
   border-radius: 8px;
   background-color: rgba(102, 126, 234, 0.12);
@@ -53,7 +55,7 @@
 .captcha {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 .captcha-imagen {
@@ -80,7 +82,7 @@
 
 .enlace {
   align-self: flex-start;
-  margin-top: 4px;
+  margin-top: -8px;
   color: #8c9eff;
   font-size: 13px;
   cursor: pointer;
@@ -131,7 +133,7 @@
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 0;
 
   .qr {
     flex-shrink: 0;
@@ -204,4 +206,10 @@
     font-size: 56px;
     color: #66bb6a;
   }
+}
+
+.nota {
+  margin: -12px 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
 }

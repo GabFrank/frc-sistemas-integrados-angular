@@ -140,8 +140,15 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   }
 
   onVerificar(): void {
-    if (this.identidadForm.invalid || this.cargando) {
+    if (this.cargando) return;
+    if (this.identidadForm.invalid) {
       this.identidadForm.markAllAsTouched();
+      const c = this.identidadForm.controls;
+      this.avisarInvalido(
+        c.nickname.invalid ? 'Ingrese su usuario.'
+          : c.documento.invalid ? 'Ingrese su número de cédula.'
+          : c.nacimiento.invalid ? 'Ingrese su fecha de nacimiento como DD/MM/AAAA.'
+          : 'Escriba los 5 caracteres de la imagen.');
       return;
     }
     const v = this.identidadForm.getRawValue();
@@ -165,8 +172,10 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   // ------------------------------------------------------------------ con correo
 
   onVerificarCodigo(): void {
-    if (this.codigoControl.invalid || this.cargando) {
+    if (this.cargando) return;
+    if (this.codigoControl.invalid) {
       this.codigoControl.markAsTouched();
+      this.avisarInvalido('El código tiene 6 dígitos.');
       return;
     }
     const codigo = this.codigoControl.value;
@@ -186,8 +195,14 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   // ------------------------------------------------------------------ sin correo: solicitud a RRHH
 
   onEnviarSolicitud(): void {
-    if (this.solicitudForm.invalid || this.cargando) {
+    if (this.cargando) return;
+    if (this.solicitudForm.invalid) {
       this.solicitudForm.markAllAsTouched();
+      const c = this.solicitudForm.controls;
+      this.avisarInvalido(
+        c.telefono.invalid ? 'Ingrese un teléfono válido.'
+          : c.email.invalid ? 'El correo no es válido.'
+          : 'La observación no puede superar los 500 caracteres.');
       return;
     }
     const v = this.solicitudForm.getRawValue();
@@ -226,8 +241,10 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   }
 
   onConsultar(): void {
-    if (this.consultarForm.invalid || this.cargando) {
+    if (this.cargando) return;
+    if (this.consultarForm.invalid) {
       this.consultarForm.markAllAsTouched();
+      this.avisarInvalido('Complete el N° de solicitud, el código secreto y su cédula.');
       return;
     }
     const v = this.consultarForm.getRawValue();
@@ -242,8 +259,16 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   // ------------------------------------------------------------------ contraseña nueva
 
   onRestablecer(): void {
-    if (this.nuevaForm.invalid || this.cargando) {
+    if (this.cargando) return;
+    if (this.nuevaForm.invalid) {
       this.nuevaForm.markAllAsTouched();
+      const c = this.nuevaForm.controls;
+      this.avisarInvalido(
+        c.nueva.hasError('required') ? 'Escriba la contraseña nueva.'
+          : c.nueva.hasError('minlength') ? `La contraseña debe tener al menos ${LARGO_MINIMO} caracteres.`
+          : c.nueva.hasError('maxlength') ? 'La contraseña no puede superar los 50 caracteres.'
+          : c.repetir.invalid ? 'Repita la contraseña.'
+          : 'Las contraseñas no coinciden.');
       return;
     }
     this.ejecutar(this.service.restablecer(this.solicitudId, this.codigoVigente, this.documentoVigente,
@@ -317,6 +342,11 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
         alFallar?.();
       },
     });
+  }
+
+  private avisarInvalido(mensaje: string): void {
+    this.error = mensaje;
+    this.cdr.markForCheck();
   }
 
   private mostrarError(e: Error): void {

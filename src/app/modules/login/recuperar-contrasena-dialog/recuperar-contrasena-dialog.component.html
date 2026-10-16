@@ -26,7 +26,6 @@
         <mat-icon matPrefix>cake</mat-icon>
         <input matInput formControlName="nacimiento" placeholder="DD/MM/AAAA" inputmode="numeric"
           maxlength="10" autocomplete="off" (input)="onEscribirFecha($event)" />
-        <mat-error>Ingrese una fecha válida (DD/MM/AAAA).</mat-error>
       </mat-form-field>
 
       <div class="captcha">
@@ -63,7 +62,6 @@
         <mat-icon matPrefix>pin</mat-icon>
         <input matInput [formControl]="codigoControl" maxlength="6" inputmode="numeric" autocomplete="one-time-code"
           class="codigo" />
-        <mat-error>El código tiene 6 dígitos.</mat-error>
       </mat-form-field>
 
       <div *ngIf="estado" class="estado">{{ estado.mensaje }}</div>
@@ -86,16 +84,14 @@
         <mat-label>Teléfono (el que usa para WhatsApp)</mat-label>
         <mat-icon matPrefix>phone_iphone</mat-icon>
         <input matInput formControlName="telefono" inputmode="tel" autocomplete="off" />
-        <mat-error>Ingrese un teléfono válido.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Correo (opcional)</mat-label>
         <mat-icon matPrefix>mail</mat-icon>
         <input matInput formControlName="email" type="email" autocomplete="off" />
-        <mat-hint>Si lo carga, la próxima vez podrá recuperar la contraseña sin pasar por RRHH.</mat-hint>
-        <mat-error>El correo no es válido.</mat-error>
       </mat-form-field>
+      <div class="nota">Si carga un correo, la próxima vez podrá recuperar la contraseña sin pasar por RRHH.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Observación (opcional)</mat-label>
@@ -174,8 +170,6 @@
         <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="onAlternarContrasena()">
           <mat-icon>{{ ocultarContrasena ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
-        <mat-hint>Al menos {{ largoMinimo }} caracteres. No use su usuario ni su cédula.</mat-hint>
-        <mat-error>Al menos {{ largoMinimo }} caracteres.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -184,9 +178,7 @@
         <input matInput formControlName="repetir" [type]="ocultarContrasena ? 'password' : 'text'"
           autocomplete="new-password" />
       </mat-form-field>
-      <div *ngIf="nuevaForm.errors?.distintas && nuevaForm.controls.repetir.touched" class="error-campo">
-        Las contraseñas no coinciden.
-      </div>
+      <div class="nota">Mínimo {{ largoMinimo }} caracteres. No puede ser su usuario ni su número de cédula.</div>
 
       <button type="submit" hidden></button>
     </form>
