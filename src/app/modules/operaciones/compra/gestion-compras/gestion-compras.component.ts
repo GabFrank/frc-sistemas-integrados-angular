@@ -4024,7 +4024,8 @@ export class GestionComprasComponent
     }
 
     const dialogData: RechazarItemDialogData = {
-      pedidoItem: item,
+      // La lista de pendientes trae solo `pedido { id }`: sin la moneda, crear una nota nueva no se podía (#390, #501)
+      pedidoItem: { ...item, pedido: this.currentPedido ?? item.pedido } as MockPedidoItem,
       notasDisponibles: this.notasRecepcionDataSource.data,
       pedidoId: this.pedidoId || 0
     };
