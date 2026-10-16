@@ -17,6 +17,7 @@ import { SaveReplicationTableGQL } from './graphql/save-replication-table-gql';
 import { DeleteReplicationTableGQL } from './graphql/delete-replication-table-gql';
 import { ToggleReplicationTableEnabledGQL } from './graphql/toggle-replication-table-enabled-gql';
 import { UpdateReplicationServiceTablesGQL } from './graphql/update-replication-service-tables-gql';
+import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
 
 @Injectable({
   providedIn: 'root'
@@ -226,8 +227,8 @@ export class ReplicationTableService {
         return null;
       }),
       catchError(error => {
+        // El diálogo muestra el motivo o el «no se pudo confirmar»: sin otro aviso acá (#501)
         console.error('Error saving replication table:', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL GUARDAR LA TABLA DE REPLICACIÓN');
         return throwError(() => error);
       })
     );
@@ -247,7 +248,8 @@ export class ReplicationTableService {
           this.notificacionSnackBar.openSucess('CONFIGURACIÓN DE TABLA ELIMINADA CORRECTAMENTE');
         }
         return result;
-      })
+      }),
+      catchError(error => this.avisarFallo(error, 'se eliminó la configuración de la tabla'))
     );
   }
 
@@ -265,7 +267,8 @@ export class ReplicationTableService {
           this.notificacionSnackBar.openSucess('ESTADO DE LA TABLA ACTUALIZADO CORRECTAMENTE');
         }
         return result;
-      })
+      }),
+      catchError(error => this.avisarFallo(error, 'se cambió el estado de la tabla'))
     );
   }
 
@@ -283,7 +286,8 @@ export class ReplicationTableService {
           this.notificacionSnackBar.openSucess('CONFIGURACIÓN DE REPLICACIÓN ACTUALIZADA CORRECTAMENTE');
         }
         return result;
-      })
+      }),
+      catchError(error => this.avisarFallo(error, 'se actualizó la configuración de replicación'))
     );
   }
 
@@ -313,4 +317,22 @@ export class ReplicationTableService {
       { value: ReplicationDirection.BRANCH_TO_MAIN, label: this.getDirectionName(ReplicationDirection.BRANCH_TO_MAIN) }
     ];
   }
-} 
+
+  /**
+   * Estas mutations van por `mutate` de apollo-angular, no por el genérico: nadie muestra el motivo de un rechazo ni
+   * avisa un corte (#501). Sin respuesta pudo aplicarse; el timeout del link ya avisó. Reemite el error para que la
+   * pantalla decida si recarga.
+   */
+  private avisarFallo(error: any, queSeHizo: string): Observable<never> {
+    console.error('Error en una mutation de tablas de replicación', error);
+    if (erroresDeRechazo(error) != null) {
+      this.notificacionSnackBar.openAlgoSalioMal(motivoDelRechazo(error) ?? 'El servidor rechazó la operación.');
+    } else {
+      const aviso = avisoTrasMutacion(error, queSeHizo);
+      if (aviso != null) {
+        this.notificacionSnackBar.openWarn(aviso, 8);
+      }
+    }
+    return throwError(() => error);
+  }
+}

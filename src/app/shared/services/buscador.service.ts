@@ -9,7 +9,7 @@ import { AdicionarPersonaDialogComponent } from '../../modules/personas/persona/
 import { PersonaSearchPageGQL } from '../../modules/personas/persona/graphql/personaSearchPage';
 import { ClientesSearchByPersonaGQL } from '../../modules/personas/clientes/graphql/clienteSearchByPersona';
 import { ClienteService } from '../../modules/personas/clientes/cliente.service';
-import { FuncionarioSearchGQL } from '../../modules/personas/funcionarios/graphql/funcionarioSearch';
+import { FuncionarioSearchPageGQL } from '../../modules/personas/funcionarios/graphql/funcionarioSearchPage';
 import { FuncionariosACargoGQL } from '../../modules/personas/funcionarios/graphql/funcionariosACargo';
 import { FuncionarioService } from '../../modules/personas/funcionarios/funcionario.service';
 import { UsuarioSearchGQL } from '../../modules/personas/usuarios/graphql/usuarioSearch';
@@ -95,7 +95,7 @@ export class BuscadorService {
   private clienteSearch = inject(ClientesSearchByPersonaGQL);
   private personaSearchPage = inject(PersonaSearchPageGQL);
   private funcionariosACargo = inject(FuncionariosACargoGQL);
-  private funcionarioSearch = inject(FuncionarioSearchGQL);
+  private funcionarioSearchPage = inject(FuncionarioSearchPageGQL);
   private usuarioSearch = inject(UsuarioSearchGQL);
   private proveedorSearchPage = inject(ProveedoresSearchByPersonaPageGQL);
   private proveedorServicioSearchPage = inject(ProveedorServicioSearchPageGQL);
@@ -141,10 +141,13 @@ export class BuscadorService {
       // Hay homonimos (6 ESTEBAN en la base): el dialogo muestra cargo y usuario para distinguirlos.
       dialogo: o => ({
         titulo: 'Buscar funcionario',
-        query: o.soloACargo ? this.funcionariosACargo : this.funcionarioSearch,
-        queryData: o.soloACargo ? { soloActivos: !!o.soloActivos } : undefined,
+        query: o.soloACargo ? this.funcionariosACargo : this.funcionarioSearchPage,
+        // La busqueda general viene paginada del backend; funcionariosACargo es una lista corta y no.
+        paginator: !o.soloACargo,
+        // Los egresados se descartan en el backend: filtrar la pagina ya traida la dejaria corta.
+        queryData: { soloActivos: !!o.soloActivos },
         fallbackToLocal: o.servidor !== false,
-        // funcionariosACargo ya filtra en el central; la busqueda general trae tambien a los egresados.
+        // El campo rapido no pasa por la query del dialogo: ahi sigue haciendo falta el filtro.
         filtro: o.soloActivos && !o.soloACargo ? (f: any) => f?.activo !== false : undefined,
         tableData: [
           { id: 'id', nombre: 'Id', width: '10%' },
