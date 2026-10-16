@@ -45,7 +45,7 @@ Decide `erroresDeRechazo(err)`:
 | 4 | `edit-remote-publication-dialog`, `edit-remote-subscription-dialog` | con `sinConfirmar`, el texto del diálogo lo dice y «Cancelar» cierra con `true` para que la lista recargue |
 | 5 | `remove-replication-dialog` | con `sinConfirmar`, cerrar tras el resultado recarga la lista (como `setup-replication-dialog`) |
 | 6 | `ReplicationTableService` (delete, toggle, update) | helper `avisarFallo(error, queSeHizo)`: rechazo, aviso con el motivo (hoy nadie lo muestra); sin respuesta, `avisoTrasMutacion`. Reemite el error. En `save` el servicio deja de avisar («ERROR AL GUARDAR»): el diálogo muestra el texto, así no hay doble aviso (auditoría del plan) |
-| 7 | `list-replication-tables` | toggle sin respuesta: bloquea los toggles y recarga a los 5 s; el bloqueo se libera cuando vuelve la recarga, que nunca emite error (el servicio devuelve una página vacía). Borrar sin respuesta: recarga a los 5 s. `false` en toggle, borrar o actualizar: aviso «No se pudo …» (hoy silencio). Los `timer` con `untilDestroyed` |
+| 7 | `list-replication-tables` | toggle sin respuesta: bloquea los toggles y recarga a los 5 s; el bloqueo lo libera solo esa recarga, no otra (el buscador puede recargar antes de que el central termine, auditoría del diff), y nunca emite error (el servicio devuelve una página vacía). Borrar sin respuesta: recarga a los 5 s. `false` en toggle, borrar o actualizar: aviso «No se pudo …» (hoy silencio). Los `timer` con `untilDestroyed` |
 | 8 | `edit-replication-table-dialog` | el texto de error usa el motivo o el «no se pudo confirmar»; sin respuesta, «Cancelar» cierra con `true` |
 
 ## Fuera de alcance
@@ -53,6 +53,8 @@ Decide `erroresDeRechazo(err)`:
 - Doble aviso verde al guardar una tabla de replicación (servicio y diálogo): ya está anotado en la issue como pendiente de doble aviso en un éxito.
 - Los mensajes de `success: false` del central vienen en inglés («Failed to…»): se muestran como llegan.
 - Las recargas de `list-replication` no cancelan una en vuelo (sin `switchMap`): preexistente.
+- Métodos sin llamador de `LogicalReplicationService` (`setupReplication`, `setupBranchReplication`, `removeReplication`, `removeBranchReplication`, `dropRemotePublication`): conservan el `catchError` viejo. Si se llegan a usar, tienen el mismo defecto.
+- Visto en la prueba, preexistente: «Nueva Suscripción» remota abre con «Crear» deshabilitado en modo de conexión central (los campos manuales nacen obligatorios) hasta apagar y prender ese interruptor; y en los diálogos de publicación remota el texto de error queda tapado por el título.
 
 ## Tests
 
@@ -67,6 +69,29 @@ Central propio en el 8084 con `replication.sync/refresh` apagados y desktop serv
 - **aplicado** solo en lo que queda en la base local: las mutations de `replication_table`. Se restaura después;
 - el modo remoto de la lista (que consulta la filial elegida por JDBC) se prueba con una sucursal apuntada por SQL al Postgres local, y se restaura. No se abre el diálogo de configurar (consulta el estado en la filial), que esta tanda no cambia;
 - además del corte, el timeout del link en alguna llamada.
+
+### Resultado (2026-10-16)
+
+Central propio en el 8084 (base `bodega` local, `replication.sync/refresh` apagados), desktop en modo solo central, usuario `MR`. Interceptor con cinco modos: corte, rechazo, respuesta armada (`success: false` o `false`, sin llegar al central), aplicado y colgado (un socket que nunca responde, para el timeout del link). El modo remoto, con «SUC. KM2», que en la base local apunta al Postgres local.
+
+| Punto | Llamada | Corte | Rechazo | Falla informada | Otros |
+|---|---|---|---|---|---|
+| 1-3 | pausar suscripción (local) | aviso y recarga a los 5 s | solo el «Ups!» | aviso con el mensaje del central | |
+| 1-3 | pausar publicación (local) | aviso y recarga a los 5 s | | | |
+| 1-3 | refrescar (local) | aviso y recarga | «Ups!» | aviso | **timeout del link**: solo el aviso del link y recarga a los 5 s |
+| 1-3 | refrescar todas (local) | aviso y recarga | «Ups!» | aviso | |
+| 1-3 | sincronizar publicaciones | aviso y recarga; el botón vuelve | «Ups!» | aviso | |
+| 1-3 | pausar, refrescar y refrescar todas (remoto) | aviso y recarga de la lista remota | «Ups!» | aviso | |
+| 1, 5 | eliminar (diálogo) | texto en el diálogo y aviso; cerrar recarga | motivo en el diálogo y «Ups!»; cerrar no recarga | | |
+| 1, 4 | editar suscripción remota | texto «a medias… volvé a guardarla» | motivo en el diálogo | solo en el diálogo, sin aviso | Cancelar recarga tras un corte y no tras un rechazo |
+| 1, 4 | crear suscripción remota | «Es seguro volver a guardarla» | motivo | | Cancelar recarga |
+| 1, 4 | editar y crear publicación remota | texto correcto | motivo | solo en el diálogo | Cancelar recarga |
+| 6, 7 | toggle de tabla | | «Ups!» con el motivo, sin bloqueo | `false`: «No se pudo cambiar el estado» | **aplicado**: se invirtió en la base, aviso, toggles bloqueados y liberados por la recarga de los 5 s; una búsqueda a los 2 s no los liberó |
+| 6, 7 | borrar tabla | aviso y recarga a los 5 s | «Ups!» | `false`: «No se pudo eliminar» | |
+| 6, 7 | actualizar servicio | aviso | «Ups!» | `false`: «No se pudo actualizar» | **timeout del link**: solo el aviso del link |
+| 6, 8 | guardar tabla (diálogo) | texto en el diálogo, sin aviso | motivo en el diálogo, sin aviso | | guardar real cierra igual que antes; Cancelar tras un corte recarga |
+
+Se restauró el `enabled` de `configuraciones.actualizacion`, que el modo aplicado había invertido.
 
 ## Persistencia, migraciones, replicación, multi-repo
 
