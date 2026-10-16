@@ -26,7 +26,7 @@
           </div>
         </div>
         <div fxFlex="25" fxLayout="column" fxLayoutAlign="center end">
-          <button mat-raised-button color="warn" (click)="onFinalizarInventario()" [disabled]="!isEstadoAbierto"
+          <button mat-raised-button color="warn" (click)="onFinalizarInventario()" [disabled]="!isEstadoAbierto || finalizarSinConfirmar"
             class="btn-finalizar-inventario">
             <mat-icon>check</mat-icon> Finalizar Inventario
           </button>

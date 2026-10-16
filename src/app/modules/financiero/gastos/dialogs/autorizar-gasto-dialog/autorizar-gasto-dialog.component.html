@@ -78,7 +78,7 @@
         <span matSuffix>USD</span>
       </mat-form-field>
     </div>
-    <button mat-stroked-button color="accent" type="button" [disabled]="registrandoDevolucion" (click)="registrarDevolucion()">
+    <button mat-stroked-button color="accent" type="button" [disabled]="registrandoDevolucion || devolucionSinConfirmar" (click)="registrarDevolucion()">
       Registrar devolución
     </button>
   </div>
@@ -138,7 +138,7 @@
       Autorizar
     </button>
 
-    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite()" type="button" style="min-width: 140px; min-height: 40px;">
+    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite() || finalizarSinConfirmar" type="button" style="min-width: 140px; min-height: 40px;">
       <mat-icon>task_alt</mat-icon>
       Finalizar
     </button>
