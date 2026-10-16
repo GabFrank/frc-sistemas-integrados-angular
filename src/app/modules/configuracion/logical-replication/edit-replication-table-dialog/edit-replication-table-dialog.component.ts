@@ -7,6 +7,7 @@ import { ReplicationDirection, ReplicationTable } from '../replication-table.mod
 import { ReplicationTableService } from '../replication-table.service';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { erroresDeRechazo, motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface EditReplicationTableDialogData {
   isEdit: boolean;
@@ -23,6 +24,8 @@ export class EditReplicationTableDialogComponent implements OnInit {
   tableForm: FormGroup;
   isLoading = false;
   errorMsg = '';
+  /** Hubo un guardado sin respuesta: pudo aplicarse, así que al cancelar la lista se recarga (#501). */
+  private sinConfirmar = false;
   
   // Pre-calculated properties to avoid function calls in template
   directionOptions: { value: ReplicationDirection, label: string }[] = [];
@@ -110,7 +113,13 @@ export class EditReplicationTableDialogComponent implements OnInit {
         error: (error) => {
           this.isLoading = false;
           console.error('Error saving replication table:', error);
-          this.errorMsg = error?.message || 'Error al guardar la tabla de replicación';
+          if (erroresDeRechazo(error) != null) {
+            this.errorMsg = motivoDelRechazo(error) ?? 'El servidor rechazó la tabla de replicación.';
+          } else {
+            // Repetir es seguro: la edición queda igual y un alta repetida la rechaza el nombre único
+            this.sinConfirmar = true;
+            this.errorMsg = 'No se pudo confirmar si se guardó la tabla. Es seguro volver a guardarla, o cancelá y revisá la lista.';
+          }
           
           // If editing, disable tableName again
           if (this.data.isEdit) {
@@ -121,7 +130,7 @@ export class EditReplicationTableDialogComponent implements OnInit {
   }
   
   onCancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close(this.sinConfirmar);
   }
   
   // Keep this method for compatibility but don't use it in the template

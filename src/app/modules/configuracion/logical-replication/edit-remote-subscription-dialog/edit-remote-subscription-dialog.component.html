@@ -9,9 +9,9 @@
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSave()">
-    <div class="form-content" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="25px">
+    <div class="form-content">
       <!-- Subscription Name -->
-      <mat-form-field class="full-width">
+      <mat-form-field class="full-width" appearance="outline">
         <mat-label>Nombre de Suscripción</mat-label>
         <input matInput formControlName="subscriptionName" required>
         <mat-hint *ngIf="!data.isEdit">Nombre auto-generado para la suscripción</mat-hint>
@@ -21,7 +21,7 @@
       </mat-form-field>
 
       <!-- Publication Name -->
-      <mat-form-field class="full-width">
+      <mat-form-field class="full-width" appearance="outline">
         <mat-label>Nombre de Publicación</mat-label>
         <input matInput formControlName="publicationName" [required]="!data.isEdit">
         <mat-hint *ngIf="!data.isEdit">Nombre de la publicación a la que te quieres suscribir</mat-hint>
@@ -33,69 +33,83 @@
       <!-- Connection String Section -->
       <div class="connection-section">
         <div class="section-header">
-          <h3>Conexión al Servidor de Publicación</h3>
-          <mat-slide-toggle 
+          <mat-icon class="section-icon">lan</mat-icon>
+          <div class="section-title">
+            <h3>Conexión al servidor de publicación</h3>
+            <span class="section-subtitle">Desde dónde la sucursal lee los datos de la publicación</span>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <mat-slide-toggle
             [checked]="useCentralConnection"
             (change)="toggleConnectionType()"
             color="primary">
-            Usar Conexión Central
+            Usar la conexión del servidor central
           </mat-slide-toggle>
+          <span class="toggle-hint">
+            {{ !data.isEdit
+              ? (useCentralConnection ? 'Se usa la cadena de conexión que genera el central.' : 'Cargá a mano los datos del servidor.')
+              : (useCentralConnection ? 'Con la cadena vacía, la conexión no cambia.'
+                                      : 'Cargá los datos nuevos. Con la contraseña vacía, la conexión no cambia.') }}
+          </span>
         </div>
 
         <!-- Central Connection -->
-        <div *ngIf="useCentralConnection">
-          <mat-form-field class="full-width">
-            <mat-label>String de Conexión</mat-label>
-            <input matInput formControlName="connectionString" [required]="!data.isEdit">
-            <mat-spinner matSuffix *ngIf="isCentralConnectionLoading" diameter="20"></mat-spinner>
-            <mat-error *ngIf="form.get('connectionString').hasError('required')">
-              String de conexión es requerido
-            </mat-error>
-          </mat-form-field>
+        <mat-form-field *ngIf="useCentralConnection" class="full-width cadena-field" appearance="outline">
+          <mat-label>Cadena de conexión</mat-label>
+          <textarea matInput class="connection-string" rows="3" formControlName="connectionString"
+                    [required]="!data.isEdit"></textarea>
+          <mat-spinner matSuffix *ngIf="isCentralConnectionLoading" diameter="20"></mat-spinner>
+          <mat-error *ngIf="form.get('connectionString').hasError('required')">
+            La cadena de conexión es requerida
+          </mat-error>
+        </mat-form-field>
+        <div *ngIf="useCentralConnection && data.isEdit" class="cadena-acciones">
+          <button mat-stroked-button type="button" (click)="usarCadenaDelCentral()"
+                  [disabled]="isCentralConnectionLoading || !centralConnectionString">
+            <mat-icon>download</mat-icon> Cargar la cadena del central
+          </button>
         </div>
 
         <!-- Manual Connection -->
         <div *ngIf="!useCentralConnection" class="manual-connection">
-          <div class="connection-row">
-            <mat-form-field>
-              <mat-label>Host</mat-label>
-              <input matInput formControlName="host" placeholder="localhost">
-              <mat-error *ngIf="form.get('host').hasError('required')">
-                Host es requerido
-              </mat-error>
-            </mat-form-field>
+          <mat-form-field class="field-host" appearance="outline">
+            <mat-label>Host</mat-label>
+            <input matInput formControlName="host" placeholder="localhost">
+            <mat-error *ngIf="form.get('host').hasError('required')">
+              Host es requerido
+            </mat-error>
+          </mat-form-field>
 
-            <mat-form-field>
-              <mat-label>Puerto</mat-label>
-              <input matInput type="number" formControlName="port" placeholder="5432">
-              <mat-error *ngIf="form.get('port').hasError('required')">
-                Puerto es requerido
-              </mat-error>
-              <mat-error *ngIf="form.get('port').hasError('min') || form.get('port').hasError('max')">
-                Puerto debe estar entre 1 y 65535
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field class="field-port" appearance="outline">
+            <mat-label>Puerto</mat-label>
+            <input matInput type="number" formControlName="port" placeholder="5432">
+            <mat-error *ngIf="form.get('port').hasError('required')">
+              Puerto es requerido
+            </mat-error>
+            <mat-error *ngIf="form.get('port').hasError('min') || form.get('port').hasError('max')">
+              Entre 1 y 65535
+            </mat-error>
+          </mat-form-field>
 
-          <div class="connection-row">
-            <mat-form-field>
-              <mat-label>Base de Datos</mat-label>
-              <input matInput formControlName="dbName" placeholder="postgres">
-              <mat-error *ngIf="form.get('dbName').hasError('required')">
-                Base de datos es requerida
-              </mat-error>
-            </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Base de datos</mat-label>
+            <input matInput formControlName="dbName" placeholder="postgres">
+            <mat-error *ngIf="form.get('dbName').hasError('required')">
+              Base de datos es requerida
+            </mat-error>
+          </mat-form-field>
 
-            <mat-form-field>
-              <mat-label>Usuario</mat-label>
-              <input matInput formControlName="username" placeholder="postgres">
-              <mat-error *ngIf="form.get('username').hasError('required')">
-                Usuario es requerido
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Usuario</mat-label>
+            <input matInput formControlName="username" placeholder="postgres">
+            <mat-error *ngIf="form.get('username').hasError('required')">
+              Usuario es requerido
+            </mat-error>
+          </mat-form-field>
 
-          <mat-form-field class="full-width">
+          <mat-form-field class="field-password" appearance="outline">
             <mat-label>Contraseña</mat-label>
             <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="password">
             <button mat-icon-button matSuffix (click)="showPassword = !showPassword" type="button">

@@ -25,6 +25,8 @@ export class EditRemotePublicationDialogComponent implements OnInit {
   isLoading = false;
   isLoadingTables = false;
   errorMessage: string = null;
+  /** Hubo un guardado sin respuesta: pudo aplicarse, así que al cancelar la lista se recarga (#501). */
+  private sinConfirmar = false;
   
   // Tablas disponibles para incluir en la publicación
   availableTables: string[] = [];
@@ -123,6 +125,7 @@ export class EditRemotePublicationDialogComponent implements OnInit {
             this.dialogRef.close(true);
           } else {
             this.errorMessage = result?.message || 'Error desconocido al guardar la publicación';
+            this.sinConfirmar = this.sinConfirmar || result?.sinConfirmar === true;
           }
         },
         error: (error) => {
@@ -134,7 +137,7 @@ export class EditRemotePublicationDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close(this.sinConfirmar);
   }
 
   toggleAllTables(): void {
