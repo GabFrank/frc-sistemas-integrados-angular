@@ -217,45 +217,9 @@ export const GENERATE_CENTRAL_TO_BRANCH_SUBSCRIPTION_NAME_QUERY = gql`
   }
 `;
 
-export const SETUP_REPLICATION_MUTATION = gql`
-  mutation SetupReplication($input: LogicalReplicationInput!) {
-    data:setupReplication(input: $input) {
-      success
-      message
-    }
-  }
-`;
-
 export const SETUP_REPLICATION_ADVANCED_MUTATION = gql`
   mutation SetupReplicationAdvanced($sucursalId: ID!, $target: RemoveTarget!, $scope: RemoveScope!) {
     data:setupReplicationAdvanced(sucursalId: $sucursalId, target: $target, scope: $scope) {
-      success
-      message
-    }
-  }
-`;
-
-export const SETUP_BRANCH_REPLICATION_MUTATION = gql`
-  mutation SetupBranchReplication($sucursalId: ID!) {
-    data:setupBranchReplication(sucursalId: $sucursalId) {
-      success
-      message
-    }
-  }
-`;
-
-export const REMOVE_REPLICATION_MUTATION = gql`
-  mutation RemoveReplication($sucursalId: ID!) {
-    data:removeReplication(sucursalId: $sucursalId) {
-      success
-      message
-    }
-  }
-`;
-
-export const REMOVE_BRANCH_REPLICATION_MUTATION = gql`
-  mutation RemoveBranchReplication($sucursalId: ID!) {
-    data:removeBranchReplication(sucursalId: $sucursalId) {
       success
       message
     }
@@ -283,15 +247,6 @@ export const TOGGLE_REPLICATION_MUTATION = gql`
 export const TOGGLE_REMOTE_SUBSCRIPTION_MUTATION = gql`
   mutation ToggleRemoteSubscription($branchSucursalId: ID!, $subscriptionName: String!, $enabled: Boolean!) {
     data:toggleRemoteSubscription(branchSucursalId: $branchSucursalId, subscriptionName: $subscriptionName, enabled: $enabled) {
-      success
-      message
-    }
-  }
-`;
-
-export const DROP_REMOTE_PUBLICATION_MUTATION = gql`
-  mutation DropRemotePublication($branchSucursalId: ID!, $publicationName: String!) {
-    data:dropRemotePublication(branchSucursalId: $branchSucursalId, publicationName: $publicationName) {
       success
       message
     }

@@ -3,12 +3,8 @@ import { Observable, catchError, map, of, tap } from 'rxjs';
 import { LogicalReplication, ReplicationStatus } from './logical-replication.model';
 import { ReplicationSubscriptionsGQL } from './graphql/replication-subscriptions-gql';
 import { ReplicationPublicationsGQL } from './graphql/replication-publications-gql';
-import { SetupReplicationGQL } from './graphql/setup-replication-gql';
 import { SetupReplicationAdvancedGQL } from './graphql/setup-replication-advanced-gql';
-import { SetupBranchReplicationGQL } from './graphql/setup-branch-replication-gql';
-import { RemoveReplicationGQL } from './graphql/remove-replication-gql';
 import { RemoveReplicationAdvancedGQL } from './graphql/remove-replication-advanced-gql';
-import { RemoveBranchReplicationGQL } from './graphql/remove-branch-replication-gql';
 import { ToggleReplicationGQL } from './graphql/toggle-replication-gql';
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
@@ -18,7 +14,6 @@ import { RemoteReplicationSubscriptionsGQL } from './graphql/remote-replication-
 import { RemoteReplicationPublicationsGQL } from './graphql/remote-replication-publications-gql';
 import { SearchRemoteReplicationSubscriptionsGQL } from './graphql/search-remote-replication-subscriptions-gql';
 import { ToggleRemoteSubscriptionGQL } from './graphql/toggle-remote-subscription-gql';
-import { DropRemotePublicationGQL } from './graphql/drop-remote-publication-gql';
 import { GenerateConnectionStringGQL } from './graphql/generate-connection-string-gql';
 import { GenerateCentralConnectionStringGQL } from './graphql/generate-central-connection-string-gql';
 import { 
@@ -66,17 +61,12 @@ export class LogicalReplicationService {
     private generateCentralToBranchSubscriptionNameGQL: GenerateCentralToBranchSubscriptionNameGQL,
     
     // Local mutations
-    private setupReplicationGQL: SetupReplicationGQL,
     private setupReplicationAdvancedGQL: SetupReplicationAdvancedGQL,
-    private setupBranchReplicationGQL: SetupBranchReplicationGQL,
-    private removeReplicationGQL: RemoveReplicationGQL,
     private removeReplicationAdvancedGQL: RemoveReplicationAdvancedGQL,
-    private removeBranchReplicationGQL: RemoveBranchReplicationGQL,
     private toggleReplicationGQL: ToggleReplicationGQL,
     
     // Remote mutations
     private toggleRemoteSubscriptionGQL: ToggleRemoteSubscriptionGQL,
-    private dropRemotePublicationGQL: DropRemotePublicationGQL,
     private createRemotePublicationGQL: CreateRemotePublicationGQL,
     private createRemoteSubscriptionGQL: CreateRemoteSubscriptionGQL,
     private editRemotePublicationGQL: EditRemotePublicationGQL,
@@ -251,27 +241,6 @@ export class LogicalReplicationService {
   // LOCAL MUTATIONS
 
   /**
-   * Setup a new logical replication from central server to a branch
-   */
-  setupReplication(input: any): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.setupReplicationGQL,
-      { input }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN CONFIGURADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error setting up replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
-
-  /**
    * Setup replication with granular control (target: SUBSCRIPTION | PUBLICATION | BOTH, scope: CENTRAL | FILIAL | BOTH)
    */
   setupReplicationAdvanced(sucursalId: number, target: string, scope: string): Observable<ReplicationStatus> {
@@ -301,48 +270,6 @@ export class LogicalReplicationService {
   }
 
   /**
-   * Setup branch-side replication (to be called on branch server)
-   */
-  setupBranchReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.setupBranchReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL CONFIGURADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error setting up branch replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN DE SUCURSAL');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
-
-  /**
-   * Remove central server replication for a branch
-   */
-  removeReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.removeReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN ELIMINADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error removing replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
-
-  /**
    * Remove replication with granular control (target: SUBSCRIPTION | PUBLICATION | BOTH, scope: CENTRAL | FILIAL | BOTH)
    */
   removeReplicationAdvanced(sucursalId: number, target: string, scope: string): Observable<ReplicationStatus> {
@@ -356,27 +283,6 @@ export class LogicalReplicationService {
         }
       }),
       catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se eliminó la replicación: revisá el estado antes de repetir.'))
-    );
-  }
-
-  /**
-   * Remove branch-side replication (to be called on branch server)
-   */
-  removeBranchReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.removeBranchReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL ELIMINADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error removing branch replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN DE SUCURSAL');
-        return of({ success: false, message: error.message });
-      })
     );
   }
 
@@ -427,28 +333,6 @@ export class LogicalReplicationService {
     );
   }
 
-  /**
-   * Drop a publication on a remote branch
-   * @param branchSucursalId ID of the branch
-   * @param publicationName Name of the publication
-   */
-  dropRemotePublication(branchSucursalId: number, publicationName: string): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.dropRemotePublicationGQL,
-      { branchSucursalId, publicationName }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('LA PUBLICACIÓN REMOTA HA SIDO ELIMINADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error dropping remote publication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR LA PUBLICACIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
   
   /**
    * Create a publication on a remote branch

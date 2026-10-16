@@ -296,11 +296,18 @@ export class ListCompraComponent implements OnInit, OnDestroy {
             this.pedidoService.onImprimirPedidoTicket(pedido.id, printerName)
               .pipe(untilDestroyed(this))
               .subscribe({
-                next: () => this.notificacionService.notification$.next({
-                  texto: "Ticket enviado a impresora",
-                  color: NotificacionColor.success,
-                  duracion: 3
-                }),
+                next: (ok) => {
+                  // El central hoy siempre devuelve true; si cambia, que no diga «enviado» (#501)
+                  if (ok === false) {
+                    this.notificacionService.openWarn("No se pudo enviar el ticket a la impresora.");
+                    return;
+                  }
+                  this.notificacionService.notification$.next({
+                    texto: "Ticket enviado a impresora",
+                    color: NotificacionColor.success,
+                    duracion: 3
+                  });
+                },
                 error: (error) => this.avisarSinRespuesta(error, "Error al imprimir ticket")
               });
             break;
@@ -317,6 +324,9 @@ export class ListCompraComponent implements OnInit, OnDestroy {
                       color: NotificacionColor.success,
                       duracion: 3
                     });
+                  } else {
+                    // Antes un PDF vacío no avisaba nada (#501)
+                    this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
                   }
                 },
                 error: (error) => this.avisarSinRespuesta(error, "Error al generar PDF")
@@ -346,6 +356,8 @@ export class ListCompraComponent implements OnInit, OnDestroy {
                       color: NotificacionColor.success,
                       duracion: 3
                     });
+                  } else {
+                    this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
                   }
                 },
                 error: (error) => this.avisarSinRespuesta(error, "Error al guardar PDF")
@@ -364,11 +376,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
             null,
             index
           );
-          this.notificacionService.notification$.next({
-            texto: "Pedido cancelado correctamente",
-            color: NotificacionColor.success,
-            duracion: 3
-          });
+          // El verde «Pedido cancelado correctamente» lo muestra onDelete: antes salían dos (#501)
           this.onFilter(); // Refresh list
         } else if (res === null) {
           // onDelete ya avisó (rechazo o sin respuesta) y no emite error: el pedido pudo cancelarse igual,

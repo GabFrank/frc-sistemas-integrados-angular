@@ -533,7 +533,7 @@ export class PedidoService {
    * @returns Observable<AsignacionResult>
    */
   onAsignarItemsANota(notaRecepcionId: number, pedidoItemIds: number[], usuarioId: number): Observable<AsignacionResult> {
-    return this.asignarItemsANotaGQL.mutate(notaRecepcionId, pedidoItemIds, usuarioId);
+    return this.genericCrudService.onCustomMutation(this.asignarItemsANotaGQL, { notaRecepcionId, pedidoItemIds, usuarioId });
   }
 
   // ===============================================
@@ -804,7 +804,9 @@ export class PedidoService {
       null,
       true,
       true,
-      '¿Está seguro que desea cancelar este pedido?'
+      '¿Está seguro que desea cancelar este pedido?',
+      // No es un borrado: sin esto los avisos decían «eliminó» (#501). Repetir es seguro: el central rechaza «ya cancelado»
+      { exito: 'Pedido cancelado correctamente', alHacer: 'al cancelar el pedido', queSeHizo: 'se canceló el pedido' }
     );
   }
 

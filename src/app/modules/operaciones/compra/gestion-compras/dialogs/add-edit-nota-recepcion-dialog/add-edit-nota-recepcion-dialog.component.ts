@@ -31,7 +31,7 @@ import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-r
 import { MainService } from '../../../../../../main.service';
 import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
-import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 
 /** Cotización de la nota: 20 s sin el aviso genérico del link; avisa el diálogo (#390). */
 const CONSULTA_COTIZACION: ContextoConsulta = {
@@ -1672,9 +1672,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           this.assigningItems = false;
           console.error('Error al asignar ítems automáticamente:', error);
           if (erroresDeRechazo(error) != null) {
-            // No pasa por el genérico: nadie mostró el motivo
-            this.notificacionService.openAlgoSalioMal('La nota se creó, pero no se asignaron los ítems: '
-              + (motivoDelRechazo(error) ?? 'el servidor rechazó la asignación'));
+            // El motivo ya lo mostró el genérico (#501); queda el contexto: la nota sí se creó
+            this.notificacionService.openWarn('La nota se creó, pero no se asignaron los ítems.');
             return;
           }
           this.trasFalloDeMutacion(error, 'se asignaron los ítems a la nota', () => this.loadItemsAfterAssignment());
