@@ -93,6 +93,15 @@ Central propio en el 8084 (base `bodega` local, `replication.sync/refresh` apaga
 
 Se restauró el `enabled` de `configuraciones.actualizacion`, que el modo aplicado había invertido.
 
+## Ajustes de pantalla (pedido de Franco, 2026-10-16)
+
+Tras probar la tanda, en la misma pantalla:
+
+- **Lista de replicaciones:** con una conexión remota elegida, el botón de eliminar caía a una segunda fila: la tabla es de ancho fijo y reparte igual las columnas. Estado pasa a 120px y Acciones a 240px (los 4 botones en una fila), las dos centradas.
+- **Diálogo de crear/editar suscripción remota:** se ordena el bloque de conexión. El título va con ícono y subtítulo, el interruptor en su propia fila con una línea que explica qué hace, y la cadena de conexión en un área de texto que se ve entera, en monoespaciada y sin pasar a mayúsculas. Los campos manuales van en grilla de dos columnas. El marco y el aviso de error toman el tema oscuro (antes, borde y fondo claros). El diálogo pasa de 550 a 600px. Para que se lea hubo que anular, solo en este diálogo, tres reglas globales: `styles.scss` deja en 0 el alto de la línea de ayuda/error (las ayudas pisaban el campo siguiente) y fija el alto del campo (la cadena quedaba cortada), y el `.error-message` de MDBootstrap va con `position: absolute` (el aviso tapaba el título).
+
+Probado por pantalla con el modo remoto en «SUC. KM2»: los 4 botones entran en una fila (ancho de la celda igual al contenido, 240px) y «INACTIVA» se ve entera. El diálogo se revisó en crear y editar, en conexión central y manual, y con el aviso de un corte.
+
 ## Persistencia, migraciones, replicación, multi-repo
 
 N/A: solo cambian ramas de error del desktop.

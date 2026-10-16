@@ -1,51 +1,113 @@
 .dialog-container {
-  padding: 16px;
-  min-width: 400px;
-  max-width: 550px;
+  padding: 16px 20px;
+  box-sizing: border-box;
 }
 
 .full-width {
   width: 100%;
-  margin-bottom: 16px;
+}
+
+// styles.scss deja en 0 el alto de la línea de ayuda/error y fija el alto del campo (!important): en este diálogo las
+// ayudas se pisaban con el campo siguiente y la cadena de conexión quedaba cortada
+:host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  height: auto !important;
+}
+
+.cadena-field ::ng-deep {
+  .mat-mdc-form-field-flex,
+  .mat-mdc-form-field-infix {
+    height: auto !important;
+  }
 }
 
 .form-content {
-  margin-top: 16px;
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 8px 0 16px;
 }
 
 .connection-section {
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-top: 8px;
 }
 
 .section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 16px;
+
+  .section-icon {
+    color: #90caf9;
+    margin-top: 2px;
+  }
 
   h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
   }
 }
 
-.connection-row {
+.toggle-row {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   margin-bottom: 16px;
-  
-  mat-form-field {
-    flex: 1;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.04);
+
+  .toggle-hint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    padding-left: 4px;
   }
+}
+
+// La cadena es larga: se ve entera, en monoespaciada y tal cual (sin pasar a mayúsculas/minúsculas)
+textarea.connection-string {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  text-transform: none;
+  word-break: break-all;
+  resize: none;
+  height: auto;
+  min-height: 4.5em;
 }
 
 .manual-connection {
-  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+
+  .field-host {
+    grid-column: 1;
+  }
+
+  .field-port {
+    grid-column: 2;
+  }
+
+  .field-password {
+    grid-column: 1 / -1;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
 }
 
 .dialog-actions {
@@ -56,16 +118,21 @@
 }
 
 .error-message {
+  // Hay un .error-message global con position: absolute: acá va en el flujo, debajo del título
+  position: static;
   display: flex;
-  align-items: center;
-  background-color: #fdecea;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: rgba(244, 67, 54, 0.12);
+  border-left: 3px solid #f44336;
   border-radius: 4px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  color: #d32f2f;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  color: #ef9a9a;
+  font-size: 13px;
 
   mat-icon {
-    margin-right: 8px;
+    flex-shrink: 0;
   }
 }
 
@@ -73,8 +140,8 @@
   display: inline-block;
   margin-right: 8px;
   vertical-align: middle;
-} 
+}
 
 input {
-    text-transform: lowercase;
+  text-transform: lowercase;
 }

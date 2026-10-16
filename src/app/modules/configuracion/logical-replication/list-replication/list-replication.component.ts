@@ -304,7 +304,7 @@ export class ListReplicationComponent implements OnInit {
     }
     
     const dialogRef = this.dialog.open(EditRemoteSubscriptionDialogComponent, {
-      width: '550px',
+      width: '600px',
       data: {
         branchSucursalId: this.selectedSucursalControl.value,
         isEdit: false
@@ -320,7 +320,7 @@ export class ListReplicationComponent implements OnInit {
   
   openEditRemoteSubscriptionDialog(subscription: LogicalReplication): void {
     const dialogRef = this.dialog.open(EditRemoteSubscriptionDialogComponent, {
-      width: '550px',
+      width: '600px',
       data: {
         branchSucursalId: this.selectedSucursalControl.value,
         subscription: subscription,
