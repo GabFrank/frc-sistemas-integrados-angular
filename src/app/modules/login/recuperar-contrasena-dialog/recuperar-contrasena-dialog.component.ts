@@ -57,7 +57,7 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
 
   solicitudForm = new FormGroup({
     telefono: new FormControl<string>(null, [Validators.required, Validators.pattern(/^[0-9+ ()-]{6,20}$/)]),
-    email: new FormControl<string>(null, Validators.email),
+    email: new FormControl<string>(null, [Validators.required, Validators.email]),
     observacion: new FormControl<string>(null, Validators.maxLength(500)),
   });
 
@@ -175,12 +175,13 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
       const c = this.solicitudForm.controls;
       this.avisarInvalido(
         c.telefono.invalid ? 'Ingrese un teléfono válido.'
+          : c.email.hasError('required') ? 'Ingrese su correo.'
           : c.email.invalid ? 'El correo no es válido.'
           : 'La observación no puede superar los 500 caracteres.');
       return;
     }
     const v = this.solicitudForm.getRawValue();
-    this.ejecutar(this.service.solicitudRrhh(this.verificacionToken, v.telefono, v.email?.trim() || null,
+    this.ejecutar(this.service.solicitudRrhh(this.verificacionToken, v.telefono, v.email.trim(),
       v.observacion?.trim() || null), (s) => {
         this.solicitudId = s.solicitudId;
         this.codigoSecreto = s.codigoSecreto;
