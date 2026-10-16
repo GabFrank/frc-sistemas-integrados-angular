@@ -15,6 +15,8 @@ import { SucursalService } from "../../../empresarial/sucursal/sucursal.service"
 import { ConfigurarTerminalPosDialogComponent } from "../configurar-terminal-pos-dialog/configurar-terminal-pos-dialog.component";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { timer } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 @UntilDestroy()
 @Component({
@@ -186,15 +188,33 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
       this.terminalPosService
         .onDesasignarFormato(entity.id)
         .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          if (res) {
-            this.notificacionSnackbar.notification$.next({
-              color: NotificacionColor.warn,
-              texto: `"${entity.descripcion}" quedó sin formato: no puede cobrar con tarjeta.`,
-              duracion: 6,
-            });
-            this.onGetData();
-          }
+        .subscribe({
+          next: (res) => {
+            if (res) {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.warn,
+                texto: `"${entity.descripcion}" quedó sin formato: no puede cobrar con tarjeta.`,
+                duracion: 6,
+              });
+              this.onGetData();
+            } else {
+              // false: la terminal ya no existe. Antes quedaba en silencio (#501)
+              this.notificacionSnackbar.openWarn('No se pudo quitar el formato: no se encontró la terminal.');
+              this.onGetData();
+            }
+          },
+          // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo quitarse y la fila seguiría mostrando el
+          // formato: se avisa y se recarga cuando el central tuvo tiempo (#501)
+          error: (e) => {
+            if (erroresDeRechazo(e) != null) {
+              return;
+            }
+            const aviso = avisoTrasMutacion(e, 'se quitó el formato');
+            if (aviso != null) {
+              this.notificacionSnackbar.openWarn(aviso, 8);
+            }
+            timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onGetData());
+          },
         });
     });
   } 

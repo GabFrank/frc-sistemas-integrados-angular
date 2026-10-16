@@ -27,9 +27,11 @@ import { ProductoComponent } from '../../../productos/producto/edit-producto/pro
 import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { ListGastosComponent } from '../../../financiero/gastos/pages/list-gastos/list-gastos.component';
 import { ListRetiroComponent } from '../../../financiero/retiro/list-retiro/list-retiro.component';
-import { combineLatest, of } from 'rxjs';
+import { combineLatest, of, timer } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
 import { MainService } from '../../../../main.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 interface NotificacionExtendida extends NotificacionData {
     conteoComentarios: number;
@@ -64,6 +66,7 @@ export class NotificationBoardComponent implements OnInit {
     private readonly tabService = inject(TabService);
     private readonly mainService = inject(MainService);
     private readonly cdr = inject(ChangeDetectorRef);
+    private readonly notificacionService = inject(NotificacionSnackbarService);
 
     readonly ESTADOS_TABLERO = [
         EstadoNotificacionTablero.POR_VERIFICAR,
@@ -455,7 +458,9 @@ export class NotificationBoardComponent implements OnInit {
             .marcarComoLeida(n.notificacion.id)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: () => this.cdr.markForCheck()
+                next: () => this.cdr.markForCheck(),
+                // Sin aviso: la tarjeta sigue sin leer y se ve (#501)
+                error: () => this.cdr.markForCheck()
             });
     }
 
@@ -467,7 +472,15 @@ export class NotificationBoardComponent implements OnInit {
             .actualizarEstadoTablero(n.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: () => this.cdr.markForCheck()
+                next: (res) => {
+                    // El central atrapa la excepción y devuelve false: antes la tarjeta quedaba igual sin decir nada (#501)
+                    if (res === false) {
+                        this.notificacionService.openWarn('No se pudo mover la notificación.');
+                        this.recargarColumnas(n.notificacion.estadoTablero, nuevoEstado);
+                    }
+                    this.cdr.markForCheck();
+                },
+                error: (e) => this.avisarSinRespuesta(e, n.notificacion.estadoTablero, nuevoEstado)
             });
     }
 
@@ -493,12 +506,15 @@ export class NotificationBoardComponent implements OnInit {
             .actualizarEstadoTablero(notificacion.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: () => {
-                    this.notificacionesTableroService.cargarNotificaciones(estadoAnterior, 0, 15);
-                    this.notificacionesTableroService.cargarNotificaciones(nuevoEstado, 0, 15);
+                next: (res) => {
+                    // Con false la recarga ya devuelve la tarjeta a su columna: falta decirlo (#501)
+                    if (res === false) {
+                        this.notificacionService.openWarn('No se pudo mover la notificación.');
+                    }
+                    this.recargarColumnas(estadoAnterior, nuevoEstado);
                     this.cdr.markForCheck();
                 },
-                error: () => {
+                error: (e) => {
                     transferArrayItem(
                         event.container.data,
                         event.previousContainer.data,
@@ -506,8 +522,26 @@ export class NotificationBoardComponent implements OnInit {
                         event.previousIndex
                     );
                     this.cdr.markForCheck();
+                    // Sin respuesta pudo moverse igual: se avisa y se recarga para ver dónde quedó
+                    this.avisarSinRespuesta(e, estadoAnterior, nuevoEstado);
                 }
             });
     }
-}
 
+    private recargarColumnas(estadoA: string, estadoB: string): void {
+        this.notificacionesTableroService.cargarNotificaciones(estadoA, 0, 15);
+        this.notificacionesTableroService.cargarNotificaciones(estadoB, 0, 15);
+    }
+
+    /**
+     * El central no rechaza estas mutations (devuelve false). Sin respuesta el cambio de columna pudo aplicarse: se avisa
+     * (el corte por tiempo ya lo avisó el link) y las columnas se recargan cuando el central tuvo tiempo (#501).
+     */
+    private avisarSinRespuesta(error: any, estadoA: string, estadoB: string): void {
+        const aviso = avisoTrasMutacion(error, 'se movió la notificación');
+        if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+        }
+        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.recargarColumnas(estadoA, estadoB));
+    }
+}
