@@ -21,6 +21,7 @@ import { ListTipoJustificativoComponent } from './tipo-justificativo/list-tipo-j
 import { EditTipoJustificativoDialogComponent } from './tipo-justificativo/edit-tipo-justificativo-dialog/edit-tipo-justificativo-dialog.component';
 import { ListMotivoValeComponent } from './motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { EditMotivoValeDialogComponent } from './motivo-vale/edit-motivo-vale-dialog/edit-motivo-vale-dialog.component';
+import { ListSolicitudRecuperacionComponent } from './recuperacion-contrasena/list-solicitud-recuperacion/list-solicitud-recuperacion.component';
 import { ListValeComponent } from './vale/list-vale/list-vale.component';
 import { EditValeDialogComponent } from './vale/edit-vale-dialog/edit-vale-dialog.component';
 import { ConfirmarValeDialogComponent } from './vale/confirmar-vale-dialog/confirmar-vale-dialog.component';
@@ -74,6 +75,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     EditTipoJustificativoDialogComponent,
     ListMotivoValeComponent,
     EditMotivoValeDialogComponent,
+    ListSolicitudRecuperacionComponent,
     ListValeComponent,
     EditValeDialogComponent,
     ConfirmarValeDialogComponent,

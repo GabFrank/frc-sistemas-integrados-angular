@@ -10,11 +10,13 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
+import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
+import { RecuperarContrasenaDialogComponent } from './recuperar-contrasena-dialog/recuperar-contrasena-dialog.component';
 
 
 
 @NgModule({
-  declarations: [LoginComponent],
+  declarations: [LoginComponent, RecuperarContrasenaDialogComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,
@@ -26,7 +28,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatSnackBarModule,
     MatTooltipModule,
     MatProgressBarModule,
-    MatIconModule
+    MatIconModule,
+    NgxQRCodeModule
   ]
 })
 export class LoginModule { }

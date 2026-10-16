@@ -9,6 +9,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { ConfiguracionDialogComponent } from "../../shared/components/configuracion-dialog/configuracion-dialog.component";
 import { ConfiguracionService } from "../../shared/services/configuracion.service";
+import { RecuperarContrasenaDialogComponent, RecuperarContrasenaDialogData } from "./recuperar-contrasena-dialog/recuperar-contrasena-dialog.component";
 
 @UntilDestroy()
 @Component({
@@ -191,11 +192,21 @@ export class LoginComponent implements OnInit, AfterViewInit {
   }
 
   onForgotPassword(): void {
-    this.snackBar.open(
-      'Se ha enviado un correo electrónico con instrucciones para restablecer su contraseña',
-      'Cerrar',
-      { duration: 5000 }
-    );
+    const data: RecuperarContrasenaDialogData = { nickname: this.nicknameControl.value };
+    this.dialog.open(RecuperarContrasenaDialogComponent, {
+      data,
+      width: '520px',
+      maxWidth: '95vw',
+      disableClose: true,
+      autoFocus: false,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((nickname: string) => {
+      if (nickname) {
+        this.nicknameControl.setValue(nickname);
+        this.passwordControl.reset();
+        this.errorMessage = null;
+        this.snackBar.open('Ingrese con su nueva contraseña', 'Cerrar', { duration: 5000 });
+      }
+    });
   }
 
   onNewUser(): void { }
