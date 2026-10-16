@@ -8,6 +8,8 @@ import { Cambio } from './cambio.model';
 import { CambioService } from './cambio.service';
 import { Moneda } from '../moneda/moneda.model';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { timer } from 'rxjs';
+import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from '../../../commons/core/utils/graphqlErrorUtils';
 
 interface MonedaCambioRow {
   moneda: Moneda;
@@ -94,8 +96,14 @@ export class CambioComponent implements OnInit {
           }
           this.onGetMonedas();
         },
-        error: () => {
-          this.onGetMonedas();
+        // El central nunca rechaza (devuelve false). Sin respuesta pudo actualizarse: se avisa (el corte por tiempo ya lo
+        // avisó el link) y se recarga cuando el central tuvo tiempo; antes recargaba al instante y sin aviso (#501)
+        error: (e) => {
+          const aviso = avisoTrasMutacion(e, 'se actualizó la cotización de mercado');
+          if (aviso != null) {
+            this.notificacionSnackbar.openWarn(aviso, 8);
+          }
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onGetMonedas());
         }
       });
   }

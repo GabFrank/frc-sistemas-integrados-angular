@@ -9,6 +9,8 @@ import { Impresora, TipoImpresora } from '../../../configuracion/impresoras/impr
 import { ImpresoraService } from '../../../configuracion/impresoras/impresora.service';
 import { FacturaLegal } from '../factura-legal.model';
 import { FacturaLegalService } from '../factura-legal.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface ImprimirEnSucursalData {
   tipo: TipoImpresora;
@@ -142,26 +144,38 @@ export class ImprimirEnSucursalDialogComponent implements OnInit {
           this.dialogRef.close(true);
           return;
         }
-        this.notificacion.notification$.next({
-          texto: 'No se pudo imprimir: verificá que la sucursal esté online y la impresora exista.',
-          color: NotificacionColor.warn,
-          duracion: 5,
-        });
-        this.cdr.markForCheck();
+        // El central también devuelve false si se cortó con la filial (PrintRouterService.proxyImprimir), y la filial pudo
+        // haber impreso: no se deja repetir desde acá (#501)
+        this.avisarSinConfirmar();
       },
-      error: () => {
+      error: (e) => {
         this.enviando = false;
-        this.notificacion.notification$.next({
-          texto: 'No se pudo imprimir en la sucursal.',
-          color: NotificacionColor.warn,
-          duracion: 5,
-        });
         this.cdr.markForCheck();
+        // En un rechazo el genérico ya mostró el motivo y no se imprimió nada
+        if (erroresDeRechazo(e) != null) {
+          return;
+        }
+        // Sin respuesta pudo imprimirse; el corte por tiempo ya lo avisó el link
+        if (esTimeoutDeLink(e)) {
+          this.dialogRef.close(false);
+          return;
+        }
+        this.avisarSinConfirmar();
       },
     });
   }
 
   cancelar(): void {
     this.dialogRef.close();
+  }
+
+  /** Repetir imprime otra vez: se avisa y se cierra, se vuelve a abrir solo después de mirar la impresora (#501). */
+  private avisarSinConfirmar(): void {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo confirmar la impresión: verificá que la sucursal esté online y revisá la impresora antes de repetir.',
+      color: NotificacionColor.warn,
+      duracion: 8,
+    });
+    this.dialogRef.close(false);
   }
 }

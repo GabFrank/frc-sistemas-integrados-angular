@@ -114,7 +114,7 @@ import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.c
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -956,21 +956,33 @@ export class ProductoComponent implements OnInit, OnDestroy {
             this.presentacionService
               .onImageSave(res, `${this.selectedPresentacion.id}.jpg`)
               .pipe(untilDestroyed(this))
-              .subscribe((res2) => {
-                if (res2 != null) {
-                  let presentacionIndex =
-                    this.presentacionesDataSource.data.findIndex(
-                      (p) => p.id == this.selectedPresentacion.id
-                    );
-                  // res2 es el Boolean de la mutation: la foto es la que se acaba de subir.
-                  this.presentacionesDataSource.data[
-                    presentacionIndex
-                  ].imagenPrincipal = res;
-                  if (this.selectedPresentacion?.principal == true) {
-                    this.imagenPrincipal = res;
-                    this.imagenPrincipalGrande = res;
+              .subscribe({
+                next: (res2) => {
+                  // Antes `!= null` tomaba también el false como éxito y mostraba una foto que no se guardó (#501)
+                  if (res2 === true) {
+                    let presentacionIndex =
+                      this.presentacionesDataSource.data.findIndex(
+                        (p) => p.id == this.selectedPresentacion.id
+                      );
+                    // res2 es el Boolean de la mutation: la foto es la que se acaba de subir.
+                    this.presentacionesDataSource.data[
+                      presentacionIndex
+                    ].imagenPrincipal = res;
+                    if (this.selectedPresentacion?.principal == true) {
+                      this.imagenPrincipal = res;
+                      this.imagenPrincipalGrande = res;
+                    }
+                  } else {
+                    this.notificacionService.openWarn('No se pudo guardar la imagen. Volvé a subirla.');
                   }
-                }
+                },
+                // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo guardarse; subirla otra vez la pisa
+                error: (e) => {
+                  const aviso = erroresDeRechazo(e) == null ? avisoTrasMutacion(e, 'se guardó la imagen') : null;
+                  if (aviso != null) {
+                    this.notificacionService.openWarn(aviso, 8);
+                  }
+                },
               });
           }
         });

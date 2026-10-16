@@ -31,6 +31,8 @@ import {
   CredencialesCupsDialogComponent,
   CredencialesCupsResult,
 } from '../credenciales-cups-dialog/credenciales-cups-dialog.component';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 interface Opcion {
   value: string;
@@ -775,8 +777,17 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
           }
           this.cdr.markForCheck();
         },
-        error: () => {
+        // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link. Sin respuesta la cola pudo
+        // crearse: lpadmin es idempotente, pero hay que mirar antes de repetir (#501)
+        error: (e) => {
           this.instalando = false;
+          if (erroresDeRechazo(e) == null && !esTimeoutDeLink(e)) {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo confirmar si se instaló la cola: revisá la lista de colas antes de repetir.',
+              color: NotificacionColor.warn,
+              duracion: 8,
+            });
+          }
           this.cdr.markForCheck();
         },
       });
@@ -1006,9 +1017,13 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
           }
           this.cdr.markForCheck();
         },
-        error: () => {
+        // En un rechazo el genérico ya mostró el motivo: sin un segundo mensaje. Sin respuesta la cola pudo crearse (#501)
+        error: (e) => {
           this.instalandoSmb = false;
-          this.mensajeSmb = 'No se pudo instalar la cola.';
+          // El corte por tiempo ya lo avisó el link
+          this.mensajeSmb = erroresDeRechazo(e) != null || esTimeoutDeLink(e)
+            ? null
+            : 'No se pudo confirmar si se instaló la cola: revisá la lista antes de repetir.';
           this.cdr.markForCheck();
         },
       });
