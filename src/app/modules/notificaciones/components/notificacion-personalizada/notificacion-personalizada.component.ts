@@ -17,6 +17,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { UsuarioSearchGQL } from '../../../personas/usuarios/graphql/usuarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy()
 @Component({
@@ -169,8 +171,17 @@ export class NotificacionPersonalizadaComponent implements OnInit {
           this.enviando = false;
           this.validarFormulario();
           console.error('Error al enviar notificación:', error);
-          this.snackbarService.openAlgoSalioMal('Error al enviar la notificación');
           this.cdr.markForCheck();
+          // En un rechazo el genérico ya mostró el motivo y no se envió nada (#501)
+          if (erroresDeRechazo(error) != null) {
+            return;
+          }
+          // Sin respuesta pudo enviarse: repetir manda otro push a todos. Se cierra para no reenviarla a ciegas; el corte
+          // por tiempo ya lo avisó el link
+          if (!esTimeoutDeLink(error)) {
+            this.snackbarService.openWarn('No se pudo confirmar si se envió la notificación: revisá antes de reenviarla.', 8);
+          }
+          this.dialogRef.close();
         }
       });
   }

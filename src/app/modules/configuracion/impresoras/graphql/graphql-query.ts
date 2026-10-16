@@ -92,7 +92,7 @@ export const dispositivosParaInstalarQuery = gql`
 
 export const instalarImpresoraCupsMutation = gql`
   mutation ($nombreCola: String!, $uri: String!, $raw: Boolean) {
-    instalarImpresoraCups(nombreCola: $nombreCola, uri: $uri, raw: $raw)
+    data: instalarImpresoraCups(nombreCola: $nombreCola, uri: $uri, raw: $raw)
   }
 `;
 

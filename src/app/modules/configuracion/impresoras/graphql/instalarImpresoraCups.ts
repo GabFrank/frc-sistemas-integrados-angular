@@ -3,7 +3,7 @@ import { Mutation } from 'apollo-angular';
 import { instalarImpresoraCupsMutation } from './graphql-query';
 
 export interface Response {
-  instalarImpresoraCups: boolean;
+  data: boolean;
 }
 
 @Injectable({
