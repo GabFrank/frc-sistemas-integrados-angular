@@ -85,7 +85,8 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
-import { Observable, Subscription, of } from "rxjs";
+import { Observable, Subscription, of, timer } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, finalize, map, switchMap } from "rxjs/operators";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
@@ -1167,16 +1168,29 @@ export class EditTransferenciaComponent implements OnInit {
         this.selectedTransferencia?.etapa
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            res,
-            res.id
-          );
-        }
-        this.actualizarAlertasPaginaActual();
-        this.onVerificarConfirmados();
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              res,
+              res.id
+            );
+          }
+          this.actualizarAlertasPaginaActual();
+          this.onVerificarConfirmados();
+        },
+        // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo desconfirmarse y la grilla lo seguiría
+        // mostrando confirmado: se relee después. Repetir es seguro (#501)
+        error: (err) => {
+          if (erroresDeRechazo(err) != null) return;
+          const aviso = avisoTrasMutacion(err, "se desconfirmó el ítem");
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          const id = this.selectedTransferencia?.id;
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);
+          });
+        },
       });
   }
 
@@ -1291,14 +1305,26 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
-          // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
-          // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
-          // responsable, dejando Finalizar habilitado sin confirmar nada.
-          this.cargarDatos(this.selectedTransferencia.id);
-        }
+      .subscribe({
+        next: (res) => {
+          if (res) {
+            // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
+            // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
+            // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
+            // responsable, dejando Finalizar habilitado sin confirmar nada.
+            this.cargarDatos(this.selectedTransferencia.id);
+          }
+        },
+        // En un rechazo el genérico ya mostró el motivo. Sin respuesta la etapa pudo avanzar: se relee después (#501)
+        error: (err) => {
+          if (erroresDeRechazo(err) != null) return;
+          const aviso = avisoTrasMutacion(err, "avanzó la etapa");
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          const id = this.selectedTransferencia?.id;
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);
+          });
+        },
       });
   }
 

@@ -9,6 +9,8 @@ export interface MotivoDialogData {
   detalle?: string;
   etiqueta?: string;
   botonConfirmar: string;
+  /** Cabecera roja. Default: true (cancelar/devolver deshacen un documento). */
+  peligro?: boolean;
 }
 
 /**
@@ -30,7 +32,10 @@ export class MotivoDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: MotivoDialogData,
   ) {
     this.etiqueta = data.etiqueta || 'Motivo';
+    this.tono = data.peligro === false ? 'normal' : 'peligro';
   }
+
+  tono: 'normal' | 'peligro' = 'peligro';
 
   onConfirmar(): void {
     if (this.motivoControl.invalid) return;

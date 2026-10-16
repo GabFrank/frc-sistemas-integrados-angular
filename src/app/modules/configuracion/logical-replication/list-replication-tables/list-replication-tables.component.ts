@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -9,7 +9,7 @@ import { ReplicationDirection, ReplicationTable } from '../replication-table.mod
 import { ReplicationTableService } from '../replication-table.service';
 import { EditReplicationTableDialogComponent } from '../edit-replication-table-dialog/edit-replication-table-dialog.component';
 import { PageInfo } from '../../../../app.component';
-import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
@@ -20,6 +20,7 @@ import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/cor
   styleUrls: ['./list-replication-tables.component.scss']
 })
 export class ListReplicationTablesComponent implements OnInit {
+  private dialogos = inject(DialogosService);
   // Table data
   tablesPage: PageInfo<ReplicationTable>;
   
@@ -225,17 +226,14 @@ export class ListReplicationTablesComponent implements OnInit {
   }
   
   deleteTable(table: ReplicationTable): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '350px',
-      data: {
-        title: 'Confirmar Eliminación',
-        message: `¿Está seguro que desea eliminar la configuración de la tabla "${table.tableName}"?`,
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar'
-      }
-    });
-    
-    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
+    this.dialogos.confirmar({
+      titulo: 'Confirmar Eliminación',
+      mensaje: `¿Está seguro que desea eliminar la configuración de la tabla "${table.tableName}"?`,
+      si: 'Eliminar',
+      no: 'Cancelar',
+      peligro: true,
+      ancho: '350px'
+    }).pipe(untilDestroyed(this)).subscribe(result => {
       if (result) {
         this.replicationTableService.deleteReplicationTable(table.id)
           .pipe(untilDestroyed(this))

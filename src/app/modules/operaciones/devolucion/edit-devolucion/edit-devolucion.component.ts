@@ -4,7 +4,8 @@ import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { EMPTY, Subscription } from "rxjs";
+import { EMPTY, Subscription, timer } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, timeout } from "rxjs/operators";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
@@ -723,7 +724,7 @@ export class EditDevolucionComponent implements OnInit {
             }
           }
         },
-        () => (this.procesando = false)
+        (err) => this.trasErrorDeEscritura(err, "avanzó la devolución")
       );
   }
 
@@ -757,7 +758,7 @@ export class EditDevolucionComponent implements OnInit {
                 if (esCanje) this.getItems(true);
               }
             },
-            () => (this.procesando = false)
+            (err) => this.trasErrorDeEscritura(err, "se revirtió la devolución")
           );
       });
   }
@@ -866,12 +867,8 @@ export class EditDevolucionComponent implements OnInit {
                 );
               }
             },
-            error: () => {
-              this.procesando = false;
-              this.notificacionService.openAlgoSalioMal(
-                "No se pudo colectar la devolución"
-              );
-            },
+            // Antes decía «No se pudo colectar» también sin respuesta, y en un rechazo se sumaba al motivo (#501)
+            error: (err) => this.trasErrorDeEscritura(err, "se colectó la devolución"),
           });
       });
   }
@@ -961,7 +958,7 @@ export class EditDevolucionComponent implements OnInit {
             this.computeEstadoFlags();
           }
         },
-        () => (this.procesando = false)
+        (err) => this.trasErrorDeEscritura(err, "se acreditó la devolución")
       );
   }
 
@@ -985,7 +982,7 @@ export class EditDevolucionComponent implements OnInit {
                 this.computeEstadoFlags();
               }
             },
-            () => (this.procesando = false)
+            (err) => this.trasErrorDeEscritura(err, "se canceló la devolución")
           );
       });
   }
@@ -999,5 +996,24 @@ export class EditDevolucionComponent implements OnInit {
         EditDevolucionComponent
       )
     );
+  }
+
+  /**
+   * Tras el error de una escritura. En un rechazo el genérico ya mostró el motivo y no se aplicó nada. Sin respuesta
+   * pudo aplicarse (revertir de nuevo desharía un estado más): se avisa y se relee a los 5 s, con los botones
+   * deshabilitados hasta entonces (#501).
+   */
+  private trasErrorDeEscritura(err: any, queSeHizo: string): void {
+    if (erroresDeRechazo(err) != null) {
+      this.procesando = false;
+      return;
+    }
+    const aviso = avisoTrasMutacion(err, queSeHizo);
+    if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+    const id = this.selectedDevolucion?.id;
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+      this.procesando = false;
+      if (id != null) this.cargarDatos(id);
+    });
   }
 }

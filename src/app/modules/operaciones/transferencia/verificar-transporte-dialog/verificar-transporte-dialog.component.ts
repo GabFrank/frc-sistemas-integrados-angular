@@ -13,7 +13,7 @@ import { Vehiculo } from '../../../activos/vehiculos/vehiculo/models/vehiculo.mo
 import { VehiculoSearchPageGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearchPage';
 import { UsuarioHelperService } from '../../../administrativo/marcacion/service/usuario-helper.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { AcompanhanteView } from '../ruta-hoja/ruta-hoja.component';
 
 export interface VerificarTransporteDialogData {
@@ -218,6 +218,7 @@ export class VerificarTransporteDialogComponent implements OnInit {
           // Sin respuesta, la etapa pudo haber avanzado igual: se cierra y la pantalla recarga la
           // transferencia para mostrar como quedo. Un rechazo ya fue avisado: queda abierto.
           if (erroresDeRechazo(err) == null) {
+            this.avisarEtapaSinConfirmar(err);
             this.dialogRef.close(true);
             return;
           }
@@ -255,6 +256,7 @@ export class VerificarTransporteDialogComponent implements OnInit {
         error: err => {
           // Mismo criterio que verificar(): sin respuesta se recarga, un rechazo deja el dialogo abierto.
           if (erroresDeRechazo(err) == null) {
+            this.avisarEtapaSinConfirmar(err);
             this.dialogRef.close(true);
             return;
           }
@@ -266,6 +268,12 @@ export class VerificarTransporteDialogComponent implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close();
+  }
+
+  /** Antes se cerraba sin decir nada: la pantalla recarga, pero el central puede seguir aplicando (#501). */
+  private avisarEtapaSinConfirmar(err: any): void {
+    const aviso = avisoTrasMutacion(err, 'avanzó la etapa');
+    if (aviso != null) this.notificacionService.openWarn(aviso, 8);
   }
 
   trackByAcompanhante(index: number, item: AcompanhanteView): number {

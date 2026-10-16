@@ -729,3 +729,11 @@ mat-form-field.transferencia-input-field {
   font-style: italic;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+// app-dialogo-base dibuja su propio marco (fondo, bordes redondeados, sombra): la superficie de Material
+// queda transparente para que no asome detras. Solo afecta a los dialogos que lo usan.
+.mat-mdc-dialog-surface:has(app-dialogo-base) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}

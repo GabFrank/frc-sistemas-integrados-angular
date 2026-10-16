@@ -205,7 +205,7 @@
           </button>
         </div>
 
-        <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;">
+        <div *ngIf="seleccionado.estado === 'AUTORIZADO' && !enviosSinConfirmar[seleccionado.id]" style="margin-top: 16px;">
           <button mat-raised-button color="accent" style="width: 100%;"
             (click)="onEnviarATesoreria(seleccionado)"
             matTooltip="Genera un gasto pagable en tesorería (Pagar Gasto)">
