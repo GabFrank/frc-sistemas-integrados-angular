@@ -417,7 +417,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     const personaInput = persona.toInput();
     personaInput.id = this.personaId;
 
-    this.personaService.onSavePersona(personaInput).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
+    // Paso intermedio: el verde es el del funcionario, uno solo (#501)
+    this.personaService.onSavePersona(personaInput, true, { avisarExito: false }).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
       if (personaGuardada == null) { return; }
       this.personaId = personaGuardada.id;
       this.personaActual = personaGuardada;
@@ -461,9 +462,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
         untilDestroyed(this)
       ).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }
-        // No se dispara un snackbar adicional acá: GenericCrudService.onSave ya muestra
-        // "Guardado con éxito" automáticamente en cada mutación (persona y funcionario),
-        // por lo que un tercer aviso manual sería redundante.
+        // Sin snackbar propio: el «Guardado con éxito» del genérico al guardar el funcionario es el
+        // único verde (la persona se guarda sin aviso, #501).
         this.guardado.emit(funcionarioGuardado.id);
       });
     });

@@ -179,7 +179,8 @@ export class FuncionarioWizardComponent implements OnInit {
                 persona.isFuncionario = true;
                 persona.nacimiento = this.nacimientoPersona.value;
                 persona.telefono = this.telefonoPersona.value;
-                this.personaService.onSavePersona(persona.toInput())
+                // Pasos intermedios sin verde: lo da el último, el del pre-registro (#501)
+                this.personaService.onSavePersona(persona.toInput(), true, { avisarExito: false })
                   .pipe(untilDestroyed(this))
                   .subscribe(newPersona => {
                     if (newPersona != null) {
@@ -187,7 +188,7 @@ export class FuncionarioWizardComponent implements OnInit {
                       usuario.nickname = this.nicknameUsuario.value;
                       usuario.password = '123';
                       usuario.persona = newPersona;
-                      this.usuarioService.onSaveUsuario(usuario.toInput())
+                      this.usuarioService.onSaveUsuario(usuario.toInput(), true, { avisarExito: false })
                         .pipe(untilDestroyed(this))
                         .subscribe(newUsuario => {
                           if (newUsuario != null) {
@@ -199,7 +200,7 @@ export class FuncionarioWizardComponent implements OnInit {
                             funcionario.persona = newPersona;
                             funcionario.sucursal = this.sucursalFuncionario.value;
                             funcionario.sueldo = this.sucursalFuncionario.value;
-                            this.funcionarioService.onSaveFuncionario(funcionario.toInput())
+                            this.funcionarioService.onSaveFuncionario(funcionario.toInput(), true, undefined, { avisarExito: false })
                               .pipe(untilDestroyed(this))
                               .subscribe(newFuncionario => {
                                 if (newFuncionario != null) {

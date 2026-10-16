@@ -219,7 +219,8 @@ export class AddClienteDialogComponent implements OnInit {
     newPersona.email = this.emailControl.value;
     newPersona.telefono = this.telefonoControl.value;
     
-    this.personaService.onSavePersona(newPersona.toInput()).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaRes: Persona) => {
+    // Paso intermedio: el verde es el del final (#501)
+    this.personaService.onSavePersona(newPersona.toInput(), true, { avisarExito: false }).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaRes: Persona) => {
       if (personaRes != null) {
         this.selectedPersona = personaRes;
         let esClienteNuevo = this.selectedCliente == null;
@@ -241,7 +242,8 @@ export class AddClienteDialogComponent implements OnInit {
           newCliente.verificadoSet = false;
         }
 
-        this.clienteService.onSaveCliente(newCliente.toInput()).pipe(
+        // El verde es el de abajo, uno solo: antes salían tres iguales (persona, cliente y este) (#501)
+        this.clienteService.onSaveCliente(newCliente.toInput(), true, { avisarExito: false }).pipe(
           // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
           terminarSiFalla(() => this.notificacionService.openWarn(
             'Los datos de la persona se guardaron, pero el cliente no. Volvé a guardar.', 6)),

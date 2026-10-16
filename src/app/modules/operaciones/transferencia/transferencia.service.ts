@@ -355,8 +355,9 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomQuery(this.getHojaRutaActivaPorVehiculo, { vehiculoId }, servidor);
   }
 
-  onSaveHojaRuta(input: HojaRutaInput, servidor = true): Observable<HojaRuta> {
-    return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveHojaRuta(input: HojaRutaInput, servidor = true, opciones?: { avisarExito?: boolean }): Observable<HojaRuta> {
+    return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor, undefined, undefined, opciones);
   }
 
   /**
