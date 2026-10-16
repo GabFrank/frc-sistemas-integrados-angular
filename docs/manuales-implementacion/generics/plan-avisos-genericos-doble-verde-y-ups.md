@@ -95,7 +95,7 @@ La prueba por pantalla mostró pasos intermedios con su propio «Guardado con é
 
 ## Resultado de la prueba (2026-10-16)
 
-Bundle `web-production` servido estático contra el central propio (8084), con el interceptor (respuesta armada, rechazo con una consulta inválida que el servidor no ejecuta). Guardados reales donde no cambian nada (mismos datos) o crean datos locales que después se borraron; respuestas armadas donde el guardado movería plata, replicación o configuración compartida. Avisos contados por elemento de snackbar (dos iguales seguidos cuentan dos).
+Bundle `web-production` servido estático contra el central propio (8084); el PDV, contra el filial (8080) y el central (8083) del alpha de esta máquina, con las dos escrituras armadas (en el alpha solo hubo consultas), con el interceptor (respuesta armada, rechazo con una consulta inválida que el servidor no ejecuta). Guardados reales donde no cambian nada (mismos datos) o crean datos locales que después se borraron; respuestas armadas donde el guardado movería plata, replicación o configuración compartida. Avisos contados por elemento de snackbar (dos iguales seguidos cuentan dos).
 
 | Pantalla | Resultado |
 |---|---|
@@ -121,9 +121,10 @@ Bundle `web-production` servido estático contra el central propio (8084), con e
 | Vincular inmueble a sucursal | ✓ un verde |
 | Observaciones de caja y de venta: categoría, subcategoría, motivo | ✓ un verde cada uno (antes dos iguales) |
 | Wizard de funcionario | ✓ un verde (antes cuatro) |
+| PDV, Utilitarios > Gasto: solicitud de gasto (pre-gasto) | ✓ solo «Solicitud de gasto registrada» |
+| PDV, Gastos autorizados > Entregar efectivo (retiro de pre-gasto) | ✓ solo «Retiro registrado en caja correctamente.» |
 
 Sin puerta en la UI (no se pueden probar por pantalla; ninguna pantalla los abre): `EditPagoComponent` y su `pago-detalle-dialog`, `ente-vinculacion-dialog` (`abrirVincularBienSucursal` sin llamadores), `add-caja-observacion-dialog` y el dashboard de observaciones de venta.
 
-Sin probar por pantalla: agregar gasto y retiro de pre-gasto, que se abren desde Utilitarios del PDV con caja abierta en un filial.
 
 Specs: `generic-crud.on-save`, `on-custom-mutation` y `on-delete` corridos en Karma (Electron, `DISPLAY=:0`): 108 specs, 3 fallas preexistentes ajenas (dos de `onDelete` con confirmación esperan `confirm` con 2 argumentos y hoy se llama con 10; «should be created» no provee `MatDialog`).
