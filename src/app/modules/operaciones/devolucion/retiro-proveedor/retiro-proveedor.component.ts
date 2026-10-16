@@ -1,7 +1,8 @@
 import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
-import { Subject } from "rxjs";
+import { Subject, timer } from "rxjs";
 import { takeUntil } from "rxjs/operators";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
@@ -361,11 +362,20 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
           this.cargarConsolidado();
           this.guardando = false;
         },
-        error: () => {
-          this.guardando = false;
-          this.notificacionService.openAlgoSalioMal(
-            "Error al marcar el retiro en bloque"
-          );
+        // En un rechazo el genérico ya mostró el motivo: el aviso propio lo duplicaba, y sin respuesta mentía (#501)
+        error: (err) => {
+          if (erroresDeRechazo(err) != null) {
+            this.cargarConsolidado();
+            this.guardando = false;
+            return;
+          }
+          // Pudo aplicarse: el consolidado se relee después. Reintentar es seguro (rechaza lo ya retirado, una por una)
+          const aviso = avisoTrasMutacion(err, "se marcó el retiro");
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          timer(RECARGA_TRAS_CORTE_MS).pipe(takeUntil(this.destroy$)).subscribe(() => {
+            this.cargarConsolidado();
+            this.guardando = false;
+          });
         },
       });
   }

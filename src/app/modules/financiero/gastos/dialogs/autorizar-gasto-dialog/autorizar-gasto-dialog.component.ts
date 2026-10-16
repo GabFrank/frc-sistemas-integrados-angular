@@ -6,6 +6,8 @@ import { PreGasto } from '../../models/pre-gasto.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../../main.service';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 interface ResumenMontoPorMoneda {
   etiquetaMoneda: string;
@@ -38,6 +40,11 @@ export class AutorizarGastoDialogComponent implements OnInit {
   devolucionDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
   registrandoDevolucion = false;
+  /** Una devolución o un finalizar quedó sin respuesta: repetirlos puede duplicar en el central (#501). */
+  devolucionSinConfirmar = false;
+  finalizarSinConfirmar = false;
+  /** La lista tiene una copia vieja del pre-gasto (devolución registrada o escritura sin respuesta): recarga al cerrar. */
+  private recargarListaAlCerrar = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
   currencyMask = new CurrencyMask();
@@ -47,7 +54,8 @@ export class AutorizarGastoDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<AutorizarGastoDialogComponent>,
     private gastoService: GastoService,
     private cdr: ChangeDetectorRef,
-    public mainService: MainService
+    public mainService: MainService,
+    private notificacion: NotificacionSnackbarService
   ) {
     this.preGasto = data.preGasto;
   }
@@ -90,6 +98,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
       next: (res) => {
         this.registrandoDevolucion = false;
         if (res) {
+          this.recargarListaAlCerrar = true;
           this.preGasto = { ...this.preGasto, ...res };
           this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
           this.devolucionGsControl.setValue(0, { emitEvent: false });
@@ -98,8 +107,15 @@ export class AutorizarGastoDialogComponent implements OnInit {
           this.cdr.markForCheck();
         }
       },
-      error: () => {
+      error: (err) => {
         this.registrandoDevolucion = false;
+        // Sin respuesta pudo registrarse, y repetirla resta otra vez el saldo: no se deja repetir con estos datos (#501)
+        if (this.avisarSinConfirmar(err, 'se registró la devolución del saldo')) {
+          this.devolucionSinConfirmar = true;
+          this.devolucionGsControl.setValue(0, { emitEvent: false });
+          this.devolucionRsControl.setValue(0, { emitEvent: false });
+          this.devolucionDsControl.setValue(0, { emitEvent: false });
+        }
         this.cdr.markForCheck();
       },
     });
@@ -122,10 +138,13 @@ export class AutorizarGastoDialogComponent implements OnInit {
       this.mainService.usuarioActual?.id,
       this.preGasto.sucursalId
     )
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.matDialogRef.close(res);
-        }
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res != null) {
+            this.matDialogRef.close(res);
+          }
+        },
+        error: err => this.avisarSinConfirmar(err, 'se autorizó el gasto'),
       });
   }
 
@@ -152,10 +171,13 @@ export class AutorizarGastoDialogComponent implements OnInit {
       this.mainService.usuarioActual?.id,
       this.preGasto.sucursalId
     )
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.matDialogRef.close(res);
-        }
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res != null) {
+            this.matDialogRef.close(res);
+          }
+        },
+        error: err => this.avisarSinConfirmar(err, 'se rechazó el gasto'),
       });
   }
 
@@ -177,11 +199,32 @@ export class AutorizarGastoDialogComponent implements OnInit {
       montoRendidoRs,
       montoRendidoDs
     )
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.matDialogRef.close(res);
-        }
+      .pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res != null) {
+            this.matDialogRef.close(res);
+          }
+        },
+        error: err => {
+          // Repetir finalizar puede volver a descontar la cuota o crear otro activo: se bloquea (#501)
+          if (this.avisarSinConfirmar(err, 'se finalizó el gasto')) {
+            this.finalizarSinConfirmar = true;
+            this.cdr.markForCheck();
+          }
+        },
       });
+  }
+
+  /**
+   * En un rechazo el genérico ya mostró el motivo y no se aplicó nada: devuelve false. Sin respuesta (también en el
+   * timeout del link, que ya avisó) pudo haberse aplicado: se avisa si hace falta y devuelve true (#501).
+   */
+  private avisarSinConfirmar(err: any, queSeHizo: string): boolean {
+    if (erroresDeRechazo(err) != null) return false;
+    this.recargarListaAlCerrar = true;
+    const aviso = avisoTrasMutacion(err, queSeHizo);
+    if (aviso != null) this.notificacion.openWarn(`${aviso} Cerrá el diálogo: la lista se actualiza.`, 10);
+    return true;
   }
 
   private parseMontoMoneda(value: unknown, moneda: 'GS' | 'RS' | 'DS'): number {
@@ -206,7 +249,8 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   cancelar(): void {
-    this.matDialogRef.close();
+    // La lista recarga y suelta la copia vieja del pre-gasto: reabrir mostraba el saldo de antes (#501)
+    this.matDialogRef.close(this.recargarListaAlCerrar ? { recargar: true } : undefined);
   }
 
   formatMonto(value: number | null | undefined): string {
