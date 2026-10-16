@@ -300,7 +300,7 @@ export class SugerenciasImagenPanelComponent implements OnInit {
                 .onImageSave(recortada, `${this.data.presentacion.id}.jpg`)
                 .pipe(
                   tap((ok) => {
-                    if (ok) {
+                    if (ok === true) {
                       this.dialogRef.close(recortada);
                     } else {
                       this.notificacionService.openWarn('No se pudo guardar la imagen. Volvé a subirla.');

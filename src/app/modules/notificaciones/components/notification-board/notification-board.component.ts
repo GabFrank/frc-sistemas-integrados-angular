@@ -472,15 +472,7 @@ export class NotificationBoardComponent implements OnInit {
             .actualizarEstadoTablero(n.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: (res) => {
-                    // El central atrapa la excepción y devuelve false: antes la tarjeta quedaba igual sin decir nada (#501)
-                    if (res === false) {
-                        this.notificacionService.openWarn('No se pudo mover la notificación.');
-                        this.recargarColumnas(n.notificacion.estadoTablero, nuevoEstado);
-                    }
-                    this.cdr.markForCheck();
-                },
-                error: (e) => this.avisarSinRespuesta(e, n.notificacion.estadoTablero, nuevoEstado)
+                next: () => this.cdr.markForCheck()
             });
     }
 
