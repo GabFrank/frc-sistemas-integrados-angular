@@ -102,6 +102,18 @@ Tras probar la tanda, en la misma pantalla:
 
 Probado por pantalla con el modo remoto en «SUC. KM2»: los 4 botones entran en una fila (ancho de la celda igual al contenido, 240px) y «INACTIVA» se ve entera. El diálogo se revisó en crear y editar, en conexión central y manual, y con el aviso de un corte.
 
+### Validadores del diálogo de suscripción remota (pedido de Franco, 2026-10-16)
+
+Los validadores de conexión solo los ponía el interruptor, así que:
+
+- al abrir «Nueva Suscripción» en modo central, los campos manuales nacían obligatorios y «Crear» no se habilitaba;
+- en modo manual, la cadena oculta seguía obligatoria: crear a mano era imposible;
+- al editar en modo manual pedía la contraseña y después ignoraba los campos (la cadena solo se armaba al crear).
+
+Ahora un solo método (`aplicarValidadoresDeConexion`) los pone al abrir y al cambiar el interruptor. Al crear: central exige la cadena; manual exige los campos y arma la URI. Al editar nada es obligatorio: en manual, con la contraseña vacía la conexión no se cambia, y con contraseña se arma la URI. Usuario y contraseña van con `encodeURIComponent`.
+
+Probado por pantalla con las mutations cortadas en el navegador (se registran las variables y nada llega al central): crear en central (habilitado al abrir, manda la cadena del central), crear en manual (exige la contraseña, manda `postgresql://postgres:p%40ss%3A1@localhost:5432/postgres`), editar en manual sin contraseña (no manda `connectionString`) y con contraseña (manda la URI).
+
 ## Persistencia, migraciones, replicación, multi-repo
 
 N/A: solo cambian ramas de error del desktop.

@@ -48,7 +48,9 @@
             Usar la conexión del servidor central
           </mat-slide-toggle>
           <span class="toggle-hint">
-            {{ useCentralConnection ? 'Se usa la cadena de conexión que genera el central.' : 'Cargá a mano los datos del servidor.' }}
+            {{ useCentralConnection ? 'Se usa la cadena de conexión que genera el central.'
+              : data.isEdit ? 'Cargá los datos nuevos. Con la contraseña vacía, la conexión no cambia.'
+              : 'Cargá a mano los datos del servidor.' }}
           </span>
         </div>
 

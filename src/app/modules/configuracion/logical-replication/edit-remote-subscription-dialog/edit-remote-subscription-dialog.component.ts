@@ -77,24 +77,9 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
       this.form.get('subscriptionName').setValue(this.data.subscription.name);
       this.form.get('subscriptionName').disable(); // Can't change subscription name
       
-      // In edit mode, connection string and publication name are optional
-      // and we don't have access to the current values, so we make them non-required
-      this.form.get('connectionString').clearValidators();
+      // In edit mode, publication name is optional (connection fields: aplicarValidadoresDeConexion)
       this.form.get('publicationName').clearValidators();
-      this.form.get('connectionString').updateValueAndValidity();
       this.form.get('publicationName').updateValueAndValidity();
-      
-      // Other fields also become non-required in edit mode
-      this.form.get('host').clearValidators();
-      this.form.get('port').clearValidators();
-      this.form.get('dbName').clearValidators();
-      this.form.get('username').clearValidators();
-      this.form.get('password').clearValidators();
-      this.form.get('host').updateValueAndValidity();
-      this.form.get('port').updateValueAndValidity();
-      this.form.get('dbName').updateValueAndValidity();
-      this.form.get('username').updateValueAndValidity();
-      this.form.get('password').updateValueAndValidity();
     } else {
       // Generate a suggested subscription name
       this.logicalReplicationService.generateBranchSubscriptionName(this.data.branchSucursalId)
@@ -119,11 +104,9 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
             console.error('Error generating publication name', error);
           }
         });
-      
-      // Add validator for connection string when creating new subscription
-      this.form.get('connectionString').setValidators([Validators.required]);
-      this.form.get('connectionString').updateValueAndValidity();
     }
+
+    this.aplicarValidadoresDeConexion();
   }
 
   onSave(): void {
@@ -143,9 +126,11 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
     // Get the connection string
     let connectionString = this.form.get('connectionString').value;
     
-    // If not using central connection and this is a new subscription, generate it
-    if (!this.useCentralConnection && !this.data.isEdit && !connectionString) {
-      connectionString = this.generateConnectionStringFromFields();
+    // Manual: la cadena sale de los campos. Al editar, con la contraseña vacía la conexión no se cambia (antes, al
+    // editar, los campos se ignoraban siempre)
+    if (!this.useCentralConnection) {
+      const sinCambiarConexion = this.data.isEdit && !this.form.get('password').value;
+      connectionString = sinCambiarConexion ? null : this.generateConnectionStringFromFields();
     }
 
     const operation: Observable<any> = this.data.isEdit ?
@@ -187,35 +172,32 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
 
   toggleConnectionType(): void {
     this.useCentralConnection = !this.useCentralConnection;
-    
-    if (this.useCentralConnection) {
-      // Use the central server connection string
-      this.form.get('connectionString').setValue(this.centralConnectionString);
-      
-      // Make manual fields non-required
-      this.form.get('host').clearValidators();
-      this.form.get('port').clearValidators();
-      this.form.get('dbName').clearValidators();
-      this.form.get('username').clearValidators();
-      this.form.get('password').clearValidators();
-    } else {
-      // Clear the connection string field
-      this.form.get('connectionString').setValue('');
-      
-      // Make manual fields required
-      this.form.get('host').setValidators([Validators.required]);
-      this.form.get('port').setValidators([Validators.required, Validators.min(1), Validators.max(65535)]);
-      this.form.get('dbName').setValidators([Validators.required]);
-      this.form.get('username').setValidators([Validators.required]);
-      this.form.get('password').setValidators([Validators.required]);
+    // Central: la cadena que genera el central. Manual: se arma con los campos al guardar
+    this.form.get('connectionString').setValue(this.useCentralConnection ? this.centralConnectionString : '');
+    this.aplicarValidadoresDeConexion();
+  }
+
+  /**
+   * Validadores según el modo de conexión. Antes solo los ponía el interruptor: al abrir en modo central los campos
+   * manuales nacían obligatorios y «Crear» no se habilitaba, y en modo manual la cadena oculta seguía obligatoria.
+   * Al editar nada es obligatorio: con la contraseña vacía la conexión queda como está.
+   */
+  private aplicarValidadoresDeConexion(): void {
+    const exigirCadena = this.useCentralConnection && !this.data.isEdit;
+    const exigirCampos = !this.useCentralConnection && !this.data.isEdit;
+    const rangoPuerto = [Validators.min(1), Validators.max(65535)];
+    const reglas = {
+      connectionString: exigirCadena ? [Validators.required] : [],
+      host: exigirCampos ? [Validators.required] : [],
+      port: exigirCampos ? [Validators.required, ...rangoPuerto] : rangoPuerto,
+      dbName: exigirCampos ? [Validators.required] : [],
+      username: exigirCampos ? [Validators.required] : [],
+      password: exigirCampos ? [Validators.required] : []
+    };
+    for (const campo of Object.keys(reglas)) {
+      this.form.get(campo).setValidators(reglas[campo]);
+      this.form.get(campo).updateValueAndValidity();
     }
-    
-    // Update validity
-    this.form.get('host').updateValueAndValidity();
-    this.form.get('port').updateValueAndValidity();
-    this.form.get('dbName').updateValueAndValidity();
-    this.form.get('username').updateValueAndValidity();
-    this.form.get('password').updateValueAndValidity();
   }
 
   generateConnectionStringFromFields(): string {
@@ -225,7 +207,8 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
     const username = this.form.get('username').value;
     const password = this.form.get('password').value;
     
-    // Generate connection string manually instead of calling the service to avoid another async call
-    return `postgresql://${username}:${password}@${host}:${port}/${dbName}`;
+    // Generate connection string manually instead of calling the service to avoid another async call.
+    // Usuario y contraseña van codificados: un @, : o / en la contraseña rompería la URI
+    return `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${dbName}`;
   }
 } 
