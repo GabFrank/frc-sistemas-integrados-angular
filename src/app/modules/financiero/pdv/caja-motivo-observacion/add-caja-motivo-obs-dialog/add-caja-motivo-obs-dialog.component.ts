@@ -8,7 +8,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { MainService } from '../../../../../main.service';
 import { CajaMotivoObservacionService } from '../caja-motivo-observacion.service';
 import { CajaSubCategoriaObservacionService } from '../../caja-subcategoria-observacion/caja-subcategoria-observacion.service';
-import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 export interface AddCajaMotivoObservacionData {
   cajaSubCategoriaObsId: number;
@@ -124,11 +124,7 @@ export class AddCajaMotivoObsDialogComponent implements OnInit{
             res.cajaSubcategoriaObservacion = cajaSubCat;
           }
           this.dialogRef.close(res);
-          this.notificationBar.notification$.next({
-            texto: 'Guardado con éxito',
-            color: NotificacionColor.success,
-            duracion: 2,
-          });
+          // El verde lo da el guardado, con el mismo texto: antes salían dos iguales (#501)
         }
       }, (error) => {
         console.error('Save error:', error);

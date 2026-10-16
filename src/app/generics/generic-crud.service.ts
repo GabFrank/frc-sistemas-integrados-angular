@@ -401,11 +401,8 @@ export class GenericCrudService {
               obs.complete();
             } else {
               if (silentLoad !== true) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                  color: NotificacionColor.danger,
-                  duracion: 3,
-                });
+                // N iguales en paralelo (recepción, distribuciones) = un solo aviso (#501)
+                this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message), 3);
               }
               obs.error(limpiarErroresGraphQL(res.errors));
             }
@@ -695,6 +692,8 @@ export class GenericCrudService {
    *   invitar a repetir a ciegas (`erroresDeRechazo(err) == null` lo distingue).
    *
    * @param errorConf `networkError.show = false` apaga ese aviso, para quien dice lo suyo.
+   * @param opciones `avisarExito = false` apaga solo «Guardado con éxito», para la pantalla que muestra su
+   * propio verde (como en {@link onSaveCustom}); los avisos de error no cambian (#501).
    */
   onSave<T>(
     gql: Mutation,
@@ -703,7 +702,8 @@ export class GenericCrudService {
     local?: string,
     servidor: boolean = true,
     errorConf?: QueryError,
-    usuarioId?: number
+    usuarioId?: number,
+    opciones?: { avisarExito?: boolean }
   ): Observable<T> {
     this.isLoading = true;
     if (usuarioId == null) usuarioId = this.mainService.usuarioActual.id;
@@ -747,18 +747,17 @@ export class GenericCrudService {
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
-              this.notificacionSnackBar.notification$.next({
-                texto: "Guardado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
+              if (opciones?.avisarExito !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Guardado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
+                });
+              }
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto:
-                  "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 5,
-              });
+              // N rechazos iguales en paralelo (cuotas de un pago) = un solo aviso (#501)
+              this.avisarErrorSinRepetir(gql,
+                "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message), 5);
               if (res?.data != null && res?.data["data"] != null) {
                 // Se guardó, y falló algo al armar la respuesta. Antes emitía sin completar.
                 obs.next(res.data["data"]);
@@ -800,17 +799,19 @@ export class GenericCrudService {
   // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
   // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.
   ventanaAvisoErrorMs = 3000;
-  private ultimoAvisoError: { gql: Mutation; texto: string; en: number } = null;
+  // Uno por operación: con un solo registro, dos operaciones que se alternan en un lote (A, B, A, B)
+  // se pisaban y volvían a avisar (#501).
+  private ultimoAvisoError = new WeakMap<Mutation, { texto: string; en: number }>();
 
   private avisarErrorSinRepetir(gql: Mutation, texto: string, duracion: number): void {
     // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
     // resta negativa y silenciaría avisos mucho más de la ventana.
     const ahora = performance.now();
-    const repetido = this.ultimoAvisoError?.gql === gql
-      && this.ultimoAvisoError.texto === texto
-      && ahora - this.ultimoAvisoError.en < this.ventanaAvisoErrorMs;
+    // Sin operación (no debería pasar) se avisa siempre: un WeakMap no acepta una clave nula.
+    const ultimo = gql != null ? this.ultimoAvisoError.get(gql) : null;
+    const repetido = ultimo?.texto === texto && ahora - ultimo.en < this.ventanaAvisoErrorMs;
     if (repetido) return;
-    this.ultimoAvisoError = { gql, texto, en: ahora };
+    if (gql != null) this.ultimoAvisoError.set(gql, { texto, en: ahora });
     this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.danger, duracion });
   }
 

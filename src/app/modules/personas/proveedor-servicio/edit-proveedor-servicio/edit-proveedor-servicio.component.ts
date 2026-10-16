@@ -405,7 +405,7 @@ export class EditProveedorServicioComponent implements OnInit {
     input.numeroContacto = formValue.numeroContacto?.trim() || null;
 
     this.proveedorServicioService
-      .onSave(input)
+      .onSave(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedorServicio) => {

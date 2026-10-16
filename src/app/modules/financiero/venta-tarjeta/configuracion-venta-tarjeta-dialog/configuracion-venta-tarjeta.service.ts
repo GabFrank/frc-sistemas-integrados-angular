@@ -45,7 +45,9 @@ export class ConfiguracionVentaTarjetaService {
       .pipe(map((res: any) => res?.data?.data?.terminalObligatoria !== false));
   }
 
-  onSaveConfiguracion(input: ConfiguracionVentaTarjetaInput, servidor = true): Observable<ConfiguracionVentaTarjeta> {
-    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveConfiguracion(input: ConfiguracionVentaTarjetaInput, servidor = true,
+                      opciones?: { avisarExito?: boolean }): Observable<ConfiguracionVentaTarjeta> {
+    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor, undefined, undefined, opciones);
   }
 }

@@ -179,7 +179,8 @@ export class EnteVinculacionDialogComponent implements OnInit {
           : undefined,
         usuarioId: this.mainService.usuarioActual?.id,
       };
-      this.generic.onSave(this.saveVinculacionGQL, input).subscribe({
+      // El verde es el de la pantalla (#501)
+      this.generic.onSave(this.saveVinculacionGQL, input, undefined, undefined, true, undefined, undefined, { avisarExito: false }).subscribe({
         next: (res) => {
           this.isLoading = false;
           if (res) {
@@ -207,6 +208,7 @@ export class EnteVinculacionDialogComponent implements OnInit {
     }
 
     let pendientes = items.length;
+    let fallos = 0;
     const resultados: EnteVinculacion[] = [];
     items.forEach(item => {
       const input: EnteVinculacionInput = {
@@ -215,18 +217,24 @@ export class EnteVinculacionDialogComponent implements OnInit {
         observacion: item.observacion,
         usuarioId: this.mainService.usuarioActual?.id,
       };
-      this.generic.onSave(this.saveVinculacionGQL, input).subscribe({
+      // Un solo verde al final del lote, y solo si todo se guardó: antes decidía la última respuesta (#501)
+      this.generic.onSave(this.saveVinculacionGQL, input, undefined, undefined, true, undefined, undefined, { avisarExito: false }).subscribe({
         next: (res) => {
           if (res) resultados.push(res);
           pendientes--;
-          if (pendientes === 0) {
+          if (pendientes === 0 && fallos === 0) {
             this.isLoading = false;
             this.notificacion.openSucess('Vinculación guardada');
             this.dialogRef.close(resultados);
+          } else if (pendientes === 0) {
+            this.isLoading = false;
+            this.notificacion.openWarn('Error al guardar alguna vinculación');
+            this.cdr.markForCheck();
           }
         },
         error: () => {
           pendientes--;
+          fallos++;
           if (pendientes === 0) {
             this.isLoading = false;
             this.notificacion.openWarn('Error al guardar alguna vinculación');

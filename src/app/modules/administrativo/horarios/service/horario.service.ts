@@ -40,12 +40,16 @@ export class HorarioService {
         return this.genericCrudService.onGetAll(this.horarios, page, size, servidor);
     }
 
-    /** `errorConf` es para la asignación en lote (#390): sin él, un error de red no llega nunca. */
-    onSaveHorario(input: HorarioInput, servidor = true, errorConf?: QueryError): Observable<Horario> {
+    /**
+     * `errorConf` es para la asignación en lote (#390): sin él, un error de red no llega nunca.
+     * `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501).
+     */
+    onSaveHorario(input: HorarioInput, servidor = true, errorConf?: QueryError,
+                  opciones?: { avisarExito?: boolean }): Observable<Horario> {
         if (!input.usuarioId && this.mainService.usuarioActual?.id) {
             input.usuarioId = this.mainService.usuarioActual.id;
         }
-        return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor, errorConf);
+        return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor, errorConf, undefined, opciones);
     }
 
     onDeleteHorario(id: number, servidor = true): Observable<boolean> {

@@ -78,10 +78,11 @@ export class PagoDetalleCuotaService {
   /**
    * Guarda o actualiza una cuota de detalle de pago
    * @param entity Datos de la cuota a guardar
+   * @param opciones `avisarExito = false`, para la pantalla que muestra su propio verde (#501)
    * @returns Observable de la cuota guardada
    */
-  onSavePagoDetalleCuota(entity: PagoDetalleCuotaInput): Observable<PagoDetalleCuota> {
-    return this.genericService.onSave(this.savePagoDetalleCuotaGQL, entity);
+  onSavePagoDetalleCuota(entity: PagoDetalleCuotaInput, opciones?: { avisarExito?: boolean }): Observable<PagoDetalleCuota> {
+    return this.genericService.onSave(this.savePagoDetalleCuotaGQL, entity, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   /**
@@ -90,7 +91,9 @@ export class PagoDetalleCuotaService {
    * @returns Observable booleano indicando si se eliminó correctamente
    */
   onDeletePagoDetalleCuota(id: number): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePagoDetalleCuotaGQL, id, '¿Eliminar cuota?', null, false, true, "¿Está seguro que desea eliminar esta cuota?");
+    // Un solo verde, con el texto que daba el diálogo (#501)
+    return this.genericService.onDelete(this.deletePagoDetalleCuotaGQL, id, '¿Eliminar cuota?', null, false, true, "¿Está seguro que desea eliminar esta cuota?",
+      { exito: 'Cuota eliminada correctamente' });
   }
 
   /**

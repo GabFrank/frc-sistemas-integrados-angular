@@ -119,7 +119,7 @@ export class EditChequeraDialogComponent implements OnInit {
     // Mientras se guarda no se cierra (ni Esc ni clic afuera): la lista de chequeras no se releería.
     this.dialogRef.disableClose = true;
     const fin = () => { this.isSaving = false; this.dialogRef.disableClose = false; };
-    this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED).pipe(take(1), untilDestroyed(this)).subscribe({
+    this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(take(1), untilDestroyed(this)).subscribe({
       next: res => {
         fin();
         if (res != null) {

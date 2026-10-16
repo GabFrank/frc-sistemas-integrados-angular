@@ -424,7 +424,7 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     proveedorInput.credito = formValue.credito || false;
     proveedorInput.chequeDias = formValue.chequeDias || 8;
 
-    this.proveedorService.onSave(proveedorInput)
+    this.proveedorService.onSave(proveedorInput, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedor) => {

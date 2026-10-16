@@ -50,7 +50,8 @@ export class PagarAguinaldoDialogComponent implements OnInit {
       return;
     }
     this.pagando = true;
-    this.aguinaldoService.onPagar(this.data.aguinaldoId, this.cajaControl.value)
+    // El verde lo da la lista al cerrar («Aguinaldo pagado») (#501)
+    this.aguinaldoService.onPagar(this.data.aguinaldoId, this.cajaControl.value, true, { avisarExito: false })
       .pipe(untilDestroyed(this)).subscribe({
         next: (res) => {
           this.pagando = false;

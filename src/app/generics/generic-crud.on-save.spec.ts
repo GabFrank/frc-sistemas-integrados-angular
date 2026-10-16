@@ -96,6 +96,44 @@ describe('GenericCrudService.onSave', () => {
     expect(avisos.length).toBe(1);
   });
 
+  it('con avisarExito = false emite sin «Guardado con éxito» (el verde es de la pantalla, #501)', () => {
+    const r = leer(service.onSave(mutation(of({ data: { data: { id: 5 } } })), {}, undefined, undefined, true,
+      undefined, undefined, { avisarExito: false }));
+    expect(r.valores).toEqual([{ id: 5 }]);
+    expect(r.completo).toBeTrue();
+    expect(avisos).toEqual([]);
+  });
+
+  it('con avisarExito = false un rechazo avisa igual', () => {
+    leer(service.onSave(mutation(of({ data: null, errors: [{ message: 'ya existe' }] })), {}, undefined, undefined,
+      true, undefined, undefined, { avisarExito: false }));
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('ya existe');
+  });
+
+  it('el mismo rechazo de la misma mutation en paralelo avisa una sola vez (#501)', () => {
+    const gql = mutation(of({ data: null, errors: [{ message: 'cuota cerrada' }] }));
+    leer(service.onSave(gql, {}));
+    leer(service.onSave(gql, {}));
+    leer(service.onSave(gql, {}));
+    expect(avisos.length).toBe(1);
+  });
+
+  it('rechazos distintos, o de otra mutation, avisan cada uno', () => {
+    const gql = mutation(of({ data: null, errors: [{ message: 'uno' }] }));
+    const otro = mutation(of({ data: null, errors: [{ message: 'dos' }] }));
+    leer(service.onSave(gql, {}));
+    leer(service.onSave(otro, {}));
+    expect(avisos.length).toBe(2);
+  });
+
+  it('dos mutations que se alternan no se pisan el registro: A, B, A, B avisa dos veces (#501)', () => {
+    const a = mutation(of({ data: null, errors: [{ message: 'a' }] }));
+    const b = mutation(of({ data: null, errors: [{ message: 'b' }] }));
+    [a, b, a, b].forEach(gql => leer(service.onSave(gql, {})));
+    expect(avisos.length).toBe(2);
+  });
+
   it('si la mutation completa sin emitir, falla como respuesta vacía (no es un rechazo)', () => {
     const r = leer(service.onSave(mutation(EMPTY), {}));
     expect(r.fallo).toBeTrue();

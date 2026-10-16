@@ -938,7 +938,8 @@ export class PagoDetalleDialogComponent implements OnInit {
           creadoEn: dateToString(cuota.creadoEn)
         };
         
-        this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput)
+        // El verde es el «Cuota cancelada correctamente» de abajo (#501)
+        this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput, { avisarExito: false })
           .pipe(
             untilDestroyed(this),
             catchError(error => {
@@ -1017,7 +1018,7 @@ export class PagoDetalleDialogComponent implements OnInit {
               console.warn('Cuota not found in array, id:', cuota.id);
             }
             
-            this.snackBar.open('Cuota eliminada correctamente', 'Cerrar', { duration: 3000 });
+            // El verde lo da el borrado, con este texto (#501)
             
             // If it was the last cuota, special handling
             if (isLastCuota) {
@@ -1111,7 +1112,8 @@ export class PagoDetalleDialogComponent implements OnInit {
             creadoEn: dateToString(cuota.creadoEn)
           };
           
-          return this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput);
+          // Un solo verde, el del final (#501)
+          return this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput, { avisarExito: false });
         });
         
         // Execute all cancellations in parallel
@@ -1193,7 +1195,8 @@ export class PagoDetalleDialogComponent implements OnInit {
         return;
       }
       
-      this.pagoDetalleCuotaService.onSavePagoDetalleCuota(updates[index])
+      // Reordenar sigue a borrar una cuota, que ya avisó: sin un verde por cuota (#501)
+      this.pagoDetalleCuotaService.onSavePagoDetalleCuota(updates[index], { avisarExito: false })
         .pipe(untilDestroyed(this))
         .subscribe(
           result => {
@@ -1289,7 +1292,8 @@ export class PagoDetalleDialogComponent implements OnInit {
         estado: currentEstado
       };
       
-      this.pagoDetalleService.update(pagoDetalleInput)
+      // Sigue a borrar la última cuota, que ya avisó (#501)
+      this.pagoDetalleService.update(pagoDetalleInput, { avisarExito: false })
         .pipe(
           untilDestroyed(this),
           catchError(error => {
@@ -1451,8 +1455,9 @@ export class PagoDetalleDialogComponent implements OnInit {
     
     // Save or update
     const observable = this.isEdit
-      ? this.pagoDetalleService.update(pagoDetalleInput)
-      : this.pagoDetalleService.save(pagoDetalleInput);
+      // Todas las ramas de éxito dan su propio aviso (#501)
+      ? this.pagoDetalleService.update(pagoDetalleInput, { avisarExito: false })
+      : this.pagoDetalleService.save(pagoDetalleInput, { avisarExito: false });
     
     observable
       .pipe(untilDestroyed(this))
@@ -1498,7 +1503,8 @@ export class PagoDetalleDialogComponent implements OnInit {
               totalPagado: 0
             };
             
-            this.pagoDetalleCuotaService.onSavePagoDetalleCuota(newCuota)
+            // El verde es el «Detalle de pago y cuota guardados correctamente» de abajo (#501)
+            this.pagoDetalleCuotaService.onSavePagoDetalleCuota(newCuota, { avisarExito: false })
               .pipe(untilDestroyed(this))
               .subscribe(
                 cuotaResult => {
@@ -1867,7 +1873,8 @@ export class PagoDetalleDialogComponent implements OnInit {
     console.log(`${isEditing ? 'Editing' : 'Adding new'} cuota:`, cuotaInput);
     
     // Save the cuota
-    this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cuotaInput)
+    // El verde es el «Cuota agregada/actualizada correctamente» de abajo (#501)
+    this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cuotaInput, { avisarExito: false })
       .pipe(
         untilDestroyed(this),
         catchError(error => {

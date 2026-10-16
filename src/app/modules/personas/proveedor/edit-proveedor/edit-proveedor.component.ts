@@ -447,7 +447,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     proveedorInput.credito = formValue.credito || false;
     proveedorInput.chequeDias = formValue.chequeDias || 8;
     this.proveedorService
-      .onSave(proveedorInput)
+      .onSave(proveedorInput, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedor) => {
