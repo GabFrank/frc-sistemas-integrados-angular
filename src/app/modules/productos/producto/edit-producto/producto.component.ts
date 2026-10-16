@@ -65,7 +65,7 @@ import {
 } from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
 import { Codigo } from "../../codigo/codigo.model";
 import { CodigoService } from "../../codigo/codigo.service";
-import { SearchEnvaseDialogComponent } from "../../envase/search-envase-dialog/search-envase-dialog.component";
+import { BuscadorService } from "../../../../shared/services/buscador.service";
 import { AddFamiliaDialogComponent } from "../../familia/add-familia-dialog/add-familia-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliaService } from "../../familia/familia.service";
@@ -261,6 +261,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) public dialogData: ProductoDialogData,
     private matDialogRef: MatDialogRef<ProductoComponent>,
+    private buscador: BuscadorService,
     public mainService: MainService,
     private notifiActionBar: NotificacionSnackbarService,
     private dialogo: DialogosService,
@@ -1406,14 +1407,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchEnvase() {
-    this.matDialog
-      .open(SearchEnvaseDialogComponent, {
-        data: {
-          producto: this.selectedProducto,
-        },
-        width: "70%",
-      })
-      .afterClosed()
+    this.buscador
+      .abrir("envase")
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {

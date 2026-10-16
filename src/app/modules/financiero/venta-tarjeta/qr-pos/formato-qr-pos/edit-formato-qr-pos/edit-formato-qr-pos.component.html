@@ -19,18 +19,10 @@
 
   <!-- Sin esto, todo formato quedaba comodín y la detección de cupón de otra terminal nunca se
        activaba. Dejarlo vacío sigue siendo válido: significa "probar contra cualquier terminal". -->
-  <mat-form-field appearance="outline" class="campo-con-hint-largo">
-    <mat-label>Proveedor de la terminal</mat-label>
-    <mat-select formControlName="proveedorServicioId">
-      <mat-option [value]="null">Cualquiera (comodín)</mat-option>
-      <mat-option *ngFor="let p of proveedores" [value]="p.id">
-        {{ p.persona?.nombre || p.nombreContacto || ('Proveedor ' + p.id) }}
-      </mat-option>
-    </mat-select>
-    <mat-hint>
-      Si se asigna, el cupón que no sea de este proveedor se marca como de otra terminal.
-    </mat-hint>
-  </mat-form-field>
+  <app-buscador-field appearance="outline" tipo="proveedorServicio"
+    titulo="Proveedor de la terminal" placeholder="Cualquiera (comodín)" formControlName="proveedorServicio">
+  </app-buscador-field>
+  <div class="hint-proveedor">Vacío = cualquiera (comodín). Si se asigna, el cupón que no sea de este proveedor se marca como de otra terminal.</div>
 
   <mat-form-field appearance="outline">
     <mat-label>Mapeo (JSON)</mat-label>

@@ -5,7 +5,6 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Sucursal } from '../sucursal.model';
 import { SucursalService } from '../sucursal.service';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
-import { CiudadService } from '../../../general/ciudad/ciudad.service';
 import { MainService } from '../../../../main.service';
 import { forkJoin } from 'rxjs';
 
@@ -28,7 +27,7 @@ export class EditSucursalDialogComponent implements OnInit {
   // Form controls
   nombreControl = new FormControl(null, [Validators.required]);
   localizacionControl = new FormControl(null, [Validators.required]);
-  ciudadControl = new FormControl(null, [Validators.required]);
+  ciudadControl = new FormControl<Ciudad>(null, [Validators.required]);
   depositoControl = new FormControl(false);
   depositoPredeterminadoControl = new FormControl(false);
   codigoEstablecimientoFacturaControl = new FormControl(null);
@@ -53,13 +52,11 @@ export class EditSucursalDialogComponent implements OnInit {
   activoControl = new FormControl(true); // Por defecto activo
 
   // Lists for selects
-  ciudadList: Ciudad[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: SucursalDialogData,
     private dialogRef: MatDialogRef<EditSucursalDialogComponent>,
     private sucursalService: SucursalService,
-    private ciudadService: CiudadService,
     private mainService: MainService
   ) { 
     if (data?.sucursal != null) {
@@ -87,9 +84,6 @@ export class EditSucursalDialogComponent implements OnInit {
       activo: this.activoControl
     });
 
-    // Load initial data
-    this.loadInitialData();
-
     if (this.selectedSucursal.id) {
       this.cargarDatos();
     } else {
@@ -97,31 +91,10 @@ export class EditSucursalDialogComponent implements OnInit {
     }
   }
 
-  loadInitialData() {
-    // Load ciudades from CiudadService
-    this.ciudadService.getAllCiudades()
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (ciudades) => {
-          if (ciudades && ciudades.length > 0) {
-            this.ciudadList = ciudades;
-          } else {
-            console.warn('No se encontraron ciudades');
-          }
-        },
-        // Antes cargaba tres ciudades inventadas con ids 1, 2 y 3: elegir una y guardar pisaba la ciudad real
-        // de la sucursal con la que tuviera ese id. Sin ciudades, la ciudad no se toca (#390).
-        error: (error) => {
-          console.error('Error al cargar ciudades:', error);
-          this.ciudadList = [];
-        }
-      });
-  }
-
   cargarDatos() {
     this.nombreControl.setValue(this.selectedSucursal.nombre);
     this.localizacionControl.setValue(this.selectedSucursal.localizacion);
-    this.ciudadControl.setValue(this.selectedSucursal.ciudad?.id);
+    this.ciudadControl.setValue(this.selectedSucursal.ciudad ?? null);
     this.depositoControl.setValue(this.selectedSucursal.deposito ?? false);
     this.depositoPredeterminadoControl.setValue(this.selectedSucursal.depositoPredeterminado ?? false);
     this.codigoEstablecimientoFacturaControl.setValue(this.selectedSucursal.codigoEstablecimientoFactura);
@@ -154,12 +127,8 @@ export class EditSucursalDialogComponent implements OnInit {
     this.selectedSucursal.nombre = this.nombreControl.value?.toUpperCase();
     this.selectedSucursal.localizacion = this.localizacionControl.value?.toUpperCase();
     
-    // Find selected ciudad object
-    // Si las ciudades no cargaron no hay de dónde elegir: la sucursal conserva la que tenía.
-    const ciudadId = this.ciudadControl.value;
-    const ciudadElegida = this.ciudadList?.find(c => c.id === ciudadId);
-    if (ciudadElegida != null) {
-      this.selectedSucursal.ciudad = ciudadElegida;
+    if (this.ciudadControl.value?.id != null) {
+      this.selectedSucursal.ciudad = this.ciudadControl.value;
     }
     
     this.selectedSucursal.deposito = this.depositoControl.value ?? false;

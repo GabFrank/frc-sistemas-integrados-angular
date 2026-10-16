@@ -1,15 +1,8 @@
 import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
-import { Observable, of, Subject, timer } from "rxjs";
+import { Subject, timer } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  switchMap,
-  takeUntil,
-} from "rxjs/operators";
 
 import { GenericCrudService, PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
@@ -24,7 +17,6 @@ import { ConfiguracionService } from "../../../../shared/services/configuracion.
 import { DevolucionConfiguracionService } from "../configuracion/devolucion-configuracion.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
-import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 
@@ -53,9 +45,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  // Autocomplete de proveedor (patrón gestion-compras: ProveedoresSearchByPersonaGQL).
-  proveedorControl = new FormControl<string | Proveedor | null>(null);
-  proveedoresFiltrados: Proveedor[] = [];
+  proveedorControl = new FormControl<Proveedor | null>(null);
   proveedorSeleccionado: Proveedor | null = null;
 
   // Estado de la vista
@@ -93,7 +83,6 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
 
   constructor(
     private genericService: GenericCrudService,
-    private proveedorSearchGQL: ProveedoresSearchByPersonaGQL,
     private retiroConsolidadoGQL: RetiroProveedorConsolidadoGQL,
     private remitoGQL: RemitoRetiroProveedorGQL,
     private ticketRetiroGQL: ImprimirTicketRetiroProveedorGQL,
@@ -108,7 +97,6 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.resolverSucursalFija();
-    this.setupProveedorAutocomplete();
     this.precargarProveedor();
     // Ancho de ticket desde la config del módulo.
     this.devolucionConfigService
@@ -143,42 +131,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ===== Autocomplete de proveedor =====
-  private setupProveedorAutocomplete(): void {
-    this.proveedorControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        filter((value): value is string => typeof value === "string"),
-        switchMap((texto) => {
-          const term = (texto ?? "").trim();
-          if (term.length < 2) {
-            return of([] as Proveedor[]);
-          }
-          return this.genericService
-            .onCustomQuery(
-              this.proveedorSearchGQL,
-              { texto: term },
-              true,
-              undefined,
-              true
-            )
-            .pipe(catchError(() => of([] as Proveedor[])));
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((proveedores: Proveedor[]) => {
-        this.proveedoresFiltrados = proveedores || [];
-      });
-  }
-
-  displayProveedor(proveedor: Proveedor | string | null): string {
-    if (proveedor && typeof proveedor !== "string" && proveedor.persona) {
-      return proveedor.persona.nombre;
-    }
-    return "";
-  }
-
+  // ===== Proveedor =====
   onProveedorSeleccionado(proveedor: Proveedor): void {
     if (!proveedor || !proveedor.id) {
       return;
@@ -190,7 +143,6 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   onRemoverProveedor(): void {
     this.proveedorSeleccionado = null;
     this.proveedorControl.setValue(null);
-    this.proveedoresFiltrados = [];
     this.consolidado = null;
     this.grupos = [];
     this.resultados = [];
