@@ -114,6 +114,12 @@ Ahora un solo método (`aplicarValidadoresDeConexion`) los pone al abrir y al ca
 
 Probado por pantalla con las mutations cortadas en el navegador (se registran las variables y nada llega al central): crear en central (habilitado al abrir, manda la cadena del central), crear en manual (exige la contraseña, manda `postgresql://postgres:p%40ss%3A1@localhost:5432/postgres`), editar en manual sin contraseña (no manda `connectionString`) y con contraseña (manda la URI).
 
+### Editar sin cambiar la conexión (pedido de Franco, 2026-10-16)
+
+Al editar en modo central, la cadena del central venía precargada: guardar para cambiar solo la publicación también pasaba la conexión de la suscripción a la del central. Ahora, al editar, la cadena arranca vacía («Con la cadena vacía, la conexión no cambia») y un botón «Cargar la cadena del central» la carga si se quiere cambiar. Al crear sigue precargada.
+
+Probado por pantalla con la mutation cortada: editar solo la publicación manda `publicationName` sin `connectionString`; con el botón, manda también la cadena del central. Crear sigue precargando la cadena, sin el botón y con «Crear» habilitado.
+
 ## Persistencia, migraciones, replicación, multi-repo
 
 N/A: solo cambian ramas de error del desktop.

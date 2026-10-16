@@ -87,6 +87,12 @@ textarea.connection-string {
   min-height: 4.5em;
 }
 
+.cadena-acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 .manual-connection {
   display: grid;
   grid-template-columns: 1fr 1fr;

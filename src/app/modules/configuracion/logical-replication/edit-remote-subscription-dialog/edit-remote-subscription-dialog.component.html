@@ -48,9 +48,10 @@
             Usar la conexión del servidor central
           </mat-slide-toggle>
           <span class="toggle-hint">
-            {{ useCentralConnection ? 'Se usa la cadena de conexión que genera el central.'
-              : data.isEdit ? 'Cargá los datos nuevos. Con la contraseña vacía, la conexión no cambia.'
-              : 'Cargá a mano los datos del servidor.' }}
+            {{ !data.isEdit
+              ? (useCentralConnection ? 'Se usa la cadena de conexión que genera el central.' : 'Cargá a mano los datos del servidor.')
+              : (useCentralConnection ? 'Con la cadena vacía, la conexión no cambia.'
+                                      : 'Cargá los datos nuevos. Con la contraseña vacía, la conexión no cambia.') }}
           </span>
         </div>
 
@@ -64,6 +65,12 @@
             La cadena de conexión es requerida
           </mat-error>
         </mat-form-field>
+        <div *ngIf="useCentralConnection && data.isEdit" class="cadena-acciones">
+          <button mat-stroked-button type="button" (click)="usarCadenaDelCentral()"
+                  [disabled]="isCentralConnectionLoading || !centralConnectionString">
+            <mat-icon>download</mat-icon> Cargar la cadena del central
+          </button>
+        </div>
 
         <!-- Manual Connection -->
         <div *ngIf="!useCentralConnection" class="manual-connection">

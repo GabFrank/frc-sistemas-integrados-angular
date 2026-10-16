@@ -61,7 +61,8 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
       .subscribe({
         next: (connectionString) => {
           this.centralConnectionString = connectionString;
-          if (this.useCentralConnection) {
+          // Al editar no se precarga: guardar cambiaría la conexión aunque solo se quisiera tocar la publicación
+          if (this.useCentralConnection && !this.data.isEdit) {
             this.form.get('connectionString').setValue(connectionString);
           }
           this.isCentralConnectionLoading = false;
@@ -172,9 +173,15 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
 
   toggleConnectionType(): void {
     this.useCentralConnection = !this.useCentralConnection;
-    // Central: la cadena que genera el central. Manual: se arma con los campos al guardar
-    this.form.get('connectionString').setValue(this.useCentralConnection ? this.centralConnectionString : '');
+    // Central: la cadena que genera el central (al editar, vacía hasta pedirla). Manual: se arma con los campos al guardar
+    const precargar = this.useCentralConnection && !this.data.isEdit;
+    this.form.get('connectionString').setValue(precargar ? this.centralConnectionString : '');
     this.aplicarValidadoresDeConexion();
+  }
+
+  /** Al editar, la cadena del central se carga solo si se pide: así la conexión cambia solo cuando se toca. */
+  usarCadenaDelCentral(): void {
+    this.form.get('connectionString').setValue(this.centralConnectionString);
   }
 
   /**
