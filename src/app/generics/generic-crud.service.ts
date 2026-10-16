@@ -793,8 +793,8 @@ export class GenericCrudService {
     });
   }
 
-  // Un lote (forkJoin de N onSaveCustom) que falla dispara N errores casi juntos (de red o de
-  // negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
+  // Un lote (forkJoin de N onSave, onSaveCustom u onCustomMutation) que falla dispara N errores casi juntos
+  // (de red o de negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
   // avisaría. La cola de notificaciones es secuencial, así que N avisos iguales taparían cualquier
   // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
   // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.

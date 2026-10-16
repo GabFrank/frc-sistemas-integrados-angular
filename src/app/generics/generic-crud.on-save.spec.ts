@@ -119,11 +119,27 @@ describe('GenericCrudService.onSave', () => {
     expect(avisos.length).toBe(1);
   });
 
-  it('rechazos distintos, o de otra mutation, avisan cada uno', () => {
-    const gql = mutation(of({ data: null, errors: [{ message: 'uno' }] }));
-    const otro = mutation(of({ data: null, errors: [{ message: 'dos' }] }));
+  it('el mismo rechazo de otra mutation avisa: la clave incluye la operación', () => {
+    const gql = mutation(of({ data: null, errors: [{ message: 'ya existe' }] }));
+    const otro = mutation(of({ data: null, errors: [{ message: 'ya existe' }] }));
     leer(service.onSave(gql, {}));
     leer(service.onSave(otro, {}));
+    expect(avisos.length).toBe(2);
+  });
+
+  it('rechazos distintos de la misma mutation avisan cada uno', () => {
+    let n = 0;
+    const gql: any = { mutate: () => of({ data: null, errors: [{ message: 'ítem ' + (++n) }] }) };
+    leer(service.onSave(gql, {}));
+    leer(service.onSave(gql, {}));
+    expect(avisos.length).toBe(2);
+  });
+
+  it('pasada la ventana, el mismo rechazo vuelve a avisar', () => {
+    service.ventanaAvisoErrorMs = 0;
+    const gql = mutation(of({ data: null, errors: [{ message: 'ya existe' }] }));
+    leer(service.onSave(gql, {}));
+    leer(service.onSave(gql, {}));
     expect(avisos.length).toBe(2);
   });
 
