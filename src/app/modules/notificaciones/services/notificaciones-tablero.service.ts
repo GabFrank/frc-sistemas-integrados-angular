@@ -144,7 +144,8 @@ export class NotificacionesTableroService {
   setTokenFcm(token: string): void {
     this._tokenFcm$.next(token);
     if (token && localStorage.getItem("token")) {
-      this.genericService.onCustomMutation(this.actualizarTokenFcmGQL, { tokenFcm: token }).subscribe({
+      // De fondo: sin «Guardando…» ni aviso propio, el usuario no pidió nada (#501)
+      this.genericService.onCustomMutation(this.actualizarTokenFcmGQL, { tokenFcm: token }, true, true).subscribe({
         next: (res: any) => {
           if (res === true) {
             this.obtenerConteoNoLeidas().subscribe();
@@ -299,9 +300,10 @@ export class NotificacionesTableroService {
   }
 
   marcarComoLeida(notificacionId: number): Observable<any> {
+    // Se dispara al abrir una notificación: sin «Guardando…». El central nunca rechaza, devuelve false (#501)
     return this.genericService.onCustomMutation(this.marcarNotificacionLeidaGQL, {
       notificacionId: notificacionId
-    }).pipe(
+    }, true, true).pipe(
       tap((res: any) => {
         if (res) {
           this.actualizarEstadoLeido(notificacionId);

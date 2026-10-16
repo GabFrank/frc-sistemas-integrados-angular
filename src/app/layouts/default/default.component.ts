@@ -16,6 +16,9 @@ import { NotificacionesTableroService } from "../../modules/notificaciones/servi
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { NotificacionPersonalizadaComponent } from "../../modules/notificaciones/components/notificacion-personalizada/notificacion-personalizada.component";
 import { FormControl, FormGroup } from "@angular/forms";
+import { timer } from "rxjs";
+import { NotificacionSnackbarService } from "../../notificacion-snackbar.service";
+import { avisoTrasMutacion, RECARGA_TRAS_CORTE_MS } from "../../commons/core/utils/graphqlErrorUtils";
 
 @UntilDestroy()
 @Component({
@@ -56,6 +59,7 @@ export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
     private cdr: ChangeDetectorRef,
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
     private notificacionesTableroService: NotificacionesTableroService,
+    private notificacionService: NotificacionSnackbarService,
     private router: Router
   ) {
     this.today = new Date();
@@ -98,7 +102,25 @@ export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
   marcarTodasComoLeidas(): void {
     this.notificacionesTableroService.marcarTodasComoLeidas()
       .pipe(untilDestroyed(this))
-      .subscribe();
+      .subscribe({
+        next: (res) => {
+          // El central atrapa la excepción y devuelve false: antes quedaba en silencio (#501)
+          if (res === false) {
+            this.notificacionService.openWarn("No se pudieron marcar las notificaciones como leídas.");
+          }
+        },
+        // Sin respuesta pudo aplicarse: se avisa (el corte por tiempo ya lo avisó el link) y se refresca después
+        error: (e) => {
+          const aviso = avisoTrasMutacion(e, "se marcaron como leídas");
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            this.notificacionesTableroService.refrescarTodas();
+            this.notificacionesTableroService.actualizarConteo();
+          });
+        },
+      });
   }
 
 
