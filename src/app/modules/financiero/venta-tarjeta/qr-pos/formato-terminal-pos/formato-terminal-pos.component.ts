@@ -15,6 +15,8 @@ interface FilaFormato extends FormatoTerminalPos {
 import { FormatoTerminalPosService } from './formato-terminal-pos.service';
 import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edit-formato-terminal-pos.component';
 import { TIPO_MAQUINA } from './formato-terminal-pos.model';
+import { timer } from 'rxjs';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
 /**
  * Listado de formatos de terminal POS.
@@ -110,9 +112,25 @@ export class FormatoTerminalPosComponent implements OnInit {
           .subscribe((confirmado) => {
             if (!confirmado) return;
             this.formatoService.onDesactivar(formato.id).pipe(untilDestroyed(this)).subscribe({
-              next: () => {
-                this.notificacionSnackbar.openSucess('Formato desactivado');
+              next: (res) => {
+                // Antes cualquier respuesta decía «desactivado»; false es que el formato ya no existe (#501)
+                if (res === true) {
+                  this.notificacionSnackbar.openSucess('Formato desactivado');
+                } else {
+                  this.notificacionSnackbar.openWarn('No se pudo desactivar el formato: no se encontró.');
+                }
                 this.cargar();
+              },
+              // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo desactivarse: se avisa y se recarga
+              error: (e) => {
+                if (erroresDeRechazo(e) != null) {
+                  return;
+                }
+                const aviso = avisoTrasMutacion(e, 'se desactivó el formato');
+                if (aviso != null) {
+                  this.notificacionSnackbar.openWarn(aviso, 8);
+                }
+                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.cargar());
               },
             });
           });

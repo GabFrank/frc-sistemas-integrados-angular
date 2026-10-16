@@ -10,6 +10,7 @@ import { Producto } from '../../producto/producto.model';
 import { ImagenSugerida, SugerenciasImagen } from '../imagen-sugerida.model';
 import { Presentacion } from '../presentacion.model';
 import { PresentacionService } from '../presentacion.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface SugerenciasImagenPanelData {
   presentacion: Presentacion;
@@ -297,7 +298,24 @@ export class SugerenciasImagenPanelComponent implements OnInit {
             ? of(null)
             : this.presentacionService
                 .onImageSave(recortada, `${this.data.presentacion.id}.jpg`)
-                .pipe(tap((ok) => { if (ok) this.dialogRef.close(recortada); }))
+                .pipe(
+                  tap((ok) => {
+                    if (ok === true) {
+                      this.dialogRef.close(recortada);
+                    } else {
+                      this.notificacionService.openWarn('No se pudo guardar la imagen. Volvé a subirla.');
+                    }
+                  }),
+                  // Antes un error cortaba la cadena sin aviso. En un rechazo el genérico ya mostró el motivo; sin respuesta
+                  // pudo guardarse y elegirla otra vez la pisa (#501)
+                  catchError((e) => {
+                    const aviso = erroresDeRechazo(e) == null ? avisoTrasMutacion(e, 'se guardó la imagen') : null;
+                    if (aviso != null) {
+                      this.notificacionService.openWarn(aviso, 8);
+                    }
+                    return of(null);
+                  })
+                )
         ),
         untilDestroyed(this)
       )

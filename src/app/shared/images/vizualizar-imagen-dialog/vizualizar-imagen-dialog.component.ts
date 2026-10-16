@@ -17,6 +17,8 @@ export class VizualizarImagenData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -35,6 +37,7 @@ export class VizualizarImagenDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<VizualizarImagenDialogComponent>,
     private presentacionService: PresentacionService,
     private matDialog: MatDialog,
+    private notificacionService: NotificacionSnackbarService,
   ) { }
 
   ngOnInit(): void {
@@ -67,7 +70,8 @@ export class VizualizarImagenDialogComponent implements OnInit {
     let file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = () => {
-      this.img = reader.result as string;
+      // La vista previa cambia recién con la imagen guardada: al cerrar se devuelve this.img como imagenPrincipal, y antes
+      // podía devolver una foto que no se guardó (corte, false o recorte cancelado) (#501)
       this.matDialog
         .open(CortarImagenDialogComponent, {
           data: {
@@ -80,14 +84,25 @@ export class VizualizarImagenDialogComponent implements OnInit {
         .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
-            this.img = res;
             // La mutation devuelve un Boolean: la foto a mostrar es la recortada.
             this.presentacionService.onImageSave(
               res,
               `${id}.jpg`
             ).pipe(untilDestroyed(this)).subscribe({
+              next: (ok) => {
+                if (ok === true) {
+                  this.img = res;
+                } else {
+                  this.notificacionService.openWarn('No se pudo guardar la imagen. Volvé a subirla.');
+                }
+              },
+              // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo guardarse; subirla otra vez la pisa
               error: (error) => {
                 console.error('Error al guardar imagen:', error);
+                const aviso = erroresDeRechazo(error) == null ? avisoTrasMutacion(error, 'se guardó la imagen') : null;
+                if (aviso != null) {
+                  this.notificacionService.openWarn(aviso, 8);
+                }
               }
             });
           }
