@@ -995,7 +995,8 @@ export class GenericCrudService {
         return;
       }
       this.dialogoService
-        .confirm(confirmacion.titulo, confirmacion.mensaje)
+        // Un borrado siempre lleva la cabecera de peligro, diga lo que diga el titulo.
+        .confirm(confirmacion.titulo, confirmacion.mensaje, null, null, true, null, null, null, true, true)
         .subscribe({
           next: (confirmado) => {
             if (confirmado) {

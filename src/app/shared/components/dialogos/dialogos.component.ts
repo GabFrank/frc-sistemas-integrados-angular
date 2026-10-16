@@ -24,8 +24,14 @@ export class DialogoData {
   public foco?: 'si' | 'no';
 }
 
-/** Titulos que, sin `peligro` explicito, piden la cabecera roja. */
-const TITULO_DE_PELIGRO = /^\s*(eliminar|anular|borrar|revocar)/i;
+/**
+ * Sin `peligro` explicito, la cabecera es roja si el titulo o el mensaje hablan de deshacer algo: «Atencion!!»
+ * + «¿Realmente desea eliminar…?», «Quitar acceso», «CANCELAR CUOTA», «¿Eliminar GPS?».
+ */
+const PALABRAS_DE_PELIGRO = /\b(eliminar|anular|borrar|revocar|quitar|cancelar|desactivar|deshacer)/i;
+
+/** Sin tildes, para que «ELIMINÁR» o «¿Eliminar…» no se escapen de la regla. */
+const sinTildes = (s: string): string => (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 @Component({
   selector: 'app-dialogos',
@@ -48,7 +54,7 @@ export class DialogosComponent implements OnInit, AfterViewInit {
   ) {
     if(data.btn1Name==null)data.btn1Name = 'Si';
     if(data.btn2Name==null)data.btn2Name = 'No';
-    const peligro = data.peligro ?? TITULO_DE_PELIGRO.test(data.title ?? '');
+    const peligro = data.peligro ?? PALABRAS_DE_PELIGRO.test(sinTildes((data.title ?? '') + ' ' + (data.message1 ?? '')));
     this.tono = peligro ? 'peligro' : 'normal';
   }
 
