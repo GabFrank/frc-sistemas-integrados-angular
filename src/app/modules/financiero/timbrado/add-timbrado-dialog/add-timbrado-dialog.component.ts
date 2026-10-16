@@ -12,6 +12,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service'; 
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface TimbradoDialogData {
   timbrado: Timbrado;
@@ -290,14 +291,30 @@ export class AddTimbradoDialogComponent implements OnInit {
     Object.assign(aux, this.selectedTimbrado);
     
     const inputData = aux.toInput();
-    
+    const esAlta = this.selectedTimbrado.id == null;
+
     this.timbradoService.onSaveTimbrado(inputData)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
-        
-          this.notificacionService.openSucess('Guardado exitosamente');
-          this.matDialogRef.close(res);
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.notificacionService.openSucess('Guardado exitosamente');
+            this.matDialogRef.close(res);
+          }
+        },
+        error: (error) => {
+          // En un rechazo el genérico ya mostró el motivo (#501)
+          if (erroresDeRechazo(error) != null) {
+            return;
+          }
+          const aviso = avisoTrasMutacion(error, 'se guardó el timbrado');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+          // Un alta repetida insertaría otro timbrado: se cierra y la lista recarga (como add-timbrado-detalle-dialog)
+          if (esAlta) {
+            this.matDialogRef.close(true);
+          }
         }
       });
   }
