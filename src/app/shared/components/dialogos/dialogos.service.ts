@@ -20,12 +20,13 @@ export class DialogosService {
     btn1Name?: string,
     btn2Name?: string,
     btn3Name?: string,
-    servidor: boolean = true
+    servidor: boolean = true,
+    /** Cabecera roja (eliminar/anular). Sin pasarlo se deduce del titulo. */
+    peligro?: boolean
   ): Observable<any> {
     this.dialogRef = this.dialog.open(DialogosComponent, {
       autoFocus: false,
       restoreFocus: true,
-      minHeight: "200px",
       disableClose: btn3Name ? false : true, // Permitir cerrar con ESC si hay botón de cancelar
       data: {
         title,
@@ -36,6 +37,7 @@ export class DialogosService {
         btn1Name,
         btn2Name,
         btn3Name,
+        peligro,
       },
     });
 

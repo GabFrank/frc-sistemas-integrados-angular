@@ -1,25 +1,22 @@
-<div class="motivo-dialog">
-  <h2 matDialogTitle>{{ data.titulo }}</h2>
-  <div matDialogContent>
-    <p class="mensaje">{{ data.mensaje }}</p>
-    <p class="detalle" *ngIf="data.detalle">{{ data.detalle }}</p>
-    <mat-form-field appearance="outline" class="campo">
-      <mat-label>{{ etiqueta }}</mat-label>
-      <textarea
-        matInput
-        rows="3"
-        cdkFocusInitial
-        [formControl]="motivoControl"
-        (keydown.control.enter)="onConfirmar()"
-      ></textarea>
-      <mat-error>El motivo es obligatorio</mat-error>
-    </mat-form-field>
-  </div>
-  <div matDialogActions align="end">
-    <button mat-button type="button" (click)="onVolver()">Volver</button>
-    <!-- raised + primary (rojo, texto blanco): el .mat-warn global pinta el texto de un flat button del mismo naranja que el fondo. -->
-    <button mat-raised-button color="primary" type="button" [disabled]="motivoControl.invalid" (click)="onConfirmar()">
+<app-dialogo-base class="motivo-dialog" [titulo]="data.titulo" [tono]="tono">
+  <p class="mensaje">{{ data.mensaje }}</p>
+  <p class="detalle" *ngIf="data.detalle">{{ data.detalle }}</p>
+  <mat-form-field appearance="outline" class="campo">
+    <mat-label>{{ etiqueta }}</mat-label>
+    <textarea
+      matInput
+      rows="3"
+      cdkFocusInitial
+      [formControl]="motivoControl"
+      (keydown.control.enter)="onConfirmar()"
+    ></textarea>
+    <mat-error>El motivo es obligatorio</mat-error>
+  </mat-form-field>
+
+  <div acciones>
+    <button mat-flat-button class="frc-btn-cancelar" type="button" (click)="onVolver()">Volver</button>
+    <button mat-flat-button class="frc-btn-confirmar" type="button" [disabled]="motivoControl.invalid" (click)="onConfirmar()">
       {{ data.botonConfirmar }}
     </button>
   </div>
-</div>
+</app-dialogo-base>
