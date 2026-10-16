@@ -65,6 +65,7 @@ import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-ho
 import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListSolicitudRecuperacionComponent } from '../../../modules/rrhh/recuperacion-contrasena/list-solicitud-recuperacion/list-solicitud-recuperacion.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
 import { ListLiquidacionConceptoComponent } from '../../../modules/rrhh/liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
@@ -191,7 +192,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'groups',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.ADMIN],
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.RRHH_APROBAR, ROLES.ADMIN],
       items: [
         {
           name: 'Manual de uso',
@@ -308,6 +309,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'receipt_long',
           action: 'list-liquidacion',
           visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.RRHH_SUCURSAL, ROLES.ADMIN]
+        },
+        {
+          name: 'Recuperación de contraseñas',
+          icon: 'lock_reset',
+          action: 'list-solicitud-recuperacion',
+          visibilityRoles: [ROLES.RRHH_APROBAR, ROLES.ADMIN]
         },
         {
           name: 'Configuración',
@@ -1218,6 +1225,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-motivo-vale":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-solicitud-recuperacion":
+        this.openTabIfAuthorized(ROLES.RRHH_APROBAR, ListSolicitudRecuperacionComponent, "Recuperación de contraseñas");
         break;
       case "list-cargo":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");
