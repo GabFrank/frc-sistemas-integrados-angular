@@ -9,8 +9,8 @@ import { MainService } from '../../../../../main.service';
 import { GastoService } from '../../service/gasto.service';
 import { PreGasto } from '../../models/pre-gasto.model';
 import { AutorizarGastoDialogComponent } from '../../dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
-import { UntilDestroy } from '@ngneat/until-destroy';
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { BehaviorSubject, combineLatest, Observable, timer } from 'rxjs';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { PageEvent } from '@angular/material/paginator';
@@ -19,7 +19,8 @@ import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { CajaService } from '../../../pdv/caja/caja.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
-import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy()
 @Component({
@@ -72,6 +73,12 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
+
+  /**
+   * Pre-gastos cuyo envío a tesorería quedó sin respuesta: repetirlo crea otra solicitud de pago, así que el botón no
+   * se ofrece aunque se vuelva a elegir la fila vieja. Lo limpia «Actualizar» (#501).
+   */
+  public enviosSinConfirmar: { [id: number]: boolean } = {};
 
   public mostrarRendicionSubject = new BehaviorSubject<boolean>(false);
   public mostrarRendicion$ = this.mostrarRendicionSubject.asObservable();
@@ -252,6 +259,14 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       })
       .afterClosed()
       .subscribe(res => {
+        if (res?.recargar) {
+          // El diálogo tocó el pre-gasto sin devolver uno nuevo: se recarga y se suelta la copia vieja (#501)
+          this.refetchSubject.next();
+          if (this.preGastoSeleccionadoSubject.value?.id === preGasto.id) {
+            this.preGastoSeleccionadoSubject.next(null);
+          }
+          return;
+        }
         if (res != null) {
           this.refetchSubject.next();
           const actual = this.preGastoSeleccionadoSubject.value;
@@ -281,6 +296,14 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       error: (err) => {
         this.cargandoSubject.next(false);
         console.error('Error al enviar a tesorería:', err);
+        if (erroresDeRechazo(err) != null) return;
+        // Repetirlo crearía otra solicitud de pago: no se ofrece de nuevo hasta recargar. También tras el timeout del
+        // link, que ya avisó (#501)
+        const aviso = avisoTrasMutacion(err, 'se envió a tesorería');
+        if (aviso != null) this.notificacionAviso.openWarn(aviso, 10);
+        this.enviosSinConfirmar = { ...this.enviosSinConfirmar, [preGasto.id]: true };
+        this.preGastoSeleccionadoSubject.next(null);
+        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.refetchSubject.next());
       }
     });
   }
@@ -298,6 +321,10 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       error: (err) => {
         this.cargandoSubject.next(false);
         console.error('Error al imprimir solicitud:', err);
+        // Solo genera el PDF: en un rechazo el genérico ya avisó y el timeout del link también (#501)
+        if (erroresDeRechazo(err) == null && !esTimeoutDeLink(err)) {
+          this.notificacionAviso.openWarn('No se pudo generar la solicitud para imprimir: revisá la conexión y volvé a intentar.', 6);
+        }
       }
     });
   }
@@ -307,6 +334,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   onRefrescar(): void {
+    this.enviosSinConfirmar = {};
     this.refetchSubject.next();
   }
 
