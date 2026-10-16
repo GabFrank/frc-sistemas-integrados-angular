@@ -53,6 +53,12 @@ describe('GenericCrudService: onDelete y onDeleteWithSucId', () => {
       expect(variables).toEqual([{ id: 5 }]);
     });
 
+    it('con textos.exito el verde dice el texto de la pantalla (#501)', () => {
+      const r = leer(service.onDelete(mutacion(OK), 5, null, null, false, true, undefined, { exito: 'Cuota eliminada' }));
+      expect(r.valores).toEqual([true]);
+      expect(avisos).toEqual(['Cuota eliminada']);
+    });
+
     it('rechazo: avisa, emite null y completa (antes no completaba)', () => {
       const r = leer(service.onDelete(mutacion(RECHAZO), 5, null, null, false));
       expect(r.valores).toEqual([null]);

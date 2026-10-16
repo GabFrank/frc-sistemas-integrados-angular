@@ -106,7 +106,7 @@ export class AgregarZonaDialogComponent implements OnInit {
 
     const input = inventarioProducto.toInput();
 
-    this.inventarioService.onSaveInventarioProducto(input)
+    this.inventarioService.onSaveInventarioProducto(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {

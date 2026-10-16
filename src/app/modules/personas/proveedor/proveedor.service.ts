@@ -60,8 +60,9 @@ export class ProveedorService {
     return this.genericService.onGetByTexto(this.proveedorSearch, text);
   }
 
-  onSave(input): Observable<Proveedor> {
-    return this.genericService.onSave(this.saveProveedor, input);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSave(input, opciones?: { avisarExito?: boolean }): Observable<Proveedor> {
+    return this.genericService.onSave(this.saveProveedor, input, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   onGetPorId(id: number): Observable<Proveedor> {

@@ -179,7 +179,8 @@ export class EnteVinculacionDialogComponent implements OnInit {
           : undefined,
         usuarioId: this.mainService.usuarioActual?.id,
       };
-      this.generic.onSave(this.saveVinculacionGQL, input).subscribe({
+      // El verde es el de la pantalla (#501)
+      this.generic.onSave(this.saveVinculacionGQL, input, undefined, undefined, true, undefined, undefined, { avisarExito: false }).subscribe({
         next: (res) => {
           this.isLoading = false;
           if (res) {
@@ -207,7 +208,24 @@ export class EnteVinculacionDialogComponent implements OnInit {
     }
 
     let pendientes = items.length;
+    const fallidos: BienVinculadoItem[] = [];
     const resultados: EnteVinculacion[] = [];
+    // Un solo aviso al final del lote: verde solo si todo se guardó (antes decidía la última respuesta). Con
+    // fallas quedan en la lista solo las que fallaron, para reintentar sin repetir las guardadas (#501)
+    const terminarUno = () => {
+      pendientes--;
+      if (pendientes > 0) return;
+      this.isLoading = false;
+      if (fallidos.length === 0) {
+        this.notificacion.openSucess('Vinculación guardada');
+        this.dialogRef.close(resultados);
+        return;
+      }
+      if (this.bienesAgregados.length) this.bienesAgregados = fallidos;
+      this.notificacion.openWarn(
+        `Se guardaron ${items.length - fallidos.length} de ${items.length} vinculaciones: quedan en la lista las que fallaron.`, 6);
+      this.cdr.markForCheck();
+    };
     items.forEach(item => {
       const input: EnteVinculacionInput = {
         sucursalId: this.sucursalControl.value!,
@@ -215,23 +233,14 @@ export class EnteVinculacionDialogComponent implements OnInit {
         observacion: item.observacion,
         usuarioId: this.mainService.usuarioActual?.id,
       };
-      this.generic.onSave(this.saveVinculacionGQL, input).subscribe({
+      this.generic.onSave(this.saveVinculacionGQL, input, undefined, undefined, true, undefined, undefined, { avisarExito: false }).subscribe({
         next: (res) => {
           if (res) resultados.push(res);
-          pendientes--;
-          if (pendientes === 0) {
-            this.isLoading = false;
-            this.notificacion.openSucess('Vinculación guardada');
-            this.dialogRef.close(resultados);
-          }
+          terminarUno();
         },
         error: () => {
-          pendientes--;
-          if (pendientes === 0) {
-            this.isLoading = false;
-            this.notificacion.openWarn('Error al guardar alguna vinculación');
-            this.cdr.markForCheck();
-          }
+          fallidos.push(item);
+          terminarUno();
         },
       });
     });

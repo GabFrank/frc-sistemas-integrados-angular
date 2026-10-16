@@ -183,11 +183,7 @@ export class AddVentaObservacionComponent implements OnInit{
       .subscribe((res) => {
         if (res != null) {
           this.dialogRef.close(res);
-          this.notificationBar.notification$.next({
-            texto: 'Guardado con éxito',
-            color: NotificacionColor.success,
-            duracion: 2,
-          });
+          // El verde lo da el guardado, con el mismo texto: antes salían dos iguales (#501)
         }
       }, (error) => {
         console.error('Error al guardar:', error);

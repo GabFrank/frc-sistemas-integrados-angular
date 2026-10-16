@@ -985,8 +985,8 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
         // Create input object for the update
         const pagoDetalleInput = detalleToCancel.toInput();
         
-        // Update in the database
-        this.pagoDetalleService.update(pagoDetalleInput)
+        // Update in the database. El verde es el del final, al cancelar las cuotas (#501)
+        this.pagoDetalleService.update(pagoDetalleInput, { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe(
             (updatedDetalle) => {
@@ -1043,7 +1043,8 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
             creadoEn: dateToString(cuota.creadoEn)
           };
           
-          return this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput);
+          // Un solo verde, el del final (#501)
+          return this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput, { avisarExito: false });
         });
         
         // Execute all cancellations in parallel

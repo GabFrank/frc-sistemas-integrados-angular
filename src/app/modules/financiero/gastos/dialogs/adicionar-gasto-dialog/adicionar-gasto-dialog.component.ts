@@ -345,7 +345,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
     const { requestId } = this.cargandoDialog.openDialog();
     this.gastoService
-      .preGastoGuardar(input)
+      .preGastoGuardar(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (guardado) => {

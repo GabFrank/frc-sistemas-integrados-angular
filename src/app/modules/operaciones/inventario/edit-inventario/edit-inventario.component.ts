@@ -282,7 +282,7 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
       usuarioId: this.currentInventarioProducto?.usuario?.id || this.mainService.usuarioActual?.id
     };
 
-    this.inventarioService.onSaveInventarioProducto(input)
+    this.inventarioService.onSaveInventarioProducto(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -438,7 +438,7 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
       usuarioId: this.mainService.usuarioActual?.id
     };
 
-    this.inventarioService.onSaveInventarioProducto(input)
+    this.inventarioService.onSaveInventarioProducto(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -484,7 +484,7 @@ export class EditInventarioComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe(deleted => {
         if (deleted) {
-          this.notificacionService.openSucess('Producto eliminado');
+          // El verde lo da el borrado, con este texto (#501)
           const zonaActualId = this.currentInventarioProducto.id;
           this.inventarioService.onGetInventario(this.selectedInventario.id)
             .pipe(terminarSiFalla(() => this.avisarPantallaDesactualizada()), untilDestroyed(this))

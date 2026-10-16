@@ -379,7 +379,8 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     personaInput.documento = formValue.documento.trim();
     personaInput.telefono = formValue.telefono?.trim() || '';
 
-    this.personaService.onSavePersona(personaInput)
+    // Paso intermedio: el verde es el del proveedor (#501)
+    this.personaService.onSavePersona(personaInput, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
@@ -424,7 +425,7 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     proveedorInput.credito = formValue.credito || false;
     proveedorInput.chequeDias = formValue.chequeDias || 8;
 
-    this.proveedorService.onSave(proveedorInput)
+    this.proveedorService.onSave(proveedorInput, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedor) => {

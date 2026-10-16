@@ -146,7 +146,7 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
     };
     // El error de negocio ya lo avisa onSave; el de red se pide explícito para
     // que llegue al error y se muestre, en vez de dejar el campo trabado.
-    this.configuracionRrhhService.onSave(input, true, { networkError: { show: true, propagate: true } })
+    this.configuracionRrhhService.onSave(input, true, { networkError: { show: true, propagate: true } }, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: ConfiguracionRrhh) => {

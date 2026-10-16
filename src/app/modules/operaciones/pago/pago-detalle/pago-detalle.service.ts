@@ -67,8 +67,9 @@ export class PagoDetalleService {
    * @param entity Datos del detalle de pago a guardar
    * @returns Observable con el detalle de pago guardado
    */
-  onSavePagoDetalle(entity: PagoDetalleInput): Observable<PagoDetalle> {
-    return this.genericService.onSave(this.savePagoDetalleMutation, entity);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSavePagoDetalle(entity: PagoDetalleInput, opciones?: { avisarExito?: boolean }): Observable<PagoDetalle> {
+    return this.genericService.onSave(this.savePagoDetalleMutation, entity, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   /**
@@ -76,8 +77,8 @@ export class PagoDetalleService {
    * @param entity Datos del detalle de pago a guardar
    * @returns Observable con el detalle de pago guardado
    */
-  save(entity: PagoDetalleInput): Observable<PagoDetalle> {
-    return this.onSavePagoDetalle(entity);
+  save(entity: PagoDetalleInput, opciones?: { avisarExito?: boolean }): Observable<PagoDetalle> {
+    return this.onSavePagoDetalle(entity, opciones);
   }
 
   /**
@@ -85,8 +86,8 @@ export class PagoDetalleService {
    * @param entity Datos del detalle de pago a actualizar
    * @returns Observable con el detalle de pago actualizado
    */
-  update(entity: PagoDetalleInput): Observable<PagoDetalle> {
-    return this.onSavePagoDetalle(entity);
+  update(entity: PagoDetalleInput, opciones?: { avisarExito?: boolean }): Observable<PagoDetalle> {
+    return this.onSavePagoDetalle(entity, opciones);
   }
 
   /**

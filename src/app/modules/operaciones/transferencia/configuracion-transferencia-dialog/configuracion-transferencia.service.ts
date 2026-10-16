@@ -22,7 +22,9 @@ export class ConfiguracionTransferenciaService {
       { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true });
   }
 
-  onSaveConfiguracion(input: ConfiguracionTransferenciaInput, servidor = true): Observable<ConfiguracionTransferencia> {
-    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveConfiguracion(input: ConfiguracionTransferenciaInput, servidor = true,
+                      opciones?: { avisarExito?: boolean }): Observable<ConfiguracionTransferencia> {
+    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor, undefined, undefined, opciones);
   }
 }

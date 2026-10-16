@@ -353,7 +353,8 @@ export class EditProveedorServicioComponent implements OnInit {
     personaInput.telefono = formValue.telefono?.trim() || "";
 
     this.personaService
-      .onSavePersona(personaInput)
+      // Paso intermedio: el verde es el del proveedor (#501)
+      .onSavePersona(personaInput, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (updatedPersona) => {
@@ -375,7 +376,8 @@ export class EditProveedorServicioComponent implements OnInit {
     personaInput.documento = formValue.documento.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
     this.personaService
-      .onSavePersona(personaInput)
+      // Paso intermedio: el verde es el del proveedor (#501)
+      .onSavePersona(personaInput, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
@@ -405,7 +407,7 @@ export class EditProveedorServicioComponent implements OnInit {
     input.numeroContacto = formValue.numeroContacto?.trim() || null;
 
     this.proveedorServicioService
-      .onSave(input)
+      .onSave(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedorServicio) => {

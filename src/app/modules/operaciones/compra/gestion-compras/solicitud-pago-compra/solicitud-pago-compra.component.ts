@@ -212,7 +212,7 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges, OnDestro
           .pipe(untilDestroyed(this))
           .subscribe({
             next: () => {
-              this.notificacionService.openSucess('Solicitud eliminada exitosamente');
+              // El verde lo da el borrado, con este texto (#501)
               this.loadData();
             },
             error: (error) => {

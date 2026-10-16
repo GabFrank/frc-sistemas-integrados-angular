@@ -96,7 +96,8 @@ export class GastoService {
     private impresionPos: ImpresionPosService
   ) { }
 
-  onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSave(gasto: Gasto, servidor = true, opciones?: { avisarExito?: boolean }): Observable<Gasto> {
     let gastoAux = gasto;
     if (!(gasto instanceof Gasto)) {
       gastoAux = new Gasto();
@@ -106,7 +107,8 @@ export class GastoService {
       // "Imprimir desde esta PC": la filial guarda sin imprimir y el ticket se pide e imprime acá.
       // Misma condición que usa saveGasto para imprimir: solo si el gasto no llega finalizado.
       const input = gastoAux.toInput();
-      return this.genericService.onSave<Gasto>(this.saveGastoCliente, input, undefined, this.configService?.getConfig()?.local, servidor).pipe(
+      return this.genericService.onSave<Gasto>(this.saveGastoCliente, input, undefined, this.configService?.getConfig()?.local, servidor,
+        undefined, undefined, opciones).pipe(
         tap((res) => {
           if (res?.id != null && input.finalizado !== true) {
             this.impresionPos.imprimirTicket('GASTO', res.id, 'El ticket del gasto', false).subscribe();
@@ -114,7 +116,8 @@ export class GastoService {
         })
       );
     }
-    return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
+    return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor,
+      undefined, undefined, opciones);
   }
 
   onGetByCajaId(id: number, servidor = true, silentLoad?: boolean, warningText?: string): Observable<Gasto[]> {
@@ -167,8 +170,9 @@ export class GastoService {
     }, true, errorConf ?? null, silentLoad, contexto);
   }
 
-  preGastoGuardar(input: unknown): Observable<PreGasto> {
-    return this.genericService.onSave(this.onSavePreGasto, input);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  preGastoGuardar(input: unknown, opciones?: { avisarExito?: boolean }): Observable<PreGasto> {
+    return this.genericService.onSave(this.onSavePreGasto, input, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   preGastoAutorizar(id: number, autorizadorId: number, usuarioId?: number, sucId?: number): Observable<PreGasto> {
@@ -326,7 +330,8 @@ export class GastoService {
 
         // Son dos guardados (gasto en el filial, retiro en el central). El error dice en cuál falló, porque
         // de eso depende si se puede repetir: un fallo en el segundo deja el gasto ya guardado (#390).
-        return this.onSave(gasto, false).pipe(
+        // El verde es el del diálogo, al terminar los dos (#501)
+        return this.onSave(gasto, false, { avisarExito: false }).pipe(
           catchError((causa) => throwError(() => ({ etapa: 'GASTO', causa } as ErrorRetiroPreGasto))),
           switchMap((gastoGuardado) => {
             if (!gastoGuardado?.id) {

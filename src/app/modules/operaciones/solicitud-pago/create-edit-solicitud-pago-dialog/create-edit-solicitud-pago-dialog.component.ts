@@ -1054,7 +1054,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.saving = true;
     if (this.isEditMode) {
       input.id = this.solicitudPagoId;
-      this.solicitudPagoService.onActualizarSolicitudPago(input).subscribe({
+      this.solicitudPagoService.onActualizarSolicitudPago(input, { avisarExito: false }).subscribe({
         next: () => {
           this.notificacionService.openSucess('Solicitud de pago actualizada');
           this.dialogRef.close(true);
@@ -1064,7 +1064,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         }
       });
     } else {
-      this.solicitudPagoService.onSaveInput(input).subscribe({
+      this.solicitudPagoService.onSaveInput(input, { avisarExito: false }).subscribe({
         next: () => {
           this.notificacionService.openSucess('Solicitud de pago creada');
           this.dialogRef.close(true);

@@ -39,14 +39,15 @@ export class ClienteService {
   ) {
   }
 
-  onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
+  /** `opciones.avisarExito = false` en un paso intermedio: el verde lo da el último paso o la pantalla (#501). */
+  onSaveCliente(input: ClienteInput, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<Cliente> {
     // Sin `show: false`: su único llamador no avisa nada, así que el aviso lo da el genérico (#390).
     let errorConf: QueryError = {
       networkError: {
         propagate: true
       }
     }
-    return this.genericService.onSave(this.saveCliente, input, null, null, servidor, errorConf);
+    return this.genericService.onSave(this.saveCliente, input, null, null, servidor, errorConf, undefined, opciones);
   }
 
   onGetClientePorPersonaDocumento(texto: string, servidor: boolean = true): Observable<Cliente> {

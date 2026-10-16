@@ -60,8 +60,9 @@ export class PersonaService {
     return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor, errorConf)
   }
 
-  onSavePersona(input: PersonaInput, servidor: boolean = true): Observable<any> {
-    return this.genericService.onSave(this.savePersonna, input, null, null, servidor)
+  /** `opciones.avisarExito = false` en un paso intermedio: el verde lo da el último paso o la pantalla (#501). */
+  onSavePersona(input: PersonaInput, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSave(this.savePersonna, input, null, null, servidor, undefined, undefined, opciones)
   }
 
   onGetPersona(id, servidor: boolean = true): Observable<Persona> {

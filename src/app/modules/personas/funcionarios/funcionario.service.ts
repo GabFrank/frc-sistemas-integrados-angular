@@ -64,9 +64,13 @@ export class FuncionarioService {
     return this.genericCrud.onCustomQuery(this.searchFuncionario, { texto }, servidor);
   }
 
-  /** `errorConf` es para la asignación de horarios en lote (#390); sin él queda como antes. */
-  onSaveFuncionario(input: FuncionarioInput, servidor = true, errorConf?: QueryError): Observable<Funcionario> {
-    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor, errorConf);
+  /**
+   * `errorConf` es para la asignación de horarios en lote (#390); sin él queda como antes.
+   * `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501).
+   */
+  onSaveFuncionario(input: FuncionarioInput, servidor = true, errorConf?: QueryError,
+                    opciones?: { avisarExito?: boolean }): Observable<Funcionario> {
+    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor, errorConf, undefined, opciones);
   }
 
   // onDeleteFuncionario(id, servidor = true) {
