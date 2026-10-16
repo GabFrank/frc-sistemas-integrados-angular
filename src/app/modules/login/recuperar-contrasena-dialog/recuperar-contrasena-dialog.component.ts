@@ -4,7 +4,6 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { validarFecha } from '../../../commons/core/utils/dateUtils';
 import { RecuperacionContrasenaService } from '../recuperacion-contrasena.service';
 import { EstadoRecuperacion } from '../recuperacion-contrasena.model';
 
@@ -14,14 +13,6 @@ export interface RecuperarContrasenaDialogData {
 }
 
 type Paso = 'identidad' | 'codigo' | 'sin-correo' | 'solicitud-creada' | 'consultar' | 'nueva' | 'listo';
-
-const LARGO_MINIMO = 6;
-
-function fechaValida(control: AbstractControl): ValidationErrors | null {
-  const v: string = control.value;
-  if (!v) return null;
-  return /^\d{2}\/\d{2}\/\d{4}$/.test(v) && validarFecha(v) ? null : { fecha: true };
-}
 
 function contrasenasIguales(group: AbstractControl): ValidationErrors | null {
   const nueva = group.get('nueva')?.value;
@@ -59,7 +50,6 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   identidadForm = new FormGroup({
     nickname: new FormControl<string>(null, Validators.required),
     documento: new FormControl<string>(null, Validators.required),
-    nacimiento: new FormControl<string>(null, [Validators.required, fechaValida]),
     captcha: new FormControl<string>(null, [Validators.required, Validators.minLength(5)]),
   });
 
@@ -78,12 +68,11 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
   });
 
   nuevaForm = new FormGroup({
-    nueva: new FormControl<string>(null, [Validators.required, Validators.minLength(LARGO_MINIMO), Validators.maxLength(50)]),
+    nueva: new FormControl<string>(null, [Validators.required, Validators.maxLength(50)]),
     repetir: new FormControl<string>(null, Validators.required),
   }, { validators: contrasenasIguales });
 
   ocultarContrasena = true;
-  largoMinimo = LARGO_MINIMO;
 
   // Lo que devolvió el central, ya listo para mostrar.
   emailEnmascarado: string = null;
@@ -127,18 +116,6 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
     });
   }
 
-  /** Va armando dd/mm/aaaa mientras escribe, para no depender del formato del sistema. */
-  onEscribirFecha(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const digitos = input.value.replace(/\D/g, '').slice(0, 8);
-    let texto = digitos;
-    if (digitos.length > 4) texto = `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
-    else if (digitos.length > 2) texto = `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
-    if (texto !== input.value) {
-      this.identidadForm.controls.nacimiento.setValue(texto);
-    }
-  }
-
   onVerificar(): void {
     if (this.cargando) return;
     if (this.identidadForm.invalid) {
@@ -147,15 +124,12 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
       this.avisarInvalido(
         c.nickname.invalid ? 'Ingrese su usuario.'
           : c.documento.invalid ? 'Ingrese su número de cédula.'
-          : c.nacimiento.invalid ? 'Ingrese su fecha de nacimiento como DD/MM/AAAA.'
           : 'Escriba los 5 caracteres de la imagen.');
       return;
     }
     const v = this.identidadForm.getRawValue();
-    const [dia, mes, anio] = v.nacimiento.split('/');
     this.documentoVigente = v.documento;
-    this.ejecutar(this.service.verificar(v.nickname.trim(), v.documento, `${anio}-${mes}-${dia}`,
-      this.captchaId, v.captcha.trim()), (r) => {
+    this.ejecutar(this.service.verificar(v.nickname.trim(), v.documento, this.captchaId, v.captcha.trim()), (r) => {
         if (r.tipo === 'CORREO') {
           this.solicitudId = r.solicitudId;
           this.emailEnmascarado = r.emailEnmascarado;
@@ -265,7 +239,6 @@ export class RecuperarContrasenaDialogComponent implements OnInit {
       const c = this.nuevaForm.controls;
       this.avisarInvalido(
         c.nueva.hasError('required') ? 'Escriba la contraseña nueva.'
-          : c.nueva.hasError('minlength') ? `La contraseña debe tener al menos ${LARGO_MINIMO} caracteres.`
           : c.nueva.hasError('maxlength') ? 'La contraseña no puede superar los 50 caracteres.'
           : c.repetir.invalid ? 'Repita la contraseña.'
           : 'Las contraseñas no coinciden.');

@@ -21,13 +21,6 @@
         <input matInput formControlName="documento" inputmode="numeric" autocomplete="off" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Fecha de nacimiento</mat-label>
-        <mat-icon matPrefix>cake</mat-icon>
-        <input matInput formControlName="nacimiento" placeholder="DD/MM/AAAA" inputmode="numeric"
-          maxlength="10" autocomplete="off" (input)="onEscribirFecha($event)" />
-      </mat-form-field>
-
       <div class="captcha">
         <div class="captcha-imagen">
           <img *ngIf="captchaSrc; else cargandoCaptcha" [src]="captchaSrc" alt="Código de verificación" />
@@ -178,7 +171,7 @@
         <input matInput formControlName="repetir" [type]="ocultarContrasena ? 'password' : 'text'"
           autocomplete="new-password" />
       </mat-form-field>
-      <div class="nota">Mínimo {{ largoMinimo }} caracteres. No puede ser su usuario ni su número de cédula.</div>
+      <div class="nota">No puede ser su usuario ni su número de cédula.</div>
 
       <button type="submit" hidden></button>
     </form>

@@ -29,10 +29,9 @@ export class RecuperacionContrasenaService {
     return this.get<CaptchaRecuperacion>('captcha');
   }
 
-  verificar(nickname: string, documento: string, nacimiento: string,
-            captchaId: string, captchaRespuesta: string): Observable<VerificacionRecuperacion> {
+  verificar(nickname: string, documento: string, captchaId: string, captchaRespuesta: string): Observable<VerificacionRecuperacion> {
     return this.post<VerificacionRecuperacion>('verificar',
-      { nickname, documento, nacimiento, captchaId, captchaRespuesta });
+      { nickname, documento, captchaId, captchaRespuesta });
   }
 
   solicitudRrhh(verificacionToken: string, telefono: string, email: string,
