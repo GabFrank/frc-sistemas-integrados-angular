@@ -5,7 +5,8 @@ import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { timeout } from 'rxjs/operators';
-import { motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { erroresDeRechazo, motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import {
     EmbeddingGaleria,
     construirGaleriaDesdeCapturas,
@@ -473,29 +474,45 @@ export class ReconocimientoFacialHelperService {
             return false;
         }
 
+        // Se arma antes del try: un error local acá no es un corte (#501)
+        const galeriaSerializada = serializarGaleriaFacial(galeria);
+        let guardada: boolean;
         try {
-            await this.usuarioService.onSaveUsuarioImage(
+            guardada = await this.usuarioService.onSaveUsuarioImage(
                 usuarioId,
                 'perfil',
                 imagenFrontalBase64,
                 galeria.master,
                 true,
-                serializarGaleriaFacial(galeria)
+                galeriaSerializada
             ).toPromise();
-
-            this.notificacionService.notification$.next({
-                texto: 'Foto de perfil actualizada correctamente',
-                color: NotificacionColor.success,
-                duracion: 3
-            });
-            return true;
         } catch (error) {
+            // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo guardarse; repetir reemplaza la foto (#501)
+            if (erroresDeRechazo(error) == null && !esTimeoutDeLink(error)) {
+                this.notificacionService.notification$.next({
+                    texto: 'No se pudo confirmar si se guardó la foto de perfil. Podés volver a intentarlo.',
+                    color: NotificacionColor.warn,
+                    duracion: 8
+                });
+            }
+            return false;
+        }
+
+        // El central devuelve false sin lanzar si no pudo guardar el archivo: antes se mostraba como éxito
+        if (guardada !== true) {
             this.notificacionService.notification$.next({
-                texto: 'Error al guardar la foto de perfil',
+                texto: 'No se pudo guardar la foto de perfil.',
                 color: NotificacionColor.danger,
-                duracion: 3
+                duracion: 4
             });
             return false;
         }
+
+        this.notificacionService.notification$.next({
+            texto: 'Foto de perfil actualizada correctamente',
+            color: NotificacionColor.success,
+            duracion: 3
+        });
+        return true;
     }
 }

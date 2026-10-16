@@ -17,6 +17,7 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../.
 const CONSULTA_MOSTRADOR = { timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS, silenciarAvisoTimeout: true };
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { esTimeoutDeLink } from "../../../../shared/services/timeout-link";
 
 class UltimasVentasDialogData {
   caja: PdvCaja;
@@ -211,10 +212,21 @@ export class UltimasVentasDialogComponent implements OnInit {
   }
 
   reimpresionVenta(id) {
-    this.ventaService.onReimprimirVenta(id, false).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.notificacionSnackBar.openSucess("Reimpreso con éxito");
-      }
+    // El éxito es res != null: el filial devuelve false al reimprimir una factura aunque imprima (VentaGraphQL.reimprimirVenta)
+    this.ventaService.onReimprimirVenta(id, false).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        if (res != null) {
+          this.notificacionSnackBar.openSucess("Reimpreso con éxito");
+        }
+      },
+      // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link. Sin respuesta pudo imprimirse:
+      // repetir imprime otra vez (#501)
+      error: (err) => {
+        if (erroresDeRechazo(err) == null && !esTimeoutDeLink(err)) {
+          this.notificacionSnackBar.openWarn(
+            "No se pudo confirmar si se reimprimió la venta " + id + ": revisá la impresora antes de repetir.", 8);
+        }
+      },
     });
   }
 
