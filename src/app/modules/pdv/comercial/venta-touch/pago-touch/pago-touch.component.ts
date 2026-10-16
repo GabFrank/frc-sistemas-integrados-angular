@@ -23,7 +23,7 @@ import { MonedasGetAllGQL } from "../../../../../modules/financiero/moneda/graph
 import { Moneda } from "../../../../../modules/financiero/moneda/moneda.model";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
+import { ConfirmarOpciones, DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { TecladoNumericoComponent } from "../../../../../shared/components/teclado-numerico/teclado-numerico.component";
 import { FormaPago } from "../../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../../financiero/forma-pago/forma-pago.service";
@@ -103,7 +103,6 @@ import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../..
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
-import { ConfirmDialogComponent, ConfirmDialogData } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -850,21 +849,20 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     datosCupon: DatosCupon,
     avisos: string[]
   ): void {
-    const data: ConfirmDialogData = {
-      title: 'El cupón no coincide con este cobro',
-      message:
+    const opciones: ConfirmarOpciones = {
+      titulo: 'El cupón no coincide con este cobro',
+      mensaje:
         `Este cobro es de ${Number(item.valor).toLocaleString('es-PY')} ` +
         `${item.moneda?.simbolo || 'Gs.'} en ` +
         `${[item.terminalPos?.descripcion, item.terminalPos?.codigo].filter(Boolean).join(' - ') || 'esta terminal'}, ` +
         `pero ${avisos.join(' y ')}. ¿Es el cupón correcto?`,
-      confirmText: 'Registrar igual',
-      cancelText: 'Escanear otro',
+      si: 'Registrar igual',
+      no: 'Escanear otro',
     };
 
     this.isDialogOpen = true;
-    this.matDialog
-      .open(ConfirmDialogComponent, { data, width: '520px' })
-      .afterClosed()
+    this.dialog
+      .confirmar({ ...opciones, ancho: '520px' })
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (!confirmado) {
