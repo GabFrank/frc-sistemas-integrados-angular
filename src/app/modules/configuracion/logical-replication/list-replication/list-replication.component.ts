@@ -3,7 +3,8 @@ import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { LogicalReplication } from '../logical-replication.model';
+import { timer } from 'rxjs';
+import { LogicalReplication, ReplicationStatus } from '../logical-replication.model';
 import { LogicalReplicationService } from '../logical-replication.service';
 import { PageInfo } from '../../../../app.component';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -14,6 +15,7 @@ import { SetupReplicationDialogComponent } from '../setup-replication-dialog/set
 import { RemoveReplicationDialogComponent, RemoveReplicationDialogData } from '../remove-replication-dialog/remove-replication-dialog.component';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy()
 @Component({
@@ -206,6 +208,7 @@ export class ListReplicationComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
+            this.recargarSiSinConfirmar(result);
             if (result?.success) {
               // Update the item in the local list
               item.enabled = newStatus;
@@ -221,6 +224,7 @@ export class ListReplicationComponent implements OnInit {
           .pipe(untilDestroyed(this))
           .subscribe({
             next: (result) => {
+              this.recargarSiSinConfirmar(result);
               if (result?.success) {
                 // Update the item in the local list
                 item.enabled = newStatus;
@@ -369,6 +373,7 @@ export class ListReplicationComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
+            this.recargarSiSinConfirmar(result);
             if (result?.success) {
               this.loadSubscriptions();
             }
@@ -382,6 +387,7 @@ export class ListReplicationComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
+            this.recargarSiSinConfirmar(result);
             if (result?.success) {
               this.loadSubscriptions();
             }
@@ -401,6 +407,7 @@ export class ListReplicationComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
+            this.recargarSiSinConfirmar(result);
             if (result?.success) {
               this.loadSubscriptions();
             }
@@ -414,6 +421,7 @@ export class ListReplicationComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
+            this.recargarSiSinConfirmar(result);
             if (result?.success) {
               this.loadSubscriptions();
             }
@@ -435,6 +443,7 @@ export class ListReplicationComponent implements OnInit {
       .subscribe({
         next: (result) => {
           this.isSyncingPublications = false;
+          this.recargarSiSinConfirmar(result);
           if (result?.success) {
             this.loadPublications();
             this.loadSubscriptions();
@@ -446,4 +455,17 @@ export class ListReplicationComponent implements OnInit {
         }
       });
   }
-} 
+
+  /**
+   * Sin respuesta, la operación pudo aplicarse: la lista se recarga cuando el central tuvo tiempo de terminarla, así
+   * muestra el estado real antes de que se repita (#501).
+   */
+  private recargarSiSinConfirmar(result: ReplicationStatus): void {
+    if (result?.sinConfirmar) {
+      timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+        this.loadSubscriptions();
+        this.loadPublications();
+      });
+    }
+  }
+}

@@ -23,6 +23,8 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
   form: FormGroup;
   isLoading = false;
   errorMessage: string = null;
+  /** Hubo un guardado sin respuesta: pudo aplicarse, así que al cancelar la lista se recarga (#501). */
+  private sinConfirmar = false;
   useCentralConnection = true;
   centralConnectionString: string = '';
   isCentralConnectionLoading = false;
@@ -168,6 +170,7 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
             this.dialogRef.close(true);
           } else {
             this.errorMessage = result?.message || 'Error desconocido al guardar la suscripción';
+            this.sinConfirmar = this.sinConfirmar || result?.sinConfirmar === true;
           }
         },
         error: (error) => {
@@ -179,7 +182,7 @@ export class EditRemoteSubscriptionDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close(this.sinConfirmar);
   }
 
   toggleConnectionType(): void {

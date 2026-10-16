@@ -4,12 +4,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { timer } from 'rxjs';
 import { ReplicationDirection, ReplicationTable } from '../replication-table.model';
 import { ReplicationTableService } from '../replication-table.service';
 import { EditReplicationTableDialogComponent } from '../edit-replication-table-dialog/edit-replication-table-dialog.component';
 import { PageInfo } from '../../../../app.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy()
 @Component({
@@ -30,6 +32,8 @@ export class ListReplicationTablesComponent implements OnInit {
   pageIndex = 0;
   pageSize = 10;
   isLoading = false;
+  /** Un cambio de estado quedó sin respuesta: repetirlo lo invertiría otra vez, así que se bloquea hasta recargar (#501). */
+  toggleSinConfirmar = false;
   
   // Table configuration
   displayedColumns: string[] = ['tableName', 'direction', 'description', 'enabled', 'actions'];
@@ -137,6 +141,8 @@ export class ListReplicationTablesComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (page) => {
+          // La recarga nunca emite error (el servicio devuelve una página vacía): acá se libera el bloqueo
+          this.toggleSinConfirmar = false;
           try {
             this.tablesPage = page;
             
@@ -192,12 +198,24 @@ export class ListReplicationTablesComponent implements OnInit {
   }
   
   toggleEnabled(table: ReplicationTable): void {
+    if (this.toggleSinConfirmar) {
+      return;
+    }
     this.replicationTableService.toggleReplicationTableEnabled(table.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (result) => {
           if (result) {
             table.enabled = !table.enabled;
+          } else {
+            this.notificacionSnackBar.openWarn('No se pudo cambiar el estado de la tabla.');
+          }
+        },
+        error: (error) => {
+          // El servicio ya avisó. Sin respuesta pudo invertirse: no se deja repetir hasta ver el estado real
+          if (erroresDeRechazo(error) == null) {
+            this.toggleSinConfirmar = true;
+            this.recargarTrasCorte();
           }
         }
       });
@@ -222,6 +240,14 @@ export class ListReplicationTablesComponent implements OnInit {
             next: (success) => {
               if (success) {
                 this.loadTables();
+              } else {
+                this.notificacionSnackBar.openWarn('No se pudo eliminar la configuración de la tabla.');
+              }
+            },
+            error: (error) => {
+              // El servicio ya avisó. Sin respuesta pudo borrarse: la lista se recarga
+              if (erroresDeRechazo(error) == null) {
+                this.recargarTrasCorte();
               }
             }
           });
@@ -232,9 +258,22 @@ export class ListReplicationTablesComponent implements OnInit {
   updateServiceTables(): void {
     this.replicationTableService.updateReplicationServiceTables()
       .pipe(untilDestroyed(this))
-      .subscribe();
+      .subscribe({
+        next: (result) => {
+          if (!result) {
+            this.notificacionSnackBar.openWarn('No se pudo actualizar la configuración de replicación.');
+          }
+        },
+        // El servicio ya avisó; actualizar es idempotente y no cambia la lista
+        error: () => {}
+      });
   }
   
+  /** Recarga cuando el central tuvo tiempo de terminar lo que quedó sin respuesta (#501). */
+  private recargarTrasCorte(): void {
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.loadTables());
+  }
+
   clearFilters(): void {
     this.searchControl.setValue('');
     this.directionFilterControl.setValue('');
