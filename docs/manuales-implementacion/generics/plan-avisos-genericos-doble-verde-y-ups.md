@@ -80,3 +80,50 @@ Desktop estático con el interceptor contra un central propio (8084). Por pantal
 ## Persistencia, migraciones, replicación, multi-repo
 
 N/A: solo desktop.
+
+## Agregado en la prueba: guardados encadenados
+
+La prueba por pantalla mostró pasos intermedios con su propio «Guardado con éxito» que el relevamiento no había listado. Mismo patrón (`opciones` en el servicio; calla el paso intermedio y queda un verde al final):
+
+| Flujo | Antes | Ahora |
+|---|---|---|
+| Editar proveedor (Compras y Personas), proveedor de servicio | persona + verde de la pantalla | solo el verde de la pantalla (`PersonaService.onSavePersona`) |
+| Alta/edición de cliente | persona + cliente + verde propio (tres iguales) | solo el verde propio (`ClienteService.onSaveCliente`) |
+| Legajo de RRHH, información general | persona + funcionario | solo el del funcionario |
+| Wizard de funcionario (solicitudes) | persona + usuario + funcionario + pre-registro | solo el del pre-registro (`UsuarioService.onSaveUsuario`) |
+| Hoja de ruta al asignar transferencias | hoja + «Ruta asignada a N…» | solo «Ruta asignada a N…» (`TransferenciaService.onSaveHojaRuta`) |
+
+## Resultado de la prueba (2026-10-16)
+
+Bundle `web-production` servido estático contra el central propio (8084), con el interceptor (respuesta armada, rechazo con una consulta inválida que el servidor no ejecuta). Guardados reales donde no cambian nada (mismos datos) o crean datos locales que después se borraron; respuestas armadas donde el guardado movería plata, replicación o configuración compartida. Avisos contados por elemento de snackbar (dos iguales seguidos cuentan dos).
+
+| Pantalla | Resultado |
+|---|---|
+| Editar proveedor (diálogo de Compras y editor de Personas) | ✓ un verde, el de la pantalla; rechazo: un solo «Ups!» |
+| Proveedor de servicio | ✓ un verde |
+| Cliente (editar) | ✓ un verde (antes tres) |
+| Legajo de RRHH | ✓ un verde (antes dos) |
+| Panel de configuración de RRHH | ✓ «Configuración guardada» |
+| Pagar aguinaldo | ✓ «Aguinaldo pagado» |
+| Programar ítem de liquidación | ✓ «Programado: …» |
+| Inventario: crear, agregar zona, agregar producto, finalizar zona, reabrir zona, eliminar producto | ✓ un verde cada uno, con el texto de la pantalla |
+| Configuración de transferencias | ✓ un verde |
+| Eliminar transferencia | ✓ «Transferencia eliminada correctamente» |
+| Asignar ruta a 3 transferencias | ✓ éxito: solo «Ruta asignada a 3 transferencias.»; 3 rechazos iguales: un solo «Ups!» y el resumen |
+| Solicitud de pago: guardar (actualizar) | ✓ «Solicitud de pago actualizada» |
+| Eliminar solicitud de pago (pedido) | ✓ «Solicitud eliminada exitosamente» |
+| Chequeras: editar, desactivar | ✓ un verde cada uno |
+| Configurar facturación (factura con venta), política de facturación | ✓ un verde; el switch de la fila conserva el genérico, único |
+| Configuración de venta con tarjeta | ✓ un verde |
+| Impresoras: agregar 2 desde sucursal | ✓ solo «2 impresora(s) agregada(s)…» (antes tres) |
+| Asignar horario | ✓ éxito: un verde; rechazo: solo el «Ups!» (antes salía el verde igual) |
+| Asignar horario a otros (lista de funcionarios, 2) | ✓ un verde (antes cinco) |
+| Vincular inmueble a sucursal | ✓ un verde |
+| Observaciones de caja y de venta: categoría, subcategoría, motivo | ✓ un verde cada uno (antes dos iguales) |
+| Wizard de funcionario | ✓ un verde (antes cuatro) |
+
+Sin puerta en la UI (no se pueden probar por pantalla; ninguna pantalla los abre): `EditPagoComponent` y su `pago-detalle-dialog`, `ente-vinculacion-dialog` (`abrirVincularBienSucursal` sin llamadores), `add-caja-observacion-dialog` y el dashboard de observaciones de venta.
+
+Sin probar por pantalla: agregar gasto y retiro de pre-gasto, que se abren desde Utilitarios del PDV con caja abierta en un filial.
+
+Specs: `generic-crud.on-save`, `on-custom-mutation` y `on-delete` corridos en Karma (Electron, `DISPLAY=:0`): 108 specs, 3 fallas preexistentes ajenas (dos de `onDelete` con confirmación esperan `confirm` con 2 argumentos y hoy se llama con 10; «should be created» no provee `MatDialog`).
