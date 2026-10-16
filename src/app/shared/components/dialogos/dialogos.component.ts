@@ -20,6 +20,8 @@ export class DialogoData {
   public btn3Name?: string;
   /** Cabecera roja. Sin definir, se deduce del titulo (Eliminar/Anular/Borrar…). */
   public peligro?: boolean;
+  /** Boton con el foco al abrir. Default: 'si' (confirm); 'no' en confirmar(). */
+  public foco?: 'si' | 'no';
 }
 
 /** Titulos que, sin `peligro` explicito, piden la cabecera roja. */
@@ -56,7 +58,9 @@ export class DialogosComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      if(this.data?.action != false){
+      if(this.data?.action != false && this.data?.foco === 'no'){
+        this.cancelButton._elementRef.nativeElement.focus();
+      } else if(this.data?.action != false){
         this.okButton._elementRef.nativeElement.focus();
       } else {
         this.okButton2._elementRef.nativeElement.focus();

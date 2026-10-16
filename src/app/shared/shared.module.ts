@@ -13,7 +13,6 @@ import { NgxPanZoomModule } from 'ngx-panzoom';
 import { CapturarImagenComponent } from './capturar-imagen/capturar-imagen.component';
 import { BotonComponent } from './components/boton/boton.component';
 import { CargandoDialogComponent } from './components/cargando-dialog/cargando-dialog.component';
-import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 import { DialogosComponent } from './components/dialogos/dialogos.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { GenericListComponent } from './components/generic-list/generic-list.component';
@@ -92,7 +91,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DialogosComponent,
     CargandoDialogComponent,
     ImprimirDialogComponent,
-    ConfirmDialogComponent,
     TecladoNumericoComponent,
     QrCodeComponent,
     QrLectorDialogComponent,
@@ -169,7 +167,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FileUploadComponent,
     GenericListComponent,
     DialogosComponent,
-    ConfirmDialogComponent,
     NgxCurrencyModule,
     NgxPanZoomModule,
     InnerDialogComponent,

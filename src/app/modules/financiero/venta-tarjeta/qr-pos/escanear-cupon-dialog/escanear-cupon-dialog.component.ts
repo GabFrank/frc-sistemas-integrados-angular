@@ -1,10 +1,10 @@
-import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, inject } from '@angular/core';
 import { LectorTecladoDirective } from '../../../../../shared/lector-teclado/lector-teclado.directive';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, filter, map } from 'rxjs/operators';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DialogosService, ConfirmarOpciones } from '../../../../../shared/components/dialogos/dialogos.service';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.model';
@@ -96,6 +96,7 @@ const SIN_CAMPOS =
   styleUrls: ['./escanear-cupon-dialog.component.scss'],
 })
 export class EscanearCuponDialogComponent implements OnInit {
+  private dialogos = inject(DialogosService);
 
   cuponControl = new FormControl('');
 
@@ -414,16 +415,15 @@ export class EscanearCuponDialogComponent implements OnInit {
   }
 
   private confirmarCruce(datos: DatosCupon): void {
-    const data: ConfirmDialogData = {
-      title: 'El cupón no parece ser de esta terminal',
-      message:
+    const opciones: ConfirmarOpciones = {
+      titulo: 'El cupón no parece ser de esta terminal',
+      mensaje:
         `El código coincide con el formato de otro proveedor, no con el de ${this.data.terminalDescripcion || 'esta terminal'}. ` +
         `¿Reintentar el escaneo o confirmar igual?`,
-      confirmText: 'Confirmar igual',
-      cancelText: 'Reintentar',
+      si: 'Confirmar igual',
+      no: 'Reintentar',
     };
-    this.matDialog.open(ConfirmDialogComponent, { data, width: '480px' })
-      .afterClosed()
+    this.dialogos.confirmar({ ...opciones, ancho: '480px' })
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (confirmado) {

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -30,10 +30,7 @@ import {
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { CajaService } from '../../pdv/caja/caja.service';
 import { cajaEstaAbierta } from '../qr-pos/caja-abierta';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogData,
-} from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DialogosService, ConfirmarOpciones } from '../../../../shared/components/dialogos/dialogos.service';
 
 export interface VentasTarjetaCajaDialogData {
   cajaId: number;
@@ -61,6 +58,7 @@ export interface VentasTarjetaCajaDialogData {
   styleUrls: ['./ventas-tarjeta-caja-dialog.component.scss'],
 })
 export class VentasTarjetaCajaDialogComponent implements OnInit {
+  private dialogos = inject(DialogosService);
   dataSource = new MatTableDataSource<VentaTarjeta>([]);
   // `creadoEn` va segundo y no al final: una caja puede quedar abierta varios dias --la 654 de
   // prueba lleva semanas-- asi que "de cuando es este cobro" es lo primero que se pregunta al
@@ -276,21 +274,20 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   onReabrir(item: VentaTarjeta): void {
     if (!this.puedeReabrir(item)) return;
 
-    const data: ConfirmDialogData = {
-      title: 'Reabrir el cobro ' + item.id,
+    const opciones: ConfirmarOpciones = {
+      titulo: 'Reabrir el cobro ' + item.id,
       // Se nombra el motivo con el que se había marcado: es el dato que decide si reabrir tiene
       // sentido, y tenerlo delante evita reabrir la fila equivocada por segunda vez.
-      message:
+      mensaje:
         'Vuelve a quedar PENDIENTE y hay que registrarle el cupón.' +
         (item.motivoTexto ? ' Se había marcado como: ' + item.motivoTexto + '.' : '') +
         ' El motivo y quién lo marcó NO se borran: queda además tu usuario como quien lo reabrió.',
-      confirmText: 'Reabrir',
-      cancelText: 'Cancelar',
+      si: 'Reabrir',
+      no: 'Cancelar',
     };
 
-    this.matDialog
-      .open(ConfirmDialogComponent, { data, width: '480px' })
-      .afterClosed()
+    this.dialogos
+      .confirmar({ ...opciones, ancho: '480px' })
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (confirmado !== true) return;
