@@ -126,7 +126,7 @@ export class ListReplicationTablesComponent implements OnInit {
     }
   }
 
-  loadTables(): void {
+  loadTables(liberarToggles = false): void {
     this.isLoading = true;
     
     try {
@@ -141,8 +141,11 @@ export class ListReplicationTablesComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (page) => {
-          // La recarga nunca emite error (el servicio devuelve una página vacía): acá se libera el bloqueo
-          this.toggleSinConfirmar = false;
+          // Solo la recarga tras el corte libera el bloqueo: otra (el buscador) puede traer el estado de antes de que
+          // el central termine. Nunca emite error: el servicio devuelve una página vacía
+          if (liberarToggles) {
+            this.toggleSinConfirmar = false;
+          }
           try {
             this.tablesPage = page;
             
@@ -271,7 +274,7 @@ export class ListReplicationTablesComponent implements OnInit {
   
   /** Recarga cuando el central tuvo tiempo de terminar lo que quedó sin respuesta (#501). */
   private recargarTrasCorte(): void {
-    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.loadTables());
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.loadTables(true));
   }
 
   clearFilters(): void {
