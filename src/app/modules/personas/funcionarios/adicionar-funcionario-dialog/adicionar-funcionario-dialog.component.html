@@ -44,36 +44,6 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <!-- <div>
-        <frc-searchable-select
-          #cargoSelect
-          titulo="Cargo"
-          [list]="cargoList"
-          (selectionChanged)="handleCargoSelectionChange($event)"
-          [compareFields]="['id', 'descripcion']"
-          [isAutoSelect]="true"
-          aria-readonly
-        >
-          <ng-template let-item>
-            {{ item.id }} - {{ item.descripcion }}
-          </ng-template>
-        </frc-searchable-select>
-      </div>
-      <div>
-        <frc-searchable-select
-          #supervisadoPorSelect
-          titulo="Supervisado por"
-          [list]="supervisadoPorList"
-          (selectionChanged)="handleSupervisadoPorSelectionChange($event)"
-          (inputChanged)="handleSupervisadoPorInputChange($event)"
-          [isAutoSelect]="true"
-          [isFilter]="false"
-        >
-          <ng-template let-item>
-            {{ item.id }} - {{ item?.persona.nombre | titlecase }}
-          </ng-template>
-        </frc-searchable-select>
-      </div> -->
       <div>
         <mat-form-field style="width: 100%">
           <mat-label>Fecha de ingreso</mat-label>

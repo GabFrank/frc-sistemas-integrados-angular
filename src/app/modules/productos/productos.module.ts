@@ -22,7 +22,6 @@ import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-
 import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio-dialog/select-precio-dialog.component';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SeleccionarPresentacionDialogComponent } from './presentacion/seleccionar-presentacion-dialog/seleccionar-presentacion-dialog.component';
-import { SearchEnvaseDialogComponent } from './envase/search-envase-dialog/search-envase-dialog.component';
 import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-dialog.component';
 import { ProductosDashboardComponent } from './productos-dashboard/productos-dashboard.component';
 import { ListGrupoComponent } from './list-grupo/list-grupo.component';
@@ -58,7 +57,6 @@ import { SugerenciasImagenPanelComponent } from './presentacion/sugerencias-imag
     AdicionarPrecioDialogComponent,
     SelectPrecioDialogComponent,
     SeleccionarPresentacionDialogComponent,
-    SearchEnvaseDialogComponent,
     AddEnvaseDialogComponent,
     ProductosDashboardComponent,
     ListGrupoComponent,

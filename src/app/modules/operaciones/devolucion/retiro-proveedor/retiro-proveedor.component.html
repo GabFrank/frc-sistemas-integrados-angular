@@ -37,32 +37,8 @@
 
   <!-- Selector de proveedor -->
   <div class="proveedor-row" *ngIf="!proveedorSeleccionado">
-    <mat-form-field appearance="outline" class="proveedor-field">
-      <mat-label>Proveedor</mat-label>
-      <input
-        matInput
-        type="text"
-        placeholder="Buscar proveedor..."
-        [formControl]="proveedorControl"
-        [matAutocomplete]="autoProveedor"
-      />
-      <mat-icon matSuffix>search</mat-icon>
-      <mat-autocomplete
-        #autoProveedor="matAutocomplete"
-        [displayWith]="displayProveedor"
-        (optionSelected)="onProveedorSeleccionado($event.option.value)"
-      >
-        <mat-option
-          *ngFor="let prov of proveedoresFiltrados"
-          [value]="prov"
-        >
-          {{ prov.persona?.nombre }}
-          <span class="doc" *ngIf="prov.persona?.documento">
-            ({{ prov.persona?.documento }})</span
-          >
-        </mat-option>
-      </mat-autocomplete>
-    </mat-form-field>
+    <app-buscador-field class="proveedor-field" appearance="outline" tipo="proveedor" titulo="Proveedor"
+      [formControl]="proveedorControl" (seleccionado)="onProveedorSeleccionado($event)"></app-buscador-field>
   </div>
 
   <!-- Tarjeta del proveedor seleccionado -->

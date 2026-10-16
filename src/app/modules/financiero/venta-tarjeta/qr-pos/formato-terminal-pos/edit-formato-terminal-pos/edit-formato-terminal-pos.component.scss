@@ -202,3 +202,10 @@
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+// Explica el comodín bajo el buscador de proveedor (el campo no tiene mat-hint propio).
+.hint-proveedor {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: -12px 0 16px;
+}

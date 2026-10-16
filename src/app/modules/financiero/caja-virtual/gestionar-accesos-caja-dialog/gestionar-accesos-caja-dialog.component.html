@@ -13,16 +13,8 @@
 
   <!-- Alta -->
   <div class="ga-alta">
-    <mat-form-field appearance="outline" class="ga-buscador" subscriptSizing="dynamic">
-      <mat-label>Agregar usuario</mat-label>
-      <input matInput [formControl]="usuarioControl" [matAutocomplete]="autoUsuario"
-             placeholder="Nombre o usuario (mín. 2 letras)">
-      <mat-autocomplete #autoUsuario="matAutocomplete" [displayWith]="displayUsuario">
-        <mat-option *ngFor="let u of usuariosFiltrados" [value]="u">
-          {{ u.persona?.nombre || '—' }} <small>({{ u.nickname }})</small>
-        </mat-option>
-      </mat-autocomplete>
-    </mat-form-field>
+    <app-buscador-field class="ga-buscador" appearance="outline" tipo="usuario" titulo="Agregar usuario"
+      [etiqueta]="displayUsuario" [formControl]="usuarioControl"></app-buscador-field>
 
     <mat-checkbox [(ngModel)]="nuevoPuedeEscribir" class="ga-check">Puede mover plata</mat-checkbox>
 
