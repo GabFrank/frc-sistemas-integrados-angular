@@ -48,7 +48,7 @@ Central propio en el 8084 (base `bodega` local, `replication.sync/refresh` apaga
 | 2 | instalar cola SMB (recursos compartidos armados en el interceptor) | solo el «Ups!», sin mensaje en el diálogo | mensaje en el diálogo | solo el aviso del link, sin mensaje en el diálogo | |
 | 3 | reactivar cola (impresora de prueba sobre `ticket_soporte`, frenada de verdad) | solo el «Ups!» | aviso con el texto nuevo y recarga del estado a los 5 s | solo el aviso del link y recarga | |
 | 4 | enviar factura por correo (`prueba@example.com`) | «Ups!» y el diálogo queda | aviso y el diálogo se cierra | aviso del link y el diálogo se cierra | |
-| 5 | imprimir ticket en sucursal | «Ups!» y el diálogo queda | aviso y se cierra | aviso del link y se cierra | `false`: aviso y se cierra. El de PDF no se pudo probar en local: la vista previa del PDF no se genera y deja el botón deshabilitado; pasa por el mismo `confirmar` |
+| 5 | imprimir ticket en sucursal | «Ups!» y el diálogo queda | aviso y se cierra | aviso del link y se cierra | `false`: aviso y se cierra. El de PDF, con la vista previa armada en el interceptor (en local el PDF no se genera y deja el botón deshabilitado): rechazo, `false` y corte iguales |
 | 6 | reimprimir venta (PDV → Utilitarios → Reimpresión de ticket) | solo el «Ups!» | «No se pudo confirmar si se reimprimió la venta 79285…» | solo el aviso del link | respuesta `true`: «Reimpreso con éxito», como antes |
 | 7 | alta de timbrado | «Ups!» y el diálogo queda | aviso, el diálogo se cierra y la lista recarga | aviso del link, se cierra y recarga | edición con corte: aviso y el diálogo queda |
 | 8 | notificación personalizada a todos | «Ups!» y el diálogo queda | aviso y se cierra | aviso del link y se cierra | |
