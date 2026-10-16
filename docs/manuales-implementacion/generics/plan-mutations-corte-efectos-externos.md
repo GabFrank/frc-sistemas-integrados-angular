@@ -38,6 +38,24 @@ Sin helper nuevo. Gates: `npm run check` y `npm run verificar:imports`.
 
 Desktop servido estático e interceptor de XHR (corte, rechazo, respuesta armada, aplicado, colgado). Central propio en el 8084 con `replication.sync/refresh` apagados; filial propio en el 8082 con SIFEN apagado para la reimpresión. Lo que tiene efecto externo se prueba **cortado o rechazado** (no sale del navegador, o el servidor rechaza la consulta inválida sin ejecutarla) y sus respuestas `true`/`false` se arman en el interceptor: nunca llega al backend un pedido que instale una cola, mande un correo o un push, o imprima. El central local tiene IP reales de las sucursales y tokens de push válidos (auditoría del plan). Para la foto de perfil, la cámara se reemplaza por un `canvas` con una foto si el modelo facial la acepta; si no, se pregunta antes de informar.
 
+### Resultado (2026-10-16)
+
+Central propio en el 8084 (base `bodega` local, `replication.sync/refresh` apagados), filial propio en el 8082 (base `general`, SIFEN apagado), desktop con local y central, usuario `MR`. Interceptor con corte, rechazo (consulta inválida que el servidor no ejecuta), respuesta armada y colgado (un socket que nunca responde, para el timeout de 60 s del link). Nada con efecto externo llegó a ejecutarse: el CUPS de la máquina quedó igual (`ticket_soporte` sigue deshabilitada, ninguna cola nueva), no salió correo, push ni papel.
+
+| # | Llamada | Rechazo | Corte | Timeout del link | Otros |
+|---|---|---|---|---|---|
+| 1 | instalar cola CUPS (detectada en el servidor local) | solo el «Ups!» | «No se pudo confirmar si se instaló la cola…» | | respuesta `true`: «Impresora instalada» y el formulario toma la cola (antes, sin el alias `data:`, siempre decía «No se pudo instalar»). El servidor validó la consulta con el alias |
+| 2 | instalar cola SMB (recursos compartidos armados en el interceptor) | solo el «Ups!», sin mensaje en el diálogo | mensaje en el diálogo | solo el aviso del link, sin mensaje en el diálogo | |
+| 3 | reactivar cola (impresora de prueba sobre `ticket_soporte`, frenada de verdad) | solo el «Ups!» | aviso con el texto nuevo y recarga del estado a los 5 s | solo el aviso del link y recarga | |
+| 4 | enviar factura por correo (`prueba@example.com`) | «Ups!» y el diálogo queda | aviso y el diálogo se cierra | aviso del link y el diálogo se cierra | |
+| 5 | imprimir ticket en sucursal | «Ups!» y el diálogo queda | aviso y se cierra | aviso del link y se cierra | `false`: aviso y se cierra. El de PDF no se pudo probar en local: la vista previa del PDF no se genera y deja el botón deshabilitado; pasa por el mismo `confirmar` |
+| 6 | reimprimir venta (PDV → Utilitarios → Reimpresión de ticket) | solo el «Ups!» | «No se pudo confirmar si se reimprimió la venta 79285…» | solo el aviso del link | respuesta `true`: «Reimpreso con éxito», como antes |
+| 7 | alta de timbrado | «Ups!» y el diálogo queda | aviso, el diálogo se cierra y la lista recarga | aviso del link, se cierra y recarga | edición con corte: aviso y el diálogo queda |
+| 8 | notificación personalizada a todos | «Ups!» y el diálogo queda | aviso y se cierra | aviso del link y se cierra | |
+| 9 | foto de perfil (Marcar horario → Buscar por ID → `PRUEBANR`, 3 capturas) | solo el «Ups!», vuelve al paso 1 | «No se pudo confirmar si se guardó la foto de perfil…» | solo el aviso del link | `false`: «No se pudo guardar la foto de perfil» (antes, éxito); `true`: «Foto de perfil actualizada correctamente» |
+
+Para la foto de perfil, la cámara se reemplazó por un `canvas` con la imagen de ejemplo de `@vladmandic/human` (`assets/screenshot-faceid.jpg`): el modelo detectó el rostro en las tres capturas. Se borró la impresora de prueba de las dos bases.
+
 ## Persistencia, migraciones, replicación, multi-repo
 
 N/A: solo cambian ramas de error del desktop.
