@@ -1,12 +1,6 @@
-<div class="dialog-container" #container>
-  <!-- Dialog Header with gradient background -->
-  <div class="dialog-header">
-    <div class="header-title">
-      {{ data.titulo }}
-    </div>
-  </div>
+<app-dialogo-base [titulo]="data.titulo" [llenar]="true">
   <!-- Dialog Content -->
-  <div class="dialog-content">
+  <div class="dialog-content" #container>
     <!-- Search Section Card -->
     <mat-card class="search-card">
       <mat-card-content>
@@ -99,28 +93,25 @@
   </div>
 
   <!-- Dialog Actions -->
-  <div class="dialog-actions">
-    <div class="actions-right">
-      <button mat-raised-button (click)="onCancelar()" class="cancel-btn">
+  <div acciones class="actions-right">
+      <button mat-flat-button (click)="onCancelar()" class="frc-btn-cancelar">
         <mat-icon>close</mat-icon>
         Cancelar
       </button>
 
       <button
         *ngIf="data?.multiple"
-        mat-raised-button
-        color="primary"
+        mat-flat-button
         (click)="onAplicarFiltro()"
         [disabled]="cantidadSeleccionados() === 0"
-        class="apply-btn">
+        class="frc-btn-confirmar">
         <mat-icon>check</mat-icon>
         {{ data?.labelAceptar || 'Aplicar filtro' }} ({{ cantidadSeleccionados() }})
       </button>
 
-      <button *ngIf="!data?.multiple" mat-raised-button color="primary" (click)="onAceptar()" [disabled]="selectedItem == null">
+      <button *ngIf="!data?.multiple" mat-flat-button class="frc-btn-confirmar" (click)="onAceptar()" [disabled]="selectedItem == null">
         <mat-icon>check</mat-icon>
         Aceptar
       </button>
-    </div>
   </div>
-</div>
+</app-dialogo-base>

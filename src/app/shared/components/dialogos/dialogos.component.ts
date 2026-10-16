@@ -18,7 +18,12 @@ export class DialogoData {
   public btn1Name?: string = 'Si';
   public btn2Name?: string = 'No';
   public btn3Name?: string;
+  /** Cabecera roja. Sin definir, se deduce del titulo (Eliminar/Anular/Borrar…). */
+  public peligro?: boolean;
 }
+
+/** Titulos que, sin `peligro` explicito, piden la cabecera roja. */
+const TITULO_DE_PELIGRO = /^\s*(eliminar|anular|borrar|revocar)/i;
 
 @Component({
   selector: 'app-dialogos',
@@ -41,7 +46,11 @@ export class DialogosComponent implements OnInit, AfterViewInit {
   ) {
     if(data.btn1Name==null)data.btn1Name = 'Si';
     if(data.btn2Name==null)data.btn2Name = 'No';
+    const peligro = data.peligro ?? TITULO_DE_PELIGRO.test(data.title ?? '');
+    this.tono = peligro ? 'peligro' : 'normal';
   }
+
+  tono: 'normal' | 'peligro' = 'normal';
 
   ngOnInit(): void {}
 

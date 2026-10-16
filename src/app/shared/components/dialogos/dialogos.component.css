@@ -1,3 +1,25 @@
-.container {
-    padding: 20px;
+/* La raiz es 10px: 1.6rem = 16px, el tamano del h3 de antes. */
+.mensaje {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+.detalle,
+li {
+  font-size: 1.4rem;
+}
+
+.detalle {
+  margin: 0 0 6px;
+  opacity: 0.85;
+}
+
+ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
+li {
+  margin-bottom: 4px;
 }
