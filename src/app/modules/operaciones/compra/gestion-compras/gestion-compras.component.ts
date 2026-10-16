@@ -116,7 +116,6 @@ import {
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
-import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { BuscadorComprasService } from "./buscador-compras.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
@@ -491,7 +490,6 @@ export class GestionComprasComponent
     private dialogosService: DialogosService,
     private productoProveedorService: ProductoProveedorService,
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
-    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
     private buscadorComprasService: BuscadorComprasService,
     private tabService: TabService,
@@ -984,8 +982,14 @@ export class GestionComprasComponent
       .onImprimirPedidoTicket(this.pedidoId!, printerName)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () =>
-          this.notificacionService.openSucess("Ticket enviado a impresora"),
+        next: (ok) => {
+          // El central hoy siempre devuelve true; si cambia, que no diga «enviado» (#501)
+          if (ok === false) {
+            this.notificacionService.openWarn("No se pudo enviar el ticket a la impresora.");
+          } else {
+            this.notificacionService.openSucess("Ticket enviado a impresora");
+          }
+        },
         error: (err) => this.avisarSinRespuesta(err, "Error al imprimir ticket"),
       });
   }
@@ -1007,6 +1011,9 @@ export class GestionComprasComponent
             this.notificacionService.openSucess(
               "Reporte generado exitosamente"
             );
+          } else {
+            // Antes un PDF vacío no avisaba nada (#501)
+            this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
           }
         },
         error: (err) => this.avisarSinRespuesta(err, "Error al generar PDF"),
@@ -1034,6 +1041,8 @@ export class GestionComprasComponent
             a.click();
             window.URL.revokeObjectURL(url);
             this.notificacionService.openSucess("PDF guardado exitosamente");
+          } else {
+            this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
           }
         },
         error: (err) => this.avisarSinRespuesta(err, "Error al guardar PDF"),
@@ -3105,11 +3114,20 @@ export class GestionComprasComponent
               
               // Actualizar propiedades computadas
               this.updateComputedProperties();
+            } else {
+              // El central devuelve false si no pudo borrar (ya no existe, datos asociados): antes en silencio (#501)
+              this.notificacionService.openWarn("No se pudo eliminar el ítem: puede que ya no exista o tenga datos asociados.");
+              this.recargarItemsTrasCorte();
             }
           },
           error: (error) => {
             console.error("Error eliminando ítem:", error);
             this.trasFalloDeMutacion(error, "se eliminó el ítem", () => this.recargarItemsTrasCorte());
+            // Lo más común es «rollback-only»: el ítem ya no existe (el borrado base atrapa la excepción y el commit
+            // falla). El «Ups!» ya lo mostró el genérico; se recarga para que la lista no lo siga mostrando (#501)
+            if (motivoDelRechazo(error)?.toLowerCase().includes('rollback-only')) {
+              this.recargarItemsTrasCorte();
+            }
           }
         });
       }
@@ -3879,8 +3897,8 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error('Error al asignar ítems a la nota:', error);
-          this.trasFalloDeMutacionManual(error, "No se pudieron asignar los ítems a la nota", "se asignaron los ítems a la nota",
-            () => this.recargarRecepcionDocumentalTrasCorte());
+          // Pasa por el genérico: el motivo del rechazo ya lo mostró (#501)
+          this.trasFalloDeMutacion(error, "se asignaron los ítems a la nota", () => this.recargarRecepcionDocumentalTrasCorte());
         }
       });
   }
@@ -4154,18 +4172,6 @@ export class GestionComprasComponent
       return;
     }
     this.programarRecargaTrasFallo(recargar);
-  }
-
-  /**
-   * Como `trasFalloDeMutacion`, para una mutation que no pasa por el genérico: en un rechazo nadie mostró el motivo,
-   * así que lo muestra la pantalla (`queFallo` si el servidor no mandó texto).
-   */
-  private trasFalloDeMutacionManual(error: any, queFallo: string, queSeHizo: string, recargar: () => void): void {
-    if (erroresDeRechazo(error) != null) {
-      this.notificacionService.openAlgoSalioMal(motivoDelRechazo(error) ?? queFallo);
-      return;
-    }
-    this.trasFalloDeMutacion(error, queSeHizo, recargar);
   }
 
   /**
@@ -5048,17 +5054,12 @@ export class GestionComprasComponent
       return;
     }
 
-    this.desvincularProductoProveedorGQL
-      .mutate({
-        id: producto.id,
-        motivo: motivo
-      }, {
-        context: { clientName: 'servidor' }
-      })
+    this.productoProveedorService
+      .onDesvincular(producto.id, motivo)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          if (response.data?.data) {
+        next: (vinculo) => {
+          if (vinculo) {
             this.notificacionService.openSucess(
               "Producto desvinculado correctamente"
             );
@@ -5078,8 +5079,8 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error("Error desvinculando producto:", error);
-          this.trasFalloDeMutacionManual(error, "No se pudo desvincular el producto", "se desvinculó el producto",
-            () => this.loadProductosProveedor());
+          // Pasa por el genérico: el motivo del rechazo ya lo mostró (#501)
+          this.trasFalloDeMutacion(error, "se desvinculó el producto", () => this.loadProductosProveedor());
         }
       });
   }

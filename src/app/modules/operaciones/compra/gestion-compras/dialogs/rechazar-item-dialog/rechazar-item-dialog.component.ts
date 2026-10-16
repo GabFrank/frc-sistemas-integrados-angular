@@ -510,6 +510,11 @@ export class RechazarItemDialogComponent implements OnInit {
           console.error('Error al guardar ítem rechazado:', error);
           this.isLoading = false;
           if (notaCreadaAca) {
+            // En un rechazo se intenta no dejar la nota vacía (contaría para la etapa y la conciliación) (#501)
+            if (erroresDeRechazo(error) != null && notaRecepcionItem.notaRecepcion?.id) {
+              this.deshacerNotaSiQuedoVacia(notaRecepcionItem.notaRecepcion.id, error);
+              return;
+            }
             // Reintentar crearía otra nota
             this.cerrarParaRecargar(error, 'La nota nueva se creó, pero no se guardó el ítem rechazado.',
               'se guardó el ítem rechazado en la nota nueva');
@@ -583,6 +588,50 @@ export class RechazarItemDialogComponent implements OnInit {
     if (aviso != null) {
       this.notificacionService.openWarn(aviso, 8);
     }
+  }
+
+  /**
+   * El ítem fue rechazado con la nota recién creada. Un rechazo no garantiza que el ítem no exista:
+   * saveNotaRecepcionItem no es transaccional y puede fallar después de guardarlo, y la FK de los ítems es ON DELETE
+   * CASCADE. Por eso se relee la nota y se borra solo si quedó sin ítems; si no, el aviso de siempre (#501).
+   */
+  private cerrarConMensaje(message: string): void {
+    this.isLoading = false;
+    const result: RechazarItemDialogResult = { success: false, recargar: true, message };
+    this.dialogRef.close(result);
+  }
+
+  private deshacerNotaSiQuedoVacia(notaId: number, error: any): void {
+    const siNo = () => this.cerrarParaRecargar(error, 'La nota nueva se creó, pero no se guardó el ítem rechazado.',
+      'se guardó el ítem rechazado en la nota nueva');
+    this.isLoading = true;
+    this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionId(notaId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (items) => {
+          if (items == null || items.length > 0) {
+            siNo();
+            return;
+          }
+          this.pedidoService.onDeleteNotaRecepcion(notaId)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (borrada) => {
+                if (borrada !== true) {
+                  this.cerrarConMensaje('No se guardó el ítem rechazado y no se pudo deshacer la nota nueva: quedó vacía. Se recargan los ítems.');
+                  return;
+                }
+                this.cerrarConMensaje('No se guardó el ítem rechazado y se deshizo la nota nueva: no quedó una nota vacía. Se recargan los ítems.');
+              },
+              // La nota ya no se puede describir como «creada»: el rechazo del borrado la deja vacía y un corte pudo
+              // haberla borrado. El «Ups!» del rechazo ya lo mostró el genérico
+              error: (e) => this.cerrarParaRecargar(e,
+                'No se guardó el ítem rechazado y no se pudo deshacer la nota nueva: quedó vacía.',
+                'se deshizo la nota nueva (el ítem rechazado no se guardó)')
+            });
+        },
+        error: () => siNo()
+      });
   }
 
   /**

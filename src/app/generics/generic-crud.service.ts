@@ -46,6 +46,19 @@ const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 /** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
 const MARGEN_DIALOGO_MS = 5000;
 
+/**
+ * Textos de {@link GenericCrudService.onDelete} cuando la mutation no es un borrado (p. ej. cancelar un pedido): sin
+ * esto el aviso decía «eliminó» (#501).
+ */
+export interface TextosEliminar {
+  /** Aviso verde del éxito. */
+  exito?: string;
+  /** Completa «Ups! Ocurrió algun problema …» en un rechazo (p. ej. «al cancelar el pedido»). */
+  alHacer?: string;
+  /** Completa «No se pudo confirmar si …» sin respuesta (p. ej. «se canceló el pedido»). */
+  queSeHizo?: string;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -890,12 +903,13 @@ export class GenericCrudService {
     data?: any,
     showDialog?: boolean,
     servidor: boolean = true,
-    mensaje?: string
+    mensaje?: string,
+    textos?: TextosEliminar
   ): Observable<any> {
     return this.eliminar(gql, { id }, servidor, showDialog == false ? null : {
       titulo: titulo != null ? titulo : "Atención!!",
       mensaje: mensaje != null ? mensaje : "Realemente desea eliminar este item?",
-    });
+    }, textos);
   }
 
   /** Como {@link onDelete}, para las entidades cuya clave incluye la sucursal. */
@@ -918,7 +932,8 @@ export class GenericCrudService {
     gql: Mutation,
     variables: any,
     servidor: boolean,
-    confirmacion: { titulo: string; mensaje: string } | null
+    confirmacion: { titulo: string; mensaje: string } | null,
+    textos?: TextosEliminar
   ): Observable<any> {
     return new Observable((obs) => {
       let requestId: any = null;
@@ -950,7 +965,7 @@ export class GenericCrudService {
               if (terminado) return;
               if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Eliminado con éxito",
+                  texto: textos?.exito ?? "Eliminado con éxito",
                   duracion: 2,
                   color: NotificacionColor.success,
                 });
@@ -964,7 +979,7 @@ export class GenericCrudService {
               this.notificacionSnackBar.notification$.next({
                 texto: yaNoExiste
                   ? "No se pudo eliminar: el registro ya no existe o no se puede borrar. Actualizá la lista."
-                  : "Ups! Ocurrió algun problema al eliminar: " + motivo,
+                  : "Ups! Ocurrió algun problema " + (textos?.alHacer ?? "al eliminar") + ": " + motivo,
                 duracion: yaNoExiste ? 5 : 3,
                 color: yaNoExiste ? NotificacionColor.warn : NotificacionColor.danger,
               });
@@ -979,8 +994,8 @@ export class GenericCrudService {
                   // Mismo criterio que onSave: con status tampoco se niega el borrado (un 502 de un proxy
                   // pudo haberlo dejado pasar).
                   texto: status > 0
-                    ? "No se pudo confirmar si se eliminó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
-                    : "No se pudo confirmar si se eliminó (error de red): pudo haberse aplicado, verificá antes de repetir.",
+                    ? "No se pudo confirmar si " + (textos?.queSeHizo ?? "se eliminó") + ": el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                    : "No se pudo confirmar si " + (textos?.queSeHizo ?? "se eliminó") + " (error de red): pudo haberse aplicado, verificá antes de repetir.",
                   duracion: 6,
                   color: NotificacionColor.warn,
                 });
