@@ -366,7 +366,7 @@ export class GenericCrudService {
   }
 
   onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false,
-                   opciones?: { timeoutMs?: number }): Observable<any> {
+                   opciones?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
     
@@ -387,6 +387,8 @@ export class GenericCrudService {
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
             timeoutMs: opciones?.timeoutMs,
+            // Acción de fondo que el usuario no inició: sin el aviso del link al vencer (#528)
+            ...(opciones?.silenciarAvisoTimeout ? { silenciarAvisoTimeout: true } : {}),
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
