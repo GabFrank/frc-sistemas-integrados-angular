@@ -37,6 +37,19 @@ de existencia `> 0` / `< 0` (mismo criterio que el central: el cero no entra en 
 | COMPRAS oculto deja la tabla en blanco sin aviso (html:400) | A | **Descartado**: `cargarSucursales` (ts:570) ya saca COMPRAS de `this.sucursales` sin el permiso, así que no llega al arreglo y el aviso de vacío sí sale |
 | «No hay sucursales disponibles» es impreciso con el arreglo filtrado a cero | A | Se deja: solo pasa en el caso COMPRAS de arriba |
 
+## Auditoría del diff (paso 8)
+
+Fijo 2 (esquema, migración y espejo): `N/A para desktop porque el diff no trae migración, .graphqls
+ni modelo GraphQL [ev: git diff --name-only → list-producto.component.ts/.html]`.
+
+| Hallazgo | Eje | Qué se hizo |
+|---|---|---|
+| Sin fuga nueva de COMPRAS/SERVIDOR: el filtro por signo solo achica `this.sucursales`, ya filtrada en `cargarSucursales` | Fijo 1 | Nada que cambiar |
+| Previo, fuera de alcance: `puedeVerStockCompras` se calcula una vez en `ngOnInit`; el gate de COMPRAS es solo de UI | Fijo 1 | Se deja anotado |
+| «Ajustar stock» seguía leyendo el select en vivo: la fila podía decir una sucursal y el diálogo ajustar otra | Fijo 3 | Aplicado: `onAjustarStock` y `getSucursalPreseleccionada` usan `filtroDeLaLista` |
+| Si el stock cambia entre la búsqueda y el despliegue, la fila puede quedar vacía | Fijo 3 | Se deja: sale el aviso de lista vacía |
+| El PDF sigue usando el select en vivo | — | A propósito: el central rearma la búsqueda con esos filtros y el reporte los imprime |
+
 ## Fuera de alcance
 
 - El PDF (`exportarReporteConFiltros`) imprime un total por producto, no por sucursal: no tiene

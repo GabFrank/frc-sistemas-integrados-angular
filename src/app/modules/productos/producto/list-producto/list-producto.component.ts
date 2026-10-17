@@ -613,13 +613,13 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
    * demás siguen por el camino de siempre, sin ningún cambio.
    */
   onAjustarStock(producto: Producto) {
-    if (this.sucursalesFallo && this.sucursalFiltroControl.value) {
+    if (this.sucursalesFallo && this.filtroDeLaLista.sucursalId) {
       // Con filtro de sucursal el diálogo abre fijo en esa sucursal: sin la lista no hay cuál pasarle
       this.notificacionService.openWarn('No se pudieron cargar las sucursales: usá «Reintentar» antes de ajustar el stock.', 5);
       return;
     }
     const sucursalPreseleccionada = this.getSucursalPreseleccionada();
-    const permitirCambiarSucursal = this.stockFiltroControl.value === 'todos';
+    const permitirCambiarSucursal = this.filtroDeLaLista.stock === 'todos';
 
     const dialogData: AjustarStockDialogData = {
       producto: producto,
@@ -646,9 +646,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Del filtro de la lista a la vista, igual que la fila desplegada: el select puede haber cambiado sin buscar. */
   getSucursalPreseleccionada(): Sucursal | undefined {
-    if (this.sucursalFiltroControl.value) {
-      return this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
+    if (this.filtroDeLaLista.sucursalId) {
+      return this.sucursales.find(s => s.id === this.filtroDeLaLista.sucursalId);
     }
     return undefined;
   }
