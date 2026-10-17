@@ -1,6 +1,11 @@
-<div class="frc-dialogo" [class.peligro]="tono === 'peligro'">
+<div class="frc-dialogo">
   <div class="frc-dialogo-header">
-    <div class="frc-dialogo-titulo">{{ titulo }}</div>
+    <h2
+      mat-dialog-title
+      class="frc-dialogo-titulo"
+    >
+      {{ titulo }}
+    </h2>
   </div>
   <div class="frc-dialogo-contenido">
     <ng-content></ng-content>

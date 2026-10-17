@@ -5,7 +5,10 @@ $violeta: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 :host(.llenar) {
@@ -18,6 +21,8 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 .frc-dialogo {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -49,8 +54,21 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.peligro .frc-dialogo-header {
+:host(.peligro) .frc-dialogo-header {
   background: $rojo;
+}
+
+// Lleva mat-dialog-title (por el aria-labelledby): se anulan el padding, el ::before y la tipografia
+// que Material le pone a .mdc-dialog__title. Dos clases para ganarle a `.mat-mdc-dialog-container .mdc-dialog__title`.
+.frc-dialogo-titulo.mat-mdc-dialog-title {
+  padding: 0;
+  line-height: normal;
+  letter-spacing: normal;
+  font-family: inherit;
+
+  &::before {
+    display: none;
+  }
 }
 
 .frc-dialogo-titulo {

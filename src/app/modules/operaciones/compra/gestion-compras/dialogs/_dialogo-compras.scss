@@ -1,0 +1,95 @@
+// Bloques comunes del contenido de los diálogos de compras (el marco es de app-dialogo-base).
+// Uso: @use '../dialogo-compras';
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campo-completo {
+  width: 100%;
+}
+
+// Resumen de cantidades arriba del formulario
+.context-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .info-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .info-value {
+    font-weight: 600;
+    font-size: 14px;
+    color: #ffffff;
+
+    &.text-warning {
+      color: #ffc107;
+    }
+
+    &.text-success {
+      color: #4caf50;
+    }
+
+    &.text-danger {
+      color: #f44336;
+    }
+  }
+}
+
+// Paso numerado del formulario
+.step-section h3 {
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+// Avisos dentro del contenido
+.help-message,
+.warning-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.help-message {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #90caf9;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.warning-message {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}

@@ -1,16 +1,19 @@
-<div class="add-edit-item-dialog">
-  <!-- Header -->
-  <div class="dialog-header">
-    <h3 class="center" style="margin: 0px">{{ titleComputed }}</h3>
-  </div>
-
-  <!-- Content -->
-  <div class="dialog-content">
-    <form [formGroup]="itemForm" class="item-form">
+<app-dialogo-base
+  [titulo]="titleComputed"
+  [llenar]="true"
+>
+  <div class="contenido-scroll">
+    <form
+      [formGroup]="itemForm"
+      class="item-form"
+    >
       <div class="form-container">
         <!-- Fila 1: Seleccionar Producto -->
         <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field
+            appearance="outline"
+            class="full-width"
+          >
             <mat-label>Buscar Producto</mat-label>
             <input
               matInput
@@ -23,56 +26,80 @@
               mat-icon-button
               matSuffix
               type="button"
-              (click)="onSearchProducto()"
               matTooltip="Buscar producto"
+              aria-label="Buscar producto"
+              (click)="onSearchProducto()"
             >
               <mat-icon>search</mat-icon>
             </button>
-            <mat-error
-              *ngIf="
-                itemForm.get('producto')?.hasError('required') &&
-                itemForm.get('producto')?.touched
-              "
-            >
+            <mat-error *ngIf="productoRequeridoErrorComputed">
               Debe seleccionar un producto
             </mat-error>
           </mat-form-field>
         </div>
 
         <!-- Two-column layout: sidebar + form content -->
-        <div class="content-area" [class.has-product]="productoSelectedComputed">
-
+        <div
+          class="content-area"
+          [class.has-product]="productoSelectedComputed"
+        >
           <!-- LEFT: Product Info Sidebar -->
-          <div class="product-sidebar" *ngIf="productoSelectedComputed">
+          <div
+            class="product-sidebar"
+            *ngIf="productoSelectedComputed"
+          >
             <div class="sidebar-image-container">
               <img
-                [src]="selectedProducto?.imagenPrincipalMiniatura || 'assets/no-image.png'"
-                [frcPrevisualizarImagen]="selectedProducto?.imagenPrincipalMediana || selectedProducto?.imagenPrincipalMiniatura || 'assets/no-image.png'"
+                [src]="imagenMiniaturaComputed"
+                [frcPrevisualizarImagen]="imagenMedianaComputed"
                 class="sidebar-product-image"
                 matTooltip="Ver imagen"
+                [alt]="selectedProducto?.descripcion"
               />
             </div>
             <div class="sidebar-nombre">{{ selectedProducto?.descripcion }}</div>
-            <div class="sidebar-codigo" *ngIf="selectedProducto?.codigoPrincipal">
-              <mat-icon class="sidebar-icon">qr_code</mat-icon>
+            <div
+              class="sidebar-codigo"
+              *ngIf="selectedProducto?.codigoPrincipal"
+            >
+              <mat-icon
+                class="sidebar-icon"
+                aria-hidden="true"
+              >
+                qr_code
+              </mat-icon>
               {{ selectedProducto?.codigoPrincipal }}
             </div>
             <div class="sidebar-info-row">
               <span class="sidebar-label">IVA:</span>
               <span>{{ selectedProducto?.iva }}%</span>
             </div>
-            <div class="sidebar-info-row" *ngIf="selectedProducto?.costo?.costoMedio">
+            <div
+              class="sidebar-info-row"
+              *ngIf="selectedProducto?.costo?.costoMedio"
+            >
               <span class="sidebar-label">Costo Medio:</span>
               <app-costo-display [valor]="selectedProducto?.costo?.costoMedio"></app-costo-display>
             </div>
-            <div class="sidebar-precios-section" *ngIf="presentacionesDisponibles.length > 0">
+            <div
+              class="sidebar-precios-section"
+              *ngIf="hayPresentacionesComputed"
+            >
               <div class="sidebar-section-title">Precios de Venta</div>
               <table class="sidebar-precios-table">
-                <thead><tr><th>Pres.</th><th>Precio</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Pres.</th>
+                    <th>Precio</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr *ngFor="let p of presentacionesDisponibles">
+                  <tr *ngFor="let p of preciosVentaComputed">
                     <td>{{ p.cantidad }}</td>
-                    <td>{{ p.precioPrincipal?.precio != null ? (p.precioPrincipal.precio | number:'1.0-0') : 'N/A' }}</td>
+                    <td>
+                      <ng-container *ngIf="p.precio != null; else sinPrecio">{{ p.precio | number:'1.0-0' }}</ng-container>
+                      <ng-template #sinPrecio>N/A</ng-template>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -83,32 +110,23 @@
           <div class="form-right-column">
 
             <!-- Producto seleccionado display -->
-            <div class="selected-product-display" *ngIf="productoSelectedComputed">
+            <div
+              class="selected-product-display"
+              *ngIf="productoSelectedComputed"
+            >
               <mat-card class="product-card">
-                <mat-card-content
-                  style="
-                    display: flex;
-                    flex-direction: row;
-                    padding-top: 0px;
-                    padding-bottom: 0px;
-                  "
-                >
-                  <div class="product-info" style="flex: 90%">
-                    <strong
-                      >{{ itemForm.get("producto")?.value?.id }} -
-                      {{ itemForm.get("producto")?.value?.descripcion }}</strong
-                    >
-                    <span class="product-code"
-                      >({{
-                        itemForm.get("producto")?.value?.codigoPrincipal
-                      }})</span
-                    >
+                <mat-card-content class="product-card-contenido">
+                  <div class="product-info product-info-flex">
+                    <strong>{{ productoFormComputed?.id }} - {{ productoFormComputed?.descripcion }}</strong>
+                    <span class="product-code">({{ productoFormComputed?.codigoPrincipal }})</span>
                   </div>
-                  <div class="clear-icon-button" style="flex: 10%">
+                  <div class="clear-icon-button">
                     <button
                       mat-icon-button
-                      (click)="onClearProducto()"
+                      type="button"
                       color="primary"
+                      aria-label="Quitar producto"
+                      (click)="onClearProducto()"
                     >
                       <mat-icon>clear</mat-icon>
                     </button>
@@ -118,7 +136,10 @@
             </div>
 
             <!-- Fila 2: Presentación, Precios y Bonificación -->
-            <div class="form-row" *ngIf="productoSelectedComputed">
+            <div
+              class="form-row"
+              *ngIf="productoSelectedComputed"
+            >
               <mat-form-field appearance="outline">
                 <mat-label>Presentación</mat-label>
                 <mat-select
@@ -135,9 +156,7 @@
                     {{ presentacion.cantidad }}
                   </mat-option>
                 </mat-select>
-                <mat-error
-                  *ngIf="itemForm.get('presentacion')?.hasError('required')"
-                >
+                <mat-error *ngIf="itemForm.controls['presentacion'].errors?.['required']">
                   Debe seleccionar una presentación
                 </mat-error>
               </mat-form-field>
@@ -153,20 +172,19 @@
                     [options]="selectedCurrencyOptions"
                     formControlName="precioUnitarioPorPresentacion"
                     [readonly]="isBonificacionComputed"
-                    (keydown)="onPrecioPorPresentacionKeydown($event)"
                     matTooltip="Se actualiza automáticamente al cambiar precio unitario"
+                    (keydown)="onPrecioPorPresentacionKeydown($event)"
                   />
                   <span matPrefix>{{ selectedCurrencyPrefix }}</span>
-                  <mat-error
-                    *ngIf="
-                      itemForm.get('precioUnitarioPorPresentacion')?.hasError('min')
-                    "
-                  >
+                  <mat-error *ngIf="itemForm.controls['precioUnitarioPorPresentacion'].errors?.['min']">
                     El precio no puede ser negativo
                   </mat-error>
                 </mat-form-field>
-                <div class="precio-anterior-hint" *ngIf="presentacionSelectedComputed && precioHaCambiadoComputed && !isBonificacionComputed">
-                  Precio anterior: {{ (precioOriginal * (itemForm.get('presentacion')?.value?.cantidad || 1)) | number:'1.0-0' }} {{ selectedCurrencyPrefix }}
+                <div
+                  class="precio-anterior-hint"
+                  *ngIf="mostrarPrecioAnteriorComputed"
+                >
+                  Precio anterior: {{ precioOriginalPorPresentacionComputed | number:'1.0-0' }} {{ selectedCurrencyPrefix }}
                 </div>
               </div>
 
@@ -181,18 +199,19 @@
                     [options]="selectedCurrencyOptions"
                     formControlName="precioUnitarioSolicitado"
                     [readonly]="isBonificacionComputed"
+                    matTooltip="Precio por unidad individual del producto"
                     (keydown)="onPrecioUnitarioKeydown($event)"
                     (blur)="onPrecioUnitarioBlur()"
-                    matTooltip="Precio por unidad individual del producto"
                   />
                   <span matPrefix>{{ selectedCurrencyPrefix }}</span>
-                  <mat-error
-                    *ngIf="itemForm.get('precioUnitarioSolicitado')?.hasError('min')"
-                  >
+                  <mat-error *ngIf="itemForm.controls['precioUnitarioSolicitado'].errors?.['min']">
                     El precio no puede ser negativo
                   </mat-error>
                 </mat-form-field>
-                <div class="precio-anterior-hint" *ngIf="presentacionSelectedComputed && precioHaCambiadoComputed && !isBonificacionComputed">
+                <div
+                  class="precio-anterior-hint"
+                  *ngIf="mostrarPrecioAnteriorComputed"
+                >
                   Precio anterior: {{ precioOriginal | number:'1.0-0' }} {{ selectedCurrencyPrefix }}
                 </div>
               </div>
@@ -202,8 +221,8 @@
                   #bonificacionCheckbox
                   formControlName="esBonificacion"
                   class="bonificacion-checkbox"
-                  (keydown)="onBonificacionKeydown($event)"
                   matTooltip="Los ítems marcados como bonificación tendrán precio 0"
+                  (keydown)="onBonificacionKeydown($event)"
                 >
                   Es Bonificación
                 </mat-checkbox>
@@ -211,67 +230,106 @@
             </div>
 
             <!-- Price change indicator -->
-            <div class="precio-cambio-indicator" [class]="'precio-cambio-indicator cambio-nivel-' + precioCambioNivelComputed" *ngIf="precioHaCambiadoComputed && !isBonificacionComputed">
+            <div
+              [class]="precioCambioClaseComputed"
+              *ngIf="mostrarCambioPrecioComputed"
+            >
               <div class="cambio-content">
-                <mat-icon>
-                  {{ precioCambioComputed > 0 ? 'trending_up' : 'trending_down' }}
-                </mat-icon>
+                <mat-icon aria-hidden="true">{{ precioCambioIconoComputed }}</mat-icon>
                 <span class="cambio-text">
-                  {{ precioCambioPorcentualComputed >= 0 ? '+' : '' }}{{ precioCambioPorcentualComputed | number:'1.1-1' }}%
-                  ({{ precioCambioComputed >= 0 ? '+' : '' }}{{ precioCambioComputed | number:'1.0-0' }} {{ selectedCurrencyPrefix }})
+                  {{ precioCambioPorcentualSignoComputed }}{{ precioCambioPorcentualComputed | number:'1.1-1' }}%
+                  ({{ precioCambioSignoComputed }}{{ precioCambioComputed | number:'1.0-0' }} {{ selectedCurrencyPrefix }})
                 </span>
               </div>
-              <button mat-stroked-button type="button" class="programar-precio-btn" (click)="onProgramarPrecioClick()">
+              <button
+                mat-stroked-button
+                type="button"
+                class="programar-precio-btn"
+                (click)="onProgramarPrecioClick()"
+              >
                 <mat-icon>schedule</mat-icon>
                 Programar cambio de precio
               </button>
             </div>
 
             <!-- Fila 3: Distribuciones por Sucursales (MODO COMPLETO) -->
-            <div class="distribuciones-section" *ngIf="productoSelectedComputed && presentacionSelectedComputed && distribucionModo === 'COMPLETA'">
+            <div
+              class="distribuciones-section"
+              *ngIf="mostrarDistribucionCompletaComputed"
+            >
               <div class="distribuciones-header">
                 <h4>Distribución por Sucursales</h4>
                 <button
                   mat-icon-button
-                  color="primary"
-                  (click)="onAddDistribucion()"
-                  matTooltip="Agregar distribución"
                   type="button"
+                  color="primary"
+                  matTooltip="Agregar distribución"
+                  aria-label="Agregar distribución"
+                  (click)="onAddDistribucion()"
                 >
                   <mat-icon>add</mat-icon>
                 </button>
               </div>
 
               <!-- Tabla de distribuciones -->
-              <div class="distribuciones-table-container" *ngIf="distribucionesItems.length > 0">
-                <table mat-table [dataSource]="distribucionesDataSource" class="distribuciones-table">
+              <div
+                class="distribuciones-table-container"
+                *ngIf="hayDistribucionesComputed"
+              >
+                <table
+                  mat-table
+                  [dataSource]="distribucionesDataSource"
+                  class="distribuciones-table"
+                >
                   <!-- Sucursal Influencia Column -->
                   <ng-container matColumnDef="sucursalInfluencia">
-                    <th mat-header-cell *matHeaderCellDef style="text-align: left;">Sucursal Influencia</th>
-                    <td mat-cell *matCellDef="let item; let i = index" style="text-align: left;">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                      class="columna-izquierda"
+                    >
+                      Sucursal Influencia
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item"
+                      class="columna-izquierda"
+                    >
                       {{ item.sucursalInfluencia?.nombre }}
                     </td>
                   </ng-container>
 
                   <!-- Sucursal Entrega Column -->
                   <ng-container matColumnDef="sucursalEntrega">
-                    <th mat-header-cell *matHeaderCellDef style="text-align: left;">Suc de Entrega</th>
-                    <td mat-cell *matCellDef="let item; let i = index" style="text-align: left;">
-                      <mat-form-field appearance="outline" class="sucursal-entrega-field">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                      class="columna-izquierda"
+                    >
+                      Suc de Entrega
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item; let i = index"
+                      class="columna-izquierda"
+                    >
+                      <mat-form-field
+                        appearance="outline"
+                        class="sucursal-entrega-field"
+                      >
                         <mat-select
-                          [formControl]="getDistribucionControl(i, 'sucursalEntregaId')"
+                          [formControl]="item.sucursalEntregaControl"
+                          aria-label="Sucursal de entrega"
                           (selectionChange)="onCantidadPedirBlur(i)"
                         >
                           <mat-option
-                            *ngFor="let sucursal of getSucursalesEntregaDisponibles()"
+                            *ngFor="let sucursal of sucursalesEntrega"
                             [value]="sucursal.id"
                           >
                             {{ sucursal.nombre }}
                           </mat-option>
                         </mat-select>
-                        <mat-error
-                          *ngIf="getDistribucionControl(i, 'sucursalEntregaId')?.hasError('required')"
-                        >
+                        <mat-error *ngIf="item.sucursalEntregaControl?.errors?.['required']">
                           Requerido
                         </mat-error>
                       </mat-form-field>
@@ -280,15 +338,36 @@
 
                   <!-- Stock Actual Column -->
                   <ng-container matColumnDef="stockActual">
-                    <th mat-header-cell *matHeaderCellDef>Stock Actual</th>
-                    <td mat-cell *matCellDef="let item; let i = index" class="stock-cell">
-                      <div *ngIf="item.stockActualLoading" class="loading-container">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                    >
+                      Stock Actual
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item"
+                      class="stock-cell"
+                    >
+                      <div
+                        *ngIf="item.stockActualLoading"
+                        class="loading-container"
+                      >
                         <mat-spinner diameter="20"></mat-spinner>
                       </div>
-                      <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
-                      <span *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual == null" matTooltip="No se pudo obtener el stock">—</span>
-                      <div *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual != null" class="cantidad-display">
-                        <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.stockActual) | number : "1.0-2" }}</div>
+                      <span
+                        *ngIf="item.stockOculto"
+                        matTooltip="Sin permiso para ver el stock de COMPRAS"
+                      >—</span>
+                      <span
+                        *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual == null"
+                        matTooltip="No se pudo obtener el stock"
+                      >—</span>
+                      <div
+                        *ngIf="!item.stockActualLoading && !item.stockOculto && item.stockActual != null"
+                        class="cantidad-display"
+                      >
+                        <div class="cantidad-presentacion">{{ item.stockActualPorPresentacion | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.stockActual | number : "1.0-2" }} unidades)</div>
                       </div>
                     </td>
@@ -296,13 +375,30 @@
 
                   <!-- Cantidad Sugerida Column -->
                   <ng-container matColumnDef="cantidadSugerida">
-                    <th mat-header-cell *matHeaderCellDef>Cant. Sugerida</th>
-                    <td mat-cell *matCellDef="let item; let i = index">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                    >
+                      Cant. Sugerida
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item"
+                    >
                       <span *ngIf="item.cantidadSugeridaLoading">Calculando...</span>
-                      <span *ngIf="item.stockOculto" matTooltip="Sin permiso para ver el stock de COMPRAS">—</span>
-                      <span *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida == null" matTooltip="No disponible: falta el stock o el historial">—</span>
-                      <div *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida != null" class="cantidad-display">
-                        <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.cantidadSugerida) | number : "1.0-2" }}</div>
+                      <span
+                        *ngIf="item.stockOculto"
+                        matTooltip="Sin permiso para ver el stock de COMPRAS"
+                      >—</span>
+                      <span
+                        *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida == null"
+                        matTooltip="No disponible: falta el stock o el historial"
+                      >—</span>
+                      <div
+                        *ngIf="!item.cantidadSugeridaLoading && !item.stockOculto && item.cantidadSugerida != null"
+                        class="cantidad-display"
+                      >
+                        <div class="cantidad-presentacion">{{ item.cantidadSugeridaPorPresentacion | number : "1.0-2" }}</div>
                         <div class="cantidad-unidades">({{ item.cantidadSugerida | number : "1.0-2" }} unidades)</div>
                       </div>
                     </td>
@@ -310,29 +406,38 @@
 
                   <!-- Cantidad a Pedir Column -->
                   <ng-container matColumnDef="cantidadPedir">
-                    <th mat-header-cell *matHeaderCellDef>Cantidad a Pedir</th>
-                    <td mat-cell *matCellDef="let item; let i = index">
-                      <mat-form-field appearance="outline" class="cantidad-input-field">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                    >
+                      Cantidad a Pedir
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item; let i = index"
+                    >
+                      <mat-form-field
+                        appearance="outline"
+                        class="cantidad-input-field"
+                      >
                         <input
                           matInput
+                          #cantidadPedirInput
                           type="number"
                           step="0.01"
                           min="0"
-                          [formControl]="getDistribucionControl(i, 'cantidadPedir')"
-                          (focus)="onCantidadInputFocus(getDistribucionControl(i, 'cantidadPedir'))"
+                          class="cantidad-pedir-input"
+                          aria-label="Cantidad a pedir"
+                          [formControl]="item.cantidadPedirControl"
+                          [attr.data-index]="i"
+                          (focus)="onCantidadInputFocus(item.cantidadPedirControl)"
                           (keydown)="onCantidadPedirKeydown($event, i)"
                           (blur)="onCantidadPedirBlur(i)"
-                          [attr.data-index]="i"
-                          class="cantidad-pedir-input"
                         />
-                        <mat-error
-                          *ngIf="getDistribucionControl(i, 'cantidadPedir')?.hasError('required')"
-                        >
+                        <mat-error *ngIf="item.cantidadPedirControl?.errors?.['required']">
                           Requerido
                         </mat-error>
-                        <mat-error
-                          *ngIf="getDistribucionControl(i, 'cantidadPedir')?.hasError('min')"
-                        >
+                        <mat-error *ngIf="item.cantidadPedirControl?.errors?.['min']">
                           No puede ser negativo
                         </mat-error>
                       </mat-form-field>
@@ -341,40 +446,70 @@
 
                   <!-- Acciones Column -->
                   <ng-container matColumnDef="acciones">
-                    <th mat-header-cell *matHeaderCellDef>Acciones</th>
-                    <td mat-cell *matCellDef="let item; let i = index">
+                    <th
+                      mat-header-cell
+                      *matHeaderCellDef
+                    >
+                      Acciones
+                    </th>
+                    <td
+                      mat-cell
+                      *matCellDef="let item; let i = index"
+                    >
                       <button
                         mat-icon-button
-                        color="warn"
-                        (click)="onRemoveDistribucion(i)"
-                        matTooltip="Eliminar distribución"
                         type="button"
+                        color="warn"
+                        matTooltip="Eliminar distribución"
+                        aria-label="Eliminar distribución"
+                        (click)="onRemoveDistribucion(i)"
                       >
                         <mat-icon>delete</mat-icon>
                       </button>
                     </td>
                   </ng-container>
 
-                  <tr mat-header-row *matHeaderRowDef="distribucionesDisplayedColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: distribucionesDisplayedColumns"></tr>
+                  <tr
+                    mat-header-row
+                    *matHeaderRowDef="distribucionesDisplayedColumns"
+                  ></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: distribucionesDisplayedColumns"
+                  ></tr>
                 </table>
               </div>
 
               <!-- Mensaje cuando no hay distribuciones -->
-              <div class="no-distribuciones-message" *ngIf="distribucionesItems.length === 0">
+              <div
+                class="no-distribuciones-message"
+                *ngIf="!hayDistribucionesComputed"
+              >
                 <p>No hay distribuciones configuradas. Haga clic en el botón "+" para agregar una.</p>
               </div>
 
               <!-- Total de cantidad -->
-              <div class="cantidad-total-display" *ngIf="distribucionesItems.length > 0">
+              <div
+                class="cantidad-total-display"
+                *ngIf="hayDistribucionesComputed"
+              >
                 <mat-card class="total-card">
                   <mat-card-content>
                     <div class="total-content">
                       <span class="total-label">Cantidad Total:</span>
                       <span class="total-value">{{ cantidadTotalComputedText }}</span>
                     </div>
-                    <div class="total-error" *ngIf="hasCantidadTotalError">
-                      <mat-icon color="warn">warning</mat-icon>
+                    <div
+                      class="total-error"
+                      role="alert"
+                      *ngIf="hasCantidadTotalError"
+                    >
+                      <mat-icon
+                        color="warn"
+                        aria-hidden="true"
+                      >
+                        warning
+                      </mat-icon>
                       <span>La cantidad total debe ser mayor a 0</span>
                     </div>
                   </mat-card-content>
@@ -383,22 +518,33 @@
             </div>
 
             <!-- Fila 3: Distribución (MODO SIMPLIFICADO) -->
-            <div class="distribuciones-section simplified" *ngIf="productoSelectedComputed && presentacionSelectedComputed && distribucionModo === 'SIMPLIFICADA'">
+            <div
+              class="distribuciones-section simplified"
+              *ngIf="mostrarDistribucionSimplificadaComputed"
+            >
               <div class="simplified-row">
                 <!-- Stock Total -->
-                <div class="stock-total-container" [matTooltip]="stockBreakdownTooltipComputed" matTooltipClass="multiline-tooltip">
+                <div
+                  class="stock-total-container"
+                  [matTooltip]="stockBreakdownTooltipComputed"
+                  matTooltipClass="multiline-tooltip"
+                >
                   <span class="label">Stock Actual (Influencia):</span>
                   <div class="cantidad-display">
-                    <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(stockTotalSimplificadoComputed) | number : "1.0-2" }}</div>
+                    <div class="cantidad-presentacion">{{ stockTotalSimplificadoPorPresentacionComputed | number : "1.0-2" }}</div>
                     <div class="cantidad-unidades">({{ stockTotalSimplificadoComputed | number : "1.0-2" }} unidades)</div>
                   </div>
                 </div>
 
                 <!-- Input Cantidad Total -->
-                <mat-form-field appearance="outline" class="cantidad-total-field">
+                <mat-form-field
+                  appearance="outline"
+                  class="cantidad-total-field"
+                >
                   <mat-label>Cantidad Total a Pedir</mat-label>
                   <input
                     matInput
+                    #cantidadSimplificadaInput
                     class="cantidad-simplificada-input"
                     type="number"
                     step="0.01"
@@ -408,8 +554,8 @@
                     (keydown)="onCantidadSimplificadaKeydown($event)"
                   />
                   <mat-hint>{{ cantidadTotalComputedText }}</mat-hint>
-                  <mat-error *ngIf="cantidadSimplificadaControl.hasError('required')">Requerido</mat-error>
-                  <mat-error *ngIf="cantidadSimplificadaControl.hasError('min')">Debe ser mayor a 0</mat-error>
+                  <mat-error *ngIf="cantidadSimplificadaControl.errors?.['required']">Requerido</mat-error>
+                  <mat-error *ngIf="cantidadSimplificadaControl.errors?.['min']">Debe ser mayor a 0</mat-error>
                 </mat-form-field>
               </div>
             </div>
@@ -417,18 +563,21 @@
             <!-- Fila 4: Vencimiento (solo si el producto maneja vencimiento) -->
             <div
               class="form-row"
-              *ngIf="productoSelectedComputed && productoManejaVencimientoComputed"
+              *ngIf="mostrarVencimientoComputed"
             >
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field
+                appearance="outline"
+                class="full-width"
+              >
                 <mat-label>Vencimiento Esperado</mat-label>
                 <input
                   matInput
                   #vencimientoInput
                   [matDatepicker]="vencimientoPicker"
                   formControlName="vencimientoEsperado"
+                  matTooltip="Fecha esperada de vencimiento del producto"
                   (keydown)="onVencimientoKeydown($event)"
                   (blur)="onVencimientoBlur()"
-                  matTooltip="Fecha esperada de vencimiento del producto"
                 />
                 <mat-datepicker-toggle
                   matSuffix
@@ -442,8 +591,14 @@
             </div>
 
             <!-- Fila 5: Observación -->
-            <div class="form-row" *ngIf="productoSelectedComputed">
-              <mat-form-field appearance="outline" class="full-width">
+            <div
+              class="form-row"
+              *ngIf="productoSelectedComputed"
+            >
+              <mat-form-field
+                appearance="outline"
+                class="full-width"
+              >
                 <mat-label>Observaciones</mat-label>
                 <textarea
                   matInput
@@ -451,8 +606,8 @@
                   formControlName="observacion"
                   rows="3"
                   placeholder="Observaciones adicionales sobre el ítem..."
-                  (keydown)="onObservacionKeydown($event)"
                   matTooltip="Información adicional sobre el producto o solicitud"
+                  (keydown)="onObservacionKeydown($event)"
                 ></textarea>
               </mat-form-field>
             </div>
@@ -460,15 +615,13 @@
             <!-- Subtotal Display -->
             <div
               class="subtotal-display"
-              *ngIf="productoSelectedComputed && !isBonificacionComputed"
+              *ngIf="mostrarSubtotalComputed"
             >
               <mat-card class="subtotal-card">
                 <mat-card-content>
                   <div class="subtotal-content">
                     <span class="subtotal-label">Subtotal:</span>
-                    <span class="subtotal-value">{{ selectedCurrencyPrefix }} {{
-                      subtotalComputed | number : selectedCurrencyDecimalFormat
-                    }}</span>
+                    <span class="subtotal-value">{{ selectedCurrencyPrefix }} {{ subtotalComputed | number : selectedCurrencyDecimalFormat }}</span>
                   </div>
                 </mat-card-content>
               </mat-card>
@@ -480,47 +633,53 @@
     </form>
   </div>
 
-  <!-- Actions -->
-  <div class="dialog-actions">
+  <div acciones>
     <div class="footer-left">
-      <mat-button-toggle-group 
-        [(ngModel)]="distribucionModo" 
-        [ngModelOptions]="{standalone: true}"
+      <mat-button-toggle-group
+        aria-label="Modo de distribución"
+        [value]="distribucionModo"
+        (change)="onCambiarModoDistribucion($event)"
       >
         <mat-button-toggle value="COMPLETA">Distribución Completa</mat-button-toggle>
         <mat-button-toggle value="SIMPLIFICADA">Distribución Simplificada</mat-button-toggle>
       </mat-button-toggle-group>
     </div>
-    <button *ngIf="distribucionesFallo" mat-stroked-button color="warn" (click)="reintentarDistribuciones()">
+    <button
+      *ngIf="distribucionesFallo"
+      type="button"
+      mat-stroked-button
+      color="warn"
+      (click)="reintentarDistribuciones()"
+    >
       Reintentar distribuciones
     </button>
     <button
-      mat-button
       #cancelarBtn
+      type="button"
+      mat-flat-button
+      class="frc-btn-cancelar"
       (click)="onCancel()"
-      class="cancel-btn"
       (keydown)="onCancelarKeydown($event)"
     >
       Cancelar
     </button>
     <button
-      mat-raised-button
       #guardarBtn
-      color="accent"
+      type="button"
+      mat-flat-button
+      class="frc-btn-confirmar"
       [disabled]="!canSaveComputed"
       (click)="onSave()"
       (keydown)="onGuardarKeydown($event)"
-      class="save-btn"
     >
       <mat-icon *ngIf="!savingComputed">save</mat-icon>
-      <mat-icon *ngIf="savingComputed" class="spinning"
-        >hourglass_empty</mat-icon
+      <mat-icon
+        *ngIf="savingComputed"
+        class="spinning"
       >
-      {{
-        savingComputed
-          ? "Guardando..."
-          : (data.isEdit ? "Actualizar" : "Guardar") + " Ítem"
-      }}
+        hourglass_empty
+      </mat-icon>
+      {{ savingComputed ? "Guardando..." : textoBotonGuardarComputed }}
     </button>
   </div>
-</div>
+</app-dialogo-base>
