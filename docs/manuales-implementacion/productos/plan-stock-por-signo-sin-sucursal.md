@@ -45,7 +45,6 @@ ni modelo GraphQL [ev: git diff --name-only → list-producto.component.ts/.html
 | Hallazgo | Eje | Qué se hizo |
 |---|---|---|
 | Sin fuga nueva de COMPRAS/SERVIDOR: el filtro por signo solo achica `this.sucursales`, ya filtrada en `cargarSucursales` | Fijo 1 | Nada que cambiar |
-| Previo, fuera de alcance: `puedeVerStockCompras` se calcula una vez en `ngOnInit`; el gate de COMPRAS es solo de UI | Fijo 1 | Se deja anotado |
 | «Ajustar stock» seguía leyendo el select en vivo: la fila podía decir una sucursal y el diálogo ajustar otra | Fijo 3 | Aplicado: `onAjustarStock` y `getSucursalPreseleccionada` usan `filtroDeLaLista` |
 | Si el stock cambia entre la búsqueda y el despliegue, la fila puede quedar vacía | Fijo 3 | Se deja: sale el aviso de lista vacía |
 | El PDF sigue usando el select en vivo | — | A propósito: el central rearma la búsqueda con esos filtros y el reporte los imprime |
