@@ -229,6 +229,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   private ultimoAvisoDeBusqueda = 0;
   /** Página que está a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
   private paginaMostrada = { pageIndex: 0, pageSize: 15 };
+  /** Filtros de stock con que se armó la lista a la vista: el select puede haber cambiado sin volver a buscar. */
+  filtroDeLaLista: { stock: string; sucursalId: number } = { stock: 'todos', sucursalId: null };
 
   /** `paginaAnterior`: la búsqueda es un cambio de página; si falla se vuelve a esa página en vez de vaciar. */
   onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false,
@@ -237,6 +239,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.expandedProducto = null;
     this.selectedProducto = new Producto();
     const seq = ++this.busquedaSeq;
+    const filtroDeLaBusqueda = { stock: this.stockFiltroControl.value, sucursalId: this.sucursalFiltroControl.value };
     const fallo = () => {
       if (seq !== this.busquedaSeq) return;
       this.isSearching = false;
@@ -299,6 +302,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
+        this.filtroDeLaLista = filtroDeLaBusqueda;
         this.isSearching = false;
         this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
 
@@ -318,9 +322,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
       // Siempre un arreglo: con las sucursales sin cargar (o la del filtro sin encontrar) queda vacío
       let sucursalesDeLaFila: Sucursal[] = this.sucursales ?? [];
-      if (this.sucursalFiltroControl.value) {
+      if (this.filtroDeLaLista.sucursalId) {
         // Hay sucursal seleccionada (ya sea con filtro positivo, negativo o todos)
-        sucursalesDeLaFila = sucursalesDeLaFila.filter(s => s.id === this.sucursalFiltroControl.value);
+        sucursalesDeLaFila = sucursalesDeLaFila.filter(s => s.id === this.filtroDeLaLista.sucursalId);
       }
       this.selectedProducto.sucursales = sucursalesDeLaFila.map((s) => {
         const existencia = new ExistenciaCostoPorSucursal();
@@ -360,7 +364,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
           existenciaSucursal.existencia =
             stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;
         });
-        if (lectura === this.lecturaStock) this.stockEstado = 'ok';
+        if (lectura !== this.lecturaStock) return; // respuesta tardía: no tocar la fila de la lectura nueva
+        // Sin sucursal elegida, la fila muestra solo las del signo buscado (el cero no entra en ninguno, como en el central)
+        const { stock, sucursalId } = this.filtroDeLaLista;
+        if (!sucursalId && (stock === 'positivo' || stock === 'negativo')) {
+          producto.sucursales = sucursalesDeLaFila.filter((existenciaSucursal) =>
+            stock === 'positivo' ? existenciaSucursal.existencia > 0 : existenciaSucursal.existencia < 0);
+        }
+        this.stockEstado = 'ok';
       } });
   }
 
