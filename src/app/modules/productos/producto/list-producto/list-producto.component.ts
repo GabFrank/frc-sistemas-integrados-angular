@@ -365,11 +365,13 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
             stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;
         });
         if (lectura !== this.lecturaStock) return; // respuesta tardía: no tocar la fila de la lectura nueva
-        // Sin sucursal elegida, la fila muestra solo las del signo buscado (el cero no entra en ninguno, como en el central)
+        // Sin sucursal elegida, la fila muestra solo las del signo buscado y sin COMPRAS, la misma regla que la
+        // lista y el PDF del central (el cero no entra en ninguno)
         const { stock, sucursalId } = this.filtroDeLaLista;
         if (!sucursalId && (stock === 'positivo' || stock === 'negativo')) {
           producto.sucursales = sucursalesDeLaFila.filter((existenciaSucursal) =>
-            stock === 'positivo' ? existenciaSucursal.existencia > 0 : existenciaSucursal.existencia < 0);
+            existenciaSucursal.sucursal.nombre !== 'COMPRAS' &&
+            (stock === 'positivo' ? existenciaSucursal.existencia > 0 : existenciaSucursal.existencia < 0));
         }
         this.stockEstado = 'ok';
       } });
