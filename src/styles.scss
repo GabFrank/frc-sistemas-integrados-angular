@@ -736,4 +736,24 @@ mat-form-field.transferencia-input-field {
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 12px !important;
+  // Columna flex sin scroll propio: con un alto fijo (height en el open) scrollea solo el contenido del marco y la
+  // cabecera y los botones quedan a la vista.
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+
+  // El componente del diálogo (host inline por defecto) pasa el alto al marco
+  > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+// Tooltip de varias líneas (desglose de stock del ítem del pedido). Va en un overlay: por eso es global, acotado a
+// la clase que pide quien lo usa (matTooltipClass="multiline-tooltip").
+.mat-mdc-tooltip.multiline-tooltip {
+  white-space: pre-line;
+  line-height: 1.5;
 }

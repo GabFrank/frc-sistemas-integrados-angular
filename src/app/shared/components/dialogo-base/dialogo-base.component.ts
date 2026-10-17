@@ -1,4 +1,4 @@
-import { Component, HostBinding, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 
 /**
  * Marco comun de los dialogos genericos: cabecera con el degrade del buscador, contenido y barra de
@@ -7,6 +7,9 @@ import { Component, HostBinding, Input } from '@angular/core';
  * - `tono="peligro"`: misma cabecera en rojo, para eliminar/anular.
  * - `llenar`: ocupa todo el alto del dialogo y el contenido no scrollea (lo maneja quien lo usa, como el
  *   buscador, que scrollea solo la tabla).
+ *
+ * El titulo lleva `mat-dialog-title`: Material le pone el id al dialogo como `aria-labelledby` y el
+ * lector de pantalla lo anuncia al abrir.
  *
  * @example
  * <app-dialogo-base titulo="Eliminar caja" tono="peligro">
@@ -20,10 +23,21 @@ import { Component, HostBinding, Input } from '@angular/core';
 @Component({
   selector: 'app-dialogo-base',
   templateUrl: './dialogo-base.component.html',
-  styleUrls: ['./dialogo-base.component.scss']
+  styleUrls: ['./dialogo-base.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.llenar]': 'llenar',
+    '[class.peligro]': 'esPeligro',
+  },
 })
-export class DialogoBaseComponent {
+export class DialogoBaseComponent implements OnChanges {
   @Input() titulo: string;
   @Input() tono: 'normal' | 'peligro' = 'normal';
-  @Input() @HostBinding('class.llenar') llenar = false;
+  @Input() llenar = false;
+
+  esPeligro = false;
+
+  ngOnChanges(): void {
+    this.esPeligro = this.tono === 'peligro';
+  }
 }
