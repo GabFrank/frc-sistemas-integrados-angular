@@ -48,6 +48,18 @@ describe('GenericCrudService.onCustomMutation', () => {
     expect(avisos).toEqual([]);
   });
 
+  it('silenciarAvisoTimeout llega al context del link solo cuando se pide (#528)', () => {
+    const contextos: any[] = [];
+    const gql: any = { mutate: (_d: any, o: any) => { contextos.push(o.context); return of({ data: { data: true } }); } };
+    leer(service.onCustomMutation(gql, {}, true, true, { silenciarAvisoTimeout: true }));
+    leer(service.onCustomMutation(gql, {}, true, true));
+    leer(service.onCustomMutation(gql, {}, true, true, { timeoutMs: 5000 }));
+    expect(contextos[0].silenciarAvisoTimeout).toBeTrue();
+    expect('silenciarAvisoTimeout' in contextos[1]).toBeFalse();
+    expect('silenciarAvisoTimeout' in contextos[2]).toBeFalse();
+    expect(contextos[2].timeoutMs).toBe(5000);
+  });
+
   it('un error de red falla tal cual, sin aviso del genérico', () => {
     const error = { networkError: true };
     const r = leer(service.onCustomMutation(mutation(throwError(() => error)), {}));

@@ -144,8 +144,9 @@ export class NotificacionesTableroService {
   setTokenFcm(token: string): void {
     this._tokenFcm$.next(token);
     if (token && localStorage.getItem("token")) {
-      // De fondo: sin «Guardando…» ni aviso propio, el usuario no pidió nada (#501)
-      this.genericService.onCustomMutation(this.actualizarTokenFcmGQL, { tokenFcm: token }, true, true).subscribe({
+      // De fondo: sin «Guardando…», sin aviso propio ni el del timeout, el usuario no pidió nada (#501, #528)
+      this.genericService.onCustomMutation(this.actualizarTokenFcmGQL, { tokenFcm: token }, true, true,
+        { silenciarAvisoTimeout: true }).subscribe({
         next: (res: any) => {
           if (res === true) {
             this.obtenerConteoNoLeidas().subscribe();
@@ -300,10 +301,11 @@ export class NotificacionesTableroService {
   }
 
   marcarComoLeida(notificacionId: number): Observable<any> {
-    // Se dispara al abrir una notificación: sin «Guardando…». El central nunca rechaza, devuelve false (#501)
+    // Se dispara al abrir una notificación: sin «Guardando…» ni aviso del timeout (la tarjeta queda sin
+    // leer y se ve). El central nunca rechaza, devuelve false (#501, #528)
     return this.genericService.onCustomMutation(this.marcarNotificacionLeidaGQL, {
       notificacionId: notificacionId
-    }, true, true).pipe(
+    }, true, true, { silenciarAvisoTimeout: true }).pipe(
       tap((res: any) => {
         if (res) {
           this.actualizarEstadoLeido(notificacionId);
