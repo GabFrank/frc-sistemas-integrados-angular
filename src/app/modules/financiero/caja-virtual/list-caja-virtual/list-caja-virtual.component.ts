@@ -115,12 +115,17 @@ export class ListCajaVirtualComponent implements OnInit {
     this.cargar(this.filtrosAplicados);
   }
 
+  /** Número de la última carga: una respuesta vieja (una relectura de fondo lenta) no pisa una búsqueda nueva. */
+  private cargaId = 0;
+
   private cargar(filtros: ListCajaVirtualComponent['filtrosAplicados'], silenciosa = false) {
     if (!silenciosa) this.isSearching = true;
+    const id = ++this.cargaId;
     this.cajaVirtualService.onGetFilter(filtros, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<CajaVirtual>) => {
+          if (id !== this.cargaId) return;
           if (!silenciosa) this.isSearching = false;
           if (res == null) { if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
           this.selectedPageInfo = res;
@@ -128,7 +133,7 @@ export class ListCajaVirtualComponent implements OnInit {
           this.marcarReceptoras();
         },
         error: () => {
-          if (silenciosa) return;
+          if (silenciosa || id !== this.cargaId) return;
           this.isSearching = false;
           this.notificacion.openWarn('No se pudieron cargar las cajas: el servidor no responde.', 5);
         }
