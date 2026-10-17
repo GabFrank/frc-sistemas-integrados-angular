@@ -80,9 +80,9 @@ export class CajaMotivoObservacionService {
   }
 
   onDeleteCajaMotivoObservacion(id: number) {
-    return this.deleteCajaMotivoObservacion.mutate({ id }).pipe(
+    return this.genericService.onDelete(this.deleteCajaMotivoObservacion, id, null, null, false, true, null, { exito: 'Caja motivo eliminado exitosamente' }).pipe(
       tap(res => {
-        if (!res.errors) {
+        if (res) {
           if (this.cajaMotivoObservaciones) {
             this.cajaMotivoObservaciones = this.cajaMotivoObservaciones.filter(cat => cat.id !== id);
             this.cajaMotivoObservacionBS.next(this.cajaMotivoObservaciones);

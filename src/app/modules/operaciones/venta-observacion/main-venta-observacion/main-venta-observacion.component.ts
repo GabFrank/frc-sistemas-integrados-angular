@@ -363,11 +363,6 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
                 this.categoriaObsDataSource.data = this.categoriaObsDataSource.data.filter(
                   item => item.id !== cat.id
                 );
-                this.notificationBar.notification$.next({
-                  texto: 'Categoría eliminada exitosamente',
-                  color: NotificacionColor.success,
-                  duracion: 2
-                });
               }
             });
         }
@@ -405,11 +400,6 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
                 this.subCategoriaObsDataSource.data = this.subCategoriaObsDataSource.data.filter(
                   item => item.id !== sub.id
                 );
-                this.notificationBar.notification$.next({
-                  texto: 'Subcategoría eliminada exitosamente',
-                  color: NotificacionColor.success,
-                  duracion: 2
-                });
               }
             });
         }
@@ -447,11 +437,6 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
                 this.motivoObsDataSource.data = this.motivoObsDataSource.data.filter(
                   item => item.id !== mot.id
                 );
-                this.notificationBar.notification$.next({
-                  texto: 'Motivo eliminado exitosamente',
-                  color: NotificacionColor.success,
-                  duracion: 2
-                });
               }
             });
         }

@@ -160,7 +160,7 @@ export const entradaPorFechaQuery = gql`
 
 export const finalizarEntrada = gql`
   mutation finalizarEntrada($id: ID!) {
-    finalizarEntrada(id: $id)
+    data: finalizarEntrada(id: $id)
   }
 `;
 
