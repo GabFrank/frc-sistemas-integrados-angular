@@ -2,6 +2,8 @@ import { Component, Input, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
+import { auditTime, filter } from 'rxjs/operators';
+import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
 import { PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { CajaVirtual, CajaVirtualTipo } from '../caja-virtual.model';
@@ -88,26 +90,45 @@ export class ListCajaVirtualComponent implements OnInit {
       if (res) this.sucursalList = res;
     });
     this.onFiltrar();
+    // El saldo de una caja de la página que cambió en otro lado se ve sin volver a buscar. A lo sumo una relectura
+    // por segundo, con los filtros de la última búsqueda (no lo que haya a medio escribir) y sin avisos si falla.
+    this.cajaVirtualService.onCambiosTesoreria()
+      .pipe(filter(c => this.esCambioDeLaPagina(c)), auditTime(1000), untilDestroyed(this))
+      .subscribe(() => this.cargar(this.filtrosAplicados, true));
   }
 
+  /** De una caja de la página, o sin ids (el central volvió tras un corte). Los cambios de banco no van en la lista. */
+  private esCambioDeLaPagina(c: TesoreriaCambio): boolean {
+    if (c.cajaVirtualId == null) return c.cuentaBancariaId == null;
+    return this.dataSource.data.some(r => String(r.id) === String(c.cajaVirtualId));
+  }
+
+  private filtrosAplicados: { nombre: string; tipo: CajaVirtualTipo; sucursalId: number; activo: boolean };
+
   onFiltrar() {
-    this.isSearching = true;
-    this.cajaVirtualService.onGetFilter({
+    this.filtrosAplicados = {
       nombre: this.nombreControl.value || null,
       tipo: this.tipoControl.value || null,
       sucursalId: this.sucursalControl.value || null,
       activo: (this.activoControl.value === null || this.activoControl.value === undefined) ? null : this.activoControl.value,
-    }, this.pageIndex, this.pageSize)
+    };
+    this.cargar(this.filtrosAplicados);
+  }
+
+  private cargar(filtros: ListCajaVirtualComponent['filtrosAplicados'], silenciosa = false) {
+    if (!silenciosa) this.isSearching = true;
+    this.cajaVirtualService.onGetFilter(filtros, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<CajaVirtual>) => {
-          this.isSearching = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
+          if (!silenciosa) this.isSearching = false;
+          if (res == null) { if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
           this.selectedPageInfo = res;
           this.dataSource.data = this.marcarAdminAccesos(res.getContent);
           this.marcarReceptoras();
         },
         error: () => {
+          if (silenciosa) return;
           this.isSearching = false;
           this.notificacion.openWarn('No se pudieron cargar las cajas: el servidor no responde.', 5);
         }
