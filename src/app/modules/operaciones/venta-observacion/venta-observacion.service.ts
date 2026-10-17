@@ -6,7 +6,6 @@ import { MainService } from "../../../main.service";
 import { VentaObservacionByIdGQL } from "./graphql/ventaObservacionById";
 import { findByVentaIdAndSucursalIdGQL } from "./graphql/findByVentaIdAndSucursalId";
 import { SaveVentaObservacionGQL } from "./graphql/saveVentaObservacion";
-import { DeleteVentaObservacionGQL } from "./graphql/deleteVentaObservacion";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { AllVentaObservacionesGQL } from "./graphql/allVentaObservaciones";
 import { VentaObservacionInput } from "./venta-observacion-input";
@@ -25,7 +24,6 @@ export class VentaObservacionService {
         private getAllVentaObservaciones: AllVentaObservacionesGQL,
         private getByVentaIdAndSucursalId: findByVentaIdAndSucursalIdGQL,
         private saveVentaObservacion: SaveVentaObservacionGQL,
-        private deleteVentaObservacion: DeleteVentaObservacionGQL,
         private genericService: GenericCrudService
     ){
         mainService.usuarioActual != null ? this.onGetVentasObservaciones().pipe(untilDestroyed(this)).subscribe(res => {
@@ -53,16 +51,6 @@ export class VentaObservacionService {
                 });
             })
         );
-    }
-
-    onDeleteVentaObservacion(id: number) {
-        return this.deleteVentaObservacion.mutate({
-            id
-        }).pipe(untilDestroyed(this)).subscribe(res => {
-            if (!res.errors) {
-                this.onGetVentasObservaciones();
-            }
-        })
     }
 
     onGetByVentaIdAndSucursalId(ventaId, sucId) {

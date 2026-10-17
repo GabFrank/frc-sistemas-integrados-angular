@@ -80,9 +80,9 @@ export class CategoriaObservacionService {
     }
 
     onDeleteCategoriaObservacion(id: number) {
-        return this.deleteCategoriaObservacion.mutate({ id }).pipe(
+        return this.genericService.onDelete(this.deleteCategoriaObservacion, id, null, null, false, true, null, { exito: 'Categoría eliminada exitosamente' }).pipe(
           tap(res => {
-            if (!res.errors) {
+            if (res) {
               if (this.categoriasObs) {
                 this.categoriasObs = this.categoriasObs.filter(cat => cat.id !== id);
                 this.categoriaObsBS.next(this.categoriasObs);
