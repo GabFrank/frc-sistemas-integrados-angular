@@ -69,6 +69,25 @@ Humo de `OperacionesModule` y de quienes importan los modelos que se quedan:
 3. Gestión de compras → un pedido → pestaña de solicitudes de pago.
 4. Menú → Cheques (`ChequesDashboardComponent`): carga. Es humo: su query no pide `pagoDetalleCuota`.
 
+### Resultado (2026-10-17, build `web-production` de `60bebdc6` contra el central local `:8081`, usuario MR)
+
+- `npm run check`: exit 0, sin errores (solo los warnings de siempre: CommonJS, autoprefixer, `:lang`).
+- Solicitud de pago (menú Compras): la lista carga; SP-000013 (id 16, con `pago` #31) abre **Editar solicitud de
+  pago** con notas y forma de pago, y **Gestionar pago** abre. Ambos cerrados con Cancelar.
+- Compras → Solicitudes de pago y Lista de compras → Pedido 5: cargan. La pestaña «5. Solicitud de Pago» del pedido
+  no se pudo abrir: el pedido está en el paso 3 (deshabilitada por etapa, no por el cambio). Su componente solo
+  depende del modelo `SolicitudPago` por tipos (cubierto por el AOT) y ese modelo con `pago` ya se ejercitó arriba.
+- Financiero → Cuentas y Bancos → Cheques: carga con la chequera activa.
+- Consola: un solo error, el service worker de Firebase (404 del servidor estático de la prueba), ajeno al cambio.
+- El central `:8081` de la prueba usa otra base que `bodega` (2 solicitudes); el filtro de fechas del backend
+  excluye la SP-000013 con el rango por defecto (también por API directa): preexistente, no es de este cambio.
+
+## Auditoría del diff (paso 8)
+
+3 fijos sobre `7fcb3d2a..60bebdc6`: 43 archivos, solo borrados (+8 líneas del módulo). Fijo 1 OK (no se borra ningún
+control de rol), Fijo 2 N/A (sin migración, `.graphqls` ni enum), Fijo 3 OK (sin referencias vivas, ni por string ni
+dinámicas). Condicionales A y B: N/A (no toca release ni replicación).
+
 ## Auditoría del plan (paso 5)
 
 | Eje | Hallazgo | Qué se hizo |
