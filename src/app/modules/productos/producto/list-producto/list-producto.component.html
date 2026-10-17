@@ -384,7 +384,7 @@
                 <!-- Show sucursal data when loaded -->
                 <div *ngIf="producto?.sucursales" fxLayout="column" style="width: 100%">
                   <div style="text-align: center; margin-bottom: 10px">
-                    {{ sucursalFiltroControl.value ?
+                    {{ filtroDeLaLista.sucursalId ?
                     'Stock en Sucursal Seleccionada' : 'Stock por Sucursal' }}
                   </div>
                   <div style="max-height: 425px; overflow-y: auto;">
