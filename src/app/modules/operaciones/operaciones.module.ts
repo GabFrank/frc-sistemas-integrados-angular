@@ -39,10 +39,6 @@ import { AddSubcategoriaObsDialogComponent } from './sub-categoria-observacion/a
 import { AddVentaObservacionComponent } from './venta-observacion/add-venta-observacion/add-venta-observacion.component';
 import { AddMotivoObsDialogComponent } from './motivo-observacion/add-motivo-obs-dialog/add-motivo-obs-dialog.component';
 import { MainVentaObservacionComponent } from './venta-observacion/main-venta-observacion/main-venta-observacion.component';
-import { ListPagoComponent } from './pago/list-pago/list-pago.component';
-import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
-import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
-import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { VerificarTransporteDialogComponent } from './transferencia/verificar-transporte-dialog/verificar-transporte-dialog.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
@@ -126,10 +122,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     AddVentaObservacionComponent,
     AddMotivoObsDialogComponent,
     MainVentaObservacionComponent,
-    ListPagoComponent,
-    EditPagoComponent,
-    PagoDetalleDialogComponent,
-    ModificarSucursalPagoDetalleComponent,
     RutaHojaComponent,
     VerificarTransporteDialogComponent,
     EntregadoresComponent,
