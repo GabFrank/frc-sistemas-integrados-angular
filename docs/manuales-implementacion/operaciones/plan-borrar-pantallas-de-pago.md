@@ -74,9 +74,10 @@ Humo de `OperacionesModule` y de quienes importan los modelos que se quedan:
 - `npm run check`: exit 0, sin errores (solo los warnings de siempre: CommonJS, autoprefixer, `:lang`).
 - Solicitud de pago (menú Compras): la lista carga; SP-000013 (id 16, con `pago` #31) abre **Editar solicitud de
   pago** con notas y forma de pago, y **Gestionar pago** abre. Ambos cerrados con Cancelar.
-- Compras → Solicitudes de pago y Lista de compras → Pedido 5: cargan. La pestaña «5. Solicitud de Pago» del pedido
-  no se pudo abrir: el pedido está en el paso 3 (deshabilitada por etapa, no por el cambio). Su componente solo
-  depende del modelo `SolicitudPago` por tipos (cubierto por el AOT) y ese modelo con `pago` ya se ejercitó arriba.
+- Compras → Solicitudes de pago y Lista de compras → Pedido 5: cargan (el 5 está en el paso 3, sin pestaña de pago).
+- Pedido 2 (etapa `SOLICITUD_PAGO` en proceso): abre directo en «5. Solicitud de Pago» con el resumen (1 solicitud,
+  Gs. 332.161, 0 notas disponibles), la tabla con SP-000013 y su menú de acciones (imprimir, solicitar, cancelar,
+  eliminar). No se ejecutó ninguna acción: ninguna toca código del diff.
 - Financiero → Cuentas y Bancos → Cheques: carga con la chequera activa.
 - Consola: un solo error, el service worker de Firebase (404 del servidor estático de la prueba), ajeno al cambio.
 - El central `:8081` de la prueba usa otra base que `bodega` (2 solicitudes); el filtro de fechas del backend
