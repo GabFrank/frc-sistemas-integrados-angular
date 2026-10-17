@@ -6,6 +6,7 @@ import { DeleteEntradaItemGQL } from './graphql/deleteEntradaItem';
 import { GetAllEntradaItemsGQL } from './graphql/getAllEntradasItem';
 import { SaveEntradaItemGQL } from './graphql/saveEntradaItem';
 
+import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
@@ -15,67 +16,20 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 export class EntradaItemService {
 
   constructor(
+    private genericService: GenericCrudService,
     private saveEntradaItem: SaveEntradaItemGQL,
     private deleteEntradaItem: DeleteEntradaItemGQL,
     private getAllEntradaItems: GetAllEntradaItemsGQL,
     private notificacionService: NotificacionSnackbarService
   ) { }
 
-  onSaveEntradaItem(input: EntradaItemInput): Observable<EntradaItem>{
-    return new Observable(obs => {
-      this.saveEntradaItem.mutate({
-        entity: input
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res.errors==null){
-          obs.next(res.data)
-          this.notificacionService.notification$.next({
-            texto: `Guardado con éxito`,
-            color: NotificacionColor.success,
-            duracion: 2
-          })
-        } else {
-          this.notificacionService.notification$.next({
-            texto: `Ups, ocurrio algun error: ${res.errors[0].message}`,
-            color: NotificacionColor.danger,
-            duracion: 3
-          })
-        }
-        // Sin complete el observable no terminaba nunca y un finalize del llamador no corria (#319).
-        obs.complete()
-      }, err => obs.error(err))
-    })
+  onSaveEntradaItem(input: EntradaItemInput): Observable<EntradaItem> {
+    return this.genericService.onSaveCustom<EntradaItem>(this.saveEntradaItem, { entity: input }, false);
   }
 
-  onDeleteEntradaItem(id: number){
-    return new Observable(obs => {
-      this.deleteEntradaItem.mutate({
-        id
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res.errors==null){
-          obs.next(true)
-          this.notificacionService.notification$.next({
-            texto: `Eliminado con éxito`,
-            color: NotificacionColor.success,
-            duracion: 2
-          })
-        } else {
-          obs.next(false)
-          this.notificacionService.notification$.next({
-            texto: `Ups, ocurrio algun error: ${res.errors[0].message}`,
-            color: NotificacionColor.danger,
-            duracion: 3
-          })
-        }
-        // Sin complete el observable no terminaba nunca y un finalize del llamador no corria (#319).
-        obs.complete()
-      }, err => obs.error(err))
-    })
+  /** `true` si se eliminó; `null` si no (rechazo o corte, los dos avisados). La pantalla ya confirmó. */
+  onDeleteEntradaItem(id: number): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteEntradaItem, id, null, null, false, false);
   }
 
   onGetAllEntradaItems(){

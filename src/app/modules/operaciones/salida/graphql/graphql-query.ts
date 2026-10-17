@@ -160,6 +160,6 @@ export const salidaPorFechaQuery = gql`
 
 export const finalizarSalida = gql`
   mutation finalizarSalida($id: ID!) {
-    finalizarSalida(id: $id)
+    data: finalizarSalida(id: $id)
   }
 `;
