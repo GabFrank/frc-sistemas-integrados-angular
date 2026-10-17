@@ -31,6 +31,16 @@ Opcional y por defecto apagado: las otras ~170 llamadas no cambian. `marcarTodas
 
 Central propio con `replication.sync/refresh` apagados, desktop web, usuario `MR`. Interceptor que cuelga `actualizarTokenFcm` y `marcarNotificacionLeida` hasta el timeout de 60 s: sin aviso del link. Control: colgar `marcarTodasNotificacionesLeidas` (sin la opción) sigue mostrando el aviso del link. Éxito normal de las dos llamadas: sin spinner y la notificación queda leída.
 
+### Resultado (2026-10-17)
+
+Central de `develop` en el 8081 (base `bodega` local, perfil `dev`, `replication.sync/refresh` apagados), desktop compilado `web-production` y servido en `127.0.0.1:4201` en modo solo central, usuario `MR`. Un parche de `XMLHttpRequest.send` dejaba sin enviar las mutations elegidas, así que las cortó el timeout de 60 s del link. Tres notificaciones de MR y un `pushToken` de prueba sembrados y restaurados al final, igual que el token de la sesión que tocó `actualizarTokenFcm`.
+
+| Llamada | Colgada hasta el timeout | Éxito real |
+|---|---|---|
+| `setTokenFcm` (abrir la campana) | sin aviso a los 81 s, sin spinner | sin spinner; el token queda en la sesión de MR |
+| `marcarComoLeida` (botón de la tarjeta) | sin aviso a los 80 s, sin spinner; la tarjeta queda sin leer | sin spinner; la tarjeta queda leída y el conteo baja |
+| control: «Marcar todas» (sin la opción) | «El servidor no respondió a tiempo: la operación pudo haberse aplicado…» a los 60 s | |
+
 ## Auditoría del plan
 
 - **Eje B — límite aceptado:** si el central aplicó `marcarNotificacionLeida` y el link corta igual, la tarjeta queda sin leer hasta el próximo refresco, ahora sin aviso. Se acepta: es idempotente (reabrirla reintenta), no toca dinero ni datos, y el aviso del link («pudo haberse aplicado») no le daba al usuario nada que hacer. Resincronizar el conteo en el `error` se descarta: con el central colgado, esa lectura también se cuelga. El error con `esTimeout` sigue llegando al llamador igual; `isLoading` y el diálogo no cambian.
