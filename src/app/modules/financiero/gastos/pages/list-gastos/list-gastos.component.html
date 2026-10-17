@@ -153,18 +153,15 @@
       </ng-container>
 
       <ng-container matColumnDef="observacion">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 30"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Obs
         </th>
         <td
           mat-cell
           *matCellDef="let gasto"
           [matTooltip]="gasto?.observacion"
-          style="text-align: center; width: 30"
+          class="celda-obs"
+          style="text-align: center"
         >
           {{ gasto?.observacion | uppercase }}
         </td>
