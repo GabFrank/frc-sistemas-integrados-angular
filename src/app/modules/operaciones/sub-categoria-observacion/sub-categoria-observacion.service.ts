@@ -78,9 +78,9 @@ export class SubCategoriaObservacionService {
   }
 
   onDeleteSubCategoriaObservacion(id: number) {
-    return this.deleteSubCategoriaObservacion.mutate({ id }).pipe(
+    return this.genericService.onDelete(this.deleteSubCategoriaObservacion, id, null, null, false, true, null, { exito: 'Subcategoría eliminada exitosamente' }).pipe(
       tap(res => {
-        if (!res.errors) {
+        if (res) {
           if (this.subCategoriaObservaciones) {
             this.subCategoriaObservaciones = this.subCategoriaObservaciones.filter(cat => cat.id !== id);
             this.subCategoriaObservacionBS.next(this.subCategoriaObservaciones);

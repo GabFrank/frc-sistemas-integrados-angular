@@ -80,9 +80,9 @@ export class MotivoObservacionService {
   }
 
   onDeleteMotivoObservacion(id: number) {
-    return this.deleteMotivoObservacion.mutate({ id }).pipe(
+    return this.genericService.onDelete(this.deleteMotivoObservacion, id, null, null, false, true, null, { exito: 'Motivo eliminado exitosamente' }).pipe(
       tap(res => {
-        if (!res.errors) {
+        if (res) {
           if (this.motivoObservaciones) {
             this.motivoObservaciones = this.motivoObservaciones.filter(cat => cat.id !== id);
             this.motivoObservacionBS.next(this.motivoObservaciones);

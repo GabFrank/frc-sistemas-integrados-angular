@@ -117,7 +117,7 @@
               color="primary"
               style="width: 100%"
               (click)="onEditar()"
-              [disabled]="selectedEntrada?.activo == true"
+              [disabled]="selectedEntrada?.activo == true || bloqueada"
             >
               Editar
             </button>
@@ -230,7 +230,7 @@
               mat-raised-button
               color="accent"
               style="width: 100%"
-              [disabled]="itemFormGroup.invalid"
+              [disabled]="itemFormGroup.invalid || bloqueada"
               (click)="onItemSave()"
               type="button"
             >
@@ -243,7 +243,7 @@
               color="primary"
               style="width: 100%"
               (click)="onEditItem()"
-              [disabled]="selectedEntrada?.activo == true"
+              [disabled]="selectedEntrada?.activo == true || bloqueada"
             >
               Editar
             </button>
@@ -255,7 +255,7 @@
               color="primary"
               style="width: 100%"
               [disabled]="
-                selectedEntrada?.activo == true || selectedEntradaItem == null
+                selectedEntrada?.activo == true || bloqueada || selectedEntradaItem == null
               "
               (click)="onDelete()"
             >
@@ -330,7 +330,7 @@
   </div>
   <div
     fxFlex="10"
-    *ngIf="selectedEntrada?.activo != true"
+    *ngIf="selectedEntrada?.activo != true && !bloqueada"
     fxFlex="5%"
     fxLayout="row"
     fxLayoutAlign="end center"
