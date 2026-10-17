@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService } from '../../../generics/generic-crud.service';
@@ -33,6 +33,7 @@ import { MergePedidoItemDistribucionesGQL } from './gestion-compras/graphql/merg
 import { DeletePedidoItemDistribucionesGQL } from './gestion-compras/graphql/deletePedidoItemDistribuciones';
 import { IsDistribucionConcluidaGQL } from './gestion-compras/graphql/isDistribucionConcluida';
 import { PedidoItemDistribucion, PedidoItemDistribucionInput } from './gestion-compras/pedido-item-distribucion.model';
+import { GuardarPedidoItemConDistribucionesGQL } from './gestion-compras/graphql/guardarPedidoItemConDistribuciones';
 
 // NotaRecepcionItemDistribucion imports
 import { GetNotaRecepcionItemDistribucionGQL } from './gestion-compras/graphql/getNotaRecepcionItemDistribucion';
@@ -60,6 +61,10 @@ import { GetNotaRecepcionItemListGQL } from './gestion-compras/graphql/getNotaRe
 import { GetNotaRecepcionItemListPorNotaRecepcionIdGQL } from './gestion-compras/graphql/getNotaRecepcionItemListPorNotaRecepcionId';
 import { GetNotaRecepcionItemListPorNotaRecepcionIdYSucursalesGQL } from './gestion-compras/graphql/getNotaRecepcionItemListPorNotaRecepcionIdYSucursales';
 import { SaveNotaRecepcionItemGQL } from './gestion-compras/graphql/saveNotaRecepcionItem';
+import { RechazarNotaRecepcionItemGQL } from './gestion-compras/graphql/rechazarNotaRecepcionItem';
+import { DividirPedidoItemEnNotasGQL } from './gestion-compras/graphql/dividirPedidoItemEnNotas';
+import { DividirPedidoItemInput } from './gestion-compras/models/dividir-pedido-item.model';
+import { RechazarNotaRecepcionItemInput, RechazoNotaRecepcionItemResultado } from './gestion-compras/models/rechazar-nota-recepcion-item.model';
 import { DeleteNotaRecepcionItemGQL } from './gestion-compras/graphql/deleteNotaRecepcionItem';
 import { NotaRecepcionItem } from './gestion-compras/nota-recepcion-item.model';
 import { FinalizarRecepcionNotasGQL } from './gestion-compras/graphql/finalizarRecepcionNotas';
@@ -92,6 +97,9 @@ import { ImprimirPedidoTicketGQL } from './gestion-compras/graphql/imprimirPedid
   providedIn: 'root'
 })
 export class PedidoService {
+
+  private rechazarNotaRecepcionItemGQL = inject(RechazarNotaRecepcionItemGQL);
+  private dividirPedidoItemEnNotasGQL = inject(DividirPedidoItemEnNotasGQL);
 
   constructor(
     private genericCrudService: GenericCrudService,
@@ -611,6 +619,19 @@ export class PedidoService {
   }
 
   /**
+   * Rechaza un ítem desde la recepción documental: el central crea la nota, parte el ítem y guarda el rechazo en una
+   * sola transacción (todo o nada).
+   */
+  onRechazarNotaRecepcionItem(input: RechazarNotaRecepcionItemInput): Observable<RechazoNotaRecepcionItemResultado> {
+    return this.genericCrudService.onCustomMutation(this.rechazarNotaRecepcionItemGQL, { input });
+  }
+
+  /** Divide un ítem del pedido en varias notas: el central guarda todas las partes en una transacción. */
+  onDividirPedidoItemEnNotas(input: DividirPedidoItemInput): Observable<NotaRecepcionItem[]> {
+    return this.genericCrudService.onCustomMutation(this.dividirPedidoItemEnNotasGQL, { input });
+  }
+
+  /**
    * Elimina un ítem de nota de recepción
    * @param id - ID del ítem a eliminar
    * @returns Observable<boolean>
@@ -817,4 +838,19 @@ export class PedidoService {
   onImprimirPedidoTicket(pedidoId: number, printerName?: string): Observable<boolean> {
     return this.genericCrudService.onCustomMutation(this.imprimirPedidoTicketGQL, { pedidoId, printerName });
   }
-} 
+
+  // ===== Alta/edición de ítem con distribuciones (add-edit-item-dialog) =====
+
+  private guardarPedidoItemConDistribucionesGQL = inject(GuardarPedidoItemConDistribucionesGQL);
+
+  /**
+   * Guarda el ítem del pedido y sus distribuciones en una sola transacción del central (antes eran savePedidoItem y
+   * mergePedidoItemDistribuciones por separado, y un fallo en la segunda dejaba el ítem sin distribuciones).
+   */
+  onGuardarPedidoItemConDistribuciones(
+    pedidoItem: PedidoItemInput,
+    distribuciones: PedidoItemDistribucionInput[]
+  ): Observable<PedidoItem> {
+    return this.genericCrudService.onCustomMutation(this.guardarPedidoItemConDistribucionesGQL, { pedidoItem, distribuciones });
+  }
+}

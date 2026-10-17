@@ -1,30 +1,32 @@
-import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatButton } from '@angular/material/button';
+import { MatSelect } from '@angular/material/select';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { debounceTime } from 'rxjs/operators';
 
 import { PedidoItem } from '../../pedido-item.model';
-import { NotaRecepcion, NotaRecepcionEstado } from '../../nota-recepcion.model';
-import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
+import { NotaRecepcion } from '../../nota-recepcion.model';
+import { NotaRecepcionItem } from '../../nota-recepcion-item.model';
+import { NotaRecepcionItemDistribucion } from '../../models/nota-recepcion-item-distribucion.model';
+import {
+  DestinoRechazoNotaRecepcion,
+  RechazarNotaRecepcionItemInput,
+  RechazoNotaRecepcionItemResultado,
+} from '../../models/rechazar-nota-recepcion-item.model';
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
 import { PedidoService } from '../../../pedido.service';
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
-import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
-import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
-import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
-import { debounceTime } from 'rxjs/operators';
-import { ContextoConsulta } from '../../../../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../../generics/generic-crud.constantes';
-
-/** Cotización de la nota que crea el rechazo: 20 s, avisa el diálogo (#390). */
-const CONSULTA_COTIZACION: ContextoConsulta = {
-  timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
-  silenciarAvisoTimeout: true,
-};
-const MENSAJE_SIN_COTIZACION = 'No se pudo obtener la cotización: el rechazo no se registró. Intentá de nuevo.';
+import {
+  AVISO_SIN_PRESENTACIONES,
+  OpcionSelect,
+  aUnidadesBase,
+  cierreSiNoHuboRespuesta,
+  enPresentacion,
+  opcionesDeNotas,
+} from '../../utils/recepcion-documental.utils';
 
 export interface RechazarItemDialogData {
   pedidoItem: PedidoItem;
@@ -52,685 +54,323 @@ export enum MotivoRechazo {
   OTRO = 'OTRO'
 }
 
+/** Valores especiales del select de nota (los demás son ids de nota). */
+const NOTA_NUEVA = 0;
+const NOTA_RECHAZO = -1;
+
+const MOTIVOS_RECHAZO: OpcionSelect<MotivoRechazo>[] = [
+  { value: MotivoRechazo.VENCIDO, viewValue: 'Vencido' },
+  { value: MotivoRechazo.AVERIADO, viewValue: 'Averiado' },
+  { value: MotivoRechazo.FALTANTE, viewValue: 'Faltante' },
+  { value: MotivoRechazo.OTRO, viewValue: 'Otro' },
+];
+
+/**
+ * Rechazo de un ítem desde la recepción documental. El diálogo solo junta los datos: el central
+ * (`rechazarNotaRecepcionItem`) crea la nota si hace falta, parte el ítem en un rechazo parcial y guarda, todo en una
+ * transacción. Antes eran varias mutaciones sueltas y un corte a mitad de camino dejaba la nota vacía o el ítem
+ * reducido sin su rechazo (#488, #501).
+ */
 @UntilDestroy()
 @Component({
   selector: 'app-rechazar-item-dialog',
   templateUrl: './rechazar-item-dialog.component.html',
-  styleUrls: ['./rechazar-item-dialog.component.scss']
+  styleUrls: ['./rechazar-item-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RechazarItemDialogComponent implements OnInit {
-  @ViewChild('btnGuardar') btnGuardar!: MatButton;
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<RechazarItemDialogComponent, RechazarItemDialogResult>>(MatDialogRef);
+  data = inject<RechazarItemDialogData>(MAT_DIALOG_DATA);
+  private pedidoService = inject(PedidoService);
+  private presentacionService = inject(PresentacionService);
+  private notificacionService = inject(NotificacionSnackbarService);
+  private dialogosService = inject(DialogosService);
+  private cdr = inject(ChangeDetectorRef);
+
+  @ViewChild('selectPresentacion') selectPresentacion?: MatSelect;
+  @ViewChild('selectMotivo') selectMotivo?: MatSelect;
+  @ViewChild('inputCantidad') inputCantidad?: ElementRef<HTMLInputElement>;
+  @ViewChild('textareaObservaciones') textareaObservaciones?: ElementRef<HTMLTextAreaElement>;
 
   form!: FormGroup;
   isLoading = false;
-  isInitializing = true;
   cantidadPendiente = 0;
 
-  // Propiedades para presentaciones
   presentacionesDisponibles: Presentacion[] = [];
   presentacionSeleccionada: Presentacion | null = null;
 
-  // Propiedades para nota preseleccionada
-  notaPreseleccionada: boolean = false;
-  cantidadMaxima: number = 0;
+  notaPreseleccionada = false;
+  cantidadMaxima = 0;
+  /** Tope que muestra el campo de cantidad (en unidades base, como siempre). */
+  cantidadLimite = 0;
 
-  // Propiedades para el ítem a rechazar y sus distribuciones
   itemToReject: NotaRecepcionItem | null = null;
-  distribucionesDelItem: any[] = [];
-  tieneDistribuciones: boolean = false;
+  distribucionesDelItem: NotaRecepcionItemDistribucion[] = [];
+  tieneDistribuciones = false;
   /**
-   * Sin saber si el ítem tiene distribuciones no se rechaza: se saltearía la confirmación y el rechazo de las
-   * distribuciones (#390).
+   * Sin saber si el ítem tiene distribuciones no se rechaza: se saltearía la confirmación (#390).
    */
   distribucionesCargando = false;
   distribucionesFallo = false;
 
-  // Propiedades computadas para evitar funciones en template
+  // Valores precalculados para el template
+  titulo = '';
   productoDisplay = '';
-  notasDisponiblesDisplay: any[] = [];
-  motivosRechazoDisplay: any[] = [];
+  notasDisponiblesDisplay: OpcionSelect<number>[] = [];
+  motivosRechazoDisplay = MOTIVOS_RECHAZO;
   cantidadEnUnidadesBaseComputed = 0;
+  cantidadPendienteEnPresentacion = 0;
+  esNotaRechazoElegida = false;
+  puedeGuardar = false;
 
-  // Enums para template
-  MotivoRechazo = MotivoRechazo;
-
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<RechazarItemDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: RechazarItemDialogData,
-    private pedidoService: PedidoService,
-    private presentacionService: PresentacionService,
-    private notificacionService: NotificacionSnackbarService,
-    private dialogosService: DialogosService,
-    private cambioService: CambioService
-  ) {
+  ngOnInit(): void {
     this.cantidadPendiente = this.data.pedidoItem.cantidadPendiente || 0;
     this.notaPreseleccionada = !!this.data.notaPreseleccionada;
     this.cantidadMaxima = this.data.cantidadMaxima || 0;
+    this.cantidadLimite = this.notaPreseleccionada ? this.cantidadMaxima : this.cantidadPendiente;
     this.itemToReject = this.data.itemToReject || null;
-    this.initializeForm();
-    this.initializeDisplayProperties();
-  }
+    this.inicializarFormulario();
+    this.inicializarOpciones();
+    this.recalcular();
 
-  ngOnInit(): void {
-    this.loadPresentaciones();
-    this.setupFormListeners();
-    
-    // Si hay un ítem específico a rechazar, cargar sus distribuciones
+    this.cargarPresentaciones();
+    this.escucharFormulario();
     if (this.itemToReject) {
       this.cargarDistribucionesDelItem();
     }
-    
-    this.isInitializing = false;
   }
 
-  private initializeForm(): void {
-    // Determinar la cantidad total a rechazar (en unidades base)
-    let cantidadTotalEnUnidadesBase = 0;
-    
+  private inicializarFormulario(): void {
+    // Cantidad total a rechazar en unidades base: la del ítem, el tope de la nota o lo pendiente del pedido
     if (this.itemToReject) {
-      // Si hay un ítem específico, usar su cantidad total en unidades base
-      cantidadTotalEnUnidadesBase = this.itemToReject.cantidadEnNota || 0;
+      this.cantidadEnUnidadesBaseComputed = this.itemToReject.cantidadEnNota || 0;
     } else if (this.notaPreseleccionada) {
-      // Si hay nota preseleccionada, usar la cantidad máxima especificada
-      cantidadTotalEnUnidadesBase = this.cantidadMaxima;
+      this.cantidadEnUnidadesBaseComputed = this.cantidadMaxima;
     } else {
-      // Caso normal: usar la cantidad pendiente del pedido
-      cantidadTotalEnUnidadesBase = this.cantidadPendiente;
+      this.cantidadEnUnidadesBaseComputed = this.cantidadPendiente;
     }
-    
+
     this.form = this.fb.group({
       notaRecepcionId: [this.data.notaPreseleccionada || null, Validators.required],
       presentacionId: [null, Validators.required],
-      cantidadRechazada: [null, [Validators.required, Validators.min(0.01)]], // Se actualizará después
+      cantidadRechazada: [null, [Validators.required, Validators.min(0.01)]],
       motivoRechazo: [null, Validators.required],
-      observaciones: [''] // Removida validación de required y minLength
+      observaciones: [''],
     });
-
-    // Guardar la cantidad en unidades base para usarla después
-    this.cantidadEnUnidadesBaseComputed = cantidadTotalEnUnidadesBase;
-  }
-
-  private initializeDisplayProperties(): void {
-    this.productoDisplay = this.data.pedidoItem.producto?.descripcion || 'Producto no disponible';
-    
     if (this.notaPreseleccionada) {
-      // Si hay nota preseleccionada, solo mostrar esa nota
-      this.notasDisponiblesDisplay = this.data.notasDisponibles.map(nota => ({
-        value: nota.id,
-        viewValue: `Número: ${nota.numero} - Fecha: ${dateToString(nota.fecha, 'dd/MM/yyyy')}`
-      }));
-    } else {
-      // Si no hay nota preseleccionada, mostrar todas las opciones
-      this.notasDisponiblesDisplay = this.data.notasDisponibles.map(nota => ({
-        value: nota.id,
-        viewValue: `Número: ${nota.numero} - Fecha: ${dateToString(nota.fecha, 'dd/MM/yyyy')}`
-      }));
-      
-      // Agregar opción para crear nueva nota
-      this.notasDisponiblesDisplay.push({
-        value: 0,
-        viewValue: '➕ Crear Nueva Nota'
-      });
-
-      // Agregar opción para crear nota de rechazo especial
-      this.notasDisponiblesDisplay.push({
-        value: -1,
-        viewValue: '🚫 Crear Nota de Rechazo (Producto no entregado)'
-      });
+      // Solo se muestra: la nota viene fijada (se lee con getRawValue)
+      this.form.controls['notaRecepcionId'].disable();
     }
-
-    this.motivosRechazoDisplay = [
-      { value: MotivoRechazo.VENCIDO, viewValue: 'Vencido' },
-      { value: MotivoRechazo.AVERIADO, viewValue: 'Averiado' },
-      { value: MotivoRechazo.FALTANTE, viewValue: 'Faltante' },
-      { value: MotivoRechazo.OTRO, viewValue: 'Otro' }
-    ];
   }
 
-  private loadPresentaciones(): void {
-    if (this.data.pedidoItem.producto?.id) {
-      this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.data.pedidoItem.producto.id)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (presentaciones) => {
-            if (presentaciones == null) {
-              return; // Error GraphQL: el servicio ya avisó; sin presentación el formulario no es válido
-            }
-            this.presentacionesDisponibles = presentaciones;
-            
-            // Seleccionar por defecto la presentación del pedido item
-            if (this.data.pedidoItem.presentacionCreacion) {
-              this.presentacionSeleccionada = presentaciones.find(p => p.id === this.data.pedidoItem.presentacionCreacion.id) || presentaciones[0];
-            } else {
-              this.presentacionSeleccionada = presentaciones[0];
-            }
-            
-            // Calcular la cantidad por presentación
-            let cantidadPorPresentacion = 0;
-            if (this.presentacionSeleccionada && this.presentacionSeleccionada.cantidad > 0) {
-              cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed / this.presentacionSeleccionada.cantidad;
-            } else {
-              cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed;
-            }
-            
-            // Actualizar el formulario con la presentación seleccionada y la cantidad calculada
-            this.form.patchValue({
-              presentacionId: this.presentacionSeleccionada?.id,
-              cantidadRechazada: cantidadPorPresentacion
-            });
-            
-            // Actualizar la validación máxima
-            this.form.get('cantidadRechazada')?.setValidators([
-              Validators.required, 
-              Validators.min(0.01), 
-              Validators.max(cantidadPorPresentacion)
-            ]);
-            this.form.get('cantidadRechazada')?.updateValueAndValidity();
-            
-            this.updateComputedProperties();
-          },
-          error: (error) => {
-            console.error('Error cargando presentaciones:', error);
-            this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
+  private inicializarOpciones(): void {
+    this.productoDisplay = this.data.pedidoItem.producto?.descripcion || 'Producto no disponible';
+    this.titulo = `Rechazar Ítem: ${this.productoDisplay}`;
+    this.notasDisponiblesDisplay = opcionesDeNotas(this.data.notasDisponibles);
+    if (!this.notaPreseleccionada) {
+      this.notasDisponiblesDisplay = [
+        ...this.notasDisponiblesDisplay,
+        { value: NOTA_NUEVA, viewValue: '➕ Crear Nueva Nota' },
+        { value: NOTA_RECHAZO, viewValue: '🚫 Crear Nota de Rechazo (Producto no entregado)' },
+      ];
+    }
+  }
+
+  private cargarPresentaciones(): void {
+    const productoId = this.data.pedidoItem.producto?.id;
+    if (!productoId) return;
+    this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(productoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (presentaciones) => {
+          if (presentaciones == null) {
+            return; // Error GraphQL: el servicio ya avisó; sin presentación el formulario no es válido
           }
-        });
-    }
+          this.presentacionesDisponibles = presentaciones;
+          const creacionId = this.data.pedidoItem.presentacionCreacion?.id;
+          this.presentacionSeleccionada = (creacionId != null
+            ? presentaciones.find((p) => p.id === creacionId)
+            : null) || presentaciones[0];
+
+          const cantidadPorPresentacion = enPresentacion(this.cantidadEnUnidadesBaseComputed, this.presentacionSeleccionada);
+          this.form.patchValue({
+            presentacionId: this.presentacionSeleccionada?.id,
+            cantidadRechazada: cantidadPorPresentacion,
+          });
+          this.fijarTopeDeCantidad(cantidadPorPresentacion);
+          this.recalcular();
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Error cargando presentaciones:', error);
+          this.notificacionService.openWarn(AVISO_SIN_PRESENTACIONES, 6);
+        },
+      });
   }
 
-  private setupFormListeners(): void {
-    // Configurar navegación por teclado
+  private escucharFormulario(): void {
     this.form.valueChanges
-      .pipe(
-        untilDestroyed(this),
-        debounceTime(100)
-      )
+      .pipe(untilDestroyed(this), debounceTime(100))
       .subscribe(() => {
-        this.updateComputedProperties();
+        this.recalcular();
+        this.cdr.markForCheck();
       });
 
-    // Listener específico para cambios en presentación
-    this.form.get('presentacionId')?.valueChanges
+    // Rechazando un ítem concreto, cambiar la presentación recalcula la cantidad (lo que tiene el ítem)
+    this.form.controls['presentacionId'].valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((presentacionId) => {
-        if (presentacionId && this.hasItemToReject) {
-          // Si hay un ítem específico y cambia la presentación, recalcular cantidad
-          const presentacion = this.presentacionesDisponibles.find(p => p.id === presentacionId);
-          if (presentacion && presentacion.cantidad > 0) {
-            const cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed / presentacion.cantidad;
-            this.form.patchValue({
-              cantidadRechazada: cantidadPorPresentacion
-            }, { emitEvent: false });
-            
-            // Actualizar validación máxima
-            this.form.get('cantidadRechazada')?.setValidators([
-              Validators.required, 
-              Validators.min(0.01), 
-              Validators.max(cantidadPorPresentacion)
-            ]);
-            this.form.get('cantidadRechazada')?.updateValueAndValidity();
-          }
+        if (!presentacionId || !this.itemToReject) return;
+        const presentacion = this.presentacionesDisponibles.find((p) => p.id === presentacionId);
+        if (presentacion?.cantidad > 0) {
+          const cantidadPorPresentacion = enPresentacion(this.cantidadEnUnidadesBaseComputed, presentacion);
+          this.form.patchValue({ cantidadRechazada: cantidadPorPresentacion }, { emitEvent: false });
+          this.fijarTopeDeCantidad(cantidadPorPresentacion);
         }
       });
   }
 
-  private updateComputedProperties(): void {
-    const formValue = this.form.value;
-    
-    // Actualizar presentación seleccionada
-    if (formValue.presentacionId) {
-      this.presentacionSeleccionada = this.presentacionesDisponibles.find(p => p.id === formValue.presentacionId) || null;
-    }
-    
-    // Calcular cantidad en unidades base
-    const cantidadRechazada = formValue.cantidadRechazada || 0;
-    const presentacion = this.presentacionSeleccionada;
-    
-    if (presentacion && presentacion.cantidad > 0) {
-      this.cantidadEnUnidadesBaseComputed = cantidadRechazada * presentacion.cantidad;
-    } else {
-      this.cantidadEnUnidadesBaseComputed = cantidadRechazada;
-    }
+  private fijarTopeDeCantidad(maximo: number): void {
+    const control = this.form.controls['cantidadRechazada'];
+    control.setValidators([Validators.required, Validators.min(0.01), Validators.max(maximo)]);
+    control.updateValueAndValidity();
   }
 
-  get canSave(): boolean {
-    return this.form.valid && !this.isLoading && !this.distribucionesCargando && !this.distribucionesFallo;
-  }
-
-  get hasItemToReject(): boolean {
-    return !!this.itemToReject;
+  /** Valores que muestra el template: se recalculan cuando cambia el formulario o llega un dato. */
+  private recalcular(): void {
+    const valor = this.form.getRawValue();
+    if (valor.presentacionId) {
+      this.presentacionSeleccionada = this.presentacionesDisponibles.find((p) => p.id === valor.presentacionId) || null;
+    }
+    // Antes de cargar las presentaciones se conserva la cantidad inicial (la que se reparte al llegar)
+    if (this.presentacionesDisponibles.length > 0) {
+      this.cantidadEnUnidadesBaseComputed = aUnidadesBase(valor.cantidadRechazada || 0, this.presentacionSeleccionada);
+    }
+    this.cantidadPendienteEnPresentacion = enPresentacion(this.cantidadPendiente, this.presentacionSeleccionada);
+    this.esNotaRechazoElegida = valor.notaRecepcionId === NOTA_RECHAZO;
+    this.puedeGuardar = this.form.valid && !this.isLoading && !this.distribucionesCargando && !this.distribucionesFallo;
   }
 
   onGuardar(): void {
-    if (!this.canSave) {
-      this.markFormGroupTouched();
+    this.recalcular();
+    if (!this.puedeGuardar) {
+      this.form.markAllAsTouched();
+      this.cdr.markForCheck();
       return;
     }
-
-    const formValue = this.form.value;
-    
-    // Verificar si hay distribuciones que serán afectadas
-    if (this.tieneDistribuciones) {
-      this.dialogosService.confirm(
-        'Rechazar Ítem con Distribuciones',
-        `Este ítem tiene ${this.distribucionesDelItem.length} distribución(es) activa(s). 
+    if (!this.tieneDistribuciones) {
+      this.rechazar();
+      return;
+    }
+    this.dialogosService.confirm(
+      'Rechazar Ítem con Distribuciones',
+      `Este ítem tiene ${this.distribucionesDelItem.length} distribución(es) activa(s).
          Al rechazar el ítem, todas las distribuciones serán automáticamente rechazadas.
          ¿Desea continuar?`
-      ).subscribe(confirmed => {
-        if (confirmed) {
-          this.procesarRechazoCompleto(formValue);
-        }
-      });
-    } else {
-      this.procesarRechazoCompleto(formValue);
-    }
-  }
-
-  private procesarRechazoCompleto(formValue: any): void {
-    this.isLoading = true;
-
-    let notaRecepcionItem: NotaRecepcionItem;
-
-    if (this.itemToReject) {
-      const cantidadOriginal = this.itemToReject.cantidadEnNota || 0;
-      const cantidadARechazar = this.cantidadEnUnidadesBaseComputed;
-      const esRechazoParcial = cantidadARechazar < cantidadOriginal;
-
-      if (esRechazoParcial) {
-        // Rechazo parcial: reducir cantidad del ítem original y crear nuevo ítem RECHAZADO
-        this.procesarRechazoParcial(formValue, cantidadOriginal, cantidadARechazar);
-        return;
+    ).pipe(untilDestroyed(this)).subscribe((confirmado) => {
+      if (confirmado) {
+        this.rechazar();
       }
-
-      // Rechazo total: marcar el ítem existente como RECHAZADO
-      notaRecepcionItem = Object.assign(new NotaRecepcionItem(), this.itemToReject);
-      notaRecepcionItem.estado = NotaRecepcionItemEstado.RECHAZADO;
-      notaRecepcionItem.motivoRechazo = formValue.motivoRechazo;
-      notaRecepcionItem.observacion = formValue.observaciones;
-    } else {
-      // Crear nuevo NotaRecepcionItem con estado RECHAZADO
-      notaRecepcionItem = new NotaRecepcionItem();
-      notaRecepcionItem.notaRecepcion = this.data.notasDisponibles.find(n => n.id === formValue.notaRecepcionId) || new NotaRecepcion();
-      notaRecepcionItem.pedidoItem = this.data.pedidoItem;
-      notaRecepcionItem.producto = this.data.pedidoItem.producto;
-      notaRecepcionItem.presentacionEnNota = this.presentacionSeleccionada;
-      notaRecepcionItem.cantidadEnNota = this.cantidadEnUnidadesBaseComputed; // Usar cantidad en unidades base
-      notaRecepcionItem.precioUnitarioEnNota = this.data.pedidoItem.precioUnitarioSolicitado || 0;
-      notaRecepcionItem.esBonificacion = false;
-      notaRecepcionItem.vencimientoEnNota = this.data.pedidoItem.vencimientoEsperado;
-      notaRecepcionItem.observacion = formValue.observaciones;
-      notaRecepcionItem.estado = NotaRecepcionItemEstado.RECHAZADO;
-      notaRecepcionItem.motivoRechazo = formValue.motivoRechazo;
-    }
-
-    // Si hay nota preseleccionada, solo guardar el ítem
-    if (this.notaPreseleccionada) {
-      this.guardarItemYRechazarDistribuciones(notaRecepcionItem);
-    } else {
-      // Si se seleccionó crear nueva nota, primero crear la nota
-      if (formValue.notaRecepcionId === 0) {
-        this.crearNuevaNotaYGuardarItem(notaRecepcionItem, false);
-      } else if (formValue.notaRecepcionId === -1) {
-        // Crear nota de rechazo especial para productos no entregados
-        this.crearNuevaNotaYGuardarItem(notaRecepcionItem, true);
-      } else {
-        this.guardarItemYRechazarDistribuciones(notaRecepcionItem);
-      }
-    }
-  }
-
-  private procesarRechazoParcial(formValue: any, cantidadOriginal: number, cantidadARechazar: number): void {
-    // 1. Actualizar el ítem original con la cantidad restante
-    const itemOriginal = Object.assign(new NotaRecepcionItem(), this.itemToReject);
-    itemOriginal.cantidadEnNota = cantidadOriginal - cantidadARechazar;
-
-    this.pedidoService.onSaveNotaRecepcionItem(itemOriginal.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: () => {
-          // 2. Crear nuevo ítem RECHAZADO con la cantidad rechazada
-          const itemRechazado = new NotaRecepcionItem();
-          itemRechazado.notaRecepcion = this.itemToReject.notaRecepcion;
-          itemRechazado.pedidoItem = this.itemToReject.pedidoItem;
-          itemRechazado.producto = this.itemToReject.producto;
-          itemRechazado.presentacionEnNota = this.presentacionSeleccionada || this.itemToReject.presentacionEnNota;
-          itemRechazado.cantidadEnNota = cantidadARechazar;
-          itemRechazado.precioUnitarioEnNota = this.itemToReject.precioUnitarioEnNota;
-          itemRechazado.esBonificacion = this.itemToReject.esBonificacion || false;
-          itemRechazado.vencimientoEnNota = this.itemToReject.vencimientoEnNota;
-          itemRechazado.observacion = formValue.observaciones;
-          itemRechazado.estado = NotaRecepcionItemEstado.RECHAZADO;
-          itemRechazado.motivoRechazo = formValue.motivoRechazo;
-
-          this.pedidoService.onSaveNotaRecepcionItem(itemRechazado.toInput())
-            .pipe(untilDestroyed(this))
-            .subscribe({
-              next: (itemGuardado) => {
-                this.finalizarRechazo(itemGuardado);
-              },
-              error: (error) => {
-                console.error('Error al crear ítem rechazado parcial:', error);
-                this.cerrarParaRecargar(error, 'Se redujo la cantidad del ítem, pero no se creó el ítem rechazado.',
-                  'se creó el ítem rechazado');
-              }
-            });
-        },
-        error: (error) => {
-          console.error('Error al actualizar ítem original:', error);
-          this.isLoading = false;
-          // Reintentar no duplica: vuelve a dejar la misma cantidad restante
-          this.avisarSinRespuesta(error, 'se actualizó la cantidad del ítem');
-        }
-      });
-  }
-
-  private crearNuevaNotaYGuardarItem(notaRecepcionItem: NotaRecepcionItem, esNotaRechazo: boolean = false): void {
-    // Crear nueva nota de recepción
-    const nuevaNota = new NotaRecepcion();
-    nuevaNota.pedido = this.data.pedidoItem.pedido;
-    nuevaNota.numero = esNotaRechazo ? this.generarNumeroNotaRechazo() : this.generarNumeroNota();
-    nuevaNota.fecha = new Date();
-
-    // Sin la moneda del pedido no se inventa una (antes { id: 1, 'Guaraní' }, que además no coincidía con
-    // 'GUARANI' y consultaba la cotización de la moneda 1) (#390)
-    if (!this.data.pedidoItem.pedido?.moneda) {
-      this.isLoading = false;
-      this.notificacionService.openWarn('No se conoce la moneda del pedido: el rechazo no se registró. Recargá el pedido.', 6);
-      return;
-    }
-    nuevaNota.moneda = this.data.pedidoItem.pedido.moneda;
-
-    nuevaNota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
-    nuevaNota.esNotaRechazo = esNotaRechazo;
-
-    // Cargar cotización real para monedas no-Guaraní, luego guardar
-    const moneda = nuevaNota.moneda;
-    if (moneda && moneda.denominacion !== 'GUARANI' && moneda.id) {
-      // Sin cotización no se guarda la nota: antes quedaba con 1 y el total en Gs salía mal (#390)
-      this.cambioService.getUltimoCambioPorMonedaId(moneda.id, PROPAGAR_ERROR_DE_RED, CONSULTA_COTIZACION)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (cambio) => {
-            const tasa = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado ?? cambio?.valorEnGs;
-            if (!(tasa > 0)) {
-              this.isLoading = false;
-              this.notificacionService.openWarn(MENSAJE_SIN_COTIZACION, 6);
-              return;
-            }
-            nuevaNota.cotizacion = tasa;
-            this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
-          },
-          error: () => {
-            this.isLoading = false;
-            this.notificacionService.openWarn(MENSAJE_SIN_COTIZACION, 6);
-          }
-        });
-    } else {
-      nuevaNota.cotizacion = 1;
-      this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
-    }
-  }
-
-  private saveNotaYGuardarItem(nuevaNota: NotaRecepcion, notaRecepcionItem: NotaRecepcionItem): void {
-    this.pedidoService.onSaveNotaRecepcion(nuevaNota.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (notaCreada) => {
-          notaRecepcionItem.notaRecepcion = notaCreada;
-          this.guardarItemYRechazarDistribuciones(notaRecepcionItem, true);
-        },
-        error: (error) => {
-          console.error('Error al crear nota:', error);
-          this.isLoading = false;
-          // En un rechazo no se creó nada y el diálogo queda para corregir; sin respuesta la nota pudo crearse
-          // y reintentar crearía otra
-          if (erroresDeRechazo(error) == null) {
-            this.cerrarParaRecargar(error, '', 'se creó la nota');
-          }
-        }
-      });
-  }
-
-  private guardarItemYRechazarDistribuciones(notaRecepcionItem: NotaRecepcionItem, notaCreadaAca = false): void {
-    // Primero guardar el ítem rechazado
-    this.pedidoService.onSaveNotaRecepcionItem(notaRecepcionItem.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (itemGuardado) => {
-          // Si hay distribuciones, rechazarlas automáticamente
-          if (this.tieneDistribuciones) {
-            // Usar el ID del ítem original si estamos actualizando, o el nuevo ID si es un ítem nuevo
-            const itemId = this.itemToReject?.id || itemGuardado.id;
-            this.rechazarDistribucionesDelItem(itemId);
-          } else {
-            this.finalizarRechazo(itemGuardado);
-          }
-        },
-        error: (error) => {
-          console.error('Error al guardar ítem rechazado:', error);
-          this.isLoading = false;
-          if (notaCreadaAca) {
-            // En un rechazo se intenta no dejar la nota vacía (contaría para la etapa y la conciliación) (#501)
-            if (erroresDeRechazo(error) != null && notaRecepcionItem.notaRecepcion?.id) {
-              this.deshacerNotaSiQuedoVacia(notaRecepcionItem.notaRecepcion.id, error);
-              return;
-            }
-            // Reintentar crearía otra nota
-            this.cerrarParaRecargar(error, 'La nota nueva se creó, pero no se guardó el ítem rechazado.',
-              'se guardó el ítem rechazado en la nota nueva');
-          } else if (notaRecepcionItem.id || erroresDeRechazo(error) != null) {
-            // Rechazo, o edición de un ítem existente (reintentar no duplica): el diálogo queda abierto
-            this.avisarSinRespuesta(error, 'se rechazó el ítem');
-          } else {
-            this.cerrarParaRecargar(error, '', 'se rechazó el ítem');
-          }
-        }
-      });
-  }
-
-  private rechazarDistribucionesDelItem(itemId: number): void {
-    // Rechazar todas las distribuciones del ítem
-    const promesasRechazo = this.distribucionesDelItem.map(distribucion => {
-      // Construir input manualmente porque distribucion es un plain object del backend
-      const input = {
-        id: distribucion.id,
-        notaRecepcionItemId: distribucion.notaRecepcionItem?.id || itemId,
-        sucursalInfluenciaId: distribucion.sucursalInfluencia?.id || null,
-        sucursalEntregaId: distribucion.sucursalEntrega?.id,
-        cantidad: distribucion.cantidad,
-        creadoEn: distribucion.creadoEn ? dateToString(new Date(distribucion.creadoEn)) : null,
-        usuarioId: distribucion.usuario?.id || null
-      };
-
-      return this.pedidoService.onSaveNotaRecepcionItemDistribucion(input as any).toPromise();
     });
-
-    Promise.all(promesasRechazo)
-      .then(() => {
-        console.log(`${this.distribucionesDelItem.length} distribuciones rechazadas automáticamente`);
-        this.finalizarRechazo(null);
-      })
-      .catch(error => {
-        console.error('Error al rechazar distribuciones:', error);
-        // Un solo aviso, sin el éxito detrás: el ítem quedó rechazado y las distribuciones a medias (#488)
-        this.isLoading = false;
-        const result: RechazarItemDialogResult = {
-          success: true,
-          parcial: true,
-          recargar: true,
-          message: erroresDeRechazo(error) != null
-            ? 'Ítem rechazado, pero no se pudieron rechazar todas las distribuciones. Se recargan los ítems.'
-            : 'Ítem rechazado, pero no se pudo confirmar si se rechazaron todas las distribuciones: revisalas antes de repetir.',
-        };
-        this.dialogRef.close(result);
-      });
   }
 
-  private finalizarRechazo(itemGuardado: any): void {
-    this.isLoading = false;
-    
-    const mensaje = this.tieneDistribuciones 
-      ? `Ítem rechazado exitosamente. ${this.distribucionesDelItem.length} distribución(es) rechazada(s) automáticamente.`
-      : `Ítem rechazado exitosamente. Cantidad rechazada: ${this.cantidadEnUnidadesBaseComputed} unidades base`;
-    
-    const result: RechazarItemDialogResult = {
-      success: true,
-      notaRecepcionItem: itemGuardado,
-      message: mensaje
-    };
-    
-    this.dialogRef.close(result);
-  }
-
-  /** Sin respuesta avisa (salvo el corte por tiempo, que avisó el link); en un rechazo el genérico ya mostró el motivo. */
-  private avisarSinRespuesta(error: any, queSeHizo: string): void {
-    const aviso = avisoTrasMutacion(error, queSeHizo);
-    if (aviso != null) {
-      this.notificacionService.openWarn(aviso, 8);
-    }
-  }
-
-  /**
-   * El ítem fue rechazado con la nota recién creada. Un rechazo no garantiza que el ítem no exista:
-   * saveNotaRecepcionItem no es transaccional y puede fallar después de guardarlo, y la FK de los ítems es ON DELETE
-   * CASCADE. Por eso se relee la nota y se borra solo si quedó sin ítems; si no, el aviso de siempre (#501).
-   */
-  private cerrarConMensaje(message: string): void {
-    this.isLoading = false;
-    const result: RechazarItemDialogResult = { success: false, recargar: true, message };
-    this.dialogRef.close(result);
-  }
-
-  private deshacerNotaSiQuedoVacia(notaId: number, error: any): void {
-    const siNo = () => this.cerrarParaRecargar(error, 'La nota nueva se creó, pero no se guardó el ítem rechazado.',
-      'se guardó el ítem rechazado en la nota nueva');
-    this.isLoading = true;
-    this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionId(notaId)
+  private rechazar(): void {
+    this.actualizarCarga(true);
+    this.pedidoService.onRechazarNotaRecepcionItem(this.armarInput())
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (items) => {
-          if (items == null || items.length > 0) {
-            siNo();
-            return;
-          }
-          this.pedidoService.onDeleteNotaRecepcion(notaId)
-            .pipe(untilDestroyed(this))
-            .subscribe({
-              next: (borrada) => {
-                if (borrada !== true) {
-                  this.cerrarConMensaje('No se guardó el ítem rechazado y no se pudo deshacer la nota nueva: quedó vacía. Se recargan los ítems.');
-                  return;
-                }
-                this.cerrarConMensaje('No se guardó el ítem rechazado y se deshizo la nota nueva: no quedó una nota vacía. Se recargan los ítems.');
-              },
-              // La nota ya no se puede describir como «creada»: el rechazo del borrado la deja vacía y un corte pudo
-              // haberla borrado. El «Ups!» del rechazo ya lo mostró el genérico
-              error: (e) => this.cerrarParaRecargar(e,
-                'No se guardó el ítem rechazado y no se pudo deshacer la nota nueva: quedó vacía.',
-                'se deshizo la nota nueva (el ítem rechazado no se guardó)')
-            });
+        next: (resultado) => this.finalizarRechazo(resultado),
+        error: (error) => {
+          console.error('Error al rechazar el ítem:', error);
+          this.actualizarCarga(false);
+          const cierre = cierreSiNoHuboRespuesta(error, 'se rechazó el ítem');
+          if (cierre) this.dialogRef.close(cierre);
         },
-        error: () => siNo()
       });
   }
 
-  /**
-   * Cierra cuando ya se aplicó algo (o pudo aplicarse) y reintentar duplicaría: quien abrió el diálogo recarga.
-   * `siRechazo` explica qué quedó hecho cuando el servidor rechazó el paso siguiente (#488).
-   */
-  private cerrarParaRecargar(error: any, siRechazo: string, queSeHizo: string): void {
-    this.isLoading = false;
-    const message = erroresDeRechazo(error) != null
-      ? `${siRechazo} Se recargan los ítems.`
-      : avisoTrasMutacion(error, queSeHizo) ?? undefined;
-    const result: RechazarItemDialogResult = { success: false, recargar: true, message };
-    this.dialogRef.close(result);
+  private armarInput(): RechazarNotaRecepcionItemInput {
+    const valor = this.form.getRawValue();
+    return {
+      pedidoItemId: this.itemToReject ? undefined : this.data.pedidoItem.id,
+      notaRecepcionItemId: this.itemToReject?.id,
+      destino: this.destinoElegido(valor.notaRecepcionId),
+      notaRecepcionId: valor.notaRecepcionId > 0 ? valor.notaRecepcionId : undefined,
+      presentacionId: this.presentacionSeleccionada?.id,
+      cantidad: valor.cantidadRechazada,
+      motivoRechazo: valor.motivoRechazo,
+      observacion: valor.observaciones,
+    };
   }
 
-  private generarNumeroNota(): number {
-    // Generar número único para la nota
-    const notasExistentes = this.data.notasDisponibles;
-    const maxNumero = Math.max(...notasExistentes.map(n => n.numero || 0), 0);
-    return maxNumero + 1;
+  private destinoElegido(notaRecepcionId: number): DestinoRechazoNotaRecepcion {
+    if (this.notaPreseleccionada) return DestinoRechazoNotaRecepcion.NOTA_EXISTENTE;
+    if (notaRecepcionId === NOTA_NUEVA) return DestinoRechazoNotaRecepcion.NOTA_NUEVA;
+    if (notaRecepcionId === NOTA_RECHAZO) return DestinoRechazoNotaRecepcion.NOTA_RECHAZO;
+    return DestinoRechazoNotaRecepcion.NOTA_EXISTENTE;
   }
 
-  private generarNumeroNotaRechazo(): number {
-    // Generar número único para nota de rechazo usando el campo esNotaRechazo
-    const notasExistentes = this.data.notasDisponibles;
-    const notasRechazo = notasExistentes.filter(n => n.esNotaRechazo === true);
-    const maxNumero = Math.max(...notasRechazo.map(n => n.numero || 0), 0);
-    return maxNumero + 1;
+  private finalizarRechazo(resultado: RechazoNotaRecepcionItemResultado | null): void {
+    this.actualizarCarga(false);
+    if (resultado == null) return; // el genérico ya avisó
+    const cantidadBase = resultado.cantidadEnUnidadesBase ?? this.cantidadEnUnidadesBaseComputed;
+    const message = this.tieneDistribuciones
+      ? `Ítem rechazado exitosamente. ${this.distribucionesDelItem.length} distribución(es) rechazada(s) automáticamente.`
+      : `Ítem rechazado exitosamente. Cantidad rechazada: ${cantidadBase} unidades base`;
+    this.dialogRef.close({ success: true, notaRecepcionItem: resultado.notaRecepcionItem ?? undefined, message });
+  }
+
+  private actualizarCarga(cargando: boolean): void {
+    this.isLoading = cargando;
+    this.recalcular();
+    this.cdr.markForCheck();
   }
 
   onCancelar(): void {
     this.dialogRef.close({ success: false });
   }
 
-  private markFormGroupTouched(): void {
-    Object.keys(this.form.controls).forEach(key => {
-      const control = this.form.get(key);
-      control?.markAsTouched();
-    });
-  }
-
-  // Navegación por teclado
+  // Navegación por teclado: Enter pasa al campo siguiente
   onNotaRecepcionKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const presentacionSelect = document.querySelector('mat-select[formControlName="presentacionId"]') as HTMLElement;
-      if (presentacionSelect) {
-        presentacionSelect.click();
-      }
-    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.abrirSelect(this.selectPresentacion);
   }
 
   onPresentacionKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const cantidadInput = document.querySelector('input[formControlName="cantidadRechazada"]') as HTMLInputElement;
-      if (cantidadInput) {
-        cantidadInput.focus();
-      }
-    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.inputCantidad?.nativeElement.focus();
   }
 
   onCantidadKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const motivoSelect = document.querySelector('mat-select[formControlName="motivoRechazo"]') as HTMLElement;
-      if (motivoSelect) {
-        motivoSelect.click();
-      }
-    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.abrirSelect(this.selectMotivo);
   }
 
   onMotivoKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const observacionesTextarea = document.querySelector('textarea[formControlName="observaciones"]') as HTMLTextAreaElement;
-      if (observacionesTextarea) {
-        observacionesTextarea.focus();
-      }
-    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.textareaObservaciones?.nativeElement.focus();
   }
 
   onObservacionesKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (this.canSave) {
-        this.onGuardar();
-      }
-    }
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    this.onGuardar();
   }
 
   onMotivoSelectionChange(): void {
-    // Después de seleccionar motivo, enfocar observaciones
-    setTimeout(() => {
-      const observacionesTextarea = document.querySelector('textarea[formControlName="observaciones"]') as HTMLTextAreaElement;
-      if (observacionesTextarea) {
-        observacionesTextarea.focus();
-      }
-    }, 100);
+    // Elegido el motivo, se pasa a las observaciones (después de que cierre el panel)
+    setTimeout(() => this.textareaObservaciones?.nativeElement.focus(), 100);
+  }
+
+  private abrirSelect(select?: MatSelect): void {
+    if (!select) return;
+    select.focus();
+    select.open();
   }
 
   reintentarDistribuciones(): void {
@@ -738,45 +378,47 @@ export class RechazarItemDialogComponent implements OnInit {
   }
 
   private cargarDistribucionesDelItem(): void {
-    if (this.itemToReject?.id) {
-      this.distribucionesCargando = true;
-      this.distribucionesFallo = false;
-      this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(this.itemToReject.id)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (distribuciones) => {
-            this.distribucionesCargando = false;
-            if (distribuciones == null) {
-              // Error GraphQL: el servicio ya avisó
-              this.distribucionesFallo = true;
-              return;
-            }
+    const itemId = this.itemToReject?.id;
+    if (!itemId) return;
+    this.distribucionesCargando = true;
+    this.distribucionesFallo = false;
+    this.recalcular();
+    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(itemId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (distribuciones) => {
+          this.distribucionesCargando = false;
+          if (distribuciones == null) {
+            // Error GraphQL: el servicio ya avisó
+            this.distribucionesFallo = true;
+          } else {
             this.distribucionesDelItem = distribuciones;
             this.tieneDistribuciones = distribuciones.length > 0;
-            
-            // Mostrar información sobre distribuciones si las hay
             if (this.tieneDistribuciones) {
               this.mostrarInfoDistribuciones();
             }
-          },
-          error: (error) => {
-            console.error('Error al cargar distribuciones del ítem:', error);
-            // No es «sin distribuciones»: se bloquea el rechazo hasta poder verlas
-            this.distribucionesCargando = false;
-            this.distribucionesFallo = true;
-            this.notificacionService.openWarn('No se pudieron cargar las distribuciones del ítem: usá «Reintentar» antes de rechazar.', 6);
           }
-        });
-    }
+          this.recalcular();
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Error al cargar distribuciones del ítem:', error);
+          // No es «sin distribuciones»: se bloquea el rechazo hasta poder verlas
+          this.distribucionesCargando = false;
+          this.distribucionesFallo = true;
+          this.recalcular();
+          this.cdr.markForCheck();
+          this.notificacionService.openWarn('No se pudieron cargar las distribuciones del ítem: usá «Reintentar» antes de rechazar.', 6);
+        },
+      });
   }
 
   private mostrarInfoDistribuciones(): void {
-    const distribucionesInfo = this.distribucionesDelItem.map(d => 
-      `${d.sucursal?.nombre || 'Sucursal'}: ${d.cantidadDistribuida || 0} unidades`
-    ).join('\n');
-    
+    const detalle = this.distribucionesDelItem
+      .map((d) => `${d.sucursalEntrega?.nombre || 'Sucursal'}: ${d.cantidad || 0} unidades`)
+      .join('\n');
     this.notificacionService.openWarn(
-      `Este ítem tiene ${this.distribucionesDelItem.length} distribución(es) activa(s):\n${distribucionesInfo}\n\nTodas serán rechazadas automáticamente al rechazar el ítem.`
+      `Este ítem tiene ${this.distribucionesDelItem.length} distribución(es) activa(s):\n${detalle}\n\nTodas serán rechazadas automáticamente al rechazar el ítem.`
     );
   }
-} 
+}
