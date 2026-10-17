@@ -18,6 +18,7 @@ import {
 } from "@angular/material/dialog";
 import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
+import { finalize } from "rxjs/operators";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -179,7 +180,9 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   buscarEntrada(id) {
-    this.entradaService.onGetEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
+    // Tapa la pantalla hasta que llega: una relectura tardía pisaría lo que el usuario hizo mientras tanto (#527)
+    const { requestId } = this.cargandoService.openDialog()
+    this.entradaService.onGetEntrada(id).pipe(untilDestroyed(this), finalize(() => this.cargandoService.closeDialog(requestId))).subscribe(res => {
       if (res != null) {
         this.selectedEntrada = res;
         this.cargarDatos()
@@ -254,6 +257,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onSaveEntrada() {
+    if (this.bloqueada) return;
     let entrada = new EntradaInput();
     entrada.id = this.selectedEntrada?.id;
     entrada.responsableCargaId = this.selectedResponsable?.id;

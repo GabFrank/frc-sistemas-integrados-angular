@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { MatSelect } from '@angular/material/select';
 import { MatTableDataSource } from '@angular/material/table';
+import { finalize } from 'rxjs/operators';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -143,7 +144,9 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   buscarSalida(id) {
-    this.salidaService.onGetSalida(id).pipe(untilDestroyed(this)).subscribe(res => {
+    // Tapa la pantalla hasta que llega: una relectura tardía pisaría lo que el usuario hizo mientras tanto (#527)
+    const { requestId } = this.cargandoService.openDialog()
+    this.salidaService.onGetSalida(id).pipe(untilDestroyed(this), finalize(() => this.cargandoService.closeDialog(requestId))).subscribe(res => {
       if (res != null) {
         this.selectedSalida = res;
         this.cargarDatos()
@@ -217,6 +220,7 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onSaveSalida() {
+    if (this.bloqueada) return;
     let salida = new SalidaInput();
     salida.id = this.selectedSalida?.id;
     salida.responsableCargaId = this.selectedResponsable?.id;

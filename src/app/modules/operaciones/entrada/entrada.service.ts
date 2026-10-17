@@ -65,7 +65,9 @@ export class EntradaService {
               duracion: 3,
             });
           }
-        });
+          obs.complete();
+          // El diálogo relee al abrir (#527): sin red queda con la fila de la lista, sin error suelto
+        }, () => obs.complete());
     });
   }
 
