@@ -150,9 +150,60 @@ $verde: #4caf50;
     background-color: rgba(255, 255, 255, 0.04);
   }
 
+  // La caja [table] de cada pantalla ocupa el alto que queda y es la que scrollea. flex-basis 0 le gana al
+  // height: 100% inline que traen casi todas: sin esto la tabla y el paginador pasaban ese alto, scrolleaba el
+  // bloque entero y el paginador quedaba fuera de la vista.
+  .gl-tabla-contenido > [table] {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: auto;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
+
+  // Pantallas con panel al costado: la tabla y el paginador van en una columna de alto fijo dentro de [table].
+  // Esa columna (la caja que contiene al paginador) scrollea por su cuenta, para que el paginador se pueda pegar.
+  .gl-tabla-contenido > [table] div:has(> .mat-mdc-paginator) {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  // La caja que contiene al paginador es una columna, para que con pocas filas el paginador baje al pie
+  // (margin-top: auto). Las que ya traen fxLayout lo mantienen: el estilo inline gana.
+  .gl-tabla-contenido > [table]:has(> .mat-mdc-paginator),
+  .gl-tabla-contenido > [table] div:has(> .mat-mdc-paginator) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Paginador siempre a la vista: pegado abajo mientras se scrollea y, con pocas filas, al pie de la caja.
+  .gl-tabla-contenido > [table] .mat-mdc-paginator {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    align-self: stretch;
+  }
+
   .mat-mdc-paginator {
     flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: #383838;
     border-top: 1px solid $borde;
   }
 
