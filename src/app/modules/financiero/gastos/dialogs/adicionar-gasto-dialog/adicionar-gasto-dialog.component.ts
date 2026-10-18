@@ -264,7 +264,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           width: '720px',
           height: 'auto',
           disableClose: true,
-          panelClass: 'darkMode',
         }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
           if (res) {
             this.guardarSolicitudPreGastoSimple(res as SolicitudGastoSimpleResult);
@@ -758,7 +757,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     const dialogRef = this.matDialog.open(RetiroPreGastoDialogComponent, {
       data: { caja: this.selectedCaja } as RetiroPreGastoData,
       width: "520px",
-      panelClass: "darkMode",
     });
     if (solicitud) {
       dialogRef.afterOpened().pipe(untilDestroyed(this)).subscribe(() => {

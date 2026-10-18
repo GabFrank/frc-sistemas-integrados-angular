@@ -1,4 +1,4 @@
-import { OverlayContainer } from "@angular/cdk/overlay";
+import { TemaService } from "./shared/services/tema.service";
 import {
   Component,
   ElementRef,
@@ -82,7 +82,8 @@ export class AppComponent implements OnInit, OnDestroy {
   cursorStyle = 'auto';
 
   constructor(
-    private overlay: OverlayContainer,
+    // Se inyecta para que aplique el tema guardado (clase en <html>) apenas arranca la app.
+    private temaService: TemaService,
     private windowInfo: WindowInfoService,
     private notificationService: NotificacionSnackbarService,
     private snackBar: MatSnackBar,
@@ -128,7 +129,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-    this.overlay.getContainerElement().classList.add("darkMode");
     this.startLoadingObserver();
     
     this.configService.configChanged

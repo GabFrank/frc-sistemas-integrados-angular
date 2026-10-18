@@ -33,13 +33,99 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   @include mat.all-legacy-component-themes($angular-dark-theme);
 }
 
+// Modo claro: Material ya usa el tema claro por defecto (arriba); faltaban los componentes legacy.
+.lightMode {
+  @include mat.all-legacy-component-colors($angular-default-theme);
+}
+
+// Tokens de color de la app. El tema lo pone TemaService en <html> (darkMode / lightMode), así llega
+// también a diálogos y menús. Usar estos tokens en vez de grises o blancos fijos.
+// Los colores de marca (rojo, degradé violeta) y de estado (verde, naranja, rojo) son iguales en los dos.
+:root,
+.darkMode {
+  --frc-fondo: #303030;
+  --frc-superficie: #2d2d2d; // diálogos
+  --frc-superficie-tabla: #333333;
+  --frc-superficie-alta: #3a3a3a; // tarjetas dentro de un diálogo
+  --frc-franja: rgb(32, 32, 32); // franja de filtros de las listas
+  --frc-borde: rgba(255, 255, 255, 0.12);
+  --frc-borde-suave: rgba(255, 255, 255, 0.06);
+  --frc-borde-fuerte: rgba(255, 255, 255, 0.3);
+  --frc-texto-fuerte: #ffffff;
+  --frc-texto: rgba(255, 255, 255, 0.87);
+  --frc-texto-suave: rgba(255, 255, 255, 0.6);
+  --frc-texto-tenue: rgba(255, 255, 255, 0.45);
+  --frc-hover: rgba(255, 255, 255, 0.04);
+  --frc-relleno-suave: rgba(255, 255, 255, 0.08); // pastilla inactiva, fondos sutiles
+  --frc-relleno-tenue: rgba(255, 255, 255, 0.02);
+  --frc-encabezado-tabla: rgb(61, 65, 74);
+  --frc-encabezado-tabla-texto: rgba(255, 255, 255, 0.8);
+  --frc-encabezado-tabla-borde: #464d6d;
+  --frc-paginador: #383838;
+  --frc-scroll-pista: rgba(255, 255, 255, 0.05);
+  --frc-scroll-barra: rgba(255, 255, 255, 0.2);
+  --frc-scroll-barra-hover: rgba(255, 255, 255, 0.3);
+  --frc-btn-secundario: #616161;
+  --frc-sombra: rgba(0, 0, 0, 0.4);
+  --frc-sombra-suave: rgba(0, 0, 0, 0.2);
+  // Menú lateral
+  --frc-menu-fondo: #424242;
+  --frc-menu-texto: #ffffff;
+  --frc-menu-texto-suave: rgba(255, 255, 255, 0.7);
+  --frc-menu-icono: rgba(255, 255, 255, 0.9);
+  --frc-menu-hover: rgba(255, 255, 255, 0.1);
+  --frc-menu-activo: rgba(255, 255, 255, 0.15);
+  --frc-menu-submenu: rgba(0, 0, 0, 0.2);
+  --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.3);
+  --frc-menu-borde: rgba(255, 255, 255, 0.2);
+  --frc-menu-sombra: rgba(0, 0, 0, 0.15);
+}
+
+.lightMode {
+  --frc-fondo: #f4f5f7;
+  --frc-superficie: #ffffff;
+  --frc-superficie-tabla: #ffffff;
+  --frc-superficie-alta: #f7f8fa;
+  --frc-franja: #f4f5f7;
+  --frc-borde: rgba(0, 0, 0, 0.12);
+  --frc-borde-suave: rgba(0, 0, 0, 0.06);
+  --frc-borde-fuerte: rgba(0, 0, 0, 0.3);
+  --frc-texto-fuerte: #1f1f1f;
+  --frc-texto: rgba(0, 0, 0, 0.87);
+  --frc-texto-suave: rgba(0, 0, 0, 0.6);
+  --frc-texto-tenue: rgba(0, 0, 0, 0.45);
+  --frc-hover: rgba(0, 0, 0, 0.04);
+  --frc-relleno-suave: rgba(0, 0, 0, 0.06);
+  --frc-relleno-tenue: rgba(0, 0, 0, 0.02);
+  --frc-encabezado-tabla: #e8eaf0;
+  --frc-encabezado-tabla-texto: rgba(0, 0, 0, 0.7);
+  --frc-encabezado-tabla-borde: #c5cae0;
+  --frc-paginador: #f4f5f7;
+  --frc-scroll-pista: rgba(0, 0, 0, 0.04);
+  --frc-scroll-barra: rgba(0, 0, 0, 0.2);
+  --frc-scroll-barra-hover: rgba(0, 0, 0, 0.3);
+  --frc-btn-secundario: #757575;
+  --frc-sombra: rgba(0, 0, 0, 0.15);
+  --frc-sombra-suave: rgba(0, 0, 0, 0.08);
+  --frc-menu-fondo: #ffffff;
+  --frc-menu-texto: rgba(0, 0, 0, 0.87);
+  --frc-menu-texto-suave: rgba(0, 0, 0, 0.6);
+  --frc-menu-icono: rgba(0, 0, 0, 0.65);
+  --frc-menu-hover: rgba(0, 0, 0, 0.05);
+  --frc-menu-activo: rgba(0, 0, 0, 0.09);
+  --frc-menu-submenu: rgba(0, 0, 0, 0.03);
+  --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.06);
+  --frc-menu-borde: rgba(0, 0, 0, 0.12);
+  --frc-menu-sombra: rgba(0, 0, 0, 0.12);
+}
+
 html {
   height: 100%;
 }
 
 body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
   position: fixed;
   top: 0;
   left: 0;

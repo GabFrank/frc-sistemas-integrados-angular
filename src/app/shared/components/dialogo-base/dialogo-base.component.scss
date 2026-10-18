@@ -1,6 +1,7 @@
 // Estilo del buscador generico (SearchListDialog), compartido por todos los dialogos de shared.
-$fondo: #2d2d2d;
-$borde: rgba(255, 255, 255, 0.12);
+// Los neutros salen de los tokens --frc-* de styles.scss (modo oscuro y claro); la cabecera es igual en los dos.
+$fondo: var(--frc-superficie);
+$borde: var(--frc-borde);
 $violeta: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 
@@ -25,7 +26,7 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
   min-height: 0;
   overflow: hidden;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px var(--frc-sombra);
   background-color: $fondo;
   animation: frcDialogoEntrada 0.3s ease-out;
 }
@@ -103,7 +104,7 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
   gap: 12px;
   padding: 14px 24px;
   border-top: 1px solid $borde;
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--frc-relleno-tenue);
 
   &:empty {
     display: none;
@@ -127,12 +128,12 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 
     &:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 12px var(--frc-sombra);
     }
   }
 
   .frc-btn-cancelar {
-    background-color: #616161 !important;
+    background-color: var(--frc-btn-secundario) !important;
     color: #ffffff !important;
   }
 
