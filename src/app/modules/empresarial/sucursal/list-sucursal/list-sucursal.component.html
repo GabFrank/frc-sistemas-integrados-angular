@@ -157,10 +157,12 @@
       <!-- Activo Column -->
       <ng-container matColumnDef="activo">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Activo
+          Estado
         </th>
         <td mat-cell *matCellDef="let sucursal" style="text-align: center">
-          {{ sucursal?.activo ? 'Si' : 'No' }}
+          <span class="gl-estado" [class.gl-estado-activo]="sucursal?.activo">
+            {{ sucursal?.activo ? 'Activo' : 'Inactivo' }}
+          </span>
         </td>
       </ng-container>
 

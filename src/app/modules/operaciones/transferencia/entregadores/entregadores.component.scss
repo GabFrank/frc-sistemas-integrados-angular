@@ -12,16 +12,6 @@ $text-secondary: #aaaaaa;
             text-align: center !important;
         }
 
-        .mat-mdc-table {
-            background-color: transparent !important;
-        }
-
-        .mat-mdc-row,
-        .mat-mdc-header-row {
-            background-color: #464646 !important;
-            color: white !important;
-        }
-
         .mat-mdc-row.detail-row {
             background-color: transparent !important;
 
@@ -33,19 +23,11 @@ $text-secondary: #aaaaaa;
         }
 
         .mat-mdc-header-cell {
-            color: white !important;
-            background-color: #464646 !important;
             text-align: center !important;
         }
 
         .mat-mdc-cell {
-            color: white !important;
             text-align: center !important;
-        }
-
-        .mat-mdc-paginator {
-            background-color: transparent !important;
-            color: white !important;
         }
 
         .mat-mdc-icon-button {
@@ -53,7 +35,6 @@ $text-secondary: #aaaaaa;
         }
     }
 }
-
 
 table {
     width: 100%;
@@ -91,7 +72,6 @@ tr.detail-row {
     border: none !important;
 }
 
-
 .element-row {
     &:hover {
         background: whitesmoke;
@@ -122,7 +102,6 @@ tr.detail-row {
     padding: 16px;
     width: 100%;
 }
-
 
 .detail-table {
     width: 100%;

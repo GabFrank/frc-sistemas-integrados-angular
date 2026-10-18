@@ -30,9 +30,9 @@
     </div>
   </div>
 
-  <div table style="height: 100%; background-color: rgb(40, 40, 40)" fxLayout="row" fxLayoutAlign="start start"
+  <div table style="height: 100%" fxLayout="row" fxLayoutAlign="start start"
     fxLayoutGap="10px">
-    <div fxFlex="65%" fxLayout="column" fxLayoutAlign="space-between start" style="height: 100%;">
+    <div fxFlex="65%" fxLayout="column" fxLayoutAlign="space-between start" style="height: 100%">
       <table mat-table [dataSource]="(listaFiltrada$ | async) || []" class="mat-elevation-z8" style="width: 100%;">
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef style="width: 5%">ID</th>

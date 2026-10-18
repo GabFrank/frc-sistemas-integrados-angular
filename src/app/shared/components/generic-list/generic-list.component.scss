@@ -1,0 +1,206 @@
+// Estilo comun de las pantallas de lista (mismos tonos que app-dialogo-base y el buscador generico).
+// La tabla la arma cada pantalla y llega por proyeccion: sus estilos van con ::ng-deep, siempre bajo :host
+// para no salir de este componente.
+$franja: rgb(32, 32, 32);
+$tarjeta: #333333;
+$borde: rgba(255, 255, 255, 0.12);
+$rojo: #f44336;
+$gris: #616161;
+$violeta: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$verde: #4caf50;
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gl {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+// Franja de filtros: campos a la izquierda, botones apilados a la derecha.
+.gl-filtros {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px 10px;
+  background-color: $franja;
+  border-bottom: 1px solid $borde;
+}
+
+.gl-filtros-campos {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gl-acciones {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 180px;
+}
+
+.gl-btn {
+  width: 100%;
+  height: 34px;
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.gl-btn-buscar:not(:disabled) {
+  background-color: $gris;
+  color: #ffffff;
+}
+
+.gl-btn-borde:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.gl-btn-adicionar:not(:disabled) {
+  background-color: $rojo;
+  color: #ffffff;
+}
+
+// Tabla: ocupa todo el resto, de punta a punta.
+.gl-tabla {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: $tarjeta;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+.gl-tabla-contenido {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.gl-cargar-mas {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+// Lo que sigue pinta las tablas que proyecta cada pantalla. Encabezado y celdas con especificidad
+// normal (le tienen que ganar al tema de Material); el hover de fila con :where() para que cualquier
+// clase de la pantalla (fila seleccionada, resaltada) le gane.
+:host ::ng-deep .gl-tabla {
+  // Fondo propio de la tabla, no transparente: varias pantallas envuelven la tabla en un div con
+  // height: 100% y fondo (productos: rgb(70, 70, 70)) y las filas que pasan de ese alto quedaban
+  // sobre otro color.
+  table.mat-mdc-table {
+    background-color: $tarjeta;
+    box-shadow: none;
+  }
+
+  th.mat-mdc-header-cell {
+    background-color: rgb(61, 65, 74);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #464d6d;
+  }
+
+  td.mat-mdc-cell {
+    color: rgba(255, 255, 255, 0.87);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+
+  :where(tr.mat-mdc-row) {
+    transition: background-color 0.2s ease;
+  }
+
+  :where(tr.mat-mdc-row:hover) {
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .mat-mdc-paginator {
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid $borde;
+  }
+
+  // Piezas comunes para las celdas, a pedido de cada pantalla.
+  // Persona: <span class="gl-celda-avatar"><span class="gl-avatar">J</span><span class="gl-nombre">JUAN</span></span>
+  // inline-flex: respeta el text-align de la celda (centrada o a la izquierda).
+  .gl-celda-avatar {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    vertical-align: middle;
+    text-align: left;
+  }
+
+  .gl-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: $violeta;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .gl-nombre {
+    font-weight: 500;
+    color: #ffffff;
+  }
+
+  // Estado: <span class="gl-estado" [class.gl-estado-activo]="x.activo">Activo</span>
+  .gl-estado {
+    display: inline-block;
+    min-width: 64px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+
+    &.gl-estado-activo {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: $verde;
+    }
+  }
+}
