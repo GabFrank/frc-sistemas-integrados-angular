@@ -60,10 +60,12 @@
 
       <ng-container matColumnDef="activo">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Activo
+          Estado
         </th>
         <td mat-cell *matCellDef="let sector" style="text-align: center">
-          {{ sector?.activo ? 'Si' : 'No' }}
+          <span class="gl-estado" [class.gl-estado-activo]="sector?.activo">
+            {{ sector?.activo ? 'Activo' : 'Inactivo' }}
+          </span>
         </td>
       </ng-container>
 
@@ -162,9 +164,11 @@
 
               <!-- Weight Column -->
               <ng-container matColumnDef="activo">
-                <th mat-header-cell *matHeaderCellDef>Activo</th>
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
                 <td mat-cell *matCellDef="let zona">
-                  {{ zona?.activo ? "Si" : "No" }}
+                  <span class="gl-estado" [class.gl-estado-activo]="zona?.activo">
+                    {{ zona?.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
                 </td>
               </ng-container>
 

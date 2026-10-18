@@ -1,6 +1,5 @@
 .table-container {
   height: 100%;
-  background-color: rgb(70, 70, 70);
   width: 100%;
 }
 
@@ -15,8 +14,6 @@
 
   .header-cell {
     font-weight: bold;
-    background-color: #424242;
-    color: white;
     padding: 12px 8px;
   }
 
@@ -67,17 +64,9 @@
   }
 }
 
-.header-row {
-  background-color: #424242;
-}
 
 .data-row {
   cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
 
   &.selected-row {
     background-color: rgba(33, 150, 243, 0.15);

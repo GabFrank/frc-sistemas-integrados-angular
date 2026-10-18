@@ -1,0 +1,128 @@
+// Lo propio de la lista de usuarios; el marco, los botones y la tabla los pone app-generic-list.
+$texto-suave: rgba(255, 255, 255, 0.6);
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.filtros-campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+.filtro-texto {
+  width: 320px;
+}
+
+.filtro-roles {
+  width: 260px;
+}
+
+input {
+  text-transform: uppercase;
+}
+
+// Solo el cuerpo scrollea: encabezado y paginador quedan fijos.
+.lista-tabla {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tabla-progreso {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+
+.tabla-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+tr.mat-mdc-row {
+  height: 56px;
+
+  &:hover {
+    .btn-fila {
+      opacity: 1;
+    }
+  }
+}
+
+.col-id {
+  width: 64px;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.col-centro {
+  text-align: center;
+}
+
+.col-derecha {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-acciones {
+  width: 56px;
+  text-align: center;
+}
+
+.texto-suave {
+  color: $texto-suave;
+}
+
+.btn-fila {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+// Sin resultados
+.tabla-vacia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 24px;
+  padding: 48px 20px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.02);
+  color: $texto-suave;
+  text-align: center;
+
+  mat-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 56px;
+    margin-bottom: 12px;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  p {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  small {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.45);
+  }
+}

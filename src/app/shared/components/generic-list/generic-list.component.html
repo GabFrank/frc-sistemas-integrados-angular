@@ -1,49 +1,71 @@
-<div fxLayout="column" style="width: 100%; height: 100%;">
-  <div fxFlex="none">
-    <div *ngIf="titulo" style="width: 100%; text-align: center">
-      <h3 style="margin: 0">{{ titulo }}</h3>
+<div class="gl">
+  <div class="gl-filtros">
+    <div class="gl-filtros-campos">
+      <ng-content select="[filtros]"></ng-content>
     </div>
-    <mat-card appearance="outlined" fxLayout="row"
-      style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px">
-      <div [fxFlex]="!isMenu ? '100%' : '90%'">
-        <ng-content select="[filtros]"></ng-content>
-      </div>
-      <div *ngIf="isMenu" fxFlex="10%" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="5px">
-        <div class="boton">
-          <ng-content select="[buscar]"></ng-content>
-          <app-boton (clickEvent)="onFiltrar()" [disableExpression]="disableFilter" [bdcWalkTriggerFor]="buscarTrigger"
-            nombre="Buscar"></app-boton>
-        </div>
-        <div class="boton">
-          <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
-        </div>
-        <div *ngIf="isAdicionar" class="boton">
-          <app-boton (clickEvent)="onAdd()" [disableExpression]="disableAdicionar" nombre="+ Adicionar"></app-boton>
-        </div>
-        <div *ngIf="isCustom" class="boton">
-          <app-boton 
-            (clickEvent)="onCustomFunc()" 
-            [nombre]="customName"
-            [disableExpression]="disableCustom">
-          </app-boton>
-        </div>
-        <div *ngIf="isCustom2" class="boton">
-          <app-boton 
-            (clickEvent)="onCustomFunc2()" 
-            [nombre]="customName2"
-            [disableExpression]="disableCustom2">
-          </app-boton>
-        </div>
-      </div>
-    </mat-card>
+
+    <div *ngIf="isMenu" class="gl-acciones">
+      <ng-content select="[buscar]"></ng-content>
+      <button
+        type="button"
+        mat-flat-button
+        class="gl-btn gl-btn-buscar"
+        [disabled]="disableFilter || bloqueados.buscar"
+        [bdcWalkTriggerFor]="buscarTrigger"
+        (click)="onFiltrar()"
+      >
+        <mat-icon>search</mat-icon>
+        Buscar
+      </button>
+      <button
+        type="button"
+        mat-stroked-button
+        class="gl-btn gl-btn-borde"
+        [disabled]="bloqueados.limpiar"
+        (click)="onResetFiltro()"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+        Limpiar filtro
+      </button>
+      <button
+        *ngIf="isAdicionar"
+        type="button"
+        mat-flat-button
+        class="gl-btn gl-btn-adicionar"
+        [disabled]="disableAdicionar || bloqueados.adicionar"
+        (click)="onAdd()"
+      >
+        <mat-icon>add</mat-icon>
+        Adicionar
+      </button>
+      <button
+        *ngIf="isCustom"
+        type="button"
+        mat-stroked-button
+        class="gl-btn gl-btn-borde"
+        [disabled]="disableCustom || bloqueados.custom"
+        (click)="onCustomFunc()"
+      >
+        {{ customName }}
+      </button>
+      <button
+        *ngIf="isCustom2"
+        type="button"
+        mat-stroked-button
+        class="gl-btn gl-btn-borde"
+        [disabled]="disableCustom2 || bloqueados.custom2"
+        (click)="onCustomFunc2()"
+      >
+        {{ customName2 }}
+      </button>
+    </div>
   </div>
 
-  <div fxFlex style="overflow-y: auto;">
-    <div fxLayout="column" style="height: 100%;">
+  <div class="gl-tabla">
+    <div class="gl-tabla-contenido">
       <ng-content select="[table]"></ng-content>
-      <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
-        <button *ngIf="data?.length > 0 && isCargarMas" mat-button color="accent" (click)="onCargarMasDatos()"
-          [disabled]="isLastPage">
+      <div *ngIf="data?.length > 0 && isCargarMas" class="gl-cargar-mas">
+        <button mat-button color="accent" (click)="onCargarMasDatos()" [disabled]="isLastPage">
           CARGAR MAS
         </button>
       </div>
