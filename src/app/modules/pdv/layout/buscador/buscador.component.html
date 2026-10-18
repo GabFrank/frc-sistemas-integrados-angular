@@ -20,7 +20,7 @@
             type="text"
             formControlName="cantidad"
             autocomplete="off"
-            style="color: white; font-size: 1.5em; text-align: center;"
+            style="color: var(--frc-texto-fuerte); font-size: 1.5em; text-align: center;"
           />
         </mat-form-field>
       </div>
@@ -37,7 +37,7 @@
             (keydown.enter)="onEnterPress(); $event.preventDefault(); $event.stopPropagation();"
             autocomplete="off"
             oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
-            style="color: white; font-size: 1.5em"
+            style="color: var(--frc-texto-fuerte); font-size: 1.5em"
           />
         </mat-form-field>
       </div>
