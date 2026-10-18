@@ -56,11 +56,11 @@ mat-dialog-content {
         padding-right: 12px;
 
         &::-webkit-scrollbar { width: 4px; }
-        &::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        &::-webkit-scrollbar-thumb { background: var(--frc-superficie-elevada); border-radius: 2px; }
 
         .producto-info-card {
-          background-color: #363636;
-          border: 1px solid #444;
+          background-color: var(--frc-superficie-tabla);
+          border: 1px solid var(--frc-borde-solido);
           border-radius: 8px;
           padding: 16px;
         }
@@ -79,7 +79,7 @@ mat-dialog-content {
           }
 
           .producto-nombre {
-            color: #ffffff;
+            color: var(--frc-texto-fuerte);
             font-weight: 600;
             margin: 0;
             line-height: 1.2;
@@ -98,16 +98,16 @@ mat-dialog-content {
         flex: 0 0 50%;
         display: flex;
         flex-direction: column;
-        background-color: #252525;
+        background-color: var(--frc-superficie-baja);
         border-radius: 8px;
-        border: 1px solid #333;
+        border: 1px solid var(--frc-borde-solido);
         overflow: hidden;
         padding-left: 12px;
 
         .distribucion-header {
           padding: 16px;
-          background: #2d2d2d;
-          border-bottom: 1px solid #444;
+          background: var(--frc-superficie);
+          border-bottom: 1px solid var(--frc-borde-solido);
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -121,7 +121,7 @@ mat-dialog-content {
           padding: 16px;
 
           &::-webkit-scrollbar { width: 6px; }
-          &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+          &::-webkit-scrollbar-thumb { background: var(--frc-superficie-elevada); border-radius: 3px; }
         }
       }
     }
@@ -141,9 +141,9 @@ mat-dialog-content {
 .cantidad-total-rechazo-section,
 .motivo-observaciones-section {
   padding: 12px;
-  background-color: #2d2d2d;
+  background-color: var(--frc-superficie);
   border-radius: 6px;
-  border: 1px solid #444;
+  border: 1px solid var(--frc-borde-solido);
   margin-bottom: 12px;
 
   .presentacion-field,
@@ -160,20 +160,20 @@ mat-dialog-content {
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   padding: 12px;
-  background: #252525;
+  background: var(--frc-superficie-baja);
   border-radius: 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--frc-borde-solido);
 
   .summary-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 8px;
-    background: #2d2d2d;
+    background: var(--frc-superficie);
     border-radius: 4px;
     
-    .label { font-size: 9px; color: #888; font-weight: 600; margin-bottom: 2px; }
-    .value { font-size: 16px; font-weight: 700; color: #fff; }
+    .label { font-size: 9px; color: var(--frc-texto-apagado); font-weight: 600; margin-bottom: 2px; }
+    .value { font-size: 16px; font-weight: 700; color: var(--frc-texto-fuerte); }
     
     &.highlight {
       border: 1px solid rgba(244, 67, 54, 0.3);
@@ -183,8 +183,8 @@ mat-dialog-content {
 }
 
 .distribucion-card {
-  background: #333;
-  border: 1px solid #444;
+  background: var(--frc-superficie-tabla);
+  border: 1px solid var(--frc-borde-solido);
   border-radius: 8px;
   padding: 12px 16px;
   display: flex;
@@ -200,8 +200,8 @@ mat-dialog-content {
   .sucursal-info {
     display: flex;
     flex-direction: column;
-    .nombre { font-weight: 600; color: #fff; font-size: 14px; }
-    .esperado { font-size: 12px; color: #888; }
+    .nombre { font-weight: 600; color: var(--frc-texto-fuerte); font-size: 14px; }
+    .esperado { font-size: 12px; color: var(--frc-texto-apagado); }
   }
 
   .input-section {
@@ -219,15 +219,15 @@ mat-dialog-content {
 
 .count-badge {
   font-size: 10px;
-  background: #444;
+  background: var(--frc-superficie-elevada);
   padding: 2px 8px;
   border-radius: 10px;
-  color: #bbb;
+  color: var(--frc-texto-terciario);
 }
 
 .info-text.small {
   font-size: 11px;
-  color: #888;
+  color: var(--frc-texto-apagado);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -237,5 +237,5 @@ mat-dialog-content {
 
 mat-dialog-actions {
   padding: 12px 20px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--frc-borde-solido);
 }

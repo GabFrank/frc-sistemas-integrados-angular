@@ -8,7 +8,7 @@
 
     h3 {
       margin-bottom: 20px;
-      color: #fff;
+      color: var(--frc-texto-fuerte);
       font-weight: 500;
     }
 
@@ -19,7 +19,7 @@
       margin-bottom: 20px;
 
       .summary-card {
-        color: white;
+        color: var(--frc-texto-fuerte);
         border-radius: 12px;
 
         mat-card-content {
@@ -72,15 +72,15 @@
     margin-bottom: 30px;
 
     mat-card {
-      background: #2a2a2a;
-      color: #fff;
+      background: var(--frc-superficie-baja);
+      color: var(--frc-texto-fuerte);
 
       mat-card-header {
         mat-card-title {
           display: flex;
           align-items: center;
           gap: 10px;
-          color: #fff;
+          color: var(--frc-texto-fuerte);
           font-weight: 500;
         }
       }
@@ -89,7 +89,7 @@
         margin-bottom: 20px;
 
         .info-card {
-          background: #333;
+          background: var(--frc-superficie-tabla);
           border-left: 4px solid #667eea;
 
           .info-header {
@@ -103,10 +103,10 @@
 
           .info-content {
             strong {
-              color: #fff;
+              color: var(--frc-texto-fuerte);
             }
             span {
-              color: #ccc;
+              color: var(--frc-texto-secundario);
               margin-left: 8px;
             }
           }
@@ -132,7 +132,7 @@
         margin: 20px 0;
 
         h4 {
-          color: #fff;
+          color: var(--frc-texto-fuerte);
           margin-bottom: 15px;
           font-weight: 500;
         }
@@ -149,7 +149,7 @@
         .notas-list {
           max-height: 300px;
           overflow-y: auto;
-          border: 1px solid #444;
+          border: 1px solid var(--frc-borde-solido);
           border-radius: 8px;
           padding: 10px;
 
@@ -165,7 +165,7 @@
                 margin-bottom: 5px;
 
                 strong {
-                  color: #fff;
+                  color: var(--frc-texto-fuerte);
                 }
 
                 .estado-chip {
@@ -177,7 +177,7 @@
                 display: flex;
                 gap: 15px;
                 font-size: 0.9rem;
-                color: #ccc;
+                color: var(--frc-texto-secundario);
 
                 .monto {
                   font-weight: 500;
@@ -191,7 +191,7 @@
         .no-notas {
           text-align: center;
           padding: 40px 20px;
-          color: #ccc;
+          color: var(--frc-texto-secundario);
 
           mat-icon {
             font-size: 3rem;
@@ -213,7 +213,7 @@
         .loading-notas {
           text-align: center;
           padding: 40px 20px;
-          color: #ccc;
+          color: var(--frc-texto-secundario);
 
           mat-spinner {
             margin-bottom: 15px;
@@ -227,7 +227,7 @@
         gap: 15px;
         margin-top: 30px;
         padding-top: 20px;
-        border-top: 1px solid #444;
+        border-top: 1px solid var(--frc-borde-solido);
 
         button {
           min-width: 120px;
@@ -249,18 +249,18 @@
         background: transparent;
 
         th {
-          color: #fff;
+          color: var(--frc-texto-fuerte);
           font-weight: 500;
           text-align: center;
-          background: #333;
+          background: var(--frc-superficie-tabla);
         }
 
         td {
           text-align: center;
-          color: #fff;
+          color: var(--frc-texto-fuerte);
 
           strong {
-            color: #fff;
+            color: var(--frc-texto-fuerte);
           }
 
           .action-buttons {
@@ -271,23 +271,23 @@
         }
 
         .mat-mdc-row:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(var(--frc-tinta), 0.05);
         }
       }
       
       // Estilos para el menú de acciones
       ::ng-deep .mat-mdc-menu-panel {
-        background: #333 !important;
+        background: var(--frc-superficie-tabla) !important;
         
         .mat-mdc-menu-item {
-          color: #fff !important;
+          color: var(--frc-texto-fuerte) !important;
           
           &:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background: rgba(var(--frc-tinta), 0.1) !important;
           }
           
           mat-icon {
-            color: #fff !important;
+            color: var(--frc-texto-fuerte) !important;
           }
           
           &.delete-option {
@@ -304,18 +304,18 @@
         }
         
         .mat-mdc-menu-divider {
-          border-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: rgba(var(--frc-tinta), 0.2) !important;
         }
       }
     }
 
     mat-card {
-      background: #2a2a2a;
-      color: #fff;
+      background: var(--frc-superficie-baja);
+      color: var(--frc-texto-fuerte);
 
       mat-card-header {
         mat-card-title {
-          color: #fff;
+          color: var(--frc-texto-fuerte);
           font-weight: 500;
         }
       }
@@ -325,7 +325,7 @@
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #ccc;
+    color: var(--frc-texto-secundario);
 
     // Solo el ícono ilustrativo del estado vacío, no los que van dentro de botones
     > mat-icon {
@@ -338,7 +338,7 @@
 
     h4 {
       margin: 15px 0;
-      color: #fff;
+      color: var(--frc-texto-fuerte);
     }
 
     p {
@@ -370,7 +370,7 @@
     }
 
     p {
-      color: #fff;
+      color: var(--frc-texto-fuerte);
       font-size: 1.1rem;
     }
   }
@@ -381,11 +381,11 @@
   .solicitud-pago-container {
     .mat-mdc-form-field {
       .mat-mdc-text-field-wrapper {
-        background-color: #333;
+        background-color: var(--frc-superficie-tabla);
       }
 
       .mat-mdc-form-field-label {
-        color: #ccc;
+        color: var(--frc-texto-secundario);
       }
 
       .mat-mdc-form-field-outline {
@@ -400,12 +400,12 @@
     }
 
     .mat-mdc-select-panel {
-      background: #2a2a2a;
-      color: #fff;
+      background: var(--frc-superficie-baja);
+      color: var(--frc-texto-fuerte);
     }
 
     .mat-mdc-option {
-      color: #fff;
+      color: var(--frc-texto-fuerte);
 
       &:hover {
         background: rgba(102, 126, 234, 0.2);
@@ -420,7 +420,7 @@
       background: transparent;
 
       .mat-mdc-list-item {
-        color: #fff;
+        color: var(--frc-texto-fuerte);
 
         &.mat-mdc-list-item-disabled {
           opacity: 0.5;
@@ -429,10 +429,10 @@
     }
 
     .mat-mdc-menu-panel {
-      background: #2a2a2a;
+      background: var(--frc-superficie-baja);
 
       .mat-mdc-menu-item {
-        color: #fff;
+        color: var(--frc-texto-fuerte);
 
         &:hover {
           background: rgba(102, 126, 234, 0.2);
@@ -454,7 +454,7 @@
   display: inline-block;
   padding: 3px 12px;
   border-radius: 12px;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;

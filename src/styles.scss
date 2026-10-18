@@ -79,6 +79,18 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.3);
   --frc-menu-borde: rgba(255, 255, 255, 0.2);
   --frc-menu-sombra: rgba(0, 0, 0, 0.15);
+  // Tinta: los rgba(255, 255, 255, x) de los estilos pasan a rgba(var(--frc-tinta), x). Mismo alfa en los dos
+  // modos: blanco sobre oscuro, negro sobre claro.
+  --frc-tinta: 255, 255, 255;
+  // Niveles de superficie y texto para pantallas con grises propios (Compras, login).
+  --frc-superficie-baja: #222222;
+  --frc-superficie-elevada: #424242;
+  --frc-relleno-fuerte: #555555; // deshabilitado, hover de opción
+  --frc-borde-solido: #444444;
+  --frc-borde-solido-fuerte: #555555;
+  --frc-texto-secundario: #cccccc;
+  --frc-texto-terciario: #bbbbbb;
+  --frc-texto-apagado: #999999;
 }
 
 .lightMode {
@@ -117,6 +129,15 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.06);
   --frc-menu-borde: rgba(0, 0, 0, 0.12);
   --frc-menu-sombra: rgba(0, 0, 0, 0.12);
+  --frc-tinta: 0, 0, 0;
+  --frc-superficie-baja: #eceef1;
+  --frc-superficie-elevada: #ffffff;
+  --frc-relleno-fuerte: #d5d8dd;
+  --frc-borde-solido: #d9dce1;
+  --frc-borde-solido-fuerte: #c4c8ce;
+  --frc-texto-secundario: #3d3d3d;
+  --frc-texto-terciario: #555555;
+  --frc-texto-apagado: #6f6f6f;
 }
 
 html {
