@@ -11,7 +11,7 @@ input {
 }
 
 .expanded {
-    background-color: #3f3f3f;
+    background-color: var(--frc-superficie-elevada);
 }
 
 .example-sucursal-detail {

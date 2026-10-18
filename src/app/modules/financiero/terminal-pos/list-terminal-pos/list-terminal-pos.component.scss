@@ -19,7 +19,7 @@ tr.example-detail-row {
 }
 
 .example-element-detail:hover {
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-superficie-baja);
 }
 
 td, th {

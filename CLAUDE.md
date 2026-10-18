@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `FRC` (`package.json` name), aplicación **desktop POS / admin** del producto **Franco Systems 3.0.9**. Es uno de los 4 componentes que forman `frc-comercial/`. Repo git independiente: `GabFrank/frc-sistemas-integrados-angular`.
 
-Stack: **Angular 15.1.5** + **Electron 22** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **siempre en modo dark** — no usar fondos blancos/claros.
+Stack: **Angular 15.1.5** + **Electron 22** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **en modo oscuro por defecto**, con modo claro opcional (botón del header): colores neutros siempre con los tokens `--frc-*`.
 
 Habla GraphQL contra `frc-comercial/central` (el server principal del SaaS). No habla con `frc-efact` (proyecto independiente con REST/Auth0).
 
@@ -53,7 +53,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - **Nunca filtrar en `valueChanges` de form controls** salvo que el usuario lo pida explícitamente.
 
 ### UI / UX
-- **Dark mode siempre.** No usar fondos blancos ni claros.
+- **Modo oscuro por defecto y modo claro opcional.** `TemaService` (`shared/services/tema.service.ts`) pone `darkMode` o `lightMode` en `<html>` y guarda la preferencia en la PC. Fondos, textos, bordes, hover y sombras van con los tokens `--frc-*` de `src/styles.scss` (`var(--frc-superficie)`, `var(--frc-texto-suave)`, …), **nunca** con grises o blancos fijos (`#2d2d2d`, `rgba(255,255,255,…)`). Los colores de marca (rojo, degradé violeta) y de estado (verde, naranja, rojo) son iguales en los dos modos. No usar `panelClass: 'darkMode'` en diálogos: deja el diálogo oscuro aun en modo claro.
 - **Texto centrado en tablas** por default, salvo pedido contrario.
 - **No usar la clase `container`** — entra en conflicto con Bootstrap y rompe el layout.
 - Snackbars: `notificacion-snackbar.service.ts`. Diálogos: `dialogos.service.ts`. No instanciar a mano.

@@ -9,7 +9,7 @@ table { width: 100%; text-align: center; }
 th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
 
 .secundario {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(var(--frc-tinta), 0.6);
   font-size: 12px;
 }
 
@@ -17,7 +17,7 @@ th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--frc-tinta), 0.7);
   font-size: 13px;
 
   mat-icon {
@@ -42,7 +42,7 @@ th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(var(--frc-tinta), 0.08);
 }
 
 .estado-PENDIENTE { background-color: rgba(255, 183, 77, 0.18); color: #ffcc80; }

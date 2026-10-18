@@ -57,7 +57,7 @@
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
-                color: white;
+                color: var(--frc-texto-fuerte);
               ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
@@ -113,7 +113,7 @@
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
-                color: white;
+                color: var(--frc-texto-fuerte);
               ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
@@ -145,7 +145,7 @@
   >
     <div fxFlex="20" fxLayout="column" fxLayoutGap="10px" 
     class="resumen-container"
-    style="background-color: rgb(32, 32, 32); height: 100%; overflow-y: auto; padding-right: 5px;">
+    style="background-color: var(--frc-superficie-baja); height: 100%; overflow-y: auto; padding-right: 5px;">
       <br />
       <div class="titulo-center">Resumen</div>
       <div fxLayout="row" fxLayoutAlign="space-between center" style="min-height: 20px;">
@@ -167,7 +167,7 @@
             <div class="separator-horizontal-bottom" 
                  [style.padding-right]="!desgloseHabilitado ? '0px' : ''"
                  fxLayout="row" fxLayoutAlign="space-between center"
-                 style="border-bottom: 1px solid; width: 100%; color: white;">
+                 style="border-bottom: 1px solid; width: 100%; color: var(--frc-texto-fuerte);">
               <div>
                 Stock actual:
               </div>
@@ -181,7 +181,7 @@
 
           <div fxLayout="column">
             <div *ngFor="let detalle of stockActualDesglose" fxLayout="row" fxLayoutAlign="space-between center" 
-                 style="font-size: 0.9em; color: white;">
+                 style="font-size: 0.9em; color: var(--frc-texto-fuerte);">
               <div>{{ detalle.sucursal | titlecase }}:</div>
               <div *ngIf="detalle.stock != null">{{ detalle.stock | number : "1.0-2" }}</div>
               <div *ngIf="detalle.stock == null">sin respuesta</div>
@@ -214,7 +214,7 @@
           <div class="separator-horizontal-bottom" 
             [style.padding-right]="!desgloseHabilitado ? '0px' : ''"
             fxLayout="row" fxLayoutAlign="space-between center"
-            style="border-bottom: 1px solid; width: 100%; color: white;">
+            style="border-bottom: 1px solid; width: 100%; color: var(--frc-texto-fuerte);">
               <div>
                 {{ item?.tipoMovimiento | enumToString }}:
               </div>
@@ -226,7 +226,7 @@
 
           <div fxLayout="column">
             <div *ngFor="let detalle of item.expanded" fxLayout="row" fxLayoutAlign="space-between center" 
-                 style="font-size: 0.9em; color: white;">
+                 style="font-size: 0.9em; color: var(--frc-texto-fuerte);">
               <div>{{ detalle.sucursal | titlecase }}:</div>
               <div>{{ detalle.stock | number : "1.0-2" }}</div>
             </div>
@@ -274,7 +274,7 @@
               {{ movimiento?.cantidad | number : "1.0-2" }}
             </span>
             <div *ngIf="movimiento?.tipoMovimiento === 'AJUSTE'" class="ajuste-stock">
-              <span style="color: #ffffff;">
+              <span style="color: var(--frc-texto-fuerte);">
                 {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
                 {{ movimiento?.cantidad | number : "1.0-2" }}
               </span>
@@ -344,7 +344,7 @@
                     padding-top: 20px;
                     padding-bottom: 20px;
                     width: 100%;
-                    background-color: rgb(32, 32, 32);
+                    background-color: var(--frc-superficie-baja);
                   ">
                   <div *ngIf="loading" style="text-align: center; width: 100%">
                     <mat-spinner></mat-spinner>
@@ -355,11 +355,11 @@
                     <div fxFlex="5%" style="
                         width: 100%;
                         text-align: center;
-                        background-color: rgb(52, 52, 52);
+                        background-color: var(--frc-superficie-tabla);
                       ">
                       Productos
                     </div>
-                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: rgb(52, 52, 52)">
+                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: var(--frc-superficie-tabla)">
                       <div fxFlex="5%">#</div>
                       <div fxFlex="35%">Descripción</div>
                       <div fxFlex="10%">Presentación</div>
@@ -436,11 +436,11 @@
                     <div fxFlex="5%" style="
                         width: 100%;
                         text-align: center;
-                        background-color: rgb(52, 52, 52);
+                        background-color: var(--frc-superficie-tabla);
                       ">
                       Movimientos
                     </div>
-                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: rgb(52, 52, 52)">
+                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: var(--frc-superficie-tabla)">
                       <div fxFlex="5%"></div>
                       <div fxFlex="25%">Operación</div>
                       <div fxFlex="20%">Forma de Pago</div>

@@ -24,7 +24,7 @@
       margin-top: 8px;
 
       .bonificacion-checkbox {
-        color: #fff;
+        color: var(--frc-texto-fuerte);
       }
     }
 
@@ -35,8 +35,8 @@
 
   // Cards del diálogo (antes venía de un ::ng-deep global que pintaba todas las mat-card de la app)
   mat-card {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: rgba(var(--frc-tinta), 0.05);
+    color: var(--frc-texto-fuerte);
   }
 
   mat-card-content {
@@ -71,7 +71,7 @@
         }
 
         .product-code {
-          color: rgba(255, 255, 255, 0.7);
+          color: rgba(var(--frc-tinta), 0.7);
           font-size: 12px;
         }
       }
@@ -109,7 +109,7 @@
     width: 100%;
 
     input {
-      color: #fff;
+      color: var(--frc-texto-fuerte);
     }
   }
 
@@ -118,17 +118,17 @@
   }
 
   mat-select {
-    color: #fff;
+    color: var(--frc-texto-fuerte);
   }
 
   textarea {
-    color: #fff;
+    color: var(--frc-texto-fuerte);
     resize: vertical;
     min-height: 60px;
   }
 
   mat-checkbox {
-    color: #fff;
+    color: var(--frc-texto-fuerte);
   }
 
   // Estilos para discrepancias detectadas
@@ -172,7 +172,7 @@
         }
 
         .discrepancy-text {
-          color: #ffffff;
+          color: var(--frc-texto-fuerte);
           font-size: 13px;
           font-weight: 500;
         }
@@ -190,7 +190,7 @@
   }
 
   button[mat-icon-button] {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(var(--frc-tinta), 0.7);
 
     &:hover {
       color: #4CAF50;

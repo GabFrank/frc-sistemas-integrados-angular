@@ -184,7 +184,7 @@
         </div>
       </div>
       <mat-card appearance="outlined" fxFlex fxLayout="column" style="width: 100%; height: 100%" fxLayoutGap="10px"
-        style="background-color: rgb(66, 66, 66); padding: 10px" *ngIf="isPreTransferenciaCreacion">
+        style="background-color: var(--frc-superficie-elevada); padding: 10px" *ngIf="isPreTransferenciaCreacion">
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px" fxLayoutAlign="start center">
           <!-- <div fxFlex="5%" style="text-align: center">
             <img
@@ -198,12 +198,12 @@
           </div> -->
           <div fxFlex="30" fxLayout="column" fxLayoutAlign="center start">
             <div style="width: 100%; text-align: center">Producto</div>
-            <div style="color: white; font-size: medium">
+            <div style="color: var(--frc-texto-fuerte); font-size: medium">
               {{ selectedProducto?.id }}
               <span *ngIf="selectedProducto?.id !== undefined"> - </span>
               {{ selectedProducto?.descripcion | uppercase }}
             </div>
-            <div style="color: rgb(177, 177, 177); font-size: small">
+            <div style="color: var(--frc-texto-terciario); font-size: small">
               {{ selectedProducto?.descripcionFactura | uppercase }}
             </div>
           </div>

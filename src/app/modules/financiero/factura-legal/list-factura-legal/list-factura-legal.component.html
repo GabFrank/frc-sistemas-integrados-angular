@@ -84,7 +84,7 @@
                   padding-right: 10px;
                   padding-top: 10px;
                   font-size: 0.8em;
-                  color: white;
+                  color: var(--frc-texto-fuerte);
                 "
               >
                 <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
@@ -285,7 +285,7 @@
   </div>
   <div
     table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
+    style="height: 100%;"
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >
@@ -501,7 +501,7 @@
                   #facturaItemTable
                   [dataSource]="facturaItemDataSource"
                   class="mat-elevation-z8"
-                  style="background-color: rgb(43, 43, 43)"
+                  style="background-color: var(--frc-superficie)"
                 >
                   <!--- Note that these columns can be defined in any order.
                   The actual rendered columns are set as a property on the row definition" -->
@@ -600,8 +600,8 @@
   width="650px"
   [mustCompleted]="{ inicio: 1 }"
 >
-  <div style="color: white; font-size: 1.2em">
-    <div style="width: 100%; text-align: end; font-size: 0.8em; color: white">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
+    <div style="width: 100%; text-align: end; font-size: 0.8em; color: var(--frc-texto-fuerte)">
       <mat-icon (click)="facturaWelcomeDialog.close()">clear</mat-icon>
     </div>
     <div><h2>Tour virtual: Lista de facturas legales</h2></div>
@@ -652,7 +652,7 @@
   [mustCompleted]="{ facturaWelcomeDialog: 1 }"
   [onButtonCompleteTask]="{ facturaNext: 1 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Rango de fechas</h2></div>
     <p>
       Seleccionar rango de fechas en la cual te gustaría realizar la búsqueda de
@@ -662,7 +662,7 @@
 </bdc-walk-popup>
 
 <bdc-walk-popup
-  style="color: white"
+  style="color: var(--frc-texto-fuerte)"
   #facturaStep2
   name="facturaStep2"
   xPosition="after"
@@ -671,7 +671,7 @@
   [mustCompleted]="{ facturaNext: 1 }"
   [onButtonCompleteTask]="{ facturaNext: 2 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Seleccionar sucursales</h2></div>
     <p>
       Aquí puedes seleccionar una o mas sucursales en las cuales buscar las
@@ -682,7 +682,7 @@
 >
 
 <bdc-walk-popup
-  style="color: white"
+  style="color: var(--frc-texto-fuerte)"
   #facturaStep3
   name="facturaStep3"
   xPosition="after"
@@ -691,7 +691,7 @@
   [mustCompleted]="{ facturaNext: 2 }"
   [onButtonCompleteTask]="{ facturaNext: 3 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Nombre del cliente</h2></div>
     <p>
       También puedes buscar facturas de un determinado cliente escribiendo la
@@ -701,7 +701,7 @@
 >
 
 <bdc-walk-popup
-  style="color: white"
+  style="color: var(--frc-texto-fuerte)"
   #facturaStep4
   name="facturaStep4"
   xPosition="after"
@@ -710,7 +710,7 @@
   [mustCompleted]="{ facturaNext: 3 }"
   [onButtonCompleteTask]="{ facturaNext: 4 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Ruc del cliente</h2></div>
     <p>
       También puedes buscar facturas de un determinado cliente escribiendo el
@@ -720,7 +720,7 @@
 >
 
 <bdc-walk-popup
-  style="color: white"
+  style="color: var(--frc-texto-fuerte)"
   #facturaStep5
   name="facturaStep5"
   xPosition="before"
@@ -730,7 +730,7 @@
   [mustCompleted]="{ facturaNext: 4 }"
   [onButtonCompleteTask]="{ facturaNext: 5 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Buscar</h2></div>
     <p>
       Ahora estamos preparados para realizar una búsqueda presionando sobre el
@@ -750,7 +750,7 @@
   [mustCompleted]="{ facturaNext: 5 }"
   [onButtonCompleteTask]="{ facturaNext: 6 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Resumen de la búsqueda</h2></div>
     <p>En este apartado tenemos las siguientes informaciones:</p>
 
@@ -776,7 +776,7 @@
   [mustCompleted]="{ facturaNext: 6 }"
   [onButtonCompleteTask]="{ facturaNext: 7 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Exportar a excel</h2></div>
     <p>
       Esta función permite exportar la lista de facturas en un formato excel
@@ -791,7 +791,7 @@
   width="400px"
   [mustCompleted]="{ facturaNext: 7 }"
 >
-  <div style="color: white; font-size: 1.2em">
+  <div style="color: var(--frc-texto-fuerte); font-size: 1.2em">
     <div><h2>Finalizado!</h2></div>
     <p>
       Completaste el tour guiado de esta pantalla. En caso de tener alguna duda,

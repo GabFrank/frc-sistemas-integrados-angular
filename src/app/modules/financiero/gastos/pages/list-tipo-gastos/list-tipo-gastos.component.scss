@@ -7,28 +7,28 @@
 .tabs-naturaleza {
   width: 100%;
   margin-top: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(var(--frc-tinta), 0.08);
 }
 
 .example-element-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--frc-tinta), 0.05);
 }
 
 .example-element-row:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--frc-tinta), 0.1);
 }
 
 tr.example-element-row:not(.example-expanded-row):hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--frc-tinta), 0.05);
 }
 
 tr.example-element-row:not(.example-expanded-row):active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--frc-tinta), 0.1);
 }
 
 .mat-column-id {
   font-weight: bold;
-  color: #888;
+  color: var(--frc-texto-apagado);
 }
 
 .mat-column-descripcion {
@@ -40,7 +40,7 @@ tr.example-element-row:not(.example-expanded-row):active {
 }
 
 .mat-header-cell {
-  color: #aaa;
+  color: var(--frc-texto-terciario);
   font-size: 0.8em;
   text-transform: uppercase;
 }

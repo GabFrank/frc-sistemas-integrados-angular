@@ -19,8 +19,8 @@
 
   .data-cell {
     padding: 10px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.87);
+    border-bottom: 1px solid rgba(var(--frc-tinta), 0.1);
+    color: rgba(var(--frc-tinta), 0.87);
   }
 
   .text-center {
@@ -29,7 +29,7 @@
 }
 
 .estado-badge {
-  color: white;
+  color: var(--frc-texto-fuerte);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.8em;
@@ -80,7 +80,7 @@
   }
 
   .empty-message {
-    color: #999;
+    color: var(--frc-texto-apagado);
     font-style: italic;
     font-size: 1.1em;
   }
@@ -95,7 +95,7 @@
   }
   
   strong {
-    color: #e6e8f0;
+    color: var(--frc-texto-fuerte);
   }
 }
 
@@ -125,8 +125,8 @@
 
 .paginator {
   width: 100%;
-  background-color: #424242;
-  color: white;
+  background-color: var(--frc-superficie-elevada);
+  color: var(--frc-texto-fuerte);
 
   &.full-width-paginator {
     min-width: 100%;
@@ -142,15 +142,15 @@
     .mat-paginator-page-size,
     .mat-paginator-range-label,
     .mat-paginator-navigation-button {
-      color: white;
+      color: var(--frc-texto-fuerte);
     }
 
     .mat-select-value {
-      color: white;
+      color: var(--frc-texto-fuerte);
     }
 
     .mat-form-field-underline {
-      background-color: rgba(255, 255, 255, 0.5);
+      background-color: rgba(var(--frc-tinta), 0.5);
     }
   }
 }
@@ -181,7 +181,7 @@
 .fuente-detalle,
 .referencia-inventario {
   font-size: 0.75em;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(var(--frc-tinta), 0.65);
   margin-top: 4px;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .fuente-badge {
-  color: white;
+  color: var(--frc-texto-fuerte);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.75em;

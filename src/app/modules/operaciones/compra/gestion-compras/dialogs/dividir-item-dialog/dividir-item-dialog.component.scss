@@ -22,11 +22,11 @@
 }
 
 .item-form {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--frc-tinta), 0.05);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(var(--frc-tinta), 0.12);
 
   &:last-child {
     margin-bottom: 0;
@@ -42,7 +42,7 @@
 .item-number {
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--frc-texto-fuerte);
   background: rgba(76, 175, 80, 0.2);
   padding: 4px 8px;
   border-radius: 4px;

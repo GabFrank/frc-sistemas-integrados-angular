@@ -235,46 +235,46 @@
 
             <ng-container matColumnDef="expandedDetail">
                 <td mat-cell *matCellDef="let marcacion" [attr.colspan]="displayedColumns.length" class="expanded"
-                    style="background-color: rgb(50, 50, 50); padding: 0px;">
+                    style="background-color: var(--frc-superficie-tabla); padding: 0px;">
                     <div class="example-element-detail"
                         [@detailExpand]="marcacion == expandedMarcacion ? 'expanded' : 'collapsed'"
                         style="overflow: hidden;">
                         <div style="width: 100%; padding: 10px;" *ngIf="marcacion === expandedMarcacion">
                             <mat-card appearance="outlined" fxLayout="column" fxLayoutAlign="start start"
-                                style="padding: 10px; background-color: rgb(32, 32, 32); width: 100%">
-                                <h3 style="width: 100%; margin-bottom: 15px; text-align: center; color: white;">Detalles
+                                style="padding: 10px; background-color: var(--frc-superficie-baja); width: 100%">
+                                <h3 style="width: 100%; margin-bottom: 15px; text-align: center; color: var(--frc-texto-fuerte);">Detalles
                                     de la Jornada</h3>
                                 <table style="width: 100%; table-layout: fixed;">
                                     <thead>
                                         <tr>
-                                            <th style="text-align: center; color: white; padding: 10px;">Salida Almuerzo
+                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Salida Almuerzo
                                             </th>
-                                            <th style="text-align: center; color: white; padding: 10px;">Retorno
+                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Retorno
                                                 Almuerzo</th>
-                                            <th style="text-align: center; color: white; padding: 10px;">Llegada Tardía
+                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Llegada Tardía
                                                 Almuerzo</th>
-                                            <th style="text-align: center; color: white; padding: 10px;">Hora Total
+                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Hora Total
                                                 Trabajada</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td style="text-align: center; color: white; padding: 10px;">{{
+                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
                                                 marcacion.salidaAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
-                                            <td style="text-align: center; color: white; padding: 10px;">{{
+                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
                                                 marcacion.retornoAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
                                             <td style="text-align: center; padding: 10px; font-weight: bold"
                                                 [style.color]="marcacion.tardiaAlmuerzoColor">
                                                 {{ marcacion.tardiaAlmuerzoTexto }}
                                             </td>
-                                            <td style="text-align: center; color: white; padding: 10px;">{{
+                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
                                                 marcacion.trabajadoTexto }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div *ngIf="marcacion.observacion" style="width: 100%; margin-top: 15px; padding: 10px; border-top: 1px solid #444;">
-                                    <h4 style="color: #bbb; margin-bottom: 5px;">Observación:</h4>
-                                    <p style="color: white; font-style: italic;">{{ marcacion.observacion }}</p>
+                                <div *ngIf="marcacion.observacion" style="width: 100%; margin-top: 15px; padding: 10px; border-top: 1px solid var(--frc-borde-solido);">
+                                    <h4 style="color: var(--frc-texto-terciario); margin-bottom: 5px;">Observación:</h4>
+                                    <p style="color: var(--frc-texto-fuerte); font-style: italic;">{{ marcacion.observacion }}</p>
                                 </div>
                             </mat-card>
                         </div>

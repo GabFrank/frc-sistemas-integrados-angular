@@ -3,11 +3,11 @@
 }
 
 .example-element-row:not(.example-expanded-row):hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(var(--frc-tinta), 0.05);
 }
 
 .example-element-row:not(.example-expanded-row):active {
-    background: #3a3a3a;
+    background: var(--frc-superficie-alta);
 }
 
 .example-element-row td {
@@ -25,7 +25,7 @@ th.mat-header-cell {
 }
 
 td.mat-cell {
-    color: rgba(255, 255, 255, 0.87);
+    color: rgba(var(--frc-tinta), 0.87);
 }
 
 .presencial-icon {
@@ -42,7 +42,7 @@ tr.example-detail-row {
 }
 
 .example-expanded-row {
-    background-color: rgb(50, 50, 50);
+    background-color: var(--frc-superficie-tabla);
 }
 // Estado de la jornada: una AUSENTE sin marcaciones se veia igual que una
 // jornada normal sin atraso (todo en cero), asi que el color hace el trabajo.

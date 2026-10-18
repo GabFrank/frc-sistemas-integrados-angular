@@ -21,7 +21,7 @@
       <span>{{ selectedDevolucion?.estado | enumToString | titlecase }}</span>
       <span
         *ngIf="selectedDevolucion?.estado === DevolucionEstado.COLECTADO && selectedDevolucion?.sucursalUbicacion"
-        style="color: #9e9e9e"
+        style="color: var(--frc-texto-apagado)"
       >
         · en {{ selectedDevolucion.sucursalUbicacion.nombre }}
       </span>

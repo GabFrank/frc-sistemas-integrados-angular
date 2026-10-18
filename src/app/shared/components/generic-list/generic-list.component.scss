@@ -1,11 +1,12 @@
 // Estilo comun de las pantallas de lista (mismos tonos que app-dialogo-base y el buscador generico).
+// Los neutros salen de los tokens --frc-* de styles.scss (modo oscuro y claro); rojo, violeta y verde son iguales en los dos.
 // La tabla la arma cada pantalla y llega por proyeccion: sus estilos van con ::ng-deep, siempre bajo :host
 // para no salir de este componente.
-$franja: rgb(32, 32, 32);
-$tarjeta: #333333;
-$borde: rgba(255, 255, 255, 0.12);
+$franja: var(--frc-franja);
+$tarjeta: var(--frc-superficie-tabla);
+$borde: var(--frc-borde);
 $rojo: #f44336;
-$gris: #616161;
+$gris: var(--frc-btn-secundario);
 $violeta: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 $verde: #4caf50;
 
@@ -58,7 +59,7 @@ $verde: #4caf50;
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--frc-sombra);
   }
 }
 
@@ -68,8 +69,8 @@ $verde: #4caf50;
 }
 
 .gl-btn-borde:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.87);
+  border-color: var(--frc-borde-fuerte);
+  color: var(--frc-texto);
 }
 
 .gl-btn-adicionar:not(:disabled) {
@@ -90,15 +91,15 @@ $verde: #4caf50;
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--frc-scroll-pista);
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--frc-scroll-barra);
     border-radius: 4px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: var(--frc-scroll-barra-hover);
     }
   }
 }
@@ -128,18 +129,18 @@ $verde: #4caf50;
   }
 
   th.mat-mdc-header-cell {
-    background-color: rgb(61, 65, 74);
-    color: rgba(255, 255, 255, 0.8);
+    background-color: var(--frc-encabezado-tabla);
+    color: var(--frc-encabezado-tabla-texto);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #464d6d;
+    border-bottom: 2px solid var(--frc-encabezado-tabla-borde);
   }
 
   td.mat-mdc-cell {
-    color: rgba(255, 255, 255, 0.87);
-    border-bottom-color: rgba(255, 255, 255, 0.06);
+    color: var(--frc-texto);
+    border-bottom-color: var(--frc-borde-suave);
   }
 
   :where(tr.mat-mdc-row) {
@@ -147,7 +148,7 @@ $verde: #4caf50;
   }
 
   :where(tr.mat-mdc-row:hover) {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--frc-hover);
   }
 
   // La caja [table] de cada pantalla ocupa el alto que queda y es la que scrollea. flex-basis 0 le gana al
@@ -164,15 +165,15 @@ $verde: #4caf50;
     }
 
     &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--frc-scroll-pista);
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--frc-scroll-barra);
       border-radius: 4px;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--frc-scroll-barra-hover);
       }
     }
   }
@@ -203,7 +204,7 @@ $verde: #4caf50;
 
   .mat-mdc-paginator {
     flex-shrink: 0;
-    background-color: #383838;
+    background-color: var(--frc-paginador);
     border-top: 1px solid $borde;
   }
 
@@ -234,7 +235,7 @@ $verde: #4caf50;
 
   .gl-nombre {
     font-weight: 500;
-    color: #ffffff;
+    color: var(--frc-texto-fuerte);
   }
 
   // Estado: <span class="gl-estado" [class.gl-estado-activo]="x.activo">Activo</span>
@@ -246,8 +247,8 @@ $verde: #4caf50;
     font-size: 12px;
     font-weight: 500;
     text-align: center;
-    background-color: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.6);
+    background-color: var(--frc-relleno-suave);
+    color: var(--frc-texto-suave);
 
     &.gl-estado-activo {
       background-color: rgba(76, 175, 80, 0.15);

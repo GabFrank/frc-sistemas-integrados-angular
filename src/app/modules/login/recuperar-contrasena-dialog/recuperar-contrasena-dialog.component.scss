@@ -22,7 +22,7 @@
 
 .explicacion {
   margin: 0;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--frc-tinta), 0.7);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -34,7 +34,7 @@
   padding: 12px 14px;
   border-radius: 8px;
   background-color: rgba(102, 126, 234, 0.12);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(var(--frc-tinta), 0.85);
   font-size: 14px;
   line-height: 1.5;
 
@@ -98,12 +98,12 @@
   align-items: center;
   gap: 10px;
   padding: 16px;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border: 1px dashed rgba(var(--frc-tinta), 0.25);
   border-radius: 10px;
 }
 
 .secreto-titulo {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--frc-tinta), 0.7);
   font-size: 13px;
 }
 
@@ -112,7 +112,7 @@
   font-size: 32px;
   font-weight: bold;
   letter-spacing: 6px;
-  color: #ffffff;
+  color: var(--frc-texto-fuerte);
   user-select: all;
 }
 
@@ -147,7 +147,7 @@
   ol {
     margin: 0;
     padding-left: 18px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(var(--frc-tinta), 0.85);
     font-size: 13px;
     line-height: 1.6;
   }
@@ -197,7 +197,7 @@
   text-align: center;
   gap: 10px;
   padding: 12px 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(var(--frc-tinta), 0.9);
   font-size: 15px;
 
   .listo-icono {
@@ -210,6 +210,6 @@
 
 .nota {
   margin: -12px 0 0;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(var(--frc-tinta), 0.6);
   font-size: 12px;
 }

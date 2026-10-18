@@ -56,13 +56,13 @@ tr.example-detail-row {
 .example-element-detail {
   min-height: 300px;
   overflow-y: auto;
-  background-color: rgb(74, 74, 74);
+  background-color: var(--frc-relleno-fuerte);
 }
 
 .example-element-detail-familia {
   min-height: 100px;
   overflow-y: auto;
-  background-color: rgb(74, 74, 74);
+  background-color: var(--frc-relleno-fuerte);
 }
 
 td,

@@ -367,7 +367,7 @@
 
       <ng-container matColumnDef="expandedDetail">
         <td mat-cell *matCellDef="let producto" [attr.colspan]="displayedColumns.length" class="expanded"
-          style="background-color: rgb(50, 50, 50)">
+          style="background-color: var(--frc-superficie-tabla)">
           <div class="example-producto-detail" [@detailExpand]="
               producto?.id == expandedProducto?.id ? 'expanded' : 'collapsed'
             " style="text-align: center" fxLayout="row" fxLayoutAlign="center center">
@@ -376,7 +376,7 @@
               max-height: 150px; 
               overflow-y: auto;">
               <mat-card fxLayout="column" fxLayoutAlign="start start"
-                style="padding: 10px; background-color: rgb(32, 32, 32);">
+                style="padding: 10px; background-color: var(--frc-superficie-baja);">
 
                 <!-- Add loading indicator -->
                 <mat-spinner *ngIf="!producto?.sucursales" diameter="30"></mat-spinner>
