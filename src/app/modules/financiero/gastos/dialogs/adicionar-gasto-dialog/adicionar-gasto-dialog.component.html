@@ -1,6 +1,6 @@
 <div fxLayout="row" style="width: 100%; height: 100%">
   <mat-card fxFlex="20%" fxLayout="column" fxLayoutGap="10px" fxLayoutAlign="space-between start"
-    style="background-color: rgb(32, 32, 32); height: auto; padding: 10px">
+    style="background-color: var(--frc-superficie-baja); height: auto; padding: 10px">
     <div fxFlex fxLayout="column" fxLayoutAlign="start" fxLayoutGap="5px" style="width: 100%; height: 100%">
       <button style="width: 100%" [color]="stepper.selectedIndex == 0 ? 'accent' : ''" (click)="goTo('informacion')"
         mat-raised-button>
@@ -74,7 +74,7 @@
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
           <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
-              background-color: rgb(32, 32, 32);
+              background-color: var(--frc-superficie-baja);
               padding: 10px;
             ">
             <div style="text-align: center">Retirado</div>
@@ -102,7 +102,7 @@
           </mat-card>
           <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
-              background-color: rgb(32, 32, 32);
+              background-color: var(--frc-superficie-baja);
               padding: 10px;
             ">
             <div style="text-align: center">Vuelto</div>
@@ -282,7 +282,7 @@
           </mat-form-field>
         </div>
 
-        <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: #bdbdbd;">
+        <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: var(--frc-texto-suave);">
           Cargando solicitudes...
         </div>
         <table *ngIf="!cargandoSolicitudes" style="width: 100%" mat-table
@@ -351,7 +351,7 @@
         </table>
 
         <div *ngIf="!cargandoSolicitudes && solicitudesProcesadasDataSource.data.length === 0"
-          style="padding: 16px; color: #9e9e9e;">
+          style="padding: 16px; color: var(--frc-texto-tenue);">
           No hay solicitudes pendientes, autorizadas o rechazadas para mostrar.
         </div>
       </div>
