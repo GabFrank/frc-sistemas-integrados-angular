@@ -50,8 +50,8 @@ table {
 }
 
 .chip-terminal {
-  background-color: #616161;
-  color: #fff;
+  background-color: var(--frc-relleno-fuerte);
+  color: var(--frc-texto-fuerte);
 }
 
 .accion-registrar {
@@ -71,7 +71,7 @@ table {
   // El 10 de abajo no es simetria: sin el hueco del subscript, el campo quedaba a 4px de los
   // selects y las dos filas se leian como una sola.
   padding: 10px 0 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(var(--frc-tinta), 0.08);
 
   > mat-icon {
     color: #ffb300;
@@ -146,7 +146,7 @@ table {
 // ocupa su lugar cuando el lector no se muestra.
 .banda-lectura {
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(var(--frc-tinta), 0.08);
   font-size: 12px;
   color: #90caf9;
 

@@ -7,7 +7,7 @@ tr.example-detail-row {
 }
 
 tr.example-expanded-row {
-  background-color: rgb(50, 50, 50);
+  background-color: var(--frc-superficie-tabla);
 }
 
 .selectedRow {
@@ -36,7 +36,7 @@ tr.example-expanded-row {
 
 .highlight-cell {
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--frc-tinta), 0.1);
 }
 
 .titulo-cell {

@@ -189,7 +189,7 @@
         <ng-template matStepLabel>Familia</ng-template>
         <div
           table
-          style="height: 100%; background-color: rgb(70, 70, 70)"
+          style="height: 100%; background-color: var(--frc-superficie-elevada)"
           fxLayout="column"
           fxLayoutAlign="space-between start"
         >
@@ -198,7 +198,7 @@
               width: 100%;
               height: 100%;
               overflow-y: auto;
-              background-color: rgb(52, 52, 52);
+              background-color: var(--frc-superficie-tabla);
               padding: 10px;
             "
           >
@@ -461,7 +461,7 @@
         <ng-template matStepLabel>Subfamilia</ng-template>
         <div
           table
-          style="height: 100%; background-color: rgb(70, 70, 70)"
+          style="height: 100%; background-color: var(--frc-superficie-elevada)"
           fxLayout="column"
           fxLayoutAlign="space-between start"
         >
@@ -470,7 +470,7 @@
               width: 100%;
               height: 100%;
               overflow-y: auto;
-              background-color: rgb(52, 52, 52);
+              background-color: var(--frc-superficie-tabla);
               padding: 10px;
             "
           >
@@ -741,7 +741,7 @@
             style="
               height: 100%;
               width: 100%;
-              background-color: rgb(52, 52, 52);
+              background-color: var(--frc-superficie-tabla);
               padding: 10px;
             "
           >
@@ -1105,7 +1105,7 @@
 
         <div
           table
-          style="height: 100%; background-color: rgb(70, 70, 70)"
+          style="height: 100%; background-color: var(--frc-superficie-elevada)"
           fxLayout="column"
           fxLayoutAlign="space-between start"
         >
@@ -1114,7 +1114,7 @@
               width: 100%;
               height: 100%;
               overflow-y: auto;
-              background-color: rgb(52, 52, 52);
+              background-color: var(--frc-superficie-tabla);
               padding: 10px;
             "
           >
@@ -1391,7 +1391,7 @@
                           #codigoTable
                           [dataSource]="codigoDataSource"
                           class="mat-elevation-z8"
-                          style="background-color: rgb(43, 43, 43)"
+                          style="background-color: var(--frc-superficie)"
                         >
                           <!--- Note that these columns can be defined in any order.
                             The actual rendered columns are set as a property on the row definition" -->
@@ -1443,7 +1443,7 @@
                               style="width: 5%"
                             >
                               <mat-icon
-                                style="color: white; cursor: pointer; margin-right: 6px"
+                                style="color: var(--frc-texto-fuerte); cursor: pointer; margin-right: 6px"
                                 matTooltip="Imprimir código (CODE128)"
                                 (click)="
                                   onImprimirCodigoDeBarra(element);
@@ -1505,7 +1505,7 @@
                           mat-table
                           [dataSource]="precioDataSource"
                           class="mat-elevation-z8"
-                          style="background-color: rgb(43, 43, 43)"
+                          style="background-color: var(--frc-superficie)"
                         >
                           <!--- Note that these columns can be defined in any order.
                             The actual rendered columns are set as a property on the row definition" -->
@@ -1610,7 +1610,7 @@
                           style="
                             width: 200px;
                             height: 200px;
-                            background-color: rgb(43, 43, 43);
+                            background-color: var(--frc-superficie);
                             display: none;
                           "
                         >

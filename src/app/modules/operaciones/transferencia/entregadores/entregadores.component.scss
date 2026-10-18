@@ -31,7 +31,7 @@ $text-secondary: #aaaaaa;
         }
 
         .mat-mdc-icon-button {
-            color: white !important;
+            color: var(--frc-texto-fuerte) !important;
         }
     }
 }
@@ -49,7 +49,7 @@ table {
     width: 100%;
 
     p {
-        color: white;
+        color: var(--frc-texto-fuerte);
         margin-top: 10px;
     }
 }
@@ -84,7 +84,7 @@ tr.detail-row {
 }
 
 .element-row:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(var(--frc-tinta), 0.04);
     cursor: pointer;
 }
 
@@ -95,7 +95,7 @@ tr.detail-row {
 .element-detail {
     overflow: hidden;
     display: flex;
-    background-color: rgb(50, 50, 50);
+    background-color: var(--frc-superficie-tabla);
 }
 
 .detail-container {
@@ -112,8 +112,8 @@ tr.detail-row {
     td {
         padding: 8px;
         text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        color: #e0e0e0;
+        border-bottom: 1px solid rgba(var(--frc-tinta), 0.1);
+        color: var(--frc-texto-secundario);
     }
 
     th {

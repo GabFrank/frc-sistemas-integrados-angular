@@ -194,7 +194,7 @@
                  sucursal no puede funcionar, así que ni se ofrece. -->
             <mat-icon
               *ngIf="puedeCompletarDesdeAqui(item)"
-              style="color: white; cursor: pointer;"
+              style="color: var(--frc-texto-fuerte); cursor: pointer;"
               matTooltip="Completar escaneando el cupón"
               (click)="onCompletarPendiente(item)"
             >qr_code_scanner</mat-icon>

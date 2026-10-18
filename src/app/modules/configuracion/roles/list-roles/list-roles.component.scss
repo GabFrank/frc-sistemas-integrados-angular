@@ -12,7 +12,7 @@
 }
 
 .roles-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(var(--frc-tinta), 0.12);
 }
 
 table {
@@ -30,7 +30,7 @@ table {
   }
   
   .example-element-detail:hover {
-    background-color: rgb(32, 32, 32);
+    background-color: var(--frc-superficie-baja);
   }
   
   td, th {

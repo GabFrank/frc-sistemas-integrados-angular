@@ -172,7 +172,7 @@
 
       <ng-container matColumnDef="expandedDetail">
         <td mat-cell *matCellDef="let modificacion" [attr.colspan]="displayedColumns.length" class="expanded"
-          style="background-color: rgb(50, 50, 50)">
+          style="background-color: var(--frc-superficie-tabla)">
           <div class="example-modificacion-detail" [@detailExpand]="
               modificacion?.id == expandedModificacion?.id
                 ? 'expanded'
@@ -180,7 +180,7 @@
             " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
             <div fxFlex="100" style="width: 100%; margin: 10px; max-height: 400px; overflow-y: auto">
               <mat-card fxLayout="column" fxLayoutAlign="start start"
-                style="padding: 10px; background-color: rgb(32, 32, 32); width: 100%">
+                style="padding: 10px; background-color: var(--frc-superficie-baja); width: 100%">
                 <h3 class="titulo-center" style="width: 100%; margin-bottom: 15px">
                   Detalles de la Modificación
                 </h3>

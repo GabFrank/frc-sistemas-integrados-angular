@@ -55,7 +55,7 @@ background-color: #43A047 !important;
 }
 
 .expanded:hover {
-background-color: rgb(51, 51, 51) !important;
+background-color: var(--frc-superficie-tabla) !important;
 }
 
 
@@ -70,7 +70,7 @@ input {
 
 .info-stock {
   padding: 5px; 
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--frc-borde-solido);
 }
 
 .ajuste-stock {
@@ -92,7 +92,7 @@ input {
 .info-container {
   width: 100%;
   text-align: center;
-  background-color: rgb(52, 52, 52);
+  background-color: var(--frc-superficie-tabla);
   padding: 8px;
   margin-top: 10px;
 }
@@ -100,7 +100,7 @@ input {
 .detalle-container {
   width: 100%;
   text-align: center;
-  background-color: rgb(52, 52, 52);
+  background-color: var(--frc-superficie-tabla);
   padding: 10px;
 }
 
@@ -108,7 +108,7 @@ input {
   padding-top: 20px;
   padding-bottom: 20px;
   width: 100%;
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-superficie-baja);
 }
 
 .icon {
@@ -122,20 +122,20 @@ input {
 
 ::ng-deep .resumen-accordion .mat-expansion-panel {
   background: transparent !important;
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 ::ng-deep .resumen-accordion .mat-expansion-panel-header-title,
 ::ng-deep .resumen-accordion .mat-expansion-panel-header-description {
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 ::ng-deep .resumen-accordion .mat-expansion-indicator::after {
-  color: white !important; 
+  color: var(--frc-texto-fuerte) !important; 
 }
 
 ::ng-deep .resumen-accordion .mat-expansion-indicator {
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
   margin-left: 5px !important;
   margin-right: 5px !important;
 }
