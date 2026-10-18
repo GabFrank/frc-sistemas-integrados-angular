@@ -138,8 +138,8 @@
 }
 
 .mini-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--frc-tinta), 0.04);
+  border: 1px solid rgba(var(--frc-tinta), 0.1);
   border-radius: 6px;
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -178,7 +178,7 @@
   }
 
   &.total-row {
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(var(--frc-tinta), 0.12);
     margin-top: 4px;
     padding-top: 5px;
   }
@@ -207,7 +207,7 @@
 .grafico-area {
   flex: 0 0 auto;
   padding: 6px 4px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(var(--frc-tinta), 0.08);
   margin-bottom: 4px;
 }
 
@@ -223,7 +223,8 @@
   th.mat-mdc-header-cell {
     position: sticky;
     top: 0;
-    background: #424242;
+    background: var(--frc-encabezado-tabla);
+    color: var(--frc-encabezado-tabla-texto);
     z-index: 2;
   }
 }
