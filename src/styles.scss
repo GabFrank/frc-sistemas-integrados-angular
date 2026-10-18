@@ -93,6 +93,15 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-texto-apagado: #999999;
 }
 
+// Etiquetas de checkbox, radio y switch: Material las dejaba negras también en modo oscuro (el color le
+// llega por una variable con el valor del tema claro). :root sube la especificidad para ganarle al tema.
+// El texto deshabilitado lo sigue pintando Material sobre el <label>.
+:root .mat-mdc-checkbox .mdc-form-field,
+:root .mat-mdc-radio-button .mdc-form-field,
+:root .mat-mdc-slide-toggle .mdc-form-field {
+  color: var(--frc-texto);
+}
+
 .lightMode {
   --frc-fondo: #f4f5f7;
   --frc-superficie: #ffffff;
