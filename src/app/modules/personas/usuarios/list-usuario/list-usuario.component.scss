@@ -25,15 +25,9 @@ input {
   text-transform: uppercase;
 }
 
-// Solo el cuerpo scrollea: encabezado y paginador quedan fijos.
+// El scroll y el paginador fijo abajo los pone app-generic-list.
 .lista-tabla {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
 }
 
 .tabla-progreso {
@@ -44,11 +38,6 @@ input {
   z-index: 3;
 }
 
-.tabla-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-}
 
 table {
   width: 100%;

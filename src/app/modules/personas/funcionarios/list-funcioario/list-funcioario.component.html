@@ -1,4 +1,4 @@
-<app-generic-list [data]="dataSource.data" style="height: 100%" [isAdicionar]="true" (adicionar)="onAddFuncionario()"
+<app-generic-list [data]="dataSource.data" [isAdicionar]="true" (adicionar)="onAddFuncionario()"
   [isCustom]="!!horarioParaAsignar" customName="Agregar Selección" [disableCustom]="seleccionados.selected.length === 0"
   (customFunction)="onAsignarHorario()" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
   <div filtros>

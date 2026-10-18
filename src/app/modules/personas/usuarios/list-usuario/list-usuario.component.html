@@ -32,7 +32,6 @@
   <div table class="lista-tabla">
     <mat-progress-bar *ngIf="cargando" mode="indeterminate" class="tabla-progreso"></mat-progress-bar>
 
-    <div class="tabla-scroll">
       <table mat-table [dataSource]="dataSource">
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef class="col-id">Id</th>
@@ -113,7 +112,6 @@
         <p>No hay usuarios para mostrar</p>
         <small>Probá con otro nombre o quitá el filtro de roles.</small>
       </div>
-    </div>
 
     <mat-paginator
       [pageSizeOptions]="[15, 25, 50, 100]"
