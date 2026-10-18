@@ -94,6 +94,9 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   // Dashboards (styles/_dashboard.scss)
   --frc-dash-texto: #e0e0e0;
   --frc-dash-texto-2: #9e9e9e;
+  // Tarjeta semitransparente sobre fondo con degradé y zona hundida (marcación de horario)
+  --frc-tarjeta-translucida: rgba(40, 40, 40, 0.9);
+  --frc-hundido: rgba(0, 0, 0, 0.2);
 }
 
 // Etiquetas de checkbox, radio y switch: Material las dejaba negras también en modo oscuro (el color le
@@ -152,6 +155,8 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-texto-apagado: #6f6f6f;
   --frc-dash-texto: rgba(0, 0, 0, 0.87);
   --frc-dash-texto-2: rgba(0, 0, 0, 0.55);
+  --frc-tarjeta-translucida: rgba(255, 255, 255, 0.92);
+  --frc-hundido: rgba(0, 0, 0, 0.03);
 }
 
 html {
