@@ -147,49 +147,26 @@ mat-dialog-actions {
   }
 }
 
-// Mismo badge que el listado de facturas: sus estilos están encapsulados y no llegan acá
-.estado-badge {
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 0.75em;
+// Estado en color, sin badge: mismos tonos que el listado; cancelado más claro para leerse sobre #444
+.estado-texto {
   font-weight: 600;
-  text-transform: uppercase;
-  display: inline-block;
-  
-  // Electronic invoice estados
-  &.estado-aprobado {
-    background-color: #4caf50;
-    color: #ffffff;
-  }
-  
-  &.estado-pendiente {
-    background-color: #ff9800;
-    color: #ffffff;
-  }
-  
-  &.estado-rechazado {
-    background-color: #f44336;
-    color: #ffffff;
-  }
-  
-  &.estado-cancelado {
-    background-color: #757575;
-    color: var(--frc-texto-fuerte);
-  }
-  
-  // Paper invoice estados
+
+  &.estado-aprobado,
   &.estado-activo {
-    background-color: #4caf50;
-    color: #ffffff;
+    color: #4caf50;
   }
-  
+
+  &.estado-pendiente {
+    color: #ff9800;
+  }
+
+  &.estado-rechazado,
   &.estado-inactivo {
-    background-color: #f44336;
-    color: #ffffff;
+    color: #f44336;
   }
-  
+
+  &.estado-cancelado,
   &.estado-default {
-    background-color: #9e9e9e;
-    color: var(--frc-texto-fuerte);
+    color: #9e9e9e;
   }
 }
