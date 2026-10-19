@@ -53,20 +53,26 @@ export function esRechazoPorFacturaSinNombre(error: any): boolean {
     && error.some((e) => typeof e?.message === "string" && /facturar sin nombre/i.test(e.message));
 }
 
+const PREFIJO_ENVIO_A_FILIAL = "Error al crear factura en servidor filial: ";
 const ENVIO_A_FILIAL_SIN_CONFIRMAR =
   /^Error al crear factura en servidor filial: (Error al conectar con el servidor filial|Error del servidor filial|Error al crear factura en servidor filial\. Código)/;
 
 /**
- * ¿El central no pudo confirmar si el filial emitió la factura? `saveFacturaLegalToFilial` devuelve todo fallo con la
- * forma de un rechazo, pero un corte con el filial (incluido el timeout de lectura del central, 30 s) o un 500 del
- * filial no dicen que no se emitió: el filial pudo terminar y guardar. Tampoco una respuesta del filial que no es
- * 201 ni error («… Código: 200»). Se reconoce por el texto de `FacturaLegalFilialService` (central), anclado a su
- * prefijo para que un rechazo que mencione esas frases no cuente; si el texto cambia, esto da false y se trata como
- * rechazo, como antes (#471).
+ * ¿El central no pudo confirmar si el filial emitió la factura? Un corte con el filial (incluido el timeout de lectura
+ * del central, 30 s), un 500 del filial o una respuesta que no es 201 no dicen que no se emitió: el filial pudo
+ * terminar y guardar (#471). Desde #425 el central lo dice en `extensions.codigo` (`FILIAL_SIN_CONFIRMAR` /
+ * `FILIAL_RECHAZO`), y eso manda. Un central anterior no manda código: se reconoce por el texto de
+ * `FacturaLegalFilialService`, anclado a su prefijo. Un error sin código ni ese prefijo (el central falló fuera de
+ * su `catch`, por ejemplo al commitear después del 201) cuenta como sin confirmar: un aviso de más es el lado seguro.
  */
 export function esEnvioAFilialSinConfirmar(error: any): boolean {
-  return Array.isArray(error)
-    && error.some((e) => typeof e?.message === "string" && ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
+  if (!Array.isArray(error)) return false;
+  const codigos = error.map((e) => e?.extensions?.codigo);
+  if (codigos.includes("FILIAL_SIN_CONFIRMAR")) return true;
+  if (codigos.includes("FILIAL_RECHAZO")) return false;
+  const delCentral = (e: any) => typeof e?.message === "string" && e.message.startsWith(PREFIJO_ENVIO_A_FILIAL);
+  if (!error.every(delCentral)) return true;
+  return error.some((e) => ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
 }
 
 /** Veces que se le pide el cliente al cajero por una misma venta antes de cortar. */
