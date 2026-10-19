@@ -61,7 +61,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   // null = Todos; true/false = valor concreto
   estadoControl = new FormControl(null)   // activo
   cargoControl = new FormControl<Cargo>(null)     // se filtra por su id; lo elige el buscador
-  diaristaControl = new FormControl(null)
+  ipsActivoControl = new FormControl(null)
   fasePruebaControl = new FormControl(null)
   cobraBancoControl = new FormControl(null)
 
@@ -143,9 +143,9 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       sucursalIdList.length > 0 ? sucursalIdList : null,
       this.estadoControl.value,
       this.cargoControl.value?.id,
-      this.diaristaControl.value,
       this.fasePruebaControl.value,
-      this.cobraBancoControl.value
+      this.cobraBancoControl.value,
+      this.ipsActivoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
@@ -171,7 +171,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     this.sucursalControl.setValue(null)
     this.estadoControl.setValue(null)
     this.cargoControl.setValue(null)
-    this.diaristaControl.setValue(null)
+    this.ipsActivoControl.setValue(null)
     this.fasePruebaControl.setValue(null)
     this.cobraBancoControl.setValue(null)
     this.onFiltrar()
