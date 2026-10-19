@@ -38,8 +38,9 @@ su lugar un filtro «Cobra IPS» para ver quiénes cobran por IPS.
 ## Orden de despliegue
 
 **Central antes que desktop, en cada canal.** Un desktop que manda `$ipsActivo` a un central sin el
-argumento recibe error de validación, y el listado y el buscador de «Lucro por funcionario» quedan
-vacíos. El PR del desktop se mergea después de que el central con el filtro esté desplegado en
+argumento rechaza la consulta entera (aunque `ipsActivo` vaya en null). En el listado y en el
+buscador de «Lucro por funcionario» se ve un snackbar rojo de 3 s y la tabla no se actualiza: vacía
+en la primera carga, o con el resultado anterior si ya había uno (`generic-crud.service.ts:288`). El PR del desktop se mergea después de que el central con el filtro esté desplegado en
 alpha. Lo mismo vale al promover a `release/beta` (farmacia) y a `master` (bodega), y para la web:
 primero el central de ese canal. Va escrito en el cuerpo de los dos PRs.
 
@@ -75,6 +76,33 @@ funcionario» siga trayendo resultados.
 | El IT no fija la semántica del `null` si la base no tiene filas en `null` | B | **Aplicado**: el IT pone un funcionario en `null` dentro de la transacción y verifica que cae en «No» |
 | El central local tiene `lazy-initialization=true`: un JPQL roto no falla al arrancar | B | **Aplicado**: la prueba de runtime arranca con `-Dspring.main.lazy-initialization=false` |
 | Rollback del central con el desktop nuevo afuera | B | **Aplicado**: sección «Rollback» |
+
+## Auditoría del diff (paso 8)
+
+Fijos 1, 2 y 3. Ningún condicional: el diff no toca release ni DDL de tablas replicadas.
+
+| Hallazgo | Eje | Qué se hizo |
+|---|---|---|
+| `funcionariosWithPage` no tiene control de rol (`seg.requireVer()`); `ipsActivo` ya se podía leer en el tipo `Funcionario` | Fijo 1 | **Preexistente**: el diff no expone nada nuevo. Gatearlo rompería selectores que no son de RRHH; queda fuera |
+| JPQL, `@Param` y orden posicional en resolver, servicio, sobrecarga corta e IT | Fijo 2 | Sin hallazgos |
+| Contra un central viejo la tabla no se vacía: queda con datos viejos + snackbar | Fijo 3 | **Aplicado**: texto corregido en «Orden de despliegue» |
+| `feat!`? | Fijo 3 | No: argumento opcional, `diarista` se conserva |
+
+## Resultado de la prueba de runtime (2026-10-19)
+
+Central del worktree en el 8081 (perfil `dev`, `lazy-initialization=false`, Flyway sin migraciones)
++ `ng serve -c web`, todo el tráfico a `localhost:8081/graphql`. Para tener los tres casos se puso
+por SQL el 133 en `true` y el 377 en `null`, restaurados a `false` al final.
+
+- «Cobra IPS» aparece en el lugar de «Diarista».
+- Sí → 1 (el 133). No → 487, con el 377 (`null`) adentro y sin el 133. Todos → 488 = 1 + 487.
+- «Limpiar filtro» lo vuelve a Todos (488).
+- Buscador de «Lucro por funcionario»: sin texto trae 488; «melgarejo» trae 7.
+- Central: 3 IT (`FuncionarioFiltroIpsIT`, `…CobraBancoIT`, `…BusquedaNicknameIT`) en verde; control
+  negativo (`coalesce(…, true)`) hace fallar el IT nuevo con «null no puede aparecer en Si».
+  `./mvnw package`: 2133 tests, 0 fallos. Desktop: `npm run check` y `verificar:imports` en verde.
+- El «Sí» se armó por SQL y no tildando el legajo: el escritor (`informacion-general`) no cambia en
+  este trabajo.
 
 ## Qué queda sin verificar
 
