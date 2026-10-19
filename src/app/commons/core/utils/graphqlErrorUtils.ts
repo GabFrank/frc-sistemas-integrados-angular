@@ -70,9 +70,9 @@ export function esEnvioAFilialSinConfirmar(error: any): boolean {
   const codigos = error.map((e) => e?.extensions?.codigo);
   if (codigos.includes("FILIAL_SIN_CONFIRMAR")) return true;
   if (codigos.includes("FILIAL_RECHAZO")) return false;
-  const delCentral = error.filter((e) => typeof e?.message === "string" && e.message.startsWith(PREFIJO_ENVIO_A_FILIAL));
-  if (delCentral.length === 0) return true;
-  return delCentral.some((e) => ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
+  const delCentral = (e: any) => typeof e?.message === "string" && e.message.startsWith(PREFIJO_ENVIO_A_FILIAL);
+  if (!error.every(delCentral)) return true;
+  return error.some((e) => ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
 }
 
 /** Veces que se le pide el cliente al cajero por una misma venta antes de cortar. */

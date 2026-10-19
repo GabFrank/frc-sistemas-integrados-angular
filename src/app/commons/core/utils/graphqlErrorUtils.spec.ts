@@ -128,6 +128,13 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
   it('sin código ni prefijo del central (falló fuera de su catch): sin confirmar', () => {
     expect(esEnvioAFilialSinConfirmar([{ message: 'could not commit JPA transaction' }])).toBeTrue();
   });
+
+  it('un rechazo del central junto a un error sin código ni prefijo: sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([
+      ...con('Error al crear factura legal: x'),
+      { message: 'could not commit JPA transaction' },
+    ])).toBeTrue();
+  });
 });
 
 describe('avisoTrasMutacion (#488)', () => {
