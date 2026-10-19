@@ -42,7 +42,7 @@ export class ConfiguracionCobroDialogComponent implements OnInit {
   private cargar(config: ConfiguracionCobro): void {
     this.conTopeControl.setValue(config?.aumentoConTope !== false);
     this.porcentajeControl.setValue(config?.aumentoTopePorcentaje > 0 ? config.aumentoTopePorcentaje : TOPE_AUMENTO_DEFAULT);
-    this.modificadoPor = config?.id != null ? config?.usuario?.nickname ?? null : null;
+    this.modificadoPor = config?.id != null ? config?.usuarioNickname ?? null : null;
     this.modificadoEn = config?.id != null ? config?.modificadoEn ?? null : null;
     this.isLoading = false;
   }

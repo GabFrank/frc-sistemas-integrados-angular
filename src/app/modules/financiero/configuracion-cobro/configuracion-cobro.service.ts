@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { CONTEXTO_MOSTRADOR } from '../../../generics/generic-crud.constantes';
 import { ConfiguracionCobro, ConfiguracionCobroInput } from './configuracion-cobro.model';
 import { GetConfiguracionCobroGQL } from './graphql/getConfiguracionCobro';
 import { GetConfiguracionCobroPdvGQL } from './graphql/getConfiguracionCobroPdv';
@@ -26,7 +27,8 @@ export class ConfiguracionCobroService {
    */
   onGetConfiguracionPdv(): Observable<ConfiguracionCobro> {
     return this.getConfiguracionPdvGQL
-      .fetch({}, { fetchPolicy: 'no-cache', errorPolicy: 'none', context: { clientName: null } })
+      // Corte de mostrador y sin aviso del link: el cobro no espera a esta consulta (rige el 20%).
+      .fetch({}, { fetchPolicy: 'no-cache', errorPolicy: 'none', context: { clientName: null, ...CONTEXTO_MOSTRADOR } })
       .pipe(map((res: any) => res?.data?.data ?? null));
   }
 

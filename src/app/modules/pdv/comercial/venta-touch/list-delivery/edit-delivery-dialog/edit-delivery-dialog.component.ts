@@ -7,7 +7,7 @@ import { finalize } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { ConfiguracionCobroService } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.service';
-import { aumentoPermitido, ConfiguracionCobro, mensajeTopeAumento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { comparatorLike } from '../../../../../../commons/core/utils/string-utils';
@@ -886,8 +886,9 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     let valor =
       this.vueltoControl.value;
     if (valor < 0) {
-      // En guaraníes con el saldo: `vueltoControl` está en la moneda elegida.
-      if (!aumentoPermitido(this.saldoControl.value, total, this.configCobro)) {
+      // Lo que se va a registrar (`vueltoControl`, en la moneda elegida) en guaraníes, más los aumentos ya cargados.
+      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroItemList);
+      if (!aumentoPermitido(aumentoGs, total, this.configCobro)) {
         this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
         return;
       }

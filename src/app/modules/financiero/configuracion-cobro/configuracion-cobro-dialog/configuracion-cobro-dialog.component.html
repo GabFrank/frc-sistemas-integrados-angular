@@ -4,7 +4,8 @@
   <div *ngIf="isLoading" class="config-estado">Cargando…</div>
 
   <div *ngIf="!isLoading && noDisponible" class="config-estado config-error">
-    El servidor central todavía no tiene esta configuración. Cuando se actualice, vas a poder editarla desde acá.
+    No se pudo leer la configuración del servidor central: puede estar sin conexión o todavía sin
+    actualizar. Cerrá y volvé a abrir para reintentar.
   </div>
 
   <div *ngIf="!isLoading && !noDisponible" fxLayout="column" fxLayoutGap="15px" class="config-contenido">
@@ -13,7 +14,7 @@
         <div class="config-item-title">Tope del aumento (F8)</div>
         <div class="config-item-desc">
           Cuánto se puede cobrar de más y registrarlo como aumento, en porcentaje del total del cobro. Vale
-          para el cobro del PDV, el delivery y el cobro de ventas a crédito. Sin tope, se permite cualquier aumento.
+          para el cobro del PDV (botón y F8) y el del delivery. Sin tope, se permite cualquier aumento.
         </div>
       </div>
       <div class="config-item-toggle">

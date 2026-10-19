@@ -7,10 +7,7 @@ export const configuracionCobroQuery = gql`
       id
       aumentoConTope
       aumentoTopePorcentaje
-      usuario {
-        id
-        nickname
-      }
+      usuarioNickname
       modificadoEn
     }
   }
@@ -35,10 +32,7 @@ export const saveConfiguracionCobro = gql`
       id
       aumentoConTope
       aumentoTopePorcentaje
-      usuario {
-        id
-        nickname
-      }
+      usuarioNickname
       modificadoEn
     }
   }

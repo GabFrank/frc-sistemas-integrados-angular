@@ -104,7 +104,7 @@ import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../..
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
 import { ConfiguracionCobroService } from "../../../../financiero/configuracion-cobro/configuracion-cobro.service";
-import { aumentoPermitido, ConfiguracionCobro, mensajeTopeAumento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
 import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -1198,11 +1198,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  /** Botón «Aumento (F8)» y tecla F8: el mismo tope (#546). En guaraníes: `valor` está en la moneda elegida. */
+  /**
+   * Botón «Aumento (F8)» y tecla F8: el mismo tope (#546). Se mide lo que se va a registrar, que es
+   * «valor» (el cajero lo puede editar, no tiene por qué ser el saldo), pasado a guaraníes, más los
+   * aumentos que el cobro ya tiene.
+   */
   onAumento() {
     let valor = this.formGroup.controls.valor.value;
     if (valor < 0) {
-      if (!aumentoPermitido(this.formGroup.controls.saldo.value, this.data.valor, this.configCobro)) {
+      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroDetalleList);
+      if (!aumentoPermitido(aumentoGs, this.data.valor, this.configCobro)) {
         this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
         return;
       }
@@ -1210,6 +1215,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.isVuelto = false;
       this.isDescuento = false;
       this.addCobroDetalle();
+      // addCobroDetalle puede salir sin registrar (delivery en vuelo, convenio, config de tarjeta): la
+      // marca no puede quedar puesta, o el próximo Enter registraría un aumento sin pasar por el tope.
+      this.isAumento = false;
     }
   }
 
