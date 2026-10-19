@@ -15,7 +15,7 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../sh
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
 import { Persona } from '../../../personas/persona/persona.model';
 import { EstadoDE } from '../../documento-electronico/documento-electronico.model';
-import { facturaActiva } from '../factura-legal-estado';
+import { claseEstadoFactura, facturaActiva } from '../factura-legal-estado';
 import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
@@ -57,6 +57,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
   tipoFacturaDisplayComputed = '';
   estadoDEDisplayComputed = '';
   estadoFacturaDisplayComputed = '';
+  estadoClaseComputed = 'estado-default';
   
   // Selected cliente
   selectedCliente: Cliente = null;
@@ -155,6 +156,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     } else {
       this.estadoFacturaDisplayComputed = facturaActiva(this.factura) ? 'Activa' : 'Inactiva';
     }
+    this.estadoClaseComputed = claseEstadoFactura(this.factura);
 
     // Deshabilitar formulario si no se puede editar
     if (!this.puedeEditarComputed) {
