@@ -43,9 +43,8 @@ si es de otra sucursal sí bloquea, porque eso indica que se está recibiendo en
 - `puedePrepararEnvio ||= esCompras`, `puedeEditar ||= esCompras` (en `verificarEtapa`).
 - HTML: «Iniciar Recepción» y «Finalizar» de recepción pasan de `isDestino` a
   `(isDestino || esCompras)`.
-- `onAvanzarEtapa`: si `esCompras && !isOrigen && !isDestino`, pedir confirmación antes de avanzar
-  («No estás en la sucursal de origen ni de destino…»). Es el reemplazo del QR de destino que tiene
-  la PWA: el desktop no tiene otro control de lugar (auditoría, eje B #2).
+- Sin aviso extra al avanzar desde otra sucursal: se probó una confirmación propia y Franco pidió
+  sacarla (2026-10-19). Queda la confirmación de etapa que el desktop ya tenía.
 - Tests: N/A para desktop (no hay batería en ningún gate, §1 paso 7). Gate: `npm run check`.
 
 ### Fase 2 — mobile-pwa
@@ -77,7 +76,7 @@ ocultos.
 | Quien toca el botón queda como responsable (`TransferenciaGraphQL.java:397`, `:432`). Si compras toma una etapa, el personal de la sucursal ya no la puede cerrar | A | **Aceptado**: es la regla actual («la etapa la trabaja quien la tomó»), y compras puede cerrarla. Se avisa a Franco |
 | PWA: un QR de otra sucursal bloquea «Iniciar recepción» (`transferencia-detalle.page.ts:679`) | A | **Aceptado**: cancelar el escaneo no bloquea. Un QR de otra sucursal indica un error de lugar |
 | El central acepta reenviar la etapa actual (`EtapaTransferencia.puedeAvanzarA`, `>=`). Dos personas en la misma etapa pisan las cantidades ya verificadas | B | **Preexistente**: hoy ya pasa con dos usuarios de la misma sucursal. Queda fuera de este PR y se le ofrece a Franco como fix aparte en el central |
-| El desktop no tiene control de lugar para recibir desde otra sucursal | B | **Aplicado**: confirmación en `onAvanzarEtapa` (fase 1) |
+| El desktop no tiene control de lugar para recibir desde otra sucursal | B | **Descartado por Franco**: se implementó una confirmación y pidió quitarla. Compras avanza con la confirmación de etapa de siempre |
 | PWA: el exento cierra una etapa con ítems que verificó otro | B | **Aceptado**: es lo pedido. `accionHabilitada` sigue exigiendo cero pendientes |
 | `frc-mobile` (Android) tiene su propio avance | A | **N/A para mobile**: está en mantenimiento y Franco pidió desktop y PWA |
 
