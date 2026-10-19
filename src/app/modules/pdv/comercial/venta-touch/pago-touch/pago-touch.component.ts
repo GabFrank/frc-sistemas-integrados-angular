@@ -103,6 +103,8 @@ import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../..
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
+import { ConfiguracionCobroService } from "../../../../financiero/configuracion-cobro/configuracion-cobro.service";
+import { aumentoPermitido, ConfiguracionCobro, mensajeTopeAumento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
 import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -178,6 +180,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * en `true` si la consulta falla (filial sin V104.5): el lado seguro. Ver `lineasTarjetaSinTerminal`.
    */
   terminalObligatoria = true;
+  /**
+   * Tope del aumento (#546), del filial. `null` mientras carga o si la consulta falla: `aumentoPermitido`
+   * lo lee como tope del 20%, nunca como «sin tope».
+   */
+  configCobro: ConfiguracionCobro = null;
   /** Decimales por moneda, para escalar el importe del cupón (viene en la menor unidad). */
   decimalesPorMoneda: DecimalesPorMoneda = {};
 
@@ -229,7 +236,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
     private ventaTarjetaService: VentaTarjetaService,
     private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private configuracionCobroService: ConfiguracionCobroService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -277,6 +285,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.configuracionVentaTarjetaService.onGetTerminalObligatoria(false).subscribe({
       next: (valor) => (this.terminalObligatoria = valor),
       error: () => (this.terminalObligatoria = true),
+    });
+    // Sin barrera ni aviso: si no responde (filial viejo o sin red), rige el 20%.
+    this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
+      next: (config) => (this.configCobro = config),
+      error: () => (this.configCobro = null),
     });
     setTimeout(() => {
       this.setFocusToValorInput();
@@ -1185,9 +1198,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
+  /** Botón «Aumento (F8)» y tecla F8: el mismo tope (#546). En guaraníes: `valor` está en la moneda elegida. */
   onAumento() {
     let valor = this.formGroup.controls.valor.value;
-    if (valor < this.data.valor * 0.5 && valor < 0) {
+    if (valor < 0) {
+      if (!aumentoPermitido(this.formGroup.controls.saldo.value, this.data.valor, this.configCobro)) {
+        this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
+        return;
+      }
       this.isAumento = true;
       this.isVuelto = false;
       this.isDescuento = false;

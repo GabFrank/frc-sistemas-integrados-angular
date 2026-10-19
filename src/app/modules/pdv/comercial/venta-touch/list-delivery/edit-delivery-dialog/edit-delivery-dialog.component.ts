@@ -6,6 +6,8 @@ import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { ConfiguracionCobroService } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.service';
+import { aumentoPermitido, ConfiguracionCobro, mensajeTopeAumento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { comparatorLike } from '../../../../../../commons/core/utils/string-utils';
@@ -64,6 +66,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   monedaVueltoControl = new FormControl(null)
   formaPagoControl = new FormControl(null)
   vueltoControl = new FormControl(null)
+  /** Tope del aumento (#546). `null` mientras carga o si falla: `aumentoPermitido` lo lee como 20%. */
+  configCobro: ConfiguracionCobro = null;
   vueltoParaControl = new FormControl(null)
   telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(8)])
   vehiculoControl = new FormControl()
@@ -143,6 +147,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     private matDialog: MatDialog,
     private ventaService: VentaService,
     private notificacionSnackbar: NotificacionSnackbarService,
+    private configuracionCobroService: ConfiguracionCobroService,
   ) {
     
     this.selectedDelivery = data?.delivery;
@@ -167,6 +172,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.cargarPrecios();
+    // Tope del aumento (#546), del filial. Si no responde, `configCobro` queda en null: tope del 20%.
+    this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
+      next: (config) => (this.configCobro = config),
+      error: () => (this.configCobro = null),
+    });
 
     this.precioSub = this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.precioControl.dirty) {
@@ -875,7 +885,12 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let valor =
       this.vueltoControl.value;
-    if (valor < total * 0.5 && valor < 0) {
+    if (valor < 0) {
+      // En guaraníes con el saldo: `vueltoControl` está en la moneda elegida.
+      if (!aumentoPermitido(this.saldoControl.value, total, this.configCobro)) {
+        this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
+        return;
+      }
       this.isAumento = true;
       this.isVuelto = false;
       this.isDescuento = false;
