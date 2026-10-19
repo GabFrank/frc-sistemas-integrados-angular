@@ -107,6 +107,34 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
     expect(esEnvioAFilialSinConfirmar(null)).toBeFalse();
     expect(esEnvioAFilialSinConfirmar(new Error(PREFIJO + 'Error del servidor filial: x'))).toBeFalse();
   });
+
+  // #425: el central marca el error; el código manda sobre el texto en los dos sentidos.
+  const conCodigo = (codigo: string, texto: string) => [{ message: PREFIJO + texto, extensions: { codigo } }];
+
+  it('FILIAL_SIN_CONFIRMAR: sin confirmar aunque el texto parezca un rechazo', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('FILIAL_SIN_CONFIRMAR', 'Error al crear factura legal: x'))).toBeTrue();
+  });
+
+  it('FILIAL_RECHAZO: rechazo aunque el texto diga error de conexión (conexión rechazada)', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('FILIAL_RECHAZO',
+      'Error al conectar con el servidor filial: I/O error on POST request: Connection refused'))).toBeFalse();
+  });
+
+  it('un código que no es de esta mutation se ignora y decide el texto', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('OTRO', 'Error del servidor filial: x'))).toBeTrue();
+    expect(esEnvioAFilialSinConfirmar(conCodigo('OTRO', 'Error al crear factura legal: x'))).toBeFalse();
+  });
+
+  it('sin código ni prefijo del central (falló fuera de su catch): sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([{ message: 'could not commit JPA transaction' }])).toBeTrue();
+  });
+
+  it('un rechazo del central junto a un error sin código ni prefijo: sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([
+      ...con('Error al crear factura legal: x'),
+      { message: 'could not commit JPA transaction' },
+    ])).toBeTrue();
+  });
 });
 
 describe('avisoTrasMutacion (#488)', () => {

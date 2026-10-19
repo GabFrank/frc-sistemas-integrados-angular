@@ -7,17 +7,22 @@ número del timbrado y genera el DE.
 
 ## Cómo llega un fallo
 
-El central devuelve **todo** fallo con la forma de un rechazo: un error GraphQL
-`"Error al crear factura en servidor filial: <motivo>"` (`FacturaLegalGraphQL.saveFacturaLegalToFilial`). El
-motivo lo arma `FacturaLegalFilialService.crearFacturaLegalEnFilial`:
+Todo fallo llega como un error GraphQL `"Error al crear factura en servidor filial: <motivo>"`
+(`FacturaLegalGraphQL.saveFacturaLegalToFilial`). Desde central#425 trae además `extensions.codigo`, que dice si la
+factura pudo haberse emitido. El motivo y el código los arma `FacturaLegalFilialService.crearFacturaLegalEnFilial`:
 
-| Texto después del prefijo | Origen | ¿Pudo emitirse? |
+| Texto después del prefijo | Origen | `extensions.codigo` |
 |---|---|---|
-| `Error al crear factura legal: …` | 4xx del filial (validación previa: timbrado no disponible, `TIMBRADO_SIN_TELEFONO`, `FACTURA_NO_EMITIBLE`, sin sucursal) | no |
-| `Error del servidor filial: …` | 5xx del filial | casi nunca (el guardado es una transacción y SIFEN se captura adentro), pero en `release/beta` y `master` del filial una validación por `GraphQLException` también sale como 500 |
-| `Error al conectar con el servidor filial: …` | `RestClientException`: filial caído, o corte de lectura a los 30 s del `RestTemplate` del central | **sí**: en el corte el filial sigue y commitea |
-| `Error al crear factura en servidor filial. Código: …` | el filial respondió sin error pero no 201 | sí |
-| `Sucursal no encontrada…`, `La sucursal no tiene IP configurada` | el central falla antes de enviar | no |
+| `Error al crear factura legal: …` | 4xx del filial (validación previa: timbrado no disponible, `TIMBRADO_SIN_TELEFONO`, `FACTURA_NO_EMITIBLE`, sin sucursal). El filial deshace la transacción antes del 400 | `FILIAL_RECHAZO` |
+| `Sucursal no encontrada…`, `La sucursal no tiene IP configurada`, `Error al preparar la petición…` | el central falla antes de enviar | `FILIAL_RECHAZO` |
+| `Error al conectar con el servidor filial: …` con causa `ConnectException`, `NoRouteToHostException` o `UnknownHostException` | el pedido no salió (puerto cerrado con el host vivo) | `FILIAL_RECHAZO` |
+| `Error al conectar con el servidor filial: …` con otra causa | corte por tiempo (de conexión a los 10 s o de lectura a los 30 s: con `SimpleClientHttpRequestFactory` solo los separa el texto), conexión cortada, cuerpo del 201 ilegible | `FILIAL_SIN_CONFIRMAR`: en el corte de lectura el filial sigue y commitea |
+| `Error del servidor filial: …` | 5xx del filial | `FILIAL_SIN_CONFIRMAR` |
+| `Error al crear factura en servidor filial. Código: …` | el filial respondió sin error pero no 201 | `FILIAL_SIN_CONFIRMAR` |
+| cualquier otro | excepción que el servicio no clasificó | `FILIAL_SIN_CONFIRMAR` |
+
+La regla «`ConnectException` = no salió» depende de que el `RestTemplate` del central (`FrancoSystemsApplication`)
+tenga `outputStreaming` prendido: sin streaming, `HttpURLConnection` reintenta el POST por dentro.
 
 ## Qué hace el diálogo (#471)
 
@@ -28,9 +33,12 @@ motivo lo arma `FacturaLegalFilialService.crearFacturaLegalEnFilial`:
   si se emitió antes de volver a intentar.»
 - `alResponderElEnvioAFilial`: sin `facturaId` también es «no se pudo confirmar».
 
-`esEnvioAFilialSinConfirmar` (`commons/core/utils/graphqlErrorUtils.ts`) reconoce el texto del central anclado a
-su prefijo. Si el central cambia esos textos, devuelve false y el diálogo vuelve a tratar todo como rechazo. La
-solución de fondo (un código en `extensions` del error) está en GabFrank/franco-system-backend-servidor#425.
+`esEnvioAFilialSinConfirmar` (`commons/core/utils/graphqlErrorUtils.ts`) decide en este orden:
+
+1. `extensions.codigo` `FILIAL_SIN_CONFIRMAR` → sin confirmar; `FILIAL_RECHAZO` → rechazo. Otros códigos se ignoran.
+2. Sin código y con el prefijo del central (central anterior a #425): el texto, anclado al prefijo.
+3. Sin código ni prefijo (el central falló fuera de su `catch`, por ejemplo al commitear después del 201): sin
+   confirmar.
 
 Es el mismo criterio que el camino de la venta (`alResponderLaEmision`, #470/#478): ante la duda no se libera el
 botón sin avisar, y nada se reintenta solo.
