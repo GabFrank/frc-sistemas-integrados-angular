@@ -18,6 +18,26 @@ export function facturaActiva(factura: FacturaLegal): boolean {
   return factura?.activo !== false;
 }
 
+/** Clase del badge de estado (colores en el scss de quien lo muestra): el listado y el diálogo de edición. */
+export function claseEstadoFactura(factura: FacturaLegal): string {
+  if (!esFacturaElectronica(factura)) {
+    return facturaActiva(factura) ? 'estado-activo' : 'estado-inactivo';
+  }
+  switch (factura.documentoElectronico?.estado) {
+    case EstadoDE.APROBADO:
+      return 'estado-aprobado';
+    case EstadoDE.PENDIENTE:
+    case EstadoDE.EN_LOTE:
+      return 'estado-pendiente';
+    case EstadoDE.RECHAZADO:
+      return 'estado-rechazado';
+    case EstadoDE.CANCELADO:
+      return 'estado-cancelado';
+    default:
+      return 'estado-default';
+  }
+}
+
 /**
  * Electrónica: solo con el documento APROBADO, que es lo único que SIFEN deja cancelar. No se mira
  * `activo`: una factura pendiente o rechazada también lo tiene en true.

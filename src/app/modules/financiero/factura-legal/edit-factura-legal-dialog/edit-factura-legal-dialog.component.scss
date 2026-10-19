@@ -146,3 +146,27 @@ mat-dialog-actions {
     color: #81c784;
   }
 }
+
+// Estado en color, sin badge: mismos tonos que el listado; cancelado más claro para leerse sobre #444
+.estado-texto {
+  font-weight: 600;
+
+  &.estado-aprobado,
+  &.estado-activo {
+    color: #4caf50;
+  }
+
+  &.estado-pendiente {
+    color: #ff9800;
+  }
+
+  &.estado-rechazado,
+  &.estado-inactivo {
+    color: #f44336;
+  }
+
+  &.estado-cancelado,
+  &.estado-default {
+    color: #9e9e9e;
+  }
+}
