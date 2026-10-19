@@ -203,6 +203,8 @@ export class EditTransferenciaComponent implements OnInit {
   isDestino = false;
   // Conectado al central la sucursal actual es la "SERVIDOR" (id 0), que nunca es el origen.
   puedePrepararEnvio = false;
+  /** Compras avanza cualquier etapa sin importar sucursal ni responsable (ADMIN entra por tieneAlgunRol). */
+  esCompras = false;
   isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
@@ -265,6 +267,7 @@ export class EditTransferenciaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.esCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
     this.selectedTransferencia = new Transferencia();
     this.dataSource.data = [];
     this.etapaList = Object.values(EtapaTransferencia);
@@ -471,6 +474,7 @@ export class EditTransferenciaComponent implements OnInit {
       this.selectedTransferencia?.sucursalDestino?.id ==
       this.mainService?.sucursalActual?.id;
     this.puedePrepararEnvio =
+      this.esCompras ||
       this.isOrigen ||
       this.mainService?.isServidor ||
       this.mainService?.sucursalActual?.id == 0;
@@ -654,6 +658,7 @@ export class EditTransferenciaComponent implements OnInit {
     // En verificacion para transporte el responsable es el chofer elegido, que no suele ser quien
     // esta en la pantalla: revisar los items y despachar lo puede hacer cualquiera, igual que en la PWA.
     this.puedeEditar =
+      this.esCompras ||
       this.isTransporteVerificacion ||
       this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
       this.selectedResponsable?.id == null;

@@ -170,13 +170,13 @@
             Iniciar transporte
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && isDestino">
+        <div fxFlex="15%" *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && (isDestino || esCompras)">
           <button style="width: 100%" mat-raised-button color="accent"
             (click)="onAvanzarEtapa('RECEPCION_EN_VERIFICACION')">
             Iniciar Recepción
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar">
+        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && (isDestino || esCompras) && puedeEditar">
           <button style="width: 100%" mat-raised-button color="accent" (click)="onAvanzarEtapa('RECEPCION_CONCLUIDA')"
             [disabled]="!isAllConfirmedRecepcion">
             Finalizar
