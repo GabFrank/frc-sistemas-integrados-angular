@@ -19,6 +19,18 @@ import { facturaActiva } from '../factura-legal-estado';
 import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
+/**
+ * Un cliente va a SIFEN como innominado si no tiene persona, se llama «SIN NOMBRE» o no tiene documento
+ * (misma regla que SifenReceptorHelper del central). Hasta 09/2026 las innominadas se emitían con el
+ * cliente 0 «SIN NOMBRE», así que tener cliente no quiere decir estar nominada.
+ */
+export function esClienteInnominado(cliente: Cliente): boolean {
+  const persona = cliente?.persona;
+  const nombre = (persona?.nombre || '').trim().toUpperCase();
+  const documento = (persona?.documento || '').trim();
+  return !persona || nombre === '' || nombre === 'SIN NOMBRE' || documento === '' || documento === '0';
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-edit-factura-legal-dialog',
@@ -123,15 +135,10 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     // Es electrónica si tiene CDC
     this.esElectronicaComputed = !!(this.factura.cdc && this.factura.cdc.trim().length > 0);
     
-    // Es innominada si no tiene cliente
-    this.esInnominadaComputed = !this.factura.cliente;
-    
-    // Validación para edición
-    if (this.esElectronicaComputed && this.factura.nombre !== 'SIN NOMBRE') {
-      this.puedeEditarComputed = false;
-    } else {
-      this.puedeEditarComputed = true;
-    }
+    this.esInnominadaComputed = esClienteInnominado(this.factura.cliente);
+
+    // Una electrónica solo se abre para nominarla; la de papel se edita siempre
+    this.puedeEditarComputed = !this.esElectronicaComputed || this.esInnominadaComputed;
     
     // Tipo de factura display
     this.tipoFacturaDisplayComputed = this.esElectronicaComputed ? 'Electrónica' : 'Papel';
@@ -312,6 +319,16 @@ export class EditFacturaLegalDialogComponent implements OnInit {
       return;
     }
 
+    // Una electrónica no se edita: se nomina, y la factura toma el cliente cuando SIFEN aprueba (#433)
+    if (this.esElectronicaComputed) {
+      if (!this.selectedCliente?.id || esClienteInnominado(this.selectedCliente)) {
+        this.notificacionSnackbar.openWarn('Elegí un cliente identificado para nominar la factura.', 6);
+        return;
+      }
+      this.nominarFactura(this.selectedCliente.id, this.cargandoService.openDialog().requestId);
+      return;
+    }
+
     if (this.formGroup.invalid) {
       this.notificacionSnackbar.openAlgoSalioMal('Por favor complete los campos requeridos');
       return;
@@ -334,14 +351,9 @@ export class EditFacturaLegalDialogComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (updatedFactura) => {
-            // If electronic and we assigned a cliente, nominate
-            if (this.esElectronicaComputed && input.clienteId && !this.factura.cliente) {
-              this.nominarFactura(input.clienteId, requestId);
-            } else {
-              this.cargandoService.closeDialog(requestId);
-              this.notificacionSnackbar.openGuardadoConExito();
-              this.dialogRef.close(updatedFactura);
-            }
+            this.cargandoService.closeDialog(requestId);
+            this.notificacionSnackbar.openGuardadoConExito();
+            this.dialogRef.close(updatedFactura);
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
@@ -371,9 +383,10 @@ export class EditFacturaLegalDialogComponent implements OnInit {
         next: (success) => {
           this.cargandoService.closeDialog(requestId);
           if (success) {
-            this.notificacionSnackbar.openSucess('Factura actualizada y nominada correctamente');
+            this.notificacionSnackbar.openSucess('Factura nominada en SIFEN');
           } else {
-            this.notificacionSnackbar.openWarn('Factura actualizada pero no se pudo nominar');
+            this.notificacionSnackbar.openWarn(
+              'SIFEN recibió la nominación pero todavía no la aprobó: revisá antes de repetir.', 8);
           }
           this.dialogRef.close(true);
         },
@@ -382,10 +395,10 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           console.error('Error nominando factura:', err);
           // El motivo de un rechazo ya lo mostró el genérico; sin respuesta no se sabe qué hizo SIFEN (#488)
           if (erroresDeRechazo(err) != null) {
-            this.notificacionSnackbar.openWarn('Factura actualizada, pero no se nominó.', 8);
+            this.notificacionSnackbar.openWarn('No se nominó la factura.', 8);
           } else if (!esTimeoutDeLink(err)) {
             this.notificacionSnackbar.openWarn(
-              'Factura actualizada, pero no se pudo confirmar si se nominó en SIFEN: revisá antes de repetir.', 8);
+              'No se pudo confirmar si se nominó en SIFEN: revisá antes de repetir.', 8);
           }
           this.dialogRef.close(true);
         }
