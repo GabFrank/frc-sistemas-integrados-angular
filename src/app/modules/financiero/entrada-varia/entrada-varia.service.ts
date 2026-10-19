@@ -6,8 +6,15 @@ import { PageInfo } from '../../../app.component';
 import { EntradaVaria, EntradaVariaCategoria } from './entrada-varia.model';
 import { EntradasVariasGQL } from './graphql/entradasVarias';
 import { EntradaVariaCategoriasGQL } from './graphql/entradaVariaCategorias';
-import { RegistrarEntradaVariaGQL } from './graphql/registrarEntradaVaria';
+import { RegistrarEntradaVariaGQL, RegistrarEntradaVariaSinClaveGQL } from './graphql/registrarEntradaVaria';
+import { centralNoConoceLaClave, conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../commons/core/utils/claveIdempotencia';
 import { AnularEntradaVariaGQL } from './graphql/anularEntradaVaria';
+
+/** Un alta de entrada o salida varia lista para enviar: el input ya armado y la clave de ese intento. */
+export interface PedidoDeEntradaVaria {
+  input: any;
+  claveIdempotencia: string;
+}
 
 /** Listados y catálogos con un solo suscriptor por método, que maneja el error (#390). */
 const CONSULTA_ENTRADAS: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
@@ -23,6 +30,7 @@ export class EntradaVariaService {
     private categoriasGQL: EntradaVariaCategoriasGQL,
     private registrarGQL: RegistrarEntradaVariaGQL,
     private anularGQL: AnularEntradaVariaGQL,
+    private registrarSinClaveGQL: RegistrarEntradaVariaSinClaveGQL,
   ) { }
 
   onGetEntradasVarias(cajaVirtualId: number, page = 0, size = 10): Observable<PageInfo<EntradaVaria>> {
@@ -35,13 +43,18 @@ export class EntradaVariaService {
       CONSULTA_ENTRADAS);
   }
 
-  onRegistrar(entradaVaria: EntradaVaria, opciones?: { avisarExito?: boolean }): Observable<EntradaVaria> {
-    let aux = entradaVaria;
-    if (!(entradaVaria instanceof EntradaVaria)) {
-      aux = new EntradaVaria();
-      Object.assign(aux, entradaVaria);
-    }
-    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() }, true, opciones);
+  /**
+   * Registra el pedido tal como viene: el input ya armado y su clave, para que un reintento mande exactamente
+   * lo mismo. `opciones.sinClave` avisa si el central no conoce la clave (se registró —o se intentó— sin ella).
+   */
+  onRegistrar(pedido: PedidoDeEntradaVaria, opciones?: { avisarExito?: boolean } & OpcionesDePedidoConClave): Observable<EntradaVaria> {
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.genericService.onSaveCustom<EntradaVaria>(this.registrarGQL,
+          { input: pedido.input, claveIdempotencia: pedido.claveIdempotencia }, true,
+          { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceLaClave })
+      : this.genericService.onSaveCustom<EntradaVaria>(this.registrarSinClaveGQL, { input: pedido.input }, true,
+          { avisarExito: opciones?.avisarExito }),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   onAnular(id: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<EntradaVaria> {

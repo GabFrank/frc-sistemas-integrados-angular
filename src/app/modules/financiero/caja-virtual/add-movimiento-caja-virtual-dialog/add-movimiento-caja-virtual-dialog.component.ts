@@ -2,9 +2,11 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { enviarEnSerie, resumirLote } from '../enviar-en-serie';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { MontoCajaVirtual, PedidoDeMovimientos } from '../pedido-en-lote';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
-import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual } from '../caja-virtual.model';
+import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Moneda } from '../../moneda/moneda.model';
@@ -43,6 +45,12 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
 
   isSaving = false;
   titulo: string = 'Movimiento';
+
+  /** El pedido que quedó sin respuesta. Mientras exista solo se puede reenviarlo o cerrar. */
+  private pedidoPendiente: PedidoDeMovimientos | null = null;
+  /** Espejos de `pedidoPendiente` para el template (campos, no getters). */
+  hayPendiente = false;
+  pendienteDescripcion = '';
 
   tipoLabels = {
     [CajaVirtualTipoMovimiento.INGRESO]: 'Ingreso de Efectivo',
@@ -83,9 +91,8 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
   }
 
   onSave() {
+    if (this.hayPendiente || this.isSaving) return;
     if (this.formGroup.invalid) return;
-
-    const items: { cantidad: number; moneda: Moneda }[] = [];
 
     const amtGs = this.cantidadGsControl.value;
     const amtRs = this.cantidadRsControl.value;
@@ -108,51 +115,89 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
       }
     }
 
-    if (amtGs > 0 && this.monedaGs) items.push({ cantidad: amtGs, moneda: this.monedaGs });
-    if (amtRs > 0 && this.monedaRs) items.push({ cantidad: amtRs, moneda: this.monedaRs });
-    if (amtDs > 0 && this.monedaDs) items.push({ cantidad: amtDs, moneda: this.monedaDs });
+    // AJUSTE respeta el signo: un ajuste de egreso resta (monto negativo).
+    const esAjusteEgreso = this.data.tipoMovimiento === CajaVirtualTipoMovimiento.AJUSTE && this.data.esEgreso;
+    const montos: MontoCajaVirtual[] = [];
+    const nombres: string[] = [];
+    const agregar = (cantidad: number, moneda: Moneda) => {
+      if (!(cantidad > 0) || !moneda) return;
+      montos.push({ monedaId: moneda.id, cantidad: esAjusteEgreso ? -Math.abs(cantidad) : cantidad });
+      nombres.push(moneda.denominacion);
+    };
+    agregar(amtGs, this.monedaGs);
+    agregar(amtRs, this.monedaRs);
+    agregar(amtDs, this.monedaDs);
 
-    if (items.length === 0) return;
+    if (montos.length === 0) return;
 
+    // Un solo pedido con todas las monedas: el central lo registra entero o no lo registra. Antes iba uno por
+    // moneda y un rechazo de la segunda dejaba la primera adentro. Una clave por cada «Confirmar»; el pedido se
+    // guarda entero, con ella, para poder reenviarlo idéntico.
+    this.pendienteDescripcion = nombres.join(', ');
+    this.enviar({
+      cajaVirtualId: this.data.cajaVirtual.id,
+      tipoMovimiento: this.data.tipoMovimiento,
+      montos,
+      descripcion: this.descripcionControl.value?.toUpperCase() || null,
+      claveIdempotencia: nuevaClaveIdempotencia(),
+    }, false);
+  }
+
+  /**
+   * Reenvía el pedido que quedó sin respuesta, idéntico y con su misma clave: si el central ya lo había
+   * registrado no lo repite, y si no, lo registra ahora (franco-system-backend-servidor#376).
+   */
+  reenviar() {
+    if (!this.pedidoPendiente || this.isSaving) return;
+    this.enviar(this.pedidoPendiente, true);
+  }
+
+  private enviar(pedido: PedidoDeMovimientos, esReenvio: boolean) {
     this.isSaving = true;
     // Mientras se guarda no se cierra (ni Esc ni clic afuera): quien abrió el diálogo no refrescaría la caja.
     this.dialogRef.disableClose = true;
-    enviarEnSerie(items, it => this.createSaveObs(it.cantidad, it.moneda))
-      .pipe(untilDestroyed(this))
-      .subscribe(resultados => {
+    // Sin «Guardado con éxito» genérico: el aviso lo da este diálogo.
+    this.cajaVirtualService.onRegistrarMovimientos(pedido, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
         this.isSaving = false;
-        this.dialogRef.disableClose = false;
-        const resumen = resumirLote(resultados, it => it.moneda.denominacion);
-        if (resumen.todoOk) {
-          this.notificacion.openSucess('Movimientos registrados correctamente');
-          this.dialogRef.close(true);
+        if (res == null) { this.quedoSinConfirmar(pedido, true); return; }
+        this.notificacion.openSucess('Movimientos registrados correctamente');
+        this.dialogRef.close(true);
+      },
+      error: err => {
+        this.isSaving = false;
+        if (erroresDeRechazo(err)) {
+          // El central dijo que no, y como es todo o nada no quedó ninguna moneda adentro (el motivo ya lo
+          // mostró onSaveCustom). Queda el formulario para corregir; el próximo intento sale con otra clave.
+          this.pedidoPendiente = null;
+          this.hayPendiente = false;
+          this.dialogRef.disableClose = false;
           return;
         }
-        // Rechazo de la primera moneda: no se registró nada (el motivo ya lo mostró onSaveCustom) y se
-        // puede corregir y reintentar.
-        if (resumen.nadaCambio) return;
-        // Algo se registró o quedó en duda: con el formulario abierto, reintentar repetiría lo que ya entró.
-        // Se cierra y la caja se relee. Si fue una sola moneda y la cortó el link, su aviso ya lo dijo.
-        const soloElCorteDelLink = resultados.length === 1 && esTimeoutDeLink(resultados[0].error);
-        if (!soloElCorteDelLink) this.notificacion.openWarn(resumen.texto, 12);
-        this.dialogRef.close(true);
-      });
+        // El corte del link ya avisó que pudo haberse aplicado.
+        this.quedoSinConfirmar(pedido, !esTimeoutDeLink(err) || esReenvio);
+      },
+    });
   }
 
-  createSaveObs(cantidad: number, moneda: Moneda) {
-    const movimiento = new MovimientoCajaVirtual();
-    movimiento.cajaVirtual = this.data.cajaVirtual;
-    movimiento.tipoMovimiento = this.data.tipoMovimiento;
-    // AJUSTE respeta el signo: un ajuste de egreso resta (monto negativo).
-    const esAjusteEgreso = this.data.tipoMovimiento === CajaVirtualTipoMovimiento.AJUSTE && this.data.esEgreso;
-    movimiento.cantidad = esAjusteEgreso ? -Math.abs(cantidad) : cantidad;
-    movimiento.moneda = moneda;
-    movimiento.descripcion = this.descripcionControl.value?.toUpperCase();
-    movimiento.usuario = this.mainService.usuarioActual;
-    movimiento.activo = true;
+  /**
+   * El pedido pudo haberse registrado. El diálogo queda abierto solo para reenviarlo (seguro, por la clave) o
+   * cerrar: no se vuelve al formulario, porque un pedido nuevo saldría con otra clave y se sumaría a este.
+   * `disableClose` sigue en true: Esc y el clic afuera cerrarían sin que la caja se relea.
+   */
+  private quedoSinConfirmar(pedido: PedidoDeMovimientos, avisar: boolean) {
+    this.pedidoPendiente = pedido;
+    this.hayPendiente = true;
+    if (avisar) {
+      this.notificacion.openWarn('No se pudo confirmar si el movimiento se registró: podés reintentar sin riesgo de repetirlo.', 8);
+    }
+  }
 
-    // Cada movimiento del lote va sin «Guardado con éxito»: el aviso agregado lo da onSave.
-    return this.cajaVirtualService.onSaveMovimiento(movimiento, { avisarExito: false });
+  /** Cierra con el pedido sin confirmar. Cierra con `true` para que la caja se relea. */
+  cerrarSinConfirmar() {
+    if (this.isSaving) return;
+    this.notificacion.openWarn('No se pudo confirmar si el movimiento se registró: revisá los movimientos de la caja antes de cargarlo de nuevo.', 12);
+    this.dialogRef.close(true);
   }
 
   onCancel() {

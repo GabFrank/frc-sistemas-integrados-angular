@@ -1,3 +1,4 @@
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import {
   Component,
   Inject,
@@ -27,6 +28,8 @@ import { MainService } from "../../../../main.service";
 export interface EditProveedorData {
   proveedor?: Proveedor;
   isEditing?: boolean;
+  /** Alta desde Personas («Crear proveedor»): la persona ya elegida. */
+  persona?: Persona;
 }
 
 export interface EditProveedorResult {
@@ -143,6 +146,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
             else this.loadExistingProveedorData();
           }
         });
+    } else if (this.data?.persona != null) {
+      this.onSelectPersona(this.data.persona);
     } else {
       this.loadExistingProveedorData();
     }
@@ -294,10 +299,16 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.documentVerificationMessage = "Verificando documento...";
     this.cdr.markForCheck();
     this.personaService
-      .onGetPorDocumento(documento.trim())
+      .onGetPorDocumento(documento.trim(), true, LECTURA_ESTRICTA)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
+          // Es la persona ya elegida (de la lista o de Personas): no se pregunta si usarla.
+          if (persona?.id != null && persona.id == this.selectedPersona?.id) {
+            this.clearDocumentVerification();
+            this.cdr.markForCheck();
+            return;
+          }
           if (persona?.id) {
             this.foundPersona = persona;
             this.documentVerificationState = "found";
@@ -321,7 +332,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
           }
           this.cdr.markForCheck();
         },
-        // No se pudo consultar: no es «documento disponible» (#390).
+        // No se pudo consultar (red o rechazo del servidor): no es «documento disponible» (#390).
         error: () => {
           this.foundPersona = null;
           this.documentVerificationState = "unverified";

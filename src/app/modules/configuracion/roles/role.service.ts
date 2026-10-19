@@ -1,10 +1,12 @@
 import { Injectable, Injector } from '@angular/core';
 import { Observable } from 'rxjs';
+import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { DeleteRoleGQL } from './graphql/deleteRole';
 import { DeleteUsuarioRoleGQL } from './graphql/deleteUsuarioRole';
 import { RoleByIdGQL } from './graphql/roleById';
 import { RolesGQL } from './graphql/rolesQuery';
+import { RolesPaginatedGQL } from './graphql/rolesPaginated';
 import { SaveRoleGQL } from './graphql/saveRole';
 import { SaveUsuarioRoleGQL } from './graphql/saveUsuarioRole';
 import { SaveUsuarioRoleListGQL } from './graphql/saveUsuarioRoleList';
@@ -21,6 +23,7 @@ export class RoleService {
   constructor(
     private getRole: RoleByIdGQL,
     private getRoles: RolesGQL,
+    private getRolesPaginated: RolesPaginatedGQL,
     private saveRole: SaveRoleGQL,
     private deleteRole: DeleteRoleGQL,
     private getUsuarioRolePorUsuarioId: UsuarioRolePorUsuarioIdGQL,
@@ -38,6 +41,10 @@ export class RoleService {
 
   onGetRoles(page?, size?): Observable<Role[]> {
     return this.genericCrud.onGetAll(this.getRoles, page, size)
+  }
+
+  onGetRolesPaginated(texto: string, page: number, size: number): Observable<PageInfo<Role>> {
+    return this.genericCrud.onCustomQuery(this.getRolesPaginated, { texto, page, size })
   }
 
   onSaveRole(input): Observable<Role> {

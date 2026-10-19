@@ -202,18 +202,24 @@ export class VehiculoService {
 
   onFiltrarModelos(texto: string): Observable<Modelo[]> {
     return new Observable(obs => {
-      this.genericService.onCustomQuery(this.modeloSearchPageGQL, { texto, page: 0, size: 500 }).subscribe(res => {
-        obs.next(res?.getContent || []);
-        obs.complete();
+      this.genericService.onCustomQuery(this.modeloSearchPageGQL, { texto, page: 0, size: 500 }).subscribe({
+        next: res => {
+          obs.next(res?.getContent || []);
+          obs.complete();
+        },
+        error: err => obs.error(err)
       });
     });
   }
 
   onFiltrarTipos(texto: string): Observable<TipoVehiculo[]> {
     return new Observable(obs => {
-      this.genericService.onCustomQuery(this.tipoVehiculoSearchPageGQL, { texto, page: 0, size: 500 }).subscribe(res => {
-        obs.next(res?.getContent || []);
-        obs.complete();
+      this.genericService.onCustomQuery(this.tipoVehiculoSearchPageGQL, { texto, page: 0, size: 500 }).subscribe({
+        next: res => {
+          obs.next(res?.getContent || []);
+          obs.complete();
+        },
+        error: err => obs.error(err)
       });
     });
   }

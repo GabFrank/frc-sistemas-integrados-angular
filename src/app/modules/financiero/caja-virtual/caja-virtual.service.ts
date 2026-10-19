@@ -16,11 +16,19 @@ import { OtorgarAccesoCajaGQL } from './graphql/otorgarAccesoCaja';
 import { RevocarAccesoCajaGQL } from './graphql/revocarAccesoCaja';
 import { TransferirPropiedadCajaGQL } from './graphql/transferirPropiedadCaja';
 import { SaveMovimientoCajaVirtualGQL } from './graphql/saveMovimientoCajaVirtual';
+import { AjustarCajaVirtualPorConteoGQL } from './graphql/ajustarCajaVirtualPorConteo';
 import { MovimientosCajaVirtualGQL, MovimientosCajaVirtualPorFechaGQL } from './graphql/movimientosCajaVirtual';
-import { RealizarTransferenciaCajaVirtualGQL } from './graphql/realizarTransferenciaCajaVirtual';
+import { RealizarTransferenciasCajaVirtualGQL, RegistrarMovimientosCajaVirtualGQL } from './graphql/movimientosEnLote';
+import { PedidoDeMovimientos, PedidoDeTransferencias } from './pedido-en-lote';
 import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVirtual';
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
+import { CuentasBancariasParaDepositoGQL } from './graphql/cuentasBancariasParaDeposito';
+import {
+  CajaVirtualDestino, CajaVirtualRecibeEnviosGQL, CajasVirtualesReceptorasGQL, MarcarCajaRecibeEnviosGQL
+} from './graphql/cajaRecibeEnvios';
+import { CajaVirtualSucursales, CajaVirtualSucursalesGQL, GuardarSucursalesDeCajaGQL } from './graphql/cajaSucursales';
+import { CuentaBancaria } from '../cuenta-bancaria/cuenta-bancaria.model';
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
@@ -47,12 +55,20 @@ export class CajaVirtualService {
     private saveCajaVirtualGQL: SaveCajaVirtualGQL,
     private deleteCajaVirtualGQL: DeleteCajaVirtualGQL,
     private saveMovimientoGQL: SaveMovimientoCajaVirtualGQL,
+    private ajustarPorConteoGQL: AjustarCajaVirtualPorConteoGQL,
     private movimientosGQL: MovimientosCajaVirtualGQL,
     private movimientosPorFechaGQL: MovimientosCajaVirtualPorFechaGQL,
-    private realizarTransferenciaGQL: RealizarTransferenciaCajaVirtualGQL,
+    private registrarMovimientosGQL: RegistrarMovimientosCajaVirtualGQL,
+    private realizarTransferenciasGQL: RealizarTransferenciasCajaVirtualGQL,
     private anularMovimientoGQL: AnularMovimientoCajaVirtualGQL,
     private saldosGQL: CajaVirtualSaldosGQL,
     private resumenBancarioGQL: CajaVirtualResumenBancarioGQL,
+    private cuentasParaDepositoGQL: CuentasBancariasParaDepositoGQL,
+    private receptorasGQL: CajasVirtualesReceptorasGQL,
+    private recibeEnviosGQL: CajaVirtualRecibeEnviosGQL,
+    private marcarRecibeEnviosGQL: MarcarCajaRecibeEnviosGQL,
+    private sucursalesDeCajaGQL: CajaVirtualSucursalesGQL,
+    private guardarSucursalesDeCajaGQL: GuardarSucursalesDeCajaGQL,
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
@@ -143,6 +159,16 @@ export class CajaVirtualService {
     return this.genericService.onSaveCustom(this.saveMovimientoGQL, { input: aux.toInput() }, true, opciones);
   }
 
+  /**
+   * Ajuste por conteo: se manda el saldo que se veía y lo contado, y el central calcula la diferencia. Rechaza si
+   * el saldo ya coincide con lo contado o si cambió desde que se abrió el conteo.
+   */
+  onAjustarPorConteo(cajaVirtualId: number, monedaId: number, saldoEsperado: number, contado: number,
+                     opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {
+    return this.genericService.onSaveCustom(this.ajustarPorConteoGQL,
+      { cajaVirtualId, monedaId, saldoEsperado, contado }, true, opciones);
+  }
+
   onAnularMovimiento(id: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<MovimientoCajaVirtual> {
     return this.genericService.onSaveCustom(this.anularMovimientoGQL, { id, motivo }, true, opciones);
   }
@@ -150,6 +176,42 @@ export class CajaVirtualService {
   onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
     return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
       CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Cajas que reciben envíos de otras cajas (solo nombre y sucursal). El error de red llega al llamador. */
+  onGetReceptoras(): Observable<CajaVirtualDestino[]> {
+    return this.genericService.onCustomQuery(this.receptorasGQL, {}, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** La marca «recibe envíos» de una caja. El error de red llega al llamador. */
+  onGetRecibeEnvios(id: number): Observable<{ id: number; recibeEnvios: boolean }> {
+    return this.genericService.onCustomQuery(this.recibeEnviosGQL, { id }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Marca o desmarca la caja como receptora de envíos. El rechazo del central lo avisa el genérico. */
+  onMarcarRecibeEnvios(cajaVirtualId: number, recibe: boolean): Observable<{ id: number; recibeEnvios: boolean }> {
+    return this.genericService.onSaveCustom(this.marcarRecibeEnviosGQL, { cajaVirtualId, recibe }, true,
+      { avisarExito: false });
+  }
+
+  /** Las sucursales que cubre una caja (la propia y las adicionales). El error de red llega al llamador. */
+  onGetSucursalesDeCaja(id: number): Observable<CajaVirtualSucursales> {
+    return this.genericService.onCustomQuery(this.sucursalesDeCajaGQL, { id }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Reemplaza las sucursales adicionales de la caja. El rechazo del central lo avisa el genérico. */
+  onGuardarSucursalesDeCaja(cajaVirtualId: number, sucursalIds: number[]): Observable<CajaVirtualSucursales> {
+    return this.genericService.onSaveCustom(this.guardarSucursalesDeCajaGQL, { cajaVirtualId, sucursalIds }, true,
+      { avisarExito: false });
+  }
+
+  /** Cuentas habilitadas como destino de un depósito desde la caja. El error de red llega al llamador. */
+  onGetCuentasParaDeposito(cajaVirtualId: number): Observable<CuentaBancaria[]> {
+    return this.genericService.onCustomQuery(this.cuentasParaDepositoGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED,
+      undefined, CONSULTA_CAJA_MAYOR);
   }
 
   onGetResumenBancario(cajaVirtualId: number): Observable<CuentaBancariaResumen[]> {
@@ -207,10 +269,16 @@ export class CajaVirtualService {
     return this.genericService.onSaveCustom(this.saveConfiguracionGQL, { input }, true, opciones);
   }
 
-  onRealizarTransferencia(origenId: number, destinoId: number, cantidad: number, monedaId: number, descripcion?: string, usuarioId?: number,
-                          opciones?: { avisarExito?: boolean }): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.realizarTransferenciaGQL, {
-      origenId, destinoId, cantidad, monedaId, descripcion, usuarioId
-    }, true, opciones);
+  /**
+   * Ingreso, egreso o ajuste en una o más monedas, en un solo pedido: entra todo o no entra nada. El usuario
+   * lo pone el central (el de la sesión).
+   */
+  onRegistrarMovimientos(pedido: PedidoDeMovimientos, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.registrarMovimientosGQL, pedido, true, opciones);
+  }
+
+  /** Transferencia entre dos cajas en una o más monedas, en un solo pedido: todo o nada. */
+  onRealizarTransferencias(pedido: PedidoDeTransferencias, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.realizarTransferenciasGQL, pedido, true, opciones);
   }
 }

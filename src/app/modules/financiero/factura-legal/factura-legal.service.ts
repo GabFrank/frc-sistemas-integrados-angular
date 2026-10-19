@@ -32,6 +32,7 @@ import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
 import { SaveFacturaLegalToFilialGQL, SaveFacturaLegalToFilialResponse } from "./graphql/saveFacturaLegalToFilial";
 import { DescargarXmlFacturaElectronicaGQL } from "./graphql/descargarXmlFacturaElectronica";
 import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFacturaElectronica";
+import { EnviarFacturaLegalPorCorreoGQL } from "./graphql/enviarFacturaLegalPorCorreo";
 import { ImprimirTicketFacturaEnImpresoraGQL } from "./graphql/imprimirTicketFacturaEnImpresora";
 import { ImprimirPdfFacturaEnImpresoraGQL } from "./graphql/imprimirPdfFacturaEnImpresora";
 import { VincularFacturaLegalAVentaGQL } from "./graphql/vincularFacturaLegalAVenta";
@@ -68,6 +69,7 @@ export class FacturaLegalService {
     private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL,
     private imprimirTicketFacturaEnImpresoraGQL: ImprimirTicketFacturaEnImpresoraGQL,
     private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL,
+    private enviarFacturaLegalPorCorreoGQL: EnviarFacturaLegalPorCorreoGQL,
     private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL,
     private facturaSimilarRecienteGQL: FacturaSimilarRecienteGQL,
     private impresionPos: ImpresionPosService
@@ -128,11 +130,16 @@ export class FacturaLegalService {
     );
   }
 
+  /**
+   * Emite `{ data }` con el timbrado si se guardó, o `{ error }`: un rechazo del servidor
+   * (`esRechazoDelServidor`, no hay factura y el motivo ya se avisó) o un «sin respuesta», en el que
+   * la factura pudo haberse emitido. Si llegan `error` y `data` juntos también es incierto (#470).
+   */
   onSaveFactura(
     input: FacturaLegalInput,
     facturaLegalItemInputList: FacturaLegalItemInput[],
     servidor: boolean = true
-  ): Observable<any> {
+  ): Observable<{ data?: TimbradoDetalle; error?: any }> {
     if (input?.nombre != null) input.nombre = input.nombre.toUpperCase();
     if (this.impresionPos.porCliente(servidor)) {
       // "Imprimir desde esta PC": sin printerName la filial guarda y no imprime (saveFacturaLegal
@@ -143,11 +150,11 @@ export class FacturaLegalService {
         facturaLegalItemInputList,
         null,
         null,
-        this.configService?.getConfig()?.pdvId, servidor
+        this.configService?.getConfig()?.pdvId, servidor, true
       ).pipe(
-        tap((res) => {
-          if (res?.facturaLegalId != null) {
-            this.impresionPos.imprimirTicket("FACTURA", res.facturaLegalId, "La factura").subscribe();
+        tap((res: any) => {
+          if (res?.error == null && res?.data?.facturaLegalId != null) {
+            this.impresionPos.imprimirTicket("FACTURA", res.data.facturaLegalId, "La factura").subscribe();
           }
         })
       );
@@ -158,7 +165,7 @@ export class FacturaLegalService {
       facturaLegalItemInputList,
       null,
       this.configService?.getConfig()?.printers?.ticket,
-      this.configService?.getConfig()?.pdvId, servidor
+      this.configService?.getConfig()?.pdvId, servidor, true
     );
   }
 
@@ -488,6 +495,18 @@ export class FacturaLegalService {
     return this.genericService.onCustomMutation(
       this.imprimirPdfFacturaEnImpresoraGQL,
       { facturaId, sucId, impresoraId },
+      servidor
+    );
+  }
+
+  /**
+   * Envía ahora el PDF de la factura (y el XML si es electrónica) al correo indicado. Es el envío
+   * manual: no depende de que el cliente tenga un correo guardado ni de que ya se haya enviado.
+   */
+  onEnviarFacturaPorCorreo(id: number, sucId: number, email: string, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.enviarFacturaLegalPorCorreoGQL,
+      { id, sucId, email },
       servidor
     );
   }

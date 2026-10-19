@@ -6,6 +6,7 @@ const devolucionItemFields = `
     id
     descripcion
     codigoPrincipal
+    lote
   }
   presentacion {
     id
@@ -71,9 +72,6 @@ export const devolucionQuery = gql`
   query ($id: ID!) {
     data: devolucion(id: $id) {
       ${devolucionFields}
-      items {
-        ${devolucionItemFields}
-      }
     }
   }
 `;
@@ -127,6 +125,27 @@ export const devolucionItemsPorDevolucionQuery = gql`
   query ($devolucionId: ID!) {
     data: devolucionItemsPorDevolucion(devolucionId: $devolucionId) {
       ${devolucionItemFields}
+    }
+  }
+`;
+
+export const devolucionItemsPorDevolucionPageQuery = gql`
+  query ($devolucionId: ID!, $page: Int, $size: Int) {
+    data: devolucionItemsPorDevolucionPage(devolucionId: $devolucionId, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        ${devolucionItemFields}
+      }
     }
   }
 `;

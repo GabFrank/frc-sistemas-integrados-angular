@@ -8,7 +8,7 @@ import { MainService } from '../../../../main.service';
 import { PageInfo } from '../../../../app.component';
 
 import { Marcacion, MarcacionInput } from '../models/marcacion.model';
-import { Jornada } from '../models/jornada.model';
+import { Jornada, JornadaHistorial, JornadaHistorialFiltro } from '../models/jornada.model';
 import { EstadoMarcacionUsuario } from '../models/estado-marcacion.model';
 import { TipoMarcacion } from '../enums/tipo-marcacion.enum';
 
@@ -19,6 +19,7 @@ import { SaveMarcacionGQL } from '../graphql/saveMarcacion';
 import { DeleteMarcacionGQL } from '../graphql/deleteMarcacion';
 import { GetJornadaGQL } from '../graphql/getJornada';
 import { GetJornadasGQL } from '../graphql/getJornadas';
+import { GetJornadasHistorialGQL } from '../graphql/getJornadasHistorial';
 import { GetJornadasPorUsuarioGQL } from '../graphql/getJornadasPorUsuario';
 import { GetEstadoMarcacionUsuarioGQL } from '../graphql/getEstadoMarcacionUsuario';
 import { ImprimirReporteMarcacionesGQL } from '../graphql/imprimirReporteMarcaciones';
@@ -60,6 +61,7 @@ export class MarcacionService {
     private deleteMarcacion: DeleteMarcacionGQL,
     private getJornada: GetJornadaGQL,
     private getJornadas: GetJornadasGQL,
+    private getJornadasHistorial: GetJornadasHistorialGQL,
     private getJornadasPorUsuario: GetJornadasPorUsuarioGQL,
     private getEstadoMarcacionUsuario: GetEstadoMarcacionUsuarioGQL,
     private imprimirReporteMarcaciones: ImprimirReporteMarcacionesGQL,
@@ -112,6 +114,11 @@ export class MarcacionService {
 
   onGetJornadas(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<Jornada[]> {
     return this.genericCrudService.onCustomQuery(this.getJornadas, { fechaInicio, fechaFin, page, size }, servidor);
+  }
+
+  /** Una página del historial, ya filtrada y con el resumen: todo lo resuelve el central. */
+  onGetJornadasHistorial(filtro: JornadaHistorialFiltro, page: number, size: number, servidor = true): Observable<JornadaHistorial> {
+    return this.genericCrudService.onCustomQuery(this.getJornadasHistorial, { ...filtro, page, size }, servidor);
   }
 
   onGetJornadasPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, servidor = true): Observable<Jornada[]> {

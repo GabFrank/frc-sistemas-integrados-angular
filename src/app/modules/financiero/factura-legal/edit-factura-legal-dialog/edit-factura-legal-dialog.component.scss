@@ -126,3 +126,23 @@ mat-dialog-actions {
 
 
 
+
+.cliente-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px 0;
+  font-size: 13px;
+  opacity: 0.75;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+
+  &.vinculado {
+    opacity: 1;
+    color: #81c784;
+  }
+}

@@ -7,3 +7,23 @@ input {
 :host ::ng-deep .email-input.mat-mdc-input-element {
     text-transform: lowercase !important;
 }
+
+.persona-form {
+    padding: 16px 20px 12px;
+}
+
+.titulo {
+    margin: 0 0 4px;
+    text-align: center;
+}
+
+// Aviso propio y no mat-error/mat-hint: styles.scss deja el subscript sin alto.
+.error {
+    color: #ef5350;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.acciones {
+    margin-top: 8px;
+}

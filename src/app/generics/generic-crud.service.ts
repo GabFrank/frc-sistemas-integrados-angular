@@ -3,6 +3,7 @@
 // `generic-crud.constantes`: por acá el bundle de producción las encuentra sin inicializar y la app queda en blanco.
 export {
   CONTEXTO_MOSTRADOR,
+  CONTEXTO_SONDEO,
   LECTURA_ESTRICTA,
   PROPAGAR_ERROR_DE_RED,
   SIN_AVISO_DEL_GENERICO,
@@ -190,9 +191,16 @@ export class GenericCrudService {
   }
 
   /**
+   * Siempre termina (#390).
+   * - Rechazo del servidor: avisa y emite `null` (o lo parcial que haya venido); con
+   *   `graphError.propagate` falla con `{ message, errors }`.
+   * - Error de red **sin `errorConf`**: falla hacia quien llama, y avisa «No se pudo consultar: …» si
+   *   quien llama no avisó por su cuenta. Antes no emitía ni completaba, y quien llamaba quedaba esperando.
+   * - Error de red **con `errorConf`**: como siempre, solo llega con `networkError.propagate`.
+   *
    * @param contexto opcional. `timeoutMs` reemplaza el tiempo máximo (por defecto el de reportes,
-   * 5 min); `silenciarAvisoTimeout` evita el aviso al vencer. Pensado para consultas de fondo que
-   * nadie está esperando. Sin pasarlo, el comportamiento es el de siempre.
+   * 5 min); `silenciarAvisoTimeout` evita el aviso del link al vencer; `sinAviso` evita el del genérico
+   * ante un error de red (sondeos y lecturas de fondo, que nadie está mirando).
    */
   onCustomQuery(
     gql: Query,
@@ -211,7 +219,27 @@ export class GenericCrudService {
         ? this.cargandoService.openDialog(false, "Buscando...", timeoutMs + MARGEN_DIALOGO_MS)
         : {};
     return new Observable((obs) => {
-      this.apollo.query({
+      // Una sola salida, pase lo que pase (igual que onGetAll): resultado, rechazo, error de red, que la
+      // consulta complete sin emitir, una excepción al leer la respuesta, o que quien llama se vaya.
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        if (shouldShowDialog) {
+          this.cargandoService.closeDialog(requestId);
+        }
+        this.isLoading = false;
+        return true;
+      };
+      const terminar = (valor: any) => {
+        if (!cerrar()) return;
+        obs.next(valor);
+        obs.complete();
+      };
+      const fallar = (error: any) => {
+        if (cerrar()) obs.error(error);
+      };
+      const consulta = this.apollo.query({
         query: gql.document,
         variables: data,
         fetchPolicy: 'no-cache',
@@ -229,39 +257,48 @@ export class GenericCrudService {
         )
         .subscribe({
           next: (res) => {
-            if (shouldShowDialog) {
-              this.cargandoService.closeDialog(requestId);
+            let errores: any[] = null;
+            let datos: any = null;
+            try {
+              errores = res.errors?.length ? res.errors : null;
+              datos = res.data?.["data"] ?? null;
+            } catch (e) {
+              console.error("[GraphQL] Respuesta de onCustomQuery ilegible", e);
             }
-            this.isLoading = false;
-            if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
-              if (errorConf?.graphError?.show !== false) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + errorMessage,
-                  color: NotificacionColor.danger,
-                  duracion: 3,
-                });
-              }
-              // Opt-in, con la misma forma que onGetByTexto: el que llama decide qué mostrar.
-              if (errorConf?.graphError?.propagate === true) {
-                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
-                return;
-              }
-              // Cerrar el observable igual: si no, el que llamo queda esperando para
-              // siempre una respuesta que ya no va a llegar. Con errorPolicy 'all' puede
-              // venir data parcial, asi que se emite lo que haya en vez de descartarla.
-              obs.next(res.data?.["data"] ?? null);
-              obs.complete();
+            if (errores == null) {
+              terminar(datos);
+              return;
             }
+            const errorMessage = limpiarMensajeGraphQL(errores[0]?.message);
+            if (errorConf?.graphError?.show !== false) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Ups! Algo salió mal: " + errorMessage,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+            // Opt-in, con la misma forma que onGetByTexto: el que llama decide qué mostrar.
+            if (errorConf?.graphError?.propagate === true) {
+              fallar({ message: errorMessage, errors: limpiarErroresGraphQL(errores) });
+              return;
+            }
+            // Con errorPolicy 'all' puede venir data parcial: se emite lo que haya en vez de descartarla.
+            terminar(datos);
           },
           error: (error) => {
-            this.isLoading = false;
-            if (shouldShowDialog) {
-              this.cargandoService.closeDialog(requestId);
+            if (errorConf == null) {
+              // Sin errorConf el error de red llega a quien llama (#390): antes no emitía ni completaba.
+              this.fallarAvisandoSiNadieAvisa(
+                () => fallar(error),
+                // El corte por tiempo ya lo avisó el link, salvo que se le haya pedido silencio.
+                contexto?.sinAviso === true || terminado
+                  || (esTimeoutDeLink(error) && contexto?.silenciarAvisoTimeout !== true)
+                  ? null
+                  : "No se pudo consultar: " + mensajeErrorTransporte(error)
+              );
+              return;
             }
+            // Con errorConf, lo de siempre: quien lo pasa ya eligió qué quiere recibir.
             if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
@@ -271,11 +308,48 @@ export class GenericCrudService {
               });
             }
             if (errorConf?.networkError?.propagate == true) {
-              obs.error(error);
+              fallar(error);
+              return;
             }
+            cerrar();
+          },
+          complete: () => {
+            if (terminado) return;
+            console.warn("[GraphQL] onCustomQuery completó sin emitir");
+            terminar(null);
           },
         });
+      // Quien llama dejó de escuchar (un `switchMap` que pasó a la consulta siguiente, una pantalla que se
+      // cerró): la consulta se cancela y su modal se cierra. Sin esto seguía viva, con el «Buscando…»
+      // puesto hasta el timeout, y su error se avisaba cuando ya nadie lo esperaba.
+      return () => {
+        consulta.unsubscribe();
+        cerrar();
+      };
     });
+  }
+
+  /**
+   * Entrega el error a quien llama y avisa solo si quien llama no avisó: muchos consumidores ya dicen lo
+   * suyo en su `error:` («No se pudo cargar la caja») y un segundo cartel del genérico encima sobra. Quien
+   * no tiene `error:`, o lo tiene mudo, recibe el aviso del genérico (sin repetir).
+   *
+   * Solo ve los avisos dados en el momento, por `NotificacionSnackbarService`, que es por donde avisa todo
+   * el sistema; uno dado más tarde (tras un `delay`) convive con el del genérico.
+   */
+  private fallarAvisandoSiNadieAvisa(fallar: () => void, aviso: string | null): void {
+    if (aviso == null) {
+      fallar();
+      return;
+    }
+    let avisoDeQuienLlama = false;
+    const escucha = this.notificacionSnackBar.notification$.subscribe(() => (avisoDeQuienLlama = true));
+    try {
+      fallar();
+    } finally {
+      escucha.unsubscribe();
+    }
+    if (!avisoDeQuienLlama) this.avisarLecturaFallida(aviso);
   }
 
   onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false,
@@ -334,22 +408,35 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Escucha una subscription hasta que quien llama deja de escuchar (#390).
+   *
+   * No se corta con el primer aviso: los canales del servidor son compartidos por todos los desktops y quien
+   * llama filtra el suyo. Antes completaba con el primero que llegara, así que un aviso de otra caja cerraba
+   * la escucha justo antes del propio. Al dejar de escuchar se corta la conexión de verdad.
+   *
+   * Un aviso con error se avisa y se sigue escuchando. Si la conexión se corta, completa (queda en la consola).
+   */
   onCustomSub(
     gql: Subscription,
     data,
     servidor: boolean = true,
     cargando?: boolean
   ): Observable<any> {
-    this.isLoading = true;
-    let requestId: number | null = null;
-
-    if (cargando == true) {
-      const result = this.cargandoService.openDialog(false, "Buscando...");
-      requestId = result.requestId;
-    }
-
     return new Observable((obs) => {
-      gql
+      this.isLoading = true;
+      let requestId: number | null = null;
+      if (cargando == true) {
+        requestId = this.cargandoService.openDialog(false, "Buscando...").requestId;
+      }
+      const cerrarModal = () => {
+        if (requestId != null) {
+          this.cargandoService.closeDialog(requestId);
+          requestId = null;
+        }
+        this.isLoading = false;
+      };
+      const escucha = gql
         .subscribe(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
@@ -357,31 +444,35 @@ export class GenericCrudService {
             clientName: servidor == null || servidor ? "servidor" : null,
           },
         })
-        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
-          next: (res) => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          next: (res: any) => {
+            cerrarModal();
+            // Un aviso vacío no trae nada que entregar ni que avisar.
+            if (res == null) return;
             if (res.errors == null) {
-              obs.next(res.data["data"]);
-              obs.complete();
-            } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              obs.next(res.data?.["data"] ?? null);
+              return;
             }
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0]?.message),
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
           },
-          error: () => {
-            if (cargando == true) {
-              this.cargandoService.closeDialog(requestId);
-            }
-            this.isLoading = false;
+          error: (error) => {
+            cerrarModal();
+            console.warn("[GraphQL] Se cortó una subscription", error);
+            obs.complete();
+          },
+          complete: () => {
+            cerrarModal();
+            obs.complete();
           },
         });
+      return () => {
+        escucha.unsubscribe();
+        cerrarModal();
+      };
     });
   }
 
@@ -716,9 +807,12 @@ export class GenericCrudService {
    * error: esos los da siempre este método, que tiene el mensaje real del backend.
    * Es un objeto y no un booleano: varios wrappers terminan en `servidor: boolean`, y un `false`
    * suelto caería ahí sin que el compilador lo note.
+   * `opciones.silenciarRechazo` recibe los errores de un rechazo y devuelve `true` si el llamador se hace
+   * cargo (lo reintenta de otra forma): ese rechazo no se avisa, pero el observable falla igual.
    */
   onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true,
-                  opciones?: { avisarExito?: boolean; timeoutMs?: number }): Observable<T> {
+                  opciones?: { avisarExito?: boolean; timeoutMs?: number;
+                               silenciarRechazo?: (errores: any[]) => boolean }): Observable<T> {
     this.isLoading = true;
     const { requestId } = this.cargandoService.openDialog(
       false,
@@ -754,7 +848,9 @@ export class GenericCrudService {
               // Sin mensaje del backend (undefined o vacío) el aviso diría «…operacion: undefined».
               const limpio = limpiarMensajeGraphQL(res.errors[0]?.message);
               const mensaje = typeof limpio === "string" && limpio.trim() ? limpio : "el servidor no dio detalle";
-              this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
+              if (!opciones?.silenciarRechazo?.(res.errors as any[])) {
+                this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
+              }
               // Ademas del snackbar hay que CERRAR el observable: sin esto el llamador se queda
               // esperando para siempre y cualquier bandera de "guardando" nunca se apaga, con lo
               // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el
@@ -778,6 +874,15 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * Siempre termina (#390): `true` si se eliminó, `null` si no (rechazo del servidor o error de red, los dos
+   * avisados), y completa. Si se pide confirmación y el usuario cancela, completa sin emitir.
+   *
+   * Ante un error de red no se sabe si el borrado se aplicó: lo dice el aviso. No falla con `obs.error`
+   * porque quien llama pregunta `if (res)`.
+   *
+   * No mira el Boolean que devuelve el backend: `false` es tanto «no pude» como «ya no existía».
+   */
   onDelete(
     gql: Mutation,
     id,
@@ -787,115 +892,13 @@ export class GenericCrudService {
     servidor: boolean = true,
     mensaje?: string
   ): Observable<any> {
-    return new Observable((obs) => {
-      if (showDialog == false) {
-        const { requestId } = this.cargandoService.openDialog(
-          false,
-          "Eliminando..."
-        );
-        gql
-          .mutate(
-            {
-              id,
-            },
-            {
-              errorPolicy: "all",
-              context: {
-                clientName: servidor == null || servidor ? "servidor" : null,
-              },
-            }
-          )
-          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
-          .subscribe({
-            next: (res) => {
-              this.cargandoService.closeDialog(requestId);
-              if (res.errors == null) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Eliminado con éxito",
-                  duracion: 2,
-                  color: NotificacionColor.success,
-                });
-                obs.next(true);
-                obs.complete();
-              } else {
-                {
-                  this.notificacionSnackBar.notification$.next({
-                    texto:
-                      "Ups! Ocurrió algun problema al eliminar: " +
-                      limpiarMensajeGraphQL(res.errors[0].message),
-                    duracion: 3,
-                    color: NotificacionColor.danger,
-                  });
-                  obs.next(null);
-                }
-              }
-            },
-            error: () => {
-              this.cargandoService.closeDialog(requestId);
-              obs.next(null);
-            },
-          });
-      } else {
-        this.dialogoService
-          .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
-          .pipe(untilDestroyed(this))
-          .subscribe((res1) => {
-            const { requestId } = this.cargandoService.openDialog(
-              false,
-              "Eliminando..."
-            );
-            if (res1) {
-              gql
-                .mutate(
-                  {
-                    id,
-                  },
-                  {
-                    errorPolicy: "all",
-                    context: {
-                      clientName: servidor == null || servidor ? "servidor" : null,
-                    },
-                  }
-                )
-                .pipe(this.sinRespuestaVacia())
-                .subscribe({
-                  next: (res) => {
-                    this.cargandoService.closeDialog(requestId);
-                    if (res.errors == null) {
-                      this.notificacionSnackBar.notification$.next({
-                        texto: "Eliminado con éxito",
-                        duracion: 2,
-                        color: NotificacionColor.success,
-                      });
-                      obs.next(true);
-                      obs.complete();
-                    } else {
-                      {
-                        this.notificacionSnackBar.notification$.next({
-                          texto:
-                            "Ups! Ocurrió algun problema al eliminar: " +
-                            limpiarMensajeGraphQL(res.errors[0].message),
-                          duracion: 3,
-                          color: NotificacionColor.danger,
-                        });
-                        obs.next(null);
-                        obs.complete();
-                      }
-                    }
-                  },
-                  error: () => {
-                    this.cargandoService.closeDialog(requestId);
-                    obs.next(null);
-                    obs.complete();
-                  },
-                });
-            } else {
-            }
-          });
-      }
+    return this.eliminar(gql, { id }, servidor, showDialog == false ? null : {
+      titulo: titulo != null ? titulo : "Atención!!",
+      mensaje: mensaje != null ? mensaje : "Realemente desea eliminar este item?",
     });
   }
 
+  /** Como {@link onDelete}, para las entidades cuya clave incluye la sucursal. */
   onDeleteWithSucId(
     gql: Mutation,
     id,
@@ -905,113 +908,105 @@ export class GenericCrudService {
     showDialog?: boolean,
     servidor: boolean = true
   ): Observable<any> {
+    return this.eliminar(gql, { id, sucId }, servidor, showDialog == false ? null : {
+      titulo: "Atención!!",
+      mensaje: "Realemente desea eliminar este " + titulo,
+    });
+  }
+
+  private eliminar(
+    gql: Mutation,
+    variables: any,
+    servidor: boolean,
+    confirmacion: { titulo: string; mensaje: string } | null
+  ): Observable<any> {
     return new Observable((obs) => {
-      if (showDialog == false) {
-        const { requestId } = this.cargandoService.openDialog(
-          false,
-          "Eliminando..."
-        );
+      let requestId: any = null;
+      let terminado = false;
+      const cerrar = (): boolean => {
+        if (terminado) return false;
+        terminado = true;
+        if (requestId != null) this.cargandoService.closeDialog(requestId);
+        return true;
+      };
+      const terminar = (valor: any) => {
+        if (!cerrar()) return;
+        obs.next(valor);
+        obs.complete();
+      };
+      const ejecutar = () => {
+        // Recién acá: abierto antes de confirmar, cancelar lo dejaba tapando la pantalla.
+        requestId = this.cargandoService.openDialog(false, "Eliminando...").requestId;
         gql
-          .mutate(
-            {
-              id,
-              sucId,
+          .mutate(variables, {
+            errorPolicy: "all",
+            context: {
+              clientName: servidor == null || servidor ? "servidor" : null,
             },
-            {
-              errorPolicy: "all",
-              context: {
-                clientName: servidor == null || servidor ? "servidor" : null,
-              },
-            }
-          )
-          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+          })
+          .pipe(this.sinRespuestaVacia())
           .subscribe({
             next: (res) => {
-              this.cargandoService.closeDialog(requestId);
+              if (terminado) return;
               if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
                   texto: "Eliminado con éxito",
                   duracion: 2,
                   color: NotificacionColor.success,
                 });
-                obs.next(true);
-                obs.complete();
-              } else {
-                {
-                  this.notificacionSnackBar.notification$.next({
-                    texto:
-                      "Ups! Ocurrió algun problema al eliminar: " +
-                      limpiarMensajeGraphQL(res.errors[0].message),
-                    duracion: 3,
-                    color: NotificacionColor.danger,
-                  });
-                  obs.next(null);
-                }
+                terminar(true);
+                return;
               }
+              const motivo = limpiarMensajeGraphQL(res.errors[0]?.message);
+              // Así contestan los dos backends cuando el borrado base falla por dentro; lo medido: el registro
+              // ya no existe (lo borró otro, o la lista está vieja). El texto crudo no le dice nada a nadie.
+              const yaNoExiste = typeof motivo === "string" && /rollback-only/i.test(motivo);
+              this.notificacionSnackBar.notification$.next({
+                texto: yaNoExiste
+                  ? "No se pudo eliminar: el registro ya no existe o no se puede borrar. Actualizá la lista."
+                  : "Ups! Ocurrió algun problema al eliminar: " + motivo,
+                duracion: yaNoExiste ? 5 : 3,
+                color: yaNoExiste ? NotificacionColor.warn : NotificacionColor.danger,
+              });
+              terminar(null);
             },
-            error: () => {
-              this.cargandoService.closeDialog(requestId);
-              obs.next(null);
-            },
-          });
-      } else {
-        this.dialogoService
-          .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
-          .pipe(untilDestroyed(this))
-          .subscribe((res1) => {
-            const { requestId } = this.cargandoService.openDialog(
-              false,
-              "Eliminando..."
-            );
-            if (res1) {
-              gql
-                .mutate(
-                  {
-                    id,
-                  },
-                  {
-                    errorPolicy: "all",
-                    context: {
-                      clientName: servidor == null || servidor ? "servidor" : null,
-                    },
-                  }
-                )
-                .pipe(this.sinRespuestaVacia())
-                .subscribe({
-                  next: (res) => {
-                    this.cargandoService.closeDialog(requestId);
-                    if (res.errors == null) {
-                      this.notificacionSnackBar.notification$.next({
-                        texto: "Eliminado con éxito",
-                        duracion: 2,
-                        color: NotificacionColor.success,
-                      });
-                      obs.next(true);
-                      obs.complete();
-                    } else {
-                      {
-                        this.notificacionSnackBar.notification$.next({
-                          texto:
-                            "Ups! Ocurrió algun problema al eliminar: " +
-                            limpiarMensajeGraphQL(res.errors[0].message),
-                          duracion: 3,
-                          color: NotificacionColor.danger,
-                        });
-                        obs.next(null);
-                        obs.complete();
-                      }
-                    }
-                  },
-                  error: () => {
-                    this.cargandoService.closeDialog(requestId);
-                    obs.next(null);
-                    obs.complete();
-                  },
+            error: (error) => {
+              if (terminado) return;
+              // Es una escritura: sin respuesta no se sabe si se aplicó. El corte por tiempo ya lo avisó el link.
+              if (!esTimeoutDeLink(error)) {
+                const status = error?.networkError?.status ?? error?.status;
+                this.notificacionSnackBar.notification$.next({
+                  // Mismo criterio que onSave: con status tampoco se niega el borrado (un 502 de un proxy
+                  // pudo haberlo dejado pasar).
+                  texto: status > 0
+                    ? "No se pudo confirmar si se eliminó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                    : "No se pudo confirmar si se eliminó (error de red): pudo haberse aplicado, verificá antes de repetir.",
+                  duracion: 6,
+                  color: NotificacionColor.warn,
                 });
-            } else {
-            }
+              }
+              terminar(null);
+            },
+            complete: () => terminar(null),
           });
+      };
+      if (confirmacion == null) {
+        ejecutar();
+        return;
       }
+      this.dialogoService
+        .confirm(confirmacion.titulo, confirmacion.mensaje)
+        .subscribe({
+          next: (confirmado) => {
+            if (confirmado) {
+              ejecutar();
+            } else if (cerrar()) {
+              // Canceló: no hay nada que emitir, pero quien llama no queda esperando.
+              obs.complete();
+            }
+          },
+          error: () => { if (cerrar()) obs.complete(); },
+        });
     });
   }
 
@@ -1155,7 +1150,13 @@ export class GenericCrudService {
                 duracion: 5,
               });
               if (error) {
-                obs.next({ error: limpiarErroresGraphQL(res.errors) });
+                // Con errorPolicy "all" pueden venir errores y datos a la vez (un campo de la respuesta
+                // que falla después de guardar): se pasan los datos para que quien llama no lo lea
+                // como un rechazo (#470).
+                const data = res.data?.["data"];
+                obs.next(data != null
+                  ? { error: limpiarErroresGraphQL(res.errors), data }
+                  : { error: limpiarErroresGraphQL(res.errors) });
                 obs.complete();
               } else {
                 obs.next(null);
@@ -1165,12 +1166,20 @@ export class GenericCrudService {
           },
           error: (err) => {
             this.cargandoService.closeDialog(requestId);
-            if (error) {
-              obs.next({ error: err });
-            } else {
-              obs.next(null);
-            }
-            obs.complete();
+            // Es una escritura: sin respuesta no se sabe si se aplicó. Se avisa solo si quien llama no
+            // lo dice por su cuenta (la factura legal ya avisa lo suyo) (#390).
+            const status = err?.networkError?.status ?? err?.status;
+            this.fallarAvisandoSiNadieAvisa(
+              () => {
+                obs.next(error ? { error: err } : null);
+                obs.complete();
+              },
+              esTimeoutDeLink(err)
+                ? null
+                : status > 0
+                  ? "No se pudo confirmar si se guardó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                  : "No se pudo confirmar si se guardó (error de red): pudo haberse aplicado, verificá antes de repetir."
+            );
           },
         });
     });

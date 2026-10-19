@@ -1,7 +1,6 @@
 import {
   Component,
   OnInit,
-  ViewChild,
   ChangeDetectionStrategy,
   ChangeDetectorRef
 } from '@angular/core';
@@ -13,16 +12,16 @@ import {
   animate,
 } from '@angular/animations';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PageEvent } from '@angular/material/paginator';
+import { Subscription } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../../main.service';
-import { PageInfo } from '../../../../../app.component';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
-import { Marcacion } from '../../models/marcacion.model';
+import { Jornada, JornadaResumen } from '../../models/jornada.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
@@ -39,7 +38,28 @@ import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ObservacionJornadaDialogComponent } from '../../components/observacion-jornada-dialog.component';
 import { EstadoJornada } from '../../enums/estado-jornada.enum';
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
+import { UbicacionMarcacionComponent } from '../ubicacion-marcacion/ubicacion-marcacion.component';
 
+
+/**
+ * Una jornada lista para dibujar. Los valores los calcula el central; acá solo se les da el texto y el color con
+ * que se muestran, una vez por carga, así la plantilla lee propiedades y no ejecuta funciones.
+ */
+export interface JornadaFila extends Jornada {
+  llegadaTardiaTexto: string;
+  llegadaTardiaColor: string;
+  horaExtraTexto: string;
+  turnoTexto: string;
+  fechaSalidaMostrada: string;
+  distanciaTexto: string;
+  conUbicacion: boolean;
+  ubicacionTitulo: string;
+  salidaAlmuerzoFecha: string;
+  retornoAlmuerzoFecha: string;
+  tardiaAlmuerzoTexto: string;
+  tardiaAlmuerzoColor: string;
+  trabajadoTexto: string;
+}
 
 @UntilDestroy()
 @Component({
@@ -59,12 +79,11 @@ import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
   ]
 })
 export class ListMarcacionComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   estadoJornada = EstadoJornada;
 
-  dataSource = new MatTableDataSource<any>([]);
-  selectedPageInfo: PageInfo<any>;
+  dataSource = new MatTableDataSource<JornadaFila>([]);
+  totalElementos = 0;
+  private consulta: Subscription;
   pageIndex = 0;
   pageSize = 15;
 
@@ -92,7 +111,7 @@ export class ListMarcacionComponent implements OnInit {
   horasExtras: string;
   horasAtraso: string;
 
-  expandedMarcacion: Marcacion | null;
+  expandedMarcacion: JornadaFila | null;
 
   displayedColumns = [
     'id',
@@ -106,6 +125,8 @@ export class ListMarcacionComponent implements OnInit {
     'llegadaTardia',
     'horaExtra',
     'turno',
+    'distancia',
+    'ubicacion',
     'acciones'
   ];
 
@@ -158,7 +179,7 @@ export class ListMarcacionComponent implements OnInit {
       });
   }
 
-  selectedJornada: any;
+  selectedJornada: JornadaFila;
 
   seleccionarUsuario(usuario: Usuario): void {
     this.usuarioSeleccionado = usuario;
@@ -167,7 +188,11 @@ export class ListMarcacionComponent implements OnInit {
     this.filtrar();
   }
 
-  onExpand(row: any): void {
+  trackById(_: number, jornada: JornadaFila): string {
+    return `${jornada.id}-${jornada.sucursalId}`;
+  }
+
+  onExpand(row: JornadaFila): void {
     this.expandedMarcacion = this.expandedMarcacion === row ? null : row;
     this.selectedJornada = row;
   }
@@ -212,10 +237,17 @@ export class ListMarcacionComponent implements OnInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.filtrar();
+    this.cargar();
   }
 
+  /** Una búsqueda nueva (botón o cambio de filtro) arranca en la primera página. */
   filtrar(): void {
+    this.pageIndex = 0;
+    this.cargar();
+  }
+
+  /** Pide al central la página actual: él filtra, pagina y suma el resumen. */
+  private cargar(): void {
     if (this.fechaFinControl.value == null) {
       this.fechaFinControl.setValue(this.hoy);
     }
@@ -226,68 +258,56 @@ export class ListMarcacionComponent implements OnInit {
       this.fechaInicioControl.setValue(unaSemanaAtras);
     }
 
-    if (this.usuarioSeleccionado?.id) {
-      const fechaInicio = dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd');
-      const fechaFin = dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
+    const turno = this.turnoControl.value;
+    const filtro = {
+      usuarioId: this.usuarioSeleccionado?.id || null,
+      fechaInicio: dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd'),
+      fechaFin: dateToString(this.fechaFinControl.value, 'yyyy-MM-dd'),
+      turno: turno && turno !== 'TODOS' ? turno : null,
+      sucursalEntradaId: this.sucursalEntradaControl.value || null,
+      sucursalSalidaId: this.sucursalSalidaControl.value || null
+    };
 
-      this.marcacionService.onGetJornadasPorUsuario(
-        this.usuarioSeleccionado.id,
-        fechaInicio,
-        fechaFin
-      ).pipe(untilDestroyed(this))
-        .subscribe(res => {
-          if (res != null) {
-            const filtradas = this.aplicarFiltroTurno(res || []);
-            this.dataSource.data = filtradas;
-            this.selectedPageInfo = {
-              getTotalElements: filtradas.length,
-              getContent: filtradas,
-              getTotalPages: 1
-            } as any;
-            this.cdr.markForCheck();
-            this.calcularResumen(filtradas);
-          }
-        });
-    } else {
-      const page = this.pageIndex;
-      const size = this.pageSize;
-      const fechaInicio = dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd');
-      const fechaFin = dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
-      this.marcacionService.onGetJornadas(fechaInicio, fechaFin, page, size)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          if (res != null) {
-            const filtradas = this.aplicarFiltroTurno(res || []);
-            this.dataSource.data = filtradas;
-            this.selectedPageInfo = {
-              getTotalElements: filtradas.length,
-              getContent: filtradas,
-              getTotalPages: 1
-            } as any;
-            this.cdr.markForCheck();
-            this.calcularResumen(filtradas);
-          }
-        });
-    }
+    // Una búsqueda nueva descarta la que estaba en camino: no se dibuja dos veces ni gana la más lenta.
+    this.consulta?.unsubscribe();
+    this.consulta = this.marcacionService.onGetJornadasHistorial(filtro, this.pageIndex, this.pageSize)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.expandedMarcacion = null;
+          this.totalElementos = res.pagina?.getTotalElements || 0;
+          this.dataSource.data = (res.pagina?.getContent || []).map(j => this.aFila(j));
+          this.mostrarResumen(res.resumen);
+          this.cdr.markForCheck();
+        }
+      });
   }
 
-  calcularResumen(jornadas: any[]): void {
-    const uniqueDays = new Set(jornadas.map(j => j.fecha));
-    this.diasTrabajados = uniqueDays.size;
+  private aFila(jornada: Jornada): JornadaFila {
+    const turno = jornada.turno ? String(jornada.turno) : '';
+    return {
+      ...jornada,
+      llegadaTardiaTexto: this.formatMinutes(jornada.minutosLlegadaTardiaTotal),
+      llegadaTardiaColor: this.getColorLlegadaTardia(jornada.minutosLlegadaTardiaTotal),
+      horaExtraTexto: this.formatMinutes(jornada.minutosExtras),
+      turnoTexto: turno ? turno.charAt(0).toUpperCase() + turno.slice(1).toLowerCase() : '-',
+      fechaSalidaMostrada: jornada.marcacionSalida?.fechaSalida || jornada.marcacionSalida?.fechaEntrada,
+      distanciaTexto: jornada.distanciaMaximaMetros != null ? `${jornada.distanciaMaximaMetros} m` : '-',
+      conUbicacion: !!jornada.tieneUbicacion,
+      ubicacionTitulo: jornada.tieneUbicacion ? 'Ver la ubicación de marcación' : 'La jornada no guardó ubicación',
+      salidaAlmuerzoFecha: jornada.marcacionSalidaAlmuerzo?.fechaSalida || jornada.marcacionSalidaAlmuerzo?.fechaEntrada,
+      retornoAlmuerzoFecha: jornada.marcacionEntradaAlmuerzo?.fechaEntrada,
+      tardiaAlmuerzoTexto: this.formatMinutes(jornada.minutosLlegadaTardiaAlmuerzo),
+      tardiaAlmuerzoColor: this.getColorLlegadaTardia(jornada.minutosLlegadaTardiaAlmuerzo),
+      trabajadoTexto: this.formatMinutes(jornada.minutosTrabajados)
+    };
+  }
 
-    let totalMinutos = 0;
-    let totalExtras = 0;
-    let totalAtraso = 0;
-
-    jornadas.forEach(j => {
-      totalMinutos += j.minutosTrabajados || 0;
-      totalExtras += j.minutosExtras || 0;
-      totalAtraso += j.minutosLlegadaTardia || 0;
-    });
-
-    this.horasTrabajadas = this.formatMinutes(totalMinutos);
-    this.horasExtras = this.formatMinutes(totalExtras);
-    this.horasAtraso = this.formatMinutes(totalAtraso);
+  private mostrarResumen(resumen: JornadaResumen): void {
+    this.diasTrabajados = resumen?.diasTrabajados || 0;
+    this.horasTrabajadas = this.formatMinutes(resumen?.minutosTrabajados);
+    this.horasExtras = this.formatMinutes(resumen?.minutosExtras);
+    this.horasAtraso = this.formatMinutes(resumen?.minutosLlegadaTardia);
 
     if (this.fechaInicioControl.value) {
       const date = new Date(this.fechaInicioControl.value);
@@ -310,40 +330,16 @@ export class ListMarcacionComponent implements OnInit {
     return '#4caf50';
   }
 
-  private aplicarFiltroTurno(jornadas: any[]): any[] {
-    let resultado = jornadas;
-
-    const turno = this.turnoControl.value;
-    if (turno && turno !== 'TODOS') {
-      resultado = resultado.filter(j => j.turno === turno);
-    }
-
-    const sucEntradaId = this.sucursalEntradaControl.value;
-    if (sucEntradaId) {
-      resultado = resultado.filter(j => j.marcacionEntrada?.sucursalEntrada?.id === sucEntradaId);
-    }
-
-    const sucSalidaId = this.sucursalSalidaControl.value;
-    if (sucSalidaId) {
-      resultado = resultado.filter(j => j.marcacionSalida?.sucursalSalida?.id === sucSalidaId);
-    }
-
-    return resultado;
-  }
-
   resetearFiltro(): void {
     this.pageIndex = 0;
-    this.pageSize = 15;
-    if (this.paginator) {
-      this.paginator.firstPage();
-    }
     this.usuarioIdControl.setValue(null);
     this.usuarioNombreControl.setValue(null);
     this.usuarioSeleccionado = null;
     this.inicializarFechas();
-    this.turnoControl.setValue('TODOS');
-    this.sucursalEntradaControl.setValue(null);
-    this.sucursalSalidaControl.setValue(null);
+    // Sin emitir: la consulta de abajo ya lleva los tres filtros, y se hace una sola vez.
+    this.turnoControl.setValue('TODOS', { emitEvent: false });
+    this.sucursalEntradaControl.setValue(null, { emitEvent: false });
+    this.sucursalSalidaControl.setValue(null, { emitEvent: false });
     this.filtrar();
   }
 
@@ -405,6 +401,18 @@ export class ListMarcacionComponent implements OnInit {
     );
   }
 
+  onVerUbicacion(jornada: JornadaFila): void {
+    if (!jornada?.conUbicacion) return;
+    this.tabService.addTab(
+      new Tab(
+        UbicacionMarcacionComponent,
+        'Ubicación de marcación',
+        new TabData(jornada.id, jornada),
+        ListMarcacionComponent
+      )
+    );
+  }
+
   onGenerarPdf(): void {
     if (this.fechaFinControl.value == null) {
       this.fechaFinControl.setValue(this.hoy);
@@ -427,18 +435,6 @@ export class ListMarcacionComponent implements OnInit {
     this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
   }
 
-  /**
-   * Se puede ajustar a 8 horas una jornada que quedó incompleta, y también una que cerró
-   * mal: cuando alguien olvida marcar la salida, la entrada del día siguiente le cierra la
-   * jornada y le deja horas extras que no hizo. Esa queda en NORMAL, así que antes el ajuste
-   * aparecía deshabilitado justo en el caso donde hace falta.
-   */
-  puedeAjustarA8Horas(jornada: any): boolean {
-    if (!jornada) return false;
-    if (jornada.estado === this.estadoJornada.INCOMPLETO) return true;
-    return (jornada.minutosExtras || 0) > 0;
-  }
-
   onAjustar8Horas(marcacion: any): void {
     this.matDialog.open(ObservacionJornadaDialogComponent, {
       data: {
@@ -454,7 +450,7 @@ export class ListMarcacionComponent implements OnInit {
           .subscribe(res => {
             if (res) {
               this.notificacionService.openSucess('Jornada ajustada correctamente');
-              this.filtrar();
+              this.cargar();
             }
           });
       }
@@ -476,7 +472,7 @@ export class ListMarcacionComponent implements OnInit {
           .subscribe(res => {
             if (res) {
               this.notificacionService.openSucess('Observación guardada correctamente');
-              this.filtrar();
+              this.cargar();
             }
           });
       }

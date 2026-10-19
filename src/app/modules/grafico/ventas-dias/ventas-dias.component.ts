@@ -9,9 +9,11 @@ import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
   Observable,
+  catchError,
   combineLatest,
   finalize,
   map,
+  of,
   startWith,
   switchMap,
   tap,
@@ -106,6 +108,7 @@ export class VentasDiasComponent implements OnInit {
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
+      catchError(() => of([] as Sucursal[])),
       map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
       tap((sucs) => (this.sucursalesLista = sucs))
     );

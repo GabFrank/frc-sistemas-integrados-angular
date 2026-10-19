@@ -11,8 +11,19 @@ import { SaveMaletinGQL } from './graphql/saveMaletin';
 import { ValorMaletinGQL } from './graphql/valorMaletin';
 import { IngresarMaletinCajaMayorGQL } from './graphql/ingresarMaletinCajaMayor';
 import { IngresarMaletinCierreGQL } from './graphql/ingresarMaletinCierre';
-import { EgresarMaletinCajaMayorGQL } from './graphql/egresarMaletinCajaMayor';
+import { EgresarMaletinCajaMayorGQL, EgresarMaletinCajaMayorSinClaveGQL } from './graphql/egresarMaletinCajaMayor';
+import { centralNoConoceLaClave, conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../commons/core/utils/claveIdempotencia';
 import { MaletinInput } from './maletin.model';
+
+/** Un egreso de maletín listo para enviar: las variables de la mutation y la clave de ese intento. */
+export interface PedidoDeEgresoMaletin {
+  cajaVirtualId: number;
+  maletinId: number;
+  monedaId: number;
+  monto: number;
+  descripcion: string | null;
+  claveIdempotencia: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +42,7 @@ export class MaletinService {
     private ingresarMaletinGQL: IngresarMaletinCajaMayorGQL,
     private ingresarMaletinCierreGQL: IngresarMaletinCierreGQL,
     private egresarMaletinGQL: EgresarMaletinCajaMayorGQL,
+    private egresarMaletinSinClaveGQL: EgresarMaletinCajaMayorSinClaveGQL,
   ) { }
 
   /** Ingresa de una vez el valor del cierre del maletín para las monedas seleccionadas. */
@@ -52,9 +64,18 @@ export class MaletinService {
   }
 
   /** Egresa de la caja mayor el valor que se despacha en un maletín. */
-  onEgresar(cajaVirtualId: number, maletinId: number, monedaId: number, monto: number, descripcion?: string, servidor: boolean = true,
-            opciones?: { avisarExito?: boolean }): Observable<any> {
-    return this.genericCrud.onSaveCustom(this.egresarMaletinGQL, { cajaVirtualId, maletinId, monedaId, monto, descripcion: descripcion || null }, servidor, opciones);
+  /**
+   * Egresa el pedido tal como viene, con su clave: un reintento manda exactamente lo mismo y el central no
+   * egresa dos veces. `opciones.sinClave` avisa si el central no conoce la clave.
+   */
+  onEgresar(pedido: PedidoDeEgresoMaletin, opciones?: { avisarExito?: boolean } & OpcionesDePedidoConClave): Observable<any> {
+    const { claveIdempotencia, ...variables } = pedido;
+    return conClaveSiElCentralLaConoce(conClave => conClave
+      ? this.genericCrud.onSaveCustom(this.egresarMaletinGQL, pedido, true,
+          { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceLaClave })
+      : this.genericCrud.onSaveCustom(this.egresarMaletinSinClaveGQL, variables, true,
+          { avisarExito: opciones?.avisarExito }),
+      opciones?.sinClave, !opciones?.esReenvio);
   }
 
   onCount(servidor: boolean = true): Observable<number> {

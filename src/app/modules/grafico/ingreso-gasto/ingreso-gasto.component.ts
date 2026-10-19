@@ -10,9 +10,11 @@ import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
   Observable,
+  catchError,
   combineLatest,
   finalize,
   map,
+  of,
   shareReplay,
   startWith,
   switchMap,
@@ -93,6 +95,7 @@ export class IngresoGastoComponent implements OnInit {
 
   ngOnInit(): void {
     const sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
+      catchError(() => of([] as Sucursal[])),
       map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
       tap((sucs) => (this.sucursalesLista = sucs)),
       shareReplay(1)

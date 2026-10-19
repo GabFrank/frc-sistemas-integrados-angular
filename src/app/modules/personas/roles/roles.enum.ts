@@ -43,12 +43,16 @@ export enum ROLES {
   RRHH_APROBAR = "RRHH APROBAR",
   RRHH_PAGAR = "RRHH PAGAR",
   RRHH_CONFIG = "RRHH CONFIG",
+  /** RRHH acotado: liquida sueldos y finiquitos de los funcionarios de las sucursales a su cargo. */
+  RRHH_SUCURSAL = "RRHH SUCURSAL",
   COMISION_GESTIONAR = "COMISION GESTIONAR",
   COMISION_APROBAR = "COMISION APROBAR",
   TESORERIA_VER = "TESORERIA VER",
   TESORERIA_GESTIONAR = "TESORERIA GESTIONAR",
   TESORERIA_CPC_COBRAR = "TESORERIA CPC COBRAR",
   TESORERIA_CPP_PAGAR = "TESORERIA CPP PAGAR",
+  /** Operador de caja acotado: opera las cajas a las que tiene acceso, sin ver nada global de tesorería. */
+  TESORERIA_CAJA = "TESORERIA CAJA",
   VENTA_TARJETA_COMPLETAR = "VENTA TARJETA COMPLETAR"
 }
 

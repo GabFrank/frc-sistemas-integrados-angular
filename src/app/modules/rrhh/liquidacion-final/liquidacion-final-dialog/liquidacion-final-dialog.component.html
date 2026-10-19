@@ -118,7 +118,7 @@
       </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar"
         [disabled]="cargaFallo" (click)="onAprobar()">Aprobar</button>
-      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && (puedeLiquidar || puedeAprobar)" (click)="onVolverBorrador()">Volver a borrador</button>
+      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && puedeVolverBorrador" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
       </button>

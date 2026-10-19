@@ -126,8 +126,10 @@ export class ListRetiroComponent implements OnInit {
     this.dialogoService.confirm('Atención!!', mensaje).subscribe((res) => {
       if (res) {
         const sucId = retiro.sucursalId ?? retiro.cajaSalida?.sucursalId;
-        this.retiroService.onCancelarRetiro(retiro.id, sucId).subscribe((res1) => {
-          if (res1) {
+        // Se manda cómo tiene que quedar, no «invertir»: si esta lista está vieja y el retiro ya quedó
+        // así, el central no hace nada y responde bien.
+        this.retiroService.onCancelarRetiro(retiro.id, sucId, !estabaCancelado).pipe(untilDestroyed(this)).subscribe({
+          next: () => {
             // El estado se actualiza en memoria, sin refetch, igual que en la
             // lista de ventas.
             retiro.estado = estabaCancelado
@@ -137,13 +139,10 @@ export class ListRetiroComponent implements OnInit {
             this.notificacionService.openSucess(
               estabaCancelado ? 'Retiro habilitado con éxito' : 'Retiro cancelado con éxito'
             );
-          } else {
-            this.notificacionService.openAlgoSalioMal(
-              estabaCancelado
-                ? 'Ups! No se pudo habilitar el retiro. '
-                : 'Ups! No se pudo cancelar el retiro. '
-            );
-          }
+          },
+          // El motivo del rechazo ya lo avisó onCustomMutation (p. ej. «ya entró a la caja mayor»). Un
+          // rechazo suele querer decir que la lista estaba vieja: se relee.
+          error: () => this.onFiltrar()
         });
       }
     });

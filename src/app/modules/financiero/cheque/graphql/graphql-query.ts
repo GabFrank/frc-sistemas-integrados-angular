@@ -250,8 +250,8 @@ export const anularChequeMutation = gql`
 `;
 
 export const emitirChequeMutation = gql`
-  mutation emitirCheque($chequeraId: Int!, $total: Float!, $diferido: Boolean!, $monedaId: Int, $cuentaBancariaId: Int, $fechaPago: String, $concepto: String) {
-    data: emitirCheque(chequeraId: $chequeraId, total: $total, diferido: $diferido, monedaId: $monedaId, cuentaBancariaId: $cuentaBancariaId, fechaPago: $fechaPago, concepto: $concepto) {
+  mutation emitirCheque($chequeraId: Int!, $total: Float!, $diferido: Boolean!, $monedaId: Int, $cuentaBancariaId: Int, $fechaPago: String, $concepto: String, $claveIdempotencia: String) {
+    data: emitirCheque(chequeraId: $chequeraId, total: $total, diferido: $diferido, monedaId: $monedaId, cuentaBancariaId: $cuentaBancariaId, fechaPago: $fechaPago, concepto: $concepto, claveIdempotencia: $claveIdempotencia) {
       ${chequeDashboardFields}
     }
   }

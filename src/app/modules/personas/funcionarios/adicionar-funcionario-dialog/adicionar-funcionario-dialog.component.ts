@@ -344,7 +344,8 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       data: {
         persona: this.selectedPersona
       },
-      width: '60%',
+      width: '700px',
+      maxWidth: '90vw',
     }).afterClosed().subscribe(res => {
       if (res?.id != null) this.selectedPersona = res;
       if (this.selectedPersona == null) this.matDialogRef.close(null)

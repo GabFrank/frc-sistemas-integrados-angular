@@ -5,8 +5,6 @@ import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
 import { TransferenciaTimelineDialogComponent } from '../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
-import { AdicionarDetalleCompraItemDialogComponent } from './compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component';
-import { EditCompraComponent } from './compra/edit-compra/edit-compra.component';
 import { ListCompraComponent } from './compra/list-compra/list-compra.component';
 import { DeliveryDashboardComponent } from './delivery/delivery-dashboard/delivery-dashboard.component';
 import { PrecioDeliveryComponent } from './delivery/precio-delivery/precio-delivery.component';
@@ -73,6 +71,7 @@ import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-
 import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
+import { AsignarCajaSolicitudDialogComponent } from './solicitud-pago/asignar-caja-solicitud-dialog/asignar-caja-solicitud-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
 import { DevolucionesPendientesDialogComponent } from './compra/gestion-compras/dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component';
 import { ConfiguracionDevolucionDialogComponent } from './devolucion/configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component';
@@ -97,7 +96,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
 @NgModule({
   declarations: [
     ListCompraComponent,
-    EditCompraComponent,
     ListNecesidadComponent,
     EditNecesidadComponent,
     ListMovimientoStockComponent,
@@ -106,7 +104,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
-    AdicionarDetalleCompraItemDialogComponent,
     AdicionarProgramarPrecioDialogComponent,
     UltimasVentasDialogComponent,
     ListVentaComponent,
@@ -165,6 +162,7 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     AdicionarNotaDialogComponent,
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
+    AsignarCajaSolicitudDialogComponent,
     GenericListVentaComponent,
     LucroPorFuncionarioComponent,
     DevolucionComponent,

@@ -11,10 +11,12 @@ import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
 import { DeletePersonaGQL } from "./graphql/deletePersona";
 import { PersonasGQL } from "./graphql/personasQuery";
 import { PersonaPorDocumentoGQL } from "./graphql/personaPorDocumento";
+import { PersonasPaginadasGQL } from "./graphql/personasPaginadas";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -29,11 +31,17 @@ export class PersonaService {
     private genericService: GenericCrudService,
     private deletePersona: DeletePersonaGQL,
     private getPersonas: PersonasGQL,
-    private personaPorDocumento: PersonaPorDocumentoGQL
+    private personaPorDocumento: PersonaPorDocumentoGQL,
+    private personasPaginadas: PersonasPaginadasGQL
   ) { }
 
   onGetAll(page, servidor: boolean = true): Observable<Persona[]> {
     return this.genericService.onGetAll(this.getPersonas, page, null, servidor)
+  }
+
+  /** Sin texto trae todas las personas, ordenadas por id. */
+  onSearchConFiltros(texto: string, page: number, size: number, servidor: boolean = true): Observable<PageInfo<Persona>> {
+    return this.genericService.onCustomQuery(this.personasPaginadas, { texto, page, size }, servidor)
   }
 
   onSearch(texto, servidor: boolean = true): Observable<Persona[]> {
@@ -44,8 +52,12 @@ export class PersonaService {
     return this.genericService.onCustomQuery(this.searchPersona, { texto }, servidor, null, true)
   }
 
-  onGetPorDocumento(texto, servidor: boolean = true): Observable<Persona> {
-    return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor)
+  /**
+   * `null` = no hay persona con ese documento. Quien decide con eso («disponible», «persona nueva», guardar)
+   * pasa `LECTURA_ESTRICTA`: sin ella un rechazo del servidor también llega como `null` (#390).
+   */
+  onGetPorDocumento(texto, servidor: boolean = true, errorConf?: QueryError): Observable<Persona> {
+    return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor, errorConf)
   }
 
   onSavePersona(input: PersonaInput, servidor: boolean = true): Observable<any> {

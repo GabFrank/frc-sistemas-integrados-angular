@@ -1,11 +1,11 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
-import { GenericList } from '../../../../generics/generic-list-model';
+import { PageInfo } from '../../../../app.component';
 import { AdicionarRoleDialogComponent } from '../adicionar-role-dialog/adicionar-role-dialog.component';
 import { Role } from '../role.model';
 import { RoleService } from '../role.service';
@@ -26,15 +26,16 @@ import { RoleService } from '../role.service';
     ]),
   ],
 })
-export class ListRolesComponent implements OnInit, GenericList<Role> {
+export class ListRolesComponent implements OnInit {
 
   dataSource: MatTableDataSource<Role>;
-  selectedEntity: Role;
   expandedElement: Role;
   displayedColumns: string[];
-  isLastPage: boolean = false;
-  page = 0;
-  nombreControl = new FormControl(null, Validators.required)
+  readonly pageSizeOptions = [15, 25, 50, 100];
+  length = 0;
+  pageSize = 15;
+  pageIndex = 0;
+  nombreControl = new FormControl<string>(null)
   constructor(
     private roleService: RoleService,
     private matDialog: MatDialog,
@@ -49,36 +50,33 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
     ]
   }
 
-  cargarMasDatos(): void {
-    this.onGetData()
-  }
-
   ngOnInit(): void {
-    this.onGetData()
+    // RoleService resuelve su GenericCrudService en un setTimeout: la primera consulta va después.
+    setTimeout(() => this.onGetData(), 0);
   }
 
   onGetData(): void {
-    setTimeout(() => {
-      this.roleService.onGetRoles(this.page).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          if (this.page == 0) {
-            this.dataSource.data = res;
-          } else {
-            this.dataSource.data = this.dataSource.data.concat(res);
-          }
-          if (res.length < 10) {
-            this.isLastPage = true
-          } else {
-            this.page++;
-          }
-        }
+    const texto = (this.nombreControl.value ?? '').trim().toUpperCase();
+    this.roleService.onGetRolesPaginated(texto, this.pageIndex, this.pageSize)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => this.mostrar(res),
+        error: () => this.mostrar(null),
       })
-    }, 0);
   }
 
-  onRowClick(entity: Role, index: any): void {
-    throw new Error('Method not implemented.');
+  private mostrar(pagina: PageInfo<Role>): void {
+    this.expandedElement = null;
+    this.dataSource.data = pagina?.getContent || [];
+    this.length = pagina?.getTotalElements || 0;
   }
+
+  onPage(e: PageEvent): void {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onGetData();
+  }
+
   onDelete(entity: Role, index: any): void {
     throw new Error('Method not implemented.');
   }
@@ -90,15 +88,17 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
       width: '30%'
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.dataSource.data = updateDataSource(this.dataSource.data, res, index)
+        this.onGetData()
       }
     })
   }
   onFilter(): void {
-    throw new Error('Method not implemented.');
+    this.pageIndex = 0;
+    this.onGetData();
   }
 
-
-
-
+  onResetFiltro(): void {
+    this.nombreControl.setValue(null);
+    this.onFilter();
+  }
 }

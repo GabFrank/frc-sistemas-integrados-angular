@@ -16,6 +16,7 @@ import { EstadoMarcacionComponent } from './marcacion/components/estado-marcacio
 import { BusquedaUsuarioComponent } from './marcacion/components/busqueda-usuario/busqueda-usuario.component';
 import { AsignarHorarioDialogComponent } from './horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
 import { ObservacionJornadaDialogComponent } from './marcacion/components/observacion-jornada-dialog.component';
+import { UbicacionMarcacionComponent } from './marcacion/pages/ubicacion-marcacion/ubicacion-marcacion.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { ObservacionJornadaDialogComponent } from './marcacion/components/observ
     EstadoMarcacionComponent,
     BusquedaUsuarioComponent,
     AsignarHorarioDialogComponent,
-    ObservacionJornadaDialogComponent
+    ObservacionJornadaDialogComponent,
+    UbicacionMarcacionComponent
   ],
   imports: [
     CommonModule,

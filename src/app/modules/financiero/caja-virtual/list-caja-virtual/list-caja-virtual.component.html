@@ -112,6 +112,12 @@
             <button mat-menu-item (click)="onGestionarAccesos(row)" *ngIf="row._puedeAdminAccesos">
               <mat-icon>group</mat-icon><span>Gestionar accesos</span>
             </button>
+            <button mat-menu-item (click)="onRecibeEnvios(row)" *ngIf="row._puedeAdminAccesos && puedeGestionar">
+              <mat-icon>move_to_inbox</mat-icon><span>{{ row._etiquetaEnvios }}</span>
+            </button>
+            <button mat-menu-item (click)="onSucursalesDeCaja(row)" *ngIf="row._puedeAdminAccesos && puedeGestionar">
+              <mat-icon>location_city</mat-icon><span>Sucursales que cubre</span>
+            </button>
             <button mat-menu-item (click)="onEdit(row)" [disabled]="!puedeGestionar">
               <mat-icon>edit</mat-icon><span>Editar</span>
             </button>

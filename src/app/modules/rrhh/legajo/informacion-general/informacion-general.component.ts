@@ -1,3 +1,5 @@
+import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -39,6 +41,8 @@ const AVATAR_DEFAULT = 'assets/avatar-3x4.png';
 export class InformacionGeneralComponent implements OnInit, OnChanges {
 
   @Input() funcionarioId: number;
+  /** Alta desde Personas («Crear funcionario»): la persona ya elegida, para no buscarla por documento. */
+  @Input() persona: Persona;
   @Output() guardado = new EventEmitter<number>();
   // Notifica al legajo padre la foto vigente (data URL) para pintar el avatar de la cabecera.
   @Output() fotoCambiada = new EventEmitter<string>();
@@ -188,6 +192,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       this.cargaFallida = false;
       this.cargandoFuncionario = false;
       this.limpiarFormulario();
+      if (this.persona != null) {
+        this.documentoControl.setValue(this.persona.documento);
+        this.precargarPersona(this.persona);
+      }
       return;
     }
     this.cargandoFuncionario = true;
@@ -287,17 +295,13 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       this.notificacion.openWarn('Ingrese un documento para buscar');
       return;
     }
-    this.personaService.onGetPorDocumento(documento).pipe(untilDestroyed(this)).subscribe((p: Persona) => {
+    this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA).pipe(
+      // No se pudo buscar: no es «no existe, cargala como nueva». Lo que había en el formulario no se toca (#390).
+      terminarSiFalla(() => this.notificacion.openWarn('No se pudo buscar la persona. Volvé a intentar.', 5)),
+      untilDestroyed(this)
+    ).subscribe((p: Persona) => {
       if (p != null) {
-        this.personaActual = p;
-        this.personaId = p.id;
-        this.nombreControl.setValue(p.nombre);
-        this.nacimientoControl.setValue(p.nacimiento ? stringToLocalDate(p.nacimiento as any) : null);
-        this.sexoControl.setValue(p.sexo);
-        this.direccionControl.setValue(p.direccion);
-        this.telefonoControl.setValue(p.telefono);
-        this.emailControl.setValue(p.email);
-        this.ciudadControl.setValue(p.ciudad?.id);
+        this.precargarPersona(p);
         this.notificacion.openSucess('Persona encontrada, datos precargados');
       } else {
         this.personaActual = null;
@@ -305,6 +309,18 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
         this.notificacion.openWarn('No se encontró una persona con ese documento. Complete los datos para crear una nueva.');
       }
     });
+  }
+
+  private precargarPersona(p: Persona): void {
+    this.personaActual = p;
+    this.personaId = p.id;
+    this.nombreControl.setValue(p.nombre);
+    this.nacimientoControl.setValue(p.nacimiento ? stringToLocalDate(p.nacimiento as any) : null);
+    this.sexoControl.setValue(p.sexo);
+    this.direccionControl.setValue(p.direccion);
+    this.telefonoControl.setValue(p.telefono);
+    this.emailControl.setValue(p.email);
+    this.ciudadControl.setValue(p.ciudad?.id);
   }
 
   private cargarFoto(): void {
@@ -410,7 +426,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     const personaInput = persona.toInput();
     personaInput.id = this.personaId;
 
-    this.personaService.onSavePersona(personaInput).pipe(untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
+    this.personaService.onSavePersona(personaInput).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
       if (personaGuardada == null) { return; }
       this.personaId = personaGuardada.id;
       this.personaActual = personaGuardada;
@@ -447,7 +463,12 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       // guardar acá lo pisaba con el sueldo viejo — el síntoma era que el salario "volvía"
       // solo al mínimo legal, que suele ser el valor anterior.
 
-      this.funcionarioService.onSaveFuncionario(input).pipe(untilDestroyed(this)).subscribe((funcionarioGuardado: Funcionario) => {
+      this.funcionarioService.onSaveFuncionario(input).pipe(
+        // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
+        terminarSiFalla(() => this.notificacion.openWarn(
+          'Los datos personales se guardaron, pero los del funcionario no. Volvé a guardar.', 6)),
+        untilDestroyed(this)
+      ).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }
         // No se dispara un snackbar adicional acá: GenericCrudService.onSave ya muestra
         // "Guardado con éxito" automáticamente en cada mutación (persona y funcionario),

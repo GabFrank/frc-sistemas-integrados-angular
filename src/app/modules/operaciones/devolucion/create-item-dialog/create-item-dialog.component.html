@@ -33,12 +33,27 @@
 
   <mat-form-field style="width: 100%">
     <mat-label>Costo unitario</mat-label>
-    <input matInput type="number" [formControl]="costoUnitarioControl" />
+    <input matInput type="text" currencyMask [options]="costoUnitarioOptions"
+      [formControl]="costoUnitarioControl" />
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field style="width: 100%" *ngIf="!llevaLote">
     <mat-label>Lote</mat-label>
     <input matInput [formControl]="loteControl" />
+  </mat-form-field>
+
+  <!-- Producto con control de lote: se elige con el buscador y la baja sale de ese lote. -->
+  <mat-form-field style="width: 100%" *ngIf="llevaLote">
+    <mat-label>Lote</mat-label>
+    <input matInput readonly [value]="loteTexto ?? ''" placeholder="Sin elegir (por vencimiento más próximo)"
+      (click)="onBuscarLote()" (keyup.enter)="onBuscarLote()" />
+    <button mat-icon-button matSuffix type="button" (click)="onBuscarLote()" matTooltip="Buscar lote">
+      <mat-icon>search</mat-icon>
+    </button>
+    <button mat-icon-button matSuffix type="button" *ngIf="loteTexto != null" (click)="onQuitarLote()"
+      matTooltip="Quitar lote">
+      <mat-icon>clear</mat-icon>
+    </button>
   </mat-form-field>
 
   <mat-form-field style="width: 100%">

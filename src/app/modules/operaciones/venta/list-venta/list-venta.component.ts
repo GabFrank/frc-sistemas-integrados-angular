@@ -38,6 +38,9 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/pages/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
+import { erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
+import { mensajeDeError } from "../../../financiero/venta-tarjeta/qr-pos/mensaje-error";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
 import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-categoria-observacion.model";
@@ -118,6 +121,9 @@ export class ListVentaComponent implements OnInit {
   form: FormGroup;
   isLoading = false;
 
+  /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
+  puedeCancelarVenta = false;
+
   constructor(
     private cajaService: CajaService,
     private ventaService: VentaService,
@@ -135,6 +141,7 @@ export class ListVentaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
       this.monedaList = data;
     });
@@ -468,6 +475,11 @@ export class ListVentaComponent implements OnInit {
               if (e?.fase === "lectura") {
                 this.notificacionService.openWarn(
                   "No se pudo verificar el estado de la venta en el servidor: no se envió nada. Intentá de nuevo.", 6);
+                return;
+              }
+              // El central respondió que no (por ejemplo, falta el rol): no se aplicó nada y no hay qué confirmar
+              if (erroresDeRechazo(e?.error) != null) {
+                this.notificacionService.openAlgoSalioMal(mensajeDeError(e.error, `No se pudo ${accion} la venta.`));
                 return;
               }
               // La mutación no respondió: pudo haberse aplicado. Se bloquea la fila y se relee.
