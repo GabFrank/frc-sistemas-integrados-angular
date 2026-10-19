@@ -16,7 +16,9 @@ import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearc
 import { Persona } from '../../../personas/persona/persona.model';
 import { EstadoDE } from '../../documento-electronico/documento-electronico.model';
 import { facturaActiva } from '../factura-legal-estado';
-import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 /**
@@ -50,6 +52,8 @@ export class EditFacturaLegalDialogComponent implements OnInit {
   esElectronicaComputed = false;
   esInnominadaComputed = false;
   puedeEditarComputed = false;
+  /** Nominar es emisión fiscal: mismo rol que emitir una nota de crédito (el central lo exige igual). */
+  puedeNominar = false;
   tipoFacturaDisplayComputed = '';
   estadoDEDisplayComputed = '';
   estadoFacturaDisplayComputed = '';
@@ -78,12 +82,14 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     private cargandoService: CargandoDialogService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private personaSearch: PersonaSearchGQL
+    private personaSearch: PersonaSearchGQL,
+    private mainService: MainService
   ) {
     this.factura = Object.assign(new FacturaLegal(), data.factura);
   }
 
   ngOnInit(): void {
+    this.puedeNominar = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
     this.initForm(); // Inicializar el formulario de inmediato
     this.escucharBusqueda();
 
@@ -321,6 +327,10 @@ export class EditFacturaLegalDialogComponent implements OnInit {
 
     // Una electrónica no se edita: se nomina, y la factura toma el cliente cuando SIFEN aprueba (#433)
     if (this.esElectronicaComputed) {
+      if (!this.puedeNominar) {
+        this.notificacionSnackbar.openWarn('Nominar una factura electrónica requiere el rol FACTURACION EMITIR.', 6);
+        return;
+      }
       if (!this.selectedCliente?.id || esClienteInnominado(this.selectedCliente)) {
         this.notificacionSnackbar.openWarn('Elegí un cliente identificado para nominar la factura.', 6);
         return;
@@ -395,7 +405,9 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           console.error('Error nominando factura:', err);
           // El motivo de un rechazo ya lo mostró el genérico; sin respuesta no se sabe qué hizo SIFEN (#488)
           if (erroresDeRechazo(err) != null) {
-            this.notificacionSnackbar.openWarn('No se nominó la factura.', 8);
+            // El toast del genérico dura 3 s y el diálogo se cierra: el motivo va también en el aviso largo
+            const motivo = motivoDelRechazo(err);
+            this.notificacionSnackbar.openWarn(motivo ? `No se nominó la factura. ${motivo}` : 'No se nominó la factura.', 8);
           } else if (!esTimeoutDeLink(err)) {
             this.notificacionSnackbar.openWarn(
               'No se pudo confirmar si se nominó en SIFEN: revisá antes de repetir.', 8);
