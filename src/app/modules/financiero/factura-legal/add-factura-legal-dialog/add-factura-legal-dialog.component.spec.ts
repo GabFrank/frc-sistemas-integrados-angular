@@ -119,6 +119,24 @@ describe('AddFacturaLegalDialogComponent: envío de la factura a un filial (#471
     expect(avisos[0]).toContain('No se pudo confirmar la factura');
   });
 
+  it('conexión rechazada con código FILIAL_RECHAZO (#425): libera el botón sin sumar aviso', () => {
+    component.alFallarElEnvioAFilial([{
+      message: PREFIJO + 'Error al conectar con el servidor filial: I/O error on POST request: Connection refused',
+      extensions: { codigo: 'FILIAL_RECHAZO', classification: 'DataFetchingException' },
+    }]);
+    expect(component.guardando).toBeFalse();
+    expect(avisos).toEqual([]);
+  });
+
+  it('código FILIAL_SIN_CONFIRMAR (#425): avisa que no se pudo confirmar', () => {
+    component.alFallarElEnvioAFilial([{
+      message: PREFIJO + 'Error del servidor filial: x',
+      extensions: { codigo: 'FILIAL_SIN_CONFIRMAR', classification: 'DataFetchingException' },
+    }]);
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('No se pudo confirmar la factura');
+  });
+
   it('error de red con el central: avisa que no se pudo confirmar', () => {
     component.alFallarElEnvioAFilial(
       Object.assign(new Error('Failed to fetch'), { networkError: new TypeError('Failed to fetch') })
