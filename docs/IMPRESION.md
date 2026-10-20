@@ -70,11 +70,17 @@ agregar otra, sobre el mismo dispositivo, solo para el navegador.
   sudo install -m 644 zj58.ppd zj80.ppd /usr/share/cups/model/zjiang/
   # misma URI que la cola raw (lpstat -v):
   sudo lpadmin -p <cola>_ticket -E -v '<uri usb de la térmica>' \
-    -P /usr/share/cups/model/zjiang/zj58.ppd -o PageSize=X48MMY3276MM -o BlankSpace=False
+    -P /usr/share/cups/model/zjiang/zj58.ppd -o PageSize=X48MMY105MM -o BlankSpace=False
   ```
 
-  `PageSize=X48MMY3276MM` es un rollo largo y `BlankSpace=False` hace que el driver no
-  imprima el blanco final: el ticket sale con su largo real.
+  - `BlankSpace=False`: el driver no imprime el blanco del final de cada hoja, así que
+    el ticket sale con su largo real y sin cortes entre hojas.
+  - `PageSize=X48MMY105MM`: Chrome dibuja la vista previa con el papel de la
+    impresora, y una página web no lo puede cambiar. Con 105mm un vale (~101mm) se ve
+    en una sola hoja; un recibo más largo se ve en varias, pero en el rollo sale
+    continuo. Medido con el driver: vale 92mm de papel, recibo de 5 conceptos 119mm.
+    **No usar un rollo largo** (`X48MMY3276MM`): la vista previa muestra metros de
+    blanco.
 
 En el diálogo de Chrome: Márgenes **Ninguno**, Escala **Predeterminada**.
 
