@@ -32,7 +32,7 @@ export interface VerificarTransporteDialogData {
  * con el usuario logueado como responsable y sin hoja de ruta nueva.
  *
  * El dialogo hace la mutation el mismo y se cierra con `true` cuando hay que recargar la transferencia.
- * Si el central la rechaza queda abierto con lo cargado.
+ * Un rechazo por etapa lo cierra; cualquier otro lo deja abierto con lo cargado (ver trasError).
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -58,6 +58,8 @@ export class VerificarTransporteDialogComponent implements OnInit {
   sinChoferDeshabilitado = true;
   isLoading = false;
   isSaving = false;
+  /** Hubo un rechazo que no cerro el dialogo: al cancelar, la pantalla recarga la transferencia. */
+  private recargarAlCerrar = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VerificarTransporteDialogData,
@@ -214,17 +216,7 @@ export class VerificarTransporteDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: () => this.dialogRef.close(true),
-        error: err => {
-          // Sin respuesta, la etapa pudo haber avanzado igual: se cierra y la pantalla recarga la
-          // transferencia para mostrar como quedo. Un rechazo ya fue avisado: queda abierto.
-          if (erroresDeRechazo(err) == null) {
-            this.avisarEtapaSinConfirmar(err);
-            this.dialogRef.close(true);
-            return;
-          }
-          this.isSaving = false;
-          this.actualizarResumen();
-        }
+        error: err => this.trasError(err)
       });
   }
 
@@ -253,21 +245,34 @@ export class VerificarTransporteDialogComponent implements OnInit {
           this.isSaving = false;
           this.actualizarResumen();
         },
-        error: err => {
-          // Mismo criterio que verificar(): sin respuesta se recarga, un rechazo deja el dialogo abierto.
-          if (erroresDeRechazo(err) == null) {
-            this.avisarEtapaSinConfirmar(err);
-            this.dialogRef.close(true);
-            return;
-          }
-          this.isSaving = false;
-          this.actualizarResumen();
-        }
+        error: err => this.trasError(err)
       });
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(this.recargarAlCerrar);
+  }
+
+  /**
+   * Sin respuesta, la etapa pudo haber avanzado igual: se cierra y la pantalla recarga la transferencia
+   * para mostrar como quedo. Un rechazo ya fue avisado por el generico: si es por etapa (otro usuario la
+   * avanzo) no hay nada que corregir aca y se cierra recargando (#558). Cualquier otro queda abierto con
+   * lo cargado, y al cancelar tambien se recarga, por si el texto del central cambia.
+   */
+  private trasError(err: any): void {
+    const rechazo = erroresDeRechazo(err);
+    if (rechazo == null) {
+      this.avisarEtapaSinConfirmar(err);
+      this.dialogRef.close(true);
+      return;
+    }
+    if (rechazo.some(e => /est[aá] en etapa/i.test(e?.message ?? ''))) {
+      this.dialogRef.close(true);
+      return;
+    }
+    this.recargarAlCerrar = true;
+    this.isSaving = false;
+    this.actualizarResumen();
   }
 
   /** Antes se cerraba sin decir nada: la pantalla recarga, pero el central puede seguir aplicando (#501). */
