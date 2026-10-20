@@ -124,8 +124,8 @@ export class FuncionarioService {
     return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page, size, servidor)
   }
 
-  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, cobraBanco?, servidor = true): Observable<PageInfo<Funcionario>> {
-    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba, cobraBanco }, servidor);
+  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, fasePrueba?, cobraBanco?, ipsActivo?, servidor = true): Observable<PageInfo<Funcionario>> {
+    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, fasePrueba, cobraBanco, ipsActivo }, servidor);
   }
 
   onGetFuncionarioPorPersona(id, servidor = true): Observable<Funcionario> {
