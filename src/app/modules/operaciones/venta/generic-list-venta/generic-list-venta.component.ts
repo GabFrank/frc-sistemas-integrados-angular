@@ -339,27 +339,25 @@ export class GenericListVentaComponent implements OnInit {
     this.totalRecibidoDs = 0;
     this.totalAumento = 0;
     this.totalDescuento = 0;
-    this.totalFinal = 0;
+    // El pago ya incluye el aumento: el total final es el de la venta, como la columna «Total» (#553)
+    this.totalFinal = (venta?.totalGs ?? 0) + (venta?.delivery?.precio?.valor ?? 0);
     this.totalRecibido = 0;
 
+    // Hasta 2024-10 el aumento se guardaba en negativo: se toma en valor absoluto, como el balance (#553)
     venta?.cobro?.cobroDetalleList.forEach((res) => {
       if (res.moneda.denominacion == "GUARANI") {
         if (res.pago || res.vuelto) {
           this.totalRecibidoGs += res.valor;
           this.totalRecibido += res.valor;
-          this.totalFinal += res.valor;
         } else if (res.aumento) {
-          this.totalAumento += res.valor;
-          this.totalFinal += res.valor;
+          this.totalAumento += Math.abs(res.valor);
         } else if (res.descuento) this.totalDescuento += res.valor;
       } else if (res.moneda.denominacion == "REAL") {
         if (res.pago || res.vuelto) {
           this.totalRecibidoRs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
-          this.totalFinal += res.valor * res.cambio;
         } else if (res.aumento) {
-          this.totalAumento += res.valor * res.cambio;
-          this.totalFinal += res.valor * res.cambio;
+          this.totalAumento += Math.abs(res.valor * res.cambio);
         } else if (res.descuento) {
           this.totalDescuento += res.valor * res.cambio;
         }
@@ -367,10 +365,8 @@ export class GenericListVentaComponent implements OnInit {
         if (res.pago || res.vuelto) {
           this.totalRecibidoDs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
-          this.totalFinal += res.valor * res.cambio;
         } else if (res.aumento) {
-          this.totalAumento += res.valor * res.cambio;
-          this.totalFinal += res.valor * res.cambio;
+          this.totalAumento += Math.abs(res.valor * res.cambio);
         } else if (res.descuento) {
           this.totalDescuento += res.valor * res.cambio;
         }
