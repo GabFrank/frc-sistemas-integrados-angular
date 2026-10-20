@@ -83,6 +83,7 @@ import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tar
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
+import { ConfiguracionCobroDialogComponent } from '../../../modules/financiero/configuracion-cobro/configuracion-cobro-dialog/configuracion-cobro-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factura-legal/resumen-fiscal-ventas/resumen-fiscal-ventas.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
@@ -604,6 +605,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
             },
             {
+              name: 'Cobro en PDV',
+              icon: 'point_of_sale',
+              action: 'configuracion-cobro',
+              visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
               name: 'Timbrado',
               icon: 'text_snippet',
               action: 'list-timbrado',
@@ -1083,6 +1090,17 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "finanzas-dashboard":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(FinancieroDashboardComponent, "Financiero", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      // Diálogo y no pestaña, como la configuración de tarjeta: es una perilla, no una pantalla.
+      case "configuracion-cobro":
+        if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.matDialog.open(ConfiguracionCobroDialogComponent, {
+            width: '560px',
+            panelClass: 'custom-dialog-container'
+          });
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
