@@ -2,10 +2,12 @@
 // entrada desde la derecha) va por panelClass en src/styles.scss: `.sugerencias-imagen-panel`.
 
 $acento: #f44336;
-$fondo: #1e1e1e;
-$fondo-alto: #262626;
-$borde: rgba(255, 255, 255, 0.08);
-$texto-suave: rgba(255, 255, 255, 0.6);
+// Superficies y texto siguen el tema (darkMode / lightMode) por los tokens de src/styles.scss.
+$fondo: var(--frc-superficie);
+$fondo-alto: var(--frc-superficie-alta);
+$borde: var(--frc-borde);
+$texto: var(--frc-texto-fuerte);
+$texto-suave: var(--frc-texto-suave);
 
 :host {
   display: block;
@@ -17,7 +19,7 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   flex-direction: column;
   height: 100%;
   background: $fondo;
-  color: #fff;
+  color: $texto;
 }
 
 .sip-head {
@@ -107,6 +109,15 @@ $texto-suave: rgba(255, 255, 255, 0.6);
     color: #ffb74d;
   }
 
+  // Los tonos pastel de arriba no se leen sobre blanco.
+  :host-context(.lightMode) & {
+    color: #1565c0;
+
+    &.warn {
+      color: #e65100;
+    }
+  }
+
   mat-icon {
     flex: none;
     font-size: 18px;
@@ -131,7 +142,7 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   border: 1px solid $borde;
   border-radius: 16px;
   background: $fondo-alto;
-  color: #fff;
+  color: $texto;
   font-size: 12px;
   cursor: pointer;
 
@@ -187,7 +198,7 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   font-family: monospace;
   font-size: 11px;
   letter-spacing: 0;
-  color: #fff;
+  color: $texto;
 }
 
 .sip-grid {
@@ -273,7 +284,7 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   padding: 14px 20px;
   border-top: 1px solid $borde;
   background: $fondo-alto;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 -8px 24px var(--frc-sombra);
 }
 
 .sip-preview-img {
@@ -322,6 +333,10 @@ $texto-suave: rgba(255, 255, 255, 0.6);
   gap: 6px;
   font-size: 12px;
   color: #ef9a9a;
+
+  :host-context(.lightMode) & {
+    color: #c62828;
+  }
 
   mat-icon {
     flex: none;
