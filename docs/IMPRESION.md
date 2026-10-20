@@ -29,8 +29,8 @@ el visor): hoy el ticket es **ESC/POS client-side vía `printLocal`**.
 
 **Fallback web (#231).** Si el desktop corre en un navegador (sin Electron no hay
 `printLocal`), el ticket cae al **PDF angosto** de 58/80mm en el visor y se imprime
-con su botón, eligiendo la térmica en el diálogo del sistema. En Electron no cambia
-nada. Diferencias con el ESC/POS:
+con el botón **«Imprimir ticket»** de la barra del visor, eligiendo la térmica en el
+diálogo del sistema. En Electron no cambia nada. Diferencias con el ESC/POS:
 
 - No es silencioso: abre el diálogo del SO y el usuario elige la impresora.
 - La térmica tiene que estar configurada con papel de ese ancho; si no, el driver
@@ -41,6 +41,42 @@ nada. Diferencias con el ESC/POS:
 Las plantillas `recibo-ticket-58/80.jrxml` usan `isIgnorePagination="true"`: el PDF
 es **una sola página con el alto del contenido** (≈286pt para un concepto), no la
 página fija de 1200pt que dejaba ~32cm de papel en blanco.
+
+**Por qué un botón propio y no el de imprimir del visor.** El del visor (pdf.js) fija
+la hoja al tamaño exacto del PDF (`@page { size }`). La térmica no tiene ese papel,
+así que Chrome **centra** la hoja en el rollo y la impresora avanza todo el blanco de
+arriba (más de un metro con un rollo largo). «Imprimir ticket»
+(`shared/components/imprimir/imprimir-ticket-navegador.ts`) dibuja cada página como
+imagen a 203 dpi y la imprime desde un iframe **sin tamaño de hoja**: Chrome usa el
+papel de la impresora, empieza desde arriba, y el driver descarta el blanco de abajo.
+En los tickets web el botón del visor se oculta.
+
+### Instalar la térmica para imprimir desde el navegador (una vez por PC)
+
+El navegador solo imprime a través del sistema (CUPS / cola de Windows) y necesita
+la impresora **con driver**. Una cola *raw* (la que usa Electron para ESC/POS) no le
+sirve: Chrome la muestra como «no disponible». **No tocar la cola de Electron**:
+agregar otra, sobre el mismo dispositivo, solo para el navegador.
+
+- **Windows:** instalar el driver del fabricante (suele llamarse «POS-58»/«POS-80»)
+  y elegir el papel de 58 u 80mm en sus preferencias.
+- **Linux:** no hay paquete en Fedora; se usa el driver libre
+  [zj-58](https://github.com/klirichek/zj-58) (filtro `rastertozj` + `zj58.ppd`/`zj80.ppd`):
+
+  ```bash
+  gcc -O2 -w -std=gnu11 -o rastertozj rastertozj.c -lcups -lcupsimage   # necesita cups-devel
+  sudo install -m 755 rastertozj /usr/lib/cups/filter/rastertozj
+  sudo install -d /usr/share/cups/model/zjiang
+  sudo install -m 644 zj58.ppd zj80.ppd /usr/share/cups/model/zjiang/
+  # misma URI que la cola raw (lpstat -v):
+  sudo lpadmin -p <cola>_ticket -E -v '<uri usb de la térmica>' \
+    -P /usr/share/cups/model/zjiang/zj58.ppd -o PageSize=X48MMY3276MM -o BlankSpace=False
+  ```
+
+  `PageSize=X48MMY3276MM` es un rollo largo y `BlankSpace=False` hace que el driver no
+  imprima el blanco final: el ticket sale con su largo real.
+
+En el diálogo de Chrome: Márgenes **Ninguno**, Escala **Predeterminada**.
 
 ## Piezas
 

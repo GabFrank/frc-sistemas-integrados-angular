@@ -1,3 +1,15 @@
+.barra-ticket {
+  box-sizing: border-box;
+  height: 53px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--frc-borde);
+}
+
+.barra-ticket-ayuda {
+  color: var(--frc-texto-suave);
+  font-size: 13px;
+}
+
 .selected {
   background-color: #43a047;
 }

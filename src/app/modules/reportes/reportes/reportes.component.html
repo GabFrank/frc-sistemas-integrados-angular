@@ -35,15 +35,22 @@
     </mat-list>
   </div>
   <div fxFlex="80%" style="width: 100%; height: 100%">
+    <div *ngIf="selectedReporte?.anchoMm" class="barra-ticket" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <button mat-flat-button color="primary" [disabled]="imprimiendoTicket" (click)="onImprimirTicket()">
+        <mat-icon>print</mat-icon>
+        Imprimir ticket
+      </button>
+      <span class="barra-ticket-ayuda">Elegí la térmica en el diálogo. Margen: ninguno.</span>
+    </div>
     <ngx-extended-pdf-viewer
       class="custom-viewer"
       [base64Src]="selectedReporte?.pdf"
-      height="100%"
+      [height]="selectedReporte?.anchoMm ? 'calc(100% - 53px)' : '100%'"
       [filenameForDownload]="selectedReporte?.nombre"
       [textLayer]="true"
       [(page)]="currentPage"
       [minifiedJSLibraries]="false"
-      [showPrintButton]="true"
+      [showPrintButton]="!selectedReporte?.anchoMm"
     ></ngx-extended-pdf-viewer>
   </div>
 </div>

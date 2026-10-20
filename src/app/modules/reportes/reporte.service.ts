@@ -6,6 +6,8 @@ export class ReporteData {
   nombre: string
   pdf: string
   currentPage: number;
+  /** 58/80 si es un ticket abierto desde el navegador (#231); null para todo lo demás. */
+  anchoMm: number | null;
 }
 
 const TAB_REPORTES_TITLE = 'Reportes';
@@ -23,11 +25,12 @@ export class ReporteService {
 
   constructor(private tabService: TabService) { }
 
-  onAdd(nombre, pdf){
+  onAdd(nombre, pdf, anchoMm: number | null = null){
     let data = new ReporteData()
     data.nombre = nombre;
     data.pdf = pdf;
     data.currentPage = 1;
+    data.anchoMm = anchoMm;
     this.reporteList.push(data)
     this.sub.next(this.reporteList)
     setTimeout(() => this.tabService.onGoToTab(TAB_REPORTES_TITLE), TAB_SWITCH_DELAY_MS)
