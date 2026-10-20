@@ -27,12 +27,27 @@ parámetros de la query:
 Esto es un cambio respecto al approach viejo (ticket = "PDF angosto" impreso desde
 el visor): hoy el ticket es **ESC/POS client-side vía `printLocal`**.
 
+**Fallback web (#231).** Si el desktop corre en un navegador (sin Electron no hay
+`printLocal`), el ticket cae al **PDF angosto** de 58/80mm en el visor y se imprime
+con su botón, eligiendo la térmica en el diálogo del sistema. En Electron no cambia
+nada. Diferencias con el ESC/POS:
+
+- No es silencioso: abre el diálogo del SO y el usuario elige la impresora.
+- La térmica tiene que estar configurada con papel de ese ancho; si no, el driver
+  puede reescalar o recortar.
+- No manda el comando de corte de papel (depende del driver).
+- Conserva los acentos (el ESC/POS los quita).
+
+Las plantillas `recibo-ticket-58/80.jrxml` usan `isIgnorePagination="true"`: el PDF
+es **una sola página con el alto del contenido** (≈286pt para un concepto), no la
+página fija de 1200pt que dejaba ~32cm de papel en blanco.
+
 ## Piezas
 
 | Pieza | Ruta | Rol |
 |---|---|---|
 | `ImprimirDialogComponent` | `shared/components/imprimir/imprimir-dialog.component.ts` | Diálogo que pregunta el formato. Botones **PDF (A4)**, **Ticket 58mm**, **Ticket 80mm**. Devuelve `{ formato: 'pdf'\|'ticket', anchoMm: number\|null }`. Con `soloPdf` oculta los dos botones de ticket. |
-| `ImpresionService` | `shared/components/imprimir/impresion.service.ts` | Orquesta: abre el diálogo → si **PDF** llama al generador con `(null, false)` y muestra en el visor; si **Ticket** elige la impresora térmica, llama al generador con `(anchoMm, true)` y manda el payload por `printLocal`. |
+| `ImpresionService` | `shared/components/imprimir/impresion.service.ts` | Orquesta: abre el diálogo → si **PDF** llama al generador con `(null, false)` y muestra en el visor; si **Ticket** elige la impresora térmica, llama al generador con `(anchoMm, true)` y manda el payload por `printLocal`. Fuera de Electron, el ticket llama con `(anchoMm, false)` y abre el PDF angosto en el visor. |
 | `ElectronService.printLocal` | `commons/core/electron/electron.service.ts` | `ipcRenderer.invoke('print-local', args)` → main process. |
 | `imprimirLocalRaw` | `app/main.ts` | Impresión real: `RED` → socket TCP a `ip:puerto` (9100); `CUPS/USB/BLUETOOTH` → `spawn('lp', ['-d', cola, '-o', 'raw'])`. |
 | `Impresora` / `ImpresoraService` | `modules/configuracion/impresoras/` | Registro de impresoras. Campos: `uso` (`TICKET`/`FACTURA`/…), `tipo` (`TERMICA`/…), `conexion` (`CUPS`/`USB`/`RED`/`BLUETOOTH`), `colaCups`, `ip`, `puerto`, `esPredeterminada`. |
@@ -65,8 +80,8 @@ onVerRecibo(row: Vale) {
 filtra `uso === 'TICKET' || tipo === 'TERMICA'`, prefiere la que tenga
 `esPredeterminada`, si ninguna está marcada usa la primera candidata. Si no hay
 candidatas → notificación "No hay impresora de ticket configurada
-(Configuración → Impresoras)". Si la app no corre en Electron → notificación
-"requiere la app de escritorio".
+(Configuración → Impresoras)". Si la app no corre en Electron no se busca
+impresora: el ticket sale como PDF angosto en el visor (ver «Fallback web»).
 
 ## Cómo generar los dos formatos (backend)
 
@@ -83,7 +98,7 @@ uniforme es `(Long id, Integer anchoMm, boolean escpos)`, con tres salidas:
 | `escpos` | `anchoMm` | Salida |
 |---|---|---|
 | `false` | `null` | **PDF A4** (`recibo-rrhh.jrxml` genérica o plantilla dedicada) |
-| `false` | `58`/`80` | **PDF ticket angosto** (preview en visor, `recibo-ticket-58/80.jrxml`) |
+| `false` | `58`/`80` | **PDF ticket angosto** (fallback web en el visor, `recibo-ticket-58/80.jrxml`) |
 | `true` | `58`/`80` | **Payload ESC/POS crudo** (`ReciboTicketEscPos.build`), para `printLocal` |
 
 `ReciboTicketEscPos` (`utilitarios/print/ReciboTicketEscPos.java` en central):
