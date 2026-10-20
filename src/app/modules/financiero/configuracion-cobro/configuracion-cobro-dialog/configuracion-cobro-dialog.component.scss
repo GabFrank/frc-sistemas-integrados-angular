@@ -34,6 +34,11 @@
   line-height: 1.4;
 }
 
+// Sin esto el % queda pegado al borde derecho: misma distancia que el número al borde izquierdo.
+.sufijo-porcentaje {
+  padding-right: 16px;
+}
+
 .config-estado {
   padding: 16px 0;
 }

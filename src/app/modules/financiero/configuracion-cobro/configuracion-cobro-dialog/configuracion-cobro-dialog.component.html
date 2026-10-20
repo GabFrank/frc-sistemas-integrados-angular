@@ -11,7 +11,7 @@
   <div *ngIf="!isLoading && !noDisponible" fxLayout="column" fxLayoutGap="15px" class="config-contenido">
     <div class="config-item">
       <div class="config-item-info">
-        <div class="config-item-title">Tope del aumento (F8)</div>
+        <div class="config-item-title">Tope del aumento</div>
         <div class="config-item-desc">
           Cuánto se puede cobrar de más y registrarlo como aumento, en porcentaje del total del cobro. Vale
           para el cobro del PDV (botón y F8) y el del delivery. Sin tope, se permite cualquier aumento.
@@ -29,7 +29,7 @@
       <mat-label>Tope (% del total)</mat-label>
       <input matInput type="number" min="0.01" max="100" step="0.01" [formControl]="porcentajeControl"
         (keyup.enter)="onGuardar()" />
-      <span matSuffix>%</span>
+      <span matSuffix class="sufijo-porcentaje">%</span>
     </mat-form-field>
 
     <div *ngIf="modificadoPor || modificadoEn" class="config-auditoria">
