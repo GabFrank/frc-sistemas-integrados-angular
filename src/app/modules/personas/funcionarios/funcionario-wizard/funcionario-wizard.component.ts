@@ -51,7 +51,8 @@ export class FuncionarioWizardComponent implements OnInit {
   sucursalFuncionario = new FormControl(null, [Validators.required])
   creditoFuncionario = new FormControl(null, [Validators.required])
   fechaIngresoFuncionario = new FormControl()
-  sueldoFuncionario = new FormControl(null, [Validators.required])
+  // La máscara de guaraníes deja 0 al borrar el monto, y required lo acepta
+  sueldoFuncionario = new FormControl(null, [Validators.required, Validators.min(1)])
   activoFuncionario = new FormControl()
   fasePruebaFuncionario = new FormControl()
 
@@ -198,8 +199,9 @@ export class FuncionarioWizardComponent implements OnInit {
                             funcionario.fasePrueba = this.fasePruebaFuncionario.value;
                             funcionario.fechaIngreso = this.fechaIngresoFuncionario.value;
                             funcionario.persona = newPersona;
-                            funcionario.sucursal = this.sucursalFuncionario.value;
-                            funcionario.sueldo = this.sucursalFuncionario.value;
+                            // El select guarda el id; toInput() lee sucursal?.id y necesita el objeto
+                            funcionario.sucursal = this.sucursalList.find(s => s.id == this.sucursalFuncionario.value);
+                            funcionario.sueldo = this.sueldoFuncionario.value;
                             this.funcionarioService.onSaveFuncionario(funcionario.toInput(), true, undefined, { avisarExito: false })
                               .pipe(untilDestroyed(this))
                               .subscribe(newFuncionario => {
