@@ -1320,9 +1320,14 @@ export class EditTransferenciaComponent implements OnInit {
             this.cargarDatos(this.selectedTransferencia.id);
           }
         },
-        // En un rechazo el genérico ya mostró el motivo. Sin respuesta la etapa pudo avanzar: se relee después (#501)
+        // En un rechazo el genérico ya mostró el motivo y se relee ya: lo más común es que otro usuario la
+        // haya avanzado, y con la etapa vieja el mismo botón da el mismo rechazo (#558).
+        // Sin respuesta la etapa pudo avanzar: se relee después (#501)
         error: (err) => {
-          if (erroresDeRechazo(err) != null) return;
+          if (erroresDeRechazo(err) != null) {
+            this.cargarDatos(this.selectedTransferencia.id);
+            return;
+          }
           const aviso = avisoTrasMutacion(err, "avanzó la etapa");
           if (aviso != null) this.notificacionService.openWarn(aviso, 8);
           const id = this.selectedTransferencia?.id;
