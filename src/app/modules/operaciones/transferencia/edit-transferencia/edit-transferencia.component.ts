@@ -1745,9 +1745,7 @@ export class EditTransferenciaComponent implements OnInit {
       }
     }
 
-    if (
-      this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
-    ) {
+    if (esSucursalCompras(this.selectedTransferencia?.sucursalOrigen)) {
       this.precioUnidadInput.nativeElement.select();
     } else {
       this.onValidarCostoConDialogo().then((puedeGuardar) => {
@@ -1885,6 +1883,13 @@ export class EditTransferenciaComponent implements OnInit {
     return new Promise((resolve) => {
       const costoIngresado = this.precioUnidadControl.value;
       const producto = this.selectedProducto;
+
+      // El costo solo se guarda cuando la transferencia sale de COMPRAS (el backend lo ignora en
+      // las demás); fuera de ahí el campo trae la última compra precargada y avisar no tiene sentido.
+      if (!esSucursalCompras(this.selectedTransferencia?.sucursalOrigen)) {
+        resolve(true);
+        return;
+      }
 
       if (!costoIngresado || !producto?.costo) {
         resolve(true);
