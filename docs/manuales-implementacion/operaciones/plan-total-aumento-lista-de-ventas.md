@@ -67,7 +67,32 @@ y ya los lee el template.
   - lo mismo en la lista con filtros (`generic-list-venta`), filtrando «con aumento»;
   - movimientos de stock: desplegar el movimiento VENTA de la 367692 y de una venta en reales con aumento.
 
+## Resultado de la prueba por pantalla (2026-10-20)
+
+Desktop web (`ng serve -c web`) contra el central `v4.7.0-alpha.208` (develop) en el 8081, perfil `dev`, base
+`bodega` local; rama con `develop` mergeado (13dee98c). Usuario MR.
+
+| Pantalla | Caso | Aumento | Total final | Esperado |
+|---|---|---|---|---|
+| Ventas de la caja 2945 / suc. 1 | 367692 (Gs, 2024) | 270 (antes −270) | 261.730 | = columna «Total» |
+| idem | 367778, 367793, 367841, 367927, 367930 (Rs) | 411, 1.424, 904, 466, 1.095 | = columna | suma de los 6 = **4.570** = «Aumento» del balance |
+| idem, «con descuento» | 8 ventas (con y sin delivery) | 0 | = columna | recibido = total − descuento; sin NaN |
+| Ventas (filtros) | 79120 suc. 24 (2026) | 8.000 | 72.000 (antes 88.000) | = columna |
+| idem | 79120 suc. 1 (2023) | 78 | 18.922 | = columna |
+| idem, estado Cancelada | 770520, 770220, 770061, 769870 | 0 | = columna | = columna |
+| Movimientos de stock | mov. 23772496 (venta 356439, Gs) | 250 | 3.500 (antes 4.000) | = «Total:» |
+| idem | mov. 23772268 (venta 356371, Rs) | 150 (antes 0) | 7.000 | = «Total:» |
+| idem | mov. 23546430 (venta 284127, Ds) | 200 (antes 0) | 7.000 (antes 7.200) | = «Total:» |
+
+## Auditoría del diff (paso 8)
+
+- **Fijo 1** — N/A: el diff no toca resolvers, queries ni menú; solo el cálculo en memoria de tres componentes.
+- **Fijo 2** — N/A: sin migración, entidad ni enum.
+- **Fijo 3** — sin cambio de contrato: no se agregan ni quitan campos GraphQL; `totalGs` y `delivery.precio.valor`
+  ya se pedían (`ventasPorCajaIdQuery`, `ventasGenericFilterQuery`, `ventaQuery`).
+- Condicionales A y B — no se disparan (no toca release ni replicación).
+
 ## Qué queda sin verificar
 
-- Ventas en dólares con aumento: no hay casos en la base local (se verifica la rama por lectura: es la misma
-  cuenta que la de reales).
+- Venta sin cobro: no hay ninguna en la base local (`cobro_id is null` = 0). Cubierto por lectura: `totalFinal`
+  se asigna antes y fuera del `forEach`.
