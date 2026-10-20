@@ -62,7 +62,7 @@ export class ImpresionService {
           this.notificacion.notification$.next({ texto: 'No se pudo generar el documento', color: NotificacionColor.warn, duracion: 3 });
           return;
         }
-        this.reporteService.onAdd(nombre, base64);
+        this.reporteService.onAdd(nombre, base64, anchoMm);
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
         if (aviso) {
           this.notificacion.notification$.next({ texto: aviso, color: NotificacionColor.success, duracion: 8 });
@@ -82,7 +82,7 @@ export class ImpresionService {
   private imprimirTicket(nombre: string, anchoMm: number, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
     if (!this.electronService.isElectron) {
       this.mostrarPdf(nombre, generar, anchoMm,
-        `Ticket ${anchoMm}mm listo: imprimilo con el botón del visor, eligiendo la térmica y papel de ${anchoMm}mm`);
+        `Ticket ${anchoMm}mm listo: usá «Imprimir ticket» y elegí la térmica`);
       return;
     }
     // Buscar la impresora de ticket configurada.
