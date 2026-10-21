@@ -96,3 +96,21 @@ Desktop web (`web-production` en 4201) contra un central local, transferencia cl
 2. Igual en transporte y en recepción.
 3. «Actualizar» después de cada paso: la grilla coincide con lo que había.
 4. Borrar los datos de prueba.
+
+## Resultado (2026-10-21)
+
+**Tests.** `transferencia-item-confirmacion.spec.ts` (Karma, tsconfig temporal acotado): 15 de 15,
+6 nuevos de `aplicarDesconfirmacion`. `npm run check`: OK.
+
+**Runtime** (desktop `web-production` de la rama en 4201, central local en 8084, clon 58233 de la
+51251):
+
+| Etapa | «Desconfirmar» | «Confirmar» enseguida, sin «Actualizar» |
+|---|---|---|
+| Preparación | La fila conserva producto, código y cantidad; «Falta verificar» | Sale el request; preparado 5, movimiento de origen activo |
+| Transporte | Igual | Sale; transporte 5, movimiento de origen activo |
+| Recepción | Igual | Sale; recepción 5, entrada en destino activa |
+
+Después de «Actualizar», la grilla coincide con la base (todo «Verificado», «Finalizar» habilitado).
+Antes del cambio, con la misma secuencia, la fila quedaba en «-» y el «Confirmar» no salía.
+
