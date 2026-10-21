@@ -100,7 +100,9 @@ Los estilos viven en **`src/styles/_dashboard.scss`** (clases globales `.dash-*`
 importado una sola vez en `styles.scss`). Los componentes usan esas clases y no
 llevan SCSS propio salvo el `:host` de scroll.
 
-Paleta dark FRC (la misma del resto de la app):
+Los neutros (fondo, card, borde, textos) usan los tokens `--frc-*` / `--frc-dash-*`, así que los
+dashboards siguen el modo claro y oscuro (ver [TEMA_CLARO_OSCURO.md](TEMA_CLARO_OSCURO.md)). Valores
+en modo oscuro:
 
 | Rol | Color |
 |---|---|
@@ -233,4 +235,5 @@ En el cliente:
 loading/empty. El provider global de echarts está en `app.module`
 (`NgxEchartsModule.forRoot`), así que `dash-chart-card` funciona en cualquier
 módulo. Construir el `EChartsOption` en el `.ts` usando `GRAFICO_COLORES` para
-los colores dark y `fontSize: 13` en ejes/leyenda.
+los colores y `fontSize: 13` en ejes/leyenda. `frc-grafico-shell` pasa las opciones por
+`opcionesSegunTema()`, que cambia los grises de `GRAFICO_COLORES` por claros en modo claro.
