@@ -72,6 +72,7 @@ import {
   aplicarDesconfirmacion,
   nombreEtapaDeOrigen,
   puedeConfirmar,
+  tieneEtapaCargada,
 } from "../transferencia-item-confirmacion";
 import {
   SeleccionarLotesDialogComponent,
@@ -1260,6 +1261,9 @@ export class EditTransferenciaComponent implements OnInit {
     vencimiento?: boolean,
     rechazar?: boolean
   ) {
+    // Una sola lectura para el diálogo, el desconfirmar y la recarga, como en onDesconfirm.
+    const etapa = this.selectedTransferencia?.etapa;
+    const transferenciaId = this.selectedTransferencia?.id;
     this.isDialogOpen = true;
     this.matDialog
       .open(ModificarItemDialogComponent, {
@@ -1268,7 +1272,7 @@ export class EditTransferenciaComponent implements OnInit {
           isCantidad: cantidad,
           isVencimiento: vencimiento,
           isRechazar: rechazar,
-          etapa: this.selectedTransferencia?.etapa,
+          etapa,
         },
         width: "500px",
       })
@@ -1280,8 +1284,17 @@ export class EditTransferenciaComponent implements OnInit {
           // sale con usuarioId en null y el backend no lo puede guardar.
           res["item"].usuario =
             res["item"].usuario ?? this.mainService.usuarioActual;
-          this.transferenciaService
-            .onSaveTransferenciaItem(res["item"].toInput())
+          const input = res["item"].toInput();
+          const guardar = () => this.transferenciaService.onSaveTransferenciaItem(input);
+          // El save es un PATCH: sobre un ítem ya cargado no puede borrar la cantidad ni el rechazo
+          // anteriores. Se vacía la etapa primero, como haría el usuario con «Desconfirmar» (#569).
+          const desconfirmar = tieneEtapaCargada(item, etapa);
+          (desconfirmar
+            ? this.transferenciaService
+                .onDesconfirmarTransferenciaItem(item.id, etapa)
+                .pipe(switchMap(guardar))
+            : guardar()
+          )
             .pipe(untilDestroyed(this))
             .subscribe({
               next: (res2) => {
@@ -1295,7 +1308,22 @@ export class EditTransferenciaComponent implements OnInit {
                 this.actualizarAlertasPaginaActual();
                 this.onVerificarConfirmados();
               },
-              error: () => {}
+              // En un rechazo el genérico ya mostró el motivo; si antes se desconfirmó, la etapa pudo quedar
+              // vacía en el central y se relee ya. Sin respuesta pudo aplicarse: aviso y se relee después (#501).
+              error: (err) => {
+                const recargar = () => {
+                  if (transferenciaId != null && this.selectedTransferencia?.id === transferenciaId) {
+                    this.cargarDatos(transferenciaId);
+                  }
+                };
+                if (erroresDeRechazo(err) != null) {
+                  if (desconfirmar) recargar();
+                  return;
+                }
+                const aviso = avisoTrasMutacion(err, "se guardó el ítem");
+                if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(recargar);
+              },
             });
         }
       });
