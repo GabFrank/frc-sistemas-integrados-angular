@@ -16,7 +16,7 @@ For Angular Material
 - Do not create a agnular module for new components if i explicitly not ask to do, instead use the nearest module on path
 - for snackbar messages use [notificacion-snackbar.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/notificacion-snackbar.service.ts)
 - for dialogs use [dialogos.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/shared/components/dialogos/dialogos.service.ts)
-- never use white or light background color becouse our app is in always dark mode 
+- the app has dark mode (default) and light mode: never hardcode neutral colors (greys, white, rgba(255,255,255,x)) for backgrounds, text, borders or hover; use the --frc-* tokens from src/styles.scss (var(--frc-superficie), var(--frc-texto), rgba(var(--frc-tinta), x), ...). Brand and status colors (red, green, orange) stay fixed. Full guide: docs/TEMA_CLARO_OSCURO.md
 - always center the text on tables, unless user explicitly ask to do other way
 - for graphql input clases, always use string for date fields, and on toInput() function convert date to string using dateToString 
 method from [dateUtils.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/commons/core/utils/dateUtils.ts)
