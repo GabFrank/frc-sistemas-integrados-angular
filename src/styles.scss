@@ -753,7 +753,7 @@ mat-form-field.transferencia-input-field {
   }
 
   .mat-mdc-text-field-wrapper {
-    background-color: #2e2e2e !important;
+    background-color: var(--frc-superficie) !important;
     border-radius: 4px !important;
   }
 
@@ -764,8 +764,8 @@ mat-form-field.transferencia-input-field {
 
   .mat-mdc-input-element {
     font-size: 15px;
-    color: #ffffff !important;
-    caret-color: #ffffff !important;
+    color: var(--frc-texto-fuerte) !important;
+    caret-color: var(--frc-texto-fuerte) !important;
     text-transform: uppercase;
   }
 
