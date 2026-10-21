@@ -72,6 +72,39 @@ export function nombreEtapaDeOrigen(etapa: EtapaTransferencia): string {
 }
 
 /**
+ * True si el item ya tiene algo cargado en la etapa: cantidad, vencimiento o motivo de rechazo. Es la
+ * condicion con la que el menu muestra «Desconfirmar». El save del central es un PATCH (un null es
+ * «no lo toques»), asi que antes de modificar o rechazar un item cargado hay que vaciar la etapa (#569).
+ */
+export function tieneEtapaCargada(
+  item: TransferenciaItem,
+  etapa: EtapaTransferencia
+): boolean {
+  switch (etapa) {
+    case EtapaTransferencia.PREPARACION_MERCADERIA:
+      return (
+        item?.cantidadPreparacion != null ||
+        item?.vencimientoPreparacion != null ||
+        item?.motivoRechazoPreparacion != null
+      );
+    case EtapaTransferencia.TRANSPORTE_VERIFICACION:
+      return (
+        item?.cantidadTransporte != null ||
+        item?.vencimientoTransporte != null ||
+        item?.motivoRechazoTransporte != null
+      );
+    case EtapaTransferencia.RECEPCION_EN_VERIFICACION:
+      return (
+        item?.cantidadRecepcion != null ||
+        item?.vencimientoRecepcion != null ||
+        item?.motivoRechazoRecepcion != null
+      );
+    default:
+      return false;
+  }
+}
+
+/**
  * Escribe en {@code item} los datos de la etapa confirmada y lo devuelve.
  *
  * Si no hay de donde copiar no toca nada: nunca escribe nulls, que era justamente el bug. El

@@ -4,6 +4,7 @@ import {
   aplicarDesconfirmacion,
   nombreEtapaDeOrigen,
   puedeConfirmar,
+  tieneEtapaCargada,
 } from './transferencia-item-confirmacion';
 import { EtapaTransferencia } from './transferencia-etapa.enum';
 import type { TransferenciaItem } from './transferencia.model';
@@ -200,6 +201,38 @@ describe('transferencia-item-confirmacion', () => {
 
         expect(puedeConfirmar(fila, etapa)).withContext(etapa).toBe(true);
       }
+    });
+  });
+
+  /** Modificar o rechazar un item cargado tiene que desconfirmar antes: el save es un PATCH (#569). */
+  describe('tieneEtapaCargada', () => {
+    const campos: [EtapaTransferencia, string, string, string][] = [
+      [EtapaTransferencia.PREPARACION_MERCADERIA, 'cantidadPreparacion', 'vencimientoPreparacion', 'motivoRechazoPreparacion'],
+      [EtapaTransferencia.TRANSPORTE_VERIFICACION, 'cantidadTransporte', 'vencimientoTransporte', 'motivoRechazoTransporte'],
+      [EtapaTransferencia.RECEPCION_EN_VERIFICACION, 'cantidadRecepcion', 'vencimientoRecepcion', 'motivoRechazoRecepcion'],
+    ];
+
+    it('es true con cantidad, con vencimiento o con rechazo en la etapa', () => {
+      for (const [etapa, cantidad, vencimiento, rechazo] of campos) {
+        expect(tieneEtapaCargada(item({ [cantidad]: 5 }), etapa)).withContext(etapa).toBe(true);
+        expect(tieneEtapaCargada(item({ [vencimiento]: new Date(2026, 9, 1) }), etapa)).withContext(etapa).toBe(true);
+        expect(tieneEtapaCargada(item({ [rechazo]: 'PRODUCTO_VENCIDO' } as any), etapa)).withContext(etapa).toBe(true);
+      }
+    });
+
+    it('es false con la etapa vacía aunque otras etapas tengan datos', () => {
+      const todo: any = {};
+      for (const [, c, v, r] of campos) Object.assign(todo, { [c]: 5, [v]: new Date(), [r]: 'PRODUCTO_VENCIDO' });
+      for (const [etapa, c, v, r] of campos) {
+        const soloOtras = item({ ...todo, [c]: null, [v]: null, [r]: null });
+        expect(tieneEtapaCargada(soloOtras, etapa)).withContext(etapa).toBe(false);
+      }
+    });
+
+    it('es false en una etapa que no verifica ítems', () => {
+      const cargado = item({ cantidadPreparacion: 5, cantidadTransporte: 5, cantidadRecepcion: 5 });
+      expect(tieneEtapaCargada(cargado, EtapaTransferencia.PRE_TRANSFERENCIA_CREACION)).toBe(false);
+      expect(tieneEtapaCargada(cargado, null)).toBe(false);
     });
   });
 });
