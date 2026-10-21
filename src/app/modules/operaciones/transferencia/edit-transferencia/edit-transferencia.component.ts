@@ -69,6 +69,7 @@ import {
 } from "../transferencia.model";
 import {
   aplicarConfirmacion,
+  aplicarDesconfirmacion,
   nombreEtapaDeOrigen,
   puedeConfirmar,
 } from "../transferencia-item-confirmacion";
@@ -1165,21 +1166,27 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onDesconfirm(item: TransferenciaItem) {
+    // Una sola lectura: la grilla vacía la misma etapa que el backend aunque la transferencia cambie
+    // mientras vuelve la respuesta.
+    const etapa = this.selectedTransferencia?.etapa;
     // Se limpia con una mutation dedicada: en saveTransferenciaItem la ausencia de un campo
     // significa "no lo toques", asi que mandar nulls ya no vacia nada.
     this.transferenciaService
-      .onDesconfirmarTransferenciaItem(
-        item.id,
-        this.selectedTransferencia?.etapa
-      )
+      .onDesconfirmarTransferenciaItem(item.id, etapa)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
           if (res != null) {
+            // La fila sale de una copia de la actual con la etapa vaciada, no de la respuesta: esa no
+            // trae el producto ni la cantidad pedida, y sin eso "Confirmar" no se podía usar (#567).
+            const fila = aplicarDesconfirmacion(
+              Object.assign(new TransferenciaItem(), item),
+              etapa
+            );
             this.dataSource.data = updateDataSourceWithId(
               this.dataSource.data,
-              res,
-              res.id
+              fila,
+              item.id
             );
           }
           this.actualizarAlertasPaginaActual();
