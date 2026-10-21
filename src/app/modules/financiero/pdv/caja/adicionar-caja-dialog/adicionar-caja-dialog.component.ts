@@ -6,6 +6,7 @@ import {
   Input,
   OnInit,
   ViewChild,
+  inject,
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatButton } from "@angular/material/button";
@@ -34,7 +35,7 @@ import { Conteo } from "../../../conteo/conteo.model";
 import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component";
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
-import { ConfirmDialogComponent } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
+import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { PdvCaja, PdvCajaInput } from "../caja.model";
 import { CajaService } from "../caja.service";
 
@@ -70,6 +71,7 @@ import { GastoService } from "../../../gastos/service/gasto.service";
 import { VentaTarjetaService } from "../../../venta-tarjeta/venta-tarjeta.service";
 import { MonedaService } from "../../../moneda/moneda.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
+import { avisoTrasMutacion } from "../../../../../commons/core/utils/graphqlErrorUtils";
 
 @UntilDestroy()
 @Component({
@@ -78,6 +80,7 @@ import { NotificationHttpService } from "../../../../../shared/services/notifica
   styleUrls: ["./adicionar-caja-dialog.component.scss"],
 })
 export class AdicionarCajaDialogComponent implements OnInit {
+  private dialogos = inject(DialogosService);
 
   @Input()
   data: Tab;
@@ -787,17 +790,14 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.evaluarCierre(r);
       return;
     }
-    this.matDialog
-      .open(ConfirmDialogComponent, {
-        width: "480px",
-        data: {
-          title: "No se pudo verificar todo",
-          message: `No se pudo verificar ${noVerificado.join(", ")}: el servidor no respondió o devolvió un error. ¿Cerrar la caja igual?`,
-          confirmText: "Cerrar igual",
-          cancelText: "Volver",
-        },
+    this.dialogos
+      .confirmar({
+        titulo: "No se pudo verificar todo",
+        mensaje: `No se pudo verificar ${noVerificado.join(", ")}: el servidor no respondió o devolvió un error. ¿Cerrar la caja igual?`,
+        si: "Cerrar igual",
+        no: "Volver",
+        ancho: "480px",
       })
-      .afterClosed()
       .pipe(take(1), untilDestroyed(this))
       .subscribe((cerrarIgual) => {
         if (cerrarIgual === true) this.evaluarCierre(r);
@@ -841,19 +841,17 @@ export class AdicionarCajaDialogComponent implements OnInit {
     // Lo que cambia ahora no es quien puede, sino que queda: el cajero sale, pero
     // tiene que decir POR QUE, y eso se guarda con su usuario y la hora en cada fila
     // (venta_tarjeta.no_completado_*). La decision deja de evaporarse.
-    this.matDialog.open(ConfirmDialogComponent, {
-      width: "520px",
-      data: {
-        title: "Ventas con tarjeta sin registrar",
-        message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
-          `Registralas escaneando el QR del cupón desde el PDV o desde el celular. ` +
-          `Si el cupón no existe --no se imprimió, falló la terminal, se perdió-- ` +
-          `podés dejarlas sin conciliar diciendo por qué: queda registrado con tu ` +
-          `usuario para que se pueda revisar después.`,
-        confirmText: "Dejar sin conciliar",
-        cancelText: "Volver a registrarlas",
-      },
-    }).afterClosed().pipe(take(1)).subscribe((quiereForzar) => {
+    this.dialogos.confirmar({
+      titulo: "Ventas con tarjeta sin registrar",
+      mensaje: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
+        `Registralas escaneando el QR del cupón desde el PDV o desde el celular. ` +
+        `Si el cupón no existe --no se imprimió, falló la terminal, se perdió-- ` +
+        `podés dejarlas sin conciliar diciendo por qué: queda registrado con tu ` +
+        `usuario para que se pueda revisar después.`,
+      si: "Dejar sin conciliar",
+      no: "Volver a registrarlas",
+      ancho: "520px",
+    }).pipe(take(1)).subscribe((quiereForzar) => {
       if (quiereForzar !== true) return;
       this.pedirMotivoYMarcarNoCompletadas(pendientes);
     });
@@ -881,10 +879,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
           next: () => {
             this.irAlCierre();
           },
-          error: () => {
-            this.notificacionBar.openWarn(
-              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
-            );
+          // En un rechazo el genérico ya mostró el motivo; marcar es idempotente (#488)
+          error: (error) => {
+            const aviso = avisoTrasMutacion(error, "se actualizaron las ventas con tarjeta pendientes");
+            if (aviso != null) {
+              this.notificacionBar.openWarn(aviso, 8);
+            }
           },
         });
     });

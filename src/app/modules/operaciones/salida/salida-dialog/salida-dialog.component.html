@@ -53,31 +53,15 @@
           </div>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
             <div fxFlex="35%">
-              <mat-form-field style="width: 100%">
-                <mat-label>Responsable</mat-label>
-                <input
-                  #responsableInput
-                  type="text"
-                  matInput
-                  [formControl]="usuarioInputControl"
-                  oninput="this.value == ' ' ? this.value = '': null"
-                  [matAutocomplete]="auto"
-                  (keyup.enter)="setFocusToTipoSalida()"
-                />
-                <mat-autocomplete
-                  #auto="matAutocomplete"
-                  (optionSelected)="onResponsableSelect($event.option.value)"
-                  (closed)="onResponsableAutocompleteClose()"
-                >
-                  <mat-option
-                    *ngFor="let usuario of usuarioList"
-                    [value]="usuario"
-                  >
-                    {{ usuario.id }} -
-                    {{ usuario?.persona?.nombre | titlecase }}
-                  </mat-option>
-                </mat-autocomplete>
-              </mat-form-field>
+              <app-buscador-field
+                #responsableField
+                tipo="usuario"
+                titulo="Responsable"
+                [rapido]="true"
+                [formControl]="usuarioInputControl"
+                (seleccionado)="onResponsableSelect($event)"
+                (enter)="setFocusToTipoSalida()"
+              ></app-buscador-field>
             </div>
             <div fxFlex="30%">
               <mat-form-field style="width: 100%">
@@ -134,7 +118,7 @@
               color="primary"
               style="width: 100%"
               (click)="onEditar()"
-              [disabled]="selectedSalida?.activo == true"
+              [disabled]="selectedSalida?.activo == true || bloqueada"
             >
               Editar
             </button>
@@ -237,7 +221,7 @@
               mat-raised-button
               color="accent"
               style="width: 100%"
-              [disabled]="itemFormGroup.invalid"
+              [disabled]="itemFormGroup.invalid || bloqueada"
               (click)="onItemSave()"
             >
               Guardar
@@ -249,7 +233,7 @@
               color="primary"
               style="width: 100%"
               (click)="onEditItem()"
-              [disabled]="selectedSalida?.activo == true"
+              [disabled]="selectedSalida?.activo == true || bloqueada"
             >
               Editar
             </button>
@@ -261,7 +245,7 @@
               color="primary"
               style="width: 100%"
               [disabled]="
-                selectedSalida?.activo == true || selectedSalidaItem == null
+                selectedSalida?.activo == true || bloqueada || selectedSalidaItem == null
               "
               (click)="onDelete()"
             >
@@ -323,7 +307,7 @@
   </div>
   <div
     fxFlex="10"
-    *ngIf="selectedSalida?.activo != true"
+    *ngIf="selectedSalida?.activo != true && !bloqueada"
     fxFlex="5%"
     fxLayout="row"
     fxLayoutAlign="end center"

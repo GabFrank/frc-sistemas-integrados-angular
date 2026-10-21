@@ -305,8 +305,9 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
       : programar
+        // El verde es el «Programado: …» de abajo (#501)
         ? this.liquidacionService.onProgramarItem(this.liq.id, periodo, this.descripcionControl.value,
-            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value)
+            this.montoControl.value, this.tipoControl.value, this.conceptoControl.value, true, { avisarExito: false })
         : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
             this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
     obs.pipe(untilDestroyed(this)).subscribe({

@@ -3,7 +3,6 @@ import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { forkJoin } from 'rxjs';
 
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
@@ -15,7 +14,6 @@ import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioInput } from '../../../personas/funcionarios/funcionario-input.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
-import { CiudadService } from '../../../general/ciudad/ciudad.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 
@@ -55,7 +53,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   direccionControl = new FormControl(null);
   telefonoControl = new FormControl(null);
   emailControl = new FormControl(null);
-  ciudadControl = new FormControl(null);
+  ciudadControl = new FormControl<Ciudad>(null);
 
   // ---- Datos laborales ----
   fechaIngresoControl = new FormControl(null);
@@ -96,7 +94,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   currencyMask = new CurrencyMask();
 
   sucursalList: Sucursal[] = [];
-  ciudadList: Ciudad[] = [];
 
   // Estado precalculado para el template (regla del proyecto: nada de funciones/getters en HTML)
   esEdicion = false;
@@ -115,7 +112,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   constructor(
     private personaService: PersonaService,
     private funcionarioService: FuncionarioService,
-    private ciudadService: CiudadService,
     private sucursalService: SucursalService,
     private legajoService: LegajoService,
     private notificacion: NotificacionSnackbarService
@@ -170,12 +166,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   }
 
   private cargarCatalogos(): void {
-    forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales(),
-      ciudades: this.ciudadService.getAllCiudades()
-    }).pipe(untilDestroyed(this)).subscribe(res => {
-      this.sucursalList = res.sucursales || [];
-      this.ciudadList = res.ciudades || [];
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
+      this.sucursalList = res || [];
     });
   }
 
@@ -228,7 +220,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.direccionControl.setValue(f.persona?.direccion);
     this.telefonoControl.setValue(f.persona?.telefono);
     this.emailControl.setValue(f.persona?.email);
-    this.ciudadControl.setValue(f.persona?.ciudad?.id);
+    this.ciudadControl.setValue(f.persona?.ciudad ?? null);
 
     this.fechaIngresoControl.setValue(f.fechaIngreso ? stringToLocalDate(f.fechaIngreso as any) : null);
     this.sucursalControl.setValue(f.sucursal?.id);
@@ -320,7 +312,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.direccionControl.setValue(p.direccion);
     this.telefonoControl.setValue(p.telefono);
     this.emailControl.setValue(p.email);
-    this.ciudadControl.setValue(p.ciudad?.id);
+    this.ciudadControl.setValue(p.ciudad ?? null);
   }
 
   private cargarFoto(): void {
@@ -419,14 +411,14 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     persona.direccion = this.up(this.direccionControl.value);
     persona.telefono = this.telefonoControl.value;
     persona.email = this.up(this.emailControl.value);
-    const ciudadSeleccionada = (this.ciudadList || []).find(c => c.id === this.ciudadControl.value);
-    if (ciudadSeleccionada != null) { persona.ciudad = ciudadSeleccionada; }
+    if (this.ciudadControl.value?.id != null) { persona.ciudad = this.ciudadControl.value; }
     persona.isFuncionario = true;
 
     const personaInput = persona.toInput();
     personaInput.id = this.personaId;
 
-    this.personaService.onSavePersona(personaInput).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
+    // Paso intermedio: el verde es el del funcionario, uno solo (#501)
+    this.personaService.onSavePersona(personaInput, true, { avisarExito: false }).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaGuardada: Persona) => {
       if (personaGuardada == null) { return; }
       this.personaId = personaGuardada.id;
       this.personaActual = personaGuardada;
@@ -470,9 +462,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
         untilDestroyed(this)
       ).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }
-        // No se dispara un snackbar adicional acá: GenericCrudService.onSave ya muestra
-        // "Guardado con éxito" automáticamente en cada mutación (persona y funcionario),
-        // por lo que un tercer aviso manual sería redundante.
+        // Sin snackbar propio: el «Guardado con éxito» del genérico al guardar el funcionario es el
+        // único verde (la persona se guarda sin aviso, #501).
         this.guardado.emit(funcionarioGuardado.id);
       });
     });

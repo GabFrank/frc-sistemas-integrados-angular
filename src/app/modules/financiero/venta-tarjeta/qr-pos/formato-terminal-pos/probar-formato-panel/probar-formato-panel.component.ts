@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, Subscription, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { mensajeDeError } from '../../mensaje-error';
+import { mensajeDeError } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { FormatoTerminalPos } from '../formato-terminal-pos.model';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { CapturaMuestraQr, ResultadoPruebaFormato } from '../mapa-formato.model';

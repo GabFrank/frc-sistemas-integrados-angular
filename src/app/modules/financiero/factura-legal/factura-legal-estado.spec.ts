@@ -1,6 +1,6 @@
 import { EstadoDE } from '../documento-electronico/documento-electronico.model';
 import { FacturaLegal } from './factura-legal.model';
-import { esFacturaElectronica, facturaActiva, puedeCancelarseFactura } from './factura-legal-estado';
+import { claseEstadoFactura, esFacturaElectronica, facturaActiva, puedeCancelarseFactura } from './factura-legal-estado';
 
 const CDC = '01800000000000000000000000000000000000000000';
 
@@ -52,6 +52,23 @@ describe('estado de la factura legal', () => {
 
     it('sin documento electrónico no se puede cancelar', () => {
       expect(puedeCancelarseFactura({ activo: true, cdc: CDC } as FacturaLegal)).toBe(false);
+    });
+  });
+
+  // El color del estado en el listado y en el diálogo de edición sale de acá (#433)
+  describe('clase del badge de estado', () => {
+    it('electrónica: según el documento', () => {
+      expect(claseEstadoFactura(electronica(null, EstadoDE.APROBADO))).toBe('estado-aprobado');
+      expect(claseEstadoFactura(electronica(null, EstadoDE.PENDIENTE))).toBe('estado-pendiente');
+      expect(claseEstadoFactura(electronica(null, EstadoDE.EN_LOTE))).toBe('estado-pendiente');
+      expect(claseEstadoFactura(electronica(true, EstadoDE.RECHAZADO))).toBe('estado-rechazado');
+      expect(claseEstadoFactura(electronica(false, EstadoDE.CANCELADO))).toBe('estado-cancelado');
+      expect(claseEstadoFactura({ cdc: CDC } as FacturaLegal)).toBe('estado-default');
+    });
+
+    it('papel: activa o inactiva', () => {
+      expect(claseEstadoFactura(papel(null))).toBe('estado-activo');
+      expect(claseEstadoFactura(papel(false))).toBe('estado-inactivo');
     });
   });
 });

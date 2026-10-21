@@ -303,21 +303,14 @@ export class ListVentaTarjetaComponent implements OnInit {
       .open(VentasTarjetaCajaDialogComponent, {
         // Mismas opciones que la otra puerta (Utilitarios F1 del PDV): es el mismo diálogo y
         // tiene que abrirse igual, no parecerse a dos pantallas según por dónde se entró.
-        //
-        // ⚠️ `darkMode` HOY no cambia nada, medido: se quitó y se puso la clase sobre el pane en
-        // vivo y ni una etiqueta, ni un input, ni la cabecera de la tabla, ni el paginador
-        // cambiaron de color — la app ya aplica el tema oscuro globalmente, y el panel de los
-        // `mat-select` ni siquiera cuelga de este pane (se monta en el overlay global). Va igual
-        // para que las dos puertas pasen exactamente las mismas opciones: si algún día el tema
-        // global deja de ser oscuro, la diferencia aparecería en una sola de las dos y nadie
-        // sabría por qué.
+        // Sin panelClass de tema: el tema (oscuro o claro) lo pone TemaService en <html> y alcanza a
+        // todos los diálogos. Un 'darkMode' acá dejaba este diálogo oscuro aun en modo claro.
         data: { cajaId: Number(cajaId) },
         width: '85vw',
         height: '80vh',
         maxWidth: '85vw',
         disableClose: false,
         autoFocus: true,
-        panelClass: 'darkMode',
       })
       .afterClosed()
       .pipe(untilDestroyed(this))

@@ -61,9 +61,11 @@ export class ConfiguracionRrhhService {
       { page, size, texto, tipo }, servidor);
   }
 
-  onSave(input: any, servidor = true, errorConf?: QueryError): Observable<ConfiguracionRrhh> {
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSave(input: any, servidor = true, errorConf?: QueryError,
+         opciones?: { avisarExito?: boolean }): Observable<ConfiguracionRrhh> {
     return this.genericService.onSave<ConfiguracionRrhh>(
-      this.saveConfiguracionRrhhGQL, input, null, null, servidor, errorConf
+      this.saveConfiguracionRrhhGQL, input, null, null, servidor, errorConf, undefined, opciones
     );
   }
 

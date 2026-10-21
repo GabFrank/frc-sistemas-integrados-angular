@@ -231,7 +231,7 @@ Follow this structure for your HTML template:
   
   <div
     table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
+    style="height: 100%; background-color: var(--frc-superficie-tabla)"
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >

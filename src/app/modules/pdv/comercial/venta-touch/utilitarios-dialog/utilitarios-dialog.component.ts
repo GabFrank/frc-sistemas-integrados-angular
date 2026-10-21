@@ -147,7 +147,6 @@ export class UtilitariosDialogComponent implements OnInit {
         disableClose: true,
         autoFocus: true,
         restoreFocus: true,
-        panelClass: 'darkMode',
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
@@ -225,7 +224,6 @@ export class UtilitariosDialogComponent implements OnInit {
         disableClose: false,
         autoFocus: true,
         restoreFocus: true,
-        panelClass: 'darkMode',
       })
       .afterClosed()
       .pipe(untilDestroyed(this))

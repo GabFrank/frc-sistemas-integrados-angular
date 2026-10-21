@@ -4,10 +4,10 @@
 }
 
 .selected {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(var(--frc-tinta), 0.08);
 }
 
 tr.mat-row:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(var(--frc-tinta), 0.05);
   cursor: pointer;
 }

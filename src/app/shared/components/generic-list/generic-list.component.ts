@@ -16,7 +16,7 @@ export interface DialogDetailData {
 @Component({
   selector: 'app-generic-list',
   templateUrl: './generic-list.component.html',
-  styleUrls: ['./generic-list.component.css']
+  styleUrls: ['./generic-list.component.scss']
 })
 
 export class GenericListComponent implements OnInit {
@@ -84,6 +84,9 @@ export class GenericListComponent implements OnInit {
   @Input()
   isCargarMas = false;
 
+  // Cada boton queda deshabilitado un segundo despues del clic, como hacia app-boton (evita el doble clic).
+  bloqueados = { buscar: false, limpiar: false, adicionar: false, custom: false, custom2: false };
+
   headerHeight;
   tableHeight;
   containerHeight;
@@ -101,6 +104,7 @@ export class GenericListComponent implements OnInit {
   }
 
   onAdd() {
+    this.bloquear('adicionar');
     this.adicionar.emit()
   }
 
@@ -109,10 +113,12 @@ export class GenericListComponent implements OnInit {
   }
 
   onFiltrar() {
+    this.bloquear('buscar');
     this.filtrar.emit()
   }
 
   onResetFiltro() {
+    this.bloquear('limpiar');
     this.resetFiltro.emit()
   }
 
@@ -121,11 +127,20 @@ export class GenericListComponent implements OnInit {
   }
 
   onCustomFunc() {
+    this.bloquear('custom');
     this.customFunction.emit()
   }
 
   onCustomFunc2() {
+    this.bloquear('custom2');
     this.customFunction2.emit()
+  }
+
+  private bloquear(boton: keyof GenericListComponent['bloqueados']): void {
+    this.bloqueados = { ...this.bloqueados, [boton]: true };
+    setTimeout(() => {
+      this.bloqueados = { ...this.bloqueados, [boton]: false };
+    }, 1000);
   }
 
 }

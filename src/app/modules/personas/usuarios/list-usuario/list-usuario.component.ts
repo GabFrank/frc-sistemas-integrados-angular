@@ -1,4 +1,3 @@
-import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -19,17 +18,7 @@ import { UsuarioService } from '../usuario.service';
 @Component({
   selector: 'app-list-usuario',
   templateUrl: './list-usuario.component.html',
-  styleUrls: ['./list-usuario.component.css'],
-  animations: [
-    trigger("detailExpand", [
-      state("collapsed", style({ height: "0px", minHeight: "0" })),
-      state("expanded", style({ height: "*" })),
-      transition(
-        "expanded <=> collapsed",
-        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
-      ),
-    ]),
-  ],
+  styleUrls: ['./list-usuario.component.scss'],
 })
 export class ListUsuarioComponent implements OnInit {
 
@@ -42,9 +31,9 @@ export class ListUsuarioComponent implements OnInit {
   dataSource = new MatTableDataSource<Usuario>([]);
   selectedUsuario: Usuario;
   displayedColumns: string[] = ['id', 'nombre', 'nickname', 'telefono', 'activo', 'creadoEn', 'acciones'];
-  expandedUsuario: Usuario;
 
   pageSize = 25;
+  cargando = false;
   pageIndex = 0;
   selectedPageInfo: PageInfo<Usuario>;
   timer: ReturnType<typeof setTimeout>;
@@ -130,13 +119,18 @@ export class ListUsuarioComponent implements OnInit {
     const texto = this.buscarControl.value?.toString().trim() || null;
     const roleIds = this.rolesControl.value || [];
     this.rolesFiltrados = this.rolesSeleccionadosKey();
+    this.cargando = true;
     this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize, true, roleIds)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = this.selectedPageInfo?.getContent || [];
-        }
+      .subscribe({
+        next: (res) => {
+          this.cargando = false;
+          if (res != null) {
+            this.selectedPageInfo = res;
+            this.dataSource.data = this.selectedPageInfo?.getContent || [];
+          }
+        },
+        error: () => (this.cargando = false),
       });
   }
 

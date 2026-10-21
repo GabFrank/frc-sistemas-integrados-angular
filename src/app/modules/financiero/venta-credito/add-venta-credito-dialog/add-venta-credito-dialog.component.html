@@ -11,31 +11,14 @@
     <div fxFlex="80%" fxLayout="column">
       <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
         <div fxFlex="100">
-          <mat-form-field style="width: 100%">
-            <input
-              #nombreInput
-              type="text"
-              matInput
-              [formControl]="nombreClienteControl"
-              oninput="this.value == ' ' ? this.value = '': null"
-              [matAutocomplete]="autoCliente"
-              style="padding-left: 20px"
-            />
-            <span matTextPrefix>Nombre del cliente: </span>
-            <mat-autocomplete
-              #autoCliente="matAutocomplete"
-              (optionSelected)="onClienteSelect($event.option.value)"
-              (closed)="onClienteAutocompleteClose()"
-            >
-              <mat-option *ngFor="let cliente of clienteList" [value]="cliente">
-                {{ cliente?.persona?.id }} -
-                {{ cliente?.persona?.nombre | uppercase }}
-              </mat-option>
-            </mat-autocomplete>
-          </mat-form-field>
-        </div>
-        <div fxFlex="10" style="height: 35px">
-          <app-boton nombre="Buscar"></app-boton>
+          <app-buscador-field
+            #clienteField
+            tipo="cliente"
+            titulo="Cliente (id o nombre)"
+            [rapido]="true"
+            [formControl]="clienteControl"
+            (seleccionado)="onClienteSelect($event)"
+          ></app-buscador-field>
         </div>
       </div>
       <div
@@ -192,7 +175,7 @@
         fxFlex="10%"
         fxLayout="row"
         fxLayoutAlign="center center"
-        style="text-align: center; background-color: rgb(32, 32, 32)"
+        style="text-align: center; background-color: var(--frc-superficie-baja)"
       >
         <h2>Total: {{ total | number : "1.0-0" }}</h2>
       </mat-card>

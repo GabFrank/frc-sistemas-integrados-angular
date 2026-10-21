@@ -64,9 +64,13 @@ export class FuncionarioService {
     return this.genericCrud.onCustomQuery(this.searchFuncionario, { texto }, servidor);
   }
 
-  /** `errorConf` es para la asignación de horarios en lote (#390); sin él queda como antes. */
-  onSaveFuncionario(input: FuncionarioInput, servidor = true, errorConf?: QueryError): Observable<Funcionario> {
-    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor, errorConf);
+  /**
+   * `errorConf` es para la asignación de horarios en lote (#390); sin él queda como antes.
+   * `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501).
+   */
+  onSaveFuncionario(input: FuncionarioInput, servidor = true, errorConf?: QueryError,
+                    opciones?: { avisarExito?: boolean }): Observable<Funcionario> {
+    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor, errorConf, undefined, opciones);
   }
 
   // onDeleteFuncionario(id, servidor = true) {
@@ -120,8 +124,8 @@ export class FuncionarioService {
     return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page, size, servidor)
   }
 
-  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, cobraBanco?, servidor = true): Observable<PageInfo<Funcionario>> {
-    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba, cobraBanco }, servidor);
+  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, fasePrueba?, cobraBanco?, ipsActivo?, servidor = true): Observable<PageInfo<Funcionario>> {
+    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, fasePrueba, cobraBanco, ipsActivo }, servidor);
   }
 
   onGetFuncionarioPorPersona(id, servidor = true): Observable<Funcionario> {

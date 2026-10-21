@@ -10,7 +10,7 @@
       <div
         *ngIf="hayDatos; else sinDatos"
         echarts
-        [options]="opciones"
+        [options]="opcionesTema"
         (chartInit)="onChartInit($event)"
         class="grafico-shell__chart-instance"
       ></div>

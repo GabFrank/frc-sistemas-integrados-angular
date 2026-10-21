@@ -1,9 +1,13 @@
 import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   OnInit,
+  QueryList,
   ViewChild,
+  ViewChildren,
   ElementRef,
-  Inject,
+  inject,
 } from "@angular/core";
 import { FormBuilder, FormGroup, FormArray, Validators, FormControl } from "@angular/forms";
 import {
@@ -13,6 +17,8 @@ import {
 } from "@angular/material/dialog";
 import { MatCheckbox } from "@angular/material/checkbox";
 import { MatSelect } from "@angular/material/select";
+import { MatDatepicker } from "@angular/material/datepicker";
+import { MatButtonToggleChange } from "@angular/material/button-toggle";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
 import {
@@ -36,6 +42,7 @@ import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
+import { avisoTrasMutacion, erroresDeRechazo } from "../../../../../../commons/core/utils/graphqlErrorUtils";
 import { PorSucursal } from "../../../../../../commons/core/utils/por-sucursal";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
@@ -51,6 +58,7 @@ import {
 } from "../../../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { MatTableDataSource } from "@angular/material/table";
 import { SelectSucursalesDialogComponent, SelectSucursalesDialogData, SelectSucursalesDialogResult } from "./select-sucursales-dialog.component";
+import { enPresentacion } from '../../utils/recepcion-documental.utils';
 
 export interface AddEditItemDialogData {
   title: string;
@@ -78,6 +86,8 @@ export interface AddEditItemDialogResult {
   item: PedidoItem;
   action: "save" | "cancel";
   lastSearchText?: string;
+  /** Alta sin respuesta: el ítem pudo guardarse y reintentar lo duplicaría; quien abrió el diálogo recarga (#488). */
+  recargar?: boolean;
 }
 
 export interface DistribucionItem {
@@ -93,12 +103,25 @@ export interface DistribucionItem {
   distribucionId?: number; // Para modo edición
   /** Influencia COMPRAS sin `VER_STOCK_COMPRAS`: ni el stock ni la sugerida (que lo resta) se muestran. */
   stockOculto?: boolean;
+  /** Controles de la fila (los mismos del FormArray), para enlazarlos sin llamar métodos desde el template. */
+  sucursalEntregaControl?: FormControl<number | null>;
+  cantidadPedirControl?: FormControl<number | null>;
+  /** Stock y sugerida en la presentación elegida (precalculados en updateComputedProperties). */
+  stockActualPorPresentacion?: number;
+  cantidadSugeridaPorPresentacion?: number;
+}
+
+/** Fila de la tabla de precios de venta del costado. */
+interface PrecioVentaFila {
+  cantidad: number;
+  precio: number | null;
 }
 
 @Component({
   selector: "app-add-edit-item-dialog",
   templateUrl: "./add-edit-item-dialog.component.html",
   styleUrls: ["./add-edit-item-dialog.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("productoInput") productoInput!: ElementRef;
@@ -108,10 +131,26 @@ export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("precioPorPresentacionInput")
   precioPorPresentacionInput!: ElementRef;
   @ViewChild("vencimientoInput") vencimientoInput!: ElementRef;
-  @ViewChild("vencimientoPicker") vencimientoPicker!: any;
+  @ViewChild("vencimientoPicker") vencimientoPicker!: MatDatepicker<Date>;
   @ViewChild("observacionInput") observacionInput!: ElementRef;
   @ViewChild("guardarBtn", { read: MatButton }) guardarBtn!: MatButton;
   @ViewChild("cancelarBtn", { read: MatButton }) cancelarBtn!: MatButton;
+  @ViewChild("cantidadSimplificadaInput") cantidadSimplificadaInput?: ElementRef<HTMLInputElement>;
+  @ViewChildren("cantidadPedirInput") cantidadPedirInputs!: QueryList<ElementRef<HTMLInputElement>>;
+
+  private formBuilder = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<AddEditItemDialogComponent, AddEditItemDialogResult>>(MatDialogRef);
+  private dialog = inject(MatDialog);
+  private monedaService = inject(MonedaService);
+  private pedidoService = inject(PedidoService);
+  private notificacionService = inject(NotificacionSnackbarService);
+  private dialogosService = inject(DialogosService);
+  private productoService = inject(ProductoService);
+  private movimientoStockService = inject(MovimientoStockService);
+  private buscadorComprasService = inject(BuscadorComprasService);
+  private mainService = inject(MainService);
+  private cdr = inject(ChangeDetectorRef);
+  data = inject<AddEditItemDialogData>(MAT_DIALOG_DATA);
 
   itemForm: FormGroup;
 
@@ -151,15 +190,38 @@ export class AddEditItemDialogComponent implements OnInit {
   // Loading state
   savingComputed = false;
 
-  private _distribucionModo: 'COMPLETA' | 'SIMPLIFICADA' = 'COMPLETA';
-  
-  get distribucionModo(): 'COMPLETA' | 'SIMPLIFICADA' {
-    return this._distribucionModo;
+  // Más valores precalculados para el template (sin métodos ni cuentas en el HTML)
+  stockTotalSimplificadoPorPresentacionComputed = 0;
+  imagenMiniaturaComputed = "assets/no-image.png";
+  imagenMedianaComputed = "assets/no-image.png";
+  preciosVentaComputed: PrecioVentaFila[] = [];
+  hayPresentacionesComputed = false;
+  productoFormComputed: Producto | null = null;
+  precioOriginalPorPresentacionComputed = 0;
+  mostrarPrecioAnteriorComputed = false;
+  mostrarCambioPrecioComputed = false;
+  precioCambioClaseComputed = "precio-cambio-indicator cambio-nivel-bajo";
+  precioCambioIconoComputed = "trending_down";
+  precioCambioPorcentualSignoComputed = "";
+  precioCambioSignoComputed = "";
+  hayDistribucionesComputed = false;
+  mostrarDistribucionCompletaComputed = false;
+  mostrarDistribucionSimplificadaComputed = false;
+  mostrarVencimientoComputed = false;
+  mostrarSubtotalComputed = false;
+  textoBotonGuardarComputed = "";
+  productoRequeridoErrorComputed = false;
+
+  /** Modo de la distribución; se cambia solo con cambiarModoDistribucion(). */
+  distribucionModo: 'COMPLETA' | 'SIMPLIFICADA' = 'COMPLETA';
+
+  onCambiarModoDistribucion(event: MatButtonToggleChange): void {
+    this.cambiarModoDistribucion(event.value);
   }
-  
-  set distribucionModo(value: 'COMPLETA' | 'SIMPLIFICADA') {
-    if (this._distribucionModo !== value) {
-      this._distribucionModo = value;
+
+  private cambiarModoDistribucion(value: 'COMPLETA' | 'SIMPLIFICADA'): void {
+    if (this.distribucionModo !== value) {
+      this.distribucionModo = value;
       // Actualizar propiedades computadas cuando cambia el modo
       this.updateComputedProperties();
       
@@ -201,14 +263,14 @@ export class AddEditItemDialogComponent implements OnInit {
       setTimeout(() => {
         if (value === 'COMPLETA') {
           // Mover foco al primer input de la lista de distribuciones
-          const firstInput = this.getFirstDistribucionInput();
+          const firstInput = this.primerInputDistribucion();
           if (firstInput) {
             firstInput.focus();
             firstInput.select();
           }
         } else if (value === 'SIMPLIFICADA') {
           // Mover foco al input de cantidad total simplificada
-          const simplifiedInput = document.querySelector('input.cantidad-simplificada-input') as HTMLInputElement;
+          const simplifiedInput = this.cantidadSimplificadaInput?.nativeElement;
           if (simplifiedInput) {
             simplifiedInput.focus();
             simplifiedInput.select();
@@ -253,25 +315,9 @@ export class AddEditItemDialogComponent implements OnInit {
   /** Sin este rol no se muestra el stock de la sucursal COMPRAS, igual que en la lista de productos. */
   puedeVerStockCompras = false;
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private dialogRef: MatDialogRef<AddEditItemDialogComponent>,
-    private dialog: MatDialog,
-    private monedaService: MonedaService,
-    private pedidoService: PedidoService,
-    private notificacionService: NotificacionSnackbarService,
-    private dialogosService: DialogosService,
-    private productoService: ProductoService,
-    private movimientoStockService: MovimientoStockService,
-    private buscadorComprasService: BuscadorComprasService,
-    private mainService: MainService,
-    @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
-  ) {
+  ngOnInit(): void {
     this.initializeForm();
     this.initializeSucursales();
-  }
-
-  ngOnInit(): void {
     this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
 
     // Cargar monedas para tener la información completa disponible
@@ -300,7 +346,7 @@ export class AddEditItemDialogComponent implements OnInit {
       next: (monedas) => {
         this.monedas = monedas || [];
         // Si la moneda del pedido no está completa, actualizar computed properties
-        if (!this.isMonedaCompleta(this.data.pedido.moneda)) {
+        if (!this.esMonedaCompleta(this.data.pedido.moneda)) {
           this.updateComputedProperties();
         }
       },
@@ -312,15 +358,15 @@ export class AddEditItemDialogComponent implements OnInit {
     });
   }
 
-  private isMonedaCompleta(moneda: any): boolean {
+  private esMonedaCompleta(moneda: Moneda | null | undefined): boolean {
     return moneda && moneda.denominacion && typeof moneda.denominacion === 'string';
   }
 
-  private getMonedaCompleta(moneda: any): Moneda | null {
+  private completarMoneda(moneda: Moneda | null | undefined): Moneda | null {
     if (!moneda) return null;
     
     // Si ya está completa, retornarla
-    if (this.isMonedaCompleta(moneda)) {
+    if (this.esMonedaCompleta(moneda)) {
       return moneda;
     }
     
@@ -407,6 +453,11 @@ export class AddEditItemDialogComponent implements OnInit {
         vencimientoEsperado: vencimientoEsperadoDate,
         observacion: item.observacion,
       });
+
+      // El producto del ítem viene recortado (sin fotos, IVA ni precios de venta): se completa como en el alta
+      if (item.producto?.id) {
+        this.completarDatosDelProducto(item.producto.id, presentacionSeleccionada);
+      }
 
       // Cargar distribuciones existentes
       this.loadDistribucionesExistentes(item.id);
@@ -612,7 +663,7 @@ export class AddEditItemDialogComponent implements OnInit {
       this.itemForm.get("esBonificacion")?.value || false;
     
     // Obtener moneda completa con validación defensiva
-    const monedaCompleta = this.getMonedaCompleta(this.data.pedido.moneda);
+    const monedaCompleta = this.completarMoneda(this.data.pedido.moneda);
     
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
@@ -661,7 +712,7 @@ export class AddEditItemDialogComponent implements OnInit {
       if (stock > 0) {
         this.stockTotalSimplificadoComputed += stock;
       }
-      tooltipText += `${item.sucursalInfluencia.nombre}: ${this.getCantidadPorPresentacion(stock).toFixed(2)} (${stock} unidades)\n`;
+      tooltipText += `${item.sucursalInfluencia.nombre}: ${this.enPresentacionElegida(stock).toFixed(2)} (${stock} unidades)\n`;
     });
     this.stockBreakdownTooltipComputed = tooltipText;
 
@@ -690,6 +741,50 @@ export class AddEditItemDialogComponent implements OnInit {
       this.precioCambioPorcentualComputed = 0;
       this.precioHaCambiadoComputed = false;
     }
+
+    this.actualizarValoresDelTemplate(presentacion);
+    // OnPush: casi todo cambio de estado (respuestas, timers, diálogos hijos) termina acá
+    this.cdr.markForCheck();
+  }
+
+  /** Lo que el template mostraba calculando en el HTML: ahora se calcula acá. */
+  private actualizarValoresDelTemplate(presentacion: Presentacion | null): void {
+    const producto = this.itemForm.get("producto");
+    this.productoFormComputed = producto?.value || null;
+    this.productoRequeridoErrorComputed = !!producto?.errors?.["required"] && !!producto?.touched;
+
+    const miniatura = this.selectedProducto?.imagenPrincipalMiniatura || "assets/no-image.png";
+    this.imagenMiniaturaComputed = miniatura;
+    this.imagenMedianaComputed = this.selectedProducto?.imagenPrincipalMediana || miniatura;
+    this.hayPresentacionesComputed = this.presentacionesDisponibles.length > 0;
+    this.preciosVentaComputed = this.presentacionesDisponibles.map((p) => ({
+      cantidad: p.cantidad,
+      precio: p.precioPrincipal?.precio ?? null,
+    }));
+
+    this.precioOriginalPorPresentacionComputed = this.precioOriginal * (presentacion?.cantidad || 1);
+    this.mostrarPrecioAnteriorComputed =
+      this.presentacionSelectedComputed && this.precioHaCambiadoComputed && !this.isBonificacionComputed;
+    this.mostrarCambioPrecioComputed = this.precioHaCambiadoComputed && !this.isBonificacionComputed;
+    this.precioCambioClaseComputed = `precio-cambio-indicator cambio-nivel-${this.precioCambioNivelComputed}`;
+    this.precioCambioIconoComputed = this.precioCambioComputed > 0 ? "trending_up" : "trending_down";
+    this.precioCambioPorcentualSignoComputed = this.precioCambioPorcentualComputed >= 0 ? "+" : "";
+    this.precioCambioSignoComputed = this.precioCambioComputed >= 0 ? "+" : "";
+
+    this.hayDistribucionesComputed = this.distribucionesItems.length > 0;
+    const conProductoYPresentacion = this.productoSelectedComputed && this.presentacionSelectedComputed;
+    this.mostrarDistribucionCompletaComputed = conProductoYPresentacion && this.distribucionModo === "COMPLETA";
+    this.mostrarDistribucionSimplificadaComputed = conProductoYPresentacion && this.distribucionModo === "SIMPLIFICADA";
+    this.mostrarVencimientoComputed = this.productoSelectedComputed && this.productoManejaVencimientoComputed;
+    this.mostrarSubtotalComputed = this.productoSelectedComputed && !this.isBonificacionComputed;
+
+    this.stockTotalSimplificadoPorPresentacionComputed = this.enPresentacionElegida(this.stockTotalSimplificadoComputed);
+    this.distribucionesItems.forEach((item) => {
+      item.stockActualPorPresentacion = this.enPresentacionElegida(item.stockActual);
+      item.cantidadSugeridaPorPresentacion = this.enPresentacionElegida(item.cantidadSugerida);
+    });
+
+    this.textoBotonGuardarComputed = `${this.data.isEdit ? "Actualizar" : "Guardar"} Ítem`;
   }
 
   private updatePrecioPorPresentacionFromUnitario(
@@ -893,21 +988,7 @@ export class AddEditItemDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
-    // Lazy-load full product data (precioPrincipal, fotos, costo completo)
-    // ya que el producto del search dialog puede no traer todos los campos
-    this.productoService.onGetProductoParaPedido(producto.id, this.data.pedido != null, PROPAGAR_ERROR_DE_RED, CONSULTA_STOCK)
-      .subscribe({
-        next: (productoCompleto) => {
-          if (productoCompleto?.presentaciones) {
-            this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
-            this.presentacionesDisponibles = productoCompleto.presentaciones;
-            this.syncPresentacionEnFormulario(presentacion);
-            this.updateComputedProperties();
-          }
-        },
-        error: () => this.notificacionService.openWarn(
-          "No se pudieron cargar todos los datos del producto (presentaciones, precio): revisalos antes de guardar.", 5),
-      });
+    this.completarDatosDelProducto(producto.id, presentacion);
 
     // Solo seleccionar automáticamente la primera presentación si NO se proporcionó una presentación
     // y hay exactamente una presentación disponible
@@ -1070,7 +1151,7 @@ export class AddEditItemDialogComponent implements OnInit {
       // Navegar según el modo
       if (this.distribucionModo === 'COMPLETA' && this.distribucionesItems.length > 0) {
         setTimeout(() => {
-          const firstInput = this.getFirstDistribucionInput();
+          const firstInput = this.primerInputDistribucion();
           if (firstInput) {
             firstInput.focus();
             firstInput.select();
@@ -1078,7 +1159,7 @@ export class AddEditItemDialogComponent implements OnInit {
         }, 0);
       } else if (this.distribucionModo === 'SIMPLIFICADA') {
         setTimeout(() => {
-          const simplifiedInput = document.querySelector('input.cantidad-simplificada-input') as HTMLInputElement;
+          const simplifiedInput = this.cantidadSimplificadaInput?.nativeElement;
           if (simplifiedInput) {
             simplifiedInput.focus();
             simplifiedInput.select();
@@ -1096,22 +1177,13 @@ export class AddEditItemDialogComponent implements OnInit {
   /**
    * Obtiene el primer input de cantidad de la lista de distribuciones
    */
-  private getFirstDistribucionInput(): HTMLInputElement | null {
-    const inputs = document.querySelectorAll<HTMLInputElement>(
-      'input.cantidad-pedir-input'
-    );
-    return inputs.length > 0 ? inputs[0] : null;
+  private primerInputDistribucion(): HTMLInputElement | null {
+    return this.cantidadPedirInputs?.first?.nativeElement ?? null;
   }
 
-  /**
-   * Calcula la cantidad por presentación a partir de la cantidad en unidades base
-   */
-  getCantidadPorPresentacion(cantidadUnidades: number): number {
-    const presentacion = this.itemForm.get("presentacion")?.value;
-    if (presentacion && presentacion.cantidad > 0) {
-      return cantidadUnidades / presentacion.cantidad;
-    }
-    return cantidadUnidades;
+  /** Cantidad en unidades base llevada a la presentación elegida en el formulario. */
+  private enPresentacionElegida(cantidadUnidades: number): number {
+    return enPresentacion(cantidadUnidades, this.itemForm.get("presentacion")?.value);
   }
 
   onVencimientoKeydown(event: KeyboardEvent): void {
@@ -1232,115 +1304,95 @@ export class AddEditItemDialogComponent implements OnInit {
       }
     );
 
-    // Call the service to save PedidoItem first
-    this.pedidoService.onSavePedidoItem(pedidoToSave.toInput()).subscribe({
+    // Distribuciones en unidades base (en el formulario están en unidades de la presentación).
+    // Solo van las que tienen cantidad > 0; en modo simplificado con varias sucursales no hay.
+    const distribucionesInput: PedidoItemDistribucionInput[] = this.distribucionesItems
+      .map((item, index) => {
+        const control = this.distribucionesFormArray.at(index);
+        const cantidadPedir = control?.get('cantidadPedir')?.value || 0;
+        const presentacion = formValue.presentacion;
+        const cantidadEnUnidadesBase = presentacion && presentacion.cantidad > 0
+          ? cantidadPedir * presentacion.cantidad
+          : cantidadPedir;
+
+        return {
+          id: item.distribucionId,
+          // El central lo pisa con el id del ítem guardado (en un alta todavía no existe)
+          pedidoItemId: this.data.item?.id,
+          sucursalInfluenciaId: item.sucursalInfluencia.id,
+          sucursalEntregaId: item.sucursalEntrega.id,
+          cantidadAsignada: cantidadEnUnidadesBase
+        };
+      });
+    const distribucionesFiltradas = distribucionesInput.filter(dist => dist.cantidadAsignada > 0);
+
+    // El ítem y sus distribuciones van juntos: el central los guarda en una transacción (todo o nada). Antes eran
+    // dos mutaciones y un fallo en la segunda dejaba el ítem guardado sin distribuciones (#488).
+    this.pedidoService.onGuardarPedidoItemConDistribuciones(pedidoToSave.toInput(), distribucionesFiltradas).subscribe({
       next: (savedItem) => {
-        console.log("PedidoItem guardado exitosamente:", savedItem);
+        if (savedItem == null) {
+          // El genérico ya avisó
+          this.savingComputed = false;
+          this.updateComputedProperties();
+          return;
+        }
 
-        // Preparar distribuciones para guardar
-        // En modo completo: solo guardar distribuciones con cantidad > 0
-        // En modo simplificado: guardar todas las distribuciones (ya están filtradas por la lógica de creación)
-        console.log('ANTES de preparar distribuciones:', {
-          distribucionesItems: this.distribucionesItems.length,
-          modo: this.distribucionModo,
-          sucursalesInfluencia: this.sucursalesInfluencia.length,
-          sucursalesEntrega: this.sucursalesEntrega.length
+        const itemResult: PedidoItem = Object.assign(new PedidoItem(), {
+          ...savedItem,
+          // Add frontend-specific properties
+          presentacion: formValue.presentacion,
+          precioUnitarioPorPresentacion:
+            formValue.precioUnitarioPorPresentacion,
         });
-        const distribucionesInput: PedidoItemDistribucionInput[] = this.distribucionesItems
-          .map((item, index) => {
-            const control = this.distribucionesFormArray.at(index);
-            const cantidadPedir = control?.get('cantidadPedir')?.value || 0;
-            
-            // Convertir cantidad de presentación a unidades base
-            // Las cantidades en el formulario están en unidades de presentación
-            const presentacion = formValue.presentacion;
-            const cantidadEnUnidadesBase = presentacion && presentacion.cantidad > 0
-              ? cantidadPedir * presentacion.cantidad
-              : cantidadPedir;
 
-            return {
-              id: item.distribucionId,
-              pedidoItemId: savedItem.id,
-              sucursalInfluenciaId: item.sucursalInfluencia.id,
-              sucursalEntregaId: item.sucursalEntrega.id,
-              cantidadAsignada: cantidadEnUnidadesBase
-            };
-          });
-        
-        console.log('Distribuciones DESPUÉS del map (antes del filter):', distribucionesInput);
-        
-        const distribucionesFiltradas = distribucionesInput.filter(dist => {
-            // En ambos modos, solo guardar distribuciones con cantidad > 0
-            // En modo simplificado con múltiples sucursales, no debería haber distribuciones
-            return dist.cantidadAsignada > 0;
-          });
+        // Mensaje de éxito según si se guardaron distribuciones o no
+        const mensajeExito = distribucionesInput.length > 0
+          ? (this.data.isEdit
+              ? "Ítem y distribuciones actualizados exitosamente"
+              : "Ítem y distribuciones añadidos exitosamente")
+          : (this.data.isEdit
+              ? "Ítem actualizado exitosamente"
+              : "Ítem añadido exitosamente");
 
-        // Log para verificar qué se está enviando
-        console.log('Distribuciones a guardar (después del filter):', distribucionesFiltradas);
-        console.log('Modo de distribución:', this.distribucionModo);
-        console.log('Cantidad de distribuciones:', distribucionesFiltradas.length);
+        this.notificacionService.openSucess(mensajeExito);
 
-        // Guardar distribuciones usando merge
-        this.pedidoService.onMergePedidoItemDistribuciones(savedItem.id, distribucionesFiltradas).subscribe({
-          next: (distribucionesGuardadas) => {
-            console.log("Distribuciones guardadas exitosamente:", distribucionesGuardadas);
+        const result: AddEditItemDialogResult = {
+          item: itemResult,
+          action: "save",
+          lastSearchText: this.originalSearchText,
+        };
 
-            // Update the saved item with additional computed properties
-            const itemResult: PedidoItem = Object.assign(new PedidoItem(), {
-              ...savedItem,
-              // Add frontend-specific properties
-              presentacion: formValue.presentacion,
-              precioUnitarioPorPresentacion:
-                formValue.precioUnitarioPorPresentacion,
-            });
-
-            // Mensaje de éxito según si se guardaron distribuciones o no
-            const mensajeExito = distribucionesInput.length > 0
-              ? (this.data.isEdit
-                  ? "Ítem y distribuciones actualizados exitosamente"
-                  : "Ítem y distribuciones añadidos exitosamente")
-              : (this.data.isEdit
-                  ? "Ítem actualizado exitosamente"
-                  : "Ítem añadido exitosamente");
-            
-            this.notificacionService.openSucess(mensajeExito);
-
-            const result: AddEditItemDialogResult = {
-              item: itemResult,
-              action: "save",
-              lastSearchText: this.originalSearchText,
-            };
-
-            this.dialogRef.close(result);
-          },
-          error: (error) => {
-            console.error("Error guardando distribuciones:", error);
-            // El PedidoItem ya fue guardado, pero las distribuciones fallaron
-            this.notificacionService.openAlgoSalioMal(
-              "El ítem fue guardado, pero hubo un error al guardar las distribuciones. Puede intentar guardarlas nuevamente."
-            );
-            this.savingComputed = false;
-            this.updateComputedProperties();
-          }
-        });
+        this.dialogRef.close(result);
       },
       error: (error) => {
-        console.error("Error guardando PedidoItem:", error);
-        this.notificacionService.openAlgoSalioMal(
-          "Error al guardar el ítem del pedido"
-        );
+        console.error("Error guardando el ítem con sus distribuciones:", error);
         this.savingComputed = false;
         this.updateComputedProperties();
+        // Un rechazo no guardó nada (es una transacción) y el genérico ya mostró el motivo: el diálogo queda para corregir
+        if (erroresDeRechazo(error) != null) {
+          return;
+        }
+        const esAlta = !this.data.item?.id;
+        const aviso = avisoTrasMutacion(error, esAlta ? "se agregó el ítem" : "se actualizó el ítem");
+        if (aviso != null) {
+          this.notificacionService.openWarn(aviso, 8);
+        }
+        if (esAlta) {
+          // Reintentar agregaría el ítem otra vez: se cierra y el pedido recarga
+          const result: AddEditItemDialogResult = {
+            item: {} as PedidoItem,
+            action: "cancel",
+            lastSearchText: this.originalSearchText,
+            recargar: true,
+          };
+          this.dialogRef.close(result);
+        }
       },
     });
   }
 
   onCancel(): void {
-    const result: AddEditItemDialogResult = {
-      item: {} as PedidoItem,
-      action: "cancel",
-      lastSearchText: this.originalSearchText,
-    };
+    const result: AddEditItemDialogResult = { item: {} as PedidoItem, action: "cancel", lastSearchText: this.originalSearchText };
     this.dialogRef.close(result);
   }
 
@@ -1662,6 +1714,8 @@ export class AddEditItemDialogComponent implements OnInit {
     // sucursales: un request cada uno, no uno por fila. La sugerida sale encadenada al stock y no
     // en paralelo, porque lo resta: ver loadStockActualDeTodasLasDistribuciones().
     this.loadStockActualDeTodasLasDistribuciones(producto.id);
+    // Puede haber cerrado filas en el momento (sin sucursal, stock oculto): OnPush
+    this.cdr.markForCheck();
   }
 
   /**
@@ -1773,6 +1827,8 @@ export class AddEditItemDialogComponent implements OnInit {
       sucursalEntregaId: [sucursalEntrega.id, [Validators.required]],
       cantidadPedir: [cantidadInicial, [Validators.required, Validators.min(0)]]
     });
+    distribucionItem.sucursalEntregaControl = control.get('sucursalEntregaId') as FormControl<number | null>;
+    distribucionItem.cantidadPedirControl = control.get('cantidadPedir') as FormControl<number | null>;
 
     // Suscribirse a cambios en la sucursal de entrega para actualizar el item
     control.get('sucursalEntregaId')?.valueChanges.subscribe((nuevaSucursalEntregaId) => {
@@ -1794,6 +1850,7 @@ export class AddEditItemDialogComponent implements OnInit {
             // Actualizar el data source para reflejar el cambio
             this.distribucionesDataSource.data = [...this.distribucionesItems];
           }
+          this.cdr.markForCheck();
         }
       }
     });
@@ -1873,22 +1930,6 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   /**
-   * Obtiene el control de una distribución específica
-   */
-  getDistribucionControl(index: number, fieldName: string): FormControl {
-    const control = this.distribucionesFormArray.at(index)?.get(fieldName);
-    return control as FormControl;
-  }
-
-  /**
-   * Obtiene las sucursales de entrega disponibles para una distribución
-   * (todas las sucursales de entrega del pedido)
-   */
-  getSucursalesEntregaDisponibles(): Sucursal[] {
-    return this.sucursalesEntrega;
-  }
-
-  /**
    * Carga el stock actual para una distribución de forma asíncrona e independiente
    * No bloquea la UI y actualiza solo el item específico
    *
@@ -1900,6 +1941,7 @@ export class AddEditItemDialogComponent implements OnInit {
     const producto = this.itemForm.get("producto")?.value;
     if (!producto?.id || !distribucionItem.sucursalInfluencia?.id) {
       distribucionItem.stockActualLoading = false;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -2149,12 +2191,10 @@ export class AddEditItemDialogComponent implements OnInit {
       if (nextIndex < this.distribucionesItems.length) {
         // Focus en el siguiente input
         setTimeout(() => {
-          const inputs = document.querySelectorAll<HTMLInputElement>(
-            'input.cantidad-pedir-input'
-          );
-          if (inputs[nextIndex]) {
-            inputs[nextIndex].focus();
-            inputs[nextIndex].select();
+          const siguiente = this.cantidadPedirInputs?.get(nextIndex)?.nativeElement;
+          if (siguiente) {
+            siguiente.focus();
+            siguiente.select();
           }
         }, 0);
       } else {
@@ -2191,7 +2231,7 @@ export class AddEditItemDialogComponent implements OnInit {
     this.calculateCantidadTotal();
   }
 
-  onCantidadInputFocus(control: FormControl): void {
+  onCantidadInputFocus(control: FormControl<number | null>): void {
     const value = Number(control?.value ?? 0);
     if (value === 0) {
       control.setValue(null);
@@ -2241,6 +2281,27 @@ export class AddEditItemDialogComponent implements OnInit {
 
   comparePresentaciones(a: Presentacion | null, b: Presentacion | null): boolean {
     return !!a && !!b && a.id === b.id;
+  }
+
+  /**
+   * Trae el producto completo (fotos, IVA, precio de venta por presentación, costo): el del buscador y el del ítem
+   * guardado vienen recortados. No cambia los valores del formulario: solo reubica la presentación elegida en la lista
+   * nueva (sin emitir, así no se recalculan precios).
+   */
+  private completarDatosDelProducto(productoId: number, presentacion?: Presentacion | null): void {
+    this.productoService.onGetProductoParaPedido(productoId, this.data.pedido != null, PROPAGAR_ERROR_DE_RED, CONSULTA_STOCK)
+      .subscribe({
+        next: (productoCompleto) => {
+          if (productoCompleto?.presentaciones) {
+            this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
+            this.presentacionesDisponibles = productoCompleto.presentaciones;
+            this.syncPresentacionEnFormulario(presentacion ?? undefined);
+            this.updateComputedProperties();
+          }
+        },
+        error: () => this.notificacionService.openWarn(
+          "No se pudieron cargar todos los datos del producto (presentaciones, precio): revisalos antes de guardar.", 5),
+      });
   }
 
   private resolvePresentacionEnLista(presentacion: Presentacion): Presentacion {

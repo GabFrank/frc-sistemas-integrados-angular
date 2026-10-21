@@ -229,7 +229,7 @@ export class SolicitudPagoService {
    * @param input Input de la solicitud de pago
    * @returns Observable con la solicitud de pago guardada
    */
-  onSaveInput(input: SolicitudPagoInput): Observable<SolicitudPago> {
+  onSaveInput(input: SolicitudPagoInput, opciones?: { avisarExito?: boolean }): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.saveSolicitudPagoGQL,
       input,
@@ -237,7 +237,10 @@ export class SolicitudPagoService {
       undefined,
       true,
       // El alta avisa por su cuenta («No se pudo confirmar si la solicitud se creó…»): sin aviso del genérico.
-      PROPAGAR_ERROR_DE_RED
+      PROPAGAR_ERROR_DE_RED,
+      undefined,
+      // `avisarExito = false`, para la pantalla que muestra su propio verde (#501)
+      opciones
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );
@@ -257,7 +260,11 @@ export class SolicitudPagoService {
       id,
       'solicitud de pago',
       null,
-      false
+      false,
+      true,
+      undefined,
+      // Un solo verde, con el texto que daba la pantalla (#501)
+      { exito: 'Solicitud eliminada exitosamente' }
     ).pipe(
       switchMap((ok) => ok === true ? of(true) : throwError(() => new Error('No se pudo eliminar la solicitud')))
     );
@@ -317,14 +324,17 @@ export class SolicitudPagoService {
    * @param estado Nuevo estado
    * @returns Observable con la solicitud de pago actualizada
    */
-  onActualizarSolicitudPago(input: SolicitudPagoInput): Observable<SolicitudPago> {
+  onActualizarSolicitudPago(input: SolicitudPagoInput, opciones?: { avisarExito?: boolean }): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
       this.actualizarSolicitudPagoGQL,
       input,
       undefined,
       undefined,
       true,
-      GUARDADO_PROPAGA
+      GUARDADO_PROPAGA,
+      undefined,
+      // `avisarExito = false`, para la pantalla que muestra su propio verde (#501)
+      opciones
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
     );

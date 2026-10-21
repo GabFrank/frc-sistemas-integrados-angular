@@ -13,7 +13,6 @@ import { ProductoProveedor } from '../../producto-proveedor/producto-proveedor.m
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProductoProveedorService } from '../../producto-proveedor/producto-proveedor.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
-import { DesvincularProductoProveedorGQL } from '../../producto-proveedor/graphql/desvincularProductoProveedor';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { takeUntil } from 'rxjs/operators';
 import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
@@ -30,6 +29,7 @@ const LECTURA_VINCULOS: QueryError = {
 const CONSULTA_VINCULOS: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 
 import { Subject } from 'rxjs';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface GestionProveedoresProductoDialogData {
   producto: Producto;
@@ -84,7 +84,6 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: GestionProveedoresProductoDialogData,
     private productoProveedorService: ProductoProveedorService,
     private proveedorService: ProveedorService,
-    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private notificacionService: NotificacionSnackbarService
   ) {
     this.producto = data?.producto || null;
@@ -195,19 +194,27 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
       this.notificacionService.openAlgoSalioMal('No se pudo identificar el vínculo a desvincular');
       return;
     }
-    this.desvincularProductoProveedorGQL
-      .mutate({ id: row.id, motivo })
+    this.productoProveedorService
+      .onDesvincular(row.id, motivo)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (res) => {
-          if (res.data?.data) {
+        next: (vinculo) => {
+          if (vinculo) {
             this.notificacionService.openSucess('Proveedor desvinculado correctamente');
-            this.loadList();
+          } else {
+            // Defensivo: un vínculo inexistente llega como rechazo (el «Ups!» del genérico), no como null (#501)
+            this.notificacionService.openWarn('No se pudo desvincular: no se encontró el vínculo.');
           }
+          this.loadList();
         },
-        error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al desvincular');
-          this.loadList(); // pudo haberse aplicado
+        // Antes «Error al desvincular» en rechazo y en corte por igual. En un rechazo el genérico ya mostró el motivo;
+        // sin respuesta pudo aplicarse: se avisa (el corte por tiempo ya lo avisó el link) y se relee (#501)
+        error: (error) => {
+          const aviso = erroresDeRechazo(error) == null ? avisoTrasMutacion(error, 'se desvinculó') : null;
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+          this.loadList();
         },
       });
   }

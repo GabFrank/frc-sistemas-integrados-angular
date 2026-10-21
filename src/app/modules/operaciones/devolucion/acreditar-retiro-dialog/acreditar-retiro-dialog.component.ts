@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { avisoTrasMutacion, erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { OperacionDevolucionService } from "../operacion-devolucion/operacion-devolucion.service";
 
 export interface AcreditarRetiroDialogData {
@@ -201,8 +202,16 @@ export class AcreditarRetiroDialogComponent implements OnInit {
             this.dialogRef.close(true);
           }
         },
-        () => {
+        (err) => {
           this.procesando = false;
+          // Sin respuesta la nota de crédito pudo registrarse y repetirla la duplicaría: se cierra para que el
+          // historial recargue (#501)
+          if (erroresDeRechazo(err) == null) {
+            const aviso = avisoTrasMutacion(err, "se registró la nota de crédito");
+            if (aviso != null) this.notificacion.openWarn(aviso, 10);
+            this.dialogRef.close(true);
+            return;
+          }
           this.actualizarValidez();
         }
       );

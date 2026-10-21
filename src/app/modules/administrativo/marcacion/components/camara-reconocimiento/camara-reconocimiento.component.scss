@@ -8,7 +8,7 @@
     overflow: hidden;
     box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
     margin: 0 auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--frc-borde);
 
     video {
         width: 100%;
@@ -269,7 +269,7 @@
 }
 
 .mensaje-captura {
-    color: #aaa;
+    color: var(--frc-texto-tenue);
     font-size: 0.9em;
 }
 
@@ -297,7 +297,7 @@
     }
 
     &.step-pending {
-        background: #555;
+        background: var(--frc-relleno-fuerte);
     }
 }
 
@@ -309,7 +309,7 @@
 }
 
 .similitud-label {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--frc-texto);
     font-size: 0.85rem;
     margin-bottom: 6px;
     text-align: center;
@@ -319,7 +319,7 @@
     width: 100%;
     height: 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--frc-relleno-suave);
     overflow: hidden;
 }
 

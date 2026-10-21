@@ -423,11 +423,7 @@ export class ListTransferenciaComponent implements OnInit {
                   null,
                   index
                 );
-                this.notificacionService.notification$.next({
-                  texto: 'Transferencia eliminada correctamente',
-                  color: NotificacionColor.success,
-                  duracion: 3
-                });
+                // El verde lo da el borrado, con este texto (#501)
               }
             });
         },
@@ -590,7 +586,8 @@ export class ListTransferenciaComponent implements OnInit {
         input.hojaRutaId = hoja.id;
 
         const resultado = await new Promise<'ok' | 'rechazada' | 'sin-confirmar'>((resolve) => {
-          this.transferenciaService.onSaveTransferencia(input).subscribe({
+          // Un solo verde, el resumen del final: antes además uno por transferencia (#501)
+          this.transferenciaService.onSaveTransferencia(input, undefined, true, { avisarExito: false }).subscribe({
             next: (result) => resolve(result != null ? 'ok' : 'rechazada'),
             error: (err) => {
               console.error('Error al guardar transferencia:', err);

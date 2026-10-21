@@ -104,8 +104,9 @@ export class InventarioService {
     return this.genericCrudService.onGetById(this.getInventario, id);
   }
 
-  onSaveInventario(input): Observable<Inventario> {
-    return this.genericCrudService.onSave(this.saveInventario, input);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveInventario(input, opciones?: { avisarExito?: boolean }): Observable<Inventario> {
+    return this.genericCrudService.onSave(this.saveInventario, input, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   onDeleteInventario(id): Observable<boolean> {
@@ -120,8 +121,9 @@ export class InventarioService {
     );
   }
 
-  onSaveInventarioProducto(input): Observable<InventarioProducto> {
-    return this.genericCrudService.onSave(this.saveInventarioProducto, input);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveInventarioProducto(input, opciones?: { avisarExito?: boolean }): Observable<InventarioProducto> {
+    return this.genericCrudService.onSave(this.saveInventarioProducto, input, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   onDeleteInventarioProducto(id): Observable<boolean> {
@@ -136,10 +138,12 @@ export class InventarioService {
     );
   }
 
-  onSaveInventarioProductoItem(input): Observable<InventarioProducto> {
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveInventarioProductoItem(input, opciones?: { avisarExito?: boolean }): Observable<InventarioProducto> {
     return this.genericCrudService.onSave(
       this.saveInventarioProductoItem,
-      input
+      input,
+      undefined, undefined, true, undefined, undefined, opciones
     );
   }
 
@@ -151,7 +155,9 @@ export class InventarioService {
       null,
       true,
       true,
-      "¿Está seguro que desea eliminar este inventario producto item?"
+      "¿Está seguro que desea eliminar este inventario producto item?",
+      // Un solo verde, con el texto que daba la pantalla (#501)
+      { exito: 'Producto eliminado' }
     );
   }
 

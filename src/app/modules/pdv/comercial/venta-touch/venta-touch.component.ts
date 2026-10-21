@@ -123,9 +123,8 @@ import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
-import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
 import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
-import { debePedirClienteParaFacturar, esRechazoDelServidor, esRechazoPorFacturaSinNombre } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { debePedirClienteParaFacturar, erroresDeRechazo, esRechazoDelServidor, esRechazoPorFacturaSinNombre, mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { Cliente } from '../../../personas/clientes/cliente.model';
 import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
 
@@ -1346,10 +1345,44 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 .subscribe({
                   next: (ventaDeliveryRes) => {
                     this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
+                    // «Finalizar con factura» también se usa en delivery: la factura ligada se emitió antes y
+                    // esta rama no la vinculaba (#501)
+                    if (response?.facturaLegalId != null) {
+                      this.vincularFacturaManual(response.facturaLegalId, venta.id);
+                    }
                     this.volverAlCarritoActivo();
                   },
-                  error: (err) =>
-                    this.avisarErrorAlGuardar(err, "No se pudo guardar el delivery. Verifique antes de continuar."),
+                  error: (err) => {
+                    console.error("Error al guardar el delivery:", err);
+                    // Siempre se sale del delivery: quedarse y volver a pagar abre el cobro sin las líneas ya guardadas
+                    // y las duplica (visto en la prueba de runtime). Reabrirlo desde la lista las trae del filial (#501).
+                    // La factura de «Finalizar con factura» ya se emitió y quedó sin venta: reintentar con factura emitiría otra
+                    const conFactura = response?.facturaLegalId != null;
+                    if (erroresDeRechazo(err) != null) {
+                      // El genérico ya mostró el motivo y no se aplicó nada
+                      if (conFactura) {
+                        this.notificacionSnackbar.notification$.next({
+                          color: NotificacionColor.danger,
+                          texto: "El delivery no se cobró, pero la factura ya se emitió: no emitas otra. Avisá al encargado antes de reabrirlo.",
+                          duracion: 10,
+                        });
+                      } else {
+                        this.notificacionSnackbar.openWarn("El delivery no se cobró. Reabrilo desde la lista de deliverys para reintentar.", 6);
+                      }
+                    } else {
+                      // Sin respuesta pudo haberse cobrado, y el filial no frena un segundo cobro (vuelve a crear el crédito).
+                      // Si se aplicó, los cobros con tarjeta no quedaron registrados: registrarPagosConTarjeta va en el next.
+                      let texto = "No se pudo confirmar si se cobró el delivery: no lo cobres de nuevo. Revisalo en la lista de deliverys antes de seguir.";
+                      if (conFactura) texto += " La factura ya se emitió: no emitas otra y avisá al encargado.";
+                      if (response?.tarjetaPagos?.length) texto += " Si se cobró, registrá a mano el cobro con tarjeta en el cierre de caja.";
+                      this.notificacionSnackbar.notification$.next({
+                        color: NotificacionColor.danger,
+                        texto,
+                        duracion: 12,
+                      });
+                    }
+                    this.volverAlCarritoActivo();
+                  },
                 });
 
               // this.onSaveVenta(
@@ -1385,6 +1418,29 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Vincula a la venta la factura emitida a mano antes de que la venta existiera («Finalizar con factura»). Si falla,
+   * la factura queda sin venta: antes solo quedaba en la consola (#501).
+   */
+  private vincularFacturaManual(facturaLegalId: number, ventaId: number): void {
+    this.facturaLegalService
+      .onVincularFacturaAVenta(facturaLegalId, ventaId, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        error: (err) => {
+          console.error("Error al vincular factura a la venta:", err);
+          this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.warn,
+            // En un rechazo el genérico ya dio el motivo; sin respuesta pudo haberse vinculado
+            texto: erroresDeRechazo(err) != null
+              ? "La venta se guardó, pero la factura no quedó vinculada. Avisá al encargado."
+              : "La venta se guardó, pero no se pudo confirmar si se vinculó la factura. Avisá al encargado.",
+            duracion: 10,
+          });
+        },
+      });
+  }
+
+  /**
    * Crea el registro PENDIENTE de cada tarjeta cobrada y, si ya había un cupón leído en
    * pago-touch (antes de que la venta existiera), lo completa al toque con una segunda
    * mutation — sin diálogos ni polling. Compartido entre venta normal y delivery: antes de
@@ -1401,6 +1457,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     const cajaIdQr = this.cajaService.selectedCaja?.id;
     const usuarioId = this.mainService.usuarioActual?.id;
 
+    // Cada pago con su propio resultado: con un forkJoin plano, si fallaba uno se perdían los que sí se crearon
+    // (sin completar ni seña), y el aviso decía «no se registró» aunque sin respuesta pudo haberse creado (#501).
     forkJoin(tarjetaPagos.map(pago =>
       this.ventaTarjetaService.onSavePendiente({
         sucursalId: sucursalIdQr,
@@ -1411,10 +1469,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         terminalPosId: pago.terminalPosId || undefined,
           monedaId: pago.monedaId ?? undefined,
         usuarioId
-      })
+      }).pipe(
+        map(vt => ({ vt, err: null })),
+        catchError(err => of({ vt: null, err }))
+      )
     )).pipe(untilDestroyed(this)).subscribe({
       next: (resultados) => {
-        resultados.forEach((vt, index) => {
+        resultados.forEach(({ vt, err }, index) => {
+          if (err != null) {
+            this.avisarPagoConTarjetaSinRegistrar(err, tarjetaPagos[index]);
+            return;
+          }
           if (!vt?.id) return;
           const pago = tarjetaPagos[index];
           const datos = pago.datosCupon;
@@ -1468,19 +1533,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           });
         });
       },
-      error: err => {
-        // Aca NO se creo ninguna fila, asi que no hay `ventaTarjetaId` y no hay seña posible: un
-        // papel sin ese numero no sirve para conciliar nada. La unica salida es avisar en pantalla,
-        // porque este es el unico caso donde el cobro con tarjeta queda SIN registro de ningun tipo
-        // --ni siquiera PENDIENTE-- y el cierre de caja no lo va a reclamar.
-        console.error('[VentaTarjeta] Error al crear registros pendientes:', err);
-        this.notificacionSnackbar.notification$.next({
-          color: NotificacionColor.danger,
-          texto: 'La venta se guardó, pero NO se registró el cobro con tarjeta. Anotá el cupón y '
-            + 'registralo a mano desde el cierre de caja.',
-          duracion: 12,
-        });
-      }
+    });
+  }
+
+  /**
+   * Un pago con tarjeta cuyo registro PENDIENTE no se pudo crear. En un rechazo no hay fila, así que no hay
+   * `ventaTarjetaId` ni seña posible y el cierre de caja no lo va a reclamar: hay que registrarlo a mano. Sin
+   * respuesta la fila pudo haberse creado: se revisa en el cierre antes de cargarla (#501).
+   */
+  private avisarPagoConTarjetaSinRegistrar(err: any, pago: TarjetaPago): void {
+    console.error('[VentaTarjeta] Error al crear el registro pendiente:', err);
+    const terminal = pago?.terminalDescripcion ? ` (${pago.terminalDescripcion})` : '';
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.danger,
+      texto: erroresDeRechazo(err) != null
+        ? `La venta se guardó, pero NO se registró el cobro con tarjeta${terminal}. Anotá el cupón y registralo a mano desde el cierre de caja.`
+        : `La venta se guardó, pero no se pudo confirmar si se registró el cobro con tarjeta${terminal}. Revisalo en el cierre de caja; si no aparece, registralo a mano.`,
+      duracion: 12,
     });
   }
 
@@ -1700,13 +1769,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 if (facturaLegalId != null) {
                   // La factura se generó manualmente antes de que la venta existiera
                   // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
-                  this.facturaLegalService
-                    .onVincularFacturaAVenta(facturaLegalId, res.id, false)
-                    .pipe(untilDestroyed(this))
-                    .subscribe({
-                      error: (err) =>
-                        console.error("Error al vincular factura a la venta:", err),
-                    });
+                  this.vincularFacturaManual(facturaLegalId, res.id);
                 }
                 if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
                   const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;

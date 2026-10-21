@@ -36,6 +36,8 @@ export class RemoveReplicationDialogComponent {
   scopeOptions = SCOPE_OPTIONS;
   resultLog: string | null = null;
   resultSuccess: boolean | null = null;
+  /** Sin respuesta: la eliminación pudo aplicarse, la lista se recarga al cerrar (#501). */
+  private resultSinConfirmar = false;
   sucursalNombre: string;
 
   constructor(
@@ -66,6 +68,7 @@ export class RemoveReplicationDialogComponent {
           this.isSubmitting = false;
           this.resultLog = status?.message ?? '';
           this.resultSuccess = status?.success ?? false;
+          this.resultSinConfirmar = this.resultSinConfirmar || status?.sinConfirmar === true;
         },
         error: () => {
           this.isSubmitting = false;
@@ -85,6 +88,6 @@ export class RemoveReplicationDialogComponent {
   }
 
   closeAfterResult(): void {
-    this.dialogRef.close(this.resultSuccess === true);
+    this.dialogRef.close(this.resultSuccess === true || this.resultSinConfirmar);
   }
 }

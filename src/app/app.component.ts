@@ -1,4 +1,4 @@
-import { OverlayContainer } from "@angular/cdk/overlay";
+import { TemaService } from "./shared/services/tema.service";
 import {
   Component,
   ElementRef,
@@ -7,6 +7,7 @@ import {
   OnInit,
   ViewChild,
   ChangeDetectorRef,
+  inject,
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
@@ -26,7 +27,7 @@ import { WindowInfoService } from "./shared/services/window-info.service";
 import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/search-bar-dialog.component";
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
-import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
+import { DialogosService } from "./shared/components/dialogos/dialogos.service";
 import { NotificacionesTableroService } from "./modules/notificaciones/services/notificaciones-tablero.service";
 import { UpdateDialogComponent } from "./shared/components/update-dialog/update-dialog.component";
 
@@ -64,6 +65,7 @@ export class MultiPageable {
   styleUrls: ["./app.component.scss"],
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private dialogos = inject(DialogosService);
   @ViewChild("container", { static: true }) container: ElementRef<any>;
 
   title = "franco-dev-systems";
@@ -80,7 +82,8 @@ export class AppComponent implements OnInit, OnDestroy {
   cursorStyle = 'auto';
 
   constructor(
-    private overlay: OverlayContainer,
+    // Se inyecta para que aplique el tema guardado (clase en <html>) apenas arranca la app.
+    private temaService: TemaService,
     private windowInfo: WindowInfoService,
     private notificationService: NotificacionSnackbarService,
     private snackBar: MatSnackBar,
@@ -126,7 +129,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-    this.overlay.getContainerElement().classList.add("darkMode");
     this.startLoadingObserver();
     
     this.configService.configChanged
@@ -258,17 +260,13 @@ export class AppComponent implements OnInit, OnDestroy {
             .pipe(untilDestroyed(this))
             .subscribe(configured => {
               if (configured) {
-                const confirmDialogRef = this.matDialog.open(ConfirmDialogComponent, {
-                  width: '400px',
-                  data: {
-                    title: 'REINICIAR APLICACIÓN',
-                    message: 'LA CONFIGURACIÓN HA SIDO GUARDADA. ES NECESARIO REINICIAR LA APLICACIÓN PARA APLICAR LOS CAMBIOS. ¿DESEA REINICIAR AHORA?',
-                    confirmText: 'REINICIAR',
-                    cancelText: 'DESPUÉS'
-                  }
-                });
-
-                confirmDialogRef.afterClosed().subscribe(restart => {
+                this.dialogos.confirmar({
+                  titulo: 'REINICIAR APLICACIÓN',
+                  mensaje: 'LA CONFIGURACIÓN HA SIDO GUARDADA. ES NECESARIO REINICIAR LA APLICACIÓN PARA APLICAR LOS CAMBIOS. ¿DESEA REINICIAR AHORA?',
+                  si: 'REINICIAR',
+                  no: 'DESPUÉS',
+                  ancho: '400px'
+                }).subscribe(restart => {
                   if (restart) {
                     this.notificationService.notification$.next({
                       texto: "REINICIANDO APLICACIÓN...",

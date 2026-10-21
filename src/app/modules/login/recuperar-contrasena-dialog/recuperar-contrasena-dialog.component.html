@@ -1,0 +1,212 @@
+<app-dialogo-base [titulo]="titulo">
+  <mat-progress-bar *ngIf="cargando" mode="indeterminate" color="accent" class="progreso"></mat-progress-bar>
+
+  <ng-container [ngSwitch]="paso">
+
+    <!-- 1. Identidad -->
+    <form *ngSwitchCase="'identidad'" [formGroup]="identidadForm" (ngSubmit)="onVerificar()" class="paso">
+      <p class="explicacion">
+        Para confirmar que es usted, complete sus datos tal como figuran en su legajo.
+      </p>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Usuario</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput formControlName="nickname" autocomplete="username" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Número de cédula</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input matInput formControlName="documento" inputmode="numeric" autocomplete="off" />
+      </mat-form-field>
+
+      <div class="captcha">
+        <div class="captcha-imagen">
+          <img *ngIf="captchaSrc; else cargandoCaptcha" [src]="captchaSrc" alt="Código de verificación" />
+          <ng-template #cargandoCaptcha><mat-spinner diameter="28"></mat-spinner></ng-template>
+          <button mat-icon-button type="button" (click)="onNuevoCaptcha()" matTooltip="Otra imagen">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Escriba los caracteres de la imagen</mat-label>
+          <mat-icon matPrefix>verified_user</mat-icon>
+          <input matInput formControlName="captcha" maxlength="5" autocomplete="off" class="mayusculas" />
+        </mat-form-field>
+      </div>
+
+      <button type="submit" hidden></button>
+      <a class="enlace" (click)="onIrAConsultar()">Ya hice una solicitud a RRHH</a>
+    </form>
+
+    <!-- 2a. Código por correo -->
+    <form *ngSwitchCase="'codigo'" (ngSubmit)="onVerificarCodigo()" class="paso">
+      <div class="info">
+        <mat-icon>mark_email_read</mat-icon>
+        <div>
+          Enviamos un código de 6 dígitos a <b>{{ emailEnmascarado }}</b>.
+          Vence en {{ minutosVigencia }} minutos. Revise también la carpeta de spam.
+        </div>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Código</mat-label>
+        <mat-icon matPrefix>pin</mat-icon>
+        <input matInput [formControl]="codigoControl" maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+          class="codigo" />
+      </mat-form-field>
+
+      <div *ngIf="estado" class="estado">{{ estado.mensaje }}</div>
+
+      <button type="submit" hidden></button>
+      <a class="enlace" (click)="onReenviarCodigo()">No me llegó, enviar otro código</a>
+    </form>
+
+    <!-- 2b. Sin correo: solicitud a RRHH -->
+    <form *ngSwitchCase="'sin-correo'" [formGroup]="solicitudForm" (ngSubmit)="onEnviarSolicitud()" class="paso">
+      <div class="info">
+        <mat-icon>support_agent</mat-icon>
+        <div>
+          Su usuario no tiene un correo registrado, así que <b>RRHH tiene que aprobar</b> el cambio de contraseña.
+          Complete la solicitud y después envíela por WhatsApp.
+        </div>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono (el que usa para WhatsApp)</mat-label>
+        <mat-icon matPrefix>phone_iphone</mat-icon>
+        <input matInput formControlName="telefono" inputmode="tel" autocomplete="off" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Correo</mat-label>
+        <mat-icon matPrefix>mail</mat-icon>
+        <input matInput formControlName="email" type="email" autocomplete="off" />
+      </mat-form-field>
+      <div class="nota">Queda registrado en su usuario: la próxima vez recupera la contraseña por correo, sin pasar por RRHH.</div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Observación (opcional)</mat-label>
+        <textarea matInput formControlName="observacion" rows="2" maxlength="500"></textarea>
+      </mat-form-field>
+
+      <button type="submit" hidden></button>
+    </form>
+
+    <!-- 3. Solicitud creada: código secreto + QR de WhatsApp -->
+    <div *ngSwitchCase="'solicitud-creada'" class="paso">
+      <div class="secreto">
+        <div class="secreto-titulo">Solicitud N° {{ solicitudId }} · su código secreto</div>
+        <div class="secreto-codigo">{{ codigoSecreto }}</div>
+        <button mat-stroked-button type="button" (click)="onCopiarCodigoSecreto()">
+          <mat-icon>content_copy</mat-icon> Copiar
+        </button>
+        <div class="secreto-advertencia">
+          <mat-icon>warning</mat-icon>
+          <span>Anótelo: no se vuelve a mostrar. No se lo pase a nadie, <b>tampoco a RRHH</b>.
+            Lo va a necesitar para elegir su contraseña cuando aprueben la solicitud.</span>
+        </div>
+      </div>
+
+      <div class="whatsapp">
+        <div class="qr"><ngx-qrcode [value]="whatsappUrl" [scale]="4"></ngx-qrcode></div>
+        <ol>
+          <li>Escanee el código QR con la cámara de su celular.</li>
+          <li>Se abre WhatsApp con el mensaje de la solicitud ya escrito.</li>
+          <li>Elija el contacto de RRHH y envíelo <b>desde el teléfono que cargó</b>.</li>
+          <li>Cuando RRHH la apruebe, vuelva acá y toque <b>Consultar estado</b>. Tiene {{ horasParaAprobar }} horas.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 4. Consultar una solicitud a RRHH -->
+    <form *ngSwitchCase="'consultar'" [formGroup]="consultarForm" (ngSubmit)="onConsultar()" class="paso">
+      <p class="explicacion">Ingrese los datos de la solicitud que envió a RRHH.</p>
+
+      <mat-form-field appearance="outline">
+        <mat-label>N° de solicitud</mat-label>
+        <mat-icon matPrefix>tag</mat-icon>
+        <input matInput type="number" formControlName="solicitudId" autocomplete="off" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Código secreto</mat-label>
+        <mat-icon matPrefix>key</mat-icon>
+        <input matInput formControlName="codigo" placeholder="XXXX-XXXX" autocomplete="off" class="mayusculas" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Número de cédula</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input matInput formControlName="documento" inputmode="numeric" autocomplete="off" />
+      </mat-form-field>
+
+      <div *ngIf="estado" class="estado" [class.rechazada]="esRechazada">{{ estado.mensaje }}</div>
+
+      <button type="submit" hidden></button>
+      <a class="enlace" (click)="onVolverAlInicio()">Iniciar una solicitud nueva</a>
+    </form>
+
+    <!-- 5. Contraseña nueva -->
+    <form *ngSwitchCase="'nueva'" [formGroup]="nuevaForm" (ngSubmit)="onRestablecer()" class="paso">
+      <div *ngIf="aviso" class="info ok">
+        <mat-icon>verified</mat-icon>
+        <div>{{ aviso }}</div>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nueva contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input matInput formControlName="nueva" [type]="ocultarContrasena ? 'password' : 'text'"
+          autocomplete="new-password" />
+        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="onAlternarContrasena()">
+          <mat-icon>{{ ocultarContrasena ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Repita la contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input matInput formControlName="repetir" [type]="ocultarContrasena ? 'password' : 'text'"
+          autocomplete="new-password" />
+      </mat-form-field>
+      <div class="nota">No puede ser su usuario ni su número de cédula.</div>
+
+      <button type="submit" hidden></button>
+    </form>
+
+    <!-- 6. Listo -->
+    <div *ngSwitchCase="'listo'" class="paso listo">
+      <mat-icon class="listo-icono">check_circle</mat-icon>
+      <div>{{ estado?.mensaje }}</div>
+      <div class="explicacion">Le enviamos un aviso del cambio a su correo, si tiene uno registrado.</div>
+    </div>
+  </ng-container>
+
+  <div *ngIf="error" class="error">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+  <div *ngIf="aviso && paso !== 'nueva'" class="aviso">{{ aviso }}</div>
+
+  <div acciones>
+    <button mat-flat-button class="frc-btn-cancelar" type="button" (click)="onCerrar()">
+      {{ paso === 'listo' ? 'Ir al login' : 'Cancelar' }}
+    </button>
+    <ng-container [ngSwitch]="paso">
+      <button *ngSwitchCase="'identidad'" mat-flat-button class="frc-btn-confirmar" type="button"
+        [disabled]="cargando" (click)="onVerificar()">Continuar</button>
+      <button *ngSwitchCase="'codigo'" mat-flat-button class="frc-btn-confirmar" type="button"
+        [disabled]="cargando" (click)="onVerificarCodigo()">Verificar</button>
+      <button *ngSwitchCase="'sin-correo'" mat-flat-button class="frc-btn-confirmar" type="button"
+        [disabled]="cargando" (click)="onEnviarSolicitud()">Registrar solicitud</button>
+      <button *ngSwitchCase="'solicitud-creada'" mat-flat-button class="frc-btn-confirmar" type="button"
+        (click)="onIrAConsultarCreada()">Consultar estado</button>
+      <button *ngSwitchCase="'consultar'" mat-flat-button class="frc-btn-confirmar" type="button"
+        [disabled]="cargando" (click)="onConsultar()">Consultar</button>
+      <button *ngSwitchCase="'nueva'" mat-flat-button class="frc-btn-confirmar" type="button"
+        [disabled]="cargando" (click)="onRestablecer()">Guardar contraseña</button>
+    </ng-container>
+  </div>
+</app-dialogo-base>

@@ -23,7 +23,7 @@ import { MonedasGetAllGQL } from "../../../../../modules/financiero/moneda/graph
 import { Moneda } from "../../../../../modules/financiero/moneda/moneda.model";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
+import { ConfirmarOpciones, DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { TecladoNumericoComponent } from "../../../../../shared/components/teclado-numerico/teclado-numerico.component";
 import { FormaPago } from "../../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../../financiero/forma-pago/forma-pago.service";
@@ -103,7 +103,8 @@ import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../..
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
-import { ConfirmDialogComponent, ConfirmDialogData } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
+import { ConfiguracionCobroService } from "../../../../financiero/configuracion-cobro/configuracion-cobro.service";
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
 import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -179,6 +180,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * en `true` si la consulta falla (filial sin V104.5): el lado seguro. Ver `lineasTarjetaSinTerminal`.
    */
   terminalObligatoria = true;
+  /**
+   * Tope del aumento (#546), del filial. `null` mientras carga o si la consulta falla: `aumentoPermitido`
+   * lo lee como tope del 20%, nunca como «sin tope».
+   */
+  configCobro: ConfiguracionCobro = null;
   /** Decimales por moneda, para escalar el importe del cupón (viene en la menor unidad). */
   decimalesPorMoneda: DecimalesPorMoneda = {};
 
@@ -230,7 +236,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
     private ventaTarjetaService: VentaTarjetaService,
     private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private configuracionCobroService: ConfiguracionCobroService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -278,6 +285,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.configuracionVentaTarjetaService.onGetTerminalObligatoria(false).subscribe({
       next: (valor) => (this.terminalObligatoria = valor),
       error: () => (this.terminalObligatoria = true),
+    });
+    // Sin barrera ni aviso: si no responde (filial viejo o sin red), rige el 20%.
+    this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
+      next: (config) => (this.configCobro = config),
+      error: () => (this.configCobro = null),
     });
     setTimeout(() => {
       this.setFocusToValorInput();
@@ -850,21 +862,20 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     datosCupon: DatosCupon,
     avisos: string[]
   ): void {
-    const data: ConfirmDialogData = {
-      title: 'El cupón no coincide con este cobro',
-      message:
+    const opciones: ConfirmarOpciones = {
+      titulo: 'El cupón no coincide con este cobro',
+      mensaje:
         `Este cobro es de ${Number(item.valor).toLocaleString('es-PY')} ` +
         `${item.moneda?.simbolo || 'Gs.'} en ` +
         `${[item.terminalPos?.descripcion, item.terminalPos?.codigo].filter(Boolean).join(' - ') || 'esta terminal'}, ` +
         `pero ${avisos.join(' y ')}. ¿Es el cupón correcto?`,
-      confirmText: 'Registrar igual',
-      cancelText: 'Escanear otro',
+      si: 'Registrar igual',
+      no: 'Escanear otro',
     };
 
     this.isDialogOpen = true;
-    this.matDialog
-      .open(ConfirmDialogComponent, { data, width: '520px' })
-      .afterClosed()
+    this.dialog
+      .confirmar({ ...opciones, ancho: '520px' })
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (!confirmado) {
@@ -1187,13 +1198,26 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
+  /**
+   * Botón «Aumento (F8)» y tecla F8: el mismo tope (#546). Se mide lo que se va a registrar, que es
+   * «valor» (el cajero lo puede editar, no tiene por qué ser el saldo), pasado a guaraníes, más los
+   * aumentos que el cobro ya tiene.
+   */
   onAumento() {
     let valor = this.formGroup.controls.valor.value;
-    if (valor < this.data.valor * 0.5 && valor < 0) {
+    if (valor < 0) {
+      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroDetalleList);
+      if (!aumentoPermitido(aumentoGs, this.data.valor, this.configCobro)) {
+        this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
+        return;
+      }
       this.isAumento = true;
       this.isVuelto = false;
       this.isDescuento = false;
       this.addCobroDetalle();
+      // addCobroDetalle puede salir sin registrar (delivery en vuelo, convenio, config de tarjeta): la
+      // marca no puede quedar puesta, o el próximo Enter registraría un aumento sin pasar por el tope.
+      this.isAumento = false;
     }
   }
 

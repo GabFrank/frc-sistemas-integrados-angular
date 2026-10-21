@@ -69,8 +69,10 @@ import {
 } from "../transferencia.model";
 import {
   aplicarConfirmacion,
+  aplicarDesconfirmacion,
   nombreEtapaDeOrigen,
   puedeConfirmar,
+  tieneEtapaCargada,
 } from "../transferencia-item-confirmacion";
 import {
   SeleccionarLotesDialogComponent,
@@ -85,7 +87,8 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
-import { Observable, Subscription, of } from "rxjs";
+import { Observable, Subscription, of, timer } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, finalize, map, switchMap } from "rxjs/operators";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
@@ -202,6 +205,8 @@ export class EditTransferenciaComponent implements OnInit {
   isDestino = false;
   // Conectado al central la sucursal actual es la "SERVIDOR" (id 0), que nunca es el origen.
   puedePrepararEnvio = false;
+  /** Compras avanza cualquier etapa sin importar sucursal ni responsable (ADMIN entra por tieneAlgunRol). */
+  esCompras = false;
   isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
@@ -264,6 +269,7 @@ export class EditTransferenciaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.esCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
     this.selectedTransferencia = new Transferencia();
     this.dataSource.data = [];
     this.etapaList = Object.values(EtapaTransferencia);
@@ -470,6 +476,7 @@ export class EditTransferenciaComponent implements OnInit {
       this.selectedTransferencia?.sucursalDestino?.id ==
       this.mainService?.sucursalActual?.id;
     this.puedePrepararEnvio =
+      this.esCompras ||
       this.isOrigen ||
       this.mainService?.isServidor ||
       this.mainService?.sucursalActual?.id == 0;
@@ -653,6 +660,7 @@ export class EditTransferenciaComponent implements OnInit {
     // En verificacion para transporte el responsable es el chofer elegido, que no suele ser quien
     // esta en la pantalla: revisar los items y despachar lo puede hacer cualquiera, igual que en la PWA.
     this.puedeEditar =
+      this.esCompras ||
       this.isTransporteVerificacion ||
       this.selectedResponsable?.id == this.mainService.usuarioActual.id ||
       this.selectedResponsable?.id == null;
@@ -1159,24 +1167,43 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onDesconfirm(item: TransferenciaItem) {
+    // Una sola lectura: la grilla vacía la misma etapa que el backend aunque la transferencia cambie
+    // mientras vuelve la respuesta.
+    const etapa = this.selectedTransferencia?.etapa;
     // Se limpia con una mutation dedicada: en saveTransferenciaItem la ausencia de un campo
     // significa "no lo toques", asi que mandar nulls ya no vacia nada.
     this.transferenciaService
-      .onDesconfirmarTransferenciaItem(
-        item.id,
-        this.selectedTransferencia?.etapa
-      )
+      .onDesconfirmarTransferenciaItem(item.id, etapa)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            res,
-            res.id
-          );
-        }
-        this.actualizarAlertasPaginaActual();
-        this.onVerificarConfirmados();
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            // La fila sale de una copia de la actual con la etapa vaciada, no de la respuesta: esa no
+            // trae el producto ni la cantidad pedida, y sin eso "Confirmar" no se podía usar (#567).
+            const fila = aplicarDesconfirmacion(
+              Object.assign(new TransferenciaItem(), item),
+              etapa
+            );
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              fila,
+              item.id
+            );
+          }
+          this.actualizarAlertasPaginaActual();
+          this.onVerificarConfirmados();
+        },
+        // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo desconfirmarse y la grilla lo seguiría
+        // mostrando confirmado: se relee después. Repetir es seguro (#501)
+        error: (err) => {
+          if (erroresDeRechazo(err) != null) return;
+          const aviso = avisoTrasMutacion(err, "se desconfirmó el ítem");
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          const id = this.selectedTransferencia?.id;
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);
+          });
+        },
       });
   }
 
@@ -1234,6 +1261,9 @@ export class EditTransferenciaComponent implements OnInit {
     vencimiento?: boolean,
     rechazar?: boolean
   ) {
+    // Una sola lectura para el diálogo, el desconfirmar y la recarga, como en onDesconfirm.
+    const etapa = this.selectedTransferencia?.etapa;
+    const transferenciaId = this.selectedTransferencia?.id;
     this.isDialogOpen = true;
     this.matDialog
       .open(ModificarItemDialogComponent, {
@@ -1242,7 +1272,7 @@ export class EditTransferenciaComponent implements OnInit {
           isCantidad: cantidad,
           isVencimiento: vencimiento,
           isRechazar: rechazar,
-          etapa: this.selectedTransferencia?.etapa,
+          etapa,
         },
         width: "500px",
       })
@@ -1254,8 +1284,17 @@ export class EditTransferenciaComponent implements OnInit {
           // sale con usuarioId en null y el backend no lo puede guardar.
           res["item"].usuario =
             res["item"].usuario ?? this.mainService.usuarioActual;
-          this.transferenciaService
-            .onSaveTransferenciaItem(res["item"].toInput())
+          const input = res["item"].toInput();
+          const guardar = () => this.transferenciaService.onSaveTransferenciaItem(input);
+          // El save es un PATCH: sobre un ítem ya cargado no puede borrar la cantidad ni el rechazo
+          // anteriores. Se vacía la etapa primero, como haría el usuario con «Desconfirmar» (#569).
+          const desconfirmar = tieneEtapaCargada(item, etapa);
+          (desconfirmar
+            ? this.transferenciaService
+                .onDesconfirmarTransferenciaItem(item.id, etapa)
+                .pipe(switchMap(guardar))
+            : guardar()
+          )
             .pipe(untilDestroyed(this))
             .subscribe({
               next: (res2) => {
@@ -1269,7 +1308,22 @@ export class EditTransferenciaComponent implements OnInit {
                 this.actualizarAlertasPaginaActual();
                 this.onVerificarConfirmados();
               },
-              error: () => {}
+              // En un rechazo el genérico ya mostró el motivo; si antes se desconfirmó, la etapa pudo quedar
+              // vacía en el central y se relee ya. Sin respuesta pudo aplicarse: aviso y se relee después (#501).
+              error: (err) => {
+                const recargar = () => {
+                  if (transferenciaId != null && this.selectedTransferencia?.id === transferenciaId) {
+                    this.cargarDatos(transferenciaId);
+                  }
+                };
+                if (erroresDeRechazo(err) != null) {
+                  if (desconfirmar) recargar();
+                  return;
+                }
+                const aviso = avisoTrasMutacion(err, "se guardó el ítem");
+                if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(recargar);
+              },
             });
         }
       });
@@ -1291,14 +1345,31 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
-          // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
-          // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
-          // responsable, dejando Finalizar habilitado sin confirmar nada.
-          this.cargarDatos(this.selectedTransferencia.id);
-        }
+      .subscribe({
+        next: (res) => {
+          if (res) {
+            // Se recarga del servidor, como en frc-mobile: el central completa en cada etapa los
+            // datos de los items y el responsable nuevo. Con la copia local la grilla quedaba con los
+            // datos de la etapa anterior (items "vacios") y verificarEtapa() fallaba al no tener
+            // responsable, dejando Finalizar habilitado sin confirmar nada.
+            this.cargarDatos(this.selectedTransferencia.id);
+          }
+        },
+        // En un rechazo el genérico ya mostró el motivo y se relee ya: lo más común es que otro usuario la
+        // haya avanzado, y con la etapa vieja el mismo botón da el mismo rechazo (#558).
+        // Sin respuesta la etapa pudo avanzar: se relee después (#501)
+        error: (err) => {
+          if (erroresDeRechazo(err) != null) {
+            this.cargarDatos(this.selectedTransferencia.id);
+            return;
+          }
+          const aviso = avisoTrasMutacion(err, "avanzó la etapa");
+          if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+          const id = this.selectedTransferencia?.id;
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+            if (id != null && this.selectedTransferencia?.id === id) this.cargarDatos(id);
+          });
+        },
       });
   }
 
@@ -1714,9 +1785,7 @@ export class EditTransferenciaComponent implements OnInit {
       }
     }
 
-    if (
-      this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
-    ) {
+    if (esSucursalCompras(this.selectedTransferencia?.sucursalOrigen)) {
       this.precioUnidadInput.nativeElement.select();
     } else {
       this.onValidarCostoConDialogo().then((puedeGuardar) => {
@@ -1854,6 +1923,13 @@ export class EditTransferenciaComponent implements OnInit {
     return new Promise((resolve) => {
       const costoIngresado = this.precioUnidadControl.value;
       const producto = this.selectedProducto;
+
+      // El costo solo se guarda cuando la transferencia sale de COMPRAS (el backend lo ignora en
+      // las demás); fuera de ahí el campo trae la última compra precargada y avisar no tiene sentido.
+      if (!esSucursalCompras(this.selectedTransferencia?.sucursalOrigen)) {
+        resolve(true);
+        return;
+      }
 
       if (!costoIngresado || !producto?.costo) {
         resolve(true);

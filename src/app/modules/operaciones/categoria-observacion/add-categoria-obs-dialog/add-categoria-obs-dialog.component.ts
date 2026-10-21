@@ -5,7 +5,7 @@ import { CategoriaObservacionInput } from '../categoria-observacion-input.model'
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MainService } from '../../../../main.service';
-import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CategoriaObservacionService } from '../categoria-observacion.service';
 
 export interface AddCategoriaObsData {
@@ -91,11 +91,7 @@ export class AddCategoriaObsDialogComponent implements OnInit {
       next: (res) => {
         if (res != null) {
           this.dialogRef.close(res);
-          this.notificationBar.notification$.next({
-            texto: 'Guardado con éxito',
-            color: NotificacionColor.success,
-            duracion: 2,
-          });
+          // El verde lo da el guardado, con el mismo texto: antes salían dos iguales (#501)
         }
       }
     })

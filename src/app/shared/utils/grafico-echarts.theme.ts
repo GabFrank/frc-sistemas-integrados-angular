@@ -142,3 +142,48 @@ export function tooltipEjeMoneda(
     },
   };
 }
+
+/**
+ * Grises de GRAFICO_COLORES (pensados para fondo oscuro) y su equivalente en modo claro. ECharts dibuja en
+ * canvas y no lee las variables CSS: el cambio se hace sobre las opciones.
+ */
+const GRISES_MODO_CLARO: Record<string, string> = {
+  [GRAFICO_COLORES.text.toLowerCase()]: "#333333",
+  [GRAFICO_COLORES.textSecondary.toLowerCase()]: "#616161",
+  [GRAFICO_COLORES.background.toLowerCase()]: "#ffffff",
+  [GRAFICO_COLORES.backgroundDark.toLowerCase()]: "#f5f5f5",
+  [GRAFICO_COLORES.axisLine.toLowerCase()]: "#c4c8ce",
+  [GRAFICO_COLORES.splitLine.toLowerCase()]: "#e5e7eb",
+};
+
+function aGrisClaro(valor: unknown): unknown {
+  if (typeof valor === "string") {
+    return GRISES_MODO_CLARO[valor.toLowerCase()] ?? valor;
+  }
+  if (Array.isArray(valor)) {
+    return valor.map(aGrisClaro);
+  }
+  // Solo objetos planos: funciones (formatters) e instancias (gradientes de echarts) quedan como están.
+  if (valor && typeof valor === "object") {
+    const proto = Object.getPrototypeOf(valor);
+    if (proto === Object.prototype || proto === null) {
+      const copia: Record<string, unknown> = {};
+      for (const [clave, v] of Object.entries(valor)) {
+        copia[clave] = aGrisClaro(v);
+      }
+      return copia;
+    }
+  }
+  return valor;
+}
+
+/** Opciones del gráfico para el tema actual: en modo claro cambia los grises oscuros por claros. */
+export function opcionesSegunTema(
+  opciones: EChartsOption | null,
+  tema: "oscuro" | "claro"
+): EChartsOption | null {
+  if (!opciones || tema === "oscuro") {
+    return opciones;
+  }
+  return aGrisClaro(opciones) as EChartsOption;
+}

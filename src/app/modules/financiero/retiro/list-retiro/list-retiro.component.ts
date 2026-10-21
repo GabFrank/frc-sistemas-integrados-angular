@@ -11,6 +11,8 @@ import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { timer } from 'rxjs';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PageInfo } from '../../../../app.component';
 import { PageEvent } from '@angular/material/paginator';
 import { MainService } from '../../../../main.service';
@@ -142,7 +144,16 @@ export class ListRetiroComponent implements OnInit {
           },
           // El motivo del rechazo ya lo avisó onCustomMutation (p. ej. «ya entró a la caja mayor»). Un
           // rechazo suele querer decir que la lista estaba vieja: se relee.
-          error: () => this.onFiltrar()
+          error: (err) => {
+            if (erroresDeRechazo(err) != null) {
+              this.onFiltrar();
+              return;
+            }
+            // Sin respuesta pudo seguir aplicándose: se relee después. Repetir es seguro (manda el estado final) (#501)
+            const aviso = avisoTrasMutacion(err, estabaCancelado ? 'se habilitó el retiro' : 'se canceló el retiro');
+            if (aviso != null) this.notificacionService.openWarn(aviso, 8);
+            timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
+          }
         });
       }
     });

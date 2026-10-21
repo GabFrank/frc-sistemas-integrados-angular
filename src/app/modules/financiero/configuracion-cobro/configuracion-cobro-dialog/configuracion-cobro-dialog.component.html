@@ -1,0 +1,46 @@
+<h2 mat-dialog-title>Configuración del cobro en PDV</h2>
+
+<mat-dialog-content>
+  <div *ngIf="isLoading" class="config-estado">Cargando…</div>
+
+  <div *ngIf="!isLoading && noDisponible" class="config-estado config-error">
+    No se pudo leer la configuración del servidor central: puede estar sin conexión o todavía sin
+    actualizar. Cerrá y volvé a abrir para reintentar.
+  </div>
+
+  <div *ngIf="!isLoading && !noDisponible" fxLayout="column" fxLayoutGap="15px" class="config-contenido">
+    <div class="config-item">
+      <div class="config-item-info">
+        <div class="config-item-title">Tope del aumento</div>
+        <div class="config-item-desc">
+          Cuánto se puede cobrar de más y registrarlo como aumento, en porcentaje del total del cobro. Vale
+          para el cobro del PDV (botón y F8) y el del delivery. Sin tope, se permite cualquier aumento.
+        </div>
+      </div>
+      <div class="config-item-toggle">
+        <mat-slide-toggle [formControl]="conTopeControl" color="accent"></mat-slide-toggle>
+        <span class="toggle-label" [class.active]="conTopeControl.value" [class.desactive]="!conTopeControl.value">
+          {{ conTopeControl.value ? 'CON TOPE' : 'SIN TOPE' }}
+        </span>
+      </div>
+    </div>
+
+    <mat-form-field appearance="outline" *ngIf="conTopeControl.value">
+      <mat-label>Tope (% del total)</mat-label>
+      <input matInput type="number" min="0.01" max="100" step="0.01" [formControl]="porcentajeControl"
+        (keyup.enter)="onGuardar()" />
+      <span matSuffix class="sufijo-porcentaje">%</span>
+    </mat-form-field>
+
+    <div *ngIf="modificadoPor || modificadoEn" class="config-auditoria">
+      Modificado por {{ modificadoPor || '—' }} el {{ modificadoEn | date: 'dd/MM/yyyy HH:mm' }}
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="isLoading || noDisponible || guardando">
+    <mat-icon>save</mat-icon> Guardar
+  </button>
+</mat-dialog-actions>

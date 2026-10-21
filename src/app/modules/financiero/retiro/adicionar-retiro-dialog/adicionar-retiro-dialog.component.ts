@@ -1,15 +1,16 @@
 import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { of, Subscription, TimeoutError } from 'rxjs';
+import { of, TimeoutError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
 import { CurrencyMask, stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { BuscadorFieldComponent } from '../../../../shared/components/buscador-field/buscador-field.component';
+import { OpcionesBuscador } from '../../../../shared/services/buscador.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MonedaService } from '../../moneda/moneda.service';
 import { CajaBalance, esBalanceVerificable, PdvCaja } from '../../pdv/caja/caja.model';
 import { RetiroDetalle } from '../retiro-detalle.model';
@@ -30,7 +31,8 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { CajaService } from '../../pdv/caja/caja.service';
 import { NotificationHttpService } from '../../../../shared/services/notification-http.service';
 import { Moneda } from '../../moneda/moneda.model';
-import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -40,25 +42,23 @@ import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 })
 export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterViewInit {
 
-  @ViewChild("responsableInput", { static: false }) responsableInput: ElementRef;
+  @ViewChild("responsableField", { static: false }) responsableField: BuscadorFieldComponent;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
 
 
   selectedRetiro: Retiro;
   selectedCajaSalida: PdvCaja;
-  selectedResponsable: Funcionario;
   observacionControl = new FormControl()
-  responsableControl = new FormControl()
+  responsableControl = new FormControl<Funcionario>(null)
+  /** El retiro se registra en la filial: el responsable se busca en su base. */
+  readonly opcionesResponsable: OpcionesBuscador = { servidor: false };
   guaraniControl = new FormControl(0, Validators.min(100))
   realControl = new FormControl(0, Validators.min(0.05))
   dolarControl = new FormControl(0, Validators.min(1))
   currencyMask = new CurrencyMask
-  funcionarioList: Funcionario[];
   monedaList: Moneda[];
 
   retiroDetalleList: RetiroDetalle[]
-  funcionarioSub: Subscription;
-  timer: any;
 
   dataSource = new MatTableDataSource<Retiro>([]);
   /**
@@ -82,7 +82,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarRetiroData,
     public dialogRef: MatDialogRef<AdicionarRetiroDialogComponent>,
-    public funcionarioService: FuncionarioService,
     private cargandoDialog: CargandoDialogService,
     private dialogService: DialogosService,
     private retiroService: RetiroService,
@@ -126,80 +125,16 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
   ngAfterViewInit(): void {
     setTimeout(() => {
-      this.responsableInput.nativeElement.select()
+      this.responsableField.select()
     }, 1000);
   }
 
   ngOnInit(): void {
     this.retiroDetalleList = []
-    this.funcionarioList = []
-
-    this.responsableControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if (this.timer != null) {
-        clearTimeout(this.timer);
-      }
-      if (res != null && res.length != 0) {
-        this.timer = setTimeout(() => {
-          this.onResponsableSearch();
-        }, 1000);
-      } else {
-        this.funcionarioList = [];
-      }
-    })
   }
-
-  onResponsableSearch() {
-    if (this.responsableControl.valid) {
-      if (isNaN(this.responsableControl.value) == false) {
-        this.funcionarioService
-          .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
-          .pipe(terminarSiFalla())
-          .subscribe((res) => {
-            if (res != null) {
-              this.onResponsableSelect(res);
-            } else {
-              this.onResponsableSearchByTexto();
-            }
-          });
-      } else {
-        this.onResponsableSearchByTexto();
-      }
-    }
-  }
-
-  onResponsableSearchByTexto() {
-    this.funcionarioService
-      .onFuncionarioSearchSimple(this.responsableControl.value, false)
-      .pipe(untilDestroyed(this))
-      .subscribe((response) => {
-        this.funcionarioList = response;
-        if (this.funcionarioList.length == 1) {
-          this.onResponsableSelect(this.funcionarioList[0]);
-          this.onResponsableAutocompleteClose();
-        } else {
-          this.onResponsableAutocompleteClose();
-          this.onResponsableSelect(null);
-        }
-      });
-  }
-
-  onResponsableSelect(e) {
-    if (e?.id != null) {
-      this.selectedResponsable = e;
-      this.responsableControl.setValue(
-        this.selectedResponsable?.id +
-        " - " +
-        this.selectedResponsable?.persona?.nombre, { emitEvent: false }
-      );
-    }
-    if (e != null && this.responsableInput != null) {
-      this.responsableInput.nativeElement.select();
-    }
-  }
-
 
   onGuardar() {
-    if (this.selectedResponsable != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
+    if (this.responsableControl.value != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
@@ -210,7 +145,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
           retiro.cajaSalida = this.selectedCajaSalida;
           retiro.sucursalId = this.mainService.sucursalActual?.id;
           retiro.observacion = this.observacionControl.value;
-          retiro.responsable = this.selectedResponsable;
+          retiro.responsable = this.responsableControl.value;
           let guaraniDetalle = new RetiroDetalle()
           guaraniDetalle.moneda = this.monedaList.find(m => m.denominacion == 'GUARANI');
           guaraniDetalle.cambio = guaraniDetalle?.moneda?.cambio
@@ -256,7 +191,15 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
             },
             error: (err) => {
               console.error("Error al guardar retiro:", err);
-              this.notificacionService.openAlgoSalioMal('Ocurrió un error al guardar el retiro');
+              // En un rechazo el genérico ya mostró el motivo y no se guardó: el diálogo queda para corregir (#488)
+              if (erroresDeRechazo(err) != null) {
+                return;
+              }
+              // Sin respuesta pudo haberse guardado: reintentar crearía otro retiro y descontaría dos veces
+              if (!esTimeoutDeLink(err)) {
+                this.notificacionService.openWarn('No se pudo confirmar si se guardó el retiro: revisá la caja antes de repetir.', 8);
+              }
+              this.dialogRef.close(true);
             }
           });
         }
@@ -315,12 +258,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     this.dialogRef.close(null);
   }
 
-  onResponsableAutocompleteClose() {
-    setTimeout(() => {
-      this.responsableInput.nativeElement.select()
-    }, 100);
-  }
-
   goTo(text) {
     switch (text) {
       case "informacion":
@@ -339,7 +276,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
 
   onVer(retiro: Retiro) {
     this.selectedRetiro = retiro;
-    this.onResponsableSelect(retiro.responsable)
+    this.responsableControl.setValue(retiro.responsable)
     this.observacionControl.setValue(retiro.observacion)
     this.guaraniControl.setValue(retiro.retiroGs)
     this.dolarControl.setValue(retiro.retiroRs)

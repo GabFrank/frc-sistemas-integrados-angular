@@ -68,8 +68,9 @@ export class ProveedorServicioService {
     });
   }
 
-  onSave(input): Observable<ProveedorServicio> {
-    return this.genericService.onSave(this.saveProveedorServicio, input);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSave(input, opciones?: { avisarExito?: boolean }): Observable<ProveedorServicio> {
+    return this.genericService.onSave(this.saveProveedorServicio, input, undefined, undefined, true, undefined, undefined, opciones);
   }
 
   onDelete(id: number): Observable<boolean> {

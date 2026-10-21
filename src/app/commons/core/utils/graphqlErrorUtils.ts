@@ -1,3 +1,5 @@
+import { esTimeoutDeLink } from "../../../shared/services/timeout-link";
+
 // Prefijo que graphql-java antepone a toda excepción lanzada por un resolver:
 // "Exception while fetching data (/data) : <mensaje real>". El path entre paréntesis varía.
 const PREFIJO_GRAPHQL_JAVA = /^Exception while fetching data \([^)]*\) : /;
@@ -51,20 +53,26 @@ export function esRechazoPorFacturaSinNombre(error: any): boolean {
     && error.some((e) => typeof e?.message === "string" && /facturar sin nombre/i.test(e.message));
 }
 
+const PREFIJO_ENVIO_A_FILIAL = "Error al crear factura en servidor filial: ";
 const ENVIO_A_FILIAL_SIN_CONFIRMAR =
   /^Error al crear factura en servidor filial: (Error al conectar con el servidor filial|Error del servidor filial|Error al crear factura en servidor filial\. Código)/;
 
 /**
- * ¿El central no pudo confirmar si el filial emitió la factura? `saveFacturaLegalToFilial` devuelve todo fallo con la
- * forma de un rechazo, pero un corte con el filial (incluido el timeout de lectura del central, 30 s) o un 500 del
- * filial no dicen que no se emitió: el filial pudo terminar y guardar. Tampoco una respuesta del filial que no es
- * 201 ni error («… Código: 200»). Se reconoce por el texto de `FacturaLegalFilialService` (central), anclado a su
- * prefijo para que un rechazo que mencione esas frases no cuente; si el texto cambia, esto da false y se trata como
- * rechazo, como antes (#471).
+ * ¿El central no pudo confirmar si el filial emitió la factura? Un corte con el filial (incluido el timeout de lectura
+ * del central, 30 s), un 500 del filial o una respuesta que no es 201 no dicen que no se emitió: el filial pudo
+ * terminar y guardar (#471). Desde #425 el central lo dice en `extensions.codigo` (`FILIAL_SIN_CONFIRMAR` /
+ * `FILIAL_RECHAZO`), y eso manda. Un central anterior no manda código: se reconoce por el texto de
+ * `FacturaLegalFilialService`, anclado a su prefijo. Un error sin código ni ese prefijo (el central falló fuera de
+ * su `catch`, por ejemplo al commitear después del 201) cuenta como sin confirmar: un aviso de más es el lado seguro.
  */
 export function esEnvioAFilialSinConfirmar(error: any): boolean {
-  return Array.isArray(error)
-    && error.some((e) => typeof e?.message === "string" && ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
+  if (!Array.isArray(error)) return false;
+  const codigos = error.map((e) => e?.extensions?.codigo);
+  if (codigos.includes("FILIAL_SIN_CONFIRMAR")) return true;
+  if (codigos.includes("FILIAL_RECHAZO")) return false;
+  const delCentral = (e: any) => typeof e?.message === "string" && e.message.startsWith(PREFIJO_ENVIO_A_FILIAL);
+  if (!error.every(delCentral)) return true;
+  return error.some((e) => ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));
 }
 
 /** Veces que se le pide el cliente al cajero por una misma venta antes de cortar. */
@@ -118,4 +126,68 @@ export function mensajeErrorTransporte(error: any): string {
     return `El servidor rechazó la operación (HTTP ${status})`;
   }
   return "Error de red";
+}
+
+/**
+ * Aviso que suma la pantalla cuando falla una mutation de `onCustomMutation`, o `null` si no hace falta. En un
+ * rechazo el genérico ya mostró el motivo del servidor, y en el central cada mutation es una transacción: no se
+ * aplicó nada. En un corte por tiempo ya avisó el timeout link. En cualquier otro «sin respuesta» (error de red,
+ * central offline, respuesta vacía) nadie avisó y la operación pudo haberse aplicado o seguir corriendo: el link
+ * de central offline corta a los 3 s sin cancelar el pedido. `queSeHizo` completa «No se pudo confirmar si …»
+ * (p. ej. «se verificó el ítem») (#488).
+ */
+export function avisoTrasMutacion(error: any, queSeHizo: string): string | null {
+  if (erroresDeRechazo(error) != null || esTimeoutDeLink(error)) return null;
+  return `No se pudo confirmar si ${queSeHizo}: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.`;
+}
+
+/**
+ * Motivo de un rechazo del servidor (el primer mensaje con texto, sin el prefijo de graphql-java), o `null` si no es
+ * un rechazo o no trae texto. Para las mutations que no pasan por el genérico (`apollo.mutate` a mano): ahí nadie
+ * muestra el motivo y lo tiene que mostrar la pantalla (#488).
+ */
+export function motivoDelRechazo(error: any): string | null {
+  const errores = erroresDeRechazo(error);
+  if (errores == null) return null;
+  for (const e of errores) {
+    const msg = limpiarMensajeGraphQL(e?.message);
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return null;
+}
+
+/**
+ * Espera antes de recargar tras una mutation sin respuesta: el link de central offline corta a los 3 s sin cancelar
+ * el pedido, y recargar al instante mostraría pendiente lo que el central todavía está aplicando (#488).
+ */
+export const RECARGA_TRAS_CORTE_MS = 5000;
+
+/**
+ * Saca el mensaje que el backend mandó, sea cual sea la forma en que llegó el error.
+ *
+ * `GenericCrudService.onCustomMutation` hace `obs.error(res.errors)`: propaga el **array** de
+ * errores de GraphQL, no un `Error`. Leer `err.message` ahí da `undefined` y el mensaje bueno se
+ * pierde, dejando al usuario con un texto genérico que no dice nada.
+ *
+ * Eso importa acá más que en otros lados: los errores de este módulo son accionables — "ese cupón
+ * ya fue registrado en la venta X", "ese cobro ya está vinculado a otro cupón" — y el cajero
+ * necesita leerlos para saber qué hacer.
+ */
+export function mensajeDeError(err: any, fallback: string): string {
+  if (!err) return fallback;
+
+  // onCustomMutation / onCustomQuery: array de GraphQLError
+  if (Array.isArray(err)) {
+    const m = err.find((e) => e?.message)?.message;
+    return m || fallback;
+  }
+
+  // ApolloError
+  const graphQL = err.graphQLErrors;
+  if (Array.isArray(graphQL) && graphQL.length) {
+    const m = graphQL.find((e: any) => e?.message)?.message;
+    if (m) return m;
+  }
+
+  return err.message || fallback;
 }

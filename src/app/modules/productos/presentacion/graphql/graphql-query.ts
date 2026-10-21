@@ -138,6 +138,37 @@ export const deletePresentacionQuery = gql`
 
 export const saveImagenPresentacionQuery = gql`
   mutation saveImagenPresentacion($image: String!, $filename: String!) {
-    saveImagenPresentacion(image: $image, filename: $filename)
+    data: saveImagenPresentacion(image: $image, filename: $filename)
+  }
+`;
+
+export const sugerenciasImagenPresentacionQuery = gql`
+  query ($presentacionId: ID!, $codigo: String, $texto: String) {
+    data: sugerenciasImagenPresentacion(presentacionId: $presentacionId, codigo: $codigo, texto: $texto) {
+      codigo
+      codigoDescartado
+      texto
+      pack
+      porCodigo { url miniatura ancho alto titulo sitio fuente exacta similares }
+      porPack { url miniatura ancho alto titulo sitio fuente exacta similares }
+      porDescripcion { url miniatura ancho alto titulo sitio fuente exacta similares }
+      avisos
+    }
+  }
+`;
+
+export const imagenesParecidasDeQuery = gql`
+  query ($url: String!, $texto: String, $similares: String) {
+    data: imagenesParecidasDe(url: $url, texto: $texto, similares: $similares) {
+      aproximada
+      porTexto
+      imagenes { url miniatura ancho alto titulo sitio fuente exacta similares }
+    }
+  }
+`;
+
+export const descargarImagenSugeridaQuery = gql`
+  query ($url: String!) {
+    data: descargarImagenSugerida(url: $url)
   }
 `;

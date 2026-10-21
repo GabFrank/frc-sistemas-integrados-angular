@@ -10,6 +10,8 @@ import { SolicitudPago, SolicitudPagoEstado } from '../../compra/gestion-compras
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { SolicitudPagoPageResult } from '../../compra/gestion-compras/graphql/getSolicitudesPagoPaginated';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { ReporteService } from '../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
@@ -151,15 +153,24 @@ export class SolicitudPagoDashboardComponent implements OnInit {
           this.notificacionService.openSucess('PDF agregado a reportes');
         }
       },
-      error: () => this.notificacionService.openAlgoSalioMal('Error al generar PDF')
+      error: (error) => this.avisarImpresionSinRespuesta(error, 'Error al generar PDF: el servidor no respondió.')
     });
+  }
+
+  /** En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link (#488). */
+  private avisarImpresionSinRespuesta(error: any, texto: string): void {
+    if (erroresDeRechazo(error) != null || esTimeoutDeLink(error)) {
+      return;
+    }
+    this.notificacionService.openWarn(texto, 6);
   }
 
   onImprimirTicket(row: SolicitudPago): void {
     if (!row?.id) return;
     this.solicitudPagoService.onImprimirSolicitudPagoTicket(row.id).subscribe({
       next: () => this.notificacionService.openSucess('Ticket enviado a imprimir'),
-      error: () => this.notificacionService.openAlgoSalioMal('Error al imprimir ticket')
+      error: (error) => this.avisarImpresionSinRespuesta(error,
+        'No se pudo confirmar si se imprimió el ticket: revisá antes de repetir.')
     });
   }
 

@@ -1,8 +1,8 @@
-import { Component, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { LectorTecladoDirective } from '../../../../../shared/lector-teclado/lector-teclado.directive';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DialogosService, ConfirmarOpciones } from '../../../../../shared/components/dialogos/dialogos.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { interval } from 'rxjs';
 import { debounceTime, filter, map } from 'rxjs/operators';
@@ -16,7 +16,7 @@ import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.m
 import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
@@ -110,6 +110,7 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
   styleUrls: ['./registrar-venta-tarjeta-dialog.component.scss'],
 })
 export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
+  private dialogos = inject(DialogosService);
 
   cuponControl = new FormControl('');
 
@@ -294,16 +295,15 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   }
 
   private confirmarDiferencias(datos: DatosCupon, advertencias: string[]): void {
-    const data: ConfirmDialogData = {
-      title: 'El cupón no coincide con este cobro',
-      message: `Este cobro es de ${this.data.monto?.toLocaleString('es-PY')} ` +
+    const opciones: ConfirmarOpciones = {
+      titulo: 'El cupón no coincide con este cobro',
+      mensaje: `Este cobro es de ${this.data.monto?.toLocaleString('es-PY')} ` +
         `${this.data.monedaSimbolo || 'Gs.'} en ${this.data.terminalDescripcion || 'esta terminal'}, ` +
         `pero ${advertencias.join(' y ')}. ¿Es el cupón correcto?`,
-      confirmText: 'Registrar igual',
-      cancelText: 'Escanear otro',
+      si: 'Registrar igual',
+      no: 'Escanear otro',
     };
-    this.matDialog.open(ConfirmDialogComponent, { data, width: '520px' })
-      .afterClosed()
+    this.dialogos.confirmar({ ...opciones, ancho: '520px' })
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (!confirmado) {

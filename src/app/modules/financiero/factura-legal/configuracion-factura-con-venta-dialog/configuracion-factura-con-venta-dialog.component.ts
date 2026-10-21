@@ -45,7 +45,7 @@ export class ConfiguracionFacturaConVentaDialogComponent implements OnInit {
   onGuardar(): void {
     const input = this.config.toInput();
     input.usuarioId = this.mainService.usuarioActual?.id;
-    this.configuracionService.onSaveConfiguracion(input).subscribe({
+    this.configuracionService.onSaveConfiguracion(input, true, { avisarExito: false }).subscribe({
       next: (res) => {
         if (res != null) {
           this.config = res;

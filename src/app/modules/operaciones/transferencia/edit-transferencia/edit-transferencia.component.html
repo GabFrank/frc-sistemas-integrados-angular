@@ -1,4 +1,4 @@
-<app-generic-list titulo="Gestión de Transferencia" style="height: 90%" [data]="dataSource.data"
+<app-generic-list titulo="Gestión de Transferencia" [data]="dataSource.data"
   [isLastPage]="isLastPage" [isMenu]="false">
   <div filtros style="width: 100%; height: 100%">
     <div fxLayout="column" fxLayoutGap="10px" style="height: 100%; width: 100%">
@@ -170,13 +170,13 @@
             Iniciar transporte
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && isDestino">
+        <div fxFlex="15%" *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && (isDestino || esCompras)">
           <button style="width: 100%" mat-raised-button color="accent"
             (click)="onAvanzarEtapa('RECEPCION_EN_VERIFICACION')">
             Iniciar Recepción
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar">
+        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && (isDestino || esCompras) && puedeEditar">
           <button style="width: 100%" mat-raised-button color="accent" (click)="onAvanzarEtapa('RECEPCION_CONCLUIDA')"
             [disabled]="!isAllConfirmedRecepcion">
             Finalizar
@@ -184,7 +184,7 @@
         </div>
       </div>
       <mat-card appearance="outlined" fxFlex fxLayout="column" style="width: 100%; height: 100%" fxLayoutGap="10px"
-        style="background-color: rgb(66, 66, 66); padding: 10px" *ngIf="isPreTransferenciaCreacion">
+        style="background-color: var(--frc-superficie-elevada); padding: 10px" *ngIf="isPreTransferenciaCreacion">
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px" fxLayoutAlign="start center">
           <!-- <div fxFlex="5%" style="text-align: center">
             <img
@@ -198,12 +198,12 @@
           </div> -->
           <div fxFlex="30" fxLayout="column" fxLayoutAlign="center start">
             <div style="width: 100%; text-align: center">Producto</div>
-            <div style="color: white; font-size: medium">
+            <div style="color: var(--frc-texto-fuerte); font-size: medium">
               {{ selectedProducto?.id }}
               <span *ngIf="selectedProducto?.id !== undefined"> - </span>
               {{ selectedProducto?.descripcion | uppercase }}
             </div>
-            <div style="color: rgb(177, 177, 177); font-size: small">
+            <div style="color: var(--frc-texto-terciario); font-size: small">
               {{ selectedProducto?.descripcionFactura | uppercase }}
             </div>
           </div>
@@ -323,7 +323,7 @@
     </div>
   </div>
 
-  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+  <div table style="height: 100%" fxLayout="column"
     fxLayoutAlign="space-between start">
     <table *ngIf="isPreTransferenciaCreacion" mat-table [dataSource]="dataSource" multiTemplateDataRows
       class="mat-elevation-z8">
@@ -618,7 +618,11 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item color="accent" (click)="onConfirm(item)" *ngIf="isPreparacionMercaderia">
+            <button mat-menu-item *ngIf="
+                item.cantidadPreparacion == null &&
+                item.vencimientoPreparacion == null &&
+                item.motivoRechazoPreparacion == null
+              " color="accent" (click)="onConfirm(item)">
               Confirmar
             </button>
             <button mat-menu-item *ngIf="

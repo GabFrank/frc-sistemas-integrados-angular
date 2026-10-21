@@ -383,7 +383,7 @@
       </table>
     </div>
     <div fxFlex fxLayout="row" fxLayoutGap="10px">
-      <div fxFlex="30" style="color: white">
+      <div fxFlex="30">
         <mat-form-field style="width: 100%">
           <mat-label>Forma de pago</mat-label>
           <input
@@ -447,7 +447,7 @@
             matInput
             type="text"
             [formControl]="vueltoControl"
-            style="color: white"
+            style="color: var(--frc-texto-fuerte)"
             currencyMask
             [options]="
               selectedMoneda?.id == 1
@@ -468,7 +468,7 @@
             aria-label="Clear"
             (click)="vueltoControl.setValue(null)"
           >
-            <mat-icon style="color: white">close</mat-icon>
+            <mat-icon style="color: var(--frc-texto-fuerte)">close</mat-icon>
           </button>
         </mat-form-field>
       </div>
@@ -507,33 +507,14 @@
         </mat-form-field>
       </div>
       <div fxFlex="70%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Cliente</mat-label>
-          <input
-            #clienteInput
-            type="text"
-            matInput
-            [formControl]="clienteControl"
-            oninput="this.value == ' ' ? this.value = '': null"
-            [matAutocomplete]="autoCliente"
-            (keyup.enter)="onClienteEnter()"
-          />
-          <span matSuffix style="cursor: pointer">(F9)</span>
-
-          <mat-autocomplete
-            #autoCliente="matAutocomplete"
-            (optionSelected)="onClienteSelect($event.option.value)"
-            (closed)="onClienteAutocompleteClose()"
-          >
-            <mat-option
-              *ngFor="let cliente of filteredClienteList"
-              [value]="cliente"
-            >
-              {{ cliente?.persona?.id }} -
-              {{ cliente?.persona?.nombre | uppercase }}
-            </mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
+        <app-buscador-field
+          #clienteField
+          tipo="cliente"
+          titulo="Cliente"
+          [rapido]="true"
+          [formControl]="clienteControl"
+          (enter)="onClienteEnter()"
+        ></app-buscador-field>
       </div>
     </div>
   </div>

@@ -13,7 +13,7 @@ import {
 } from '@angular/animations';
 import { FormControl, FormGroup } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -39,6 +39,7 @@ import { ObservacionJornadaDialogComponent } from '../../components/observacion-
 import { EstadoJornada } from '../../enums/estado-jornada.enum';
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 import { UbicacionMarcacionComponent } from '../ubicacion-marcacion/ubicacion-marcacion.component';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
 
 /**
@@ -447,11 +448,17 @@ export class ListMarcacionComponent implements OnInit {
       if (obs !== undefined) {
         this.marcacionService.onAjustarJornadaA8Horas(marcacion.id, marcacion.sucursalId, obs)
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) {
-              this.notificacionService.openSucess('Jornada ajustada correctamente');
-              this.cargar();
-            }
+          .subscribe({
+            next: (res) => {
+              if (res) {
+                this.notificacionService.openSucess('Jornada ajustada correctamente');
+                this.cargar();
+              } else {
+                // El central devuelve null si la jornada no existe: antes quedaba en silencio (#501)
+                this.notificacionService.openWarn('No se pudo ajustar la jornada: no se encontró.');
+              }
+            },
+            error: (e) => this.avisarSinRespuesta(e, 'se ajustó la jornada'),
           });
       }
     });
@@ -469,13 +476,34 @@ export class ListMarcacionComponent implements OnInit {
       if (obs !== undefined && obs !== null) {
         this.marcacionService.onGuardarObservacionJornada(marcacion.id, marcacion.sucursalId, obs)
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) {
-              this.notificacionService.openSucess('Observación guardada correctamente');
-              this.cargar();
-            }
+          .subscribe({
+            next: (res) => {
+              if (res) {
+                this.notificacionService.openSucess('Observación guardada correctamente');
+                this.cargar();
+              } else {
+                // El central devuelve null si la jornada no existe: antes quedaba en silencio (#501)
+                this.notificacionService.openWarn('No se pudo guardar la observación: no se encontró la jornada.');
+              }
+            },
+            error: (e) => this.avisarSinRespuesta(e, 'se guardó la observación'),
           });
       }
     });
+  }
+
+  /**
+   * En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo aplicarse; repetir es seguro (pisa el mismo valor):
+   * se avisa y la lista se recarga cuando el central tuvo tiempo de terminar (#501).
+   */
+  private avisarSinRespuesta(error: any, queSeHizo: string): void {
+    if (erroresDeRechazo(error) != null) {
+      return;
+    }
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.cargar());
   }
 }

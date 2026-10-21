@@ -256,7 +256,7 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
     const lote = { enDuda: null as ColaVista | null };
     from(seleccionadas)
       .pipe(
-        concatMap((cola) => lote.enDuda != null ? of(false) : this.impresoraService.guardar(this.aInput(cola, sucursal.id), true).pipe(
+        concatMap((cola) => lote.enDuda != null ? of(false) : this.impresoraService.guardar(this.aInput(cola, sucursal.id), true, { avisarExito: false }).pipe(
           map(() => {
             exitosas++;
             cola.seleccionada = false;

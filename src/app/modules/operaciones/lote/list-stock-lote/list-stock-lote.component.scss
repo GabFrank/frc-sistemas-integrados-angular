@@ -40,7 +40,7 @@ $chip-por-vencer: #fb8c00;
   font-size: 15px;
   font-weight: 600;
   font-family: inherit;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
   cursor: pointer;
   // Apagado casi no baja: bajarlo mucho los volvia grises y dejaban de leerse como referencia
   // del color de la fila. El estado activo se distingue por el anillo y el tilde, no por el brillo.
@@ -124,12 +124,12 @@ $chip-por-vencer: #fb8c00;
 // !important porque MatTable aplica su propio fondo a la celda con mayor especificidad.
 .fila-vencida td {
   background-color: $fila-vencida !important;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
 }
 
 .fila-por-vencer td {
   background-color: $fila-por-vencer !important;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
 }
 
 // Sobre una fila de color, el chip translúcido se lava y deja de leerse: pasa a ser una pastilla
@@ -138,13 +138,13 @@ $chip-por-vencer: #fb8c00;
 .fila-por-vencer .chip-estado,
 .fila-expandida .chip-estado {
   background-color: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  color: var(--frc-texto-fuerte);
 }
 
 .fila-vencida .boton-acciones,
 .fila-por-vencer .boton-acciones,
 .fila-expandida .boton-acciones {
-  color: #fff;
+  color: var(--frc-texto-fuerte);
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ $chip-por-vencer: #fb8c00;
 .fila-lote.fila-expandida td {
   background-color: $fila-expandida;
   box-shadow: inset 0 -3px 0 $fila-expandida;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
 }
 
 // Colores de los íconos del menú de estado. El menú se renderiza en un overlay del CDK, pero el
@@ -206,7 +206,7 @@ $chip-por-vencer: #fb8c00;
 
 .celda-detalle {
   padding: 0 !important;
-  background-color: rgb(50, 50, 50);
+  background-color: var(--frc-superficie-tabla);
 }
 
 .detalle-sucursales {
@@ -220,7 +220,7 @@ $chip-por-vencer: #fb8c00;
   min-width: 320px;
   margin: 10px;
   padding: 10px;
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-superficie-baja);
   border-radius: 4px;
   // Hay ~30 sucursales y la mayoría va en 0: el panel scrollea en vez de empujar la tabla.
   max-height: 340px;

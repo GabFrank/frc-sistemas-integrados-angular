@@ -28,6 +28,8 @@ import { Salida } from "../salida/salida.model";
 import { SalidaService } from "../salida/salida.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { timer } from 'rxjs';
+import { RECARGA_TRAS_CORTE_MS } from '../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -195,6 +197,7 @@ export class EntradaSalidaComponent implements OnInit {
       width: "80%",
       disableClose: true,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res?.recargar) return this.recargarTrasCorte();
       if(res!=null){
         let aux = this.entradaDataSource.data;
         aux.push(res)
@@ -212,12 +215,18 @@ export class EntradaSalidaComponent implements OnInit {
       width: "80%",
       disableClose: true,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res?.recargar) return this.recargarTrasCorte();
       if(res!=null){
         let aux = this.entradaDataSource.data;
         aux[index] = res;
         this.entradaDataSource.data = aux;
       }
     });;
+  }
+
+  /** El diálogo cerró tras una escritura sin respuesta: se recarga cuando el servidor ya pudo aplicarla (#527). */
+  private recargarTrasCorte() {
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
   }
 
   onFiltrar() {
@@ -256,6 +265,7 @@ export class EntradaSalidaComponent implements OnInit {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
+      if (res?.recargar) return this.recargarTrasCorte();
         if (res != null) {
           this.salidaDataSource.data = updateDataSource(this.salidaDataSource.data, res)
         }
@@ -271,6 +281,7 @@ export class EntradaSalidaComponent implements OnInit {
       width: "80%",
       disableClose: true,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res?.recargar) return this.recargarTrasCorte();
       if(res!=null){
         let index = this.salidaDataSource.data.findIndex(s => s.id == res.id)
         if(index > -1){

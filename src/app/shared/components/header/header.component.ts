@@ -32,6 +32,7 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
 import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 import { CotizacionHeaderService } from "../../services/cotizacion-header.service";
+import { TemaService } from "../../services/tema.service";
 
 /** Hora/fecha del reloj del header: siempre reloj local del SO (no servidor). */
 export interface HeaderClockNow {
@@ -65,6 +66,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
   unreadCount$ = this.notificacionesTableroService.unreadCount$;
+  tema$ = this.temaService.tema$;
   cotizaciones$ = this.cotizacionHeaderService.cotizaciones$;
   /** Reloj local: útil para detectar si la zona horaria del equipo cambió. */
   now$ = timer(0, 1000).pipe(map(() => HeaderComponent.formatRelojLocal(new Date())));
@@ -85,7 +87,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private usuarioService: UsuarioService,
     private loginDialogService: LoginDialogService,
     private notificacionesTableroService: NotificacionesTableroService,
-    private cotizacionHeaderService: CotizacionHeaderService
+    private cotizacionHeaderService: CotizacionHeaderService,
+    private temaService: TemaService
   ) {
     setTimeout(() => {
       console.log(this.mainService.usuarioActual);
@@ -238,6 +241,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isRefreshingCotiz = true;
     this.cotizacionHeaderService.refresh();
     setTimeout(() => (this.isRefreshingCotiz = false), 1500);
+  }
+
+  onAlternarTema(): void {
+    this.temaService.alternar();
   }
 
   onSearch() {

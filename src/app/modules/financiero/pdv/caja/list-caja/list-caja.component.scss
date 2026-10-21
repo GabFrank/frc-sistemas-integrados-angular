@@ -53,12 +53,9 @@ input::-webkit-inner-spin-button {
 }
 
 .expanded:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-superficie-tabla) !important;
 }
 
-.tableRows:hover {
-  background-color: rgb(51, 51, 51) !important;
-}
 
 .con-observacion {
   background-color: #54c5f8 !important;

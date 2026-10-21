@@ -210,7 +210,8 @@ export class RutaHojaComponent implements OnInit {
 
     this.isSaving = true;
     this.guardarDeshabilitado = true;
-    this.transferenciaService.onSaveHojaRuta(input)
+    // El verde es el de la lista al terminar de asignar la hoja («Ruta asignada a N…») (#501)
+    this.transferenciaService.onSaveHojaRuta(input, true, { avisarExito: false })
       .pipe(untilDestroyed(this), finalize(() => this.isSaving = false))
       .subscribe({
         next: res => {

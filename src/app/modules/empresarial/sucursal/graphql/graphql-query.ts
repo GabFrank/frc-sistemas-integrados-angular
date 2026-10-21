@@ -8,6 +8,7 @@ export const sucursalesQuery = gql
       localizacion
       ciudad{
         id
+        descripcion
       }
       creadoEn
       usuario{
@@ -98,6 +99,7 @@ export const sucursalQuery = gql
       localizacion
       ciudad{
         id
+        descripcion
       }
       creadoEn
       usuario{

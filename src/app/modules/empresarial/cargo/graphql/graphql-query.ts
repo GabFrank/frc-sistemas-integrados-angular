@@ -21,6 +21,21 @@ export const cargosSearch = gql`
   }
 `;
 
+export const cargosWithPageQuery = gql`
+  query ($page: Int, $size: Int, $texto: String) {
+    data: cargosWithPage(page: $page, size: $size, texto: $texto) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${CARGO_FIELDS} }
+    }
+  }
+`;
+
 export const cargoQuery = gql`
   query ($id: ID!) {
     data: cargo(id: $id) { ${CARGO_FIELDS} }

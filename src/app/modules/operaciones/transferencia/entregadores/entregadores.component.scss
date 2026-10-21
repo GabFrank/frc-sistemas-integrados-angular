@@ -12,16 +12,6 @@ $text-secondary: #aaaaaa;
             text-align: center !important;
         }
 
-        .mat-mdc-table {
-            background-color: transparent !important;
-        }
-
-        .mat-mdc-row,
-        .mat-mdc-header-row {
-            background-color: #464646 !important;
-            color: white !important;
-        }
-
         .mat-mdc-row.detail-row {
             background-color: transparent !important;
 
@@ -33,27 +23,18 @@ $text-secondary: #aaaaaa;
         }
 
         .mat-mdc-header-cell {
-            color: white !important;
-            background-color: #464646 !important;
             text-align: center !important;
         }
 
         .mat-mdc-cell {
-            color: white !important;
             text-align: center !important;
         }
 
-        .mat-mdc-paginator {
-            background-color: transparent !important;
-            color: white !important;
-        }
-
         .mat-mdc-icon-button {
-            color: white !important;
+            color: var(--frc-texto-fuerte) !important;
         }
     }
 }
-
 
 table {
     width: 100%;
@@ -68,7 +49,7 @@ table {
     width: 100%;
 
     p {
-        color: white;
+        color: var(--frc-texto-fuerte);
         margin-top: 10px;
     }
 }
@@ -91,7 +72,6 @@ tr.detail-row {
     border: none !important;
 }
 
-
 .element-row {
     &:hover {
         background: whitesmoke;
@@ -104,7 +84,7 @@ tr.detail-row {
 }
 
 .element-row:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(var(--frc-tinta), 0.04);
     cursor: pointer;
 }
 
@@ -115,14 +95,13 @@ tr.detail-row {
 .element-detail {
     overflow: hidden;
     display: flex;
-    background-color: rgb(50, 50, 50);
+    background-color: var(--frc-superficie-tabla);
 }
 
 .detail-container {
     padding: 16px;
     width: 100%;
 }
-
 
 .detail-table {
     width: 100%;
@@ -133,8 +112,8 @@ tr.detail-row {
     td {
         padding: 8px;
         text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        color: #e0e0e0;
+        border-bottom: 1px solid rgba(var(--frc-tinta), 0.1);
+        color: var(--frc-texto-secundario);
     }
 
     th {

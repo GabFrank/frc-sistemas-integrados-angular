@@ -46,7 +46,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
   selectedFuncionario: Funcionario;
   selectedPersona: Persona;
-  selectedSupervisadoPor: Funcionario;
   selectedCliente: Cliente;
 
   sucursalControl = new FormControl(null, Validators.required)
@@ -65,8 +64,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
   monedaList: Moneda[];
   sucursalList: Sucursal[];
-  supervisadoPorList: Funcionario[] = []
-  cargoList: any[];
   marcacionesDataSource = new MatTableDataSource<Marcacion>([])
 
   currencyMask = new CurrencyMask();
@@ -154,16 +151,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       //   })
       // }
 
-      this.cargoList = [
-        {
-          id: 1,
-          descripcion: 'Cajero'
-        },
-        {
-          id: 2,
-          descripcion: 'Ayudante de caja'
-        }
-      ]
     }, 0);
   }
 
@@ -259,30 +246,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     }
   }
 
-
-  handleCargoSelectionChange(e) {
-
-  }
-
-  handleSupervisadoPorSelectionChange(e) {
-    this.selectedSupervisadoPor = e;
-  }
-
-  supervisadoPorTimer;
-  handleSupervisadoPorInputChange(e) {
-    if (e?.length > 0) {
-      if (this.supervisadoPorTimer != null) {
-        clearTimeout(this.supervisadoPorTimer)
-      }
-      setTimeout(() => {
-        this.funcionarioService.onFuncionarioSearch(e).pipe(untilDestroyed(this)).subscribe(res => {
-          if (res != null) {
-            this.supervisadoPorList = res;
-          }
-        })
-      }, 500);
-    }
-  }
 
   onSave() {
     if (this.selectedFuncionario == null) this.selectedFuncionario = new Funcionario();

@@ -83,13 +83,14 @@ export class ChequeraService {
    * @param entity Datos de la chequera a guardar
    * @returns Observable de la Chequera guardada
    */
-  onSaveChequera(entity: ChequeraInput, errorConf?: QueryError): Observable<Chequera> {
+  onSaveChequera(entity: ChequeraInput, errorConf?: QueryError, opciones?: { avisarExito?: boolean }): Observable<Chequera> {
     // onSave() ya envuelve su argumento como { entity: input }; pasar { entity }
     // producía un doble-wrap ({ entity: { entity } }) que el backend rechazaba
     // con ValidationError. Se pasa el entity crudo, como el resto de los services.
     // Con `errorConf` de red propagada quien llama se entera de un guardado sin respuesta: sin eso el genérico no
-    // emite nada y el diálogo quedaba guardando para siempre (#390).
-    return this.genericService.onSave(this.saveChequeraGQL, entity, undefined, undefined, true, errorConf);
+    // emite nada y el diálogo quedaba guardando para siempre (#390). `opciones.avisarExito = false`, para la
+    // pantalla que muestra su propio verde (#501).
+    return this.genericService.onSave(this.saveChequeraGQL, entity, undefined, undefined, true, errorConf, undefined, opciones);
   }
 
   /**

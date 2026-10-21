@@ -1,23 +1,20 @@
-/* Tonos del sistema (ver src/styles.scss):
-   #f57c00 -> acento / títulos / headers de tabla
-   #43a047 -> success (guardar)
-   #f44336 -> danger
-   #3c3c3c / #464646 -> superficies de header y filas */
+/* Acento y estados son iguales en los dos modos. Superficies, bordes y textos van con los
+   tokens --frc-* de src/styles.scss para seguir el modo claro / oscuro. */
 $acento: #f57c00;
 $acento-claro: #ffa726;
 $success: #43a047;
 $success-claro: #66bb6a;
 $danger: #f44336;
 
-$superficie-header: #3c3c3c;
-$superficie-body: #3a3a3a;
-$superficie-card: #464646;
-$superficie-footer: #333333;
+$superficie-header: var(--frc-superficie-alta);
+$superficie-body: var(--frc-superficie-alta);
+$superficie-card: var(--frc-superficie-elevada);
+$superficie-footer: var(--frc-superficie-tabla);
 
-$borde: rgba(255, 255, 255, 0.12);
-$texto: #ffffff;
-$texto-sec: #bbbbbb;
-$texto-terciario: rgba(255, 255, 255, 0.45);
+$borde: var(--frc-borde);
+$texto: var(--frc-texto-fuerte);
+$texto-sec: var(--frc-texto-terciario);
+$texto-terciario: var(--frc-texto-tenue);
 
 :host {
     display: block;
@@ -117,7 +114,8 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
 
     &:hover {
         border-color: $acento;
-        background-color: #4f4f4f;
+        // Velo de hover sobre la superficie de la tarjeta (sirve en los dos modos)
+        background-image: linear-gradient(var(--frc-relleno-suave), var(--frc-relleno-suave));
 
         .selector-action {
             color: $acento;
@@ -125,7 +123,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     }
 
     &.vacio {
-        background-color: #404040;
+        background-color: $superficie-card;
         border-color: $borde;
     }
 
@@ -168,7 +166,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     }
 
     .selector-action {
-        color: rgba(255, 255, 255, 0.4);
+        color: rgba(var(--frc-tinta), 0.4);
         flex-shrink: 0;
         transition: color 0.2s ease;
     }
@@ -182,8 +180,8 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     height: 44px;
     border-radius: 50%;
     flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.55);
+    background-color: rgba(var(--frc-tinta), 0.08);
+    color: rgba(var(--frc-tinta), 0.55);
     font-weight: 600;
     font-size: 15px;
 
@@ -200,7 +198,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
         width: 34px;
         height: 34px;
         font-size: 13px;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(var(--frc-tinta), 0.1);
         color: $texto-sec;
     }
 }
@@ -213,25 +211,25 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
 .dark-outline-input {
     ::ng-deep {
         .mat-mdc-text-field-wrapper {
-            background-color: rgba(255, 255, 255, 0.04) !important;
+            background-color: rgba(var(--frc-tinta), 0.04) !important;
             border-radius: 8px !important;
         }
 
         .mat-mdc-input-element {
-            color: white !important;
-            caret-color: white !important;
+            color: $texto !important;
+            caret-color: $texto !important;
             cursor: pointer;
         }
 
         .mdc-floating-label,
         .mat-mdc-floating-label {
-            color: rgba(255, 255, 255, 0.7) !important;
+            color: rgba(var(--frc-tinta), 0.7) !important;
         }
 
         .mdc-notched-outline__leading,
         .mdc-notched-outline__notch,
         .mdc-notched-outline__trailing {
-            border-color: rgba(255, 255, 255, 0.2) !important;
+            border-color: rgba(var(--frc-tinta), 0.2) !important;
         }
 
         .mat-mdc-form-field.mat-focused {
@@ -250,7 +248,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
         .mat-icon,
         .mat-mdc-icon-button,
         .mat-datepicker-toggle {
-            color: white !important;
+            color: $texto !important;
         }
     }
 }
@@ -321,12 +319,12 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     align-items: center;
     gap: 4px;
     padding: 18px;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px dashed rgba(var(--frc-tinta), 0.15);
     border-radius: 8px;
     color: $texto-sec;
 
     mat-icon {
-        color: rgba(255, 255, 255, 0.25);
+        color: rgba(var(--frc-tinta), 0.25);
     }
 
     span {
@@ -350,7 +348,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     transition: border-color 0.2s ease;
 
     &:hover {
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: rgba(var(--frc-tinta), 0.2);
     }
 
     .acompanhante-info {
@@ -374,7 +372,7 @@ $texto-terciario: rgba(255, 255, 255, 0.45);
     }
 
     .btn-quitar {
-        color: rgba(255, 255, 255, 0.45);
+        color: rgba(var(--frc-tinta), 0.45);
         flex-shrink: 0;
 
         &:hover {

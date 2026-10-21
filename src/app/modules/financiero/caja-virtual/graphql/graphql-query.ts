@@ -459,3 +459,13 @@ export const transferirPropiedadCajaMutation = gql`
     }
   }
 `;
+
+// Señal de que cambió el saldo de una caja o de una cuenta: el que la recibe relee la caja con las consultas de siempre.
+export const tesoreriaCambioSubQuery = gql`
+  subscription {
+    data: tesoreriaCambioSub {
+      cajaVirtualId
+      cuentaBancariaId
+    }
+  }
+`;

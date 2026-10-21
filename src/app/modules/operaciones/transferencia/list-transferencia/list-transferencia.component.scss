@@ -27,9 +27,6 @@ tr.example-detail-row {
   background-color: #a0438c !important;
 }
 
-.example-element-row:hover {
-  background-color: rgb(34, 34, 34);
-}
 
 ::ng-deep .checkbox-ruta-asignada.mat-checkbox-disabled,
 ::ng-deep .checkbox-ruta-asignada.mat-mdc-checkbox-disabled {
@@ -37,36 +34,36 @@ tr.example-detail-row {
 
   /* Legacy Styles */
   .mat-checkbox-frame {
-    border-color: #000 !important;
-    background-color: #000 !important;
+    border-color: var(--frc-borde-solido) !important;
+    background-color: var(--frc-superficie-baja) !important;
     border-width: 2px !important;
   }
 
   .mat-checkbox-background {
-    background-color: #000 !important;
+    background-color: var(--frc-superficie-baja) !important;
   }
 
   .mat-checkbox-inner-container {
-    background-color: #000 !important;
+    background-color: var(--frc-superficie-baja) !important;
   }
 
   .mat-checkbox-checkmark-path {
-    stroke: #fff !important;
+    stroke: var(--frc-texto-fuerte) !important;
   }
 
   /* MDC Styles */
   .mdc-checkbox {
     .mdc-checkbox__background {
-      background-color: #000 !important;
-      border-color: #000 !important;
+      background-color: var(--frc-superficie-baja) !important;
+      border-color: var(--frc-borde-solido) !important;
     }
 
     .mdc-checkbox__checkmark {
-      color: #fff !important;
+      color: var(--frc-texto-fuerte) !important;
     }
 
     .mdc-checkbox__checkmark-path {
-      stroke: #fff !important;
+      stroke: var(--frc-texto-fuerte) !important;
     }
   }
 }
@@ -89,14 +86,14 @@ tr.example-detail-row {
 
 td.expanded,
 td.expanded .example-element-detail {
-  background-color: rgb(32, 32, 32) !important;
+  background-color: var(--frc-superficie-baja) !important;
 }
 
 // styles.scss pinta todas las filas de verde al pasar el mouse; la fila de
 // detalle no es clickeable, asi que ahi el hover no corresponde.
 tr.example-detail-row.mat-mdc-row:hover,
 tr.example-detail-row:hover {
-  background-color: rgb(32, 32, 32) !important;
+  background-color: var(--frc-superficie-baja) !important;
 }
 
 .icon {

@@ -12,6 +12,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { timer } from 'rxjs';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -27,6 +28,8 @@ import { ImpresoraService } from '../impresora.service';
 import { AdicionarImpresoraDialogComponent } from '../adicionar-impresora-dialog/adicionar-impresora-dialog.component';
 import { AgregarDesdeSucursalDialogComponent } from '../agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
 import { ElectronService } from '../../../../commons/core/electron/electron.service';
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 interface ImpresoraVista {
   ref: Impresora;
@@ -281,7 +284,16 @@ export class ListImpresorasComponent implements OnInit {
             this.notificarFallo(impresora, 'verificá que la sucursal esté online y la cola exista');
           }
         },
-        error: (e) => this.notificarFallo(impresora, e?.message),
+        // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link (#488)
+        error: (e) => {
+          if (erroresDeRechazo(e) == null && !esTimeoutDeLink(e)) {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo confirmar si se imprimió en ' + impresora.nombre + '.',
+              color: NotificacionColor.warn,
+              duracion: 4,
+            });
+          }
+        },
       });
   }
 
@@ -361,7 +373,22 @@ export class ListImpresorasComponent implements OnInit {
             this.cargarEstadoColas();
           }
         },
-        error: () => this.notificarFallo(impresora, 'no se pudo reactivar la cola'),
+        // Antes decía «No se pudo imprimir en X»: el texto era el de imprimir. En un rechazo el genérico ya mostró el motivo
+        // y el corte por tiempo lo avisó el link. Sin respuesta pudo reactivarse: el estado se relee y, si se reactivó, el
+        // botón desaparece (repetir soltaría otra vez los trabajos retenidos) (#501)
+        error: (e) => {
+          if (erroresDeRechazo(e) != null) {
+            return;
+          }
+          if (!esTimeoutDeLink(e)) {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo confirmar si se reactivó la cola ' + impresora.colaCups + ': revisá su estado antes de repetir.',
+              color: NotificacionColor.warn,
+              duracion: 8,
+            });
+          }
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.cargarEstadoColas());
+        },
       });
   }
 

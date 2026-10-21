@@ -12,7 +12,7 @@
 // de solapa obliga a recordar de cuál se trataba.
 .cabecera {
   flex: none;
-  background-color: rgb(50, 50, 50);
+  background-color: var(--frc-superficie-tabla);
   border-radius: 4px;
   padding: 12px 16px;
   margin-bottom: 10px;
@@ -33,7 +33,7 @@
   font-size: 14px;
 
   b {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(var(--frc-tinta), 0.6);
     font-weight: 400;
   }
 }
@@ -77,7 +77,7 @@
 // paginador anclado abajo mientras el cuerpo scrollea.
 .tab-contenido {
   height: 100%;
-  background-color: rgb(70, 70, 70);
+  background-color: var(--frc-superficie-elevada);
 }
 
 .tab-cuerpo {
@@ -90,7 +90,7 @@
 .paginador {
   width: 100%;
   flex: none;
-  background-color: rgb(70, 70, 70);
+  background-color: var(--frc-superficie-elevada);
 }
 
 // El checkbox reemplaza a la franja de aviso: no informa, filtra.
@@ -168,8 +168,8 @@
 }
 
 .tipo-desconocido {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #bdbdbd;
+  background-color: rgba(var(--frc-tinta), 0.12);
+  color: var(--frc-texto-terciario);
 }
 
 // El boton va pegado al numero y no en una columna aparte: la accion es "abrir ESTA venta", y

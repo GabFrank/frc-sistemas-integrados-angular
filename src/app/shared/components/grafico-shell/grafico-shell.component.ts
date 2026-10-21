@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input } from "@angular/core";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import type { ECharts } from "echarts";
 import { EChartsOption } from "echarts";
-import { GRAFICO_COLORES } from "../../utils/grafico-echarts.theme";
+import { Tema, TemaService } from "../../services/tema.service";
+import { GRAFICO_COLORES, opcionesSegunTema } from "../../utils/grafico-echarts.theme";
 
+@UntilDestroy()
 @Component({
   selector: "frc-grafico-shell",
   templateUrl: "./grafico-shell.component.html",
@@ -14,9 +17,20 @@ import { GRAFICO_COLORES } from "../../utils/grafico-echarts.theme";
 })
 export class GraficoShellComponent {
   private chart: ECharts | null = null;
+  private opcionesOriginales: EChartsOption | null = null;
+  private tema: Tema;
+
+  /** Las opciones que recibe el gráfico: las de entrada con los grises del tema actual. */
+  opcionesTema: EChartsOption | null = null;
 
   @Input() titulo?: string;
-  @Input() opciones: EChartsOption | null = null;
+  @Input() set opciones(valor: EChartsOption | null) {
+    this.opcionesOriginales = valor;
+    this.opcionesTema = opcionesSegunTema(valor, this.tema);
+  }
+  get opciones(): EChartsOption | null {
+    return this.opcionesOriginales;
+  }
   @Input() cargando = false;
   @Input() hayDatos = false;
   @Input() datosListos = true;
@@ -24,6 +38,18 @@ export class GraficoShellComponent {
     "No hay datos disponibles para los filtros seleccionados";
   @Input() mensajeInicial = "Seleccione filtros para visualizar datos";
   @Input() alturaMinima = "500px";
+
+  constructor(temaService: TemaService, cdr: ChangeDetectorRef) {
+    this.tema = temaService.tema;
+    temaService.tema$.pipe(untilDestroyed(this)).subscribe((tema) => {
+      if (tema === this.tema) {
+        return;
+      }
+      this.tema = tema;
+      this.opcionesTema = opcionesSegunTema(this.opcionesOriginales, tema);
+      cdr.markForCheck();
+    });
+  }
 
   onChartInit(chart: ECharts): void {
     this.chart = chart;
@@ -37,7 +63,7 @@ export class GraficoShellComponent {
     return this.chart.getDataURL({
       type: "png",
       pixelRatio: 2,
-      backgroundColor: GRAFICO_COLORES.backgroundDark,
+      backgroundColor: this.tema === "claro" ? "#ffffff" : GRAFICO_COLORES.backgroundDark,
     });
   }
 }

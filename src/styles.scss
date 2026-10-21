@@ -33,13 +33,139 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   @include mat.all-legacy-component-themes($angular-dark-theme);
 }
 
+// Modo claro: Material ya usa el tema claro por defecto (arriba); faltaban los componentes legacy.
+.lightMode {
+  @include mat.all-legacy-component-colors($angular-default-theme);
+}
+
+// Tokens de color de la app. El tema lo pone TemaService en <html> (darkMode / lightMode), así llega
+// también a diálogos y menús. Usar estos tokens en vez de grises o blancos fijos.
+// Los colores de marca (rojo, degradé violeta) y de estado (verde, naranja, rojo) son iguales en los dos.
+:root,
+.darkMode {
+  --frc-fondo: #303030;
+  --frc-superficie: #2d2d2d; // diálogos
+  --frc-superficie-tabla: #333333;
+  --frc-superficie-alta: #3a3a3a; // tarjetas dentro de un diálogo
+  --frc-franja: rgb(32, 32, 32); // franja de filtros de las listas
+  --frc-borde: rgba(255, 255, 255, 0.12);
+  --frc-borde-suave: rgba(255, 255, 255, 0.06);
+  --frc-borde-fuerte: rgba(255, 255, 255, 0.3);
+  --frc-texto-fuerte: #ffffff;
+  --frc-texto: rgba(255, 255, 255, 0.87);
+  --frc-texto-suave: rgba(255, 255, 255, 0.6);
+  --frc-texto-tenue: rgba(255, 255, 255, 0.45);
+  --frc-hover: rgba(255, 255, 255, 0.04);
+  --frc-relleno-suave: rgba(255, 255, 255, 0.08); // pastilla inactiva, fondos sutiles
+  --frc-relleno-tenue: rgba(255, 255, 255, 0.02);
+  --frc-encabezado-tabla: rgb(61, 65, 74);
+  --frc-encabezado-tabla-texto: rgba(255, 255, 255, 0.8);
+  --frc-encabezado-tabla-borde: #464d6d;
+  --frc-paginador: #383838;
+  --frc-scroll-pista: rgba(255, 255, 255, 0.05);
+  --frc-scroll-barra: rgba(255, 255, 255, 0.2);
+  --frc-scroll-barra-hover: rgba(255, 255, 255, 0.3);
+  --frc-btn-secundario: #616161;
+  --frc-sombra: rgba(0, 0, 0, 0.4);
+  --frc-sombra-suave: rgba(0, 0, 0, 0.2);
+  // Menú lateral
+  --frc-menu-fondo: #424242;
+  --frc-menu-texto: #ffffff;
+  --frc-menu-texto-suave: rgba(255, 255, 255, 0.7);
+  --frc-menu-icono: rgba(255, 255, 255, 0.9);
+  --frc-menu-hover: rgba(255, 255, 255, 0.1);
+  --frc-menu-activo: rgba(255, 255, 255, 0.15);
+  --frc-menu-submenu: rgba(0, 0, 0, 0.2);
+  --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.3);
+  --frc-menu-borde: rgba(255, 255, 255, 0.2);
+  --frc-menu-sombra: rgba(0, 0, 0, 0.15);
+  // Tinta: los rgba(255, 255, 255, x) de los estilos pasan a rgba(var(--frc-tinta), x). Mismo alfa en los dos
+  // modos: blanco sobre oscuro, negro sobre claro.
+  --frc-tinta: 255, 255, 255;
+  // Niveles de superficie y texto para pantallas con grises propios (Compras, login).
+  --frc-superficie-baja: #222222;
+  --frc-superficie-elevada: #424242;
+  --frc-relleno-fuerte: #555555; // deshabilitado, hover de opción
+  --frc-borde-solido: #444444;
+  --frc-borde-solido-fuerte: #555555;
+  --frc-texto-secundario: #cccccc;
+  --frc-texto-terciario: #bbbbbb;
+  --frc-texto-apagado: #999999;
+  // Dashboards (styles/_dashboard.scss)
+  --frc-dash-texto: #e0e0e0;
+  --frc-dash-texto-2: #9e9e9e;
+  // Tarjeta semitransparente sobre fondo con degradé y zona hundida (marcación de horario)
+  --frc-tarjeta-translucida: rgba(40, 40, 40, 0.9);
+  --frc-hundido: rgba(0, 0, 0, 0.2);
+}
+
+// Etiquetas de checkbox, radio y switch: Material las dejaba negras también en modo oscuro (el color le
+// llega por una variable con el valor del tema claro). :root sube la especificidad para ganarle al tema.
+// El texto deshabilitado lo sigue pintando Material sobre el <label>.
+:root .mat-mdc-checkbox .mdc-form-field,
+:root .mat-mdc-radio-button .mdc-form-field,
+:root .mat-mdc-slide-toggle .mdc-form-field {
+  color: var(--frc-texto);
+}
+
+.lightMode {
+  --frc-fondo: #f4f5f7;
+  --frc-superficie: #ffffff;
+  --frc-superficie-tabla: #ffffff;
+  --frc-superficie-alta: #f7f8fa;
+  --frc-franja: #f4f5f7;
+  --frc-borde: rgba(0, 0, 0, 0.12);
+  --frc-borde-suave: rgba(0, 0, 0, 0.06);
+  --frc-borde-fuerte: rgba(0, 0, 0, 0.3);
+  --frc-texto-fuerte: #1f1f1f;
+  --frc-texto: rgba(0, 0, 0, 0.87);
+  --frc-texto-suave: rgba(0, 0, 0, 0.6);
+  --frc-texto-tenue: rgba(0, 0, 0, 0.45);
+  --frc-hover: rgba(0, 0, 0, 0.04);
+  --frc-relleno-suave: rgba(0, 0, 0, 0.06);
+  --frc-relleno-tenue: rgba(0, 0, 0, 0.02);
+  --frc-encabezado-tabla: #e8eaf0;
+  --frc-encabezado-tabla-texto: rgba(0, 0, 0, 0.7);
+  --frc-encabezado-tabla-borde: #c5cae0;
+  --frc-paginador: #f4f5f7;
+  --frc-scroll-pista: rgba(0, 0, 0, 0.04);
+  --frc-scroll-barra: rgba(0, 0, 0, 0.2);
+  --frc-scroll-barra-hover: rgba(0, 0, 0, 0.3);
+  --frc-btn-secundario: #757575;
+  --frc-sombra: rgba(0, 0, 0, 0.15);
+  --frc-sombra-suave: rgba(0, 0, 0, 0.08);
+  --frc-menu-fondo: #ffffff;
+  --frc-menu-texto: rgba(0, 0, 0, 0.87);
+  --frc-menu-texto-suave: rgba(0, 0, 0, 0.6);
+  --frc-menu-icono: rgba(0, 0, 0, 0.65);
+  --frc-menu-hover: rgba(0, 0, 0, 0.05);
+  --frc-menu-activo: rgba(0, 0, 0, 0.09);
+  --frc-menu-submenu: rgba(0, 0, 0, 0.03);
+  --frc-menu-submenu-anidado: rgba(0, 0, 0, 0.06);
+  --frc-menu-borde: rgba(0, 0, 0, 0.12);
+  --frc-menu-sombra: rgba(0, 0, 0, 0.12);
+  --frc-tinta: 0, 0, 0;
+  --frc-superficie-baja: #eceef1;
+  --frc-superficie-elevada: #ffffff;
+  --frc-relleno-fuerte: #d5d8dd;
+  --frc-borde-solido: #d9dce1;
+  --frc-borde-solido-fuerte: #c4c8ce;
+  --frc-texto-secundario: #3d3d3d;
+  --frc-texto-terciario: #555555;
+  --frc-texto-apagado: #6f6f6f;
+  --frc-dash-texto: rgba(0, 0, 0, 0.87);
+  --frc-dash-texto-2: rgba(0, 0, 0, 0.55);
+  --frc-tarjeta-translucida: rgba(255, 255, 255, 0.92);
+  --frc-hundido: rgba(0, 0, 0, 0.03);
+}
+
 html {
   height: 100%;
 }
 
 body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
   position: fixed;
   top: 0;
   left: 0;
@@ -627,7 +753,7 @@ mat-form-field.transferencia-input-field {
   }
 
   .mat-mdc-text-field-wrapper {
-    background-color: #2e2e2e !important;
+    background-color: var(--frc-superficie) !important;
     border-radius: 4px !important;
   }
 
@@ -638,8 +764,8 @@ mat-form-field.transferencia-input-field {
 
   .mat-mdc-input-element {
     font-size: 15px;
-    color: #ffffff !important;
-    caret-color: #ffffff !important;
+    color: var(--frc-texto-fuerte) !important;
+    caret-color: var(--frc-texto-fuerte) !important;
     text-transform: uppercase;
   }
 
@@ -691,4 +817,69 @@ mat-form-field.transferencia-input-field {
       background-color: #3c3c3c; // mismo tono que los headers sticky del proyecto (ver .mat-table-sticky)
     }
   }
+}
+
+// Panel lateral de sugerencias de imagen de una presentacion: pegado al borde derecho, a alto
+// completo y entrando desde la derecha, con la tabla de presentaciones visible detras.
+.sugerencias-imagen-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    overflow: hidden;
+
+    .mdc-dialog__surface {
+      height: 100vh;
+      max-height: 100vh;
+      border-radius: 0;
+      overflow: hidden;
+      animation: sugerencias-imagen-entrar 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: -12px 0 32px rgba(0, 0, 0, 0.5);
+    }
+  }
+}
+
+@keyframes sugerencias-imagen-entrar {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+// app-buscador-field: ultima fila de la lista rapida («Buscar mas…»). La lista vive en el overlay, fuera del
+// host del componente, por eso va aca y no en su scss.
+.opcion-buscar-mas {
+  opacity: 0.8;
+  font-style: italic;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+// app-dialogo-base dibuja su propio marco (fondo, bordes redondeados, sombra): la superficie de Material
+// queda transparente para que no asome detras. Solo afecta a los dialogos que lo usan.
+.mat-mdc-dialog-surface:has(app-dialogo-base) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+  // Columna flex sin scroll propio: con un alto fijo (height en el open) scrollea solo el contenido del marco y la
+  // cabecera y los botones quedan a la vista.
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+
+  // El componente del diálogo (host inline por defecto) pasa el alto al marco
+  > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+// Tooltip de varias líneas (desglose de stock del ítem del pedido). Va en un overlay: por eso es global, acotado a
+// la clase que pide quien lo usa (matTooltipClass="multiline-tooltip").
+.mat-mdc-tooltip.multiline-tooltip {
+  white-space: pre-line;
+  line-height: 1.5;
 }

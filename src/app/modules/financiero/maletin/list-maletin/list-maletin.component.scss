@@ -53,12 +53,9 @@ background-color: #43A047 !important;
 }
 
 .expanded:hover {
-background-color: rgb(51, 51, 51) !important;
+background-color: var(--frc-superficie-tabla) !important;
 }
 
-.tableRows:hover {
-background-color: rgb(51, 51, 51) !important;
-}
 
 input {
   text-transform: uppercase;

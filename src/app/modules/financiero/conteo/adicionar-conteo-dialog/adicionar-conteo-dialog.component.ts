@@ -15,6 +15,7 @@ import {
 import { FormGroup, FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { Observable, Subscription } from "rxjs";
+import { avisoTrasMutacion, erroresDeRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -93,6 +94,11 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   enEdicion = false;
   // Evita que un doble clic mande dos ediciones con el mismo conteoAnteriorId.
   guardandoEdicion = false;
+  /**
+   * La edición quedó sin respuesta: pudo guardarse, y este diálogo no relee el conteo del servidor. No se ofrece editar de
+   * nuevo hasta reabrir la caja (#501).
+   */
+  edicionSinConfirmar = false;
 
   guaraniList: MonedaBillete[];
   realList: MonedaBillete[];
@@ -165,7 +171,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     // no tiene que terminar guardando un conteo nuevo sobre la caja.
     const editando = this.enEdicion;
     if (editando) {
-      if (this.guardandoEdicion) return;
+      if (this.guardandoEdicion || this.edicionSinConfirmar) return;
       this.guardandoEdicion = true;
     }
     setTimeout(() => {
@@ -419,7 +425,12 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
           this.conteoService
             .onSave(conteo, this.cajaId, apertura, !this.isVentaTouch)
             .pipe(untilDestroyed(this))
-            .subscribe((res) => {
+            .subscribe({ error: (err) => {
+              // En un rechazo el genérico ya mostró el motivo. Repetir es seguro: el central devuelve el conteo que
+              // ya tuviera la caja (#501)
+              const aviso = avisoTrasMutacion(err, "se guardó el conteo");
+              if (aviso != null) this.notificacionBar.openWarn(aviso, 8);
+            }, next: (res) => {
               if (res != null) {
                 // Sin el id, "Editar montos" sobre este conteo no tendria conteoAnteriorId.
                 conteo.id = res.id != null ? +res.id : null;
@@ -433,14 +444,18 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                   };
                   this.onGetConteoMoneda.emit(response);
                   this.selectedConteo = conteo;
-                  if (apertura) {
-                    this.cajaService.selectedCaja.conteoApertura = conteo;
-                  } else {
-                    this.cajaService.selectedCaja.conteoCierre = conteo;
+                  // Fuera del PDV (lista de cajas) no hay caja seleccionada en el servicio (#501)
+                  const cajaSeleccionada = this.cajaService.selectedCaja;
+                  if (cajaSeleccionada != null) {
+                    if (apertura) {
+                      cajaSeleccionada.conteoApertura = conteo;
+                    } else {
+                      cajaSeleccionada.conteoCierre = conteo;
+                    }
                   }
                 }, 500);
               }
-            });
+            } });
         }
       });
 
@@ -493,10 +508,15 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 conteo.creadoEn = new Date();
                 conteo.conteoAnterior = this.selectedConteo;
                 this.selectedConteo = conteo;
-                if (apertura) {
-                  this.cajaService.selectedCaja.conteoApertura = conteo;
-                } else {
-                  this.cajaService.selectedCaja.conteoCierre = conteo;
+                // Abierto desde la lista de cajas no hay caja seleccionada en el servicio: la excepción cortaba el
+                // emit y el resumen de la caja quedaba con el monto anterior (#501)
+                const cajaSeleccionada = this.cajaService.selectedCaja;
+                if (cajaSeleccionada != null) {
+                  if (apertura) {
+                    cajaSeleccionada.conteoApertura = conteo;
+                  } else {
+                    cajaSeleccionada.conteoCierre = conteo;
+                  }
                 }
                 let response: AdicionarConteoResponse = {
                   apertura: this.apertura,
@@ -507,10 +527,19 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 };
                 this.onGetConteoMoneda.emit(response);
               }
-            }, () => {
+            }, (err) => {
               this.guardandoEdicion = false;
-              // El motivo lo muestra el snackbar del servicio. Se mantiene el modo edicion
+              // En un rechazo el motivo lo muestra el snackbar del servicio, y se mantiene el modo edicion
               // con los montos ya tipeados para que el usuario pueda reintentar.
+              if (erroresDeRechazo(err) != null) return;
+              // Sin respuesta pudo guardarse, y lo que hay en pantalla es el conteo de antes: se sale de la edicion
+              // y no se ofrece editar de nuevo hasta reabrir la caja (#501)
+              this.edicionSinConfirmar = true;
+              const aviso = avisoTrasMutacion(err, "se guardó la corrección del conteo");
+              this.notificacionBar.openWarn(
+                (aviso ?? "No se pudo confirmar si se guardó la corrección del conteo.") +
+                " Cerrá y volvé a abrir la caja para ver el conteo actual.", 10);
+              this.cancelarEdicion();
             });
         } else {
           this.guardandoEdicion = false;

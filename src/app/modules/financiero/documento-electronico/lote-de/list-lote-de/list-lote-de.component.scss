@@ -71,7 +71,7 @@ mat-chip {
   cursor: pointer;
 
   &:hover {
-    background-color: rgb(70, 70, 70) !important;
+    background-color: var(--frc-superficie-elevada) !important;
   }
 
   &.estado-pendiente-envio:hover {

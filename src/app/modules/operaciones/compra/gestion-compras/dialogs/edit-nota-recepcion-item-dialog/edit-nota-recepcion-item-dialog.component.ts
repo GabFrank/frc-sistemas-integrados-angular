@@ -1,10 +1,8 @@
-import { Component, Inject, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
-import { MatButton } from '@angular/material/button';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { SearchListDialogComponent } from '../../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { MatSelect } from '@angular/material/select';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import {
   ComprasSearchProductoData,
   ComprasSearchProductoDialogComponent,
@@ -12,13 +10,15 @@ import {
 } from '../compras-search-producto-dialog/compras-search-producto-dialog.component';
 
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
+import { NotaRecepcion } from '../../nota-recepcion.model';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
-import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
 import { Producto } from '../../../../../productos/producto/producto.model';
 import { PedidoService } from '../../../pedido.service';
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
+import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
+import { AVISO_SIN_PRESENTACIONES } from '../../utils/recepcion-documental.utils';
 
 export interface EditNotaRecepcionItemDialogData {
   item?: NotaRecepcionItem; // Opcional para crear nuevos ítems
@@ -32,105 +32,129 @@ export interface EditNotaRecepcionItemDialogData {
   cotizacion?: number;
 }
 
+/**
+ * Cierre tras un alta sin respuesta: el ítem pudo quedar guardado y reintentar lo agregaría otra vez, así que
+ * quien abrió el diálogo recarga los ítems. `aviso` es el texto a mostrar (null si ya avisó el link) (#488).
+ */
+export interface ItemDeNotaSinConfirmar {
+  recargar: true;
+  aviso: string | null;
+}
+
+/** Lo que pidió el pedido, para marcar las discrepancias de la nota (solo al editar). */
+interface PedidoItemOriginal {
+  cantidadSolicitada: number;
+  precioUnitarioSolicitado: number;
+  presentacionCreacion: Presentacion | null;
+  esBonificacion: boolean;
+}
+
+type CampoNavegable = 'presentacion' | 'cantidad' | 'precioPorPresentacion' | 'precio' | 'vencimiento';
+
+/**
+ * Alta o edición de un ítem de la nota de recepción. Un solo guardado (`saveNotaRecepcionItem`); el resto es
+ * presentación: conversión de unidades y precios entre presentación y unidad, y aviso de discrepancias con el pedido.
+ */
+@UntilDestroy()
 @Component({
   selector: 'app-edit-nota-recepcion-item-dialog',
   templateUrl: './edit-nota-recepcion-item-dialog.component.html',
-  styleUrls: ['./edit-nota-recepcion-item-dialog.component.scss']
+  styleUrls: ['./edit-nota-recepcion-item-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
-  @ViewChild('productoInput', { static: false }) productoInput!: any;
-  @ViewChild('presentacionSelect', { static: false }) presentacionSelect!: any;
-  @ViewChild('cantidadInput', { static: false }) cantidadInput!: any;
-  @ViewChild('precioPorPresentacionInput', { static: false }) precioPorPresentacionInput!: any;
-  @ViewChild('precioInput', { static: false }) precioInput!: any;
-  @ViewChild('vencimientoInput', { static: false }) vencimientoInput!: any;
+export class EditNotaRecepcionItemDialogComponent implements OnInit {
+  dialogRef = inject<MatDialogRef<EditNotaRecepcionItemDialogComponent, NotaRecepcionItem | ItemDeNotaSinConfirmar>>(MatDialogRef);
+  data = inject<EditNotaRecepcionItemDialogData>(MAT_DIALOG_DATA);
+  private formBuilder = inject(FormBuilder);
+  private pedidoService = inject(PedidoService);
+  private notificacionService = inject(NotificacionSnackbarService);
+  private presentacionService = inject(PresentacionService);
+  private matDialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
+
+  @ViewChild('presentacionSelect') presentacionSelect?: MatSelect;
+  @ViewChild('cantidadInput') cantidadInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('precioPorPresentacionInput') precioPorPresentacionInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('precioInput') precioInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('vencimientoInput') vencimientoInput?: ElementRef<HTMLInputElement>;
 
   itemForm: FormGroup;
-  dialogTitle: string = 'Editar Ítem de Nota de Recepción';
-  actionButtonText: string = 'Actualizar';
-  isNewItem: boolean = false;
-  
-  // Estados disponibles
-  estadosDisponibles = Object.values(NotaRecepcionItemEstado);
-  // Referencia al enum para usar en el template
-  NotaRecepcionItemEstado = NotaRecepcionItemEstado;
+  dialogTitle = 'Editar Ítem de Nota de Recepción';
+  actionButtonText = 'Actualizar';
+  isNewItem = false;
 
   // Datos del ítem original
   originalItem: NotaRecepcionItem;
   notaRecepcionId: number;
-  
+
   // Datos originales del PedidoItem para comparación
-  pedidoItemOriginal: any = null;
-  
+  pedidoItemOriginal: PedidoItemOriginal | null = null;
+
   // Propiedades computadas para evitar funciones en templates
-  productoDisplayName: string = '';
+  productoDisplayName = '';
   presentacionesDisponibles: Presentacion[] = [];
   selectedProducto: Producto | null = null;
-  cantidadPorPresentacionComputed: number = 0;
-  cantidadEnUnidadesBaseComputed: number = 0;
-  subtotalComputed: number = 0;
-  esBonificacionComputed: boolean = false;
-  
+  cantidadPorPresentacionComputed = 0;
+  cantidadEnUnidadesBaseComputed = 0;
+  subtotalComputed = 0;
+  esBonificacionComputed = false;
+  mostrarProductoSeleccionado = false;
+  productoSeleccionadoId: number | null = null;
+  productoSeleccionadoDescripcion = '';
+  productoSeleccionadoCodigo = '';
+  tieneProducto = false;
+  estadoActual = '';
+  esRechazado = false;
+  observacionLabel = 'Observaciones';
+  observacionPlaceholder = 'Observaciones adicionales (opcional)';
+  guardarDeshabilitado = true;
+  textoBotonGuardar = 'Actualizar';
+
   // Propiedades para detección de discrepancias
-  hayDiscrepanciaComputed: boolean = false;
+  hayDiscrepanciaComputed = false;
   discrepanciasDetectadasComputed: string[] = [];
-  observacionRequiredError: boolean = false;
-  observacionErrorMessage: string = '';
-  isInitializing: boolean = true; // Flag para evitar detección durante inicialización
-  
+  observacionRequiredError = false;
+  observacionErrorMessage = '';
+  isInitializing = true; // Flag para evitar detección durante inicialización
+
   // Error states para cada campo
-  productoRequiredError: boolean = false;
-  productoErrorMessage: string = '';
-  
-  presentacionRequiredError: boolean = false;
-  presentacionErrorMessage: string = '';
-  
-  cantidadRequiredError: boolean = false;
-  cantidadMinError: boolean = false;
-  cantidadErrorMessage: string = '';
-  
-  precioRequiredError: boolean = false;
-  precioMinError: boolean = false;
-  precioErrorMessage: string = '';
-  
-  vencimientoRequiredError: boolean = false;
-  vencimientoErrorMessage: string = '';
-  
-  motivoRechazoRequiredError: boolean = false;
-  motivoRechazoErrorMessage: string = '';
-  
+  productoRequiredError = false;
+  productoErrorMessage = '';
+
+  presentacionRequiredError = false;
+  presentacionErrorMessage = '';
+
+  cantidadRequiredError = false;
+  cantidadMinError = false;
+  cantidadErrorMessage = '';
+
+  precioRequiredError = false;
+  precioMinError = false;
+  precioErrorMessage = '';
+
+  vencimientoRequiredError = false;
+  vencimientoErrorMessage = '';
+
+  motivoRechazoRequiredError = false;
+  motivoRechazoErrorMessage = '';
+
   // Loading states
-  loading = false;
   saving = false;
-  
+
   // Estados para manejo de selects en navegación
   presentacionSelectOpen = false;
-  estadoSelectOpen = false;
-  
+
   // Currency mask para campos de precio
   currencyMask = new CurrencyMask();
-  
-  // Subject para manejo de memoria
-  private destroy$ = new Subject<void>();
 
-  constructor(
-    public dialogRef: MatDialogRef<EditNotaRecepcionItemDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: EditNotaRecepcionItemDialogData,
-    private formBuilder: FormBuilder,
-    private pedidoService: PedidoService,
-    private notificacionService: NotificacionSnackbarService,
-    private dialogosService: DialogosService,
-    private presentacionService: PresentacionService,
-    private matDialog: MatDialog,
-  ) {
+  ngOnInit(): void {
     this.isNewItem = this.data.isNewItem || false;
     this.notaRecepcionId = this.data.notaRecepcionId;
-    
+
     if (this.isNewItem) {
       // Crear nuevo ítem
       this.originalItem = new NotaRecepcionItem();
-      this.originalItem.notaRecepcion = { id: this.notaRecepcionId } as any;
+      this.originalItem.notaRecepcion = { id: this.notaRecepcionId } as NotaRecepcion;
       this.dialogTitle = 'Agregar Nuevo Ítem a Nota de Recepción';
       this.actionButtonText = 'Agregar';
     } else {
@@ -138,32 +162,21 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       this.originalItem = Object.assign(new NotaRecepcionItem(), this.data.item);
       this.dialogTitle = 'Editar Ítem de Nota de Recepción';
       this.actionButtonText = 'Actualizar';
-      
+
       // Guardar datos originales del PedidoItem para comparación (solo para edición)
       if (this.originalItem.pedidoItem) {
         this.pedidoItemOriginal = {
           cantidadSolicitada: this.originalItem.pedidoItem.cantidadSolicitada,
           precioUnitarioSolicitado: this.originalItem.pedidoItem.precioUnitarioSolicitado,
           presentacionCreacion: this.originalItem.pedidoItem.presentacionCreacion,
-          esBonificacion: this.originalItem.pedidoItem.esBonificacion
+          esBonificacion: this.originalItem.pedidoItem.esBonificacion,
         };
       }
     }
-  }
 
-  ngOnInit(): void {
     this.initializeForm();
     this.initializePresentaciones();
     this.updateComputedProperties();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  ngAfterViewInit(): void {
-    this.setupKeyboardNavigation();
   }
 
   private initializeForm(): void {
@@ -179,13 +192,13 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       estado: [this.originalItem.estado || NotaRecepcionItemEstado.PENDIENTE_CONCILIACION],
       motivoRechazo: [this.originalItem.motivoRechazo || ''],
       observaciones: [this.originalItem.observacion || ''],
-      esBonificacion: [this.originalItem.esBonificacion || false]
+      esBonificacion: [this.originalItem.esBonificacion || false],
     });
 
     // Configurar validación condicional para motivoRechazo
     this.itemForm.get('estado')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(estado => {
+      .pipe(untilDestroyed(this))
+      .subscribe((estado) => {
         const motivoRechazoControl = this.itemForm.get('motivoRechazo');
         if (estado === NotaRecepcionItemEstado.RECHAZADO) {
           motivoRechazoControl?.setValidators([Validators.required]);
@@ -198,8 +211,8 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     // Configurar validación condicional para precio cuando es bonificación
     this.itemForm.get('esBonificacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(esBonificacion => {
+      .pipe(untilDestroyed(this))
+      .subscribe((esBonificacion) => {
         const precioControl = this.itemForm.get('precioUnitario');
         if (esBonificacion) {
           precioControl?.setValue(0);
@@ -212,7 +225,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     // Configurar cálculo automático de cantidad en unidades base
     this.itemForm.get('cantidadPorPresentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updateComputedProperties();
       });
@@ -225,6 +238,8 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
         this.setupDiscrepancyDetection();
         // Ejecutar detección inicial de discrepancias
         this.detectDiscrepancies();
+        this.updateComputedProperties();
+        this.cdr.markForCheck();
       }, 200);
     } else {
       // Para nuevos ítems, solo marcar como no inicializando
@@ -234,19 +249,34 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     }
 
     this.itemForm.get('precioUnitario')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updateComputedProperties();
       });
 
     this.itemForm.get('presentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updateComputedProperties();
       });
 
     // Configurar navegación por teclado
     this.setupFormValueChanges();
+
+    // Cualquier cambio (validez, dirty) actualiza lo que muestra el template. Va último: corre después de los
+    // listeners de arriba, que ajustan validadores y valores derivados.
+    this.itemForm.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.updateComputedProperties();
+        this.cdr.markForCheck();
+      });
+    this.itemForm.statusChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.updateComputedProperties();
+        this.cdr.markForCheck();
+      });
   }
 
   private calculateCantidadPorPresentacion(): number {
@@ -264,7 +294,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   }
 
   private updateCantidadBase(cantidadPorPresentacion: number): void {
-    const presentacion = this.itemForm.get('presentacion')?.value;
+    const presentacion: Presentacion | null = this.itemForm.get('presentacion')?.value;
     if (presentacion && presentacion.cantidad > 0) {
       const cantidadEnUnidadesBase = cantidadPorPresentacion * presentacion.cantidad;
       this.itemForm.get('cantidadEnNota')?.setValue(cantidadEnUnidadesBase, { emitEvent: false });
@@ -276,7 +306,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private updatePrecioPorPresentacionFromUnitario(precioUnitario: number): void {
     if (this.esBonificacionComputed) return;
 
-    const presentacion = this.itemForm.get('presentacion')?.value;
+    const presentacion: Presentacion | null = this.itemForm.get('presentacion')?.value;
     if (presentacion && presentacion.cantidad) {
       const precioPorPresentacion = precioUnitario * presentacion.cantidad;
       this.itemForm.get('precioPorPresentacion')?.setValue(precioPorPresentacion, { emitEvent: false });
@@ -286,7 +316,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private updatePrecioUnitarioFromPresentacion(precioPorPresentacion: number): void {
     if (this.esBonificacionComputed) return;
 
-    const presentacion = this.itemForm.get('presentacion')?.value;
+    const presentacion: Presentacion | null = this.itemForm.get('presentacion')?.value;
     if (presentacion && presentacion.cantidad > 0) {
       const precioUnitario = precioPorPresentacion / presentacion.cantidad;
       this.itemForm.get('precioUnitario')?.setValue(precioUnitario, { emitEvent: false });
@@ -302,25 +332,25 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private setupDiscrepancyDetection(): void {
     // Detectar discrepancias cuando cambian los valores principales
     this.itemForm.get('cantidadPorPresentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.detectDiscrepancies();
       });
 
     this.itemForm.get('precioUnitario')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.detectDiscrepancies();
       });
 
     this.itemForm.get('presentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.detectDiscrepancies();
       });
 
     this.itemForm.get('esBonificacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.detectDiscrepancies();
       });
@@ -354,11 +384,9 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     }
 
     // Comparar presentación (solo si ambas presentaciones existen)
-    console.log('presentacionOriginal', this.pedidoItemOriginal.presentacionCreacion);
-    console.log('presentacionActual', formValue.presentacion);
     const presentacionOriginal = this.pedidoItemOriginal.presentacionCreacion;
-    const presentacionActual = formValue.presentacion;
-    
+    const presentacionActual: Presentacion | null = formValue.presentacion;
+
     if (presentacionOriginal && presentacionActual) {
       if (presentacionOriginal.id !== presentacionActual.id) {
         discrepancias.push(`Presentación: ${presentacionOriginal.descripcion} → ${presentacionActual.descripcion}`);
@@ -370,8 +398,8 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     }
 
     // Comparar bonificación (solo si realmente hay diferencia)
-    const bonificacionOriginal = this.pedidoItemOriginal.esBonificacion ? true: false;
-    const bonificacionActual = formValue.esBonificacion ? true : false;
+    const bonificacionOriginal = !!this.pedidoItemOriginal.esBonificacion;
+    const bonificacionActual = !!formValue.esBonificacion;
     if (bonificacionOriginal !== bonificacionActual) {
       discrepancias.push(`Bonificación: ${bonificacionOriginal ? 'Sí' : 'No'} → ${bonificacionActual ? 'Sí' : 'No'}`);
     }
@@ -390,54 +418,51 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private setupObservacionValidation(): void {
     const observacionControl = this.itemForm.get('observaciones');
     const estadoControl = this.itemForm.get('estado');
-    
+
     // Observación es obligatoria si hay discrepancias O si está rechazado
     if (this.hayDiscrepanciaComputed || estadoControl?.value === NotaRecepcionItemEstado.RECHAZADO) {
       observacionControl?.setValidators([Validators.required]);
-      observacionControl?.updateValueAndValidity();
     } else {
       observacionControl?.clearValidators();
-      observacionControl?.updateValueAndValidity();
     }
+    observacionControl?.updateValueAndValidity();
   }
 
   private initializePresentaciones(): void {
     // Solo cargar presentaciones si hay un producto seleccionado
     if (this.originalItem.producto && this.originalItem.producto.id) {
       this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(this.originalItem.producto.id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({ error: () => this.avisarPresentacionesSinCargar(), next: (presentaciones) => {
-          if (presentaciones == null) {
-            return; // Error GraphQL: el servicio ya avisó; queda la presentación original del ítem
-          }
-          this.presentacionesDisponibles = presentaciones;
-          console.log('presentaciones', this.presentacionesDisponibles);
-          console.log('originalItem', this.originalItem);
-          
-          // Solo establecer presentación si existe y no es un nuevo ítem
-          if (!this.isNewItem && this.originalItem.presentacionEnNota) {
-            this.itemForm.get('presentacion')?.setValue(this.presentacionesDisponibles.find(p => p.id === this.originalItem.presentacionEnNota.id));
-          }
-          console.log('presentacion', this.itemForm.get('presentacion')?.value);
-        } });
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          error: () => this.avisarPresentacionesSinCargar(),
+          next: (presentaciones) => {
+            if (presentaciones == null) {
+              return; // Error GraphQL: el servicio ya avisó; queda la presentación original del ítem
+            }
+            this.presentacionesDisponibles = presentaciones;
+
+            // Solo establecer presentación si existe y no es un nuevo ítem
+            if (!this.isNewItem && this.originalItem.presentacionEnNota) {
+              this.itemForm.get('presentacion')?.setValue(
+                this.presentacionesDisponibles.find((p) => p.id === this.originalItem.presentacionEnNota.id)
+              );
+            }
+            this.cdr.markForCheck();
+          },
+        });
     }
   }
 
-  private setupKeyboardNavigation(): void {
-    // Sistema de navegación por teclado
-  }
-
   private setupFormValueChanges(): void {
-    // Configurar navegación automática entre campos
     this.itemForm.get('producto')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updateComputedProperties();
       });
 
     // Configurar reactividad entre campos de precio
     this.itemForm.get('precioUnitario')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe((precioUnitario) => {
         if (!this.esBonificacionComputed) {
           this.updatePrecioPorPresentacionFromUnitario(precioUnitario);
@@ -446,7 +471,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       });
 
     this.itemForm.get('precioPorPresentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe((precioPorPresentacion) => {
         if (!this.esBonificacionComputed) {
           this.updatePrecioUnitarioFromPresentacion(precioPorPresentacion);
@@ -456,7 +481,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     // Configurar reactividad de presentación
     this.itemForm.get('presentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updatePricesOnPresentacionChange();
         this.updateCantidadBase(this.itemForm.get('cantidadPorPresentacion')?.value || 1);
@@ -465,52 +490,29 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     // Configurar reactividad de cantidad
     this.itemForm.get('cantidadPorPresentacion')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(untilDestroyed(this))
       .subscribe((cantidad) => {
         this.updateCantidadBase(cantidad);
         this.updateComputedProperties();
       });
   }
 
-  private focusNextField(fieldName: string, select?: boolean): void {
-    switch (fieldName) {
+  private enfocarCampo(campo: CampoNavegable): void {
+    switch (campo) {
       case 'presentacion':
-        if (this.presentacionSelect) {
-          this.presentacionSelect.focus();
-        }
+        this.presentacionSelect?.focus();
         break;
       case 'cantidad':
-        if (this.cantidadInput) {
-          if (select) { 
-            // use select()
-            this.presentacionSelect.select();
-          }
-          this.cantidadInput.nativeElement.focus();
-        }
+        this.cantidadInput?.nativeElement.focus();
         break;
       case 'precioPorPresentacion':
-        if (this.precioPorPresentacionInput) {
-          if (select) {
-            this.precioPorPresentacionInput.select();
-          }
-          this.precioPorPresentacionInput.nativeElement.focus();
-        }
+        this.precioPorPresentacionInput?.nativeElement.focus();
         break;
       case 'precio':
-        if (this.precioInput) {
-          if (select) {
-            this.precioInput.select();
-          }
-          this.precioInput.nativeElement.focus();
-        }
+        this.precioInput?.nativeElement.focus();
         break;
       case 'vencimiento':
-        if (this.vencimientoInput) {
-          if (select) {
-            this.vencimientoInput.select();
-          }
-          this.vencimientoInput.nativeElement.focus();
-        }
+        this.vencimientoInput?.nativeElement.focus();
         break;
     }
   }
@@ -526,7 +528,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     const currentControl = this.itemForm.get('presentacion');
     if (currentControl && currentControl.valid) {
       setTimeout(() => {
-        this.focusNextField('cantidad');
+        this.enfocarCampo('cantidad');
       }, 100);
     }
   }
@@ -536,7 +538,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     if (this.presentacionSelectOpen) {
       this.presentacionSelectOpen = false;
       setTimeout(() => {
-        this.focusNextField('cantidad');
+        this.enfocarCampo('cantidad');
       }, 100);
     }
   }
@@ -550,7 +552,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.focusNextField('precioPorPresentacion');
+      this.enfocarCampo('precioPorPresentacion');
     }
   }
 
@@ -565,23 +567,22 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   onPrecioPorPresentacionKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.focusNextField('precio');
+      this.enfocarCampo('precio');
     }
   }
 
   onPrecioKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.focusNextField('vencimiento');
+      this.enfocarCampo('vencimiento');
     }
   }
 
+  // Enter en vencimiento y observaciones no pasa a «Guardar»: el @ViewChild('guardarButton') de antes nunca
+  // encontraba el botón (#guardarBtn), así que solo se evita el Enter. Se conserva tal cual.
   onVencimientoKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (this.guardarButton) {
-        this.guardarButton.focus();
-      }
     }
   }
 
@@ -596,16 +597,13 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     // Navegación por teclado para checkbox de bonificación
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.focusNextField('vencimiento');
+      this.enfocarCampo('vencimiento');
     }
   }
 
   onObservacionKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (this.guardarButton) {
-        this.guardarButton.focus();
-      }
     }
   }
 
@@ -617,14 +615,13 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   }
 
   updateComputedProperties(): void {
-    console.log('updateComputedProperties');
     this.updateErrorStates();
     this.updateItemComputedProperties();
   }
 
   private updateErrorStates(): void {
     const form = this.itemForm;
-    
+
     // Producto
     const productoControl = form.get('producto');
     this.productoRequiredError = productoControl?.hasError('required') || false;
@@ -639,15 +636,15 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     const cantidadControl = form.get('cantidadPorPresentacion');
     this.cantidadRequiredError = cantidadControl?.hasError('required') || false;
     this.cantidadMinError = cantidadControl?.hasError('min') || false;
-    this.cantidadErrorMessage = this.cantidadRequiredError ? 'La cantidad es requerida' : 
-                               this.cantidadMinError ? 'La cantidad debe ser mayor a 0' : '';
+    this.cantidadErrorMessage = this.cantidadRequiredError ? 'La cantidad es requerida' :
+      this.cantidadMinError ? 'La cantidad debe ser mayor a 0' : '';
 
     // Precio
     const precioControl = form.get('precioUnitario');
     this.precioRequiredError = precioControl?.hasError('required') || false;
     this.precioMinError = precioControl?.hasError('min') || false;
-    this.precioErrorMessage = this.precioRequiredError ? 'El precio es requerido' : 
-                             this.precioMinError ? 'El precio debe ser mayor o igual a 0' : '';
+    this.precioErrorMessage = this.precioRequiredError ? 'El precio es requerido' :
+      this.precioMinError ? 'El precio debe ser mayor o igual a 0' : '';
 
     // Vencimiento
     const vencimientoControl = form.get('vencimiento');
@@ -667,28 +664,43 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
   private updateItemComputedProperties(): void {
     const formValue = this.itemForm.value;
-    
+    const producto: Producto | null = formValue.producto;
+
     // Producto display name
-    this.productoDisplayName = formValue.producto?.descripcion || 'Sin producto';
-    
-    // Presentaciones disponibles, buscar en el servicio de presentaciones
-    
+    this.productoDisplayName = producto?.descripcion || 'Sin producto';
+    this.mostrarProductoSeleccionado = !!this.productoDisplayName && !this.isNewItem;
+    this.productoSeleccionadoId = producto?.id ?? null;
+    this.productoSeleccionadoDescripcion = producto?.descripcion ?? '';
+    this.productoSeleccionadoCodigo = producto?.codigoPrincipal ?? '';
+    this.tieneProducto = !!producto;
+
     // Cantidad por presentación
     this.cantidadPorPresentacionComputed = formValue.cantidadPorPresentacion || 0;
-    
+
     // Cantidad en unidades base
-    const presentacion = formValue.presentacion;
+    const presentacion: Presentacion | null = formValue.presentacion;
     if (presentacion && presentacion.cantidad > 0) {
       this.cantidadEnUnidadesBaseComputed = this.cantidadPorPresentacionComputed * presentacion.cantidad;
     } else {
       this.cantidadEnUnidadesBaseComputed = this.cantidadPorPresentacionComputed;
     }
-    
+
     // Subtotal
     this.subtotalComputed = this.cantidadEnUnidadesBaseComputed * (formValue.precioUnitario || 0);
-    
+
     // Es bonificación
     this.esBonificacionComputed = formValue.esBonificacion || false;
+
+    // Estado y observaciones
+    this.estadoActual = this.itemForm.get('estado')?.value ?? '';
+    this.esRechazado = this.estadoActual === NotaRecepcionItemEstado.RECHAZADO;
+    this.observacionLabel = this.hayDiscrepanciaComputed ? 'Observaciones *' : 'Observaciones';
+    this.observacionPlaceholder = this.hayDiscrepanciaComputed
+      ? 'Explique el motivo de las discrepancias con el pedido original'
+      : 'Observaciones adicionales (opcional)';
+
+    this.guardarDeshabilitado = this.itemForm.invalid || this.saving || !this.itemForm.dirty;
+    this.textoBotonGuardar = this.saving ? 'Guardando...' : this.actionButtonText;
   }
 
   onBuscarProducto(): void {
@@ -704,11 +716,14 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       data: dialogData,
     });
 
-    dialogRef.afterClosed().subscribe((result: ComprasSearchProductoResponse) => {
-      if (result && result.producto && result.presentacion) {
-        this.onProductoSelected(result.producto, result.presentacion);
-      }
-    });
+    dialogRef.afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result: ComprasSearchProductoResponse) => {
+        if (result && result.producto && result.presentacion) {
+          this.onProductoSelected(result.producto, result.presentacion);
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
@@ -725,7 +740,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
     // mover foco al campo cantidad
     setTimeout(() => {
-      this.focusNextField('cantidad');
+      this.enfocarCampo('cantidad');
     }, 100);
 
     this.updateComputedProperties();
@@ -761,7 +776,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   private loadPresentacionesForProduct(producto: Producto): void {
     if (producto && producto.id) {
       this.presentacionService.onGetPresentacionesPorProductoIdParaDialogo(producto.id)
-        .pipe(takeUntil(this.destroy$))
+        .pipe(untilDestroyed(this))
         .subscribe({
           next: (presentaciones) => {
             // null = error GraphQL (el servicio ya avisó): sin presentación el formulario no es válido
@@ -769,19 +784,21 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
             // Limpiar presentación seleccionada cuando cambia el producto
             this.itemForm.get('presentacion')?.setValue(null);
             this.updateComputedProperties();
+            this.cdr.markForCheck();
           },
           error: () => {
             this.presentacionesDisponibles = [];
             this.itemForm.get('presentacion')?.setValue(null);
             this.updateComputedProperties();
+            this.cdr.markForCheck();
             this.avisarPresentacionesSinCargar();
-          }
+          },
         });
     }
   }
 
   private avisarPresentacionesSinCargar(): void {
-    this.notificacionService.openWarn('No se pudieron cargar las presentaciones del producto: el servidor no responde. Intentá de nuevo.', 6);
+    this.notificacionService.openWarn(AVISO_SIN_PRESENTACIONES, 6);
   }
 
   onRemoverProducto(): void {
@@ -791,14 +808,6 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     this.itemForm.get('producto')?.setValue(null);
     this.itemForm.get('presentacion')?.setValue(null);
     this.updateComputedProperties();
-  }
-
-  displayProducto(producto: Producto): string {
-    return producto ? `${producto.descripcion} (${producto.codigoPrincipal})` : '';
-  }
-
-  displayPresentacion(presentacion: Presentacion): string {
-    return presentacion ? `${presentacion.descripcion} (${presentacion.cantidad} unid.)` : '';
   }
 
   onCancel(): void {
@@ -821,11 +830,11 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
         return;
       }
 
-      this.saving = true;
-      
+      this.actualizarGuardando(true);
+
       // Crear objeto para guardar
       const itemToSave = Object.assign(new NotaRecepcionItem(), this.originalItem);
-      
+
       // Actualizar propiedades del formulario
       itemToSave.producto = formValue.producto;
       itemToSave.presentacionEnNota = formValue.presentacion;
@@ -836,35 +845,56 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       itemToSave.motivoRechazo = formValue.motivoRechazo;
       itemToSave.observacion = formValue.observaciones;
       itemToSave.esBonificacion = formValue.esBonificacion;
-      
+
       // Asegurar que tenga la nota de recepción
       if (this.isNewItem) {
-        itemToSave.notaRecepcion = { id: this.notaRecepcionId } as any;
+        itemToSave.notaRecepcion = { id: this.notaRecepcionId } as NotaRecepcion;
       }
-      
+
       // Convertir a input para el backend
       const itemInput = itemToSave.toInput();
-      
+
       // Llamar servicio para guardar
       this.pedidoService.onSaveNotaRecepcionItem(itemInput)
-        .pipe(takeUntil(this.destroy$))
+        .pipe(untilDestroyed(this))
         .subscribe({
           next: (itemGuardado) => {
-            this.saving = false;
-            const mensaje = this.isNewItem ? 'Ítem agregado exitosamente' : 'Ítem actualizado exitosamente';
-            this.notificacionService.openSucess(mensaje);
+            this.actualizarGuardando(false);
+            // Al editar, el aviso de éxito lo da quien abrió el diálogo (un solo verde)
+            if (this.isNewItem) {
+              this.notificacionService.openSucess('Ítem agregado exitosamente');
+            }
             this.dialogRef.close(itemGuardado);
           },
-          error: (error) => {
+          error: (error: unknown) => {
             console.error('Error al guardar ítem:', error);
-            this.saving = false;
-            const mensaje = this.isNewItem ? 'Error al agregar el ítem' : 'Error al actualizar el ítem';
-            this.notificacionService.openAlgoSalioMal(mensaje);
-          }
+            this.actualizarGuardando(false);
+            // En un rechazo el genérico ya mostró el motivo y el diálogo queda para corregir
+            if (erroresDeRechazo(error) != null) {
+              return;
+            }
+            const aviso = avisoTrasMutacion(error, this.isNewItem ? 'se agregó el ítem' : 'se actualizó el ítem');
+            if (this.isNewItem) {
+              const resultado: ItemDeNotaSinConfirmar = { recargar: true, aviso };
+              this.dialogRef.close(resultado);
+              return;
+            }
+            // Editar con id no duplica: el diálogo queda para reintentar
+            if (aviso != null) {
+              this.notificacionService.openWarn(aviso, 8);
+            }
+          },
         });
     } else {
       this.updateComputedProperties();
+      this.cdr.markForCheck();
       this.notificacionService.openAlgoSalioMal('Por favor, complete todos los campos requeridos');
     }
   }
-} 
+
+  private actualizarGuardando(guardando: boolean): void {
+    this.saving = guardando;
+    this.updateComputedProperties();
+    this.cdr.markForCheck();
+  }
+}

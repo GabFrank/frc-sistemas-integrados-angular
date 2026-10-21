@@ -10,7 +10,7 @@ h2[mat-dialog-title] {
 
 .dialog-subtitle {
   margin: 0 0 16px 0;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--frc-tinta), 0.7);
   font-size: 13px;
 }
 
@@ -29,7 +29,7 @@ h2[mat-dialog-title] {
   height: auto;
   text-align: left;
   width: 100%;
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(var(--frc-tinta), 0.15);
 
   &:hover {
     border-color: #667eea;
@@ -57,6 +57,6 @@ h2[mat-dialog-title] {
 
   .opcion-desc {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(var(--frc-tinta), 0.5);
   }
 }

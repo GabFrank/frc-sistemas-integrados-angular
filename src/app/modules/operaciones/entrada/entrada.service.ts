@@ -15,6 +15,7 @@ import { imprimirEntrada, saveEntrada } from "./graphql/graphql-query";
 import { ImprimirEntradaGQL } from "./graphql/imprimirEntrada";
 import { SaveEntradaGQL } from "./graphql/saveEntrada";
 
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
@@ -22,7 +23,11 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   providedIn: "root",
 })
 export class EntradaService {
+  /** Ids cuya finalización quedó sin respuesta en esta sesión: repetirla duplicaría el stock (#527). */
+  finalizacionSinConfirmar = new Set<number>();
+
   constructor(
+    private genericService: GenericCrudService,
     private saveEntrada: SaveEntradaGQL,
     private deleteEntrada: DeleteEntradaGQL,
     private getAllEntradas: GetAllEntradasGQL,
@@ -34,68 +39,16 @@ export class EntradaService {
     private cargandoDialog: CargandoDialogService
   ) {}
 
-  onSaveEntrada(input: EntradaInput) {
-    if(input?.id==null) input.activo = false;
-    return new Observable((obs) => {
-      this.saveEntrada
-        .mutate(
-          {
-            entity: input,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            this.notificacionService.notification$.next({
-              texto: "Guardado con éxito",
-              color: NotificacionColor.success,
-              duracion: 3,
-            });
-            obs.next(res.data);
-          } else {
-            this.notificacionService.notification$.next({
-              texto: `Ups, ocurrio algun error: ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });
+  // onSaveCustom y no onSave: onSave completaría usuarioId con el usuario actual, y hoy viaja null (#527).
+  // servidor = false: el link por defecto, como antes.
+  onSaveEntrada(input: EntradaInput): Observable<Entrada> {
+    if (input?.id == null) input.activo = false;
+    return this.genericService.onSaveCustom<Entrada>(this.saveEntrada, { entity: input }, false);
   }
 
-  onDeleteEntrada(id: number) {
-    return new Observable((obs) => {
-      this.deleteEntrada
-        .mutate(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            this.notificacionService.notification$.next({
-              texto: `Eliminado con éxito!`,
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-            obs.next(true);
-          } else {
-            obs.next(false)
-            this.notificacionService.notification$.next({
-              texto: `Ups, ocurrio algun error: ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });
+  /** `true` si se eliminó; `null` si no (rechazo o corte, los dos avisados). La pantalla ya confirmó. */
+  onDeleteEntrada(id: number): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteEntrada, id, null, null, false, false);
   }
 
   onGetEntrada(id): Observable<Entrada> {
@@ -112,7 +65,9 @@ export class EntradaService {
               duracion: 3,
             });
           }
-        });
+          obs.complete();
+          // El diálogo relee al abrir (#527): sin red queda con la fila de la lista, sin error suelto
+        }, () => obs.complete());
     });
   }
 
@@ -163,28 +118,9 @@ export class EntradaService {
       }
     });
   }
-  onFinalizarEntrega(id) {
-    return new Observable(obs => {
-      this.finalizarEntrega
-      .mutate({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res.errors == null) {
-          obs.next(true)
-          this.notificacionService.notification$.next({
-            texto: "Guardado con éxito!!",
-            duracion: 2,
-            color: NotificacionColor.success,
-          });
-        } else {
-          obs.next(false)
-          this.notificacionService.notification$.next({
-            texto: "Ups!, algo salio mal: " + res.errors[0].message,
-            duracion: 3,
-            color: NotificacionColor.danger,
-          });
-        }
-      });
-    })
+  /** No es idempotente en el filial (un movimiento de stock por ítem en cada llamada): ver finalizacionSinConfirmar. */
+  onFinalizarEntrega(id: number): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.finalizarEntrega, { id }, false);
   }
 
   onImprimirEntrada(id){

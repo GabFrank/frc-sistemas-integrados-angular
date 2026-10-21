@@ -18,11 +18,10 @@ import { SucursalService } from "../../../empresarial/sucursal/sucursal.service"
 import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
 import { EditFacturaLegalDialogComponent } from "../edit-factura-legal-dialog/edit-factura-legal-dialog.component";
-import { EstadoDE } from "../../documento-electronico/documento-electronico.model";
-import { facturaActiva, puedeCancelarseFactura } from "../factura-legal-estado";
+import { claseEstadoFactura, facturaActiva, puedeCancelarseFactura } from "../factura-legal-estado";
 import { MainService } from "../../../../main.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
-import { mensajeDeError } from "../../venta-tarjeta/qr-pos/mensaje-error";
+import { mensajeDeError } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { AddNotaCreditoDialogComponent } from "../../nota-credito/add-nota-credito-dialog/add-nota-credito-dialog.component";
 import {
   animate,
@@ -619,24 +618,7 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   getEstadoClass(factura: FacturaLegal): string {
-    if (this.esElectronica(factura)) {
-      const estado = factura.documentoElectronico?.estado;
-      switch (estado) {
-        case EstadoDE.APROBADO:
-          return 'estado-aprobado';
-        case EstadoDE.PENDIENTE:
-        case EstadoDE.EN_LOTE:
-          return 'estado-pendiente';
-        case EstadoDE.RECHAZADO:
-          return 'estado-rechazado';
-        case EstadoDE.CANCELADO:
-          return 'estado-cancelado';
-        default:
-          return 'estado-default';
-      }
-    } else {
-      return facturaActiva(factura) ? 'estado-activo' : 'estado-inactivo';
-    }
+    return claseEstadoFactura(factura);
   }
 
   puedeEditarFactura(factura: FacturaLegal): boolean {

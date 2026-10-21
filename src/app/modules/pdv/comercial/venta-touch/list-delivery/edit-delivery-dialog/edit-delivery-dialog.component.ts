@@ -4,8 +4,10 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { PROPAGAR_ERROR_DE_RED, LECTURA_ESTRICTA } from '../../../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { ConfiguracionCobroService } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.service';
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { comparatorLike } from '../../../../../../commons/core/utils/string-utils';
@@ -21,8 +23,8 @@ import { Cobro } from '../../../../../operaciones/venta/cobro/cobro.model';
 import { DeliveryService } from '../../delivery-dialog/delivery.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTab } from '@angular/material/tabs';
+import { BuscadorFieldComponent } from '../../../../../../shared/components/buscador-field/buscador-field.component';
 import { Cliente } from '../../../../../personas/clientes/cliente.model';
-import { ClienteService } from '../../../../../personas/clientes/cliente.service';
 import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/descuento-dialog/descuento-dialog.component';
 import { VentaService } from '../../../../../operaciones/venta/venta.service';
 import { Venta } from '../../../../../operaciones/venta/venta.model';
@@ -52,7 +54,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   @ViewChild("vueltoInput", { static: false }) vueltoInput: ElementRef;
   @ViewChild("vueltoParaInput", { static: false }) vueltoParaInput: ElementRef;
   @ViewChild("direccionInput", { static: false }) direccionInput: ElementRef;
-  @ViewChild("clienteInput", { static: false }) clienteInput: ElementRef;
+  @ViewChild("clienteField", { static: false }) clienteField: BuscadorFieldComponent;
   @ViewChild("guardarBtn", { read: BotonComponent }) guardarBtn: BotonComponent;
 
   selectedDelivery: Delivery;
@@ -64,10 +66,12 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   monedaVueltoControl = new FormControl(null)
   formaPagoControl = new FormControl(null)
   vueltoControl = new FormControl(null)
+  /** Tope del aumento (#546). `null` mientras carga o si falla: `aumentoPermitido` lo lee como 20%. */
+  configCobro: ConfiguracionCobro = null;
   vueltoParaControl = new FormControl(null)
   telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(8)])
   vehiculoControl = new FormControl()
-  clienteControl = new FormControl()
+  clienteControl = new FormControl<Cliente>(null)
   saldoControl = new FormControl()
   isVueltoControl = new FormControl()
 
@@ -86,11 +90,6 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   monedaTimer;
 
   //atributos para el autocomplete de persona
-  clienteList: Cliente[]
-  filteredClienteList: Cliente[]
-  selectedCliente: Cliente;
-  clienteSub: Subscription;
-  clienteTimer;
 
   //atributos para el autocomplete de moneda
   monedaVueltoList: Moneda[]
@@ -145,10 +144,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) private data: EditDeliveryDialogData,
     private deliveryService: DeliveryService,
     private matDialogRef: MatDialogRef<EditDeliveryDialogComponent>,
-    private clienteService: ClienteService,
     private matDialog: MatDialog,
     private ventaService: VentaService,
     private notificacionSnackbar: NotificacionSnackbarService,
+    private configuracionCobroService: ConfiguracionCobroService,
   ) {
     
     this.selectedDelivery = data?.delivery;
@@ -166,13 +165,18 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     if (this.selectedDelivery?.id != null) {
       this.telefonoControl.setValue(this.selectedDelivery.telefono)
       this.direccionControl.setValue(this.selectedDelivery.direccion)
-      this.selectedDelivery?.venta?.cliente != null ? this.onClienteSelect(this.selectedDelivery?.venta?.cliente) : null;
+      this.clienteControl.setValue(this.selectedDelivery?.venta?.cliente ?? null);
       this.selectedDelivery?.precio != null ? this.onPrecioSelect(this.selectedDelivery.precio) : null;
     }
   }
 
   ngOnInit(): void {
     this.cargarPrecios();
+    // Tope del aumento (#546), del filial. Si no responde, `configCobro` queda en null: tope del 20%.
+    this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
+      next: (config) => (this.configCobro = config),
+      error: () => (this.configCobro = null),
+    });
 
     this.precioSub = this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.precioControl.dirty) {
@@ -197,32 +201,6 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.clienteSub = this.clienteControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (this.clienteControl.dirty) {
-        if (res == "") this.selectedCliente = null;
-        if (this.clienteTimer != null) {
-          clearTimeout(this.clienteTimer);
-        }
-        if (res != null && res.length != 0) {
-          this.clienteTimer = setTimeout(() => {
-            this.clienteService.onSearch(res, true, LECTURA_ESTRICTA).subscribe({ error: () => {
-              this.notificacionSnackbar.openWarn('No se pudo buscar el cliente: el servidor no responde. Intentá de nuevo.', 4);
-            }, next: clienteRes => {
-              this.filteredClienteList = clienteRes ?? [];
-              if (this.filteredClienteList.length == 1) {
-                this.onClienteSelect(this.filteredClienteList[0]);
-                this.onClienteAutocompleteClose();
-              } else {
-                this.onClienteAutocompleteClose();
-                this.onClienteSelect(null);
-              }
-            } })
-          }, 500);
-        } else {
-          this.filteredClienteList = [];
-        }
-      }
-    });
 
     setTimeout(() => {
       this.monedaList = this.data?.monedaList ?? [];
@@ -420,21 +398,6 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     // this.calcularVuelto()
   }
 
-  onClienteAutocompleteClose() {
-    setTimeout(() => {
-      this.clienteInput.nativeElement.select();
-    }, 100);
-  }
-
-  onClienteSelect(e) {
-    if (e?.id != null) {
-      this.selectedCliente = e;
-      this.clienteControl.setValue(
-        this.selectedCliente?.persona?.id + " - " + this.selectedCliente?.persona?.nombre
-      );
-    }
-  }
-
   onMonedaAutocompleteClose() {
     setTimeout(() => {
       this.monedaInput.nativeElement.select();
@@ -545,7 +508,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onTelefonoEnter() {
-    this.clienteInput.nativeElement.select()
+    this.clienteField.select()
   }
 
   onClienteEnter() {
@@ -817,7 +780,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       delivery.telefono = this.telefonoControl.value;
       delivery.precio = this.selectedPrecio;
       delivery.direccion = this.direccionControl.value;
-      venta.cliente = this.selectedCliente;
+      venta.cliente = this.clienteControl.value;
 
       if (delivery?.venta?.cobro == null) {
         cobro = new Cobro()
@@ -922,7 +885,13 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
     let valor =
       this.vueltoControl.value;
-    if (valor < total * 0.5 && valor < 0) {
+    if (valor < 0) {
+      // Lo que se va a registrar (`vueltoControl`, en la moneda elegida) en guaraníes, más los aumentos ya cargados.
+      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroItemList);
+      if (!aumentoPermitido(aumentoGs, total, this.configCobro)) {
+        this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
+        return;
+      }
       this.isAumento = true;
       this.isVuelto = false;
       this.isDescuento = false;

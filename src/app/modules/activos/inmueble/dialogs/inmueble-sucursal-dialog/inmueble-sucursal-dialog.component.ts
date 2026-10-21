@@ -122,7 +122,8 @@ export class InmuebleSucursalDialogComponent implements OnInit {
           usuarioId: this.mainService.usuarioActual?.id,
         };
 
-        return this.generic.onSave(this.saveVinculacionGQL, vinculacionInput);
+        // El verde es el de la pantalla (#501)
+        return this.generic.onSave(this.saveVinculacionGQL, vinculacionInput, undefined, undefined, true, undefined, undefined, { avisarExito: false });
       })
     ).subscribe({
       next: (res) => {

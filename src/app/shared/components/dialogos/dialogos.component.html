@@ -1,57 +1,37 @@
-<div>
-  <div style="width: 100%; text-align: center; background-color: #f44336">
-    <h1 matDialogTitle>{{ data.title }}</h1>
-  </div>
-  <div matDialogContent fxLayout="column">
-    <div *ngIf="data?.message1 != null">
-      <h3>{{ data.message1 }}</h3>
-    </div>
-    <div *ngIf="data?.message2 != null">
-      <div>
-        <h4>{{ data.message2 }}</h4>
-      </div>
-    </div>
-    <div fxFlex *ngIf="data.listMessages?.length > 0">
-      <div *ngIf="data.listMessages?.length === 1">
-        <h4>{{ data.listMessages[0] }}</h4>
-      </div>
-      <ul *ngIf="data.listMessages?.length > 1">
-        <li *ngFor="let mes of data.listMessages">
-          <h3>{{ mes }}</h3>
-        </li>
-      </ul>
-    </div>
-  </div>
-</div>
+<app-dialogo-base [titulo]="data.title" [tono]="tono">
+  <p class="mensaje" *ngIf="data?.message1 != null">{{ data.message1 }}</p>
+  <p class="detalle" *ngIf="data?.message2 != null">{{ data.message2 }}</p>
+  <ng-container *ngIf="data.listMessages?.length > 0">
+    <p class="detalle" *ngIf="data.listMessages?.length === 1">{{ data.listMessages[0] }}</p>
+    <ul *ngIf="data.listMessages?.length > 1">
+      <li *ngFor="let mes of data.listMessages">{{ mes }}</li>
+    </ul>
+  </ng-container>
 
-<div fxLayout="row" fxLayoutAlign="end center">
-  <div *ngIf="data.action" matDialogActions fxLayoutAlign="center center">
+  <div acciones *ngIf="data.action">
     <button
       type="button"
       #okButton
       matDialogClose
-      mat-button
       mat-flat-button
-      color="basic"
+      class="frc-btn-confirmar"
       (keydown)="okKeydownEvent($event)"
-      (keydow.enter)="dialogRef.close(true)"
       (click)="dialogRef.close(true)"
       autofocus
     >
-      {{ this.data.btn1Name }}
+      {{ data.btn1Name }}
     </button>
 
     <button
       type="button"
       #cancelButton
       matDialogClose
-      mat-button
       mat-flat-button
-      color="basic"
+      class="frc-btn-cancelar"
       (keydown)="cancelKeydownEvent($event)"
       (click)="dialogRef.close(false)"
     >
-      {{ this.data.btn2Name }}
+      {{ data.btn2Name }}
     </button>
 
     <button
@@ -59,24 +39,22 @@
       type="button"
       #cancelButton2
       matDialogClose
-      mat-button
       mat-flat-button
-      color="basic"
+      class="frc-btn-cancelar"
       (keydown)="cancel2KeydownEvent($event)"
       (click)="dialogRef.close(null)"
     >
-      {{ this.data.btn3Name }}
+      {{ data.btn3Name }}
     </button>
   </div>
 
-  <div *ngIf="!data.action" matDialogActions fxLayoutAlign="center center">
+  <div acciones *ngIf="!data.action">
     <button
       type="button"
       #okButton2
       matDialogClose
-      mat-button
       mat-flat-button
-      color="basic"
+      class="frc-btn-confirmar"
       (keydown)="okKeydownEvent($event)"
       (click)="dialogRef.close(false)"
       autofocus
@@ -84,4 +62,4 @@
       Cerrar
     </button>
   </div>
-</div>
+</app-dialogo-base>

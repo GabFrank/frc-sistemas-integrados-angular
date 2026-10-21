@@ -65,7 +65,7 @@ import {
 } from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
 import { Codigo } from "../../codigo/codigo.model";
 import { CodigoService } from "../../codigo/codigo.service";
-import { SearchEnvaseDialogComponent } from "../../envase/search-envase-dialog/search-envase-dialog.component";
+import { BuscadorService } from "../../../../shared/services/buscador.service";
 import { AddFamiliaDialogComponent } from "../../familia/add-familia-dialog/add-familia-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliaService } from "../../familia/familia.service";
@@ -86,6 +86,11 @@ import {
 } from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
 import { Presentacion } from "../../presentacion/presentacion.model";
 import { PresentacionService } from "../../presentacion/presentacion.service";
+import {
+  SugerenciasImagenPanelComponent,
+  SugerenciasImagenPanelData,
+  SUGERENCIAS_IMAGEN_PANEL_CONFIG,
+} from "../../presentacion/sugerencias-imagen-panel/sugerencias-imagen-panel.component";
 import { AddSubfamiliaDialogComponent } from "../../sub-familia/add-subfamilia-dialog/add-subfamilia-dialog.component";
 import { Subfamilia } from "../../sub-familia/sub-familia.model";
 import { SubFamiliaService } from "../../sub-familia/sub-familia.service";
@@ -109,7 +114,7 @@ import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.c
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { avisoTrasMutacion, erroresDeRechazo, esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -256,6 +261,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) public dialogData: ProductoDialogData,
     private matDialogRef: MatDialogRef<ProductoComponent>,
+    private buscador: BuscadorService,
     public mainService: MainService,
     private notifiActionBar: NotificacionSnackbarService,
     private dialogo: DialogosService,
@@ -950,21 +956,33 @@ export class ProductoComponent implements OnInit, OnDestroy {
             this.presentacionService
               .onImageSave(res, `${this.selectedPresentacion.id}.jpg`)
               .pipe(untilDestroyed(this))
-              .subscribe((res2) => {
-                if (res2 != null) {
-                  let presentacionIndex =
-                    this.presentacionesDataSource.data.findIndex(
-                      (p) => p.id == this.selectedPresentacion.id
-                    );
-                  // res2 es el Boolean de la mutation: la foto es la que se acaba de subir.
-                  this.presentacionesDataSource.data[
-                    presentacionIndex
-                  ].imagenPrincipal = res;
-                  if (this.selectedPresentacion?.principal == true) {
-                    this.imagenPrincipal = res;
-                    this.imagenPrincipalGrande = res;
+              .subscribe({
+                next: (res2) => {
+                  // Antes `!= null` tomaba también el false como éxito y mostraba una foto que no se guardó (#501)
+                  if (res2 === true) {
+                    let presentacionIndex =
+                      this.presentacionesDataSource.data.findIndex(
+                        (p) => p.id == this.selectedPresentacion.id
+                      );
+                    // res2 es el Boolean de la mutation: la foto es la que se acaba de subir.
+                    this.presentacionesDataSource.data[
+                      presentacionIndex
+                    ].imagenPrincipal = res;
+                    if (this.selectedPresentacion?.principal == true) {
+                      this.imagenPrincipal = res;
+                      this.imagenPrincipalGrande = res;
+                    }
+                  } else {
+                    this.notificacionService.openWarn('No se pudo guardar la imagen. Volvé a subirla.');
                   }
-                }
+                },
+                // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo guardarse; subirla otra vez la pisa
+                error: (e) => {
+                  const aviso = erroresDeRechazo(e) == null ? avisoTrasMutacion(e, 'se guardó la imagen') : null;
+                  if (aviso != null) {
+                    this.notificacionService.openWarn(aviso, 8);
+                  }
+                },
               });
           }
         });
@@ -1125,6 +1143,28 @@ export class ProductoComponent implements OnInit, OnDestroy {
         }
         // Presentación de promoción: sigue con su precio. Va con el objeto guardado: la tabla todavía recarga
         if (res?.id != null && res.promocion === true) this.abrirPrecio(res, null, true);
+        // Las demás siguen con su foto. La promo no, para no apilarlo sobre precio → sucursales: la busca desde la fila.
+        else if (res?.id != null) this.abrirSugerenciasImagen(res);
+      });
+  }
+
+  /** Panel lateral con fotos de internet para la presentación; la elegida queda guardada al cerrar. */
+  abrirSugerenciasImagen(presentacion: Presentacion) {
+    const data: SugerenciasImagenPanelData = { presentacion, producto: this.selectedProducto };
+    this.matDialog
+      .open(SugerenciasImagenPanelComponent, { ...SUGERENCIAS_IMAGEN_PANEL_CONFIG, data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((imagen: string) => {
+        if (imagen == null) return;
+        // La tabla puede haberse recargado mientras el panel estaba abierto: se busca la fila por id.
+        const fila = this.presentacionesDataSource.data.find((p) => p.id == presentacion.id);
+        if (fila != null) fila.imagenPrincipal = imagen;
+        if ((fila ?? presentacion)?.principal == true) {
+          this.imagenPrincipal = imagen;
+          this.imagenPrincipalGrande = imagen;
+        }
+        this.notificacionService.openSucess('Imagen guardada');
       });
   }
 
@@ -1177,6 +1217,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.entity = row;
     data.service = this.presentacionService;
     data.url = "productos/presentaciones";
+    // El visor devuelve la misma fila modificada: se guarda la foto de antes para saber si cambió.
+    const fotoAnterior = row.imagenPrincipal;
     this.matDialog
       .open(VizualizarImagenDialogComponent, {
         data,
@@ -1192,6 +1234,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
             (p) => p.id == row.id
           );
           this.presentacionesDataSource.data[presentacionIndex] = res;
+          // Una foto cambiada desde el visor (subida o de internet) también es la del resumen si es la principal.
+          if (res.principal == true && res.imagenPrincipal != null && res.imagenPrincipal !== fotoAnterior) {
+            this.imagenPrincipal = res.imagenPrincipal;
+            this.imagenPrincipalGrande = res.imagenPrincipal;
+          }
         }
       });
   }
@@ -1372,14 +1419,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchEnvase() {
-    this.matDialog
-      .open(SearchEnvaseDialogComponent, {
-        data: {
-          producto: this.selectedProducto,
-        },
-        width: "70%",
-      })
-      .afterClosed()
+    this.buscador
+      .abrir("envase")
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {

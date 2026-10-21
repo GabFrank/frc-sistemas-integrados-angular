@@ -1,10 +1,14 @@
 import { ApolloError } from "@apollo/client/core";
+import { MENSAJE_TIMEOUT_MUTATION } from "../../../shared/services/timeout-link";
 import {
+  avisoTrasMutacion,
   debePedirClienteParaFacturar,
   esEnvioAFilialSinConfirmar,
   esRechazoPorFacturaSinNombre,
   MAX_PEDIDOS_DE_CLIENTE_PARA_FACTURAR,
   MENSAJE_RESPUESTA_VACIA,
+  mensajeDeError,
+  motivoDelRechazo,
 } from "./graphqlErrorUtils";
 
 // Texto de VentaNoFacturableException en el filial (FacturaLegalBuilder.ensayarDE).
@@ -102,5 +106,165 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
   it('lo que no es un arreglo de errores GraphQL: no', () => {
     expect(esEnvioAFilialSinConfirmar(null)).toBeFalse();
     expect(esEnvioAFilialSinConfirmar(new Error(PREFIJO + 'Error del servidor filial: x'))).toBeFalse();
+  });
+
+  // #425: el central marca el error; el código manda sobre el texto en los dos sentidos.
+  const conCodigo = (codigo: string, texto: string) => [{ message: PREFIJO + texto, extensions: { codigo } }];
+
+  it('FILIAL_SIN_CONFIRMAR: sin confirmar aunque el texto parezca un rechazo', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('FILIAL_SIN_CONFIRMAR', 'Error al crear factura legal: x'))).toBeTrue();
+  });
+
+  it('FILIAL_RECHAZO: rechazo aunque el texto diga error de conexión (conexión rechazada)', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('FILIAL_RECHAZO',
+      'Error al conectar con el servidor filial: I/O error on POST request: Connection refused'))).toBeFalse();
+  });
+
+  it('un código que no es de esta mutation se ignora y decide el texto', () => {
+    expect(esEnvioAFilialSinConfirmar(conCodigo('OTRO', 'Error del servidor filial: x'))).toBeTrue();
+    expect(esEnvioAFilialSinConfirmar(conCodigo('OTRO', 'Error al crear factura legal: x'))).toBeFalse();
+  });
+
+  it('sin código ni prefijo del central (falló fuera de su catch): sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([{ message: 'could not commit JPA transaction' }])).toBeTrue();
+  });
+
+  it('un rechazo del central junto a un error sin código ni prefijo: sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([
+      ...con('Error al crear factura legal: x'),
+      { message: 'could not commit JPA transaction' },
+    ])).toBeTrue();
+  });
+});
+
+describe('avisoTrasMutacion (#488)', () => {
+  const QUE = 'se verificó el ítem';
+  const AVISO = `No se pudo confirmar si ${QUE}: puede seguir aplicándose. Esperá unos segundos y revisá antes de repetir.`;
+
+  // Error que arma el link de central offline de GraphqlConnectionService al cortar a los 3 s.
+  const centralOffline = () => {
+    const err: any = new Error('El servidor central no responde (offline).');
+    err.networkError = true;
+    return err;
+  };
+  // Error que arma crearTimeoutLink al vencer una mutation.
+  const timeoutDeLink = () => {
+    const err: any = new Error(MENSAJE_TIMEOUT_MUTATION);
+    err.esTimeout = true;
+    return err;
+  };
+
+  it('rechazo del servidor: null, el motivo ya lo avisó el genérico', () => {
+    expect(avisoTrasMutacion([{ message: 'La nota ya está verificada' }], QUE)).toBeNull();
+    expect(avisoTrasMutacion({ graphQLErrors: [{ message: 'La nota ya está verificada' }] }, QUE)).toBeNull();
+  });
+
+  it('corte por tiempo del link: null, el link ya avisó', () => {
+    expect(avisoTrasMutacion(timeoutDeLink(), QUE)).toBeNull();
+    expect(avisoTrasMutacion(new ApolloError({ networkError: timeoutDeLink() }), QUE)).toBeNull();
+  });
+
+  it('respuesta vacía, sola o junto a otro error: avisa que no se pudo confirmar', () => {
+    expect(avisoTrasMutacion([{ message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([{ message: 'otro' }, { message: MENSAJE_RESPUESTA_VACIA }], QUE)).toBe(AVISO);
+  });
+
+  it('errores GraphQL con networkError: avisa, manda lo incierto', () => {
+    expect(avisoTrasMutacion({ networkError: {}, graphQLErrors: [{ message: 'x' }] }, QUE)).toBe(AVISO);
+  });
+
+  it('error de red de Apollo, con o sin status HTTP: avisa', () => {
+    expect(avisoTrasMutacion(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('401'), { status: 401 }) }), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: Object.assign(new Error('500'), { status: 500 }) }), QUE)).toBe(AVISO);
+  });
+
+  it('central offline, suelto o envuelto por Apollo: avisa', () => {
+    expect(avisoTrasMutacion(centralOffline(), QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(new ApolloError({ networkError: centralOffline() }), QUE)).toBe(AVISO);
+  });
+
+  it('sin error reconocible (null, undefined, arreglo vacío): avisa', () => {
+    expect(avisoTrasMutacion(null, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion(undefined, QUE)).toBe(AVISO);
+    expect(avisoTrasMutacion([], QUE)).toBe(AVISO);
+  });
+
+  it('el texto nombra la operación', () => {
+    expect(avisoTrasMutacion(null, 'se recepcionaron los ítems')).toContain('No se pudo confirmar si se recepcionaron los ítems:');
+  });
+});
+
+describe('motivoDelRechazo (#488)', () => {
+  it('devuelve el primer mensaje de un rechazo en arreglo', () => {
+    expect(motivoDelRechazo([{ message: 'El pedido ya está finalizado' }, { message: 'otro' }])).toBe('El pedido ya está finalizado');
+  });
+
+  it('acepta un objeto con graphQLErrors y un ApolloError', () => {
+    expect(motivoDelRechazo({ graphQLErrors: [{ message: 'No existe la nota' }] })).toBe('No existe la nota');
+    expect(motivoDelRechazo(new ApolloError({ graphQLErrors: [{ message: 'No existe la nota' } as any] }))).toBe('No existe la nota');
+  });
+
+  it('quita el prefijo de graphql-java', () => {
+    expect(motivoDelRechazo([{ message: 'Exception while fetching data (/desvincularProductoProveedor) : Producto no encontrado' }]))
+      .toBe('Producto no encontrado');
+  });
+
+  it('saltea mensajes vacíos y usa el siguiente', () => {
+    expect(motivoDelRechazo([{ message: '' }, { message: 'Motivo real' }])).toBe('Motivo real');
+  });
+
+  it('null si el rechazo no trae ningún texto', () => {
+    expect(motivoDelRechazo([{ message: '  ' }, {}])).toBeNull();
+  });
+
+  it('null si no es un rechazo', () => {
+    expect(motivoDelRechazo(new ApolloError({ networkError: new Error('Http failure response: 0 Unknown Error') }))).toBeNull();
+    expect(motivoDelRechazo({ networkError: {}, graphQLErrors: [{ message: 'x' }] })).toBeNull();
+    expect(motivoDelRechazo([{ message: MENSAJE_RESPUESTA_VACIA }])).toBeNull();
+    expect(motivoDelRechazo([])).toBeNull();
+    expect(motivoDelRechazo(null)).toBeNull();
+    expect(motivoDelRechazo(undefined)).toBeNull();
+  });
+});
+
+describe('mensajeDeError', () => {
+
+  // La forma que realmente llega desde GenericCrudService.onCustomMutation: `obs.error(res.errors)`
+  // propaga el ARRAY de GraphQLError. Leer `.message` sobre el array da undefined, y por eso el
+  // mensaje del backend se perdía y el usuario veía un texto genérico.
+  it('saca el mensaje del array de errores de GraphQL', () => {
+    const err = [{ message: 'Ese cupon ya fue registrado en la venta con tarjeta 18.' }];
+
+    expect(mensajeDeError(err, 'fallback')).toBe('Ese cupon ya fue registrado en la venta con tarjeta 18.');
+  });
+
+  it('saca el mensaje de un ApolloError', () => {
+    const err = { graphQLErrors: [{ message: 'El cobro 10 ya esta vinculado a otro cupon.' }] };
+
+    expect(mensajeDeError(err, 'fallback')).toBe('El cobro 10 ya esta vinculado a otro cupon.');
+  });
+
+  it('saca el mensaje de un Error común', () => {
+    expect(mensajeDeError(new Error('se cayó la red'), 'fallback')).toBe('se cayó la red');
+  });
+
+  it('usa el fallback si el error no trae nada legible', () => {
+    expect(mensajeDeError(null, 'fallback')).toBe('fallback');
+    expect(mensajeDeError(undefined, 'fallback')).toBe('fallback');
+    expect(mensajeDeError({}, 'fallback')).toBe('fallback');
+    expect(mensajeDeError([], 'fallback')).toBe('fallback');
+  });
+
+  it('saltea las entradas vacías del array y toma la primera con mensaje', () => {
+    const err = [{}, { message: 'el bueno' }];
+
+    expect(mensajeDeError(err, 'fallback')).toBe('el bueno');
+  });
+
+  it('con graphQLErrors vacío cae al message del propio error', () => {
+    const err = { graphQLErrors: [], message: 'Network error' };
+
+    expect(mensajeDeError(err, 'fallback')).toBe('Network error');
   });
 });

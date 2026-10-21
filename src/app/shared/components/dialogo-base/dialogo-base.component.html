@@ -1,0 +1,16 @@
+<div class="frc-dialogo">
+  <div class="frc-dialogo-header">
+    <h2
+      mat-dialog-title
+      class="frc-dialogo-titulo"
+    >
+      {{ titulo }}
+    </h2>
+  </div>
+  <div class="frc-dialogo-contenido">
+    <ng-content></ng-content>
+  </div>
+  <div class="frc-dialogo-acciones">
+    <ng-content select="[acciones]"></ng-content>
+  </div>
+</div>

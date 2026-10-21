@@ -1249,6 +1249,38 @@ export const saveNotaRecepcionItemMutation = gql`
   }
 `;
 
+export const rechazarNotaRecepcionItemMutation = gql`
+  mutation RechazarNotaRecepcionItem($input: RechazarNotaRecepcionItemInput!) {
+    data: rechazarNotaRecepcionItem(input: $input) {
+      cantidadEnUnidadesBase
+      notaRecepcionItem {
+        id
+        notaRecepcion {
+          id
+          numero
+        }
+        cantidadEnNota
+        estado
+        motivoRechazo
+      }
+    }
+  }
+`;
+
+export const dividirPedidoItemEnNotasMutation = gql`
+  mutation DividirPedidoItemEnNotas($input: DividirPedidoItemInput!) {
+    data: dividirPedidoItemEnNotas(input: $input) {
+      id
+      notaRecepcion {
+        id
+        numero
+      }
+      cantidadEnNota
+      estado
+    }
+  }
+`;
+
 export const deleteNotaRecepcionItemMutation = gql`
   mutation DeleteNotaRecepcionItem($id: ID!) {
     data: deleteNotaRecepcionItem(id: $id)
