@@ -103,3 +103,41 @@ export function aplicarConfirmacion(
   }
   return item;
 }
+
+/**
+ * Vacía en {@code item} los campos de la etapa des-verificada y lo devuelve: los mismos que vacía el
+ * backend (desconfirmarTransferenciaItem). La grilla usa esto y no la respuesta de la mutation, que
+ * no trae el producto ni la cantidad pedida y dejaba la fila sin poder volver a confirmarse (#567).
+ *
+ * Solo asigna null a campos de primer nivel: el llamador pasa una copia, que comparte con la fila
+ * vieja los objetos anidados (presentaciones, transferencia, lotes) y no deben tocarse.
+ */
+export function aplicarDesconfirmacion(
+  item: TransferenciaItem,
+  etapa: EtapaTransferencia
+): TransferenciaItem {
+  switch (etapa) {
+    case EtapaTransferencia.PREPARACION_MERCADERIA:
+      item.cantidadPreparacion = null;
+      item.presentacionPreparacion = null;
+      item.vencimientoPreparacion = null;
+      item.motivoModificacionPreparacion = null;
+      item.motivoRechazoPreparacion = null;
+      break;
+    case EtapaTransferencia.TRANSPORTE_VERIFICACION:
+      item.cantidadTransporte = null;
+      item.presentacionTransporte = null;
+      item.vencimientoTransporte = null;
+      item.motivoModificacionTransporte = null;
+      item.motivoRechazoTransporte = null;
+      break;
+    case EtapaTransferencia.RECEPCION_EN_VERIFICACION:
+      item.cantidadRecepcion = null;
+      item.presentacionRecepcion = null;
+      item.vencimientoRecepcion = null;
+      item.motivoModificacionRecepcion = null;
+      item.motivoRechazoRecepcion = null;
+      break;
+  }
+  return item;
+}

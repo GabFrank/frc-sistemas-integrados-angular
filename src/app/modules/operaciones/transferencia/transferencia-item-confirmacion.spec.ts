@@ -1,6 +1,7 @@
 import type { Presentacion } from '../../productos/presentacion/presentacion.model';
 import {
   aplicarConfirmacion,
+  aplicarDesconfirmacion,
   nombreEtapaDeOrigen,
   puedeConfirmar,
 } from './transferencia-item-confirmacion';
@@ -112,6 +113,93 @@ describe('transferencia-item-confirmacion', () => {
       expect(
         nombreEtapaDeOrigen(EtapaTransferencia.RECEPCION_EN_VERIFICACION)
       ).toBe('transporte');
+    });
+  });
+
+  /**
+   * #567: despues de des-verificar, la grilla reemplazaba la fila con la respuesta de la mutation,
+   * que no trae el producto ni la cantidad pedida; "Confirmar" ya no tenia de donde copiar.
+   */
+  describe('aplicarDesconfirmacion', () => {
+    const vencimiento = new Date(2027, 2, 1);
+
+    /** Item verificado en las tres etapas, como una fila de la grilla (objeto plano, sin metodos). */
+    function verificado(): TransferenciaItem {
+      return item({
+        cantidadPreparacion: 3,
+        presentacionPreparacion: presentacion,
+        vencimientoPreparacion: vencimiento,
+        motivoModificacionPreparacion: 'CANTIDAD_INCORRECTA' as any,
+        observacionPreparacion: 'OBS PREP',
+        cantidadTransporte: 3,
+        presentacionTransporte: presentacion,
+        vencimientoTransporte: vencimiento,
+        motivoRechazoTransporte: 'PRODUCTO_AVERIADO' as any,
+        cantidadRecepcion: 3,
+        presentacionRecepcion: presentacion,
+        vencimientoRecepcion: vencimiento,
+      });
+    }
+
+    it('en preparacion vacia solo preparacion y conserva lo pedido y las otras etapas', () => {
+      const fila = aplicarDesconfirmacion(verificado(), EtapaTransferencia.PREPARACION_MERCADERIA);
+
+      expect(fila.cantidadPreparacion).toBeNull();
+      expect(fila.presentacionPreparacion).toBeNull();
+      expect(fila.vencimientoPreparacion).toBeNull();
+      expect(fila.motivoModificacionPreparacion).toBeNull();
+      expect(fila.motivoRechazoPreparacion).toBeNull();
+      expect(fila.observacionPreparacion).toBe('OBS PREP');
+      expect(fila.cantidadPreTransferencia).toBe(3);
+      expect(fila.presentacionPreTransferencia).toBe(presentacion);
+      expect(fila.cantidadTransporte).toBe(3);
+      expect(fila.cantidadRecepcion).toBe(3);
+    });
+
+    it('en transporte vacia solo transporte', () => {
+      const fila = aplicarDesconfirmacion(verificado(), EtapaTransferencia.TRANSPORTE_VERIFICACION);
+
+      expect(fila.cantidadTransporte).toBeNull();
+      expect(fila.presentacionTransporte).toBeNull();
+      expect(fila.motivoRechazoTransporte).toBeNull();
+      expect(fila.cantidadPreparacion).toBe(3);
+      expect(fila.cantidadRecepcion).toBe(3);
+    });
+
+    it('en recepcion vacia solo recepcion', () => {
+      const fila = aplicarDesconfirmacion(verificado(), EtapaTransferencia.RECEPCION_EN_VERIFICACION);
+
+      expect(fila.cantidadRecepcion).toBeNull();
+      expect(fila.vencimientoRecepcion).toBeNull();
+      expect(fila.cantidadTransporte).toBe(3);
+      expect(fila.presentacionTransporte).toBe(presentacion);
+    });
+
+    it('en una etapa que no verifica items no toca nada', () => {
+      const fila = aplicarDesconfirmacion(verificado(), EtapaTransferencia.TRANSPORTE_EN_CAMINO);
+
+      expect(fila).toEqual(verificado());
+    });
+
+    it('sobre una copia no modifica la fila original', () => {
+      const original = verificado();
+
+      aplicarDesconfirmacion(Object.assign({}, original), EtapaTransferencia.PREPARACION_MERCADERIA);
+
+      expect(original.cantidadPreparacion).toBe(3);
+      expect(original.presentacionPreparacion).toBe(presentacion);
+    });
+
+    it('despues de des-verificar se puede volver a confirmar en cada etapa', () => {
+      for (const etapa of [
+        EtapaTransferencia.PREPARACION_MERCADERIA,
+        EtapaTransferencia.TRANSPORTE_VERIFICACION,
+        EtapaTransferencia.RECEPCION_EN_VERIFICACION,
+      ]) {
+        const fila = aplicarDesconfirmacion(verificado(), etapa);
+
+        expect(puedeConfirmar(fila, etapa)).withContext(etapa).toBe(true);
+      }
     });
   });
 });
