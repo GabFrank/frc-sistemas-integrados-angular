@@ -618,7 +618,11 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item color="accent" (click)="onConfirm(item)" *ngIf="isPreparacionMercaderia">
+            <button mat-menu-item *ngIf="
+                item.cantidadPreparacion == null &&
+                item.vencimientoPreparacion == null &&
+                item.motivoRechazoPreparacion == null
+              " color="accent" (click)="onConfirm(item)">
               Confirmar
             </button>
             <button mat-menu-item *ngIf="
