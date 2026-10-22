@@ -42,3 +42,20 @@ export function loteMasProximoAVencer(lotes: StockLotePresentacion[]): StockLote
   }
   return vendibles.reduce((a, b) => (fecha(b) < fecha(a) ? b : a));
 }
+
+/** Texto bajo el ítem antes de cobrar: "Lote X · Vto dd/mm/aa" (sin fecha, solo el número). */
+export function etiquetaLote(numeroLote: string, vencimiento?: Date | string | null): string {
+  const numero = numeroLote || '-';
+  let vto = '';
+  if (vencimiento instanceof Date || (typeof vencimiento === 'string' && /^\d{4}-\d{2}-\d{2}/.test(vencimiento))) {
+    const d = new Date(vencimiento);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      vto = `${dd}/${mm}/${String(d.getUTCFullYear()).slice(-2)}`;
+    }
+  } else if (typeof vencimiento === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(vencimiento)) {
+    vto = vencimiento.slice(0, 6) + vencimiento.slice(-2);
+  }
+  return vto ? `Lote ${numero} · Vto ${vto}` : `Lote ${numero}`;
+}

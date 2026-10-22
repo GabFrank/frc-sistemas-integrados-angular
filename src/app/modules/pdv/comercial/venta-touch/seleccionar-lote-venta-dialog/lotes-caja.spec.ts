@@ -1,4 +1,4 @@
-import { loteMasProximoAVencer, loteUnicoParaAsignar } from './lotes-caja';
+import { etiquetaLote, loteMasProximoAVencer, loteUnicoParaAsignar } from './lotes-caja';
 
 const lote = (loteId: number, disp: number, venc?: string): any => ({
   loteId, numeroLote: 'L' + loteId, cantidadDisponible: disp,
@@ -24,5 +24,10 @@ describe('lotes-caja (lotes flexibles #429)', () => {
   it('premarca el de vencimiento más próximo; sin fecha va al final', () => {
     const l = loteMasProximoAVencer([lote(1, 5), lote(2, 5, '2027-06-01'), lote(3, 5, '2027-01-01'), lote(4, 0, '2026-01-01')]);
     expect(l.loteId).toBe(3);
+  });
+  it('etiqueta con número y vencimiento corto', () => {
+    expect(etiquetaLote('L2610A', '2027-06-30')).toBe('Lote L2610A · Vto 30/06/27');
+    expect(etiquetaLote('L2611A', '31/08/2027')).toBe('Lote L2611A · Vto 31/08/27');
+    expect(etiquetaLote('X', null)).toBe('Lote X');
   });
 });

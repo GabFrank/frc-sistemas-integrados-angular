@@ -129,7 +129,7 @@ import { Cliente } from '../../../personas/clientes/cliente.model';
 import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
 import { LoteService } from '../../../operaciones/lote/lote.service';
 import { StockLotePresentacion } from '../../../operaciones/lote/lote.model';
-import { loteUnicoParaAsignar } from './seleccionar-lote-venta-dialog/lotes-caja';
+import { etiquetaLote, lotesVendibles, loteUnicoParaAsignar } from './seleccionar-lote-venta-dialog/lotes-caja';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -808,6 +808,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             return;
           }
           item.lotes = decision.tipo === 'unico' ? [decision.lote] : null;
+          if (decision.tipo === 'unico') {
+            const l = lotesVendibles(lotes)[0];
+            item.lotesEtiqueta = etiquetaLote(l.numeroLote, l.fechaVencimiento);
+          } else {
+            item.lotesEtiqueta = null;
+          }
           this.addItem(item);
           this.buscadorFocusSub.next();
         },
@@ -839,11 +845,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (res == null) {
           // Lotes flexibles (#429): cancelar no frena la venta; el servidor asigna por FEFO.
           item.lotes = null;
+          item.lotesEtiqueta = 'Lote automático';
           this.addItem(item);
           this.buscadorFocusSub.next();
           return;
         }
         item.lotes = res.lotes;
+        item.lotesEtiqueta = res.etiqueta || null;
         this.addItem(item);
         this.buscadorFocusSub.next();
       });

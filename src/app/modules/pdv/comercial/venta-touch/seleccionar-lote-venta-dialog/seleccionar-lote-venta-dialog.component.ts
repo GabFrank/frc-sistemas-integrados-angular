@@ -15,6 +15,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PageInfo } from '../../../../../app.component';
+import { etiquetaLote } from './lotes-caja';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { StockLotePresentacion } from '../../../../operaciones/lote/lote.model';
@@ -51,6 +52,8 @@ export interface SeleccionarLoteVentaDialogData {
 /** Lo que devuelve el diálogo. Lista vacía = FEFO automático. Las cantidades van EN UNIDADES. */
 export interface SeleccionarLoteVentaDialogResult {
   lotes: VentaItemLoteInput[];
+  /** Texto para mostrar bajo el ítem en la venta (#429). */
+  etiqueta?: string;
 }
 
 /**
@@ -63,6 +66,7 @@ export interface SeleccionarLoteVentaDialogResult {
 interface LoteElegido {
   loteId: number;
   numeroLote: string;
+  vencimientoLabel?: string;
   cantidad: number;
   cantidadLabel: string;
 }
@@ -292,6 +296,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     this.seleccion.set(lote.loteId, {
       loteId: lote.loteId,
       numeroLote: lote.numeroLote || '-',
+      vencimientoLabel: this.fechaCorta(lote.fechaVencimiento),
       cantidad,
       cantidadLabel: `${cantidad}`
     });
@@ -488,6 +493,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     this.seleccion.set(fila.loteId, {
       loteId: fila.loteId,
       numeroLote: fila.numeroLote,
+      vencimientoLabel: fila.vencimientoLabel,
       cantidad: fila.cantidad,
       cantidadLabel: `${fila.cantidad}`
     });
@@ -632,7 +638,11 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     const lotes: VentaItemLoteInput[] = this.lotesElegidos
       .filter((elegido) => elegido.cantidad > EPSILON)
       .map((elegido) => ({ loteId: elegido.loteId, cantidad: elegido.cantidad }));
-    this.dialogRef.close({ lotes } as SeleccionarLoteVentaDialogResult);
+    const etiqueta = this.lotesElegidos
+      .filter((elegido) => elegido.cantidad > EPSILON)
+      .map((elegido) => etiquetaLote(elegido.numeroLote, elegido.vencimientoLabel))
+      .join(' + ');
+    this.dialogRef.close({ lotes, etiqueta } as SeleccionarLoteVentaDialogResult);
   }
 
   cancelar(): void {
