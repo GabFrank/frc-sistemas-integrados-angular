@@ -88,7 +88,7 @@ export class ListSucursalComponent implements OnInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
+      this.cargarPagina()
     }, 0);
 
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
@@ -112,7 +112,15 @@ export class ListSucursalComponent implements OnInit {
     })
   }
 
+  // Filtrar, Buscar y Enter vuelven a la página 1 (variable y paginador).
   onFiltrar() {
+    clearTimeout(this.timer);
+    this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
+    this.cargarPagina();
+  }
+
+  cargarPagina() {
     const searchValue = this.buscarControl.value ? this.buscarControl.value.toUpperCase() : null;
 
     this.sucursalService.onSearchConFiltros(
@@ -133,9 +141,11 @@ export class ListSucursalComponent implements OnInit {
     this.pageIndex = 0;
     this.dataSource.data = [];
     this.selectedPageInfo = null;
-    this.buscarControl.setValue(null);
-    this.depositoControl.setValue(null);
-    this.activoControl.setValue(true); // Resetear a activo por defecto
+    // Sin emitEvent: cada valueChanges consultaría con el filtro a medio limpiar.
+    this.buscarControl.setValue(null, { emitEvent: false });
+    this.depositoControl.setValue(null, { emitEvent: false });
+    this.activoControl.setValue(true, { emitEvent: false }); // Resetear a activo por defecto
+    this.onFiltrar();
   }
 
   onEditSucursal(sucursal: Sucursal, i) {
@@ -147,7 +157,7 @@ export class ListSucursalComponent implements OnInit {
       disableClose: true
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.onFiltrar();
+        this.cargarPagina();
       }
     })
   }
@@ -158,7 +168,7 @@ export class ListSucursalComponent implements OnInit {
       disableClose: true
     }).afterClosed().subscribe((res: Sucursal) => {
       if (res != null) {
-        this.onFiltrar();
+        this.cargarPagina();
       }
     })
   }
@@ -166,6 +176,6 @@ export class ListSucursalComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.cargarPagina();
   }
 }

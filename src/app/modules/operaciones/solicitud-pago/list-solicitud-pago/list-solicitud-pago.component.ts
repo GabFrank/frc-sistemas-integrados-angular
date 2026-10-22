@@ -165,6 +165,7 @@ export class ListSolicitudPagoComponent implements OnInit {
 
   onFilter(): void {
     this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();
   }
 
@@ -180,6 +181,7 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.fechaInicioControl.setValue(hace7Dias);
     this.fechaFinControl.setValue(hoy);
     this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();
   }
 

@@ -60,7 +60,7 @@ export class ListUsuarioComponent implements OnInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFiltrar();
+      this.cargarPagina();
       this.cargarRoles();
     }, 0);
 
@@ -97,8 +97,6 @@ export class ListUsuarioComponent implements OnInit {
     this.actualizarRolesResumen();
     const seleccion = this.rolesSeleccionadosKey();
     if (seleccion !== this.rolesFiltrados) {
-      this.pageIndex = 0;
-      if (this.paginator) this.paginator.pageIndex = 0;
       this.onFiltrar();
     }
   }
@@ -115,7 +113,15 @@ export class ListUsuarioComponent implements OnInit {
       : (nombres[0] || '');
   }
 
+  // Filtrar, Buscar y Enter vuelven a la página 1 (variable y paginador).
   onFiltrar(): void {
+    clearTimeout(this.timer);
+    this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
+    this.cargarPagina();
+  }
+
+  cargarPagina(): void {
     const texto = this.buscarControl.value?.toString().trim() || null;
     const roleIds = this.rolesControl.value || [];
     this.rolesFiltrados = this.rolesSeleccionadosKey();
@@ -136,6 +142,7 @@ export class ListUsuarioComponent implements OnInit {
 
   resetFiltro(): void {
     this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
     this.dataSource.data = [];
     this.selectedPageInfo = null;
     this.rolesControl.setValue([]);
@@ -147,7 +154,7 @@ export class ListUsuarioComponent implements OnInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.cargarPagina();
   }
 
   onAddUsuario(usuario?: Usuario, index?) {
@@ -167,7 +174,7 @@ export class ListUsuarioComponent implements OnInit {
       maxWidth: '90vw'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
       // Siempre: cerrar con Esc después del alta no devuelve el usuario creado.
-      this.onFiltrar();
+      this.cargarPagina();
     })
   }
 
