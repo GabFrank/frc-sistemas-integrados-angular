@@ -2326,22 +2326,39 @@ try {
             if (win)
                 win.webContents.send('update-status', `Descargando: ${progress.percent.toFixed(0)}%`);
         });
-        electron_updater_1.autoUpdater.on('update-downloaded', (event) => {
-            const version = event.version || 'desconocida';
+        // Con el instalador en caché, cada chequeo de 5 min vuelve a emitir update-downloaded:
+        // sin esta bandera los diálogos se apilan si el usuario no contesta.
+        let dialogoActualizacionAbierto = false;
+        electron_updater_1.autoUpdater.on('update-downloaded', (event) => __awaiter(void 0, void 0, void 0, function* () {
+            const version = (event === null || event === void 0 ? void 0 : event.version) || 'desconocida';
             log.info(`Actualizacion descargada: version ${version}`);
+            if (dialogoActualizacionAbierto) {
+                log.info('Dialogo de actualizacion ya abierto, no se abre otro.');
+                return;
+            }
             const dialogOpts = {
                 type: 'info',
                 buttons: ['Cerrar y actualizar', 'Mas tarde'],
+                // Cerrar con la X o Esc devuelve cancelId; sin él Electron devuelve 0 e instalaba.
+                cancelId: 1,
                 title: 'Actualizacion disponible',
                 message: `Version ${version}`,
                 detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',
             };
-            electron_1.dialog.showMessageBox(dialogOpts).then((returnValue) => {
+            dialogoActualizacionAbierto = true;
+            try {
+                const returnValue = yield electron_1.dialog.showMessageBox(dialogOpts);
                 if (returnValue.response === 0) {
                     electron_updater_1.autoUpdater.quitAndInstall(false, true);
                 }
-            });
-        });
+            }
+            catch (err) {
+                log.error('Error en el dialogo de actualizacion:', err);
+            }
+            finally {
+                dialogoActualizacionAbierto = false;
+            }
+        }));
         electron_updater_1.autoUpdater.on('error', (err) => {
             log.error('Error en auto-update:', err);
             if (win)
