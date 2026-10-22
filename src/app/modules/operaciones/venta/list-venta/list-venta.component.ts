@@ -168,7 +168,7 @@ export class ListVentaComponent implements OnInit {
             return;
           }
           if (ventaId) this.idVentaControl.setValue(ventaId);
-          this.onFiltrar();
+          this.buscar();
           this.onGetBalance();
         }))
         .subscribe((res) => {
@@ -178,7 +178,7 @@ export class ListVentaComponent implements OnInit {
             if (ventaId) {
               this.idVentaControl.setValue(ventaId);
             }
-            this.onFiltrar();
+            this.buscar();
             this.onGetBalance();
           }
         });
@@ -212,7 +212,16 @@ export class ListVentaComponent implements OnInit {
     });
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     // if (this.idVentaControl.value != null) {
     //   this.ventaService
     //     .onGetPorId(this.idVentaControl.value, this.selectedCaja?.sucursalId)
@@ -520,6 +529,12 @@ export class ListVentaComponent implements OnInit {
     this.estadoControl.setValue(null);
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
+    // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
+    this.selectedPageInfo = null;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.conObsControl.setValue(false);
     this.conDescuentoControl.setValue(false);
     this.conAumentoControl.setValue(false);
@@ -560,7 +575,7 @@ export class ListVentaComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   abrirConteo() {

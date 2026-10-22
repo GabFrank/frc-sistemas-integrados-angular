@@ -40,7 +40,7 @@ import { UsuarioService } from "../../../personas/usuarios/usuario.service";
 import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { PageInfo } from "../../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Time } from "@angular/common";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import { StockPorTipoMovimientoDto } from "../graphql/getStockPorTipoMovimientoByFilters";
@@ -106,6 +106,7 @@ export interface StockResumenView {
 })
 export class ListMovimientoStockComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("buscadorUsuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
 
@@ -684,6 +685,11 @@ export class ListMovimientoStockComponent implements OnInit {
   onFiltrar(isPagination: boolean = false) {
     this.dataSource.data = [];
     if (!isPagination) {
+      // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
+      this.page = 0;
+      if (this.paginator) {
+        this.paginator.pageIndex = 0;
+      }
       this.stockPorRangoFecha = null;
       this.stockTotal = null;
       this.stockPorTipoMovimiento = [];
