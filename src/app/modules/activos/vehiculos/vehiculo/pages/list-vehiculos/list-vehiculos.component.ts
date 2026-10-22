@@ -45,7 +45,7 @@ export class ListVehiculosComponent implements OnInit {
     }
 
     onFiltrar(): void {
-        this.vehiculoService.refrescar();
+        this.vehiculoService.refrescar(true);
     }
 
     handlePageEvent(event: PageEvent): void {
