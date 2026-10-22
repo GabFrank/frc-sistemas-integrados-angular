@@ -1462,3 +1462,90 @@
     }
   }
 }
+
+// Ítems del pedido: costo distinto al de la última compra (lo decide el central).
+// Rojo = subió, azul = bajó. Colores de estado fijos con alfa: se ven igual sobre el fondo
+// oscuro y el claro (docs/TEMA_CLARO_OSCURO.md §3). No se usa verde: es el de «ya en el pedido».
+.items-table {
+  tr.mat-mdc-row.costo-subio {
+    background-color: rgba(244, 67, 54, 0.14) !important;
+    box-shadow: inset 3px 0 0 #f44336;
+
+    &:hover {
+      background-color: rgba(244, 67, 54, 0.22) !important;
+    }
+  }
+
+  tr.mat-mdc-row.costo-bajo {
+    background-color: rgba(33, 150, 243, 0.14) !important;
+    box-shadow: inset 3px 0 0 #2196f3;
+
+    &:hover {
+      background-color: rgba(33, 150, 243, 0.22) !important;
+    }
+  }
+
+  .variacion-costo-icono {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-left: 4px;
+
+    &.costo-subio {
+      color: #f44336;
+    }
+
+    &.costo-bajo {
+      color: #2196f3;
+    }
+  }
+
+  // Vencimiento editable en la celda
+  .vencimiento-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+
+    .vencimiento-inline-input {
+      width: 84px;
+      padding: 2px 4px;
+      border: 1px solid var(--frc-borde);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--frc-texto-fuerte);
+      font: inherit;
+      text-align: center;
+      cursor: pointer;
+
+      &::placeholder {
+        color: var(--frc-texto-tenue);
+      }
+
+      &:disabled {
+        color: var(--frc-texto-tenue);
+        cursor: progress;
+      }
+    }
+
+    .vencimiento-inline-borrar mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// Botones compactos en la celda (el del datepicker-toggle vive en otro componente: ::ng-deep bajo :host)
+:host ::ng-deep .vencimiento-inline .mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  color: var(--frc-texto-suave);
+
+  .mat-mdc-button-touch-target {
+    width: 32px;
+    height: 32px;
+  }
+}

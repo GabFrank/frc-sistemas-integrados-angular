@@ -981,8 +981,16 @@
                     *matCellDef="let item"
                     class="text-center"
                     copiarAClipboard="item.precioUnitarioSolicitado"
+                    [matTooltip]="item.variacionCostoTextoComputed"
+                    [matTooltipDisabled]="!item.variacionCostoTextoComputed"
                   >
                     {{ pedidoMonedaSimbolo }} {{ item.precioUnitarioSolicitado | number : pedidoMonedaDecimalFormat }}
+                    <mat-icon
+                      *ngIf="item.variacionCostoIconoComputed"
+                      class="variacion-costo-icono"
+                      [ngClass]="item.variacionCostoClaseComputed"
+                      >{{ item.variacionCostoIconoComputed }}</mat-icon
+                    >
                   </td>
                 </ng-container>
 
@@ -1028,9 +1036,46 @@
                     class="text-center"
                     copiarAClipboard="item.vencimientoEsperado"
                   >
-                    {{
-                      (item.vencimientoEsperado | date : "dd/MM/yyyy") || "N/A"
-                    }}
+                    <ng-container *ngIf="itemsTabState !== 'editable'">
+                      {{
+                        (item.vencimientoEsperado | date : "dd/MM/yyyy") || "N/A"
+                      }}
+                    </ng-container>
+                    <!-- Editable en la etapa de creación: se guarda al elegir la fecha -->
+                    <div
+                      *ngIf="itemsTabState === 'editable'"
+                      class="vencimiento-inline"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <input
+                        class="vencimiento-inline-input"
+                        [matDatepicker]="vencimientoItemPicker"
+                        [value]="item.vencimientoDateComputed"
+                        [disabled]="item.guardandoVencimientoComputed"
+                        (dateChange)="onVencimientoItemChange(item, $event.value)"
+                        (click)="vencimientoItemPicker.open()"
+                        placeholder="Sin venc."
+                        readonly
+                        aria-label="Vencimiento del ítem"
+                      />
+                      <mat-datepicker-toggle
+                        [for]="vencimientoItemPicker"
+                        matTooltip="Elegir vencimiento"
+                      ></mat-datepicker-toggle>
+                      <mat-datepicker #vencimientoItemPicker></mat-datepicker>
+                      <button
+                        *ngIf="item.vencimientoDateComputed"
+                        mat-icon-button
+                        type="button"
+                        class="vencimiento-inline-borrar"
+                        [disabled]="item.guardandoVencimientoComputed"
+                        (click)="onVencimientoItemChange(item, null)"
+                        matTooltip="Quitar vencimiento"
+                        aria-label="Quitar vencimiento"
+                      >
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
                   </td>
                 </ng-container>
 
@@ -1075,6 +1120,7 @@
                 <tr
                   mat-row
                   *matRowDef="let row; columns: itemsDisplayedColumns"
+                  [ngClass]="row.variacionCostoClaseComputed"
                 ></tr>
               </table>
               <!-- adicionar un div que indique que no hay items en la tabla, con un icono de shopping_cart y un texto que indique que no hay items en el pedido -->
