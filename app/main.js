@@ -2339,6 +2339,8 @@ try {
             const dialogOpts = {
                 type: 'info',
                 buttons: ['Cerrar y actualizar', 'Mas tarde'],
+                // Cerrar con la X o Esc devuelve cancelId; sin él Electron devuelve 0 e instalaba.
+                cancelId: 1,
                 title: 'Actualizacion disponible',
                 message: `Version ${version}`,
                 detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',

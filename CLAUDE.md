@@ -133,6 +133,9 @@ Con el instalador ya en caché, `electron-updater` vuelve a emitir `update-downl
 re-check. El handler de `main.ts` abre un solo diálogo a la vez (bandera
 `dialogoActualizacionAbierto`, liberada en un `finally`): sin ella, un diálogo sin contestar se
 apilaba con uno nuevo cada 5 min. Si «Mas tarde», vuelve a aparecer —uno— en el próximo re-check.
+El diálogo lleva `cancelId: 1`: cerrar con la X o Esc devuelve `cancelId`, y sin él Electron
+devuelve `0` («Cerrar y actualizar») e instalaba. Todo `showMessageBox` con una acción en el botón
+0 necesita su `cancelId`.
 
 ### Canales
 
