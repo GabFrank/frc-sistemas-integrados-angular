@@ -12,6 +12,9 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTable, MatTableDataSource } from '@angular/material/table';
 import { state, transition, trigger, animate, style } from '@angular/animations';
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
+import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
+import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
+import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -40,6 +43,9 @@ export class ListLoteDeComponent implements OnInit {
   respuestaControl = new FormControl(null);
   estadoControl = new FormControl(null);
   idControl = new FormControl(null)
+  sucursalControl = new FormControl<number>(null);
+  sucursales: Sucursal[] = [];
+  sucursalNombre: { [id: number]: string } = {};
   fechaFormGroup = new FormGroup({
     fechaInicioControl : new FormControl(),
     fechaFinControl : new FormControl()
@@ -51,6 +57,7 @@ export class ListLoteDeComponent implements OnInit {
 
   displayedColumns: string [] = [
     "id",
+    "sucursal",
     "protocolo",
     "estado",
     "fechaProcesado",
@@ -70,6 +77,8 @@ export class ListLoteDeComponent implements OnInit {
     private loteDeService: LoteDeService,
     public mainService: MainService,
     private tabService: TabService,
+    private sucursalService: SucursalService,
+    private notificacionService: NotificacionSnackbarService,
   ) { }
 
   ngOnInit() {
@@ -82,7 +91,17 @@ export class ListLoteDeComponent implements OnInit {
       fechaInicioControl: [weekAgo],
       fechaFinControl: [today]
     })
+    this.cargarSucursales();
     this.buscar();
+  }
+
+  // sucursalesSearch y no sucursales: esa query no manda size y el central la corta en 10.
+  cargarSucursales() {
+    this.sucursalService.onSearchSucursal(null).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
+      this.sucursales = res || [];
+      this.sucursalNombre = {};
+      this.sucursales.forEach(s => this.sucursalNombre[s.id] = s.nombre);
+    })
   }
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
@@ -110,16 +129,45 @@ export class ListLoteDeComponent implements OnInit {
         }
       })
   } else {
-    this.loteDeService.onFindByLoteId(this.idControl.value).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
-      if(res != null){
-        this.dataSource.data = [res];
+    const id = this.idControl.value;
+    const sucursalId = this.sucursalControl.value;
+    if (sucursalId == null) {
+      this.avisar('Elegí la sucursal del lote: el mismo ID existe en varias sucursales');
+      return;
+    }
+    this.loteDeService.onFindByLoteId(id, sucursalId).pipe(
+      // El genérico ya avisó el error: no dejar a la vista el resultado anterior.
+      terminarSiFalla(() => this.mostrarLote(null)),
+      untilDestroyed(this)
+    ).subscribe(res => {
+      this.mostrarLote(res);
+      if (res == null) {
+        this.avisar(`No se encontró el lote ${id} en esa sucursal`);
       }
     })
   }
   }
 
+  // Un solo lote: el paginador no debe seguir mostrando el total de la lista.
+  private mostrarLote(lote: LoteDE) {
+    this.dataSource.data = lote != null ? [lote] : [];
+    const pageInfo = new PageInfo<LoteDE>();
+    pageInfo.getContent = this.dataSource.data;
+    pageInfo.getTotalElements = this.dataSource.data.length;
+    this.selectedPageInfo = pageInfo;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+  }
+
+  private avisar(texto: string) {
+    this.notificacionService.notification$.next({ texto, color: NotificacionColor.warn, duracion: 3 });
+  }
+
   onResetFiltro() {
     this.idControl.setValue(null);
+    this.sucursalControl.setValue(null);
     this.estadoControl.setValue(null);
     this.onSearch();
   }

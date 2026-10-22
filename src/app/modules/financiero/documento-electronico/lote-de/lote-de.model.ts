@@ -3,6 +3,7 @@ import { DocumentoElectronico } from "../documento-electronico.model";
 
 export class LoteDE {
   id: number;
+  sucursalId: number;
   estado: EstadoLoteDE;
   fechaProcesado: Date;
   fechaUltimoIntento: Date;
