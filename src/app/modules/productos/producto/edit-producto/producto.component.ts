@@ -349,6 +349,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchSubfamilia() {
+    // Sin familia elegida (filtrar o paginar las familias la deselecciona) no hay qué buscar.
+    if (!this.selectedFamilia) return;
     this.onSubfamiliaSelect(null);
     this.subfamiliaService
       .onSearchSubfamilia(
@@ -1487,6 +1489,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onFilterFamilia() {
+    // Un filtro nuevo arranca en la página 1.
+    this.familiaPageIndex = 0;
     this.onSearchFamilia();
   }
 
@@ -1495,7 +1499,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
     this.filtroFamiliaOpen = !this.filtroFamiliaOpen;
     if (!this.filtroFamiliaOpen) {
-      this.onSearchFamilia();
+      this.onFilterFamilia();
     } else {
       setTimeout(() => {
         this.focusFilterFamiliaInput();
@@ -1542,13 +1546,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onFilterSubfamilia() {
+    // Un filtro nuevo (u otra familia) arranca en la página 1.
+    this.subfamiliaPageIndex = 0;
     this.onSearchSubfamilia();
   }
 
   abrirFiltroSubfamilia() {
     this.filtroSubfamiliaOpen = !this.filtroSubfamiliaOpen;
     if (!this.filtroSubfamiliaOpen) {
-      this.onSearchSubfamilia();
+      this.onFilterSubfamilia();
     } else {
       setTimeout(() => {
         this.focusFilterSubfamiliaInput();

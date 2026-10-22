@@ -102,7 +102,7 @@ export class ListClientesComponent implements OnInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
+      this.buscar()
     }, 0);
 
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
@@ -120,7 +120,18 @@ export class ListClientesComponent implements OnInit {
     });
   }
 
-  onFiltrar(keepSelection = false) {
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
+  onFiltrar() {
+    // El debounce del texto pendiente repetiría la misma consulta.
+    clearTimeout(this.timer);
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar(keepSelection = false) {
     const selectedIds = this.selection.selected.map(s => s.id);
     this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
@@ -143,6 +154,9 @@ export class ListClientesComponent implements OnInit {
 
   resetFiltro() {
     this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.dataSource.data = [];
     this.selectedPageInfo = null;
     this.buscarControl.setValue(null);
@@ -185,7 +199,7 @@ export class ListClientesComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   isAllSelected() {
@@ -330,7 +344,7 @@ export class ListClientesComponent implements OnInit {
                   this.notificacionService.openSucess(
                     `Se cobraron las ventas de ${totalClientesConVentas} cliente(s) correctamente`
                   );
-                  this.onFiltrar(true);
+                  this.buscar(true);
                 }
               },
               // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo cobrarse: se relee después (#501)
@@ -338,7 +352,7 @@ export class ListClientesComponent implements OnInit {
                 if (erroresDeRechazo(err) != null) return;
                 const aviso = avisoTrasMutacion(err, 'se cobraron las ventas');
                 if (aviso != null) this.notificacionService.openWarn(aviso, 8);
-                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar(true));
+                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.buscar(true));
               }
             });
           } else {
