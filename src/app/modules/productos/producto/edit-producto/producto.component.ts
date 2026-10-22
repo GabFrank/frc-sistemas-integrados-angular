@@ -349,9 +349,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchSubfamilia() {
-    // Sin familia elegida (filtrar o paginar las familias la deselecciona) no hay qué buscar.
-    if (!this.selectedFamilia) return;
     this.onSubfamiliaSelect(null);
+    // Sin familia elegida (filtrar o paginar las familias la deselecciona) no hay qué buscar, y no quedan a la vista
+    // las subfamilias de la familia anterior para elegir.
+    if (!this.selectedFamilia) {
+      this.subfamiliaDataSource.data = [];
+      this.selectedSubfamiliaPageInfo = null;
+      return;
+    }
     this.subfamiliaService
       .onSearchSubfamilia(
         this.selectedFamilia.id,
