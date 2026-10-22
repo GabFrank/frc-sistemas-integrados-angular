@@ -136,6 +136,12 @@ export class ListNotaCreditoComponent implements OnInit {
     });
   }
 
+  // Un filtro nuevo arranca en la página 1 (el paginador tiene [pageIndex] enlazado).
+  onFiltrar(): void {
+    this.pageIndex = 0;
+    this.buscar();
+  }
+
   buscar(): void {
     this.service.onGetPorFiltro(
       this.sucursalIdControl.value,
