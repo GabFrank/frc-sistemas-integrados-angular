@@ -129,6 +129,11 @@ App inicia → lee canal de config (alpha/beta/stable/dev)
            → re-check automático cada 5 minutos mientras la app está abierta
 ```
 
+Con el instalador ya en caché, `electron-updater` vuelve a emitir `update-downloaded` en **cada**
+re-check. El handler de `main.ts` abre un solo diálogo a la vez (bandera
+`dialogoActualizacionAbierto`, liberada en un `finally`): sin ella, un diálogo sin contestar se
+apilaba con uno nuevo cada 5 min. Si «Mas tarde», vuelve a aparecer —uno— en el próximo re-check.
+
 ### Canales
 
 | Canal | Qué recibe | Quién lo usa |
