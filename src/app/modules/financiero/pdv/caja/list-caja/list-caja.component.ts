@@ -5,7 +5,8 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ViewChild } from "@angular/core";
+import { MatPaginator } from '@angular/material/paginator';
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -65,6 +66,8 @@ import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
   ],
 })
 export class ListCajaComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
   dataSource = new MatTableDataSource<PdvCaja>([]);
   cajaObservacionList: CajaObservacion[];
   selectedPdvCaja: PdvCaja;
@@ -172,7 +175,16 @@ export class ListCajaComponent implements OnInit {
     });
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
 
     // Asegurar que sucursalId sea un número
     let sucursalId: number = null;
@@ -217,16 +229,23 @@ export class ListCajaComponent implements OnInit {
   }
 
   onResetFilter() {
+    // Todo el estado primero y una sola consulta: antes cajero y maletín consultaban cada uno,
+    // la primera con el maletín y las fechas viejas, y las dos respuestas competían.
     this.codigoControl.setValue(null);
     this.estadoControl.setValue(null);
-    this.onSelectCajero(null);
-    this.onSelectMaletin(null);
+    this.codigoCajeroControl.setValue(null);
+    this.cajeroControl.setValue(null);
+    this.selectedCajero = null;
+    this.codigoMaletinControl.setValue(null);
+    this.maletinControl.setValue(null);
+    this.selectedMaletin = null;
     let hoy = new Date();
     let aux = new Date();
     aux.setDate(hoy.getDate() - 5);
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
     this.conObsControl.setValue(false);
+    this.onFilter();
   }
 
   irVentas(caja: PdvCaja) {
@@ -263,7 +282,7 @@ export class ListCajaComponent implements OnInit {
       })
       dialogRef.afterClosed()
         .subscribe(() => {
-          this.onFilter();
+          this.buscar();
         })
   }
 
@@ -511,7 +530,7 @@ export class ListCajaComponent implements OnInit {
   handlePageEvent(e) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFilter();
+    this.buscar();
   }
 }
 
