@@ -252,6 +252,8 @@ export class EditTransferenciaComponent implements OnInit {
   //filtro de productos
   filtroProductosOpen = false;
   filtroProductoControl = new FormControl(null);
+  /** Texto que se buscó con Enter: el del input puede estar a medio escribir. Toda carga de ítems lo usa. */
+  private filtroProductoAplicado: string = null;
   constructor(
     private matDialog: MatDialog,
     public mainService: MainService,
@@ -483,12 +485,20 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   getTransferenciaItemList() {
+    // Paginar, la carga inicial y las recargas piden lo mismo: antes paginar perdía el filtro de producto.
     this.cargarPaginaItems(
-      this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
-        this.selectedTransferencia.id,
-        this.pageIndex,
-        this.pageSize
-      )
+      this.filtroProductoAplicado
+        ? this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
+          this.selectedTransferencia.id,
+          this.filtroProductoAplicado,
+          this.pageIndex,
+          this.pageSize
+        )
+        : this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
+          this.selectedTransferencia.id,
+          this.pageIndex,
+          this.pageSize
+        )
     );
   }
 
@@ -1893,7 +1903,7 @@ export class EditTransferenciaComponent implements OnInit {
   abrirFiltroProductos() {
     this.filtroProductosOpen = !this.filtroProductosOpen;
     if (!this.filtroProductosOpen) {
-      this.getTransferenciaItemList();
+      this.aplicarFiltroProducto(null);
     } else {
       setTimeout(() => {
         this.focusFilterProductoInput();
@@ -1906,17 +1916,18 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onFilterProducto() {
-    let texto: string = this.filtroProductoControl.value;
-    if (texto != null && texto.trim().length > 0) {
-      this.cargarPaginaItems(
-        this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
-          this.selectedTransferencia.id,
-          texto,
-          this.pageIndex,
-          this.pageSize
-        )
-      );
+    const texto: string = this.filtroProductoControl.value;
+    this.aplicarFiltroProducto(texto != null && texto.trim().length > 0 ? texto : null);
+  }
+
+  /** Un filtro nuevo (o quitarlo) arranca en la página 1. */
+  private aplicarFiltroProducto(texto: string): void {
+    this.filtroProductoAplicado = texto;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
     }
+    this.getTransferenciaItemList();
   }
 
   onValidarCostoConDialogo(): Promise<boolean> {

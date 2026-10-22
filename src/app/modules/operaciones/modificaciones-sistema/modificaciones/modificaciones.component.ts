@@ -121,18 +121,37 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      this.onFiltrar();
+      this.buscar();
     }, 500);
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar(): void {
-    if (!this.schemaControl.value) {
-      this.notificacionService.openWarn('Debe seleccionar un módulo');
+    // Validar antes: si no, el paginador quedaría en 1 con la tabla todavía en la página anterior.
+    if (!this.filtrosValidos()) {
       return;
     }
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
 
+  private filtrosValidos(): boolean {
+    if (!this.schemaControl.value) {
+      this.notificacionService.openWarn('Debe seleccionar un módulo');
+      return false;
+    }
     if (!this.fechaInicioControl.value || !this.fechaFinalControl.value) {
       this.notificacionService.openWarn('Debe seleccionar un rango de fechas');
+      return false;
+    }
+    return true;
+  }
+
+  buscar(): void {
+    if (!this.filtrosValidos()) {
       return;
     }
 
@@ -297,6 +316,10 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
     this.schemaControl.setValue('productos');
     this.tipoEntidadControl.setValue(null);
     this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.selectedPageInfo = null;
     this.dataSource.data = [];
     this.expandedModificacion = null;
     this.selectedModificacion = null;
@@ -307,7 +330,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   toggleRow(row: ModificacionRegistro): void {

@@ -82,10 +82,19 @@ export class ListLoteDeComponent implements OnInit {
       fechaInicioControl: [weekAgo],
       fechaFinControl: [today]
     })
-    this.onSearch();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onSearch() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     if (this.idControl.value == null) {
       this.loteDeService.onGetAllLotes(
         this.pageIndex,
@@ -118,7 +127,7 @@ export class ListLoteDeComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onSearch();
+    this.buscar();
   }
 
   getEstadoClass(estado: string | EstadoLoteDE): string {

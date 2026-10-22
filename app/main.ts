@@ -2422,22 +2422,37 @@ try {
       if (win) win.webContents.send('update-status', `Descargando: ${progress.percent.toFixed(0)}%`);
     });
 
-    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
-      const version = event.version || 'desconocida';
+    // Con el instalador en caché, cada chequeo de 5 min vuelve a emitir update-downloaded:
+    // sin esta bandera los diálogos se apilan si el usuario no contesta.
+    let dialogoActualizacionAbierto = false;
+    autoUpdater.on('update-downloaded', async (event: UpdateDownloadedEvent) => {
+      const version = event?.version || 'desconocida';
       log.info(`Actualizacion descargada: version ${version}`);
+      if (dialogoActualizacionAbierto) {
+        log.info('Dialogo de actualizacion ya abierto, no se abre otro.');
+        return;
+      }
       const dialogOpts: MessageBoxOptions = {
         type: 'info',
         buttons: ['Cerrar y actualizar', 'Mas tarde'],
+        // Cerrar con la X o Esc devuelve cancelId; sin él Electron devuelve 0 e instalaba.
+        cancelId: 1,
         title: 'Actualizacion disponible',
         message: `Version ${version}`,
         detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',
       };
 
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+      dialogoActualizacionAbierto = true;
+      try {
+        const returnValue = await dialog.showMessageBox(dialogOpts);
         if (returnValue.response === 0) {
           autoUpdater.quitAndInstall(false, true);
         }
-      });
+      } catch (err) {
+        log.error('Error en el dialogo de actualizacion:', err);
+      } finally {
+        dialogoActualizacionAbierto = false;
+      }
     });
 
     autoUpdater.on('error', (err) => {

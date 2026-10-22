@@ -1,7 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, MovimientoCajaVirtual, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -21,6 +21,8 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   styleUrls: ['./historial-movimientos-caja-virtual.component.scss']
 })
 export class HistorialMovimientosCajaVirtualComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
 
   dataSource = new MatTableDataSource<MovimientoRow>([]);
   isSearching = false;
@@ -73,10 +75,19 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
       inicioControl: this.inicioControl,
       finControl: this.finControl,
     });
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.isSearching = true;
     if (this.inicioControl.value && this.finControl.value) {
       this.cajaVirtualService.onGetMovimientosPorFecha(
@@ -121,7 +132,7 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
   
 }
