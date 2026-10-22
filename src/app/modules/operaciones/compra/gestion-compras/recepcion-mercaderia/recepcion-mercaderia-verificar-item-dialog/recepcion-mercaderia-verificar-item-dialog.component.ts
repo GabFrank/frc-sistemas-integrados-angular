@@ -49,6 +49,31 @@ interface DistribucionFormData {
  * registrado para el producto. Se arma en el .ts y no en el template para no llamar funciones
  * ni pipes desde el HTML en cada change detection.
  */
+/** Un lote adicional de la misma sucursal, en la presentación elegida. */
+export interface LoteExtra {
+  lote: string;
+  vencimiento: Date | null;
+  cantidad: number;
+}
+
+/**
+ * Cuánto queda para el lote principal de una sucursal: lo recibido menos lo que se cargó en los
+ * lotes adicionales. Negativo = los adicionales se pasan de lo recibido.
+ */
+export function cantidadParaLotePrincipal(cantidadRecibida: number, extras: LoteExtra[]): number {
+  const usado = (extras || []).reduce((t, e) => t + (Number(e.cantidad) || 0), 0);
+  return (Number(cantidadRecibida) || 0) - usado;
+}
+
+/** Los lotes adicionales están completos y no se pasan de lo recibido. */
+export function lotesExtraValidos(cantidadRecibida: number, extras: LoteExtra[]): boolean {
+  if (!extras || extras.length === 0) {
+    return true;
+  }
+  const completos = extras.every(e => !!(e.lote || '').trim() && (Number(e.cantidad) || 0) > 0);
+  return completos && cantidadParaLotePrincipal(cantidadRecibida, extras) >= 0;
+}
+
 interface LoteExistenteInfo {
   numeroLote: string;
   detalle: string;
@@ -108,6 +133,14 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   // Control de lote: se resuelven una sola vez al abrir el diálogo (ver ngOnInit).
   // Evita llamar funciones desde el template en cada change detection.
   requiereLoteComputed = false;
+  /**
+   * Lotes flexibles (#429): lotes adicionales por sucursal. El lote principal (el campo de
+   * siempre) se lleva lo que quede de la cantidad recibida; cada lote adicional declara su
+   * cantidad. Índice paralelo a `distribucionesFormData`.
+   */
+  lotesExtra: LoteExtra[][] = [];
+  /** Recibir sin número de lote: lo recibido queda pendiente de lote (SIN LOTE). */
+  cargarLoteDespues = false;
   requiereVencimientoComputed = false;
   mostrarInformacionAdicionalComputed = false;
   /**
@@ -707,7 +740,8 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     // Validar formulario
     this.formValidComputed = this.verificarForm.valid && 
       this.cantidadTotalRecibidaComputed > 0 &&
-      this.validarMotivosDiscrepancias();
+      this.validarMotivosDiscrepancias() &&
+      this.validarLotesExtra();
   }
 
   private recalcularCantidadesBasadasEnPresentacion(): void {
@@ -818,6 +852,95 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     }
   }
 
+  // ---- Lotes flexibles (#429): varios lotes por sucursal y "cargar lote después" ----
+
+  getLotesExtra(index: number): LoteExtra[] {
+    if (!this.lotesExtra[index]) {
+      this.lotesExtra[index] = [];
+    }
+    return this.lotesExtra[index];
+  }
+
+  onAgregarLote(index: number): void {
+    this.getLotesExtra(index).push({ lote: '', vencimiento: null, cantidad: 0 });
+    this.updateComputedProperties();
+  }
+
+  onQuitarLote(index: number, j: number): void {
+    this.getLotesExtra(index).splice(j, 1);
+    this.updateComputedProperties();
+  }
+
+  onLoteExtraChange(index: number, j: number, campo: 'lote' | 'cantidad' | 'vencimiento', valor: any): void {
+    const extra = this.getLotesExtra(index)[j];
+    if (!extra) {
+      return;
+    }
+    if (campo === 'cantidad') {
+      extra.cantidad = Number(valor) || 0;
+    } else if (campo === 'lote') {
+      extra.lote = (valor || '').toString();
+    } else {
+      extra.vencimiento = valor || null;
+    }
+    this.updateComputedProperties();
+  }
+
+  cantidadLotePrincipal(index: number): number {
+    const recibida = this.verificarForm?.get(`dist_${index}_cantidadRecibida`)?.value || 0;
+    return cantidadParaLotePrincipal(recibida, this.getLotesExtra(index));
+  }
+
+  onCargarLoteDespuesChange(valor: boolean): void {
+    this.cargarLoteDespues = !!valor;
+    this.distribucionesFormData.forEach((_, index) => {
+      const control = this.verificarForm.get(`dist_${index}_lote`);
+      if (!control) {
+        return;
+      }
+      control.setValidators(this.requiereLoteComputed && !this.cargarLoteDespues
+        ? [Validators.required, Validators.maxLength(50)]
+        : [Validators.maxLength(50)]);
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+    this.updateComputedProperties();
+  }
+
+  private validarLotesExtra(): boolean {
+    return this.distribucionesFormData.every((_, index) => {
+      const recibida = this.verificarForm.get(`dist_${index}_cantidadRecibida`)?.value || 0;
+      return lotesExtraValidos(recibida, this.lotesExtra[index] || []);
+    });
+  }
+
+  /**
+   * Con lotes adicionales, la sucursal se manda como variaciones (una por lote, en unidades
+   * base). Sin adicionales queda como siempre: un solo lote en el ítem.
+   */
+  private armarVariaciones(index: number, dist: DistribucionFormData, factor: number): any[] | null {
+    const extras = this.lotesExtra[index] || [];
+    if (extras.length === 0) {
+      return null;
+    }
+    const variaciones: any[] = [];
+    const principal = cantidadParaLotePrincipal(dist.cantidadRecibida, extras);
+    if (principal > 0) {
+      variaciones.push({
+        lote: dist.lote ? dist.lote.trim().toUpperCase() : null,
+        vencimiento: dist.vencimiento,
+        fechaRetiro: dist.fechaRetiro,
+        cantidad: principal * factor
+      });
+    }
+    extras.forEach(e => variaciones.push({
+      lote: e.lote.trim().toUpperCase(),
+      vencimiento: e.vencimiento,
+      fechaRetiro: null,
+      cantidad: e.cantidad * factor
+    }));
+    return variaciones;
+  }
+
   onSave(): void {
     if (!this.formValidComputed) {
       return;
@@ -842,7 +965,8 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           observaciones: dist.observaciones,
           motivoModificacion: dist.motivoModificacion,
           motivoOtro: dist.motivoOtro,
-          tieneDiscrepancia: dist.tieneDiscrepancia
+          tieneDiscrepancia: dist.tieneDiscrepancia,
+          variaciones: this.armarVariaciones(index, dist, this.presentacionSeleccionadaComputed?.cantidad || 1)
         };
       })
     };
