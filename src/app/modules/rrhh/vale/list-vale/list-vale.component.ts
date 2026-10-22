@@ -65,10 +65,19 @@ export class ListValeComponent implements OnInit {
   ngOnInit(): void {
     this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
     this.puedeGestionar = this.mainService.tieneAlgunRol(['RRHH GESTIONAR']);
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.valeService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -89,26 +98,25 @@ export class ListValeComponent implements OnInit {
     this.estadoControl.setValue(null);
     this.desdeControl.setValue(null);
     this.hastaControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNuevo() {
     this.dialog.open(EditValeDialogComponent, {
       data: { funcionarioId: this.funcionarioControl.value },
       width: '560px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   onConfirmar(vale: Vale) {
     this.dialog.open(ConfirmarValeDialogComponent, { data: { vale }, width: '480px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   onVerCuotas(vale: Vale) {
@@ -123,7 +131,7 @@ export class ListValeComponent implements OnInit {
       if (res === true) {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.valeService.onAnular(vale.id).pipe(untilDestroyed(this))
-          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
+          .subscribe({ next: ok => { if (ok) this.buscar(); }, error: () => {} });
       }
     });
   }
