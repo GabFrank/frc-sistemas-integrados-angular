@@ -669,6 +669,8 @@ export class GestionComprasComponent
             .get("vendedor")
             ?.setValue(value.vendedor, { emitEvent: false });
           
+          // Otro proveedor: su lista arranca en la página 1 (también al entrar luego a Ítems).
+          this.productosProveedorPageIndex = 0;
           // Si estamos en el tab de items, cargar productos del proveedor
           if (this.selectedTabIndex === 1) {
             this.loadProductosProveedor();
@@ -678,6 +680,7 @@ export class GestionComprasComponent
           this.showProveedorCard = false;
           // Si se remueve el proveedor, limpiar la lista de productos
           this.productosProveedorDataSource.data = [];
+          this.productosProveedorPageIndex = 0;
           this.ultimasComprasDataSource.data = [];
           this.ultimasComprasAllData = [];
           this.ultimasComprasTotalElements = 0;
@@ -4899,6 +4902,8 @@ export class GestionComprasComponent
           // Guardar todos los datos y aplicar paginación del lado del cliente
           this.ultimasComprasAllData = compras;
           this.ultimasComprasTotalElements = compras.length;
+          // Otro producto: vuelve a la página 1 recién con sus datos (si falla, quedan las filas y la página de antes).
+          this.ultimasComprasPageIndex = 0;
           this.applyUltimasComprasPagination();
           this.ultimasComprasLoading = false;
         },
