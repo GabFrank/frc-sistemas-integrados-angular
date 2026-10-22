@@ -39,10 +39,19 @@ export class ListMotivoValeComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.motivoValeService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -59,24 +68,23 @@ export class ListMotivoValeComponent implements OnInit {
   onResetFiltro() {
     this.descripcionControl.setValue(null);
     this.activoControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNuevo() {
     this.dialog.open(EditMotivoValeDialogComponent, { width: '440px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   onEditar(motivo: MotivoVale) {
     this.dialog.open(EditMotivoValeDialogComponent, { data: { motivo }, width: '440px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   onEliminar(motivo: MotivoVale) {
@@ -86,7 +94,7 @@ export class ListMotivoValeComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.motivoValeService.onDelete(motivo.id)
-          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onFiltrar(); });
+          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.buscar(); });
       }
     });
   }

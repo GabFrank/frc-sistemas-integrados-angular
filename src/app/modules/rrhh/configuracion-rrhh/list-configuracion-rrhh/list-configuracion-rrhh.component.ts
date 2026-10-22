@@ -46,10 +46,19 @@ export class ListConfiguracionRrhhComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.configuracionRrhhService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -80,14 +89,13 @@ export class ListConfiguracionRrhhComponent implements OnInit {
   onResetFiltro() {
     this.textoControl.setValue(null);
     this.tipoControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNuevo() {
@@ -96,7 +104,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.onFiltrar();
+        this.buscar();
       }
     });
   }
@@ -116,7 +124,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.onFiltrar();
+        this.buscar();
         this.revisarImpacto(res, valorAnterior);
       }
     });
@@ -157,7 +165,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
           .pipe(untilDestroyed(this))
           .subscribe(ok => {
             if (ok) {
-              this.onFiltrar();
+              this.buscar();
             }
           });
       }
