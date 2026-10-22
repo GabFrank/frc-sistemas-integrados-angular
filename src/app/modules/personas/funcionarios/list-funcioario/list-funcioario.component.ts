@@ -97,7 +97,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
+      this.buscar()
     }, 0);
 
 
@@ -129,7 +129,16 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     ));
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     let sucursalIdList = [];
     this.sucursalControl.value?.forEach(s => {
       if (s != null) {
@@ -174,7 +183,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     this.ipsActivoControl.setValue(null)
     this.fasePruebaControl.setValue(null)
     this.cobraBancoControl.setValue(null)
-    this.onFiltrar()
+    this.onFiltrar();
   }
 
   onVerLegajo(funcionario: Funcionario) {
@@ -192,7 +201,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   isAllSelected() {

@@ -53,10 +53,19 @@ export class ListAguinaldoComponent implements OnInit {
     this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
     this.puedePagar = this.mainService.tieneAlgunRol(['RRHH PAGAR']);
     this.anioControl.setValue(new Date().getFullYear());
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.aguinaldoService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -73,14 +82,13 @@ export class ListAguinaldoComponent implements OnInit {
   onResetFiltro() {
     this.funcionarioControl.setValue(null);
     this.anioControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onCalcular() {
@@ -99,7 +107,7 @@ export class ListAguinaldoComponent implements OnInit {
           .pipe(untilDestroyed(this)).subscribe({
             next: (cant: number) => {
               this.notificacion.notification$.next({ texto: 'Aguinaldos calculados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
-              this.onFiltrar();
+              this.buscar();
             },
             error: () => {}
           });
@@ -110,7 +118,7 @@ export class ListAguinaldoComponent implements OnInit {
   onAprobar(a: Aguinaldo) {
     this.aguinaldoService.onAprobar(a.id)
       .pipe(untilDestroyed(this))
-      .subscribe({ next: res => { if (res != null) this.onFiltrar(); }, error: () => {} });
+      .subscribe({ next: res => { if (res != null) this.buscar(); }, error: () => {} });
   }
 
   /** Pago separado del aguinaldo: elige Caja Mayor y paga; luego ofrece el recibo. */
@@ -121,7 +129,7 @@ export class ListAguinaldoComponent implements OnInit {
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.notificacion.notification$.next({ texto: 'Aguinaldo pagado', color: NotificacionColor.success, duracion: 3 });
-        this.onFiltrar();
+        this.buscar();
         this.onVerRecibo(a);
       }
     });
