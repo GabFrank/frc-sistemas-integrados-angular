@@ -25,6 +25,12 @@ Carpetas bajo `src/app/modules/operaciones/`; archivo `<carpeta>/<nombre>.compon
 | Movimientos de stock | `movimiento-stock/list-movimiento-stock` | Ya distingue `onFiltrar(isPagination)`. Cuando **no** es paginación, `page = 0` y `paginator.pageIndex = 0`. Se agrega `@ViewChild(MatPaginator)`. `resetFiltro()` está vacío hoy (Limpiar no hace nada): fuera de alcance, va a issue aparte. |
 | Modificaciones del sistema | `modificaciones-sistema/modificaciones` | `onFiltrar` → `buscar` + `onFiltrar` nuevo. `buscar()`: `ngAfterViewInit` y `handlePageEvent`. Las dos validaciones (módulo y fechas) pasan a un `filtrosValidos()` que usan los dos: el `onFiltrar` nuevo valida **antes** de reiniciar la página (si no, el paginador marcaría 1 con la tabla en N). `resetFiltro` sigue vaciando sin consultar, pero reinicia también el paginador y `selectedPageInfo`. Es `OnPush`: Buscar/Limpiar quedan bloqueados tras el primer clic (#576, aparte). |
 
+**Desvío encontrado al probar (paso 9):** la query `transferenciaItensPorTransferenciaIdWithFilter` del desktop
+declaraba `$id: Int` y el central espera `ID`: GraphQL la rechazaba siempre («VariableTypeMismatch») y el filtro de
+producto de los ítems nunca filtró (la tabla quedaba igual). Se corrige el tipo en
+`transferencia/graphql/graphql-query.ts`; sin eso, este arreglo no se puede probar. Verificado contra el central:
+`ARCOR` → 23 de 170, texto inexistente → 0.
+
 Commit: `git add` por archivo (hay carpetas `.omc/` sin trackear que no van).
 
 ## Tabla de datos nuevos
