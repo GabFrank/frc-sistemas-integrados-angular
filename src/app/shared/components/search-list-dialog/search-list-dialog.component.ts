@@ -206,6 +206,10 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   }
 
   onBuscar(): void {
+    // Una búsqueda en curso descarta la nueva (onSearch): sin reiniciar, la página no se desfasa de la tabla.
+    if (this.isSearching) return;
+    // Un filtro nuevo arranca en la página 1.
+    this.pageIndex = 0;
     this.onSearch()
   }
 
