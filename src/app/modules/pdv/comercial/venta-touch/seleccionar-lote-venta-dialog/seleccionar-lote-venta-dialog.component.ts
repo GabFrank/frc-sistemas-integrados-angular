@@ -20,6 +20,7 @@ import { NotificacionSnackbarService } from '../../../../../notificacion-snackba
 import { StockLotePresentacion } from '../../../../operaciones/lote/lote.model';
 import { LoteService } from '../../../../operaciones/lote/lote.service';
 import { VentaItemLoteInput } from '../../../../operaciones/venta/venta-item.model';
+import { loteMasProximoAVencer } from './lotes-caja';
 
 /** Tolerancia al comparar cantidades en punto flotante. */
 const EPSILON = 0.0001;
@@ -261,6 +262,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
             disponible: lote.cantidadDisponible || 0
           }));
           this.universoCargado = true;
+          this.premarcarMasProximo(res?.getContent || []);
           this.recalcular();
         },
         error: () => {
@@ -269,6 +271,33 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
           this.recalcular();
         }
       });
+  }
+
+  /**
+   * Lotes flexibles (#429): al abrir, el lote más próximo a vencer viene marcado con lo que pueda
+   * cubrir. El cajero lo cambia si tiene otro en la mano.
+   */
+  private premarcarMasProximo(lotes: StockLotePresentacion[]): void {
+    if (this.seleccion.size > 0) {
+      return;
+    }
+    const lote = loteMasProximoAVencer(lotes);
+    if (lote == null) {
+      return;
+    }
+    const cantidad = Math.min(lote.cantidadDisponible || 0, this.cantidadRequerida);
+    if (cantidad <= EPSILON) {
+      return;
+    }
+    this.seleccion.set(lote.loteId, {
+      loteId: lote.loteId,
+      numeroLote: lote.numeroLote || '-',
+      cantidad,
+      cantidadLabel: `${cantidad}`
+    });
+    this.filas = this.filas.map((f) => f.loteId === lote.loteId
+      ? { ...f, seleccionado: true, cantidad, cantidadLabel: `${cantidad}` }
+      : f);
   }
 
   /**
@@ -584,10 +613,13 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       this.puedeConfirmar = true;
       return;
     }
+    // Lotes flexibles (#429): confirmar nunca se bloquea. Lo que no se cubre lo asigna el
+    // sistema (lote más próximo a vencer y, si no alcanza, SIN LOTE).
     if (this.hayLotesSinMarcar) {
-      this.faltanteLabel = `Faltan ${this.pendiente} unid. — elegí otro lote para cubrirlas.`;
-      this.motivoBloqueo = `Elegí de qué lote salen las ${this.pendiente} unid. que faltan.`;
-      this.puedeConfirmar = false;
+      this.faltanteLabel = `Faltan ${this.pendiente} unid.: podés marcar otro lote o confirmar `
+        + 'y el sistema las asigna.';
+      this.motivoBloqueo = '';
+      this.puedeConfirmar = true;
       return;
     }
     this.faltanteLabel = `Faltan ${this.pendiente} unid. y no hay más stock por lote: `

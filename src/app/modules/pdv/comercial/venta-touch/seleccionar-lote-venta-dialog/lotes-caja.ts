@@ -1,0 +1,44 @@
+import { StockLotePresentacion } from '../../../../operaciones/lote/lote.model';
+import { VentaItemLoteInput } from '../../../../operaciones/venta/venta-item.model';
+
+/** Qué hacer al agregar a la venta un producto con control de lote (lotes flexibles, #429). */
+export type DecisionLoteCaja =
+  | { tipo: 'unico'; lote: VentaItemLoteInput }
+  | { tipo: 'automatico' }
+  | { tipo: 'selector' };
+
+const EPSILON = 0.0001;
+
+/** Lotes vendibles: con id (la fila SIN LOTE no se elige) y con saldo. */
+export function lotesVendibles(lotes: StockLotePresentacion[]): StockLotePresentacion[] {
+  return (lotes || []).filter((l) => l?.loteId != null && (l.cantidadDisponible || 0) > EPSILON);
+}
+
+/**
+ * Un solo lote vendible: se asigna sin abrir el selector (lo que no cubra lo completa el servidor).
+ * Ninguno: se agrega y el servidor resuelve (FEFO / SIN LOTE). Varios: selector.
+ */
+export function loteUnicoParaAsignar(lotes: StockLotePresentacion[], unidades: number): DecisionLoteCaja {
+  const vendibles = lotesVendibles(lotes);
+  if (vendibles.length === 0) {
+    return { tipo: 'automatico' };
+  }
+  if (vendibles.length === 1) {
+    const l = vendibles[0];
+    return { tipo: 'unico', lote: { loteId: l.loteId, cantidad: Math.min(l.cantidadDisponible, unidades) } };
+  }
+  return { tipo: 'selector' };
+}
+
+/** El lote que sale primero: retiro o vencimiento más próximo; sin fecha, al final. */
+export function loteMasProximoAVencer(lotes: StockLotePresentacion[]): StockLotePresentacion | null {
+  const fecha = (l: StockLotePresentacion) => {
+    const f = l.fechaRetiro || l.fechaVencimiento;
+    return f ? new Date(f).getTime() : Number.MAX_SAFE_INTEGER;
+  };
+  const vendibles = lotesVendibles(lotes);
+  if (vendibles.length === 0) {
+    return null;
+  }
+  return vendibles.reduce((a, b) => (fecha(b) < fecha(a) ? b : a));
+}

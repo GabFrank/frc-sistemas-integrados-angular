@@ -127,6 +127,9 @@ import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-
 import { debePedirClienteParaFacturar, erroresDeRechazo, esRechazoDelServidor, esRechazoPorFacturaSinNombre, mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { Cliente } from '../../../personas/clientes/cliente.model';
 import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog/cliente-para-factura-dialog.component';
+import { LoteService } from '../../../operaciones/lote/lote.service';
+import { StockLotePresentacion } from '../../../operaciones/lote/lote.model';
+import { loteUnicoParaAsignar } from './seleccionar-lote-venta-dialog/lotes-caja';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -222,7 +225,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private ventaTarjetaService: VentaTarjetaService,
     private facturaLegalService: FacturaLegalService,
     private productoService: ProductoService,
-    private pdvCategoriaService: PdvCategoriaService
+    private pdvCategoriaService: PdvCategoriaService,
+    private loteService: LoteService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -765,19 +769,54 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * No se pudo saber si el producto lleva lote: no se agrega. Venderlo sin trazabilidad es peor que pedirle
-   * al cajero que lo escanee de nuevo (decidido el 2026-10-06, #390).
+   * No se pudo saber si el producto lleva lote: se agrega igual y se avisa. Lotes flexibles (#429):
+   * la venta nunca se traba por el lote; el servidor asigna por FEFO y lo que no cubre queda SIN LOTE.
    */
   private avisarLoteSinComprobar(item: VentaItem): void {
+    item.lotes = null;
+    this.addItem(item);
     this.notificacionSnackbar.openWarn(
-      `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. No se agregó a la venta: escanealo de nuevo.`,
-      8
+      `No se pudo comprobar el lote de ${item.producto?.descripcion ?? 'el producto'}. Se agregó igual: el lote lo asigna el sistema.`,
+      6
     );
     this.buscadorFocusSub.next();
   }
 
-  /** Abre el selector de lote y agrega el ítem con lo elegido. Cancelar no agrega el ítem. */
+  /**
+   * Lotes flexibles (#429): con un solo lote vendible el ítem se agrega directo con ese lote, sin
+   * abrir el selector. Con varios, se abre el selector (con el más próximo a vencer marcado). Si
+   * no hay stock por lote, se agrega y el servidor resuelve (FEFO / SIN LOTE). Si la consulta
+   * falla, se abre el selector, que ya sabe manejar ese caso.
+   */
   private abrirSelectorDeLote(item: VentaItem): void {
+    const unidades = (+item.cantidad || 0) * (item.presentacion?.cantidad > 0 ? item.presentacion.cantidad : 1);
+    this.loteService
+      .onGetStockPorLoteEnPresentacion(
+        item.producto.id,
+        this.mainService.sucursalActual?.id,
+        item.presentacion?.id,
+        null, 0, 500, false, true,
+        TIMEOUT_CONSULTA_MOSTRADOR_MS
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          const lotes: StockLotePresentacion[] = res?.getContent || [];
+          const decision = loteUnicoParaAsignar(lotes, unidades);
+          if (decision.tipo === 'selector') {
+            this.abrirDialogoDeLote(item);
+            return;
+          }
+          item.lotes = decision.tipo === 'unico' ? [decision.lote] : null;
+          this.addItem(item);
+          this.buscadorFocusSub.next();
+        },
+        error: () => this.abrirDialogoDeLote(item),
+      });
+  }
+
+  /** Abre el selector de lote. Cancelar agrega el ítem igual y el lote lo asigna el sistema (FEFO). */
+  private abrirDialogoDeLote(item: VentaItem): void {
     this.isDialogOpen = true;
     this.matDialog
       .open(SeleccionarLoteVentaDialogComponent, {
@@ -798,7 +837,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((res: SeleccionarLoteVentaDialogResult) => {
         this.isDialogOpen = false;
         if (res == null) {
-          // Cancelar es no vender el ítem, no venderlo sin lote.
+          // Lotes flexibles (#429): cancelar no frena la venta; el servidor asigna por FEFO.
+          item.lotes = null;
+          this.addItem(item);
           this.buscadorFocusSub.next();
           return;
         }
