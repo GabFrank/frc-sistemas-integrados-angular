@@ -68,12 +68,14 @@ export class ListProveedorComponent implements OnInit {
 
   onFilter(): void {
     this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();
   }
 
   onResetFiltro(): void {
     this.textoControl.setValue(null);
     this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();
   }
 
