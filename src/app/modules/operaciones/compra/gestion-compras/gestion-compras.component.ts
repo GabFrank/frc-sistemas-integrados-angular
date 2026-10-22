@@ -59,7 +59,7 @@ import {
 import { NotaRecepcion, NotaRecepcionEstado } from "./nota-recepcion.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
-import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { dateToString, stringToLocalDate } from "../../../../commons/core/utils/dateUtils";
 import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
@@ -90,6 +90,7 @@ import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graph
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
 import { PedidoService } from "../pedido.service";
+import { VariacionCostoPedidoItem } from "./graphql/getVariacionCostoPedidoItems";
 import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
@@ -166,6 +167,13 @@ interface MockPedidoItem extends PedidoItem {
   distributionStatusClassComputed: string;
   isSelectedComputed?: boolean; // Para step 3
   cantidadPendienteComputed?: number; // Para step 3 - cantidad pendiente de conciliar
+  /** Vencimiento como Date local, para el datepicker de la tabla. */
+  vencimientoDateComputed?: Date | null;
+  guardandoVencimientoComputed?: boolean;
+  /** Clase de la fila según el cambio de costo que informa el central: 'costo-subio' | 'costo-bajo' | null. */
+  variacionCostoClaseComputed?: string | null;
+  variacionCostoIconoComputed?: string | null;
+  variacionCostoTextoComputed?: string | null;
 }
 
 interface MockNotaRecepcion extends NotaRecepcion {
@@ -351,6 +359,9 @@ export class GestionComprasComponent
 
   // Items table
   itemsDataSource = new MatTableDataSource<MockPedidoItem>([]);
+  /** Variación de costo por id de ítem (string: GraphQL manda los ID así), del pedido variacionCostoPedidoId. */
+  private variacionCostoPorItemId = new Map<string, VariacionCostoPedidoItem>();
+  private variacionCostoPedidoId: number | null = null;
   itemsDisplayedColumns = [
     "producto",
     "cantidadSolicitada",
@@ -3137,12 +3148,16 @@ export class GestionComprasComponent
   /**
    * Carga los datos de los ítems del pedido desde el backend con paginación
    */
-  private loadItemsData(): void {
+  private loadItemsData(recargarVariacionCosto = true): void {
     if (!this.currentPedido?.id) {
       return;
     }
 
     this.itemsLoading = true;
+    // La variación de costo abarca todos los ítems del pedido: se pide al recargar, no al paginar o buscar
+    if (recargarVariacionCosto || this.variacionCostoPedidoId !== this.currentPedido.id) {
+      this.loadVariacionCosto(this.currentPedido.id);
+    }
 
 
     this.pedidoService
@@ -3178,6 +3193,114 @@ export class GestionComprasComponent
           this.itemsLoading = false;
         }
       });
+  }
+
+  /**
+   * Carga del central la variación de costo de todos los ítems del pedido y pinta las filas visibles.
+   * Es solo decoración: si falla, la tabla queda como antes, sin avisos.
+   */
+  private loadVariacionCosto(pedidoId: number): void {
+    this.variacionCostoPedidoId = pedidoId;
+    this.variacionCostoPorItemId = new Map();
+    this.pedidoService
+      .onGetVariacionCostoPedidoItems(pedidoId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (variaciones) => {
+          // Si mientras tanto cambió el pedido, la respuesta ya no corresponde
+          if (this.variacionCostoPedidoId !== pedidoId || this.currentPedido?.id !== pedidoId) {
+            return;
+          }
+          const mapa = new Map<string, VariacionCostoPedidoItem>();
+          (variaciones || []).forEach((v) => mapa.set(String(v.pedidoItemId), v));
+          this.variacionCostoPorItemId = mapa;
+          this.itemsDataSource.data.forEach((item) => this.aplicarVariacionCosto(item));
+          this.itemsDataSource.data = [...this.itemsDataSource.data];
+        },
+        error: (error) => console.error("Error cargando la variación de costo de los ítems:", error),
+      });
+  }
+
+  /** Pinta un ítem según la dirección que manda el central; el texto del tooltip también viene de allá. */
+  private aplicarVariacionCosto(item: MockPedidoItem): void {
+    const variacion = item?.id != null ? this.variacionCostoPorItemId.get(String(item.id)) : undefined;
+    switch (variacion?.direccion) {
+      case "SUBIO":
+        item.variacionCostoClaseComputed = "costo-subio";
+        item.variacionCostoIconoComputed = "trending_up";
+        break;
+      case "BAJO":
+        item.variacionCostoClaseComputed = "costo-bajo";
+        item.variacionCostoIconoComputed = "trending_down";
+        break;
+      default:
+        item.variacionCostoClaseComputed = null;
+        item.variacionCostoIconoComputed = null;
+    }
+    item.variacionCostoTextoComputed = item.variacionCostoClaseComputed ? variacion?.texto || null : null;
+  }
+
+  /** El backend manda "yyyy-MM-dd" o "yyyy-MM-dd HH:mm": se lleva a medianoche local para no correr el día. */
+  private vencimientoComoFecha(valor: Date | string | null | undefined): Date | null {
+    if (!valor) {
+      return null;
+    }
+    if (valor instanceof Date) {
+      return isNaN(valor.getTime()) ? null : valor;
+    }
+    const fecha = stringToLocalDate(valor);
+    return fecha && !isNaN(fecha.getTime()) ? fecha : null;
+  }
+
+  /**
+   * Guarda al momento el vencimiento elegido en la tabla (null = sin vencimiento) y actualiza solo esa fila.
+   * Habilitado con el tab de ítems editable (etapa CREACIÓN), igual que agregar ítems.
+   */
+  onVencimientoItemChange(item: MockPedidoItem, fecha: Date | null): void {
+    if (this.itemsTabState !== "editable" || item?.id == null || item.guardandoVencimientoComputed) {
+      return;
+    }
+    const nuevo = fecha ? dateToString(fecha, "yyyy-MM-dd") : null;
+    const actual = item.vencimientoDateComputed ? dateToString(item.vencimientoDateComputed, "yyyy-MM-dd") : null;
+    if (nuevo === actual) {
+      return;
+    }
+    const pedidoId = this.currentPedido?.id;
+    this.reemplazarItemEnTabla(item.id, { guardandoVencimientoComputed: true });
+    this.pedidoService
+      .onActualizarVencimientoPedidoItem(item.id, nuevo)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (actualizado) => {
+          if (this.currentPedido?.id !== pedidoId) {
+            return;
+          }
+          const vencimiento = actualizado ? actualizado.vencimientoEsperado : (nuevo as any);
+          this.reemplazarItemEnTabla(item.id, {
+            vencimientoEsperado: vencimiento,
+            vencimientoDateComputed: this.vencimientoComoFecha(vencimiento),
+            guardandoVencimientoComputed: false,
+          });
+          // Los ítems pendientes del paso 3 se vuelven a leer en la próxima visita
+          this.markTabAsUnloaded(2);
+        },
+        error: (error) => {
+          console.error("Error guardando el vencimiento del ítem:", error);
+          // Se vuelve a mostrar el vencimiento que tenía (el datepicker ya mostraba el nuevo)
+          this.reemplazarItemEnTabla(item.id, {
+            vencimientoDateComputed: item.vencimientoDateComputed ? new Date(item.vencimientoDateComputed) : null,
+            guardandoVencimientoComputed: false,
+          });
+          this.trasFalloDeMutacion(error, "se guardó el vencimiento", () => this.recargarItemsTrasCorte());
+        },
+      });
+  }
+
+  /** Reemplaza una fila de la tabla de ítems por una copia con los cambios, sin recargar la página. */
+  private reemplazarItemEnTabla(itemId: number, cambios: Partial<MockPedidoItem>): void {
+    this.itemsDataSource.data = this.itemsDataSource.data.map((i) =>
+      i.id === itemId ? ({ ...i, ...cambios } as MockPedidoItem) : i
+    );
   }
 
   /**
@@ -3295,8 +3418,11 @@ export class GestionComprasComponent
       distributionStatusTextComputed: item.distribucionConcluida ? "Concluida" : "Pendiente", 
       distributionStatusClassComputed: item.distribucionConcluida ? "estado-activo" : "estado-pendiente",
       isSelectedComputed: false,
-      distribuciones: []
+      distribuciones: [],
+      vencimientoDateComputed: this.vencimientoComoFecha(item.vencimientoEsperado),
+      guardandoVencimientoComputed: false,
     } as any;
+    this.aplicarVariacionCosto(processedItem);
 
     return processedItem;
   }
@@ -3607,13 +3733,13 @@ export class GestionComprasComponent
   onItemsPageChange(event: PageEvent): void {
     this.itemsPageIndex = event.pageIndex;
     this.itemsPageSize = event.pageSize;
-    this.loadItemsData();
+    this.loadItemsData(false);
   }
 
   onItemsSearchChange(searchText: string): void {
     this.itemsSearchText = searchText;
     this.itemsPageIndex = 0; // Reset to first page
-    this.loadItemsData();
+    this.loadItemsData(false);
   }
 
   onToggleItemsSearch(): void {
@@ -3622,7 +3748,7 @@ export class GestionComprasComponent
       // Si se oculta el buscador, limpiar el texto de búsqueda y recargar
       this.itemsSearchText = '';
       this.itemsPageIndex = 0;
-      this.loadItemsData();
+      this.loadItemsData(false);
     }
   }
 
