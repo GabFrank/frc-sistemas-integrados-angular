@@ -330,7 +330,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchFamilia() {
-    this.onFamiliaSelect(null);
     this.familiaService
       .onSearchFamilia(
         this.filtroFamiliaControl.value,
@@ -343,29 +342,35 @@ export class ProductoComponent implements OnInit, OnDestroy {
           this.familiaDataSource.data = res.getContent;
           if (res.getContent?.length == 1) {
             this.onFamiliaSelect(res.getContent[0]);
+          } else if (this.selectedFamilia) {
+            // La elegida sobrevive a filtrar o paginar; la fila resalta por referencia, así que se re-apunta por id.
+            this.expandedElementFamilia = res.getContent?.find((f) => f.id == this.selectedFamilia.id) ?? null;
           }
         }
       });
   }
 
   onSearchSubfamilia() {
-    this.onSubfamiliaSelect(null);
-    // Sin familia elegida (filtrar o paginar las familias la deselecciona) no hay qué buscar, y no quedan a la vista
-    // las subfamilias de la familia anterior para elegir.
+    // Sin familia elegida no hay qué buscar, y no quedan a la vista las subfamilias de una familia anterior.
     if (!this.selectedFamilia) {
+      this.onSubfamiliaSelect(null);
       this.subfamiliaDataSource.data = [];
       this.selectedSubfamiliaPageInfo = null;
       return;
     }
+    // La elegida sobrevive a filtrar o paginar, salvo que sea de otra familia.
+    if (this.selectedSubfamilia?.familia?.id != this.selectedFamilia.id) this.onSubfamiliaSelect(null);
+    const familiaId = this.selectedFamilia.id;
     this.subfamiliaService
       .onSearchSubfamilia(
-        this.selectedFamilia.id,
+        familiaId,
         this.filtroSubfamiliaControl.value,
         this.subfamiliaPageIndex,
         this.subfamiliaPageSize
       )
       .subscribe((res: PageInfo<Subfamilia>) => {
-        if (res != null) {
+        // Una respuesta que llega después de cambiar de familia no puede dejar elegida una subfamilia ajena.
+        if (res != null && familiaId == this.selectedFamilia?.id) {
           this.selectedSubfamiliaPageInfo = res;
           this.subfamiliaDataSource.data = res.getContent;
           if (res.getContent?.length == 1) {
