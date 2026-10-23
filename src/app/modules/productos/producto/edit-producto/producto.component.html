@@ -415,6 +415,8 @@
             itemsPerPageLabel="Itens por pagina"
             [pageSizeOptions]="[15, 25, 50, 100]"
             (page)="handleFamiliaPageEvent($event)"
+            [pageIndex]="familiaPageIndex"
+            [pageSize]="familiaPageSize"
             [length]="selectedFamiliaPageInfo?.getTotalElements"
             style="width: 100%"
             showFirstLastButtons
@@ -530,7 +532,7 @@
                           <mat-icon>search</mat-icon>
                         </button>
                       </span>
-                      <span *ngIf="filtroFamiliaOpen">
+                      <span *ngIf="filtroSubfamiliaOpen">
                         <button
                           matTooltip="Limpiar buscador"
                           mat-icon-button
@@ -686,6 +688,8 @@
             itemsPerPageLabel="Itens por pagina"
             [pageSizeOptions]="[15, 25, 50, 100]"
             (page)="handleSubfamiliaPageEvent($event)"
+            [pageIndex]="subfamiliaPageIndex"
+            [pageSize]="subfamiliaPageSize"
             [length]="selectedSubfamiliaPageInfo?.getTotalElements"
             style="width: 100%"
             showFirstLastButtons
