@@ -52,7 +52,8 @@ export class LoteDeService {
     return this.genericService.onGetAll(this.onGetAll, page, size, servidor);
   }
 
-  onFindByLoteId(id: number, servidor: boolean = true): Observable<LoteDE> {
-    return this.genericService.onGetById(this.findByLoteId, id, servidor);
+  // La PK de lote_de es (id, sucursal_id): el mismo id existe en varias sucursales.
+  onFindByLoteId(id: number, sucursalId: number, servidor: boolean = true): Observable<LoteDE> {
+    return this.genericService.onGetById(this.findByLoteId, id, null, null, servidor, sucursalId);
   }
 }
