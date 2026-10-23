@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { filter, switchMap } from 'rxjs/operators';
@@ -40,6 +40,7 @@ interface FilaSolicitud {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ListSolicitudRecuperacionComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   displayedColumns = ['id', 'creadoEn', 'usuario', 'documento', 'telefono', 'telefonoRegistrado', 'email',
     'estado', 'resueltoPor', 'acciones'];
@@ -68,10 +69,17 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onFiltrar();
+    this.cargarPagina();
   }
 
+  // Filtrar, Buscar y el cambio de estado vuelven a la página 1 (variable y paginador).
   onFiltrar(): void {
+    this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
+    this.cargarPagina();
+  }
+
+  cargarPagina(): void {
     this.service.onGetPage(this.estadoControl.value, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<SolicitudRecuperacionContrasena>) => {
@@ -83,7 +91,6 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
   }
 
   onCambiarEstado(): void {
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
@@ -95,7 +102,7 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.cargarPagina();
   }
 
   onAprobar(fila: FilaSolicitud): void {
@@ -120,7 +127,7 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
       switchMap(() => this.service.onAprobar(fila.solicitud.id)),
     ).subscribe(() => {
       this.notificacion.openSucess(`Solicitud ${fila.solicitud.id} aprobada`);
-      this.onFiltrar();
+      this.cargarPagina();
     });
   }
 
@@ -136,7 +143,7 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
       switchMap((motivo: string) => this.service.onRechazar(fila.solicitud.id, motivo)),
     ).subscribe(() => {
       this.notificacion.openSucess(`Solicitud ${fila.solicitud.id} rechazada`);
-      this.onFiltrar();
+      this.cargarPagina();
     });
   }
 
