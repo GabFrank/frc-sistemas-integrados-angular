@@ -158,6 +158,14 @@ export class VehiculoService {
     this.refrescar(true);
   }
 
+  /** El servicio es singleton: una lista recién abierta arranca sin el filtro ni la página de la anterior (#589). Conserva el tamaño de página. */
+  reiniciarFiltros(): void {
+    this._searchText$.next('');
+    this._tipoFilter$.next(null);
+    this.vehiculosSubject.next([]);
+    this.updatePagination(0, this._paginationState$.value.pageSize);
+  }
+
   cargarTiposCache(): void {
     if (this._tiposVehiculoSubject.value.length === 0) {
       this.onFiltrarTipos('%').subscribe(res => {
