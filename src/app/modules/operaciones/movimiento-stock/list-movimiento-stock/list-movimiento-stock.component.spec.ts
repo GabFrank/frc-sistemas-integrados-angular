@@ -53,6 +53,7 @@ describe('ListMovimientoStockComponent', () => {
     component.horaInicioControl.setValue('08:00');
     component.horaFinalControl.setValue('10:00');
     component.page = 3;
+    component.paginator = { pageIndex: 3 } as any;
     component.dataSource.data = [{ id: 1 } as any];
     component.selectedPageInfo = {} as any;
     component.stockActualEstado = 'ok';
@@ -83,6 +84,7 @@ describe('ListMovimientoStockComponent', () => {
     expect(component.tipoMovimientoControl.value).toBeNull();
     expect(component.referenciaControl.value).toBeNull();
     expect(component.page).toBe(0);
+    expect(component.paginator.pageIndex).toBe(0);
     expect(component.dataSource.data).toEqual([]);
     expect(component.selectedPageInfo).toBeNull();
     expect(component.stockActualEstado).toBe('inicial');
