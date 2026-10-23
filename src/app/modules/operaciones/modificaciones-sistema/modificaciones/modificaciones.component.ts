@@ -247,13 +247,18 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
           }
         );
     } else {
+      // Con varios módulos, cada uno trae desde el principio hasta el final de la página pedida y la
+      // página se corta del resultado unido: pedir la página N a cada uno pierde filas (#583).
+      const varios = schemasABuscar.length > 1;
+      const desde = varios ? this.pageIndex * this.pageSize : 0;
+      const hasta = desde + this.pageSize;
       const busquedas = schemasABuscar.map(schema =>
         this.service.onModificacionesPorSchema(
           schema,
           fechaInicio,
           fechaFin,
-          this.pageIndex,
-          this.pageSize
+          varios ? 0 : this.pageIndex,
+          hasta
         )
       );
 
@@ -271,10 +276,11 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
               }
             });
 
+            // El id desempata las fechas iguales para que el corte no dependa del orden de llegada.
             contenidoCombinado.sort((a, b) => {
               const fechaA = new Date(a.modificadoEn).getTime();
               const fechaB = new Date(b.modificadoEn).getTime();
-              return fechaB - fechaA;
+              return fechaB - fechaA || b.id - a.id;
             });
 
             const contenidoProcesado = contenidoCombinado.map(reg => ({
@@ -283,7 +289,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
               tipoOperacionColor: this.getTipoOperacionColor(reg.tipoOperacion)
             }));
 
-            const contenidoPaginado = contenidoProcesado.slice(0, this.pageSize);
+            const contenidoPaginado = contenidoProcesado.slice(desde, hasta);
 
             this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
             this.selectedPageInfo.getTotalElements = totalElementos;
