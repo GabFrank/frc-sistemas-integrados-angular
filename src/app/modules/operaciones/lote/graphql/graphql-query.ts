@@ -345,3 +345,33 @@ export const buscarLotesDeProductoQuery = gql`
     }
   }
 `;
+
+/**
+ * Gestión de lotes (lotes flexibles, entrega 5): saldo en toda la red y si está archivado, para la
+ * pantalla «Lotes del producto». Consulta aparte a propósito: pide campos nuevos del central y no
+ * debe romper el buscador de siempre contra un central que todavía no los tiene.
+ */
+export const gestionLotesDeProductoQuery = gql`
+  query gestionLotesDeProducto($productoId: ID!, $size: Int) {
+    data: buscarLotesDeProducto(productoId: $productoId, page: 0, size: $size, incluirArchivados: true) {
+      getContent {
+        loteId
+        numeroLote
+        saldoTotal
+        archivado
+      }
+    }
+  }
+`;
+
+export const archivarLoteMutation = gql`
+  mutation archivarLote($loteId: ID!, $motivo: String!, $usuarioId: ID) {
+    data: archivarLote(loteId: $loteId, motivo: $motivo, usuarioId: $usuarioId)
+  }
+`;
+
+export const desarchivarLoteMutation = gql`
+  mutation desarchivarLote($loteId: ID!) {
+    data: desarchivarLote(loteId: $loteId)
+  }
+`;
