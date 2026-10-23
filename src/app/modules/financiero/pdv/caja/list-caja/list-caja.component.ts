@@ -212,6 +212,7 @@ export class ListCajaComponent implements OnInit {
         this.fechaFinalControl.value,
         sucursalId,
         this.verificadoControl.value,
+        this.activoControl.value,
         this.pageIndex,
         this.pageSize
       )
@@ -246,7 +247,6 @@ export class ListCajaComponent implements OnInit {
     this.fechaFinalControl.setValue(hoy);
     this.conObsControl.setValue(false);
     this.verificadoControl.setValue(null);
-    // Abiertas/Cerradas no viaja a la query (#578): solo se vuelve a TODAS para que no aparente filtrar.
     this.activoControl.setValue(null);
     this.lastValue = null;
     this.onFilter();
