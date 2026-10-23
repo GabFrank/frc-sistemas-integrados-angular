@@ -2,6 +2,16 @@
 .campo { width: 100%; }
 table { width: 100%; border-collapse: collapse; margin: 8px 0; }
 th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid rgba(128,128,128,.3); }
-td input { width: 90px; }
+td input {
+  width: 90px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  border: none;
+  border-bottom: 1px solid rgba(128,128,128,.6);
+  padding: 2px 0;
+  outline: none;
+}
+td input:focus { border-bottom: 2px solid #f44336; }
 .pos { color: #2e7d32; } .neg { color: #c62828; }
 .error { color: #c62828; margin-top: 6px; }
