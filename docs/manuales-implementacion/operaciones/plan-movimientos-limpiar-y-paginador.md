@@ -76,6 +76,30 @@ Ninguno: no hay campo, columna ni clave nueva.
   tras Limpiar) → incorporado con `vaciarResultados()`. La lista de campos de Limpiar quedó explícita. El spec actual
   no levanta → se reescribe con instancia directa y se confirma el rojo con el código viejo.
 
+## Auditoría del diff (paso 8)
+
+Fijo 1 y Fijo 2: N/A (solo un componente del desktop y su spec; sin resolver, migración ni esquema). Fijo 3: la pantalla
+manda lo mismo al central salvo `size` 15 en vez de 20 y que sin producto ya no pide la lista. Hallazgos:
+- **Media:** el camino sin producto retorna antes de normalizar «Todas» en tipo de movimiento: el select queda con
+  «Todas» marcado en vez de vaciarse. No cambia ninguna consulta (no se manda nada). Se deja así, declarado acá.
+- **Baja:** la rama del paginador en Limpiar no tenía test → agregado (`paginator.pageIndex` vuelve a 0).
+- **Baja, preexistente, fuera de alcance:** los chips de rango rápido (7 días / 1 me…) no están atados al formulario y
+  quedan marcados después de Limpiar; paginar usa el producto elegido aunque no se haya vuelto a buscar; el 15 queda
+  repetido entre `size` y `pageSizeOptions` (comentado en el código).
+
+## Prueba por pantalla (2026-10-23, central `develop` propio en :8091 + build `web-production` en :4201, usuario MR)
+
+1. Buscar sin producto → aviso, resumen «Elegí un producto», **0** pedidos GraphQL. ✔
+2. Producto 740, junio 2026 (100 movimientos) → 1.ª página 15 filas «1 – 15 of 100»; 2.ª «16 – 30 of 100», sin filas
+   repetidas. ✔
+3. Con fechas, sucursal, VENTA, usuario y producto puestos y en la página 2 → Limpiar deja todo en el estado inicial,
+   sin pedidos ni aviso. ✔
+4. «x» de usuario → limpia, vuelve el foco al campo, sin error en consola. ✔
+5. Buscar y Limpiar a los 50 ms → la respuesta posterior no repinta tabla ni resumen. ✔
+
+Visto de paso, preexistente: escribir la fecha a mano puede dejar el fin en `null` y `onGetResumen` corta con
+`Cannot read properties of null (reading 'setHours')` (la tabla queda vacía sin aviso). No lo toca este cambio.
+
 ## Sin verificar / riesgos
 
 - Ninguno de persistencia ni de contrato. Lo único sin red automática en el CI es la propia pantalla: se prueba
