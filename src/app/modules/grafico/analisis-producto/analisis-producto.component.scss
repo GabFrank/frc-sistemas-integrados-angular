@@ -4,11 +4,11 @@ $primary: #689F38;
 $accent: #009688;
 $warn: #F44336;
 $warning: #FF9800;
-$background: #424242;
-$background-dark: #303030;
-$text: #E0E0E0;
-$text-secondary: #9E9E9E;
-$border: #555;
+$background: var(--frc-superficie-elevada);
+$background-dark: var(--frc-fondo);
+$text: var(--frc-dash-texto);
+$text-secondary: var(--frc-dash-texto-2);
+$border: var(--frc-borde-solido-fuerte);
 
 .analisis-producto-container {
     min-height: 100%;
@@ -190,7 +190,7 @@ $border: #555;
     height: 32px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(var(--frc-tinta), 0.15);
 }
 
 .item-info {
