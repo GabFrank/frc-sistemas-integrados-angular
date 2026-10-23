@@ -185,6 +185,9 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
+    <div *ngIf="sinFiltro" style="width: 100%; text-align: center; padding: 16px">
+      Escribí un nombre, código o documento, o elegí un tipo
+    </div>
     <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
       (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
       showFirstLastButtons></mat-paginator>
