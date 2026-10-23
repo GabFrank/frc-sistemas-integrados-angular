@@ -70,6 +70,31 @@ N/A: no nace ningún campo, columna ni clave.
   - OPERACIONES sola: 4 páginas, 60 de 60, igual a la base;
   - PRODUCTOS en la página 3 de 15, pasando a 25 por página: muestra las filas 26–50 correctas.
 
+## Fase 2 — paginar en el central (límites de la fase 1)
+
+Franco pidió arreglar también los dos límites: el costo con N alto y los empates. El central suma
+`modificacionesPorSchemas(schemaNombres, …)`, que pagina el resultado unido con
+`ORDER BY modificadoEn DESC, id DESC`, y el desempate pasa a las consultas paginadas que ya
+existían (plan del central: `docs/manuales-implementacion/operaciones/plan-modificaciones-por-varios-schemas.md`
+en la misma rama del central).
+
+En el desktop:
+
+- `ModificacionesService.onModificacionesPorSchemas` (query y clase GQL nuevas). Propaga el error
+  de GraphQL sin avisar.
+- La rama sin tipo de entidad hace una sola llamada con la página y el tamaño pedidos, con uno o
+  dos módulos.
+- **Respaldo:** si esa consulta falla (un central sin la query: otro canal, deploy pendiente o
+  rollback automático), usa la unión en el cliente de la fase 1. Lo pidieron los dos auditores del
+  plan (ejes A y B): el central se despliega a mano por instancia y el desktop se actualiza solo,
+  así que el orden de despliegue no alcanza. Queda marcado con `shortcut:` para borrarlo cuando
+  todos los canales tengan la query.
+- `pagina` y `tamanio` se toman al pedir, no al recibir.
+
+Tests: 6 en el spec. 2 del camino nuevo (una sola consulta con la lista y la página; un módulo usa
+la misma) y 4 del respaldo (los de la fase 1, con la query nueva fallando).
+
 ## Sin verificar
 
-- Rendimiento con N muy alto contra la base de producción.
+- Rendimiento con N muy alto contra la base de producción (con la fase 2 solo aplica al
+  respaldo).
