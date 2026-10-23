@@ -13,6 +13,7 @@ import {
   TableData
 } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { AjustarStockLoteGQL } from './graphql/ajustarStockLote';
+import { AjustarStockLoteListaGQL } from './graphql/ajustarStockLoteLista';
 import { BuscarLotesDeProductoGQL } from './graphql/buscarLotesDeProducto';
 import { ResumenStockLoteGQL } from './graphql/resumenStockLote';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
@@ -67,6 +68,7 @@ export class LoteService {
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL,
     private resumenStockLoteGQL: ResumenStockLoteGQL,
     private ajustarStockLoteGQL: AjustarStockLoteGQL,
+    private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
     private dialog: MatDialog
   ) {}
@@ -385,6 +387,18 @@ export class LoteService {
     return this.genericService.onCustomMutation(
       this.ajustarStockLoteGQL,
       { input },
+      servidor
+    );
+  }
+
+  /** Conteo rápido: ajusta varios lotes de una sucursal en una sola transacción. */
+  onAjustarStockLoteLista(
+    inputs: AjusteStockLoteInput[],
+    servidor = true
+  ): Observable<AjusteStockLoteResultado[]> {
+    return this.genericService.onCustomMutation(
+      this.ajustarStockLoteListaGQL,
+      { inputs },
       servidor
     );
   }

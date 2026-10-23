@@ -1,0 +1,7 @@
+.cuerpo { min-width: 560px; }
+.campo { width: 100%; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid rgba(128,128,128,.3); }
+td input { width: 90px; }
+.pos { color: #2e7d32; } .neg { color: #c62828; }
+.error { color: #c62828; margin-top: 6px; }

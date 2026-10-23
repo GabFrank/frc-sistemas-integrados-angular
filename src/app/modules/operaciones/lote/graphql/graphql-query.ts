@@ -375,3 +375,20 @@ export const desarchivarLoteMutation = gql`
     data: desarchivarLote(loteId: $loteId)
   }
 `;
+
+/**
+ * Conteo rápido: varios lotes de una sucursal en una sola transacción (tope 50). Cada fila lleva
+ * saldoEsperado: si el saldo cambió desde que se cargó la pantalla, el backend rechaza todo.
+ */
+export const ajustarStockLoteListaMutation = gql`
+  mutation ajustarStockLoteLista($inputs: [AjusteStockLoteInput!]!) {
+    data: ajustarStockLoteLista(inputs: $inputs) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
