@@ -527,6 +527,8 @@ export class ListVentaComponent implements OnInit {
     this.idVentaControl.setValue(null);
     this.formaPagoControl.setValue(null);
     this.estadoControl.setValue(null);
+    this.modoControl.setValue(null);
+    this.monedaControl.setValue(null);
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
     // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
