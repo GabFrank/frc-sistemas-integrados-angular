@@ -24,6 +24,7 @@ export class ListVehiculosComponent implements OnInit {
 
     ngOnInit(): void {
         this.vehiculoService.cargarTiposCache();
+        this.vehiculoService.reiniciarFiltros();
         this.vehiculoService.refrescar();
         this.initFiltros();
     }
