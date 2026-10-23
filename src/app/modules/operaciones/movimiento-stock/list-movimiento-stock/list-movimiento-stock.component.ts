@@ -107,7 +107,7 @@ export interface StockResumenView {
 export class ListMovimientoStockComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
   @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild("buscadorUsuarioInput", { static: true })
+  @ViewChild("usuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
 
   dataSource = new MatTableDataSource<MovimientoStock>(null);
@@ -145,7 +145,7 @@ export class ListMovimientoStockComponent implements OnInit {
   isDialogOpen = false;
   isPesable = false;
   page = 0;
-  size = 20;
+  size = 15; // la primera opción del paginador, que no declara [pageSize] (#581)
   selectedPageInfo: PageInfo<MovimientoStock>;
   
   stockActualDesglose: { sucursal: string; stock: number | null }[] = [];
@@ -225,6 +225,16 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   onGetResumen(isPagination: boolean = false) {
+    if (!this.selectedProducto?.id) {
+      // Sin producto no se consulta nada: el central respondería null y parecería un fallo
+      this.vaciarResultados();
+      this.stockActualEstado = 'sin-producto';
+      this.stockPeriodoEstado = 'sin-producto';
+      this.notificacionService.openWarn(
+        "Debe seleccionar un producto para realizar la búsqueda"
+      );
+      return;
+    }
 
     let selectedSucursales = this.sucursalControl.value;
 
@@ -262,15 +272,6 @@ export class ListMovimientoStockComponent implements OnInit {
       this.stockPeriodoSinRespuesta = '';
       this.desgloseHabilitado = sucursalIdList.length > 1;
 
-      if (!this.selectedProducto?.id) {
-        // Sin producto no se consulta nada: el central respondería null y parecería un fallo
-        this.stockActualEstado = 'sin-producto';
-        this.stockPeriodoEstado = 'sin-producto';
-        this.notificacionService.openWarn(
-          "Debe seleccionar un producto para realizar la búsqueda"
-        );
-        return;
-      }
       const productoId = this.selectedProducto.id;
       const nombreDe = (index: number) =>
         this.sucursalList.find(s => s.id === sucursalIdList[index])?.nombre ?? 'Desconocido';
@@ -697,7 +698,47 @@ export class ListMovimientoStockComponent implements OnInit {
     this.onGetResumen(isPagination);
   }
 
-  resetFiltro() { }
+  /** Vuelve los filtros al estado de ngOnInit. No consulta: sin producto solo saldría el aviso (#581). */
+  resetFiltro() {
+    // Date nuevos: onGetResumen/onGetMovimientos mutan con setHours el objeto del control
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - 7);
+    this.fechaInicioControl.setValue(inicio);
+    this.fechaFinalControl.setValue(new Date());
+    this.horaInicioControl.setValue("00:00");
+    this.horaFinalControl.setValue("23:59");
+    this.sucursalControl.setValue(null);
+    this.tipoMovimientoControl.setValue(null);
+    this.referenciaControl.setValue(null);
+    this.selectedProducto = null;
+    this.buscarProductoControl.setValue(null);
+    this.productoList = [];
+    this.isPesable = false;
+    this.selectedUsuario = null;
+    this.buscarUsuarioControl.setValue(null);
+    this.vaciarResultados();
+    this.stockActualEstado = 'inicial';
+    this.stockPeriodoEstado = 'inicial';
+  }
+
+  /** Vacía tabla, paginador y resumen, y descarta las respuestas en vuelo del filtro anterior. */
+  private vaciarResultados() {
+    ++this.cargaLista;
+    ++this.cargaResumen;
+    this.dataSource.data = [];
+    this.selectedPageInfo = null;
+    this.expandedMovimiento = null;
+    this.page = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.stockTotal = null;
+    this.stockPorRangoFecha = null;
+    this.stockPorTipoMovimiento = [];
+    this.stockActualDesglose = [];
+    this.stockPeriodoSinRespuesta = '';
+    this.desgloseHabilitado = false;
+  }
 
   onGenerarPdf() { }
 
