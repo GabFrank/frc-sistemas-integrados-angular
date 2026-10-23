@@ -9,11 +9,11 @@ $accent-light: #4DB6AC;
 $warn: #F44336;
 $warning: #FF9800;
 $info: #2196F3;
-$background: #424242;
-$background-dark: #303030;
-$text: #E0E0E0;
-$text-secondary: #9E9E9E;
-$border: #555;
+$background: var(--frc-superficie-elevada);
+$background-dark: var(--frc-fondo);
+$text: var(--frc-dash-texto);
+$text-secondary: var(--frc-dash-texto-2);
+$border: var(--frc-borde-solido-fuerte);
 
 // Contenedor principal: ocupa alto del tab y reparte espacio al gráfico
 .forma-pago-container {
@@ -227,7 +227,7 @@ $border: #555;
 
     &:hover {
         border-color: $primary;
-        background: lighten($background-dark, 3%);
+        background: linear-gradient(rgba(var(--frc-tinta), 0.03), rgba(var(--frc-tinta), 0.03)), $background-dark;
     }
 
     &:focus-visible {
@@ -350,7 +350,7 @@ $border: #555;
 
 // Sección de desglose expandible
 .desglose-section {
-    background: lighten($background-dark, 2%);
+    background: linear-gradient(rgba(var(--frc-tinta), 0.02), rgba(var(--frc-tinta), 0.02)), $background-dark;
     border: 1px solid $border;
     border-top: none;
     border-bottom-left-radius: 8px;

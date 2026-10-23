@@ -87,12 +87,12 @@ mat-chip {
   }
 
   &.chip-sin-datos {
-    color: rgb(255, 255, 255) !important;
-    border-color: rgb(255, 255, 255) !important;
+    color: var(--frc-texto-fuerte) !important;
+    border-color: var(--frc-texto-fuerte) !important;
 
     ::ng-deep .mat-mdc-chip-text-label,
     ::ng-deep .mdc-evolution-chip__text-label {
-      color: #ffffff !important;
+      color: var(--frc-texto-fuerte) !important;
       padding-top: 3px;
     }
   }
@@ -157,21 +157,21 @@ td.mat-cell.center {
 }
 
 .icon-link {
-  color: white;
+  color: var(--frc-texto-fuerte);
   font-size: 1.4em;
   padding: 7px 0 0 5px;
 }
 
 .info-diferencia {
   padding: 8px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--frc-borde-solido);
 }
 
 .movimiento-container {
   padding-top: 20px;
   padding-bottom: 20px;
   width: 100%;
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-franja);
 }
 
 .example-element-row td {
@@ -205,7 +205,7 @@ tr.example-detail-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #2d2d2d;
+  background-color: var(--frc-superficie);
   border-radius: 4px;
   padding: 10px 20px 10px 10px;
   margin-bottom: 20px;
@@ -213,9 +213,9 @@ tr.example-detail-row {
 
 .info-diferencia-header {
   padding: 8px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--frc-borde-solido);
   font-weight: bold;
-  background-color: rgb(52, 52, 52);
+  background-color: var(--frc-superficie-alta);
   border-radius: 10px 10px 0 0;
 }
 
@@ -225,7 +225,7 @@ tr.example-element-row {
   cursor: pointer;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(var(--frc-tinta), 0.1) !important;
   }
 
 
@@ -286,7 +286,7 @@ tr.example-element-row {
   p {
     margin: 0;
     font-size: 14px;
-    color: #666;
+    color: var(--frc-texto-suave);
   }
 }
 
@@ -306,7 +306,7 @@ tr.example-element-row {
   p {
     margin-top: 20px;
     font-size: 14px;
-    color: #666;
+    color: var(--frc-texto-suave);
     text-align: center;
   }
 }
@@ -376,16 +376,16 @@ tr.example-element-row {
 }
 
 .action-circle {
-  background-color: #1e1e1e;
+  background-color: var(--frc-superficie-baja);
   border-radius: 50%;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #444;
+  border: 2px solid var(--frc-borde-solido);
   transition: all 0.2s ease;
-  color: #888;
+  color: var(--frc-texto-apagado);
 
   padding: 0; // Ensure no default padding affects centering
 
@@ -407,8 +407,8 @@ tr.example-element-row {
   }
 
   &:hover {
-    border-color: #666;
-    color: #aaa;
+    border-color: var(--frc-borde-fuerte);
+    color: var(--frc-texto-suave);
   }
 }
 
