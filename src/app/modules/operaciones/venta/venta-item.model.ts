@@ -25,6 +25,8 @@ export class VentaItem {
      * control de lote y solo si el cajero abre el selector.
      */
     lotes: VentaItemLoteInput[];
+    /** Solo pantalla (no viaja al servidor): "Lote X · Vto dd/mm/aa" bajo el ítem antes de cobrar (#429). */
+    lotesEtiqueta?: string;
 
     toInput(): VentaItemInput{
         let input = new VentaItemInput()
