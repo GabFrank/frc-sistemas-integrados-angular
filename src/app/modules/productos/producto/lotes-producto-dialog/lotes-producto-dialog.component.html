@@ -14,6 +14,7 @@
 
   <div class="ayuda">
     Bloquear un lote lo saca de la venta en todas las sucursales sin modificar el stock físico.
+    Un lote sin saldo en ninguna sucursal se puede archivar para que no aparezca en los buscadores.
   </div>
 
   <div *ngIf="cargando" class="mensaje-estado">
@@ -58,6 +59,11 @@
         <td mat-cell *matCellDef="let fila">{{ fila.proveedorNombre }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="saldo">
+        <th mat-header-cell *matHeaderCellDef matTooltip="Saldo del lote sumando todas las sucursales">Saldo red</th>
+        <td mat-cell *matCellDef="let fila" [class.lote-archivado]="fila.archivado">{{ fila.saldoLabel }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
         <td mat-cell *matCellDef="let fila">
@@ -85,6 +91,12 @@
               (click)="onCambiarEstado(fila, estado)"
             >
               {{ estadoLabels[estado] }}
+            </button>
+            <button mat-menu-item *ngIf="fila.puedeArchivar" (click)="onArchivar(fila)">
+              <mat-icon>archive</mat-icon> Archivar (sin saldo)
+            </button>
+            <button mat-menu-item *ngIf="fila.archivado" (click)="onDesarchivar(fila)">
+              <mat-icon>unarchive</mat-icon> Desarchivar
             </button>
           </mat-menu>
         </td>
