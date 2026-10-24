@@ -5,7 +5,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
 import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { CONTEXTO_SONDEO, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   SearchListDialogComponent,
@@ -13,14 +13,18 @@ import {
   TableData
 } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { AjustarStockLoteGQL } from './graphql/ajustarStockLote';
+import { AjustarStockLoteListaGQL } from './graphql/ajustarStockLoteLista';
 import { BuscarLotesDeProductoGQL } from './graphql/buscarLotesDeProducto';
 import { ResumenStockLoteGQL } from './graphql/resumenStockLote';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
+import { ArchivarLoteGQL, DesarchivarLoteGQL, GestionLotesDeProductoGQL } from './graphql/gestionLotes';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { ClientesPorLoteGQL } from './graphql/clientesPorLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
+import { BuscarLotePorNumeroGQL } from './graphql/buscarLotePorNumero';
+import { LotesDeVentaGQL } from './graphql/lotesDeVenta';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
 import {
@@ -32,6 +36,8 @@ import {
   LoteDeProducto,
   MovimientoLote,
   ResumenStockLote,
+  LoteVentaItem,
+  ResultadoBusquedaLote,
   StockLote,
   StockLotePresentacion,
   StockLoteSucursal
@@ -52,6 +58,9 @@ const CONSULTA_LISTADO_LOTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO
 })
 export class LoteService {
   constructor(
+    private gestionLotesDeProductoGQL: GestionLotesDeProductoGQL,
+    private archivarLoteGQL: ArchivarLoteGQL,
+    private desarchivarLoteGQL: DesarchivarLoteGQL,
     private genericService: GenericCrudService,
     private lotesPorProductoGQL: LotesPorProductoGQL,
     private stockPorLoteGQL: StockPorLoteGQL,
@@ -63,9 +72,44 @@ export class LoteService {
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL,
     private resumenStockLoteGQL: ResumenStockLoteGQL,
     private ajustarStockLoteGQL: AjustarStockLoteGQL,
+    private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
+    private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
+    private lotesDeVentaGQL: LotesDeVentaGQL,
     private dialog: MatDialog
   ) {}
+
+  /**
+   * Busca un lote por número en el maestro (incluye saldo 0 y archivados), tolerante a
+   * mayúsculas, separadores y ceros a la izquierda. Con producto, si no hay registro trae desde
+   * cuándo se controla el lote y qué entró sin lote. Requiere un central con la fase 2.
+   */
+  onBuscarLotePorNumero(numeroLote: string, productoId?: number, servidor = true): Observable<ResultadoBusquedaLote> {
+    return this.genericService.onCustomQuery(
+      this.buscarLotePorNumeroGQL,
+      { numeroLote, productoId: productoId ?? null },
+      servidor,
+      PROPAGAR_ERROR_DE_RED,
+      false,
+      CONSULTA_LISTADO_LOTE
+    );
+  }
+
+  /**
+   * De qué lote salió cada ítem de una venta. Lectura de fondo y silenciosa: si el central todavía
+   * no tiene la consulta (versión vieja) o el usuario no tiene permiso, no avisa nada y quien llama
+   * simplemente no muestra los lotes.
+   */
+  onLotesDeVenta(ventaId: number, sucursalId: number): Observable<LoteVentaItem[]> {
+    return this.genericService.onCustomQuery(
+      this.lotesDeVentaGQL,
+      { ventaId, sucursalId },
+      true,
+      { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
+      true,
+      CONTEXTO_SONDEO
+    );
+  }
 
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
   onGetLotesPorProducto(productoId: number, servidor = true, errorConf?: QueryError,
@@ -383,5 +427,36 @@ export class LoteService {
       { input },
       servidor
     );
+  }
+
+  /** Conteo rápido: ajusta varios lotes de una sucursal en una sola transacción. */
+  onAjustarStockLoteLista(
+    inputs: AjusteStockLoteInput[],
+    servidor = true
+  ): Observable<AjusteStockLoteResultado[]> {
+    return this.genericService.onCustomMutation(
+      this.ajustarStockLoteListaGQL,
+      { inputs },
+      servidor
+    );
+  }
+
+  /** Saldo en la red y archivado de cada lote del producto (pantalla «Lotes del producto»). */
+  onGestionLotesDeProducto(productoId: number, size = 200, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(
+      this.gestionLotesDeProductoGQL,
+      { productoId, size },
+      servidor,
+      PROPAGAR_ERROR_DE_RED
+    );
+  }
+
+  /** Archiva un lote sin saldo en ninguna sucursal: deja de aparecer en buscadores y selectores. */
+  onArchivarLote(loteId: number, motivo: string, usuarioId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.archivarLoteGQL, { loteId, motivo, usuarioId }, servidor);
+  }
+
+  onDesarchivarLote(loteId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.desarchivarLoteGQL, { loteId }, servidor);
   }
 }

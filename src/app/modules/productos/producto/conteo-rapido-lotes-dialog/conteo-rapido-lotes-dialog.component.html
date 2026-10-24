@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>Conteo rápido de lotes</h2>
+<mat-dialog-content class="cuerpo">
+  <div>{{ data?.producto?.descripcion }}</div>
+  <mat-form-field class="campo">
+    <mat-label>Sucursal</mat-label>
+    <mat-select [value]="sucursalId" (selectionChange)="onSucursal($event.value)">
+      <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.id }} - {{ s.nombre }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-spinner *ngIf="cargando" diameter="30"></mat-spinner>
+  <div *ngIf="sucursalId != null && !cargando && filas.length === 0">No hay lotes con saldo en esta sucursal.</div>
+  <table *ngIf="filas.length > 0">
+    <tr><th>Nº de lote</th><th>Vencimiento</th><th>Saldo</th><th>Contado</th><th>Diferencia</th></tr>
+    <tr *ngFor="let f of filas">
+      <td>{{ f.numeroLote }}</td>
+      <td>{{ f.fechaVencimiento | date: 'dd/MM/yyyy' }}</td>
+      <td>{{ f.saldo }}</td>
+      <td><input type="number" min="0" [(ngModel)]="f.contado" [attr.aria-label]="'Contado ' + f.numeroLote" /></td>
+      <td [class.pos]="diferencia(f) > 0" [class.neg]="diferencia(f) < 0">{{ diferencia(f) ?? '' }}</td>
+    </tr>
+  </table>
+  <ng-container *ngIf="filas.length > 0">
+    <mat-checkbox [(ngModel)]="liberar">Liberar a «SIN LOTE» lo que falta (no cambia el stock del producto)</mat-checkbox>
+    <mat-form-field class="campo">
+      <mat-label>Motivo{{ liberar ? ' (obligatorio)' : '' }}</mat-label>
+      <input matInput [(ngModel)]="motivo" maxlength="200" />
+    </mat-form-field>
+    <div class="error" *ngIf="error">{{ error }}</div>
+  </ng-container>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="error != null || guardando" (click)="onGuardar()">Guardar conteo</button>
+</mat-dialog-actions>

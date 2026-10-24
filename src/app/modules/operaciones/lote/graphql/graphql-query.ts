@@ -345,3 +345,105 @@ export const buscarLotesDeProductoQuery = gql`
     }
   }
 `;
+
+/**
+ * Gestión de lotes (lotes flexibles, entrega 5): saldo en toda la red y si está archivado, para la
+ * pantalla «Lotes del producto». Consulta aparte a propósito: pide campos nuevos del central y no
+ * debe romper el buscador de siempre contra un central que todavía no los tiene.
+ */
+export const gestionLotesDeProductoQuery = gql`
+  query gestionLotesDeProducto($productoId: ID!, $size: Int) {
+    data: buscarLotesDeProducto(productoId: $productoId, page: 0, size: $size, incluirArchivados: true) {
+      getContent {
+        loteId
+        numeroLote
+        saldoTotal
+        archivado
+      }
+    }
+  }
+`;
+
+export const archivarLoteMutation = gql`
+  mutation archivarLote($loteId: ID!, $motivo: String!, $usuarioId: ID) {
+    data: archivarLote(loteId: $loteId, motivo: $motivo, usuarioId: $usuarioId)
+  }
+`;
+
+export const desarchivarLoteMutation = gql`
+  mutation desarchivarLote($loteId: ID!) {
+    data: desarchivarLote(loteId: $loteId)
+  }
+`;
+
+/**
+ * Conteo rápido: varios lotes de una sucursal en una sola transacción (tope 50). Cada fila lleva
+ * saldoEsperado: si el saldo cambió desde que se cargó la pantalla, el backend rechaza todo.
+ */
+export const ajustarStockLoteListaMutation = gql`
+  mutation ajustarStockLoteLista($inputs: [AjusteStockLoteInput!]!) {
+    data: ajustarStockLoteLista(inputs: $inputs) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
+
+/** Buscar lote por número (#429 fase 2). */
+export const buscarLotePorNumeroQuery = gql`
+  query ($numeroLote: String!, $productoId: ID) {
+    data: buscarLotePorNumero(numeroLote: $numeroLote, productoId: $productoId) {
+      numeroBuscado
+      claveBusqueda
+      encontrado
+      coincidenciaExacta
+      lotes {
+        loteId
+        productoId
+        productoDescripcion
+        numeroLote
+        fechaVencimiento
+        estado
+        proveedorNombre
+        archivado
+        primeraEntradaFecha
+        primeraEntradaTipo
+        primeraEntradaDocumentoId
+        saldoTotal
+        totalVendido
+        cantidadVentas
+      }
+      trazabilidad {
+        productoId
+        productoDescripcion
+        trazadoDesde
+        entradasSinLote {
+          tipoMovimiento
+          movimientos
+          cantidad
+        }
+        comprasAnteriores
+        todasLasEntradasConLote
+      }
+    }
+  }
+`;
+
+/** De qué lote salió cada ítem de una venta (#429 fase 2, entrega 2). Requiere un central con la fase 2. */
+export const lotesDeVentaQuery = gql`
+  query ($ventaId: ID!, $sucursalId: ID!) {
+    data: lotesDeVenta(ventaId: $ventaId, sucursalId: $sucursalId) {
+      ventaItemId
+      productoId
+      loteId
+      numeroLote
+      fechaVencimiento
+      cantidad
+      anulado
+    }
+  }
+`;
