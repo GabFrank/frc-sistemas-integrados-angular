@@ -87,7 +87,7 @@
             <button
               mat-menu-item
               *ngFor="let estado of estados"
-              [disabled]="fila.estado === estado"
+              [disabled]="fila.estado === estado || fila.eliminado"
               (click)="onCambiarEstado(fila, estado)"
             >
               {{ estadoLabels[estado] }}
@@ -97,6 +97,12 @@
             </button>
             <button mat-menu-item *ngIf="fila.archivado" (click)="onDesarchivar(fila)">
               <mat-icon>unarchive</mat-icon> Desarchivar
+            </button>
+            <button mat-menu-item *ngIf="puedeEliminar(fila)" (click)="onEliminar(fila)">
+              <mat-icon>delete_outline</mat-icon> Eliminar (creado por error)
+            </button>
+            <button mat-menu-item *ngIf="fila.eliminado" (click)="onRestaurar(fila)">
+              <mat-icon>restore</mat-icon> Restaurar
             </button>
           </mat-menu>
         </td>
