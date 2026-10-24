@@ -678,6 +678,7 @@ export class GestionComprasComponent
           this.productosProveedorDataSource.data = [];
           this.productosProveedorPageIndex = 0;
           this.ultimasComprasDataSource.data = [];
+          this.ultimasComprasLoading = false;
           this.selectedProductoProveedor = null;
         }
       });
@@ -4840,6 +4841,7 @@ export class GestionComprasComponent
       return;
     }
 
+    this.ultimasComprasDataSource.data = [];
     this.ultimasComprasLoading = true;
 
     this.productoUltimasComprasGQL
@@ -4853,7 +4855,8 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
+          if (this.descartarUltimasCompras(productoId)) return;
+
           // La respuesta tiene la estructura: response.data.data.productoUltimasCompras
           const producto = response.data?.data;
           const ultimasCompras = (producto?.productoUltimasCompras || []) as any[];
@@ -4889,11 +4892,12 @@ export class GestionComprasComponent
             return item;
           });
 
-          // Sin paginador: el central devuelve como máximo las 5 últimas (#594). Si falla, quedan las filas de antes.
+          // Sin paginador: el central devuelve como máximo las 5 últimas (#594).
           this.ultimasComprasDataSource.data = compras;
           this.ultimasComprasLoading = false;
         },
         error: (error) => {
+          if (this.descartarUltimasCompras(productoId)) return;
           console.error("Error cargando últimas compras:", error);
           this.notificacionService.openAlgoSalioMal(
             "Error al cargar las últimas compras del producto"
@@ -4901,6 +4905,17 @@ export class GestionComprasComponent
           this.ultimasComprasLoading = false;
         },
       });
+  }
+
+  /**
+   * true si la respuesta es de un producto que ya no está seleccionado (clics rápidos o limpieza, #611).
+   * Si quedó otro seleccionado, su propio fetch apaga la carga; si no queda ninguno, la apaga acá.
+   */
+  private descartarUltimasCompras(productoId: number): boolean {
+    const seleccionadoId = this.selectedProductoProveedor?.producto?.id;
+    if (seleccionadoId === productoId) return false;
+    if (!seleccionadoId) this.ultimasComprasLoading = false;
+    return true;
   }
 
   /**
@@ -5168,6 +5183,7 @@ export class GestionComprasComponent
             if (this.selectedProductoProveedor?.id === producto.id) {
               this.selectedProductoProveedor = null;
               this.ultimasComprasDataSource.data = [];
+              this.ultimasComprasLoading = false;
             }
           } else {
             this.notificacionService.openAlgoSalioMal("No se pudo desvincular el producto");
