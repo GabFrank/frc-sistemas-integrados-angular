@@ -135,4 +135,17 @@ describe('SeleccionarLotesDialogComponent (lotes flexibles #429)', () => {
     component.onConfirmar();
     expect(dialogRef.close).not.toHaveBeenCalled();
   });
+  it('no muestra la fila SIN LOTE que devuelve el central (no se puede elegir)', () => {
+    crear(10, [lote(1, 'LOTE-A', 45), { ...lote(null, 'SIN LOTE', 31) }]);
+    expect(component.filas.length).toBe(1);
+    expect(component.filas[0].loteId).toBe(1);
+    expect(component.totalElementos).toBe(1);
+    expect(component.sinLotes).toBeFalse();
+  });
+
+  it('si solo hay SIN LOTE, avisa que no hay stock por lote', () => {
+    crear(10, [{ ...lote(null, 'SIN LOTE', 31) }]);
+    expect(component.filas.length).toBe(0);
+    expect(component.sinLotes).toBeTrue();
+  });
 });

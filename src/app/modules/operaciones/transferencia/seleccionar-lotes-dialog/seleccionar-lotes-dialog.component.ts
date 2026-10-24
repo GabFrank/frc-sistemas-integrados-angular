@@ -256,8 +256,11 @@ export class SeleccionarLotesDialogComponent implements OnInit {
             return;
           }
           this.cargaFallo = false;
-          const lotes = res?.getContent || [];
-          this.totalElementos = res?.getTotalElements || 0;
+          // La fila SIN LOTE (loteId nulo) es lo que el central dejó sin lote: no se elige acá,
+          // así que no se muestra (antes aparecía como una fila deshabilitada que confundía).
+          const contenido = res?.getContent || [];
+          const lotes = contenido.filter((l) => l?.loteId != null);
+          this.totalElementos = Math.max(0, (res?.getTotalElements || 0) - (contenido.length - lotes.length));
           this.tomarDatosDePresentacion(lotes);
           this.filas = lotes.map((lote) => this.crearFila(lote));
           this.evaluarEstadoVacio();
