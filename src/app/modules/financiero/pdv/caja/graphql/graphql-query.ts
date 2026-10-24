@@ -534,31 +534,7 @@ export const imprimirBalanceQuery = gql`
   }
 `;
 
-export const cajasWithFilters = gql`
-  query (
-    $cajaId: ID
-    $estado: PdvCajaEstado
-    $maletinId: ID
-    $cajeroId: ID
-    $fechaInicio: String
-    $fechaFin: String
-    $sucId: ID
-    $verificado: Boolean,
-    $page: Int
-    $size: Int
-  ) {
-    data: cajasWithFilters(
-      cajaId: $cajaId
-      estado: $estado
-      maletinId: $maletinId
-      cajeroId: $cajeroId
-      fechaInicio: $fechaInicio
-      fechaFin: $fechaFin
-      sucId: $sucId
-      verificado: $verificado
-      page: $page
-      size: $size
-    ) {
+const cajasWithFiltersCampos = `{
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -630,7 +606,65 @@ export const cajasWithFilters = gql`
           }
         }
       }
-    }
+    }`;
+
+export const cajasWithFilters = gql`
+  query (
+    $cajaId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasWithFilters(
+      cajaId: $cajaId
+      estado: $estado
+      maletinId: $maletinId
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      page: $page
+      size: $size
+    ) ${cajasWithFiltersCampos}
+  }
+`;
+
+
+// Solo para el central: el filial no tiene `activo` y rechazaría la query entera (#599).
+export const cajasWithFiltersActivo = gql`
+  query (
+    $cajaId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $activo: Boolean
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasWithFilters(
+      cajaId: $cajaId
+      estado: $estado
+      maletinId: $maletinId
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      activo: $activo
+      page: $page
+      size: $size
+    ) ${cajasWithFiltersCampos}
   }
 `;
 
