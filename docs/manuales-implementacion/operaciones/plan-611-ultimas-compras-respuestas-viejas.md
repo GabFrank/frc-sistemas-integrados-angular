@@ -89,6 +89,30 @@ de llegada. Para el error, el mismo parche aborta la request en vez de demorarla
 Datos: proveedor con al menos dos productos con compras en la base local; si no hay, sembrar por
 SQL y restaurar.
 
+### Resultado (2026-10-24)
+
+Build `web-production` servido en `127.0.0.1:4201` contra un central propio en `:8084` (copia en
+V254.3, sin migrar la base), sesión de MR, pedido de prueba 39 del proveedor 1. Las respuestas se
+demoraron o se hicieron fallar desde la consola (parche de XHR por `variables.id`; el error es un
+reenvío a un puerto cerrado, `status 0`), con el orden real de llegada registrado.
+
+1. A llega última: OK. LIMON llegó a los 46 ms y COCA a los 6046 ms; la tabla quedó con LIMON, sin
+   spinner. Mientras COCA estaba en vuelo: tabla vacía y spinner.
+2. Quitar proveedor con COCA en vuelo: OK. Llegó a los 7091 ms; al volver a «2. Ítems», panel vacío,
+   sin spinner, «Seleccione un producto». Desvincular COCA con su respuesta en vuelo: OK. A los
+   150 ms, sin spinner y «Seleccione…»; la respuesta (7029 ms) no volvió a llenar la tabla.
+   Vínculo 2 restaurado por SQL (`activo = true`, motivo `null`).
+3. Falla la vigente (MONSTER): OK. Alerta «Error al cargar las últimas compras del producto»,
+   tabla vacía, sin spinner, «No hay compras anteriores» (el compromiso de arriba).
+4. Falla una vieja (ECOPOWER, 3003 ms) con LIMON ya cargado (34 ms): OK. Sin alerta ni spinner,
+   quedan las 4 compras de LIMON.
+5. Regresión: COCA (2 compras) → LIMON (4); teclado ↓ → MONSTER (1), ↑ → LIMON (4). OK.
+
+No probado aparte: un producto sin compras (los cuatro del proveedor tienen); el mensaje sale de la
+misma condición del template que se vio en el caso 3. Visto de paso: una request que nunca termina
+deja el spinner hasta el timeout de 60 s de Apollo, y una consulta igual mientras tanto se une a
+esa (deduplicación de Apollo). Pasaba antes; no lo cambia este fix.
+
 ## Fuera de alcance
 
 Cambiar de página o buscar en «Productos del proveedor» (~5079, ~5094) y que el seleccionado
