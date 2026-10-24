@@ -445,10 +445,6 @@ export class GestionComprasComponent
   productosProveedorSearchText = '';
   private proveedorBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly BUSQUEDA_DEBOUNCE_MS = 300;
-  ultimasComprasPageSize = 5;
-  ultimasComprasPageIndex = 0;
-  ultimasComprasTotalElements = 0;
-  ultimasComprasAllData: UltimaCompraItem[] = [];
   lastClickTime = 0;
   lastClickedProduct: ProductoProveedorItem | null = null;
 
@@ -682,9 +678,7 @@ export class GestionComprasComponent
           this.productosProveedorDataSource.data = [];
           this.productosProveedorPageIndex = 0;
           this.ultimasComprasDataSource.data = [];
-          this.ultimasComprasAllData = [];
-          this.ultimasComprasTotalElements = 0;
-          this.ultimasComprasPageIndex = 0;
+          this.ultimasComprasLoading = false;
           this.selectedProductoProveedor = null;
         }
       });
@@ -4844,12 +4838,10 @@ export class GestionComprasComponent
   private loadUltimasCompras(productoId: number): void {
     if (!productoId) {
       this.ultimasComprasDataSource.data = [];
-      this.ultimasComprasAllData = [];
-      this.ultimasComprasTotalElements = 0;
-      this.ultimasComprasPageIndex = 0;
       return;
     }
 
+    this.ultimasComprasDataSource.data = [];
     this.ultimasComprasLoading = true;
 
     this.productoUltimasComprasGQL
@@ -4863,7 +4855,8 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
+          if (this.descartarUltimasCompras(productoId)) return;
+
           // La respuesta tiene la estructura: response.data.data.productoUltimasCompras
           const producto = response.data?.data;
           const ultimasCompras = (producto?.productoUltimasCompras || []) as any[];
@@ -4899,15 +4892,12 @@ export class GestionComprasComponent
             return item;
           });
 
-          // Guardar todos los datos y aplicar paginación del lado del cliente
-          this.ultimasComprasAllData = compras;
-          this.ultimasComprasTotalElements = compras.length;
-          // Otro producto: vuelve a la página 1 recién con sus datos (si falla, quedan las filas y la página de antes).
-          this.ultimasComprasPageIndex = 0;
-          this.applyUltimasComprasPagination();
+          // Sin paginador: el central devuelve como máximo las 5 últimas (#594).
+          this.ultimasComprasDataSource.data = compras;
           this.ultimasComprasLoading = false;
         },
         error: (error) => {
+          if (this.descartarUltimasCompras(productoId)) return;
           console.error("Error cargando últimas compras:", error);
           this.notificacionService.openAlgoSalioMal(
             "Error al cargar las últimas compras del producto"
@@ -4915,6 +4905,17 @@ export class GestionComprasComponent
           this.ultimasComprasLoading = false;
         },
       });
+  }
+
+  /**
+   * true si la respuesta es de un producto que ya no está seleccionado (clics rápidos o limpieza, #611).
+   * Si quedó otro seleccionado, su propio fetch apaga la carga; si no queda ninguno, la apaga acá.
+   */
+  private descartarUltimasCompras(productoId: number): boolean {
+    const seleccionadoId = this.selectedProductoProveedor?.producto?.id;
+    if (seleccionadoId === productoId) return false;
+    if (!seleccionadoId) this.ultimasComprasLoading = false;
+    return true;
   }
 
   /**
@@ -5140,25 +5141,6 @@ export class GestionComprasComponent
   }
 
   /**
-   * Aplica la paginación del lado del cliente a las últimas compras
-   */
-  private applyUltimasComprasPagination(): void {
-    const startIndex = this.ultimasComprasPageIndex * this.ultimasComprasPageSize;
-    const endIndex = startIndex + this.ultimasComprasPageSize;
-    const paginatedData = this.ultimasComprasAllData.slice(startIndex, endIndex);
-    this.ultimasComprasDataSource.data = paginatedData;
-  }
-
-  /**
-   * Maneja el cambio de página en la lista de últimas compras
-   */
-  onUltimasComprasPageChange(event: any): void {
-    this.ultimasComprasPageIndex = event.pageIndex;
-    this.ultimasComprasPageSize = event.pageSize;
-    this.applyUltimasComprasPagination();
-  }
-
-  /**
    * Abre el diálogo de stock detallado por sucursal para un producto
    */
   onVerStockDetallado(producto: ProductoProveedorItem, event: MouseEvent): void {
@@ -5201,9 +5183,7 @@ export class GestionComprasComponent
             if (this.selectedProductoProveedor?.id === producto.id) {
               this.selectedProductoProveedor = null;
               this.ultimasComprasDataSource.data = [];
-          this.ultimasComprasAllData = [];
-          this.ultimasComprasTotalElements = 0;
-          this.ultimasComprasPageIndex = 0;
+              this.ultimasComprasLoading = false;
             }
           } else {
             this.notificacionService.openAlgoSalioMal("No se pudo desvincular el producto");
