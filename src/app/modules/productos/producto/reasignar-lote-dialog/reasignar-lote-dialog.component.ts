@@ -80,6 +80,8 @@ export class ReasignarLoteDialogComponent implements OnInit {
       return;
     }
     this.cargando = true;
+    // Tras un rechazo del servidor se recargan los saldos, pero se conserva el lote elegido si sigue con saldo.
+    const origenPrevioId = this.form.origen?.loteId;
     this.origenes = [];
     this.form.origen = null;
     this.loteService.onGetStockPorLote(this.data.producto.id, this.sucursalId)
@@ -89,6 +91,7 @@ export class ReasignarLoteDialogComponent implements OnInit {
           this.origenes = (res || [])
             .filter((l) => l.loteId != null && Number(l.cantidadDisponible) > 0)
             .map((l) => ({ loteId: +l.loteId, numeroLote: l.numeroLote, saldo: Number(l.cantidadDisponible) || 0 }));
+          this.form.origen = this.origenes.find((o) => o.loteId === origenPrevioId) || null;
           this.cargando = false;
           this.cdr.markForCheck();
         },
