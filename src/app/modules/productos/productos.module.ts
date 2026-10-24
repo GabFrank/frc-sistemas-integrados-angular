@@ -1,3 +1,4 @@
+import { ReasignarLoteDialogComponent } from './producto/reasignar-lote-dialog/reasignar-lote-dialog.component';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
@@ -31,6 +32,7 @@ import { AjustarStockLoteDialogComponent } from './producto/ajustar-stock-lote-d
 import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/ajustar-costo-dialog.component';
 import { GestionProveedoresProductoDialogComponent } from './producto/gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component';
 import { GestionProductosProveedorDialogComponent } from './producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
+import { ConteoRapidoLotesDialogComponent } from './producto/conteo-rapido-lotes-dialog/conteo-rapido-lotes-dialog.component';
 import { LotesProductoDialogComponent } from './producto/lotes-producto-dialog/lotes-producto-dialog.component';
 import { PrecioEspecialDialogComponent } from './precio-especial/precio-especial-dialog/precio-especial-dialog.component';
 import { ListPrecioEspecialComponent } from './precio-especial/list-precio-especial/list-precio-especial.component';
@@ -67,6 +69,8 @@ import { SugerenciasImagenPanelComponent } from './presentacion/sugerencias-imag
     GestionProveedoresProductoDialogComponent,
     GestionProductosProveedorDialogComponent,
     LotesProductoDialogComponent,
+    ConteoRapidoLotesDialogComponent,
+    ReasignarLoteDialogComponent,
     PrecioEspecialDialogComponent,
     ListPrecioEspecialComponent,
     SugerenciasImagenPanelComponent

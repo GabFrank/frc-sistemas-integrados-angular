@@ -15,6 +15,9 @@ import { ModificacionesModuleModule } from './modificaciones-sistema/modificacio
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { HistorialLoteComponent } from './lote/historial-lote/historial-lote.component';
 import { ListStockLoteComponent } from './lote/list-stock-lote/list-stock-lote.component';
+import { BuscarLoteComponent } from './lote/buscar-lote/buscar-lote.component';
+import { PendientesLoteComponent } from './lote/pendientes-lote/pendientes-lote.component';
+import { CompletarLotePendienteDialogComponent } from './lote/pendientes-lote/completar-lote-pendiente-dialog.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
 
@@ -96,6 +99,9 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     EditNecesidadComponent,
     ListMovimientoStockComponent,
     ListStockLoteComponent,
+    BuscarLoteComponent,
+    PendientesLoteComponent,
+    CompletarLotePendienteDialogComponent,
     HistorialLoteComponent,
     EntradaSalidaComponent,
     EntradaDialogComponent,

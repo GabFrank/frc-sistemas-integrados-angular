@@ -1,0 +1,45 @@
+<h2 mat-dialog-title>Pasar unidades a otro lote</h2>
+<mat-dialog-content class="cuerpo">
+  <div>{{ data?.producto?.descripcion }}</div>
+  <div class="ayuda">No cambia el stock del producto: solo corrige en qué lote están las unidades.</div>
+  <mat-form-field class="campo">
+    <mat-label>Sucursal</mat-label>
+    <mat-select [value]="sucursalId" (selectionChange)="onSucursal($event.value)">
+      <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.id }} - {{ s.nombre }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-spinner *ngIf="cargando" diameter="30"></mat-spinner>
+  <div *ngIf="sucursalId != null && !cargando && origenes.length === 0">No hay lotes con saldo en esta sucursal.</div>
+  <ng-container *ngIf="origenes.length > 0">
+    <mat-form-field class="campo">
+      <mat-label>Lote de origen</mat-label>
+      <mat-select [(ngModel)]="form.origen" aria-label="Lote de origen">
+        <mat-option *ngFor="let o of origenes" [value]="o">{{ o.numeroLote }} (saldo {{ o.saldo }})</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="campo">
+      <mat-label>Lote de destino</mat-label>
+      <mat-select [(ngModel)]="form.destinoId" aria-label="Lote de destino">
+        <mat-option *ngFor="let d of destinosPosibles" [value]="d.id">{{ d.numeroLote }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="campo">
+      <mat-label>Cantidad (unidades)</mat-label>
+      <input matInput type="number" min="0" [(ngModel)]="form.cantidad" aria-label="Cantidad" />
+    </mat-form-field>
+    <mat-form-field class="campo">
+      <mat-label>Motivo (obligatorio)</mat-label>
+      <input matInput [(ngModel)]="form.motivo" maxlength="200" aria-label="Motivo" />
+    </mat-form-field>
+    <mat-form-field class="campo">
+      <mat-label>Venta, transferencia o recepción (opcional)</mat-label>
+      <input matInput [(ngModel)]="referencia" maxlength="100" aria-label="Referencia" />
+    </mat-form-field>
+    <mat-checkbox *ngIf="esAdmin" [(ngModel)]="forzar">Forzar aunque la sucursal esté atrasada o el lote haya vendido recién</mat-checkbox>
+    <div class="error" *ngIf="error">{{ error }}</div>
+  </ng-container>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="error != null || guardando" (click)="onGuardar()">Pasar</button>
+</mat-dialog-actions>
