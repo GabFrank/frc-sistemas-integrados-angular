@@ -48,6 +48,7 @@ import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tar
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { LoteService } from '../../lote/lote.service';
 import { LoteVentaItem } from '../../lote/lote.model';
+import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from '../../lote/lotes-de-venta.util';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -150,9 +151,7 @@ export class ListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
-    const roles = this.mainService.usuarioActual?.roles || [];
-    this.puedeVerLotes = roles.includes(ROLES.ADMIN) || (roles.includes(ROLES.VER_PRODUCTOS)
-      && (roles.includes(ROLES.ANALISIS_DE_CAJA) || roles.includes(ROLES.ANALISIS_DE_VENTA)));
+    this.puedeVerLotes = puedeVerLotesDeVenta(this.mainService.usuarioActual?.roles);
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
       this.monedaList = data;
     });
@@ -371,12 +370,7 @@ export class ListVentaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (filas) => {
-          if (this.lotesCargadosDe !== clave) return;
-          const mapa: { [id: string]: LoteVentaItem[] } = {};
-          for (const f of filas || []) {
-            (mapa[String(f.ventaItemId)] = mapa[String(f.ventaItemId)] || []).push(f);
-          }
-          this.lotesPorItem = mapa;
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = agruparLotesPorItem(filas);
         },
         error: () => {
           if (this.lotesCargadosDe === clave) this.lotesPorItem = {};
@@ -386,19 +380,7 @@ export class ListVentaComponent implements OnInit {
 
   /** «Lote X · Vto dd/mm/aa» de un ítem; con varios lotes, cada uno con sus unidades. */
   textoLotes(ventaItemId: number): string {
-    const filas = this.lotesPorItem[String(ventaItemId)];
-    if (!filas?.length) return null;
-    const una = filas.length === 1;
-    return filas.map(f => {
-      let t = f.loteId == null ? 'SIN LOTE' : 'Lote ' + f.numeroLote;
-      if (f.loteId != null && f.fechaVencimiento) {
-        const [a, m, d] = String(f.fechaVencimiento).substring(0, 10).split('-');
-        t += ' · Vto ' + d + '/' + m + '/' + a.substring(2);
-      }
-      if (!una) t += ' (' + (Math.round(f.cantidad * 100) / 100) + ' u.)';
-      if (f.anulado) t += ' (anulado)';
-      return t;
-    }).join(' · ');
+    return textoLotesDeItem(this.lotesPorItem[String(ventaItemId)]);
   }
 
   getTotales(venta: Venta) {

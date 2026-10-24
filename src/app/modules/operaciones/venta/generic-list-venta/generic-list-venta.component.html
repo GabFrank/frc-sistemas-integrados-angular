@@ -474,6 +474,12 @@
                             }}
                           </div>
                         </div>
+                        <div fxFlex fxLayout="row" *ngIf="textoLotes(ventaItem?.id) as lotes">
+                          <div fxFlex="5%"></div>
+                          <div fxFlex="95%" class="lote-de-item" style="text-align: left; font-size: 12px; opacity: 0.75">
+                            {{ lotes }}
+                          </div>
+                        </div>
                         <div fxFlex="10">
                           <mat-divider></mat-divider>
                         </div>
