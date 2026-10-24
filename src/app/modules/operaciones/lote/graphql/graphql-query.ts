@@ -392,3 +392,43 @@ export const ajustarStockLoteListaMutation = gql`
     }
   }
 `;
+
+/** Buscar lote por número (#429 fase 2). */
+export const buscarLotePorNumeroQuery = gql`
+  query ($numeroLote: String!, $productoId: ID) {
+    data: buscarLotePorNumero(numeroLote: $numeroLote, productoId: $productoId) {
+      numeroBuscado
+      claveBusqueda
+      encontrado
+      coincidenciaExacta
+      lotes {
+        loteId
+        productoId
+        productoDescripcion
+        numeroLote
+        fechaVencimiento
+        estado
+        proveedorNombre
+        archivado
+        primeraEntradaFecha
+        primeraEntradaTipo
+        primeraEntradaDocumentoId
+        saldoTotal
+        totalVendido
+        cantidadVentas
+      }
+      trazabilidad {
+        productoId
+        productoDescripcion
+        trazadoDesde
+        entradasSinLote {
+          tipoMovimiento
+          movimientos
+          cantidad
+        }
+        comprasAnteriores
+        todasLasEntradasConLote
+      }
+    }
+  }
+`;

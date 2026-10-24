@@ -23,6 +23,7 @@ import { ClientesPorLoteGQL } from './graphql/clientesPorLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
+import { BuscarLotePorNumeroGQL } from './graphql/buscarLotePorNumero';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
 import {
@@ -34,6 +35,7 @@ import {
   LoteDeProducto,
   MovimientoLote,
   ResumenStockLote,
+  ResultadoBusquedaLote,
   StockLote,
   StockLotePresentacion,
   StockLoteSucursal
@@ -70,8 +72,25 @@ export class LoteService {
     private ajustarStockLoteGQL: AjustarStockLoteGQL,
     private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
+    private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
     private dialog: MatDialog
   ) {}
+
+  /**
+   * Busca un lote por número en el maestro (incluye saldo 0 y archivados), tolerante a
+   * mayúsculas, separadores y ceros a la izquierda. Con producto, si no hay registro trae desde
+   * cuándo se controla el lote y qué entró sin lote. Requiere un central con la fase 2.
+   */
+  onBuscarLotePorNumero(numeroLote: string, productoId?: number, servidor = true): Observable<ResultadoBusquedaLote> {
+    return this.genericService.onCustomQuery(
+      this.buscarLotePorNumeroGQL,
+      { numeroLote, productoId: productoId ?? null },
+      servidor,
+      PROPAGAR_ERROR_DE_RED,
+      false,
+      CONSULTA_LISTADO_LOTE
+    );
+  }
 
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
   onGetLotesPorProducto(productoId: number, servidor = true, errorConf?: QueryError,

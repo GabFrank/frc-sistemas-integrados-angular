@@ -30,6 +30,7 @@ import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
 import { ListStockLoteComponent } from "../../../modules/operaciones/lote/list-stock-lote/list-stock-lote.component";
+import { BuscarLoteComponent } from "../../../modules/operaciones/lote/buscar-lote/buscar-lote.component";
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
@@ -712,6 +713,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         },
         {
+          name: 'Buscar lote',
+          icon: 'manage_search',
+          action: 'buscar-lote',
+          visibilityRoles: [ROLES.ADMIN, ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_DE_VENTA]
+        },
+        {
           name: 'Promociones',
           icon: 'local_offer',
           action: 'list-precio-especial',
@@ -1353,6 +1360,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
         break;
+      case "buscar-lote": {
+        const roles = this.mainService.usuarioActual?.roles || [];
+        if (roles.includes(ROLES.ADMIN) || (roles.includes(ROLES.VER_PRODUCTOS)
+          && (roles.includes(ROLES.ANALISIS_DE_CAJA) || roles.includes(ROLES.ANALISIS_DE_VENTA)))) {
+          this.tabService.addTab(new Tab(BuscarLoteComponent, "Buscar lote", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      }
       case "list-stock-lote":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
