@@ -447,3 +447,56 @@ export const lotesDeVentaQuery = gql`
     }
   }
 `;
+
+// ---- Recepciones pendientes de lote (#429 fase 2, entrega 3) ----
+const PENDIENTE_LOTE_CAMPOS = `
+  mslId sucursalId sucursalNombre productoId productoDescripcion recepcionId recepcionItemId
+  proveedorNombre fecha cantidad resuelto remanente
+`;
+const RESOLUCION_LOTE_PENDIENTE_CAMPOS = `
+  id mslId sucursalId productoId productoDescripcion loteId numeroLote cantidadAtribuida
+  cantidadNoAtribuida accion motivo movimientoStockId usuarioId usuarioNickname fecha anulada
+`;
+
+export const recepcionesConLotePendienteQuery = gql`
+  query ($sucursalId: ID, $desde: String, $hasta: String, $page: Int, $size: Int) {
+    data: recepcionesConLotePendiente(sucursalId: $sucursalId, desde: $desde, hasta: $hasta, page: $page, size: $size) {
+      totalElements page size
+      content { ${PENDIENTE_LOTE_CAMPOS} }
+    }
+  }
+`;
+
+export const contarRecepcionesConLotePendienteQuery = gql`
+  query ($sucursalId: ID) {
+    data: contarRecepcionesConLotePendiente(sucursalId: $sucursalId)
+  }
+`;
+
+export const infoLotePendienteQuery = gql`
+  query ($mslId: ID!, $sucursalId: ID!, $numeroLote: String) {
+    data: infoLotePendiente(mslId: $mslId, sucursalId: $sucursalId, numeroLote: $numeroLote) {
+      pendiente { ${PENDIENTE_LOTE_CAMPOS} }
+      saldoSinLote atribuidoManualDespues cantidadSugerida ultimaSincronizacion
+      sincronizacionVencida maxDesfaseMinutos
+      lotesParecidos { loteId numeroLote fechaVencimiento archivado saldoTotal }
+    }
+  }
+`;
+
+export const completarLotePendienteMutation = gql`
+  mutation ($mslId: ID!, $sucursalId: ID!, $numeroLote: String!, $fechaVencimiento: String,
+            $cantidad: Float!, $saldoSinLoteEsperado: Float!, $cerrarRemanente: Boolean,
+            $motivoRemanente: String, $confirmarVencimiento: Boolean) {
+    data: completarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, numeroLote: $numeroLote,
+            fechaVencimiento: $fechaVencimiento, cantidad: $cantidad, saldoSinLoteEsperado: $saldoSinLoteEsperado,
+            cerrarRemanente: $cerrarRemanente, motivoRemanente: $motivoRemanente,
+            confirmarVencimiento: $confirmarVencimiento) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
+  }
+`;
+
+export const descartarLotePendienteMutation = gql`
+  mutation ($mslId: ID!, $sucursalId: ID!, $motivo: String!) {
+    data: descartarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, motivo: $motivo) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
+  }
+`;

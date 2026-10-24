@@ -62,6 +62,10 @@ export interface RecepcionMercaderiaNota {
   creadoEn?: Date;
 }
 
+import { LoteService } from '../../../lote/lote.service';
+import { PendientesLoteComponent } from '../../../lote/pendientes-lote/pendientes-lote.component';
+import { TabService } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-recepcion-mercaderia',
@@ -192,7 +196,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private procesoEtapaService: ProcesoEtapaService,
-    public mainService: MainService
+    public mainService: MainService,
+    private loteService: LoteService,
+    private tabService: TabService
   ) {
     this.initializeForm();
   }
@@ -212,6 +218,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
     // Cargar datos iniciales
     this.loadSucursales();
+    this.cargarPendientesLote();
     this.setupFormSubscriptions();
     this.loadNotasRecepcion(); // Cargar datos directamente
     // El @Input pedido puede venir desactualizado (p. ej. recién finalizada la conciliación, con
@@ -3532,5 +3539,19 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       this.trasFalloDeOperacionMultiple(error, 'se deshizo el rechazo', cancelaciones.length,
         () => this.recargarTrasCorte(notaId, false));
     });
+  }
+
+  /** Recepciones cargadas con «Cargar lote después» que siguen sin lote (#429 fase 2, entrega 3). */
+  pendientesLote = 0;
+
+  cargarPendientesLote(): void {
+    // De fondo y silencioso: con un central viejo la consulta no existe y no se muestra nada.
+    this.loteService.onContarRecepcionesConLotePendiente(null)
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: (n) => (this.pendientesLote = n || 0), error: () => (this.pendientesLote = 0) });
+  }
+
+  abrirPendientesLote(): void {
+    this.tabService.addTab(new Tab(PendientesLoteComponent, 'Pendientes de lote', null, null));
   }
 } 

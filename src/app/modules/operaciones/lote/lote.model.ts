@@ -277,3 +277,56 @@ export interface LoteVentaItem {
   cantidad: number;
   anulado?: boolean;
 }
+
+/** Recepción que entró sin lote («Cargar lote después») y sigue pendiente (#429 fase 2, entrega 3). */
+export interface PendienteLote {
+  mslId: number;
+  sucursalId: number;
+  sucursalNombre?: string;
+  productoId: number;
+  productoDescripcion?: string;
+  recepcionId?: number;
+  recepcionItemId?: number;
+  proveedorNombre?: string;
+  fecha?: string;
+  cantidad: number;
+  resuelto: number;
+  remanente: number;
+}
+
+export interface PendienteLotePage {
+  content: PendienteLote[];
+  totalElements: number;
+  page: number;
+  size: number;
+}
+
+export interface InfoPendienteLote {
+  pendiente: PendienteLote;
+  saldoSinLote: number;
+  atribuidoManualDespues: number;
+  cantidadSugerida: number;
+  ultimaSincronizacion?: string;
+  sincronizacionVencida: boolean;
+  maxDesfaseMinutos: number;
+  lotesParecidos: LoteEncontrado[];
+}
+
+export interface ResolucionLotePendiente {
+  id: number;
+  mslId: number;
+  sucursalId: number;
+  productoId?: number;
+  productoDescripcion?: string;
+  loteId?: number;
+  numeroLote?: string;
+  cantidadAtribuida: number;
+  cantidadNoAtribuida: number;
+  accion: 'ATRIBUIDO' | 'DESCARTADO';
+  motivo?: string;
+  movimientoStockId?: number;
+  usuarioId?: number;
+  usuarioNickname?: string;
+  fecha?: string;
+  anulada?: boolean;
+}
