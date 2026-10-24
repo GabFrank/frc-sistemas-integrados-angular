@@ -1,3 +1,4 @@
+import { ReasignarLoteDialogComponent } from './producto/reasignar-lote-dialog/reasignar-lote-dialog.component';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
@@ -69,6 +70,7 @@ import { SugerenciasImagenPanelComponent } from './presentacion/sugerencias-imag
     GestionProductosProveedorDialogComponent,
     LotesProductoDialogComponent,
     ConteoRapidoLotesDialogComponent,
+    ReasignarLoteDialogComponent,
     PrecioEspecialDialogComponent,
     ListPrecioEspecialComponent,
     SugerenciasImagenPanelComponent

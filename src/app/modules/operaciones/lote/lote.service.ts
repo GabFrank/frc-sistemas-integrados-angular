@@ -14,6 +14,7 @@ import {
 } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { AjustarStockLoteGQL } from './graphql/ajustarStockLote';
 import { AjustarStockLoteListaGQL } from './graphql/ajustarStockLoteLista';
+import { ReasignarLoteGQL } from './graphql/reasignarLote';
 import { BuscarLotesDeProductoGQL } from './graphql/buscarLotesDeProducto';
 import { ResumenStockLoteGQL } from './graphql/resumenStockLote';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
@@ -83,6 +84,7 @@ export class LoteService {
     private resumenStockLoteGQL: ResumenStockLoteGQL,
     private ajustarStockLoteGQL: AjustarStockLoteGQL,
     private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
+    private reasignarLoteGQL: ReasignarLoteGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
     private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
     private lotesDeVentaGQL: LotesDeVentaGQL,
@@ -454,6 +456,11 @@ export class LoteService {
       { inputs },
       servidor
     );
+  }
+
+  /** Pasa unidades de un lote a otro en una sucursal, sin cambiar el stock (lotes fase 3). */
+  onReasignarLote(input: any, servidor = true): Observable<AjusteStockLoteResultado> {
+    return this.genericService.onCustomMutation(this.reasignarLoteGQL, { input }, servidor);
   }
 
   /** Saldo en la red y archivado de cada lote del producto (pantalla «Lotes del producto»). */

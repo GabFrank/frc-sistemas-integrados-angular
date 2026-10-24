@@ -500,3 +500,17 @@ export const descartarLotePendienteMutation = gql`
     data: descartarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, motivo: $motivo) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
   }
 `;
+
+/** Pasar unidades de un lote a otro sin cambiar existencia (#429 fase 3). */
+export const reasignarLoteMutation = gql`
+  mutation reasignarLote($input: ReasignarLoteInput!) {
+    data: reasignarLote(input: $input) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
