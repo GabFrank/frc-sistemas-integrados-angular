@@ -1,0 +1,120 @@
+// App siempre en modo oscuro: no usar fondos claros.
+.buscar-lote {
+  padding: 16px 20px;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.titulo {
+  margin: 0 0 12px;
+}
+
+.filtros {
+  margin-bottom: 40px; // deja lugar a los textos de ayuda de los campos
+}
+
+.clic {
+  cursor: pointer;
+}
+
+.aviso {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 8px 0;
+
+  &.error {
+    border-left: 4px solid #e53935;
+  }
+}
+
+.sub {
+  margin: 12px 0 8px;
+  opacity: 0.85;
+}
+
+.tarjeta {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  max-width: 900px;
+
+  &.abierta {
+    border-color: #38853c;
+  }
+}
+
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.lote {
+  display: flex;
+  flex-direction: column;
+}
+
+.numero {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.producto {
+  opacity: 0.85;
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 6px 18px;
+  margin-top: 10px;
+}
+
+.et {
+  display: inline-block;
+  min-width: 80px;
+  opacity: 0.65;
+  margin-right: 6px;
+}
+
+.tenue {
+  opacity: 0.65;
+}
+
+.detalle {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  button {
+    margin-top: 10px;
+  }
+}
+
+.suc {
+  display: flex;
+  justify-content: space-between;
+  max-width: 360px;
+  padding: 2px 0;
+}
+
+.sin-registro {
+  border-left: 4px solid #fb8c00;
+
+  .linea {
+    margin-top: 8px;
+  }
+
+  .fuerte {
+    font-weight: 600;
+    color: #81c784;
+  }
+
+  ul {
+    margin: 4px 0 0;
+  }
+}

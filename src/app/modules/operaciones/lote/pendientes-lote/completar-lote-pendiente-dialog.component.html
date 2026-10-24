@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>Completar lote pendiente</h2>
+<mat-dialog-content class="cuerpo">
+  <div class="titulo-producto">{{ data.pendiente.productoDescripcion }}</div>
+  <div class="detalle">
+    {{ data.pendiente.sucursalNombre }} · Recepción {{ data.pendiente.recepcionId }}
+    · {{ data.pendiente.fecha | date: 'dd/MM/yyyy HH:mm' }}
+  </div>
+  <mat-spinner *ngIf="cargando && !info" diameter="30"></mat-spinner>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <ng-container *ngIf="info">
+    <table class="resumen">
+      <tr><td>Pendiente de esta recepción</td><td class="num">{{ info.pendiente.remanente }}</td></tr>
+      <tr><td>SIN LOTE disponible en la sucursal</td><td class="num">{{ info.saldoSinLote }}</td></tr>
+      <tr *ngIf="info.atribuidoManualDespues > 0">
+        <td>Ya atribuido a mano después de la recepción</td><td class="num">{{ info.atribuidoManualDespues }}</td>
+      </tr>
+      <tr>
+        <td>Última sincronización de la sucursal</td>
+        <td class="num">{{ info.ultimaSincronizacion ? (info.ultimaSincronizacion | date: 'dd/MM HH:mm') : 'sin dato' }}</td>
+      </tr>
+    </table>
+    <div *ngIf="info.saldoSinLote < info.pendiente.remanente" class="aviso">
+      Hay menos SIN LOTE que lo pendiente: parte se vendió o se atribuyó sin lote después de la recepción.
+    </div>
+    <div class="fila">
+      <label>Nº de lote
+        <input class="campo-input" [(ngModel)]="numeroLote" (blur)="cargar()" aria-label="Número de lote" />
+      </label>
+      <label>Vencimiento
+        <input class="campo-input" type="date" [(ngModel)]="fechaVencimiento" aria-label="Vencimiento" />
+      </label>
+      <label>Cantidad
+        <input class="campo-input" type="number" min="0" [(ngModel)]="cantidad" aria-label="Cantidad a atribuir" />
+      </label>
+    </div>
+    <div *ngIf="info.lotesParecidos?.length" class="parecidos">
+      Lotes de este producto con un número igual o parecido (elegí uno para usarlo en vez de crear otro):
+      <button mat-stroked-button type="button" *ngFor="let l of info.lotesParecidos" (click)="elegirLote(l)">
+        {{ l.numeroLote }}<span *ngIf="l.fechaVencimiento"> · Vto {{ l.fechaVencimiento | date: 'dd/MM/yy' }}</span>
+      </button>
+    </div>
+    <div *ngIf="queda > 0" class="remanente">
+      <mat-checkbox [(ngModel)]="cerrarRemanente">
+        Cerrar las {{ queda }} unidades que no se atribuyen
+      </mat-checkbox>
+      <input *ngIf="cerrarRemanente" class="campo-input motivo" [(ngModel)]="motivoRemanente"
+             placeholder="Motivo (vendido sin lote, ya atribuido a mano...)" aria-label="Motivo del remanente" />
+      <div *ngIf="!cerrarRemanente" class="detalle">Si no se cierran, la recepción sigue pendiente por esas unidades.</div>
+    </div>
+    <div *ngIf="bloqueo" class="error">{{ bloqueo }}</div>
+  </ng-container>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" type="button" [disabled]="!!bloqueo || guardando" (click)="confirmar()">
+    Atribuir al lote
+  </button>
+</mat-dialog-actions>

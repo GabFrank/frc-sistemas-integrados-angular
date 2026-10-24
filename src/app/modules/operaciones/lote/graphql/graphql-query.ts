@@ -345,3 +345,172 @@ export const buscarLotesDeProductoQuery = gql`
     }
   }
 `;
+
+/**
+ * Gestión de lotes (lotes flexibles, entrega 5): saldo en toda la red y si está archivado, para la
+ * pantalla «Lotes del producto». Consulta aparte a propósito: pide campos nuevos del central y no
+ * debe romper el buscador de siempre contra un central que todavía no los tiene.
+ */
+export const gestionLotesDeProductoQuery = gql`
+  query gestionLotesDeProducto($productoId: ID!, $size: Int) {
+    data: buscarLotesDeProducto(productoId: $productoId, page: 0, size: $size, incluirArchivados: true) {
+      getContent {
+        loteId
+        numeroLote
+        saldoTotal
+        archivado
+      }
+    }
+  }
+`;
+
+export const archivarLoteMutation = gql`
+  mutation archivarLote($loteId: ID!, $motivo: String!, $usuarioId: ID) {
+    data: archivarLote(loteId: $loteId, motivo: $motivo, usuarioId: $usuarioId)
+  }
+`;
+
+export const desarchivarLoteMutation = gql`
+  mutation desarchivarLote($loteId: ID!) {
+    data: desarchivarLote(loteId: $loteId)
+  }
+`;
+
+/**
+ * Conteo rápido: varios lotes de una sucursal en una sola transacción (tope 50). Cada fila lleva
+ * saldoEsperado: si el saldo cambió desde que se cargó la pantalla, el backend rechaza todo.
+ */
+export const ajustarStockLoteListaMutation = gql`
+  mutation ajustarStockLoteLista($inputs: [AjusteStockLoteInput!]!) {
+    data: ajustarStockLoteLista(inputs: $inputs) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
+
+/** Buscar lote por número (#429 fase 2). */
+export const buscarLotePorNumeroQuery = gql`
+  query ($numeroLote: String!, $productoId: ID) {
+    data: buscarLotePorNumero(numeroLote: $numeroLote, productoId: $productoId) {
+      numeroBuscado
+      claveBusqueda
+      encontrado
+      coincidenciaExacta
+      lotes {
+        loteId
+        productoId
+        productoDescripcion
+        numeroLote
+        fechaVencimiento
+        estado
+        proveedorNombre
+        archivado
+        primeraEntradaFecha
+        primeraEntradaTipo
+        primeraEntradaDocumentoId
+        saldoTotal
+        totalVendido
+        cantidadVentas
+      }
+      trazabilidad {
+        productoId
+        productoDescripcion
+        trazadoDesde
+        entradasSinLote {
+          tipoMovimiento
+          movimientos
+          cantidad
+        }
+        comprasAnteriores
+        todasLasEntradasConLote
+      }
+    }
+  }
+`;
+
+/** De qué lote salió cada ítem de una venta (#429 fase 2, entrega 2). Requiere un central con la fase 2. */
+export const lotesDeVentaQuery = gql`
+  query ($ventaId: ID!, $sucursalId: ID!) {
+    data: lotesDeVenta(ventaId: $ventaId, sucursalId: $sucursalId) {
+      ventaItemId
+      productoId
+      loteId
+      numeroLote
+      fechaVencimiento
+      cantidad
+      anulado
+    }
+  }
+`;
+
+// ---- Recepciones pendientes de lote (#429 fase 2, entrega 3) ----
+const PENDIENTE_LOTE_CAMPOS = `
+  mslId sucursalId sucursalNombre productoId productoDescripcion recepcionId recepcionItemId
+  proveedorNombre fecha cantidad resuelto remanente
+`;
+const RESOLUCION_LOTE_PENDIENTE_CAMPOS = `
+  id mslId sucursalId productoId productoDescripcion loteId numeroLote cantidadAtribuida
+  cantidadNoAtribuida accion motivo movimientoStockId usuarioId usuarioNickname fecha anulada
+`;
+
+export const recepcionesConLotePendienteQuery = gql`
+  query ($sucursalId: ID, $desde: String, $hasta: String, $page: Int, $size: Int) {
+    data: recepcionesConLotePendiente(sucursalId: $sucursalId, desde: $desde, hasta: $hasta, page: $page, size: $size) {
+      totalElements page size
+      content { ${PENDIENTE_LOTE_CAMPOS} }
+    }
+  }
+`;
+
+export const contarRecepcionesConLotePendienteQuery = gql`
+  query ($sucursalId: ID) {
+    data: contarRecepcionesConLotePendiente(sucursalId: $sucursalId)
+  }
+`;
+
+export const infoLotePendienteQuery = gql`
+  query ($mslId: ID!, $sucursalId: ID!, $numeroLote: String) {
+    data: infoLotePendiente(mslId: $mslId, sucursalId: $sucursalId, numeroLote: $numeroLote) {
+      pendiente { ${PENDIENTE_LOTE_CAMPOS} }
+      saldoSinLote atribuidoManualDespues cantidadSugerida ultimaSincronizacion
+      sincronizacionVencida maxDesfaseMinutos
+      lotesParecidos { loteId numeroLote fechaVencimiento archivado saldoTotal }
+    }
+  }
+`;
+
+export const completarLotePendienteMutation = gql`
+  mutation ($mslId: ID!, $sucursalId: ID!, $numeroLote: String!, $fechaVencimiento: String,
+            $cantidad: Float!, $saldoSinLoteEsperado: Float!, $cerrarRemanente: Boolean,
+            $motivoRemanente: String, $confirmarVencimiento: Boolean) {
+    data: completarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, numeroLote: $numeroLote,
+            fechaVencimiento: $fechaVencimiento, cantidad: $cantidad, saldoSinLoteEsperado: $saldoSinLoteEsperado,
+            cerrarRemanente: $cerrarRemanente, motivoRemanente: $motivoRemanente,
+            confirmarVencimiento: $confirmarVencimiento) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
+  }
+`;
+
+export const descartarLotePendienteMutation = gql`
+  mutation ($mslId: ID!, $sucursalId: ID!, $motivo: String!) {
+    data: descartarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, motivo: $motivo) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
+  }
+`;
+
+/** Pasar unidades de un lote a otro sin cambiar existencia (#429 fase 3). */
+export const reasignarLoteMutation = gql`
+  mutation reasignarLote($input: ReasignarLoteInput!) {
+    data: reasignarLote(input: $input) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
