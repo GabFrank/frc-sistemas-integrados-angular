@@ -27,6 +27,11 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { FuncionarioInput } from '../funcionario-input.model';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
+
+/** Cómo terminó un usuario del lote: un rechazo no se arregla reintentando; sin respuesta, sí. */
+type ResultadoLote = 'ok' | 'rechazo' | 'sinRespuesta';
+const resultadoDelError = (error: any): ResultadoLote => esRechazoDelServidor(error) ? 'rechazo' : 'sinRespuesta';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -229,24 +234,28 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       });
 
       let usuariosProcesados = 0;
-      let usuariosConFalla = 0;
+      let usuariosRechazados = 0;
+      let usuariosSinRespuesta = 0;
       const totalUsuarios = funcionariosPorUsuario.size;
 
       // Cada usuario termina una vez, bien o con falla: antes un error o un null colgaba el conteo y no
       // salía ningún aviso (#390).
-      const finalizarUsuario = (ok: boolean) => {
+      const finalizarUsuario = (resultado: ResultadoLote) => {
         usuariosProcesados++;
-        if (!ok) usuariosConFalla++;
+        if (resultado === 'rechazo') usuariosRechazados++;
+        if (resultado === 'sinRespuesta') usuariosSinRespuesta++;
         if (usuariosProcesados !== totalUsuarios) return;
+        const usuariosConFalla = usuariosRechazados + usuariosSinRespuesta;
         if (usuariosConFalla === 0) {
           this.notificacionService.openSucess('Horarios asignados correctamente');
           this.seleccionados.clear();
         } else {
           // La selección queda para reintentar.
           this.notificacionService.openWarn(
-            `Se asignaron horarios a ${totalUsuarios - usuariosConFalla} de ${totalUsuarios} usuarios: ` +
-            'el servidor no respondió para el resto.',
-            5
+            `Se asignaron horarios a ${totalUsuarios - usuariosConFalla} de ${totalUsuarios} usuarios.` +
+            (usuariosRechazados > 0 ? ` El servidor rechazó ${usuariosRechazados}.` : '') +
+            (usuariosSinRespuesta > 0 ? ` No respondió para ${usuariosSinRespuesta}.` : ''),
+            8
           );
         }
         this.dataSource.data = [...this.dataSource.data];
@@ -261,11 +270,12 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
           })
           .pipe(untilDestroyed(this))
           .subscribe({
-            error: () => finalizarUsuario(false),
+            error: (error) => finalizarUsuario(resultadoDelError(error)),
             next: (horariosExistentes) => {
           // Un null es un error del servidor: crear un horario nuevo acá lo duplicaba en cada reintento.
           if (horariosExistentes == null) {
-            finalizarUsuario(false);
+            // Es una lectura: un null también puede ser una respuesta vacía; reintentar no cuesta nada.
+            finalizarUsuario('sinRespuesta');
             return;
           }
           // Buscar un horario idéntico en los registros del usuario
@@ -292,12 +302,12 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
             this.horarioService.onSaveHorario(horarioInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
               next: (res: any) => {
                 if (res?.id == null) {
-                  finalizarUsuario(false);
+                  finalizarUsuario('sinRespuesta');
                   return;
                 }
                 this.vincularMultiplesFuncionarios(funcionarios, res.id, finalizarUsuario);
               },
-              error: () => finalizarUsuario(false),
+              error: (error) => finalizarUsuario(resultadoDelError(error)),
             });
           }
             },
@@ -306,9 +316,9 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: (ok: boolean) => void) {
+  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: (resultado: ResultadoLote) => void) {
     let completados = 0;
-    let todosOk = true;
+    let resultadoUsuario: ResultadoLote = 'ok';
     funcionarios.forEach(f => {
       let funcInput = new FuncionarioInput();
       funcInput.id = f.id;
@@ -327,19 +337,20 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         funcInput.fechaIngreso = dateToString(new Date(f.fechaIngreso));
       }
 
-      const terminar = (ok: boolean) => {
-        if (!ok) todosOk = false;
+      // Un rechazo pesa más que una falta de respuesta: reintentar no lo arregla.
+      const terminar = (resultado: ResultadoLote) => {
+        if (resultado === 'rechazo' || (resultado === 'sinRespuesta' && resultadoUsuario === 'ok')) resultadoUsuario = resultado;
         completados++;
-        if (completados === funcionarios.length) onComplete(todosOk);
+        if (completados === funcionarios.length) onComplete(resultadoUsuario);
       };
       // El verde es el del final del lote (#501)
       this.service.onSaveFuncionario(funcInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
         next: (saved) => {
-          if (saved == null) return terminar(false);
+          if (saved == null) return terminar('sinRespuesta');
           f.horario = saved.horario;
-          terminar(true);
+          terminar('ok');
         },
-        error: () => terminar(false),
+        error: (error) => terminar(resultadoDelError(error)),
       });
     });
   }
