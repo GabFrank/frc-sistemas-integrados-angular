@@ -135,6 +135,17 @@ describe('esEnvioAFilialSinConfirmar (#471)', () => {
       { message: 'could not commit JPA transaction' },
     ])).toBeTrue();
   });
+
+  const SIN_ROL = 'No autorizado: se requiere el rol ANALISIS DE CAJA para esta acción.';
+
+  it('rechazo de rol del central (antes de enviar al filial): no', () => {
+    expect(esEnvioAFilialSinConfirmar([{ message: SIN_ROL }])).toBeFalse();
+  });
+
+  it('rechazo de rol junto a un error desconocido, o dentro del prefijo del filial: sigue sin confirmar', () => {
+    expect(esEnvioAFilialSinConfirmar([{ message: SIN_ROL }, { message: 'could not commit JPA transaction' }])).toBeTrue();
+    expect(esEnvioAFilialSinConfirmar(con('Error del servidor filial: ' + SIN_ROL))).toBeTrue();
+  });
 });
 
 describe('avisoTrasMutacion (#488)', () => {
