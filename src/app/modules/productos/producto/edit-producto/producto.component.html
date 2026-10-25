@@ -1343,7 +1343,7 @@
                       <mat-icon>add_circle_outline</mat-icon>
                       <span>Código</span>
                     </button>
-                    <button mat-menu-item (click)="onAddPrecio(null, i)">
+                    <button *ngIf="puedeGestionarPrecios" mat-menu-item (click)="onAddPrecio(null, i)">
                       <mat-icon>add_circle_outline</mat-icon>
                       <span>Precio</span>
                     </button>
@@ -1590,11 +1590,11 @@
                           ></tr>
                         </table>
                         <br />
-                        <div>
+                        <div *ngIf="puedeGestionarPrecios">
                           <button
                             mat-mini-fab
                             color="primary"
-                            aria-label="adicionar codigo"
+                            aria-label="adicionar precio"
                             (click)="
                               selectedPrecio = null;
                               onAddPrecio(null, presentacionIndex)
