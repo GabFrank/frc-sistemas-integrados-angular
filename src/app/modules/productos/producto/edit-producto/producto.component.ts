@@ -292,6 +292,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // ADMIN (por rol o por nickname) pasa siempre: lo resuelve tieneAlgunRol.
     this.puedeGestionarPrecios = this.mainService.tieneAlgunRol([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]);
+    // Sin rol de precios el central rechaza guardar y borrar precios: no se ofrecen.
+    if (!this.puedeGestionarPrecios) this.precioColumnsToDisplay = this.precioColumnsToDisplay.filter(c => c !== "eliminar");
 
     // inicializar arrays
     this.codigosList = [];
@@ -412,10 +414,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
           this.subfamiliaDataSource.data = [this.selectedSubfamilia];
           this.onFamiliaSelect(this.selectedFamilia);
           this.onSubfamiliaSelect(this.selectedSubfamilia);
-          setTimeout(() => {
-            this.stepper.next();
-            this.stepper.next();
-          }, 500);
         }
         this.datosGeneralesControl.controls.descripcion.setValue(
           this.selectedProducto?.descripcion
@@ -466,8 +464,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.getPresentacionPorProductoId(res.id);
 
         this.loadImagenPrincipal();
+        // Todos los avances en el mismo turno: repartidos en dos timers, las animaciones de los pasos se
+        // pisaban y Presentaciones quedaba activa pero corrida fuera de la vista.
+        const conSubfamilia = this.selectedProducto.subfamilia != null;
         setTimeout(() => {
           this.stepper.next();
+          if (conSubfamilia) {
+            this.stepper.next();
+            this.stepper.next();
+          }
         }, 500);
       } });
   }
@@ -1359,6 +1364,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   /** `promocion`: el alta llega marcada como precio de promoción (viene del alta de una presentación promo). */
   private abrirPrecio(presentacion: Presentacion, precio: PrecioPorSucursal, promocion = false) {
+    // Única puerta al diálogo de precio (menú, botón +, clic en la fila y alta promo).
+    if (!this.puedeGestionarPrecios) {
+      if (promocion) this.notificacionService.openWarn(
+        'La presentación quedó guardada como promoción, sin precio: alguien con permiso de precios tiene que cargárselo.', 10);
+      return;
+    }
     let data = new AdicionarPrecioPorSucursalData();
     data.precio = precio;
     data.presentacion = presentacion;
@@ -1381,12 +1392,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         }
         if (res?.id != null && res.promocion === true) {
           // Precio de promoción guardado inactivo: falta decir en qué sucursales vale
-          if (this.puedeGestionarPrecios) {
-            this.abrirPromociones(res, presentacion);
-          } else {
-            this.notificacionService.openWarn(
-              'El precio quedó inactivo: alguien con permiso de precios tiene que cargarle las sucursales (ícono de promociones).', 10);
-          }
+          this.abrirPromociones(res, presentacion);
         } else if (promocion && res == null) {
           this.notificacionService.openWarn(
             'La presentación quedó guardada como promoción, sin precio: agregáselo desde la fila cuando quieras.', 8);
