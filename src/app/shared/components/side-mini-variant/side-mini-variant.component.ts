@@ -766,7 +766,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'admin_panel_settings',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS],
+      visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS],
       items: [
         {
           name: 'Clientes',
@@ -1293,10 +1293,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
         break;
       case "list-funcionarios":
-        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListFuncioarioComponent, "Funcionarios");
+        // Los mismos roles que muestran la entrada (la lista no pide rol en el central).
+        this.openTabIfAuthorized([ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR], ListFuncioarioComponent, "Funcionarios");
         break;
       case "solicitudes-funcionarios":
-        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
+        this.openTabIfAuthorized([ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR], ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
         break;
       case "manual-rrhh":
         if (this.hasAnyRole([ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN])) {
