@@ -1,3 +1,22 @@
+// Altura fija al área de la pestaña: cada tabla scrollea por dentro y su paginador queda a la vista
+.pantalla {
+  height: calc(100vh - 120px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  > h2,
+  > .branch-selector {
+    flex-shrink: 0;
+  }
+}
+
+.columnas {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
 .container {
   padding: 20px;
   position: relative;
@@ -7,14 +26,14 @@
 
 .page-title {
   margin-bottom: 20px;
-  color: white;
+  color: var(--frc-texto-fuerte);
 }
 
 .branch-selector {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #2d2d2d;
+  background-color: var(--frc-superficie);
   border-radius: 4px;
   padding: 10px 20px;
   margin-bottom: 20px;
@@ -40,14 +59,17 @@
     }
     
     span {
-      color: #e0e0e0;
+      color: var(--frc-texto);
     }
   }
 }
 
 .column-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 15px;
-  background-color: #2d2d2d;
+  background-color: var(--frc-superficie);
   border-radius: 4px;
   margin-bottom: 20px;
   width: 100%;
@@ -55,6 +77,7 @@
 }
 
 .column-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -91,7 +114,7 @@
   padding: 20px;
   text-align: center;
   font-style: italic;
-  color: #757575;
+  color: var(--frc-texto-suave);
   width: 100%;
 }
 
@@ -121,9 +144,17 @@
 }
 
 .table-container {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+.tabla-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 table {
@@ -148,16 +179,22 @@ td.mat-column-actions {
 
 h3 {
   margin: 0 0 15px 0;
-  color: rgba(255, 255, 255, 0.87);
+  color: var(--frc-texto);
 }
 
 mat-paginator {
+  flex-shrink: 0;
   margin-top: 10px;
   width: 100%;
 }
 
 // Responsive fixes for smaller screens
 @media (max-width: 768px) {
+  // En columna apilada no alcanza el alto: vuelve el scroll de la página
+  .pantalla {
+    height: auto;
+  }
+
   .branch-selector {
     flex-direction: column;
     align-items: flex-start;
