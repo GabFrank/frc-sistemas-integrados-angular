@@ -1285,6 +1285,7 @@ export class EditTransferenciaComponent implements OnInit {
           etapa,
         },
         width: "500px",
+        maxWidth: "95vw",
       })
       .afterClosed()
       .subscribe((res) => {
