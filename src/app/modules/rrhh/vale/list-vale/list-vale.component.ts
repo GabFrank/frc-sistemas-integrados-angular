@@ -93,6 +93,11 @@ export class ListValeComponent implements OnInit {
     });
   }
 
+  onFuncionarioSelected(id: number) {
+    this.funcionarioControl.setValue(id);
+    this.onFiltrar();
+  }
+
   onResetFiltro() {
     this.funcionarioControl.setValue(null);
     this.estadoControl.setValue(null);
