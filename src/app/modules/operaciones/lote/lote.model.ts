@@ -158,6 +158,8 @@ export class LoteDeProducto {
    * igual que un lote agotado: los dos en cero.
    */
   saldoTotal: number;
+  /** Archivado: sin saldo en la red y oculto de buscadores y selectores. */
+  archivado?: boolean;
 }
 
 /**
@@ -169,7 +171,9 @@ export enum ModoAjusteLote {
   /** El stock ya estaba contado pero sin lote. El total no cambia, solo se traza. */
   ATRIBUIR = 'ATRIBUIR',
   /** La existencia estaba mal: rotura, faltante, mercadería encontrada. El total cambia. */
-  CORREGIR = 'CORREGIR'
+  CORREGIR = 'CORREGIR',
+  /** El lote tiene más saldo del que hay con ese número: baja el lote y lo pasa a SIN LOTE. El total no cambia. */
+  LIBERAR = 'LIBERAR'
 }
 
 /**
@@ -212,6 +216,8 @@ export interface AjusteStockLoteInput {
   numeroLote?: string;
   /** yyyy-MM-dd. Solo se usa al crear el lote. */
   fechaVencimiento?: string;
+  /** Saldo del lote que vio el operador: si cambió al confirmar, el backend rechaza para recargar. */
+  saldoEsperado?: number;
   /** yyyy-MM-dd. Solo se usa al crear el lote. */
   fechaRetiro?: string;
 }

@@ -73,6 +73,9 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   formGroup: FormGroup;
   sucursalControl = new FormControl(null, Validators.required);
   cantidadControl = new FormControl(null, Validators.required);
+  /** Liberar a SIN LOTE: baja el lote sin tocar la existencia del producto (lotes flexibles). */
+  liberarControl = new FormControl(false);
+  motivoControl = new FormControl('');
 
   productoDescripcion = '';
   sucursales: Sucursal[] = [];
@@ -116,6 +119,9 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   hayAjuste = false;
   puedeGuardar = false;
   hayLote = false;
+  liberando = false;
+  /** Por qué no se puede liberar con lo cargado; vacío si se puede. */
+  avisoLiberar = '';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AjustarStockLoteDialogData,
@@ -149,8 +155,12 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   private armarFormulario(): void {
     this.formGroup = new FormGroup({
       sucursal: this.sucursalControl,
-      cantidad: this.cantidadControl
+      cantidad: this.cantidadControl,
+      liberar: this.liberarControl,
+      motivo: this.motivoControl
     });
+    this.liberarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
+    this.motivoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
 
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe((sucursalId) => {
       this.selectedSucursal = this.sucursales.find((s) => s.id === sucursalId);
@@ -413,7 +423,22 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     this.colorDiferencia = this.diferencia > 0
       ? '#4caf50'
       : this.diferencia < 0 ? '#f44336' : '#ffffff';
-    this.existenciaDespues = this.existenciaCargada ? this.existencia + this.diferencia : null;
+    this.liberando = this.liberarControl.value === true;
+    const motivo = (this.motivoControl.value || '').trim();
+    this.avisoLiberar = '';
+    if (this.liberando && this.hayAjuste) {
+      if (this.diferencia > 0) {
+        this.avisoLiberar = 'Liberar solo baja el saldo del lote. Para sumar, desmarcá «Liberar».';
+      } else if (cantidadFinal != null && cantidadFinal < 0) {
+        this.avisoLiberar = 'La cantidad del lote no puede ser negativa.';
+      } else if (!motivo) {
+        this.avisoLiberar = 'Para liberar, el motivo es obligatorio.';
+      }
+    }
+    // Liberar no mueve la existencia: la diferencia vuelve a SIN LOTE.
+    this.existenciaDespues = this.existenciaCargada
+      ? this.existencia + (this.liberando ? 0 : this.diferencia)
+      : null;
 
     // Se miran los controles y no formGroup.valid: recalcular() corre dentro del valueChanges de
     // un hijo, y ahi el estado del grupo todavia es el del ciclo anterior —Angular actualiza al
@@ -427,7 +452,8 @@ export class AjustarStockLoteDialogComponent implements OnInit {
       && this.existenciaCargada
       && this.saldoLoteVerificado
       && !this.releyendoLote
-      && this.hayAjuste;
+      && this.hayAjuste
+      && !this.avisoLiberar;
     this.cdr.markForCheck();
   }
 
@@ -442,10 +468,12 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     const input: AjusteStockLoteInput = {
       productoId: this.data.producto.id,
       sucursalId: this.selectedSucursal.id,
-      // Siempre CORREGIR: el ajuste del lote mueve la existencia del producto. El otro modo del
-      // backend (ATRIBUIR, que traza sin mover el total) no se ofrece acá.
-      modo: ModoAjusteLote.CORREGIR,
+      // CORREGIR mueve la existencia del producto. LIBERAR (lotes flexibles) baja el lote y pasa la
+      // diferencia a SIN LOTE sin tocar el total. ATRIBUIR no se ofrece acá.
+      modo: this.liberando ? ModoAjusteLote.LIBERAR : ModoAjusteLote.CORREGIR,
       cantidadFinal: +this.cantidadControl.value,
+      motivo: (this.motivoControl.value || '').trim() || undefined,
+      saldoEsperado: this.saldoLote,
       loteId: this.loteElegido.loteId,
       usuarioId: this.mainService.usuarioActual?.id
     };
