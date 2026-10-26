@@ -84,6 +84,18 @@ el mismo.
   - transporte o recepción: rechazar.
   - Captura de los tres diálogos, en modo oscuro y en modo claro.
 
+## Desvíos durante la implementación
+
+- **Sin `mat-hint` en el campo de cantidad.** El hint del form field va en posición absoluta y se
+  salía 2px del cuerpo del diálogo (barra de scroll). La presentación ya está en la tarjeta: se
+  sacó el hint en vez de compensar con CSS.
+- **Fecha tipeada a mano: hallazgo previo, fuera de alcance.** La app usa `MatNativeDateModule`
+  con `MAT_DATE_LOCALE es-PY`: el calendario muestra `dd/MM/yyyy`, pero el input parsea con
+  `Date.parse` (mes/día). «01/02/2028» queda 2 de enero, «31/12/2027» queda inválido. Pasa igual
+  con el diálogo viejo y en todos los datepickers de la app. Elegir desde el calendario funciona.
+- Karma con Electron avisa «Some of your tests did a full page reload!» al terminar, también en
+  la línea base: es del arnés, no de este spec.
+
 ## Qué queda sin verificar
 
 - Electron empaquetado: el estilo es SCSS de componente, el mismo build; no se prueba en el .AppImage.
