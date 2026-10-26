@@ -775,7 +775,7 @@ export class EditDevolucionComponent implements OnInit {
     );
   }
 
-  /** Abre el diálogo de impresión de etiquetas de separado. */
+  /** Abre el diálogo de impresión de la etiqueta de separado (una por devolución). */
   onImprimirEtiquetas() {
     if (!this.selectedDevolucion?.id || this.totalItems === 0) return;
     // La tabla tiene una sola página: la etiqueta lista todos los ítems.
@@ -811,7 +811,7 @@ export class EditDevolucionComponent implements OnInit {
                   : this.notificacionService.openWarn("No se pudo imprimir"),
               error: () =>
                 this.notificacionService.openAlgoSalioMal(
-                  "Error al imprimir las etiquetas"
+                  "Error al imprimir la etiqueta"
                 ),
             });
         } else if (res?.accion === "pdf") {
@@ -832,7 +832,7 @@ export class EditDevolucionComponent implements OnInit {
               },
               error: () =>
                 this.notificacionService.openAlgoSalioMal(
-                  "Error al generar las etiquetas"
+                  "Error al generar la etiqueta"
                 ),
             });
         }
