@@ -718,7 +718,7 @@ export class EditDevolucionComponent implements OnInit {
             this.canjeMode = false;
             this.acreditarMode = false;
             this.computeEstadoFlags();
-            // Al separar, ofrecer imprimir las etiquetas de las cajas.
+            // Al separar, ofrecer imprimir la etiqueta de la devolución.
             if (estado === DevolucionEstado.SEPARADO) {
               this.onImprimirEtiquetas();
             }
@@ -778,7 +778,7 @@ export class EditDevolucionComponent implements OnInit {
   /** Abre el diálogo de impresión de etiquetas de separado. */
   onImprimirEtiquetas() {
     if (!this.selectedDevolucion?.id || this.totalItems === 0) return;
-    // La tabla tiene una sola página: las etiquetas necesitan todos los ítems.
+    // La tabla tiene una sola página: la etiqueta lista todos los ítems.
     this.devolucionService
       .onGetDevolucionItemsPorDevolucion(this.selectedDevolucion.id)
       .pipe(untilDestroyed(this))
@@ -807,7 +807,7 @@ export class EditDevolucionComponent implements OnInit {
             .subscribe({
               next: (ok) =>
                 ok
-                  ? this.notificacionService.openSucess("Etiquetas enviadas")
+                  ? this.notificacionService.openSucess("Etiqueta enviada")
                   : this.notificacionService.openWarn("No se pudo imprimir"),
               error: () =>
                 this.notificacionService.openAlgoSalioMal(
@@ -822,7 +822,7 @@ export class EditDevolucionComponent implements OnInit {
               next: (pdf) => {
                 if (pdf) {
                   this.reporteService.onAdd(
-                    `Etiquetas ${this.selectedDevolucion.identificador}`,
+                    `Etiqueta ${this.selectedDevolucion.identificador}`,
                     pdf
                   );
                   this.tabService.addTab(
