@@ -1820,6 +1820,18 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               // vencimiento del producto, que es el comportamiento histórico.
               fechaRetiro: dateToString(distDialogo.fechaRetiro)
             };
+            // Lotes flexibles (#429): varios lotes en la misma sucursal viajan como variaciones
+            // (cantidades en unidades base); el backend desglosa una fila de lote por variación.
+            if (distDialogo.variaciones && distDialogo.variaciones.length > 0) {
+              itemInput.variaciones = distDialogo.variaciones.map((v: any) => ({
+                presentacionId: itemInput.presentacionRecibidaId,
+                cantidad: v.cantidad,
+                lote: v.lote || null,
+                vencimiento: dateToString(v.vencimiento),
+                fechaRetiro: dateToString(v.fechaRetiro),
+                rechazado: false
+              }));
+            }
 
             // Si se encontró la distribución, incluir su ID para vinculación directa
             if (distribucionBackend) {
@@ -2801,9 +2813,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   /**
    * Separa los items que se pueden recepcionar de forma masiva de los que exigen control de lote.
    *
-   * La recepción masiva no captura número de lote, así que el backend saltea esos items
-   * (ver RecepcionMercaderiaItemGraphQL.recepcionarTodoPorNota). Se separan acá para poder
-   * avisarle al usuario en vez de que desaparezcan sin explicación.
+   * La recepción masiva no captura número de lote: esos items se reciben igual y quedan
+   * pendientes de lote (SIN LOTE). Se separan acá para avisarle al usuario (#429).
    */
   private separarItemsPorControlDeLote(items: NotaRecepcionItem[]): {
     sinLote: NotaRecepcionItem[];
@@ -2819,20 +2830,6 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       }
     });
     return { sinLote, conLote };
-  }
-
-  /**
-   * Arma el texto de bloqueo con los productos que exigen control de lote.
-   */
-  private armarAvisoControlDeLote(itemsConLote: NotaRecepcionItem[]): string {
-    const nombres = itemsConLote
-      .map(item => item.producto?.descripcion)
-      .filter(descripcion => !!descripcion);
-    const listado = nombres.slice(0, 5).join(', ');
-    const resto = nombres.length > 5 ? ` y ${nombres.length - 5} más` : '';
-    return `Esta nota contiene ${nombres.length} producto(s) con control de lote ` +
-      `(${listado}${resto}). La recepción masiva no captura el número de lote, ` +
-      `así que debe verificar los ítems de esta nota con el botón de Verificación Detallada.`;
   }
 
   onRecepcionarTodo(): void {
@@ -2886,25 +2883,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
           return;
         }
 
-        // Regla de negocio: si la nota contiene AL MENOS UN producto con control de lote,
-        // no se recepciona nada de forma masiva. Es todo o nada por nota.
-        const { conLote } = this.separarItemsPorControlDeLote(itemsRecepcionables);
-
-        if (conLote.length > 0) {
-          this.dialogosService.confirm(
-            'No se puede recepcionar en masa',
-            this.armarAvisoControlDeLote(conLote),
-            'Ningún ítem de esta nota será recepcionado en esta operación.',
-            undefined,
-            false // solo informativo, sin botones de acción
-          ).subscribe();
-          return;
-        }
+        // Lotes flexibles (#429): los productos con control de lote ya no bloquean la masiva.
+        // Se reciben igual y quedan pendientes de lote (SIN LOTE) para cargarlo después.
+        const avisoLote = this.avisoPendientesDeLote(itemsRecepcionables);
 
         // Mostrar diálogo de confirmación
         this.dialogosService.confirm(
           'Recepcionar Todos los Items',
-          `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) pendiente(s) o parcial(es). Asegúrese de que todas las informaciones estén correctas antes de continuar.`,
+          `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) pendiente(s) o parcial(es). Asegúrese de que todas las informaciones estén correctas antes de continuar.` + avisoLote,
           'Esta acción marcará todos los items pendientes/parciales como recepcionados con las cantidades esperadas.',
           undefined,
           true, // action: true para mostrar botones de acción
@@ -2921,6 +2907,24 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
         this.notificacionService.openWarn('No se pudieron obtener los ítems de la nota: el servidor no responde. No se recepcionó nada.', 6);
       }
     });
+  }
+
+  /**
+   * Lotes flexibles (#429): texto que se suma a la confirmación de la recepción masiva cuando
+   * hay productos con control de lote. No bloquea: quedan pendientes de lote (SIN LOTE).
+   */
+  private avisoPendientesDeLote(items: NotaRecepcionItem[]): string {
+    const { conLote } = this.separarItemsPorControlDeLote(items);
+    if (conLote.length === 0) {
+      return '';
+    }
+    const nombres = conLote
+      .map((i: any) => i?.producto?.descripcion)
+      .filter((d: string) => !!d)
+      .slice(0, 5)
+      .join(', ');
+    return ` Atención: ${conLote.length} producto(s) con control de lote (${nombres}) se reciben sin número de lote ` +
+      'y quedan pendientes de lote (SIN LOTE). El lote se carga después.';
   }
 
   /**
@@ -2966,23 +2970,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       this.notificacionService.openWarn('Algunos items seleccionados ya están verificados y no serán recepcionados nuevamente.');
     }
 
-    // Regla de negocio: si la selección incluye AL MENOS UN producto con control de lote,
-    // no se recepciona nada. Es todo o nada, igual que en la recepción por nota.
-    const { conLote } = this.separarItemsPorControlDeLote(itemsRecepcionables);
-
-    if (conLote.length > 0) {
-      this.dialogosService.confirm(
-        'No se puede recepcionar en masa',
-        this.armarAvisoControlDeLote(conLote),
-        'Ningún ítem seleccionado será recepcionado en esta operación.',
-        undefined,
-        false // solo informativo, sin botones de acción
-      ).subscribe();
-      return;
-    }
+    // Lotes flexibles (#429): igual que por nota, los productos con lote quedan pendientes de lote.
+    const avisoLote = this.avisoPendientesDeLote(itemsRecepcionables);
 
     // Determinar el mensaje según la cantidad de items recepcionables
-    const mensaje = `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) seleccionado(s). Asegúrese de que todas las informaciones estén correctas antes de continuar.`;
+    const mensaje = `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) seleccionado(s). Asegúrese de que todas las informaciones estén correctas antes de continuar.` + avisoLote;
 
     // Mostrar diálogo de confirmación
     this.dialogosService.confirm(
