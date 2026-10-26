@@ -211,6 +211,52 @@
                       <span>{{ infoLote.detalle }}</span>
                     </div>
 
+                    <!-- Lotes flexibles (#429): la misma sucursal puede recibir varios lotes. El
+                         lote de arriba se lleva lo que quede; cada adicional declara su cantidad. -->
+                    <div class="lotes-extra" *ngIf="requiereLoteComputed">
+                      <div class="form-row lote-extra-fila"
+                        *ngFor="let extra of getLotesExtra(i); let j = index">
+                        <mat-form-field appearance="outline" class="lote-field">
+                          <mat-label>Lote adicional {{ j + 2 }}</mat-label>
+                          <input matInput maxlength="50" [value]="extra.lote"
+                            (input)="onLoteExtraChange(i, j, 'lote', $any($event.target).value)"
+                            placeholder="Ej: LOTE2024002">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="vencimiento-field">
+                          <mat-label>Vencimiento</mat-label>
+                          <input matInput [matDatepicker]="extraVencPicker" [value]="extra.vencimiento"
+                            (dateChange)="onLoteExtraChange(i, j, 'vencimiento', $event.value)"
+                            placeholder="DD/MM/YYYY">
+                          <mat-datepicker-toggle matSuffix [for]="extraVencPicker"></mat-datepicker-toggle>
+                          <mat-datepicker #extraVencPicker></mat-datepicker>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="cantidad-field">
+                          <mat-label>Cantidad</mat-label>
+                          <input matInput type="number" min="0" [value]="extra.cantidad"
+                            (input)="onLoteExtraChange(i, j, 'cantidad', $any($event.target).value)">
+                        </mat-form-field>
+                        <button mat-icon-button type="button" color="warn"
+                          (click)="onQuitarLote(i, j)" matTooltip="Quitar este lote">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                      <div class="lotes-extra-resumen" *ngIf="getLotesExtra(i).length > 0"
+                        [class.requiere-atencion]="cantidadLotePrincipal(i) < 0">
+                        <mat-icon>{{ cantidadLotePrincipal(i) < 0 ? 'error_outline' : 'info' }}</mat-icon>
+                        <span *ngIf="cantidadLotePrincipal(i) >= 0">
+                          Lote de arriba: {{ cantidadLotePrincipal(i) }} · lotes adicionales: el resto.
+                        </span>
+                        <span *ngIf="cantidadLotePrincipal(i) < 0">
+                          Los lotes adicionales suman {{ -cantidadLotePrincipal(i) }} más de lo recibido.
+                        </span>
+                      </div>
+                      <button mat-stroked-button type="button" class="btn-otro-lote"
+                        (click)="onAgregarLote(i)">
+                        <mat-icon>add</mat-icon>
+                        Otro lote
+                      </button>
+                    </div>
+
                     <mat-form-field appearance="outline" class="observaciones-field">
                       <mat-label>Observaciones</mat-label>
                       <textarea 
@@ -305,6 +351,13 @@
       </div>
     </form>
   </mat-dialog-content>
+
+  <!-- Lotes flexibles (#429): recibir sin número de lote no bloquea; queda pendiente de lote. -->
+  <div class="cargar-lote-despues" *ngIf="requiereLoteComputed">
+    <mat-checkbox [checked]="cargarLoteDespues" (change)="onCargarLoteDespuesChange($event.checked)">
+      Cargar lote después (lo recibido sin lote queda como «SIN LOTE»)
+    </mat-checkbox>
+  </div>
 
   <mat-dialog-actions align="end">
     <button 
