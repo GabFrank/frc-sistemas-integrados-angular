@@ -9,9 +9,10 @@ export interface RetiroLineaConsolidada {
   cantidadTotal?: number;
 }
 
-// Nota: el backend tambien expone `cajas` (una fila por item, etiquetada con el
-// identificador DEV-{suc}-{id}). El desktop no la pide: duplica la tabla
-// consolidada. Solo el mobile la usa, para verificar bultos por escaneo.
+// Nota: el backend tambien expone `cajas` (una fila por item) y `devoluciones`
+// (cada devolucion con sus productos). El desktop no las pide: duplican la tabla
+// consolidada. La PWA usa `devoluciones` para verificar por escaneo del QR de la
+// etiqueta (uno por devolucion, DEV-{suc}-{id}).
 export interface RetiroSucursalGrupo {
   sucursalId?: string;
   sucursalNombre?: string;
