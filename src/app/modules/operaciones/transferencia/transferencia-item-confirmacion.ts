@@ -10,14 +10,14 @@ import type { TransferenciaItem } from './transferencia.model';
  * se apriete Confirmar. Aca es una funcion pura y se puede probar sin levantar Angular: los tipos
  * entran como `import type` y lo unico que se importa en runtime es el enum de etapas.
  */
-interface DatosDeEtapa {
+export interface DatosDeEtapa {
   cantidad: number;
   presentacion: Presentacion;
   vencimiento: Date;
 }
 
 /** Datos de los que copia la etapa indicada. Null si en esa etapa no se confirman items. */
-function datosDeOrigen(
+export function datosDeOrigen(
   item: TransferenciaItem,
   etapa: EtapaTransferencia
 ): DatosDeEtapa {
