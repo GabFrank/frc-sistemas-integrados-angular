@@ -1,0 +1,52 @@
+<div class="ia-container">
+  <h2 class="titulo">Inteligencia artificial</h2>
+  <span class="subtitulo">Lectura de facturas en papel con OpenAI</span>
+
+  <div class="banner-advertencia" *ngIf="configuracion && !cifradoDisponible">
+    <mat-icon>warning</mat-icon>
+    Falta CONFIG_MASTER_KEY en el servidor: no se puede guardar la clave
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" autocomplete="off" class="formulario">
+    <div class="estado-clave">
+      <mat-icon>{{ configuracion?.claveCargada ? 'vpn_key' : 'key_off' }}</mat-icon>
+      <span *ngIf="configuracion?.claveCargada">Clave cargada (…{{ configuracion?.claveFinal }})</span>
+      <span *ngIf="configuracion && !configuracion.claveCargada">Sin clave</span>
+      <button mat-stroked-button color="warn" type="button" *ngIf="configuracion?.claveCargada"
+        [disabled]="ocupado || !cifradoDisponible" (click)="borrarClave()">
+        <mat-icon>delete</mat-icon>
+        Borrar clave
+      </button>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Clave de API de OpenAI</mat-label>
+      <input matInput type="password" formControlName="apiKey" autocomplete="new-password"
+        placeholder="Dejar vacío para no cambiarla" [attr.disabled]="!cifradoDisponible ? true : null">
+      <mat-hint>Solo se envía si escribís algo</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Modelo</mat-label>
+      <input matInput formControlName="modelo" placeholder="gpt-4o">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Prompt adicional</mat-label>
+      <textarea matInput formControlName="promptAdicional" rows="6"></textarea>
+    </mat-form-field>
+
+    <div class="acciones">
+      <button mat-flat-button color="primary" type="submit" [disabled]="ocupado">
+        <mat-icon>save</mat-icon>
+        Guardar
+      </button>
+      <button mat-stroked-button color="primary" type="button" [disabled]="ocupado" (click)="probarConexion()">
+        <mat-icon>wifi_tethering</mat-icon>
+        Probar conexión
+      </button>
+    </div>
+
+    <div class="resultado-prueba" *ngIf="resultadoPrueba">{{ resultadoPrueba }}</div>
+  </form>
+</div>
