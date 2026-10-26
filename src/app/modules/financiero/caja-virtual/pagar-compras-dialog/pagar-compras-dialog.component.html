@@ -7,14 +7,8 @@
     <div class="gfv-header">Nuevo vale</div>
     <div class="gfv-body" fxLayout="column" fxLayoutGap="14px">
       <div fxLayout="row wrap" fxLayoutGap="16px">
-        <mat-form-field appearance="outline" fxFlex="1 1 320px">
-          <mat-label>Funcionario *</mat-label>
-          <input matInput [formControl]="nvFuncionarioControl" [matAutocomplete]="autoFunc" placeholder="Buscar por nombre" autocomplete="off" />
-          <mat-icon matSuffix>person_search</mat-icon>
-          <mat-autocomplete #autoFunc="matAutocomplete" [displayWith]="displayFuncionario">
-            <mat-option *ngFor="let f of funcionarioFiltrados" [value]="f">{{ f.persona?.nombre }}</mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
+        <app-buscador-field fxFlex="1 1 320px" appearance="outline" tipo="funcionario" titulo="Funcionario"
+          [requerido]="true" [formControl]="nvFuncionarioControl"></app-buscador-field>
         <mat-form-field appearance="outline" fxFlex="1 1 320px">
           <mat-label>Motivo</mat-label>
           <mat-select [formControl]="nvMotivoControl">
@@ -57,22 +51,10 @@
     <div class="gfv-header">Nuevo gasto</div>
     <div class="gfv-body" fxLayout="column" fxLayoutGap="14px">
       <div fxLayout="row wrap" fxLayoutGap="16px">
-        <mat-form-field appearance="outline" fxFlex="1 1 320px">
-          <mat-label>Proveedor / Beneficiario (opcional)</mat-label>
-          <input matInput [formControl]="ngBeneficiarioControl" [matAutocomplete]="autoBen" placeholder="Buscar proveedor" autocomplete="off" />
-          <mat-icon matSuffix>person_search</mat-icon>
-          <mat-autocomplete #autoBen="matAutocomplete" [displayWith]="displayProveedor">
-            <mat-option *ngFor="let p of proveedorFiltrados" [value]="p">{{ p.persona?.nombre }}</mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
-        <mat-form-field appearance="outline" fxFlex="1 1 320px">
-          <mat-label>Categoría *</mat-label>
-          <input matInput [formControl]="ngTipoGastoControl" [matAutocomplete]="autoCat" placeholder="Buscar categoría" autocomplete="off" />
-          <mat-icon matSuffix>category</mat-icon>
-          <mat-autocomplete #autoCat="matAutocomplete" [displayWith]="displayTipoGasto">
-            <mat-option *ngFor="let t of tipoGastoFiltrados" [value]="t">{{ t.descripcion }}</mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
+        <app-buscador-field fxFlex="1 1 320px" appearance="outline" tipo="proveedor"
+          titulo="Proveedor / Beneficiario (opcional)" [formControl]="ngBeneficiarioControl"></app-buscador-field>
+        <app-buscador-field fxFlex="1 1 320px" appearance="outline" tipo="tipoGasto" titulo="Categoría"
+          [requerido]="true" [formControl]="ngTipoGastoControl"></app-buscador-field>
       </div>
       <mat-form-field appearance="outline">
         <mat-label>Descripción *</mat-label>

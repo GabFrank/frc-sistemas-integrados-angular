@@ -29,7 +29,7 @@
     table
     fxLayout="column"
     fxLayoutAlign="space-between start"
-    style="height: 100%; background-color: rgb(70, 70, 70)"
+    style="height: 100%;"
   >
     <table 
       mat-table 
@@ -139,7 +139,7 @@
           class="expanded"
           *matCellDef="let timbrado" 
           [attr.colspan]="displayedColumns.length" 
-          style="background-color: rgb(32, 32, 32)" 
+          style="background-color: var(--frc-superficie-baja)" 
         >
           <div 
             fxLayout="column" 
@@ -150,7 +150,7 @@
           >
             <div 
               *ngIf="timbrado == expandedTimbrado"
-              style="padding: 20px; width: 100%; background-color: rgb(32, 32, 32);"
+              style="padding: 20px; width: 100%; background-color: var(--frc-superficie-baja);"
             >
               <div 
                 fxLayout="row" fxLayoutGap="20px" style="width: 100%; height: 500px;">
@@ -503,8 +503,8 @@
                       (page)="handleTimbradoDetallePageEvent($event)"
                       [length]="selectedTimbradoDetallePageInfo?.getTotalElements"
                       style="
-                        background-color: rgb(60, 60, 60); 
-                        border-top: 1px solid rgb(80, 80, 80);">
+                        background-color: var(--frc-superficie-alta); 
+                        border-top: 1px solid var(--frc-borde-solido-fuerte);">
                     </mat-paginator>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
+import { skip } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -13,7 +14,8 @@ import { EmitirChequeDialogComponent } from '../emitir-cheque-dialog/emitir-cheq
 import { GestionarChequerasDialogComponent } from '../../chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { EChartsOption } from 'echarts';
-import { GRAFICO_COLORES, formatoEjeCompacto } from '../../../../shared/utils/grafico-echarts.theme';
+import { GRAFICO_COLORES, formatoEjeCompacto, opcionesSegunTema } from '../../../../shared/utils/grafico-echarts.theme';
+import { TemaService } from '../../../../shared/services/tema.service';
 import { ChequeService } from '../cheque.service';
 import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../cheque.model';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
@@ -105,9 +107,12 @@ export class ChequesDashboardComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private dialog: MatDialog,
     public mainService: MainService,
+    private temaService: TemaService,
   ) {}
 
   ngOnInit(): void {
+    // El gráfico se dibuja en canvas: al cambiar de tema se rearma con los grises del tema nuevo.
+    this.temaService.tema$.pipe(skip(1), untilDestroyed(this)).subscribe(() => this.construirGrafico());
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
     // Default: mes actual.
     const hoy = new Date();
@@ -359,7 +364,7 @@ export class ChequesDashboardComponent implements OnInit {
     const dias = this.resumen;
     this.hayDatosGrafico = dias.length > 0;
     if (!this.hayDatosGrafico) { this.chartOptions = null; return; }
-    this.chartOptions = {
+    const opciones: EChartsOption = {
       grid: { left: 58, right: 16, top: 20, bottom: dias.length > 12 ? 60 : 40 },
       tooltip: {
         trigger: 'axis',
@@ -396,6 +401,7 @@ export class ChequesDashboardComponent implements OnInit {
         })),
       }],
     };
+    this.chartOptions = opcionesSegunTema(opciones, this.temaService.tema);
   }
 
   // ── Acciones ──

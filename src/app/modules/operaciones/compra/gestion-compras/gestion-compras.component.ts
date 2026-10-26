@@ -96,7 +96,8 @@ import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ContextoConsulta } from "../../../../generics/generic-crud.service";
 import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
-import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -115,7 +116,6 @@ import {
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
-import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { BuscadorComprasService } from "./buscador-compras.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
@@ -278,6 +278,10 @@ export class GestionComprasComponent
   // Estado de carga
   loadingPedido = false;
   pedidoId: number | null = null;
+  /** Alta del pedido sin respuesta: repetir «Guardar» crearía otro pedido, así que queda bloqueado (#488). */
+  private altaSinConfirmar = false;
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
   isEditMode = false; // true si estamos editando un pedido existente
 
   // Navegación por Pestañas (Tabs)
@@ -486,7 +490,6 @@ export class GestionComprasComponent
     private dialogosService: DialogosService,
     private productoProveedorService: ProductoProveedorService,
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
-    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
     private buscadorComprasService: BuscadorComprasService,
     private tabService: TabService,
@@ -587,6 +590,9 @@ export class GestionComprasComponent
     if (this.proveedorBusquedaTimer) {
       clearTimeout(this.proveedorBusquedaTimer);
     }
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
     this.destroy$.next();
     this.destroy$.complete();
     // Remover listener de teclado
@@ -884,7 +890,7 @@ export class GestionComprasComponent
    * - Recargar todos los datos del tab inicial
    * - Recargar el resumen del pedido
    */
-  onActualizarPedido(): void {
+  onActualizarPedido(avisarExito = true): void {
     if (!this.pedidoId || !this.isEditMode) {
       return;
     }
@@ -923,7 +929,9 @@ export class GestionComprasComponent
           this.loadingPedido = false;
           this.updateComputedProperties();
 
-          this.notificacionService.openSucess("Componente recargado completamente. Todos los datos han sido actualizados desde el backend.");
+          if (avisarExito) {
+            this.notificacionService.openSucess("Componente recargado completamente. Todos los datos han sido actualizados desde el backend.");
+          }
         },
         error: (error) => {
           console.error("Error recargando componente:", error);
@@ -974,12 +982,15 @@ export class GestionComprasComponent
       .onImprimirPedidoTicket(this.pedidoId!, printerName)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () =>
-          this.notificacionService.openSucess("Ticket enviado a impresora"),
-        error: (err) =>
-          this.notificacionService.openWarn(
-            "Error al imprimir ticket: " + (err?.message || err)
-          ),
+        next: (ok) => {
+          // El central hoy siempre devuelve true; si cambia, que no diga «enviado» (#501)
+          if (ok === false) {
+            this.notificacionService.openWarn("No se pudo enviar el ticket a la impresora.");
+          } else {
+            this.notificacionService.openSucess("Ticket enviado a impresora");
+          }
+        },
+        error: (err) => this.avisarSinRespuesta(err, "Error al imprimir ticket"),
       });
   }
 
@@ -1000,12 +1011,12 @@ export class GestionComprasComponent
             this.notificacionService.openSucess(
               "Reporte generado exitosamente"
             );
+          } else {
+            // Antes un PDF vacío no avisaba nada (#501)
+            this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
           }
         },
-        error: (err) =>
-          this.notificacionService.openWarn(
-            "Error al generar PDF: " + (err?.message || err)
-          ),
+        error: (err) => this.avisarSinRespuesta(err, "Error al generar PDF"),
       });
   }
 
@@ -1030,12 +1041,11 @@ export class GestionComprasComponent
             a.click();
             window.URL.revokeObjectURL(url);
             this.notificacionService.openSucess("PDF guardado exitosamente");
+          } else {
+            this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
           }
         },
-        error: (err) =>
-          this.notificacionService.openWarn(
-            "Error al guardar PDF: " + (err?.message || err)
-          ),
+        error: (err) => this.avisarSinRespuesta(err, "Error al guardar PDF"),
       });
   }
 
@@ -1126,7 +1136,7 @@ export class GestionComprasComponent
     // make disabled if form is not touched by user
     return this.datosGeneralesForm.invalid || this.datosGeneralesTabState !== "editable" || !this.datosGeneralesForm.dirty
       // Sin monedas/formas de pago/sucursales, o con el pedido sin cargar, no se guarda la cabecera (#390)
-      || this.datosInicialesFallo || (this.isEditMode && !this.currentPedido);
+      || this.datosInicialesFallo || (this.isEditMode && !this.currentPedido) || this.altaSinConfirmar;
   }
 
   /**
@@ -1197,7 +1207,8 @@ export class GestionComprasComponent
 
   // Step 1: Modificar el comportamiento del botón
   onContinuarStep1(): void {
-    if (this.datosInicialesFallo || (this.isEditMode && !this.currentPedido)) {
+    if (this.datosInicialesFallo || (this.isEditMode && !this.currentPedido) || this.altaSinConfirmar) {
+      this.updateComputedProperties();
       return;
     }
     if (this.datosGeneralesForm.valid) {
@@ -1305,7 +1316,7 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error("Error actualizando pedido:", error);
-          this.notificacionService.openAlgoSalioMal("Error al actualizar el pedido");
+          this.trasFalloDeMutacion(error, "se actualizaron los datos generales", () => this.recargarCabeceraTrasCorte());
         },
       });
   }
@@ -1395,7 +1406,18 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error("Error guardando pedido:", error);
-          this.notificacionService.openAlgoSalioMal("Error al guardar el pedido");
+          if (erroresDeRechazo(error) != null) {
+            // El central guarda el pedido, sus sucursales y sus etapas por separado: un rechazo en un paso
+            // posterior deja el pedido creado. El motivo ya lo mostró el genérico.
+            this.notificacionService.openWarn(
+              "Si el motivo viene de las sucursales o las etapas, el pedido pudo quedar creado: revisá la lista de compras antes de repetir.", 8);
+            return;
+          }
+          // Sin respuesta no hay id que recargar, y repetir crea otro pedido
+          this.altaSinConfirmar = true;
+          this.updateComputedProperties();
+          this.notificacionService.openWarn(
+            "No se pudo confirmar si se creó el pedido. Revisá la lista de compras antes de repetir: si no aparece, cerrá esta pestaña y cargalo de nuevo.", 10);
         },
       });
   }
@@ -2385,9 +2407,9 @@ export class GestionComprasComponent
             }
           });
         },
-        error: () => {
+        error: (error) => {
           this.cotizacionRefreshing = false;
-          this.notificacionService.openAlgoSalioMal("No se pudo actualizar la cotización del mercado");
+          this.avisarSinRespuesta(error, "No se pudo actualizar la cotización del mercado");
         }
       });
   }
@@ -2820,6 +2842,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.recargar) {
+        this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+      }
       if (result?.lastSearchText !== undefined) {
         this.lastItemSearchText = result.lastSearchText;
       }
@@ -2918,6 +2943,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.recargar) {
+        this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+      }
       if (result && result.action === "save") {
         // Guardar el item original antes de la edición para calcular el delta
         const oldItem = item;
@@ -2995,7 +3023,10 @@ export class GestionComprasComponent
           disableClose: true
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result: DistributeItemDialogResult) => {
+          if (result?.recargar) {
+            this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+          }
           if (result?.success) {
             // Solo recargar datos si la operación fue exitosa
             // Marcar tab de ítems como no cargado para recargar en próxima visita
@@ -3083,11 +3114,20 @@ export class GestionComprasComponent
               
               // Actualizar propiedades computadas
               this.updateComputedProperties();
+            } else {
+              // El central devuelve false si no pudo borrar (ya no existe, datos asociados): antes en silencio (#501)
+              this.notificacionService.openWarn("No se pudo eliminar el ítem: puede que ya no exista o tenga datos asociados.");
+              this.recargarItemsTrasCorte();
             }
           },
           error: (error) => {
             console.error("Error eliminando ítem:", error);
-            this.notificacionService.openAlgoSalioMal("Error al eliminar el ítem");
+            this.trasFalloDeMutacion(error, "se eliminó el ítem", () => this.recargarItemsTrasCorte());
+            // Lo más común es «rollback-only»: el ítem ya no existe (el borrado base atrapa la excepción y el commit
+            // falla). El «Ups!» ya lo mostró el genérico; se recarga para que la lista no lo siga mostrando (#501)
+            if (motivoDelRechazo(error)?.toLowerCase().includes('rollback-only')) {
+              this.recargarItemsTrasCorte();
+            }
           }
         });
       }
@@ -3384,7 +3424,7 @@ export class GestionComprasComponent
           },
           error: (error) => {
             console.error("Error finalizando planificación:", error);
-            this.notificacionService.openAlgoSalioMal("Error al finalizar la planificación del pedido");
+            this.trasFalloDeMutacion(error, "se finalizó la planificación", () => this.onActualizarPedido(false));
           }
         });
       }
@@ -3489,8 +3529,7 @@ export class GestionComprasComponent
           },
           error: (error) => {
             console.error("Error reabriendo planificación:", error);
-            const errorMessage = error?.message || "Error al reabrir la planificación del pedido";
-            this.notificacionService.openAlgoSalioMal(errorMessage);
+            this.trasFalloDeMutacion(error, "se reabrió la planificación", () => this.onActualizarPedido(false));
           }
         });
       }
@@ -3858,7 +3897,8 @@ export class GestionComprasComponent
         },
         error: (error) => {
           console.error('Error al asignar ítems a la nota:', error);
-          this.notificacionService.openAlgoSalioMal("Error al asignar ítems a la nota");
+          // Pasa por el genérico: el motivo del rechazo ya lo mostró (#501)
+          this.trasFalloDeMutacion(error, "se asignaron los ítems a la nota", () => this.recargarRecepcionDocumentalTrasCorte());
         }
       });
   }
@@ -3960,7 +4000,14 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: DividirItemDialogResult) => {
-      if (result?.success) {
+      if (result?.recargar) {
+        // Alguna parte se guardó (o pudo guardarse): un solo aviso, sin el éxito (#488)
+        if (result.message) {
+          this.notificacionService.openWarn(result.message, 8);
+        }
+        this.recargarRecepcionDocumentalTrasCorte();
+        this.programarRecargaTrasFallo(() => this.recargarRecepcionDocumentalTrasCorte());
+      } else if (result?.success) {
         this.notificacionService.openSucess(result.message || 'Ítem dividido exitosamente');
         
         // Recargar datos del tab 3
@@ -3977,7 +4024,8 @@ export class GestionComprasComponent
     }
 
     const dialogData: RechazarItemDialogData = {
-      pedidoItem: item,
+      // La lista de pendientes trae solo `pedido { id }`: sin la moneda, crear una nota nueva no se podía (#390, #501)
+      pedidoItem: { ...item, pedido: this.currentPedido ?? item.pedido } as MockPedidoItem,
       notasDisponibles: this.notasRecepcionDataSource.data,
       pedidoId: this.pedidoId || 0
     };
@@ -3989,7 +4037,14 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: RechazarItemDialogResult) => {
-      if (result?.success) {
+      if (result?.recargar) {
+        // Rechazo a medias o sin confirmar: un solo aviso, sin el éxito (#488)
+        if (result.message) {
+          this.notificacionService.openWarn(result.message, 8);
+        }
+        this.recargarRecepcionDocumentalTrasCorte();
+        this.programarRecargaTrasFallo(() => this.recargarRecepcionDocumentalTrasCorte());
+      } else if (result?.success) {
         this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
         
         // Recargar datos del tab 3
@@ -4031,7 +4086,7 @@ export class GestionComprasComponent
             },
             error: (error) => {
               console.error('Error al eliminar nota de recepción:', error);
-              this.notificacionService.openAlgoSalioMal("Error al eliminar la nota de recepción");
+              this.trasFalloDeMutacion(error, "se eliminó la nota de recepción", () => this.recargarRecepcionDocumentalTrasCorte());
             }
           });
       }
@@ -4097,11 +4152,98 @@ export class GestionComprasComponent
           },
           error: (error) => {
             console.error("Error finalizando conciliación documental:", error);
-            this.notificacionService.openAlgoSalioMal("Error al finalizar la conciliación documental: " + (error.message || "Error desconocido"));
+            this.trasFalloDeMutacion(error, "se finalizó la conciliación documental", () => this.onActualizarPedido(false));
           }
         });
       }
     });
+  }
+
+  /**
+   * Fallo de una mutation del pedido (#488). En un rechazo el genérico ya mostró el motivo y el central no aplicó
+   * nada. En un «sin respuesta» la operación pudo haberse aplicado o seguir corriendo: se avisa (salvo el corte por
+   * tiempo, que ya avisó el link) y `recargar` corre a los 5 s, para mostrar lo que quedó antes de que se repita.
+   */
+  private trasFalloDeMutacion(error: any, queSeHizo: string, recargar: () => void): void {
+    const aviso = avisoTrasMutacion(error, queSeHizo);
+    if (aviso != null) {
+      this.notificacionService.openWarn(aviso, 8);
+    }
+    if (erroresDeRechazo(error) != null) {
+      return;
+    }
+    this.programarRecargaTrasFallo(recargar);
+  }
+
+  /**
+   * Fallo de una mutation que no cambia el pedido (impresión, cotización): en un rechazo el genérico ya mostró el
+   * motivo y en un corte por tiempo avisó el link; en otro «sin respuesta» se avisa sin el texto técnico del error.
+   */
+  private avisarSinRespuesta(error: any, queFallo: string): void {
+    if (erroresDeRechazo(error) != null || esTimeoutDeLink(error)) {
+      return;
+    }
+    this.notificacionService.openWarn(`${queFallo}: el servidor no respondió.`, 6);
+  }
+
+  /** La recarga corre solo si la pantalla sigue abierta y con el mismo pedido. */
+  private programarRecargaTrasFallo(recargar: () => void): void {
+    if (this.destruido) {
+      return;
+    }
+    const pedidoId = this.pedidoId;
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (this.destruido || this.pedidoId !== pedidoId) {
+        return;
+      }
+      recargar();
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
+  }
+
+  /** Pedido y resumen, sin tocar el formulario: lo que el usuario cargó queda para reintentar. */
+  private recargarCabeceraTrasCorte(): void {
+    if (!this.pedidoId) {
+      return;
+    }
+    this.pedidoService.onGetPedidoById(this.pedidoId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pedido) => {
+          if (pedido) {
+            this.currentPedido = pedido;
+            this.updateComputedProperties();
+            this.updateItemsComputedProperties();
+          }
+        },
+        error: () => this.avisarRecargaFallida(),
+      });
+    this.loadPedidoResumen();
+  }
+
+  /** Ítems y resumen, como tras borrar un ítem. */
+  private recargarItemsTrasCorte(): void {
+    this.markTabAsUnloaded(1);
+    this.markTabAsUnloaded(2);
+    if (this.selectedTabIndex === 1) {
+      this.loadItemsData();
+    } else {
+      this.updateItemsComputedProperties();
+      if (this.selectedTabIndex === 2) {
+        this.reloadTabData(2);
+      }
+    }
+    if (this.isEditMode) {
+      this.loadPedidoResumen();
+    }
+  }
+
+  /** Tab de recepción documental: ítems pendientes y notas. */
+  private recargarRecepcionDocumentalTrasCorte(): void {
+    this.markTabAsUnloaded(2);
+    this.reloadTabData(2);
+    this.updateComputedProperties();
   }
 
   // Utility methods
@@ -4776,6 +4918,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result?.recargar) {
+            this.programarRecargaTrasFallo(() => this.recargarItemsTrasCorte());
+          }
           if (result && result.action === "save") {
             if (result.item?.producto?.id) {
               this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
@@ -4910,17 +5055,12 @@ export class GestionComprasComponent
       return;
     }
 
-    this.desvincularProductoProveedorGQL
-      .mutate({
-        id: producto.id,
-        motivo: motivo
-      }, {
-        context: { clientName: 'servidor' }
-      })
+    this.productoProveedorService
+      .onDesvincular(producto.id, motivo)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          if (response.data?.data) {
+        next: (vinculo) => {
+          if (vinculo) {
             this.notificacionService.openSucess(
               "Producto desvinculado correctamente"
             );
@@ -4934,13 +5074,14 @@ export class GestionComprasComponent
           this.ultimasComprasTotalElements = 0;
           this.ultimasComprasPageIndex = 0;
             }
+          } else {
+            this.notificacionService.openAlgoSalioMal("No se pudo desvincular el producto");
           }
         },
         error: (error) => {
           console.error("Error desvinculando producto:", error);
-          this.notificacionService.openAlgoSalioMal(
-            "Error al desvincular el producto"
-          );
+          // Pasa por el genérico: el motivo del rechazo ya lo mostró (#501)
+          this.trasFalloDeMutacion(error, "se desvinculó el producto", () => this.loadProductosProveedor());
         }
       });
   }

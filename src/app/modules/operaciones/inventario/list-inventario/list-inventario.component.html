@@ -47,7 +47,7 @@
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
-                color: white;
+                color: var(--frc-texto-fuerte);
               ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
@@ -161,7 +161,7 @@
       </div>
     </div>
   </div>
-  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+  <div table style="height: 100%" fxLayout="column"
     fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="descripcion" style="width: 30%">

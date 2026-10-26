@@ -27,12 +27,69 @@ parámetros de la query:
 Esto es un cambio respecto al approach viejo (ticket = "PDF angosto" impreso desde
 el visor): hoy el ticket es **ESC/POS client-side vía `printLocal`**.
 
+**Fallback web (#231).** Si el desktop corre en un navegador (sin Electron no hay
+`printLocal`), el ticket cae al **PDF angosto** de 58/80mm en el visor y se imprime
+con el botón **«Imprimir ticket»** de la barra del visor, eligiendo la térmica en el
+diálogo del sistema. En Electron no cambia nada. Diferencias con el ESC/POS:
+
+- No es silencioso: abre el diálogo del SO y el usuario elige la impresora.
+- La térmica tiene que estar configurada con papel de ese ancho; si no, el driver
+  puede reescalar o recortar.
+- No manda el comando de corte de papel (depende del driver).
+- Conserva los acentos (el ESC/POS los quita).
+
+Las plantillas `recibo-ticket-58/80.jrxml` usan `isIgnorePagination="true"`: el PDF
+es **una sola página con el alto del contenido** (≈286pt para un concepto), no la
+página fija de 1200pt que dejaba ~32cm de papel en blanco.
+
+**Por qué un botón propio y no el de imprimir del visor.** El del visor (pdf.js) fija
+la hoja al tamaño exacto del PDF (`@page { size }`). La térmica no tiene ese papel,
+así que Chrome **centra** la hoja en el rollo y la impresora avanza todo el blanco de
+arriba (más de un metro con un rollo largo). «Imprimir ticket»
+(`shared/components/imprimir/imprimir-ticket-navegador.ts`) dibuja cada página como
+imagen a 203 dpi y la imprime desde un iframe **sin tamaño de hoja**: Chrome usa el
+papel de la impresora, empieza desde arriba, y el driver descarta el blanco de abajo.
+En los tickets web el botón del visor se oculta.
+
+### Instalar la térmica para imprimir desde el navegador (una vez por PC)
+
+El navegador solo imprime a través del sistema (CUPS / cola de Windows) y necesita
+la impresora **con driver**. Una cola *raw* (la que usa Electron para ESC/POS) no le
+sirve: Chrome la muestra como «no disponible». **No tocar la cola de Electron**:
+agregar otra, sobre el mismo dispositivo, solo para el navegador.
+
+- **Windows:** instalar el driver del fabricante (suele llamarse «POS-58»/«POS-80»)
+  y elegir el papel de 58 u 80mm en sus preferencias.
+- **Linux:** no hay paquete en Fedora; se usa el driver libre
+  [zj-58](https://github.com/klirichek/zj-58) (filtro `rastertozj` + `zj58.ppd`/`zj80.ppd`):
+
+  ```bash
+  gcc -O2 -w -std=gnu11 -o rastertozj rastertozj.c -lcups -lcupsimage   # necesita cups-devel
+  sudo install -m 755 rastertozj /usr/lib/cups/filter/rastertozj
+  sudo install -d /usr/share/cups/model/zjiang
+  sudo install -m 644 zj58.ppd zj80.ppd /usr/share/cups/model/zjiang/
+  # misma URI que la cola raw (lpstat -v):
+  sudo lpadmin -p <cola>_ticket -E -v '<uri usb de la térmica>' \
+    -P /usr/share/cups/model/zjiang/zj58.ppd -o PageSize=X48MMY105MM -o BlankSpace=False
+  ```
+
+  - `BlankSpace=False`: el driver no imprime el blanco del final de cada hoja, así que
+    el ticket sale con su largo real y sin cortes entre hojas.
+  - `PageSize=X48MMY105MM`: Chrome dibuja la vista previa con el papel de la
+    impresora, y una página web no lo puede cambiar. Con 105mm un vale (~101mm) se ve
+    en una sola hoja; un recibo más largo se ve en varias, pero en el rollo sale
+    continuo. Medido con el driver: vale 92mm de papel, recibo de 5 conceptos 119mm.
+    **No usar un rollo largo** (`X48MMY3276MM`): la vista previa muestra metros de
+    blanco.
+
+En el diálogo de Chrome: Márgenes **Ninguno**, Escala **Predeterminada**.
+
 ## Piezas
 
 | Pieza | Ruta | Rol |
 |---|---|---|
 | `ImprimirDialogComponent` | `shared/components/imprimir/imprimir-dialog.component.ts` | Diálogo que pregunta el formato. Botones **PDF (A4)**, **Ticket 58mm**, **Ticket 80mm**. Devuelve `{ formato: 'pdf'\|'ticket', anchoMm: number\|null }`. Con `soloPdf` oculta los dos botones de ticket. |
-| `ImpresionService` | `shared/components/imprimir/impresion.service.ts` | Orquesta: abre el diálogo → si **PDF** llama al generador con `(null, false)` y muestra en el visor; si **Ticket** elige la impresora térmica, llama al generador con `(anchoMm, true)` y manda el payload por `printLocal`. |
+| `ImpresionService` | `shared/components/imprimir/impresion.service.ts` | Orquesta: abre el diálogo → si **PDF** llama al generador con `(null, false)` y muestra en el visor; si **Ticket** elige la impresora térmica, llama al generador con `(anchoMm, true)` y manda el payload por `printLocal`. Fuera de Electron, el ticket llama con `(anchoMm, false)` y abre el PDF angosto en el visor. |
 | `ElectronService.printLocal` | `commons/core/electron/electron.service.ts` | `ipcRenderer.invoke('print-local', args)` → main process. |
 | `imprimirLocalRaw` | `app/main.ts` | Impresión real: `RED` → socket TCP a `ip:puerto` (9100); `CUPS/USB/BLUETOOTH` → `spawn('lp', ['-d', cola, '-o', 'raw'])`. |
 | `Impresora` / `ImpresoraService` | `modules/configuracion/impresoras/` | Registro de impresoras. Campos: `uso` (`TICKET`/`FACTURA`/…), `tipo` (`TERMICA`/…), `conexion` (`CUPS`/`USB`/`RED`/`BLUETOOTH`), `colaCups`, `ip`, `puerto`, `esPredeterminada`. |
@@ -65,8 +122,8 @@ onVerRecibo(row: Vale) {
 filtra `uso === 'TICKET' || tipo === 'TERMICA'`, prefiere la que tenga
 `esPredeterminada`, si ninguna está marcada usa la primera candidata. Si no hay
 candidatas → notificación "No hay impresora de ticket configurada
-(Configuración → Impresoras)". Si la app no corre en Electron → notificación
-"requiere la app de escritorio".
+(Configuración → Impresoras)". Si la app no corre en Electron no se busca
+impresora: el ticket sale como PDF angosto en el visor (ver «Fallback web»).
 
 ## Cómo generar los dos formatos (backend)
 
@@ -83,7 +140,7 @@ uniforme es `(Long id, Integer anchoMm, boolean escpos)`, con tres salidas:
 | `escpos` | `anchoMm` | Salida |
 |---|---|---|
 | `false` | `null` | **PDF A4** (`recibo-rrhh.jrxml` genérica o plantilla dedicada) |
-| `false` | `58`/`80` | **PDF ticket angosto** (preview en visor, `recibo-ticket-58/80.jrxml`) |
+| `false` | `58`/`80` | **PDF ticket angosto** (fallback web en el visor, `recibo-ticket-58/80.jrxml`) |
 | `true` | `58`/`80` | **Payload ESC/POS crudo** (`ReciboTicketEscPos.build`), para `printLocal` |
 
 `ReciboTicketEscPos` (`utilitarios/print/ReciboTicketEscPos.java` en central):

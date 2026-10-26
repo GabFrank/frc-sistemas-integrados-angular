@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
@@ -13,6 +13,7 @@ import {
 import { LoteService } from '../../../operaciones/lote/lote.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { Producto } from '../producto.model';
+import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
 export interface LotesProductoDialogData {
   producto: Producto;
@@ -41,7 +42,9 @@ interface LoteRow {
   styleUrls: ['./lotes-producto-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LotesProductoDialogComponent implements OnInit {
+export class LotesProductoDialogComponent implements OnInit, OnDestroy {
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
 
   displayedColumns = ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'estado', 'acciones'];
 
@@ -192,13 +195,40 @@ export class LotesProductoDialogComponent implements OnInit {
             this.cargarLotes();
           }
         },
-        error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al cambiar el estado del lote');
+        // En un rechazo el genérico ya mostró el motivo; sin respuesta se avisa y se recarga a los 5 s (#488)
+        error: (error) => {
+          const aviso = avisoTrasMutacion(error, 'se cambió el estado del lote');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+          if (erroresDeRechazo(error) == null) {
+            this.programarRecargaTrasFallo(() => this.cargarLotes());
+          }
         }
       });
   }
 
   onCerrar(): void {
     this.dialogRef.close();
+  }
+
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
+  }
+
+  /** Recarga tras un corte: a los 5 s y solo si la pantalla sigue abierta (#488). */
+  private programarRecargaTrasFallo(recargar: () => void): void {
+    if (this.destruido) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (!this.destruido) {
+        recargar();
+      }
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
   }
 }

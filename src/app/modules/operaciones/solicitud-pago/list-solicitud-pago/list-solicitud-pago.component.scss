@@ -15,7 +15,7 @@ tr.example-detail-row {
   display: inline-block;
   padding: 3px 12px;
   border-radius: 12px;
-  color: #fff;
+  color: var(--frc-texto-fuerte);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -39,15 +39,12 @@ tr.example-detail-row {
 }
 
 .expanded:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-superficie-tabla) !important;
 }
 
-.tableRows:hover {
-  background-color: rgb(51, 51, 51) !important;
-}
 
 .expand-section {
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-superficie-baja);
   padding: 1rem;
   border-radius: 4px;
   min-height: 80px;
@@ -57,7 +54,7 @@ tr.example-detail-row {
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 0.75rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(var(--frc-tinta), 0.9);
 }
 
 .expand-table-wrapper {
@@ -66,7 +63,7 @@ tr.example-detail-row {
 
 .expand-table {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--frc-tinta), 0.04);
 
   mat-header-cell,
   mat-cell {
@@ -113,5 +110,5 @@ tr.example-detail-row {
 .expand-placeholder {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(var(--frc-tinta), 0.5);
 }

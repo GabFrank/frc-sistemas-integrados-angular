@@ -31,8 +31,10 @@ export class ConfiguracionFacturacionService {
     return this.genericCrudService.onCustomQuery(this.getConfiguracionesGQL, {}, true);
   }
 
-  onSaveConfiguracion(input: ConfiguracionFacturacionInput): Observable<ConfiguracionFacturacion> {
-    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, true);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveConfiguracion(input: ConfiguracionFacturacionInput,
+                      opciones?: { avisarExito?: boolean }): Observable<ConfiguracionFacturacion> {
+    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, true, undefined, undefined, opciones);
   }
 
   onDeleteConfiguracion(id: number, mensaje: string): Observable<boolean> {

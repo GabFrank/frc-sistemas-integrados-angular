@@ -2,6 +2,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit, AfterViewInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
+import { forkJoin } from 'rxjs';
 import { MatPaginator } from '@angular/material/paginator';
 import { ViewChild } from '@angular/core';
 import { HorarioService } from '../../service/horario.service';
@@ -180,7 +181,9 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
 
     onGuardar(): void {
         if (this.dataSource.data && this.dataSource.data.length > 0) {
-            this.dataSource.data.forEach(h => {
+            // Un solo verde, al final y solo si se guardaron todos: antes salía en el acto, sin esperar
+            // respuesta, junto a un «Guardado con éxito» por horario (#501). Un fallo lo avisa el genérico.
+            const guardados = this.dataSource.data.map(h => {
                 let horarioInput = new HorarioInput();
                 horarioInput.id = h.id;
                 horarioInput.horaEntrada = h.entrada;
@@ -189,10 +192,12 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
                 horarioInput.dias = h.diasValue;
                 horarioInput.turno = h.turnoValue;
 
-                this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe(res => {
-                });
+                return this.horarioService.onSaveHorario(horarioInput, true, undefined, { avisarExito: false });
             });
-            this.notificacionService.openSucess('Horarios asignados correctamente');
+            forkJoin(guardados).pipe(untilDestroyed(this)).subscribe({
+                next: () => this.notificacionService.openSucess('Horarios asignados correctamente'),
+                error: () => {},
+            });
         }
     }
 

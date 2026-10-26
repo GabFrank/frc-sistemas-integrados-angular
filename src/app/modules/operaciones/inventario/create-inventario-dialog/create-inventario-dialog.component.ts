@@ -121,7 +121,7 @@ export class CreateInventarioDialogComponent implements OnInit {
         inventario.tipo = TipoInventario.ZONA;
         inventario.usuario = this.responsable;
 
-        this.inventarioService.onSaveInventario(inventario.toInput())
+        this.inventarioService.onSaveInventario(inventario.toInput(), { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe(res2 => {
             if (res2 != null) {

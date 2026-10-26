@@ -48,11 +48,11 @@ mat-chip {
 // es el cupon.
 mat-chip.no-completado {
   color: #616161 !important;
-  background-color: #616161 !important;
+  background-color: var(--frc-relleno-fuerte) !important;
 
   ::ng-deep .mat-mdc-chip-text-label,
   ::ng-deep .mdc-evolution-chip__text-label {
-    color: #ffffff !important;
+    color: var(--frc-texto-fuerte) !important;
     padding-top: 3px;
   }
 }

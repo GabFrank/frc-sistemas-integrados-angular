@@ -1,4 +1,4 @@
-/* Main container with dark background */
+/* Contenedor: superficie del dialogo (sigue el modo claro/oscuro) */
 .main-container {
   display: flex;
   flex-direction: column;
@@ -7,8 +7,8 @@
   height: 100%;
   gap: 10px;
   padding: 0px;
-  background-color: rgb(52, 52, 52);
-  color: white;
+  background-color: var(--frc-superficie);
+  color: var(--frc-texto-fuerte);
 }
 
 /* Header section with gradient background */
@@ -55,7 +55,7 @@ tr.mat-row.row-seleccionada {
 .footer-section {
   padding: 16px 20px;
   margin: 0 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--frc-borde);
   border-radius: 0 0 8px 8px;
 }
 
@@ -67,13 +67,13 @@ tr.mat-row.row-seleccionada {
 }
 
 .footer-section .footer-buttons .exit-btn {
-  color: rgba(255, 255, 255, 0.7) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(var(--frc-tinta), 0.7) !important;
+  border: 1px solid rgba(var(--frc-tinta), 0.3);
 }
 
 .footer-section .footer-buttons .exit-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: white !important;
+  background-color: rgba(var(--frc-tinta), 0.05) !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 /* Table styling */
@@ -114,23 +114,39 @@ tr:focus {
   vertical-align: middle;
 } 
 
-/* Form styling for dark theme */
-::ng-deep .mat-mdc-form-field .mat-mdc-form-field-outline {
-  color: rgba(255, 255, 255, 0.3) !important;
+/* Campos y botones del dialogo. Con :host: un ::ng-deep suelto es CSS global y pintaba de blanco
+   los inputs y botones de toda la app desde que se abria el buscador. */
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-outline {
+  color: rgba(var(--frc-tinta), 0.3) !important;
 }
 
-::ng-deep .mat-mdc-form-field .mat-mdc-form-field-label {
-  color: rgba(255, 255, 255, 0.7) !important;
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-label {
+  color: rgba(var(--frc-tinta), 0.7) !important;
 }
 
-::ng-deep .mat-mdc-form-field input {
-  color: white !important;
+:host ::ng-deep .mat-mdc-form-field input {
+  color: var(--frc-texto-fuerte) !important;
 }
 
-/* Button styling for dark theme */
-::ng-deep .mat-mdc-button {
-  color: white !important;
-} 
+:host ::ng-deep .mat-mdc-button {
+  color: var(--frc-texto-fuerte) !important;
+}
+
+/* Tabla con el mismo fondo y encabezado que las listas */
+:host ::ng-deep table.mat-mdc-table {
+  background-color: var(--frc-superficie-tabla);
+}
+
+:host ::ng-deep th.mat-mdc-header-cell {
+  background-color: var(--frc-encabezado-tabla);
+  color: var(--frc-encabezado-tabla-texto);
+  border-bottom: 2px solid var(--frc-encabezado-tabla-borde);
+}
+
+:host ::ng-deep td.mat-mdc-cell {
+  color: var(--frc-texto);
+  border-bottom-color: var(--frc-borde-suave);
+}
   
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -147,11 +163,11 @@ input::-webkit-inner-spin-button {
 }
 
 .expanded:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-hover) !important;
 }
 
 .tableRows:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-hover) !important;
 }
 
 th {

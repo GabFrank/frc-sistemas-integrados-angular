@@ -1,6 +1,6 @@
 <div fxLayout="row" style="width: 100%; height: 100%">
   <mat-card fxFlex="20%" fxLayout="column" fxLayoutGap="10px" fxLayoutAlign="space-between start"
-    style="background-color: rgb(32, 32, 32); height: auto; padding: 10px">
+    style="background-color: var(--frc-superficie-baja); height: auto; padding: 10px">
     <div fxFlex fxLayout="column" fxLayoutAlign="start" fxLayoutGap="5px" style="width: 100%; height: 100%">
       <button style="width: 100%" [color]="stepper.selectedIndex == 0 ? 'accent' : ''" (click)="goTo('informacion')"
         mat-raised-button>
@@ -30,19 +30,16 @@
 
       <div fxLayout="column" style="width: 100%">
         <div fxFlex>
-          <mat-form-field style="width: 100%">
-            <mat-label>Responsable</mat-label>
-            <input #responsableInput type="text" matInput [formControl]="responsableControl"
-              oninput="this.value == ' ' ? this.value = '': null" [matAutocomplete]="autoResponsable"
-              (keyup.enter)="tipoGastoInput.select()" (focusin)="responsableInput.select()" />
-            <mat-autocomplete #autoResponsable="matAutocomplete"
-              (optionSelected)="onResponsableSelect($event.option.value)" (closed)="onResponsableAutocompleteClose()">
-              <mat-option *ngFor="let funcionario of responsableList" [value]="funcionario">
-                {{ funcionario.persona?.id }} -
-                {{ funcionario?.persona?.nombre | uppercase }}
-              </mat-option>
-            </mat-autocomplete>
-          </mat-form-field>
+          <app-buscador-field
+            #responsableField
+            tipo="funcionario"
+            titulo="Responsable"
+            [rapido]="true"
+            [opciones]="opcionesFilial"
+            [formControl]="responsableControl"
+            (seleccionado)="onResponsableSelect($event)"
+            (enter)="tipoGastoInput.select()"
+          ></app-buscador-field>
         </div>
         <div fxFlex>
           <mat-form-field style="width: 100%"
@@ -54,20 +51,15 @@
           </mat-form-field>
         </div>
         <div fxFlex *ngIf="selectedTipoGasto?.autorizacion == true">
-          <mat-form-field style="width: 100%">
-            <mat-label>Autorizado Por</mat-label>
-            <input #autorizadoPorInput type="text" matInput [formControl]="autorizadoPorControl"
-              oninput="this.value == ' ' ? this.value = '': null" [matAutocomplete]="autoAutorizadoPor"
-              (keyup.enter)="obs.select()" />
-            <mat-autocomplete #autoAutorizadoPor="matAutocomplete"
-              (optionSelected)="onAutorizadoPorSelect($event.option.value)"
-              (closed)="onAutorizadoPorAutocompleteClose()">
-              <mat-option *ngFor="let autorizadoPor of autorizadoPorList" [value]="autorizadoPor">
-                {{ autorizadoPor.id }} -
-                {{ autorizadoPor?.persona?.nombre | uppercase }}
-              </mat-option>
-            </mat-autocomplete>
-          </mat-form-field>
+          <app-buscador-field
+            tipo="funcionario"
+            titulo="Autorizado Por"
+            [rapido]="true"
+            [opciones]="opcionesFilial"
+            [formControl]="autorizadoPorControl"
+            (seleccionado)="onAutorizadoPorSelect($event)"
+            (enter)="obs.select()"
+          ></app-buscador-field>
         </div>
         <div #retiro fxFlex fxLayout="row">
           <mat-form-field style="width: 100%">
@@ -82,7 +74,7 @@
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
           <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
-              background-color: rgb(32, 32, 32);
+              background-color: var(--frc-superficie-baja);
               padding: 10px;
             ">
             <div style="text-align: center">Retirado</div>
@@ -110,7 +102,7 @@
           </mat-card>
           <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
-              background-color: rgb(32, 32, 32);
+              background-color: var(--frc-superficie-baja);
               padding: 10px;
             ">
             <div style="text-align: center">Vuelto</div>
@@ -290,7 +282,7 @@
           </mat-form-field>
         </div>
 
-        <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: #bdbdbd;">
+        <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: var(--frc-texto-suave);">
           Cargando solicitudes...
         </div>
         <table *ngIf="!cargandoSolicitudes" style="width: 100%" mat-table
@@ -359,7 +351,7 @@
         </table>
 
         <div *ngIf="!cargandoSolicitudes && solicitudesProcesadasDataSource.data.length === 0"
-          style="padding: 16px; color: #9e9e9e;">
+          style="padding: 16px; color: var(--frc-texto-tenue);">
           No hay solicitudes pendientes, autorizadas o rechazadas para mostrar.
         </div>
       </div>

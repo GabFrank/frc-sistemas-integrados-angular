@@ -193,13 +193,18 @@ export class TransferenciaService {
     );
   }
 
-  onSaveTransferencia(input, responseOnError?: boolean, servidor = true): Observable<Transferencia> {
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveTransferencia(input, responseOnError?: boolean, servidor = true,
+                      opciones?: { avisarExito?: boolean }): Observable<Transferencia> {
     input.usuarioPreTransferenciaId = this.mainService.usuarioActual.id;
-    return this.genericCrudService.onSave(this.saveTransferencia, input, null, null, servidor, null, this.mainService.usuarioActual.id);
+    return this.genericCrudService.onSave(this.saveTransferencia, input, null, null, servidor, null, this.mainService.usuarioActual.id,
+      opciones);
   }
 
   onDeleteTransferencia(id, servidor = true): Observable<boolean> {
-    return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?");
+    // Un solo verde, con el texto que daba la lista (#501)
+    return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?",
+      { exito: 'Transferencia eliminada correctamente' });
   }
 
   onSaveTransferenciaItem(input, precioCosto?: number, servidor = true,
@@ -350,8 +355,9 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomQuery(this.getHojaRutaActivaPorVehiculo, { vehiculoId }, servidor);
   }
 
-  onSaveHojaRuta(input: HojaRutaInput, servidor = true): Observable<HojaRuta> {
-    return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveHojaRuta(input: HojaRutaInput, servidor = true, opciones?: { avisarExito?: boolean }): Observable<HojaRuta> {
+    return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor, undefined, undefined, opciones);
   }
 
   /**

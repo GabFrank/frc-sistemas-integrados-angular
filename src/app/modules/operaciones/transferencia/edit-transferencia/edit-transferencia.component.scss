@@ -15,9 +15,6 @@ tr.example-detail-row {
   height: 0;
 }
 
-.example-element-row:hover {
-  background-color: rgb(34, 34, 34);
-}
 
 .example-element-detail {
   overflow: hidden;
@@ -89,7 +86,7 @@ input {
   font-family: Roboto;
   letter-spacing: 0.25px;
   line-height: 20px;
-  color: white;
+  color: var(--frc-texto-fuerte);
 }
 
 .text-2 {
@@ -99,7 +96,7 @@ input {
   font-family: Roboto;
   letter-spacing: 0.4000000059604645px;
   line-height: 16px;
-  color: rgb(176, 176, 176);
+  color: var(--frc-texto-terciario);
 }
 
 
@@ -111,6 +108,6 @@ input {
 }
 
 .solicitante-vacio {
-  color: rgb(176, 176, 176);
+  color: var(--frc-texto-terciario);
   font-style: italic;
 }

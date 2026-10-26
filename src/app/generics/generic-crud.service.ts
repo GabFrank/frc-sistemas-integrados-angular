@@ -46,6 +46,19 @@ const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 /** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
 const MARGEN_DIALOGO_MS = 5000;
 
+/**
+ * Textos de {@link GenericCrudService.onDelete} cuando la mutation no es un borrado (p. ej. cancelar un pedido): sin
+ * esto el aviso decía «eliminó» (#501).
+ */
+export interface TextosEliminar {
+  /** Aviso verde del éxito. */
+  exito?: string;
+  /** Completa «Ups! Ocurrió algun problema …» en un rechazo (p. ej. «al cancelar el pedido»). */
+  alHacer?: string;
+  /** Completa «No se pudo confirmar si …» sin respuesta (p. ej. «se canceló el pedido»). */
+  queSeHizo?: string;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -353,7 +366,7 @@ export class GenericCrudService {
   }
 
   onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false,
-                   opciones?: { timeoutMs?: number }): Observable<any> {
+                   opciones?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
     
@@ -374,6 +387,8 @@ export class GenericCrudService {
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
             timeoutMs: opciones?.timeoutMs,
+            // Acción de fondo que el usuario no inició: sin el aviso del link al vencer (#528)
+            ...(opciones?.silenciarAvisoTimeout ? { silenciarAvisoTimeout: true } : {}),
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -388,11 +403,8 @@ export class GenericCrudService {
               obs.complete();
             } else {
               if (silentLoad !== true) {
-                this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
-                  color: NotificacionColor.danger,
-                  duracion: 3,
-                });
+                // N iguales en paralelo (recepción, distribuciones) = un solo aviso (#501)
+                this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message), 3);
               }
               obs.error(limpiarErroresGraphQL(res.errors));
             }
@@ -682,6 +694,8 @@ export class GenericCrudService {
    *   invitar a repetir a ciegas (`erroresDeRechazo(err) == null` lo distingue).
    *
    * @param errorConf `networkError.show = false` apaga ese aviso, para quien dice lo suyo.
+   * @param opciones `avisarExito = false` apaga solo «Guardado con éxito», para la pantalla que muestra su
+   * propio verde (como en {@link onSaveCustom}); los avisos de error no cambian (#501).
    */
   onSave<T>(
     gql: Mutation,
@@ -690,7 +704,8 @@ export class GenericCrudService {
     local?: string,
     servidor: boolean = true,
     errorConf?: QueryError,
-    usuarioId?: number
+    usuarioId?: number,
+    opciones?: { avisarExito?: boolean }
   ): Observable<T> {
     this.isLoading = true;
     if (usuarioId == null) usuarioId = this.mainService.usuarioActual.id;
@@ -734,18 +749,17 @@ export class GenericCrudService {
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
-              this.notificacionSnackBar.notification$.next({
-                texto: "Guardado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
+              if (opciones?.avisarExito !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Guardado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
+                });
+              }
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto:
-                  "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 5,
-              });
+              // N rechazos iguales en paralelo (cuotas de un pago) = un solo aviso (#501)
+              this.avisarErrorSinRepetir(gql,
+                "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message), 5);
               if (res?.data != null && res?.data["data"] != null) {
                 // Se guardó, y falló algo al armar la respuesta. Antes emitía sin completar.
                 obs.next(res.data["data"]);
@@ -781,23 +795,25 @@ export class GenericCrudService {
     });
   }
 
-  // Un lote (forkJoin de N onSaveCustom) que falla dispara N errores casi juntos (de red o de
-  // negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
+  // Un lote (forkJoin de N onSave, onSaveCustom u onCustomMutation) que falla dispara N errores casi juntos
+  // (de red o de negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
   // avisaría. La cola de notificaciones es secuencial, así que N avisos iguales taparían cualquier
   // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
   // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.
   ventanaAvisoErrorMs = 3000;
-  private ultimoAvisoError: { gql: Mutation; texto: string; en: number } = null;
+  // Uno por operación: con un solo registro, dos operaciones que se alternan en un lote (A, B, A, B)
+  // se pisaban y volvían a avisar (#501).
+  private ultimoAvisoError = new WeakMap<Mutation, { texto: string; en: number }>();
 
   private avisarErrorSinRepetir(gql: Mutation, texto: string, duracion: number): void {
     // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
     // resta negativa y silenciaría avisos mucho más de la ventana.
     const ahora = performance.now();
-    const repetido = this.ultimoAvisoError?.gql === gql
-      && this.ultimoAvisoError.texto === texto
-      && ahora - this.ultimoAvisoError.en < this.ventanaAvisoErrorMs;
+    // Sin operación (no debería pasar) se avisa siempre: un WeakMap no acepta una clave nula.
+    const ultimo = gql != null ? this.ultimoAvisoError.get(gql) : null;
+    const repetido = ultimo?.texto === texto && ahora - ultimo.en < this.ventanaAvisoErrorMs;
     if (repetido) return;
-    this.ultimoAvisoError = { gql, texto, en: ahora };
+    if (gql != null) this.ultimoAvisoError.set(gql, { texto, en: ahora });
     this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.danger, duracion });
   }
 
@@ -890,12 +906,13 @@ export class GenericCrudService {
     data?: any,
     showDialog?: boolean,
     servidor: boolean = true,
-    mensaje?: string
+    mensaje?: string,
+    textos?: TextosEliminar
   ): Observable<any> {
     return this.eliminar(gql, { id }, servidor, showDialog == false ? null : {
       titulo: titulo != null ? titulo : "Atención!!",
       mensaje: mensaje != null ? mensaje : "Realemente desea eliminar este item?",
-    });
+    }, textos);
   }
 
   /** Como {@link onDelete}, para las entidades cuya clave incluye la sucursal. */
@@ -918,7 +935,8 @@ export class GenericCrudService {
     gql: Mutation,
     variables: any,
     servidor: boolean,
-    confirmacion: { titulo: string; mensaje: string } | null
+    confirmacion: { titulo: string; mensaje: string } | null,
+    textos?: TextosEliminar
   ): Observable<any> {
     return new Observable((obs) => {
       let requestId: any = null;
@@ -950,7 +968,7 @@ export class GenericCrudService {
               if (terminado) return;
               if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Eliminado con éxito",
+                  texto: textos?.exito ?? "Eliminado con éxito",
                   duracion: 2,
                   color: NotificacionColor.success,
                 });
@@ -964,7 +982,7 @@ export class GenericCrudService {
               this.notificacionSnackBar.notification$.next({
                 texto: yaNoExiste
                   ? "No se pudo eliminar: el registro ya no existe o no se puede borrar. Actualizá la lista."
-                  : "Ups! Ocurrió algun problema al eliminar: " + motivo,
+                  : "Ups! Ocurrió algun problema " + (textos?.alHacer ?? "al eliminar") + ": " + motivo,
                 duracion: yaNoExiste ? 5 : 3,
                 color: yaNoExiste ? NotificacionColor.warn : NotificacionColor.danger,
               });
@@ -979,8 +997,8 @@ export class GenericCrudService {
                   // Mismo criterio que onSave: con status tampoco se niega el borrado (un 502 de un proxy
                   // pudo haberlo dejado pasar).
                   texto: status > 0
-                    ? "No se pudo confirmar si se eliminó: el servidor respondió HTTP " + status + ". Verificá antes de repetir."
-                    : "No se pudo confirmar si se eliminó (error de red): pudo haberse aplicado, verificá antes de repetir.",
+                    ? "No se pudo confirmar si " + (textos?.queSeHizo ?? "se eliminó") + ": el servidor respondió HTTP " + status + ". Verificá antes de repetir."
+                    : "No se pudo confirmar si " + (textos?.queSeHizo ?? "se eliminó") + " (error de red): pudo haberse aplicado, verificá antes de repetir.",
                   duracion: 6,
                   color: NotificacionColor.warn,
                 });
@@ -995,7 +1013,8 @@ export class GenericCrudService {
         return;
       }
       this.dialogoService
-        .confirm(confirmacion.titulo, confirmacion.mensaje)
+        // Un borrado siempre lleva la cabecera de peligro, diga lo que diga el titulo.
+        .confirm(confirmacion.titulo, confirmacion.mensaje, null, null, true, null, null, null, true, true)
         .subscribe({
           next: (confirmado) => {
             if (confirmado) {

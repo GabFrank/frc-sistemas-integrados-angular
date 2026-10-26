@@ -4,7 +4,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   OnDestroy,
-  ViewChild
+  ViewChild,
+  inject,
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -31,7 +32,7 @@ import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { ModoCamara } from '../../components/camara-reconocimiento/camara-reconocimiento.component';
 import { EstadoMarcacionComponent } from '../../components/estado-marcacion/estado-marcacion.component';
 import { BusquedaUsuarioComponent } from '../../components/busqueda-usuario/busqueda-usuario.component';
-import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { cloudConnectionStatusSub } from '../../../../../shared/services/graphql-connection.service';
 
 @UntilDestroy()
@@ -42,6 +43,7 @@ import { cloudConnectionStatusSub } from '../../../../../shared/services/graphql
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MarcarHorarioComponent implements OnInit, OnDestroy {
+  private dialogos = inject(DialogosService);
 
   empleadoNombreControl = new FormControl();
   empleadoIdControl = new FormControl();
@@ -428,18 +430,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const dialogRef = this.matDialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      disableClose: true,
-      data: {
-        title: 'Tipo de Salida',
-        message: '¿Es horario de almuerzo?',
-        confirmText: 'Sí, es almuerzo',
-        cancelText: 'No, salida definitiva'
-      }
-    });
-
-    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(esAlmuerzo => {
+    this.dialogos.confirmar({
+      titulo: 'Tipo de Salida',
+      mensaje: '¿Es horario de almuerzo?',
+      si: 'Sí, es almuerzo',
+      no: 'No, salida definitiva',
+      ancho: '400px',
+      cerrable: false
+    }).pipe(untilDestroyed(this)).subscribe(esAlmuerzo => {
       if (esAlmuerzo === null || esAlmuerzo === undefined) return;
       this.ejecutarRegistro(false, esAlmuerzo);
     });

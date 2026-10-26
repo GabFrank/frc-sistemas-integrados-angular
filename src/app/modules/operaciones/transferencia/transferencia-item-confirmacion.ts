@@ -72,6 +72,39 @@ export function nombreEtapaDeOrigen(etapa: EtapaTransferencia): string {
 }
 
 /**
+ * True si el item ya tiene algo cargado en la etapa: cantidad, vencimiento o motivo de rechazo. Es la
+ * condicion con la que el menu muestra «Desconfirmar». El save del central es un PATCH (un null es
+ * «no lo toques»), asi que antes de modificar o rechazar un item cargado hay que vaciar la etapa (#569).
+ */
+export function tieneEtapaCargada(
+  item: TransferenciaItem,
+  etapa: EtapaTransferencia
+): boolean {
+  switch (etapa) {
+    case EtapaTransferencia.PREPARACION_MERCADERIA:
+      return (
+        item?.cantidadPreparacion != null ||
+        item?.vencimientoPreparacion != null ||
+        item?.motivoRechazoPreparacion != null
+      );
+    case EtapaTransferencia.TRANSPORTE_VERIFICACION:
+      return (
+        item?.cantidadTransporte != null ||
+        item?.vencimientoTransporte != null ||
+        item?.motivoRechazoTransporte != null
+      );
+    case EtapaTransferencia.RECEPCION_EN_VERIFICACION:
+      return (
+        item?.cantidadRecepcion != null ||
+        item?.vencimientoRecepcion != null ||
+        item?.motivoRechazoRecepcion != null
+      );
+    default:
+      return false;
+  }
+}
+
+/**
  * Escribe en {@code item} los datos de la etapa confirmada y lo devuelve.
  *
  * Si no hay de donde copiar no toca nada: nunca escribe nulls, que era justamente el bug. El
@@ -99,6 +132,44 @@ export function aplicarConfirmacion(
       item.cantidadRecepcion = origen.cantidad;
       item.presentacionRecepcion = origen.presentacion;
       item.vencimientoRecepcion = origen.vencimiento;
+      break;
+  }
+  return item;
+}
+
+/**
+ * Vacía en {@code item} los campos de la etapa des-verificada y lo devuelve: los mismos que vacía el
+ * backend (desconfirmarTransferenciaItem). La grilla usa esto y no la respuesta de la mutation, que
+ * no trae el producto ni la cantidad pedida y dejaba la fila sin poder volver a confirmarse (#567).
+ *
+ * Solo asigna null a campos de primer nivel: el llamador pasa una copia, que comparte con la fila
+ * vieja los objetos anidados (presentaciones, transferencia, lotes) y no deben tocarse.
+ */
+export function aplicarDesconfirmacion(
+  item: TransferenciaItem,
+  etapa: EtapaTransferencia
+): TransferenciaItem {
+  switch (etapa) {
+    case EtapaTransferencia.PREPARACION_MERCADERIA:
+      item.cantidadPreparacion = null;
+      item.presentacionPreparacion = null;
+      item.vencimientoPreparacion = null;
+      item.motivoModificacionPreparacion = null;
+      item.motivoRechazoPreparacion = null;
+      break;
+    case EtapaTransferencia.TRANSPORTE_VERIFICACION:
+      item.cantidadTransporte = null;
+      item.presentacionTransporte = null;
+      item.vencimientoTransporte = null;
+      item.motivoModificacionTransporte = null;
+      item.motivoRechazoTransporte = null;
+      break;
+    case EtapaTransferencia.RECEPCION_EN_VERIFICACION:
+      item.cantidadRecepcion = null;
+      item.presentacionRecepcion = null;
+      item.vencimientoRecepcion = null;
+      item.motivoModificacionRecepcion = null;
+      item.motivoRechazoRecepcion = null;
       break;
   }
   return item;

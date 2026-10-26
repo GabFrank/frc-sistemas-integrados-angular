@@ -3,12 +3,8 @@ import { Observable, catchError, map, of, tap } from 'rxjs';
 import { LogicalReplication, ReplicationStatus } from './logical-replication.model';
 import { ReplicationSubscriptionsGQL } from './graphql/replication-subscriptions-gql';
 import { ReplicationPublicationsGQL } from './graphql/replication-publications-gql';
-import { SetupReplicationGQL } from './graphql/setup-replication-gql';
 import { SetupReplicationAdvancedGQL } from './graphql/setup-replication-advanced-gql';
-import { SetupBranchReplicationGQL } from './graphql/setup-branch-replication-gql';
-import { RemoveReplicationGQL } from './graphql/remove-replication-gql';
 import { RemoveReplicationAdvancedGQL } from './graphql/remove-replication-advanced-gql';
-import { RemoveBranchReplicationGQL } from './graphql/remove-branch-replication-gql';
 import { ToggleReplicationGQL } from './graphql/toggle-replication-gql';
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
@@ -18,7 +14,6 @@ import { RemoteReplicationSubscriptionsGQL } from './graphql/remote-replication-
 import { RemoteReplicationPublicationsGQL } from './graphql/remote-replication-publications-gql';
 import { SearchRemoteReplicationSubscriptionsGQL } from './graphql/search-remote-replication-subscriptions-gql';
 import { ToggleRemoteSubscriptionGQL } from './graphql/toggle-remote-subscription-gql';
-import { DropRemotePublicationGQL } from './graphql/drop-remote-publication-gql';
 import { GenerateConnectionStringGQL } from './graphql/generate-connection-string-gql';
 import { GenerateCentralConnectionStringGQL } from './graphql/generate-central-connection-string-gql';
 import { 
@@ -37,6 +32,8 @@ import { RefreshRemoteSubscriptionGQL } from './graphql/refresh-remote-subscript
 import { RefreshAllRemoteSubscriptionsGQL } from './graphql/refresh-all-remote-subscriptions-gql';
 import { SyncPublicationsWithReplicationTableGQL } from './graphql/sync-publications-with-replication-table-gql';
 import { GetReplicationSetupStateGQL, ReplicationSetupState } from './graphql/get-replication-setup-state-gql';
+import { erroresDeRechazo, motivoDelRechazo } from '../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../shared/services/timeout-link';
 
 @Injectable({
   providedIn: 'root'
@@ -64,17 +61,12 @@ export class LogicalReplicationService {
     private generateCentralToBranchSubscriptionNameGQL: GenerateCentralToBranchSubscriptionNameGQL,
     
     // Local mutations
-    private setupReplicationGQL: SetupReplicationGQL,
     private setupReplicationAdvancedGQL: SetupReplicationAdvancedGQL,
-    private setupBranchReplicationGQL: SetupBranchReplicationGQL,
-    private removeReplicationGQL: RemoveReplicationGQL,
     private removeReplicationAdvancedGQL: RemoveReplicationAdvancedGQL,
-    private removeBranchReplicationGQL: RemoveBranchReplicationGQL,
     private toggleReplicationGQL: ToggleReplicationGQL,
     
     // Remote mutations
     private toggleRemoteSubscriptionGQL: ToggleRemoteSubscriptionGQL,
-    private dropRemotePublicationGQL: DropRemotePublicationGQL,
     private createRemotePublicationGQL: CreateRemotePublicationGQL,
     private createRemoteSubscriptionGQL: CreateRemoteSubscriptionGQL,
     private editRemotePublicationGQL: EditRemotePublicationGQL,
@@ -249,27 +241,6 @@ export class LogicalReplicationService {
   // LOCAL MUTATIONS
 
   /**
-   * Setup a new logical replication from central server to a branch
-   */
-  setupReplication(input: any): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.setupReplicationGQL,
-      { input }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN CONFIGURADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error setting up replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
-
-  /**
    * Setup replication with granular control (target: SUBSCRIPTION | PUBLICATION | BOTH, scope: CENTRAL | FILIAL | BOTH)
    */
   setupReplicationAdvanced(sucursalId: number, target: string, scope: string): Observable<ReplicationStatus> {
@@ -284,50 +255,16 @@ export class LogicalReplicationService {
       }),
       catchError(error => {
         console.error('Error in setupReplicationAdvanced', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
-        return of({ success: false, message: error?.message || 'Error desconocido' });
-      })
-    );
-  }
-
-  /**
-   * Setup branch-side replication (to be called on branch server)
-   */
-  setupBranchReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.setupBranchReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL CONFIGURADA CORRECTAMENTE');
+        // En un rechazo el genérico ya mostró el motivo: queda en el log del diálogo, sin otro aviso (#488)
+        if (erroresDeRechazo(error) != null) {
+          return of({ success: false, message: motivoDelRechazo(error) ?? 'El servidor rechazó la configuración.' });
         }
-      }),
-      catchError(error => {
-        console.error('Error setting up branch replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN DE SUCURSAL');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
-
-  /**
-   * Remove central server replication for a branch
-   */
-  removeReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.removeReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN ELIMINADA CORRECTAMENTE');
+        // Sin respuesta: es una operación larga y pudo seguir aplicándose. El corte por tiempo ya lo avisó el link
+        const texto = 'No se pudo confirmar si se configuró la replicación: es una operación larga, revisá el estado antes de repetir.';
+        if (!esTimeoutDeLink(error)) {
+          this.notificacionSnackBar.openWarn(texto, 8);
         }
-      }),
-      catchError(error => {
-        console.error('Error removing replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN');
-        return of({ success: false, message: error.message });
+        return of({ success: false, message: texto, sinConfirmar: true });
       })
     );
   }
@@ -345,32 +282,7 @@ export class LogicalReplicationService {
           this.notificacionSnackBar.openSucess('ELIMINACIÓN COMPLETADA');
         }
       }),
-      catchError(error => {
-        console.error('Error in removeReplicationAdvanced', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN');
-        return of({ success: false, message: error?.message || 'Error desconocido' });
-      })
-    );
-  }
-
-  /**
-   * Remove branch-side replication (to be called on branch server)
-   */
-  removeBranchReplication(sucursalId: number): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.removeBranchReplicationGQL,
-      { sucursalId }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL ELIMINADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error removing branch replication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN DE SUCURSAL');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se eliminó la replicación: revisá el estado antes de repetir.'))
     );
   }
 
@@ -389,14 +301,11 @@ export class LogicalReplicationService {
         if (status && status.success) {
           const type = isSubscription ? 'suscripción' : 'publicación';
           this.notificacionSnackBar.openSucess(`LA ${type.toUpperCase()} HA SIDO ${enabled ? 'ACTIVADA' : 'DESACTIVADA'} CORRECTAMENTE`);
+        } else {
+          this.avisarFallaInformada(status, `No se pudo ${enabled ? 'activar' : 'desactivar'} la ${isSubscription ? 'suscripción' : 'publicación'}.`);
         }
       }),
-      catchError(error => {
-        console.error('Error toggling replication', error);
-        const type = isSubscription ? 'suscripción' : 'publicación';
-        this.notificacionSnackBar.openAlgoSalioMal(`ERROR AL ${enabled ? 'ACTIVAR' : 'DESACTIVAR'} LA ${type.toUpperCase()}`);
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, `No se pudo confirmar si se ${enabled ? 'activó' : 'desactivó'} la ${isSubscription ? 'suscripción' : 'publicación'}: revisá el estado antes de repetir. La lista se actualiza en unos segundos.`))
     );
   }
 
@@ -416,38 +325,14 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess(`LA SUSCRIPCIÓN REMOTA HA SIDO ${enabled ? 'ACTIVADA' : 'DESACTIVADA'} CORRECTAMENTE`);
+        } else {
+          this.avisarFallaInformada(status, `No se pudo ${enabled ? 'activar' : 'desactivar'} la suscripción remota.`);
         }
       }),
-      catchError(error => {
-        console.error('Error toggling remote subscription', error);
-        this.notificacionSnackBar.openAlgoSalioMal(`ERROR AL ${enabled ? 'ACTIVAR' : 'DESACTIVAR'} LA SUSCRIPCIÓN REMOTA`);
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, `No se pudo confirmar si se ${enabled ? 'activó' : 'desactivó'} la suscripción remota: revisá el estado antes de repetir. La lista se actualiza en unos segundos.`))
     );
   }
 
-  /**
-   * Drop a publication on a remote branch
-   * @param branchSucursalId ID of the branch
-   * @param publicationName Name of the publication
-   */
-  dropRemotePublication(branchSucursalId: number, publicationName: string): Observable<ReplicationStatus> {
-    return this.genericService.onCustomMutation(
-      this.dropRemotePublicationGQL,
-      { branchSucursalId, publicationName }
-    ).pipe(
-      tap(status => {
-        if (status && status.success) {
-          this.notificacionSnackBar.openSucess('LA PUBLICACIÓN REMOTA HA SIDO ELIMINADA CORRECTAMENTE');
-        }
-      }),
-      catchError(error => {
-        console.error('Error dropping remote publication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR LA PUBLICACIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
-    );
-  }
   
   /**
    * Create a publication on a remote branch
@@ -465,11 +350,7 @@ export class LogicalReplicationService {
           this.notificacionSnackBar.openSucess('PUBLICACIÓN REMOTA CREADA CORRECTAMENTE');
         }
       }),
-      catchError(error => {
-        console.error('Error creating remote publication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CREAR PUBLICACIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se creó la publicación remota. Es seguro volver a guardarla.'))
     );
   }
   
@@ -490,11 +371,7 @@ export class LogicalReplicationService {
           this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA CREADA CORRECTAMENTE');
         }
       }),
-      catchError(error => {
-        console.error('Error creating remote subscription', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CREAR SUSCRIPCIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se creó la suscripción remota. Es seguro volver a guardarla.'))
     );
   }
   
@@ -514,11 +391,7 @@ export class LogicalReplicationService {
           this.notificacionSnackBar.openSucess('PUBLICACIÓN REMOTA ACTUALIZADA CORRECTAMENTE');
         }
       }),
-      catchError(error => {
-        console.error('Error editing remote publication', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ACTUALIZAR PUBLICACIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se actualizó la publicación remota: puede haber quedado a medias. Volvé a guardarla para completarla.'))
     );
   }
   
@@ -539,11 +412,7 @@ export class LogicalReplicationService {
           this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA ACTUALIZADA CORRECTAMENTE');
         }
       }),
-      catchError(error => {
-        console.error('Error editing remote subscription', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ACTUALIZAR SUSCRIPCIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se actualizó la suscripción remota: puede haber quedado a medias o desactivada. Volvé a guardarla para completarla.'))
     );
   }
 
@@ -561,13 +430,11 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REFRESCADA CORRECTAMENTE');
+        } else {
+          this.avisarFallaInformada(status, 'No se pudo refrescar la suscripción.');
         }
       }),
-      catchError(error => {
-        console.error('Error refreshing subscription', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR SUSCRIPCIÓN');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se refrescó la suscripción: revisá el estado antes de repetir. La lista se actualiza en unos segundos.'))
     );
   }
 
@@ -583,13 +450,11 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess('PUBLICACIONES SINCRONIZADAS CON REPLICATION_TABLE');
+        } else {
+          this.avisarFallaInformada(status, 'No se pudieron sincronizar las publicaciones.');
         }
       }),
-      catchError(error => {
-        console.error('Error syncing publications', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL SINCRONIZAR PUBLICACIONES');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se sincronizaron las publicaciones: revisá el estado antes de repetir. La lista se actualiza en unos segundos.'))
     );
   }
 
@@ -604,13 +469,11 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess('TODAS LAS SUSCRIPCIONES REFRESCADAS CORRECTAMENTE');
+        } else {
+          this.avisarFallaInformada(status, 'No se pudieron refrescar todas las suscripciones.');
         }
       }),
-      catchError(error => {
-        console.error('Error refreshing all subscriptions', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR TODAS LAS SUSCRIPCIONES');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se refrescaron las suscripciones: revisá el estado antes de repetir. La lista se actualiza en unos segundos.'))
     );
   }
 
@@ -627,13 +490,11 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA REFRESCADA CORRECTAMENTE');
+        } else {
+          this.avisarFallaInformada(status, 'No se pudo refrescar la suscripción remota.');
         }
       }),
-      catchError(error => {
-        console.error('Error refreshing remote subscription', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR SUSCRIPCIÓN REMOTA');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se refrescó la suscripción remota: revisá el estado antes de repetir. La lista se actualiza en unos segundos.'))
     );
   }
 
@@ -649,13 +510,34 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           this.notificacionSnackBar.openSucess('TODAS LAS SUSCRIPCIONES REMOTAS REFRESCADAS CORRECTAMENTE');
+        } else {
+          this.avisarFallaInformada(status, 'No se pudieron refrescar todas las suscripciones remotas.');
         }
       }),
-      catchError(error => {
-        console.error('Error refreshing all remote subscriptions', error);
-        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR TODAS LAS SUSCRIPCIONES REMOTAS');
-        return of({ success: false, message: error.message });
-      })
+      catchError(error => this.estadoTrasError(error, 'No se pudo confirmar si se refrescaron las suscripciones remotas: revisá el estado antes de repetir. La lista se actualiza en unos segundos.'))
     );
   }
-} 
+
+  /**
+   * Resultado de una mutation que falló (#501). En un rechazo el genérico ya mostró el motivo y no se aplicó nada: sin
+   * otro aviso. Sin respuesta pudo aplicarse: se avisa `textoSinRespuesta` (salvo el corte por tiempo, que ya avisó el
+   * link) y el resultado lleva `sinConfirmar` para que la pantalla recargue.
+   */
+  private estadoTrasError(error: any, textoSinRespuesta: string): Observable<ReplicationStatus> {
+    console.error('Error en una mutation de replicación', error);
+    if (erroresDeRechazo(error) != null) {
+      return of({ success: false, message: motivoDelRechazo(error) ?? 'El servidor rechazó la operación.' });
+    }
+    if (!esTimeoutDeLink(error)) {
+      this.notificacionSnackBar.openWarn(textoSinRespuesta, 8);
+    }
+    return of({ success: false, message: textoSinRespuesta, sinConfirmar: true });
+  }
+
+  /** El central respondió `success: false` con su mensaje: en la lista nadie lo mostraba (#501). */
+  private avisarFallaInformada(status: ReplicationStatus, textoPorDefecto: string): void {
+    if (status) {
+      this.notificacionSnackBar.openWarn(status.message || textoPorDefecto, 6);
+    }
+  }
+}

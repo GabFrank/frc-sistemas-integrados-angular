@@ -10,7 +10,7 @@ table {
 :host {
   ::ng-deep {
     .mat-mdc-text-field-wrapper {
-      background-color: rgba(255, 255, 255, 0.03) !important;
+      background-color: rgba(var(--frc-tinta), 0.03) !important;
     }
   }
 }

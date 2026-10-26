@@ -8,6 +8,8 @@ import {
 } from '../../../../notificacion-snackbar.service';
 import { FacturaLegal } from '../factura-legal.model';
 import { FacturaLegalService } from '../factura-legal.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface EnviarFacturaCorreoData {
   factura: FacturaLegal;
@@ -74,9 +76,22 @@ export class EnviarFacturaCorreoDialogComponent implements OnInit {
           });
           this.dialogRef.close(true);
         },
-        error: () => {
+        error: (e) => {
           this.enviando = false;
           this.cdr.markForCheck();
+          if (erroresDeRechazo(e) != null) {
+            return;
+          }
+          // Sin respuesta pudo enviarse, y el central no mira si ya se mandó: repetir manda otro correo. Se cierra para no
+          // reenviarlo a ciegas; el corte por tiempo ya lo avisó el link (#501)
+          if (!esTimeoutDeLink(e)) {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo confirmar si se envió el correo: revisá antes de reenviarlo.',
+              color: NotificacionColor.warn,
+              duracion: 8,
+            });
+          }
+          this.dialogRef.close(false);
         },
       });
   }

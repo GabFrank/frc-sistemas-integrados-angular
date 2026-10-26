@@ -56,8 +56,9 @@ export class ImpresoraService {
     return this.genericService.onGetById(this.impresoraByIdGQL, id);
   }
 
-  guardar(input: ImpresoraInput, servidor = true): Observable<Impresora> {
-    return this.genericService.onSave(this.saveImpresoraGQL, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  guardar(input: ImpresoraInput, servidor = true, opciones?: { avisarExito?: boolean }): Observable<Impresora> {
+    return this.genericService.onSave(this.saveImpresoraGQL, input, null, null, servidor, undefined, undefined, opciones);
   }
 
   eliminar(id: number, servidor = true): Observable<boolean> {

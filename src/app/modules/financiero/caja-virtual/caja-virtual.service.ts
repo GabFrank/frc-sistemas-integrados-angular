@@ -1,5 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { EMPTY, Observable, merge } from 'rxjs';
+import { catchError, distinctUntilChanged, filter, map, pairwise } from 'rxjs/operators';
+import { cloudConnectionStatusSub } from '../../../shared/services/graphql-connection.service';
+import { TesoreriaCambio, TesoreriaCambioSubGQL } from './graphql/tesoreriaCambioSub';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PageInfo } from '../../../app.component';
@@ -78,7 +81,34 @@ export class CajaVirtualService {
     private transferirPropiedadGQL: TransferirPropiedadCajaGQL,
     private imprimirReporteMovimientosGQL: ImprimirReporteMovimientosCajaVirtualGQL,
     private imprimirReporteMovimientosBancariosGQL: ImprimirReporteMovimientosBancariosGQL,
+    private tesoreriaCambioSubGQL: TesoreriaCambioSubGQL,
   ) { }
+
+  /**
+   * Cambios de saldo de cajas y cuentas (otro usuario, otra pantalla), para releer la caja abierta. Emite además
+   * un cambio sin ids cuando el websocket del central vuelve después de un corte: lo de ese rato no llegó.
+   *
+   * Una sola suscripción, sin reabrirla: al reconectar, el cliente del websocket la reenvía solo. Un error del
+   * servidor (un central que todavía no la tiene) se descarta sin avisar ni reintentar: es una comodidad, la
+   * pantalla queda como antes.
+   */
+  onCambiosTesoreria(): Observable<TesoreriaCambio> {
+    const cambios = this.tesoreriaCambioSubGQL
+      .subscribe(null, { fetchPolicy: 'no-cache', errorPolicy: 'all', context: { clientName: 'servidor' } })
+      .pipe(
+        map(res => res?.data?.data),
+        filter(c => c != null),
+        catchError(() => EMPTY),
+      );
+    const reconexiones = cloudConnectionStatusSub.pipe(
+      filter(conectado => conectado != null),
+      distinctUntilChanged(),
+      pairwise(),
+      filter(([antes, ahora]) => antes === false && ahora === true),
+      map((): TesoreriaCambio => ({ cajaVirtualId: null, cuentaBancariaId: null })),
+    );
+    return merge(cambios, reconexiones);
+  }
 
   // ── Acceso por caja (ACL) ──
   // Solo el responsable de la caja (o un ADMIN) puede consultar y modificar esta lista;

@@ -24,6 +24,8 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { PersonaInput } from "../../persona/persona/persona-input.model";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { MainService } from "../../../../main.service";
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { OpcionesBuscador } from "../../../../shared/services/buscador.service";
 
 export interface EditProveedorData {
   proveedor?: Proveedor;
@@ -60,12 +62,14 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)])
   });
 
-  personaList: Persona[] = [];
+
+  personaControl = new FormControl<Persona>(null);
+  /** «Adicionar» del buscador abre el alta de persona. */
+  readonly opcionesPersona: OpcionesBuscador = { adicionar: true };
   selectedPersona: Persona | null = null;
   selectedProveedor: Proveedor | null = null;
 
   isLoading = false;
-  isSearching = false;
   isSaving = false;
 
   dialogTitleComputed = "";
@@ -202,38 +206,18 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.updateComputedProperties();
   }
 
-  onPersonaInputChange(searchText: string): void {
-    if (!searchText || searchText.trim().length < 2) {
-      this.personaList = [];
-      return;
-    }
-    this.isSearching = true;
-    this.cdr.markForCheck();
-    this.personaService
-      .onSearchSilent(searchText.trim(), true)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (personas) => {
-          this.personaList = personas || [];
-          this.isSearching = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.personaList = [];
-          this.isSearching = false;
-          this.cdr.markForCheck();
-        }
-      });
-  }
-
+  /** Elegir carga sus datos; limpiar el campo (su botón ✕) vuelve el formulario a una persona nueva. */
   onPersonaSelectionChange(persona: Persona): void {
     if (persona?.id) {
       this.onSelectPersona(persona);
+    } else {
+      this.onClearPersonaSelection();
     }
   }
 
   onSelectPersona(persona: Persona): void {
     this.selectedPersona = persona;
+    this.personaControl.setValue(persona);
     this.proveedorFormGroup.patchValue({
       nombre: persona.nombre,
       apodo: persona.apodo || "",
@@ -278,8 +262,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
 
   onClearPersonaSelection(): void {
     this.selectedPersona = null;
+    this.personaControl.setValue(null);
     this.selectedProveedor = null;
-    this.personaList = [];
     this.proveedorFormGroup.patchValue({
       nombre: "",
       apodo: "",
@@ -396,7 +380,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.telefono = formValue.telefono?.trim() || "";
 
     this.personaService
-      .onSavePersona(personaInput)
+      // Paso intermedio: el verde es el del proveedor (#501)
+      .onSavePersona(personaInput, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (updatedPersona) => {
@@ -412,7 +397,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
         error: () => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al actualizar la persona");
+          // El genérico ya avisó, rechazo o corte (#488)
         }
       });
   }
@@ -424,7 +409,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.documento = formValue.documento.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
     this.personaService
-      .onSavePersona(personaInput)
+      // Paso intermedio: el verde es el del proveedor (#501)
+      .onSavePersona(personaInput, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (persona) => {
@@ -437,10 +423,14 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
             this.notificacionService.openWarn("Error al crear la persona");
           }
         },
-        error: () => {
+        error: (error) => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al crear la persona");
+          // El genérico ya avisó. Tras un corte la persona pudo crearse: se vuelve a verificar el documento, que la
+          // ofrece si existe (el documento es único: repetir no la duplica) (#488)
+          if (erroresDeRechazo(error) == null) {
+            this.onDocumentVerification(personaInput.documento);
+          }
         }
       });
   }
@@ -459,7 +449,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     proveedorInput.credito = formValue.credito || false;
     proveedorInput.chequeDias = formValue.chequeDias || 8;
     this.proveedorService
-      .onSave(proveedorInput)
+      .onSave(proveedorInput, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (proveedor) => {
@@ -486,7 +476,7 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
         error: () => {
           this.isSaving = false;
           this.updateComputedProperties();
-          this.notificacionService.openWarn("Error al guardar el proveedor");
+          // El genérico ya avisó, rechazo o corte (#488)
         }
       });
   }

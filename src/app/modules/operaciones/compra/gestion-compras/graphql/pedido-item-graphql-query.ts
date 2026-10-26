@@ -183,6 +183,48 @@ export const savePedidoItemMutation = gql`
   }
 `;
 
+/** Mismos campos que savePedidoItem: el diálogo arma con ellos el ítem que devuelve al pedido. */
+export const guardarPedidoItemConDistribucionesMutation = gql`
+  mutation guardarPedidoItemConDistribuciones($pedidoItem: PedidoItemInput!, $distribuciones: [PedidoItemDistribucionInput]!) {
+    data: guardarPedidoItemConDistribuciones(pedidoItem: $pedidoItem, distribuciones: $distribuciones) {
+      id
+      cantidadSolicitada
+      precioUnitarioSolicitado
+      vencimientoEsperado
+      observacion
+      esBonificacion
+      estado
+      creadoEn
+      distribucionConcluida
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+        vencimiento
+        presentaciones {
+          id
+          descripcion
+          cantidad
+        }
+      }
+      presentacionCreacion {
+        id
+        descripcion
+        cantidad
+      }
+      pedido {
+        id
+      }
+      usuarioCreacion {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
 export const deletePedidoItemMutation = gql`
   mutation deletePedidoItem($id: ID!) {
     data: deletePedidoItem(id: $id)

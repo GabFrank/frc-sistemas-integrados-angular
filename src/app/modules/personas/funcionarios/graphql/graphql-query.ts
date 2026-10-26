@@ -43,8 +43,8 @@ export const funcionariosQuery = gql`
 `;
 
 export const funcionariosWithPageQuery = gql`
-  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int], $activo: Boolean, $cargoId: Int, $diarista: Boolean, $fasePrueba: Boolean, $cobraBanco: Boolean){
-    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList, activo: $activo, cargoId: $cargoId, diarista: $diarista, fasePrueba: $fasePrueba, cobraBanco: $cobraBanco) {
+  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int], $activo: Boolean, $cargoId: Int, $fasePrueba: Boolean, $cobraBanco: Boolean, $ipsActivo: Boolean){
+    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList, activo: $activo, cargoId: $cargoId, fasePrueba: $fasePrueba, cobraBanco: $cobraBanco, ipsActivo: $ipsActivo) {
         getTotalPages
         getTotalElements
         getNumberOfElements

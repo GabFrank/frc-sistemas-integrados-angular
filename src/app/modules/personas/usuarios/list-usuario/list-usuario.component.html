@@ -4,169 +4,119 @@
   (resetFiltro)="resetFiltro()"
   [isAdicionar]="puedeEditarUsuarios"
   (adicionar)="onNuevoUsuario()"
-  titulo="Lista de usuarios"
 >
-  <div filtros>
-    <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%;">
-      <div fxFlex="50%">
-        <mat-form-field style="width: 90%;">
-          <mat-label>Nombre o nickname</mat-label>
-          <input #buscar type="text" matInput [formControl]="buscarControl" (keyup.enter)="onFiltrar()">
-        </mat-form-field>
-      </div>
-      <div fxFlex="30%">
-        <mat-form-field style="width: 100%;">
-          <mat-label>Roles</mat-label>
-          <mat-select [formControl]="rolesControl" multiple (openedChange)="onRolesOpenedChange($event)">
-            <mat-select-trigger>{{ rolesResumen }}</mat-select-trigger>
-            <mat-option *ngFor="let role of roleList" [value]="role.id">
-              {{ role.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-    </div>
+  <div filtros class="filtros-campos">
+    <mat-form-field subscriptSizing="dynamic" class="filtro-texto">
+      <mat-label>Nombre o nickname</mat-label>
+      <input
+        #buscar
+        type="text"
+        matInput
+        [formControl]="buscarControl"
+        (keyup.enter)="onFiltrar()"
+        autocomplete="off"
+      />
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic" class="filtro-roles">
+      <mat-label>Roles</mat-label>
+      <mat-select [formControl]="rolesControl" multiple (openedChange)="onRolesOpenedChange($event)">
+        <mat-select-trigger>{{ rolesResumen }}</mat-select-trigger>
+        <mat-option *ngFor="let role of roleList" [value]="role.id">
+          {{ role.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
   </div>
-  <div table>
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
-          Id
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let usuario"
-          style="text-align: center; width: 5%"
-        >
-          {{ usuario?.id }}
-        </td>
-      </ng-container>
 
-      <ng-container matColumnDef="nombre">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Nombre
-        </th>
-        <td mat-cell *matCellDef="let usuario" style="text-align: center">
-          {{ usuario?.persona?.nombre | uppercase }}
-        </td>
-      </ng-container>
+  <div table class="lista-tabla">
+    <mat-progress-bar *ngIf="cargando" mode="indeterminate" class="tabla-progreso"></mat-progress-bar>
 
-      <ng-container matColumnDef="nickname">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Nickname
-        </th>
-        <td mat-cell *matCellDef="let usuario" style="text-align: center">
-          {{ usuario?.nickname | uppercase }}
-        </td>
-      </ng-container>
+      <table mat-table [dataSource]="dataSource">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="col-id">Id</th>
+          <td mat-cell *matCellDef="let usuario" class="col-id">{{ usuario?.id }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="telefono">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Teléfono
-        </th>
-        <td mat-cell *matCellDef="let usuario" style="text-align: center">
-          {{ usuario?.persona?.telefono }}
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let usuario">
+            <span class="gl-celda-avatar">
+              <span *ngIf="usuario?.persona?.nombre" class="gl-avatar">{{ usuario.persona.nombre[0] | uppercase }}</span>
+              <span class="gl-nombre">{{ usuario?.persona?.nombre | uppercase }}</span>
+            </span>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="activo">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Activo
-        </th>
-        <td mat-cell *matCellDef="let usuario" style="text-align: center">
-          {{ usuario?.activo ? "Si" : "No" }}
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="nickname">
+          <th mat-header-cell *matHeaderCellDef>Nickname</th>
+          <td mat-cell *matCellDef="let usuario" class="texto-suave">
+            {{ usuario?.nickname | uppercase }}
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="creadoEn">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Creado en
-        </th>
-        <td mat-cell *matCellDef="let usuario" style="text-align: center">
-          {{ usuario?.creadoEn | date: "short" }}
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="telefono">
+          <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+          <td mat-cell *matCellDef="let usuario" class="texto-suave">
+            {{ usuario?.persona?.telefono || '—' }}
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
-          ...
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let usuario; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
-            <mat-icon>more_vert</mat-icon>
-          </button>
-          <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAddUsuario(usuario, i)" *ngIf="(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))">
-              Editar
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef class="col-centro">Estado</th>
+          <td mat-cell *matCellDef="let usuario" class="col-centro">
+            <span class="gl-estado" [class.gl-estado-activo]="usuario?.activo">
+              {{ usuario?.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef class="col-derecha">Creado en</th>
+          <td mat-cell *matCellDef="let usuario" class="col-derecha texto-suave">
+            {{ (usuario?.creadoEn | date: 'dd/MM/yyyy HH:mm') || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones"></th>
+          <td mat-cell *matCellDef="let usuario; let i = index" class="col-acciones">
+            <button
+              mat-icon-button
+              class="btn-fila"
+              matTooltip="Acciones"
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
             </button>
-            <button mat-menu-item (click)="onInitPassword(usuario, i)" *ngIf="(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))">
-              Inicializar contraseña
-            </button>
-          </mat-menu>
-        </td>
-      </ng-container>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="onAddUsuario(usuario, i)" *ngIf="(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))">
+                <mat-icon>edit</mat-icon>
+                Editar
+              </button>
+              <button mat-menu-item (click)="onInitPassword(usuario, i)" *ngIf="(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))">
+                <mat-icon>lock_reset</mat-icon>
+                Inicializar contraseña
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
 
-      <mat-divider></mat-divider>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
 
-      <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let usuario"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-usuario-detail"
-            [@detailExpand]="
-              usuario == expandedUsuario ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          ></div>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
-    </table>
+      <div *ngIf="!cargando && dataSource.data.length === 0" class="tabla-vacia">
+        <mat-icon>person_search</mat-icon>
+        <p>No hay usuarios para mostrar</p>
+        <small>Probá con otro nombre o quitá el filtro de roles.</small>
+      </div>
 
     <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
       [pageSizeOptions]="[15, 25, 50, 100]"
       (page)="handlePageEvent($event)"
       [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
       showFirstLastButtons
     ></mat-paginator>
   </div>

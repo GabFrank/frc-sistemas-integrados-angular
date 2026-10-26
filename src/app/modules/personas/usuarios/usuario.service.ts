@@ -94,8 +94,9 @@ export class UsuarioService {
     return this.genericService.onGetByTexto(this.searchUsuario, texto, servidor)
   }
 
-  onSaveUsuario(input: UsuarioInput, servidor: boolean = true): Observable<any> {
-    return this.genericService.onSave(this.saveUsuario, input, null, null, servidor)
+  /** `opciones.avisarExito = false` en un paso intermedio: el verde lo da el último paso o la pantalla (#501). */
+  onSaveUsuario(input: UsuarioInput, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSave(this.saveUsuario, input, null, null, servidor, undefined, undefined, opciones)
   }
 
   onDeleteUsuario(id, servidor: boolean = true): Observable<boolean> {

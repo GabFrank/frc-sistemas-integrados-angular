@@ -7,7 +7,6 @@ import { MainService } from "../../../../main.service";
 import { CajaCategoriaObservacionByIdGQL } from "../caja-categoria-observacion/graphql/cajaCategoriaObservacionById";
 import { GetAllCajaObservacionesGQL } from "./graphql/getAllCajaObservaciones";
 import { FindByPdvCajaIdAndSucursalIdGQL } from "./graphql/findByPdvCajaIdAndSucursalId";
-import { DeleteCajaObservacionGQL } from "./graphql/deleteCajaObservacion";
 import { SaveCajaObservacionGQL } from "./graphql/saveCajaObservacion";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
 
@@ -25,7 +24,6 @@ export class CajaObservacionService {
         private getAllCajaObservaciones: GetAllCajaObservacionesGQL,
         private getByPdvCajaIdAndSucursalId: FindByPdvCajaIdAndSucursalIdGQL,
         private saveCajaObservacion: SaveCajaObservacionGQL,
-        private deleteCajaObservacion: DeleteCajaObservacionGQL,
         private genericService: GenericCrudService
     ){
         mainService.usuarioActual != null ? this.onGetCajasObservaciones().pipe(untilDestroyed(this)).subscribe(res => {
@@ -53,16 +51,6 @@ export class CajaObservacionService {
                 });
             })
         );
-    }
-
-    onDeleteCajaObservacion(id: number) {
-        return this.deleteCajaObservacion.mutate({
-            id
-        }).pipe(untilDestroyed(this)).subscribe(res => {
-            if (!res.errors) {
-                this.onGetCajasObservaciones();
-            }
-        })
     }
 
     onGetByCajaIdAndSucursalId(cajaId, sucursalId) {

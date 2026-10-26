@@ -12,9 +12,6 @@ tr.example-detail-row {
   height: 0;
 }
 
-.example-element-row:hover {
-  background-color: rgb(34, 34, 34);
-}
 
 .example-element-detail {
     overflow: hidden;
@@ -22,7 +19,7 @@ tr.example-detail-row {
 }
 
 .example-element-detail:hover {
-  background-color: rgb(32, 32, 32);
+  background-color: var(--frc-superficie-baja);
 }
 
 td, th {

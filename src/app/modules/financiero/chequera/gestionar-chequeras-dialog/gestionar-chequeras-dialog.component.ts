@@ -160,7 +160,7 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
         siguienteNumero: ch.siguienteNumero,
         estado: EstadoChequera.ANULADA,
       };
-      this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED).pipe(take(1), untilDestroyed(this)).subscribe({
+      this.chequeraService.onSaveChequera(input, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(take(1), untilDestroyed(this)).subscribe({
         next: r => {
           this.cambios = true;
           if (r != null) {

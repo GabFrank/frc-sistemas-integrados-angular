@@ -12,9 +12,9 @@
           fxLayout="column"
           fxLayoutGap="2px"
           style="
-            background-color: rgb(32, 32, 32);
+            background-color: var(--frc-superficie-baja);
             padding: 6px;
-            border-color: balck;
+            border-color: var(--frc-borde-solido);
           "
         >
           <mat-form-field
@@ -31,7 +31,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs1000?.select()"
             />
-            <span matTextPrefix style="color: white">500</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">500</span>
           </mat-form-field>
           <mat-form-field
             style="height: 30px !important"
@@ -47,7 +47,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs2000?.select()"
             />
-            <span matTextPrefix style="color: white">1.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">1.000</span>
           </mat-form-field>
           <mat-form-field
             style="height: 30px !important"
@@ -63,7 +63,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs5000?.select()"
             />
-            <span matTextPrefix style="color: white">2.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">2.000</span>
           </mat-form-field>
           <mat-form-field
             style="height: 30px !important"
@@ -79,7 +79,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs10000?.select()"
             />
-            <span matTextPrefix style="color: white">5.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">5.000</span>
           </mat-form-field>
 
           <mat-form-field
@@ -96,7 +96,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs20000?.select()"
             />
-            <span matTextPrefix style="color: white">10.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">10.000</span>
           </mat-form-field>
 
           <mat-form-field
@@ -113,7 +113,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs50000?.select()"
             />
-            <span matTextPrefix style="color: white">20.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">20.000</span>
           </mat-form-field>
 
           <mat-form-field
@@ -130,7 +130,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="gs100000?.select()"
             />
-            <span matTextPrefix style="color: white">50.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">50.000</span>
           </mat-form-field>
 
           <mat-form-field
@@ -147,7 +147,7 @@
               (focusout)="sumarGs()"
               (keyup.enter)="rs005?.select()"
             />
-            <span matTextPrefix style="color: white">100.000</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">100.000</span>
           </mat-form-field>
         </mat-card>
       </form>
@@ -158,7 +158,7 @@
         <mat-card
           fxLayout="column"
           fxLayoutGap="2px"
-          style="background-color: rgb(32, 32, 32); padding: 6px"
+          style="background-color: var(--frc-superficie-baja); padding: 6px"
         >
           <mat-form-field
             style="height: 30px !important"
@@ -174,7 +174,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs010?.select()"
             />
-            <span matTextPrefix style="color: white">0.05</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">0.05</span>
           </mat-form-field>
 
           <mat-form-field
@@ -192,7 +192,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs025?.select()"
             />
-            <span matTextPrefix style="color: white">0.10</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">0.10</span>
           </mat-form-field>
 
           <mat-form-field
@@ -209,7 +209,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs05?.select()"
             />
-            <span matTextPrefix style="color: white">0.25</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">0.25</span>
           </mat-form-field>
 
           <mat-form-field
@@ -226,7 +226,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs1?.select()"
             />
-            <span matTextPrefix style="color: white">0.50</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">0.50</span>
           </mat-form-field>
 
           <mat-form-field
@@ -243,7 +243,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs2?.select()"
             />
-            <span matTextPrefix style="color: white">1</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">1</span>
           </mat-form-field>
 
           <mat-form-field
@@ -260,7 +260,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs5?.select()"
             />
-            <span matTextPrefix style="color: white">2</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">2</span>
           </mat-form-field>
 
           <mat-form-field
@@ -277,7 +277,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs10?.select()"
             />
-            <span matTextPrefix style="color: white">5</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">5</span>
           </mat-form-field>
 
           <mat-form-field
@@ -294,7 +294,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs20?.select()"
             />
-            <span matTextPrefix style="color: white">10</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">10</span>
           </mat-form-field>
 
           <mat-form-field
@@ -311,7 +311,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs50?.select()"
             />
-            <span matTextPrefix style="color: white">20</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">20</span>
           </mat-form-field>
 
           <mat-form-field
@@ -328,7 +328,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs100?.select()"
             />
-            <span matTextPrefix style="color: white">50</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">50</span>
           </mat-form-field>
 
           <mat-form-field
@@ -345,7 +345,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="rs200?.select()"
             />
-            <span matTextPrefix style="color: white">100</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">100</span>
           </mat-form-field>
 
           <mat-form-field
@@ -362,7 +362,7 @@
               (focusout)="sumarRs()"
               (keyup.enter)="us1?.select()"
             />
-            <span matTextPrefix style="color: white">200</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">200</span>
           </mat-form-field>
         </mat-card>
       </form>
@@ -373,7 +373,7 @@
         <mat-card
           fxLayout="column"
           fxLayoutGap="2px"
-          style="background-color: rgb(32, 32, 32); padding: 6px"
+          style="background-color: var(--frc-superficie-baja); padding: 6px"
         >
           <mat-form-field
             style="height: 30px !important"
@@ -389,7 +389,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="us5?.select()"
             />
-            <span matTextPrefix style="color: white">1</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">1</span>
           </mat-form-field>
 
           <mat-form-field
@@ -406,7 +406,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="us10?.select()"
             />
-            <span matTextPrefix style="color: white">5</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">5</span>
           </mat-form-field>
 
           <mat-form-field
@@ -423,7 +423,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="us20?.select()"
             />
-            <span matTextPrefix style="color: white">10</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">10</span>
           </mat-form-field>
 
           <mat-form-field
@@ -440,7 +440,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="us50?.select()"
             />
-            <span matTextPrefix style="color: white">20</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">20</span>
           </mat-form-field>
 
           <mat-form-field
@@ -457,7 +457,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="us100?.select()"
             />
-            <span matTextPrefix style="color: white">50</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">50</span>
           </mat-form-field>
 
           <mat-form-field
@@ -474,7 +474,7 @@
               (focusout)="sumarDs()"
               (keyup.enter)="btn.onGetFocus()"
             />
-            <span matTextPrefix style="color: white">100</span>
+            <span matTextPrefix style="color: var(--frc-texto-fuerte)">100</span>
           </mat-form-field>
         </mat-card>
       </form>
@@ -500,7 +500,7 @@
     <div fxFlex="33%">
       <mat-card
         style="
-          background-color: rgb(32, 32, 32);
+          background-color: var(--frc-superficie-baja);
           width: 100%;
           height: 100%;
           padding: 10px;
@@ -518,7 +518,7 @@
     <div fxFlex="33%">
       <mat-card
         style="
-          background-color: rgb(32, 32, 32);
+          background-color: var(--frc-superficie-baja);
           width: 100%;
           height: 100%;
           padding: 10px;
@@ -536,7 +536,7 @@
     <div fxFlex="33%">
       <mat-card
         style="
-          background-color: rgb(32, 32, 32);
+          background-color: var(--frc-superficie-baja);
           width: 100%;
           height: 100%;
           padding: 10px;
@@ -559,7 +559,7 @@
       class="acciones-conteo__principal"
       color="accent"
       [nombre]="enEdicion ? 'Guardar edición' : nombreBoton"
-      [disableExpression]="(selectedConteo != null && !enEdicion) || guardandoEdicion"
+      [disableExpression]="(selectedConteo != null && !enEdicion) || guardandoEdicion || edicionSinConfirmar"
       (clickEvent)="onButtonClick()"
     ></app-boton>
 
@@ -570,7 +570,7 @@
       <button
         mat-stroked-button
         color="accent"
-        *ngIf="puedeEditar && selectedConteo != null && !enEdicion"
+        *ngIf="puedeEditar && selectedConteo != null && !enEdicion && !edicionSinConfirmar"
         (click)="activarEdicion()"
       >
         <mat-icon>edit</mat-icon>

@@ -131,6 +131,21 @@ table {
   table-layout: fixed;
 }
 
+// Con la tabla de ancho fijo las columnas se reparten igual: Estado sobra y Acciones (hasta 4 botones de 48px en
+// modo remoto) partía el último en otra fila
+th.mat-column-enabled,
+td.mat-column-enabled {
+  width: 120px;
+  text-align: center;
+}
+
+th.mat-column-actions,
+td.mat-column-actions {
+  width: 240px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 h3 {
   margin: 0 0 15px 0;
   color: rgba(255, 255, 255, 0.87);

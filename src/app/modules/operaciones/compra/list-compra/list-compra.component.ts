@@ -5,7 +5,7 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
@@ -46,7 +46,8 @@ import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
-import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 
 @UntilDestroy()
 @Component({
@@ -64,8 +65,11 @@ import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link
     ]),
   ],
 })
-export class ListCompraComponent implements OnInit {
+export class ListCompraComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  private recargasTrasCorte = new Set<any>();
+  private destruido = false;
 
   titulo = "Lista de Compras";
 
@@ -123,6 +127,12 @@ export class ListCompraComponent implements OnInit {
     private reporteService: ReporteService,
     private configService: ConfiguracionService
   ) {}
+
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
+    this.recargasTrasCorte.clear();
+  }
 
   ngOnInit(): void {
     setTimeout(() => {
@@ -286,16 +296,19 @@ export class ListCompraComponent implements OnInit {
             this.pedidoService.onImprimirPedidoTicket(pedido.id, printerName)
               .pipe(untilDestroyed(this))
               .subscribe({
-                next: () => this.notificacionService.notification$.next({
-                  texto: "Ticket enviado a impresora",
-                  color: NotificacionColor.success,
-                  duracion: 3
-                }),
-                error: () => this.notificacionService.notification$.next({
-                  texto: "Error al imprimir ticket",
-                  color: NotificacionColor.warn,
-                  duracion: 3
-                })
+                next: (ok) => {
+                  // El central hoy siempre devuelve true; si cambia, que no diga «enviado» (#501)
+                  if (ok === false) {
+                    this.notificacionService.openWarn("No se pudo enviar el ticket a la impresora.");
+                    return;
+                  }
+                  this.notificacionService.notification$.next({
+                    texto: "Ticket enviado a impresora",
+                    color: NotificacionColor.success,
+                    duracion: 3
+                  });
+                },
+                error: (error) => this.avisarSinRespuesta(error, "Error al imprimir ticket")
               });
             break;
           case "pdf-inapp":
@@ -311,13 +324,12 @@ export class ListCompraComponent implements OnInit {
                       color: NotificacionColor.success,
                       duracion: 3
                     });
+                  } else {
+                    // Antes un PDF vacío no avisaba nada (#501)
+                    this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
                   }
                 },
-                error: () => this.notificacionService.notification$.next({
-                  texto: "Error al generar PDF",
-                  color: NotificacionColor.warn,
-                  duracion: 3
-                })
+                error: (error) => this.avisarSinRespuesta(error, "Error al generar PDF")
               });
             break;
           case "pdf-guardar":
@@ -344,13 +356,11 @@ export class ListCompraComponent implements OnInit {
                       color: NotificacionColor.success,
                       duracion: 3
                     });
+                  } else {
+                    this.notificacionService.openWarn("El servidor devolvió un PDF vacío: no se generó el reporte.");
                   }
                 },
-                error: () => this.notificacionService.notification$.next({
-                  texto: "Error al guardar PDF",
-                  color: NotificacionColor.warn,
-                  duracion: 3
-                })
+                error: (error) => this.avisarSinRespuesta(error, "Error al guardar PDF")
               });
             break;
         }
@@ -366,22 +376,40 @@ export class ListCompraComponent implements OnInit {
             null,
             index
           );
-          this.notificacionService.notification$.next({
-            texto: "Pedido cancelado correctamente",
-            color: NotificacionColor.success,
-            duracion: 3
-          });
+          // El verde «Pedido cancelado correctamente» lo muestra onDelete: antes salían dos (#501)
           this.onFilter(); // Refresh list
+        } else if (res === null) {
+          // onDelete ya avisó (rechazo o sin respuesta) y no emite error: el pedido pudo cancelarse igual,
+          // así que se recarga la lista a los 5 s (#488)
+          this.recargarTrasFallo();
         }
       },
-      error: (error) => {
-        this.notificacionService.notification$.next({
-          texto: "Error al cancelar el pedido",
-          color: NotificacionColor.danger,
-          duracion: 4
-        });
-      }
     });
+  }
+
+  /** En un rechazo el genérico ya mostró el motivo y en un corte por tiempo avisó el link; si no, se avisa. */
+  private avisarSinRespuesta(error: any, queFallo: string): void {
+    if (erroresDeRechazo(error) != null || esTimeoutDeLink(error)) {
+      return;
+    }
+    this.notificacionService.notification$.next({
+      texto: `${queFallo}: el servidor no respondió.`,
+      color: NotificacionColor.warn,
+      duracion: 6
+    });
+  }
+
+  private recargarTrasFallo(): void {
+    if (this.destruido) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      this.recargasTrasCorte.delete(timeout);
+      if (!this.destruido) {
+        this.onFilter();
+      }
+    }, RECARGA_TRAS_CORTE_MS);
+    this.recargasTrasCorte.add(timeout);
   }
 
   onAdd() {

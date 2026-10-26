@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { auditTime, catchError, filter, switchMap } from 'rxjs/operators';
+import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -292,15 +293,31 @@ export class CajaVirtualDashboardComponent implements OnInit {
       pagarCpp: this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR]),
     };
     this.recargar();
+    // Lo que mueve esta caja desde otro lado (otro usuario, otra pantalla) se ve sin recargar. A lo sumo una
+    // relectura por segundo: un pago genera varios cambios seguidos.
+    this.cajaVirtualService.onCambiosTesoreria()
+      .pipe(filter(c => this.esCambioDeEstaCaja(c)), auditTime(1000), untilDestroyed(this))
+      .subscribe(() => this.recargar(true));
   }
 
-  recargar() {
-    this.cargarSaldos();
-    this.cargarConfigYBancos();
-    this.cargarMovimientos();
+  /** De esta caja, de una de sus cuentas bancarias, o sin ids (el central volvió tras un corte). */
+  private esCambioDeEstaCaja(c: TesoreriaCambio): boolean {
+    if (c.cajaVirtualId == null && c.cuentaBancariaId == null) return true;
+    if (c.cajaVirtualId != null) return String(c.cajaVirtualId) === String(this.cajaVirtual?.id);
+    return this.bancoCards.some(b => String(b.resumen.cuentaBancaria?.id) === String(c.cuentaBancariaId));
   }
 
-  cargarSaldos() {
+  /**
+   * Relee saldos, cuentas y movimientos. La de fondo (`deFondo`, por un cambio hecho en otro lado) usa los filtros
+   * ya aplicados, no lo que haya a medio escribir, y no avisa si falla: el usuario no hizo nada.
+   */
+  recargar(deFondo = false) {
+    this.cargarSaldos(deFondo);
+    this.cargarConfigYBancos(deFondo);
+    this.cargarMovimientos(!deFondo);
+  }
+
+  cargarSaldos(silenciosa = false) {
     if (!this.cajaVirtual?.id) return;
     const id = ++this.saldosCargaId;
     this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id)
@@ -308,12 +325,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: res => {
           if (id !== this.saldosCargaId) return;
           this.saldosEnRelectura = false;
-          if (res == null) { this.saldosNoCargados(); return; }
+          if (res == null) { this.saldosNoCargados(silenciosa); return; }
           this.saldosNoDisponibles = false;
           this.saldos = res;
           this.construirCards();
         },
-        error: () => { if (id === this.saldosCargaId) { this.saldosEnRelectura = false; this.saldosNoCargados(); } }
+        error: () => { if (id === this.saldosCargaId) { this.saldosEnRelectura = false; this.saldosNoCargados(silenciosa); } }
       });
   }
 
@@ -322,9 +339,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
    * viejo, y el conteo se abre sin saldo del sistema para que no se postee un AJUSTE contra un saldo
    * desactualizado (#390).
    */
-  private saldosNoCargados() {
+  private saldosNoCargados(silenciosa = false) {
     this.saldosNoDisponibles = true;
-    this.notificacion.openWarn('No se pudieron cargar los saldos de la caja: no se puede ajustar hasta recargar.', 5);
+    if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar los saldos de la caja: no se puede ajustar hasta recargar.', 5);
   }
 
   /** Arma las cards de saldo por moneda con su color estable y el estado de selección. */
@@ -376,7 +393,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     });
   }
 
-  cargarConfigYBancos() {
+  cargarConfigYBancos(silenciosa = false) {
     if (!this.cajaVirtual?.id) return;
     if (this.soloCaja) {
       // El rol acotado no ve la configuración ni los saldos bancarios: el central los rechaza. Queda
@@ -394,7 +411,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
           this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
             .pipe(untilDestroyed(this)).subscribe({
               next: res => {
-                if (res == null) { this.bancosNoCargados(); return; }
+                if (res == null) { this.bancosNoCargados(silenciosa); return; }
                 this.resumenBancario = res;
                 this.bancoCards = this.resumenBancario.map(r => ({
                   resumen: r,
@@ -402,19 +419,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
                 }));
                 this.construirFuentes();
               },
-              error: () => this.bancosNoCargados()
+              error: () => this.bancosNoCargados(silenciosa)
             });
         },
-        error: () => { this.config = null; this.bancosNoCargados(); }
+        error: () => { this.config = null; this.bancosNoCargados(silenciosa); }
       });
   }
 
   /** Sin configuración o resumen no se muestran las cuentas de antes: solo Caja Mayor, con aviso (#390). */
-  private bancosNoCargados() {
+  private bancosNoCargados(silenciosa = false) {
     this.resumenBancario = [];
     this.bancoCards = [];
     this.construirFuentes();
-    this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias de la caja.', 5);
+    if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar las cuentas bancarias de la caja.', 5);
   }
 
   /** Arma el selector de fuente: Caja Mayor + cada cuenta bancaria visible (banco - nº cuenta). */
@@ -455,8 +472,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
     };
   }
 
-  cargarMovimientos() {
-    this.filtrosAplicados = this.leerFiltros();
+  /** `releerFiltros = false`: con los filtros de la última carga (la relectura de fondo). */
+  cargarMovimientos(releerFiltros = true) {
+    if (releerFiltros || !this.filtrosAplicados) this.filtrosAplicados = this.leerFiltros();
     if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;

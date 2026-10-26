@@ -120,11 +120,15 @@ export class LiquidacionService {
       CONSULTA_DETALLE);
   }
 
-  /** Programa un item para la liquidacion de un periodo posterior (hasta 12 meses). */
+  /**
+   * Programa un item para la liquidacion de un periodo posterior (hasta 12 meses).
+   * `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501).
+   */
   onProgramarItem(liquidacionId: number, periodo: string, descripcion: string, monto: number, tipo: string,
-                  liquidacionConceptoId: number = null, servidor = true): Observable<any> {
+                  liquidacionConceptoId: number = null, servidor = true,
+                  opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.programarItemGQL,
-      { liquidacionId, periodo, descripcion, monto, tipo, liquidacionConceptoId }, servidor);
+      { liquidacionId, periodo, descripcion, monto, tipo, liquidacionConceptoId }, servidor, opciones);
   }
 
   onGetItemsProgramados(funcionarioId: number, estado: string = null, servidor = true): Observable<any> {

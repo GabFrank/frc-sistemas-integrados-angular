@@ -1,4 +1,4 @@
-<app-generic-list [data]="dataSource.data" style="height: 100%" [isAdicionar]="true" (adicionar)="onAddFuncionario()"
+<app-generic-list [data]="dataSource.data" [isAdicionar]="true" (adicionar)="onAddFuncionario()"
   [isCustom]="!!horarioParaAsignar" customName="Agregar Selección" [disableCustom]="seleccionados.selected.length === 0"
   (customFunction)="onAsignarHorario()" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
   <div filtros>
@@ -26,7 +26,7 @@
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
-                color: white;
+                color: var(--frc-texto-fuerte);
               ">
               <mat-icon (click)="sucursalSelect.close()" class="highlight-hover-danger">clear</mat-icon>
             </div>
@@ -50,16 +50,17 @@
       <div fxFlex="22%">
         <mat-form-field style="width: 100%">
           <mat-label>Cargo</mat-label>
-          <mat-select [formControl]="cargoControl" (selectionChange)="onFiltrar()">
-            <mat-option [value]="null">Todos</mat-option>
-            <mat-option *ngFor="let cargo of cargoList" [value]="cargo?.id">{{ cargo?.nombre | titlecase }}</mat-option>
-          </mat-select>
+          <input matInput readonly placeholder="Todos" [value]="(cargoControl.value?.nombre | titlecase) || ''"
+            (click)="onBuscarCargo()" (keyup.enter)="onBuscarCargo()" style="cursor: pointer" />
+          <mat-icon *ngIf="cargoControl.value" matSuffix class="highlight-hover-danger" style="cursor: pointer"
+            (click)="onSelectCargo(null)">clear</mat-icon>
+          <mat-icon matSuffix style="cursor: pointer" (click)="onBuscarCargo()">search</mat-icon>
         </mat-form-field>
       </div>
       <div fxFlex="17%">
         <mat-form-field style="width: 100%">
-          <mat-label>Diarista</mat-label>
-          <mat-select [formControl]="diaristaControl" (selectionChange)="onFiltrar()">
+          <mat-label>Cobra IPS</mat-label>
+          <mat-select [formControl]="ipsActivoControl" (selectionChange)="onFiltrar()">
             <mat-option [value]="null">Todos</mat-option>
             <mat-option [value]="true">Sí</mat-option>
             <mat-option [value]="false">No</mat-option>
@@ -88,7 +89,7 @@
       </div>
     </div>
   </div>
-  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+  <div table style="height: 100%" fxLayout="column"
     fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="id" style="width: 5%">

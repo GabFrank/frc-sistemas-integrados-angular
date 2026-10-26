@@ -102,6 +102,11 @@
         <mat-icon>search</mat-icon>
       </button>
 
+      <button mat-icon-button (click)="onAlternarTema()"
+        [matTooltip]="(tema$ | async) === 'claro' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'">
+        <mat-icon>{{ (tema$ | async) === 'claro' ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      </button>
+
       <button mat-icon-button [matMenuTriggerFor]="menuServerIp" matTooltip="Configuración">
         <mat-icon>settings</mat-icon>
       </button>

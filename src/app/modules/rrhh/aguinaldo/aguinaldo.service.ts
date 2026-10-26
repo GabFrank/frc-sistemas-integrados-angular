@@ -35,7 +35,9 @@ export class AguinaldoService {
     return this.genericService.onSaveCustom<any>(this.aprobarAguinaldoGQL, { id }, servidor);
   }
 
-  onPagar(id: number, cajaVirtualId: number, servidor = true): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.pagarAguinaldoGQL, { id, cajaVirtualId }, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onPagar(id: number, cajaVirtualId: number, servidor = true,
+          opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.pagarAguinaldoGQL, { id, cajaVirtualId }, servidor, opciones);
   }
 }

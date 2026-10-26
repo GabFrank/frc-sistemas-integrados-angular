@@ -305,7 +305,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     input.ventasSinFactura = this.esIntervalo ? v.ventasSinFactura : 0;
     input.ventaTicketRespetaPolitica = !this.respetaIrrelevante && v.ventaTicketRespetaPolitica === true;
     // Sin activo: al crear queda activa, y al editar el central conserva el que tenía.
-    this.configuracionService.onSaveConfiguracion(input).subscribe({
+    this.configuracionService.onSaveConfiguracion(input, { avisarExito: false }).subscribe({
       next: (res) => {
         if (res != null) {
           this.notificacionService.openSucess('Configuración de facturación guardada');

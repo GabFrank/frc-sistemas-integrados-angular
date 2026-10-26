@@ -14,11 +14,35 @@ export class FacturaLegalByCdcGQL extends Query<FacturaLegal> {
         sucursalId
         nombre
         ruc
+        cdc
         totalFinal
         creadoEn
+        activo
+        numeroFactura
         sucursal {
           id
           nombre
+          codigoEstablecimientoFactura
+        }
+        timbradoDetalle {
+          id
+          puntoExpedicion
+        }
+        cliente {
+          id
+          persona {
+            nombre
+            documento
+            email
+          }
+        }
+        venta {
+          id
+        }
+        documentoElectronico {
+          id
+          cdc
+          estado
         }
       }
     }

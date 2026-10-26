@@ -9,6 +9,7 @@ import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { CambioService } from '../../../financiero/cambio/cambio.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
@@ -505,7 +506,19 @@ export class AdicionarFormaPagoDialogComponent {
           guardados.push(saved);
           siguiente(i + 1);
         },
-        error: () => {
+        error: (error) => {
+          if (erroresDeRechazo(error) != null) {
+            if (guardados.length === 0) {
+              // No se guardó nada y el genérico ya mostró el motivo: el diálogo queda para corregir y reintentar (#488)
+              this.guardando = false;
+              return;
+            }
+            // Reintentar duplicaría las que ya se guardaron: se cierra y el padre recarga
+            this.notificacionService.openWarn(
+              `Se guardaron ${guardados.length} de ${detalles.length} formas de pago y la siguiente se rechazó: se recarga la solicitud.`, 8);
+            this.dialogRef.close({ recargar: true });
+            return;
+          }
           // Sin respuesta la última pudo haberse guardado igual: el padre recarga la solicitud del servidor
           this.notificacionService.openWarn(detalles.length > 1
             ? `Se confirmaron ${guardados.length} de ${detalles.length} formas de pago (puede haber alguna más): revisá la solicitud antes de agregar las que faltan.`

@@ -15,6 +15,7 @@ import { Input } from '@angular/core';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { CargoService } from '../../../empresarial/cargo/cargo.service';
+import { Cargo } from '../../../empresarial/cargo/cargo.model';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
 import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
@@ -59,11 +60,10 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   sucursalControl = new FormControl(null)
   // null = Todos; true/false = valor concreto
   estadoControl = new FormControl(null)   // activo
-  cargoControl = new FormControl(null)     // cargoId
-  diaristaControl = new FormControl(null)
+  cargoControl = new FormControl<Cargo>(null)     // se filtra por su id; lo elige el buscador
+  ipsActivoControl = new FormControl(null)
   fasePruebaControl = new FormControl(null)
   cobraBancoControl = new FormControl(null)
-  cargoList: any[] = [];
 
   length = 25;
   pageSize = 25;
@@ -110,10 +110,6 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         }
       });
     })
-
-    this.cargoService.onGetAll(true).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargoList = res || [];
-    })
   }
 
   ngAfterViewInit(): void {
@@ -146,10 +142,10 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.nombreControl.value?.toUpperCase(),
       sucursalIdList.length > 0 ? sucursalIdList : null,
       this.estadoControl.value,
-      this.cargoControl.value,
-      this.diaristaControl.value,
+      this.cargoControl.value?.id,
       this.fasePruebaControl.value,
-      this.cobraBancoControl.value
+      this.cobraBancoControl.value,
+      this.ipsActivoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
@@ -158,13 +154,24 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     })
   }
 
+  onBuscarCargo() {
+    this.cargoService.onBuscarCargo()
+      .pipe(untilDestroyed(this))
+      .subscribe(cargo => this.onSelectCargo(cargo));
+  }
+
+  onSelectCargo(cargo: Cargo) {
+    this.cargoControl.setValue(cargo);
+    this.onFiltrar();
+  }
+
   onResetFiltro() {
     this.idControl.setValue(null)
     this.nombreControl.setValue(null)
     this.sucursalControl.setValue(null)
     this.estadoControl.setValue(null)
     this.cargoControl.setValue(null)
-    this.diaristaControl.setValue(null)
+    this.ipsActivoControl.setValue(null)
     this.fasePruebaControl.setValue(null)
     this.cobraBancoControl.setValue(null)
     this.onFiltrar()
@@ -272,7 +279,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
             horarioInput.dias = this.horarioParaAsignar.diasValue;
             horarioInput.turno = this.horarioParaAsignar.turnoValue;
 
-            this.horarioService.onSaveHorario(horarioInput, true, PROPAGAR_ERROR_DE_RED).pipe(untilDestroyed(this)).subscribe({
+            // El verde es el del final del lote (#501)
+            this.horarioService.onSaveHorario(horarioInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
               next: (res: any) => {
                 if (res?.id == null) {
                   finalizarUsuario(false);
@@ -315,7 +323,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         completados++;
         if (completados === funcionarios.length) onComplete(todosOk);
       };
-      this.service.onSaveFuncionario(funcInput, true, PROPAGAR_ERROR_DE_RED).pipe(untilDestroyed(this)).subscribe({
+      // El verde es el del final del lote (#501)
+      this.service.onSaveFuncionario(funcInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
         next: (saved) => {
           if (saved == null) return terminar(false);
           f.horario = saved.horario;

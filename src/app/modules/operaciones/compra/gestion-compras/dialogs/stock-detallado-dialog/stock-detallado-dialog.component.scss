@@ -1,6 +1,6 @@
 .dialog-container {
-  background-color: #2d2d2d;
-  color: #ffffff;
+  background-color: var(--frc-superficie);
+  color: var(--frc-texto-fuerte);
   display: flex;
   flex-direction: column;
   min-width: 400px;
@@ -40,8 +40,8 @@
 
   th,
   td {
-    color: #fff;
-    border-bottom-color: rgba(255, 255, 255, 0.12);
+    color: var(--frc-texto-fuerte);
+    border-bottom-color: rgba(var(--frc-tinta), 0.12);
   }
 
   .text-right {
@@ -57,11 +57,11 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(var(--frc-tinta), 0.2);
   margin-top: 8px;
 
   .total-label {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(var(--frc-tinta), 0.7);
   }
 
   .total-value {
@@ -77,10 +77,10 @@
   gap: 8px;
   margin-top: 12px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--frc-tinta), 0.05);
   border-radius: 4px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(var(--frc-tinta), 0.6);
 
   mat-icon {
     font-size: 16px;
@@ -93,5 +93,5 @@
   padding: 12px 24px 16px;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(var(--frc-tinta), 0.12);
 }

@@ -81,9 +81,9 @@ export class CajaCategoriaObservacionService {
     }
 
     onDeleteCategoriaObservacion(id: number) {
-        return this.deleteCajaCategoriaObs.mutate({ id }).pipe(
+        return this.genericService.onDelete(this.deleteCajaCategoriaObs, id, null, null, false, true, null, { exito: 'Caja categoría eliminada exitosamente' }).pipe(
           tap(res => {
-            if (!res.errors) {
+            if (res) {
               if (this.cajaCategoriasObs) {
                 this.cajaCategoriasObs = this.cajaCategoriasObs.filter(cat => cat.id !== id);
                 this.cajaCategoriaObsBS.next(this.cajaCategoriasObs);

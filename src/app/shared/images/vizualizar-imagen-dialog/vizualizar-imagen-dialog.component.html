@@ -8,13 +8,19 @@
   </div>
   <br>  
   <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutAlign="space-around">
-    <div fxFlex="50%" style="text-align: center;">
-      <button mat-raised-button color="primary" (click)="onCancelar()" style="width: 50%;">
+    <div [fxFlex]="esPresentacion ? '33%' : '50%'" style="text-align: center;">
+      <button mat-raised-button color="primary" (click)="onCancelar()" style="width: 60%;">
         Cerrar
       </button>
     </div>
-    <div fxFlex="50%" style="text-align: center;">
-      <button mat-raised-button color="accent" (click)="fileInput.click()" style="width: 50%;">
+    <div *ngIf="esPresentacion" fxFlex="33%" style="text-align: center;">
+      <button mat-stroked-button type="button" (click)="onBuscarEnInternet()" style="width: 60%;">
+        <mat-icon>travel_explore</mat-icon>
+        Buscar en internet
+      </button>
+    </div>
+    <div [fxFlex]="esPresentacion ? '33%' : '50%'" style="text-align: center;">
+      <button mat-raised-button color="accent" (click)="fileInput.click()" style="width: 60%;">
         Cambiar
       </button>
       <input

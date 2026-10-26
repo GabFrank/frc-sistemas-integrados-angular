@@ -101,7 +101,7 @@ export class AddProductoDialogComponent implements OnInit {
 
     const input = item.toInput();
 
-    this.inventarioService.onSaveInventarioProductoItem(input)
+    this.inventarioService.onSaveInventarioProductoItem(input, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {

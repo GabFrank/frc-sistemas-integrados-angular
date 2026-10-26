@@ -24,7 +24,9 @@ export class ConfiguracionFacturaConVentaService {
     return this.genericCrudService.onCustomQuery(this.getConfiguracionGQL, {}, servidor, PROPAGAR_ERROR_DE_RED, undefined, contexto);
   }
 
-  onSaveConfiguracion(input: ConfiguracionFacturaConVentaInput, servidor = true): Observable<ConfiguracionFacturaConVenta> {
-    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor);
+  /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */
+  onSaveConfiguracion(input: ConfiguracionFacturaConVentaInput, servidor = true,
+                      opciones?: { avisarExito?: boolean }): Observable<ConfiguracionFacturaConVenta> {
+    return this.genericCrudService.onSave(this.saveConfiguracionGQL, input, null, null, servidor, undefined, undefined, opciones);
   }
 }

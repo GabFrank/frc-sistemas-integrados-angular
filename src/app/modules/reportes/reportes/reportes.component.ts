@@ -4,6 +4,8 @@ import { Subscription } from "rxjs";
 import { ReporteData, ReporteService } from "../reporte.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import { anchoPxTicket, imprimirTicketEnNavegador } from "../../../shared/components/imprimir/imprimir-ticket-navegador";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -19,8 +21,13 @@ export class ReportesComponent implements OnInit, OnDestroy {
   reporteSub: Subscription;
   currentPage: number;
   selectedReporte: ReporteData;
+  imprimiendoTicket = false;
 
-  constructor(private reporteService: ReporteService) {}
+  constructor(
+    private reporteService: ReporteService,
+    private pdfViewerService: NgxExtendedPdfViewerService,
+    private notificacion: NotificacionSnackbarService
+  ) {}
 
   ngOnInit(): void {
     this.reporteList = [];
@@ -48,6 +55,29 @@ export class ReportesComponent implements OnInit, OnDestroy {
       this.onSelectReporte(this.reporteList[this.reporteList.length - 1], i);
     }
   }
+  /**
+   * Ticket abierto desde el navegador (#231): se imprime como imagen, sin el botón del visor,
+   * para que la térmica empiece desde arriba del rollo (ver imprimir-ticket-navegador.ts).
+   */
+  async onImprimirTicket() {
+    const anchoMm = this.selectedReporte?.anchoMm;
+    if (!anchoMm || this.imprimiendoTicket) { return; }
+    this.imprimiendoTicket = true;
+    try {
+      const total = this.pdfViewerService.numberOfPages();
+      const paginas: string[] = [];
+      for (let p = 1; p <= total; p++) {
+        paginas.push(await this.pdfViewerService.getPageAsImage(p, { width: anchoPxTicket(anchoMm) }, '#FFFFFF'));
+      }
+      if (!paginas.length || paginas.some(src => !src)) { throw new Error('ticket sin páginas'); }
+      await imprimirTicketEnNavegador(paginas);
+    } catch (e) {
+      this.notificacion.notification$.next({ texto: 'No se pudo imprimir el ticket', color: NotificacionColor.warn, duracion: 4 });
+    } finally {
+      this.imprimiendoTicket = false;
+    }
+  }
+
   openInBrowser(reporte: ReporteData) {
     // window.
     window.alert('Todavia no funciona este kp')

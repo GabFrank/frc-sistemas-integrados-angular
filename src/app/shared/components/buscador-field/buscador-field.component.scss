@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+.buscador-field {
+  width: 100%;
+}
+
+// Sin modo rapido el input es solo lectura y el campo entero abre el buscador.
+.solo-lectura,
+.solo-lectura input {
+  cursor: pointer;
+}
+
+.solo-lectura input {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aviso-error {
+  color: #f44336;
+}
+
+// Limpiar + lupa en una sola linea aunque el campo sea angosto (ej. Ciudad del legajo, 20% del ancho).
+:host ::ng-deep .mat-mdc-form-field-icon-suffix {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  .mat-mdc-icon-button {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    line-height: 24px;
+  }
+}

@@ -53,12 +53,9 @@ background-color: #43A047 !important;
 }
 
 .expanded:hover {
-background-color: rgb(51, 51, 51) !important;
+background-color: var(--frc-superficie-tabla) !important;
 }
 
-.tableRows:hover {
-background-color: rgb(51, 51, 51) !important;
-}
 
 input {
   text-transform: uppercase;
@@ -78,4 +75,12 @@ input {
   font-size: 14px;
   width: 14px;
   height: 14px;
+}
+
+// Una Obs larga estiraba la columna y sacaba la grilla de pantalla (#492); el texto entero va en el tooltip.
+.celda-obs {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

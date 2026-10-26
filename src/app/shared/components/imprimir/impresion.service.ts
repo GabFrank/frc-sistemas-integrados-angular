@@ -17,6 +17,7 @@ import { ImprimirDialogComponent, ImprimirDialogResult } from './imprimir-dialog
  * - **PDF (A4)**: genera el PDF y lo muestra en el visor integrado.
  * - **Ticket (58/80mm)**: genera el payload **ESC/POS** y lo imprime en la impresora
  *   térmica local del cliente vía `printLocal` (`lp -o raw`, sin conversión a PostScript).
+ *   Fuera de Electron (desktop servido como web) cae al PDF angosto en el visor (#231).
  * Padrón del sistema para recibos/comprobantes.
  */
 @Injectable({ providedIn: 'root' })
@@ -33,7 +34,8 @@ export class ImpresionService {
   /**
    * @param nombre   nombre del documento (visor / notificación).
    * @param generar  `(anchoMm, escpos) => Observable<base64>`. PDF: `(null, false)`.
-   *                 Ticket: `(58|80, true)` → payload ESC/POS.
+   *                 Ticket: `(58|80, true)` → payload ESC/POS (Electron);
+   *                 `(58|80, false)` → PDF angosto (navegador).
    * @param soloPdf  si true, el diálogo no ofrece ticket.
    */
   imprimir(nombre: string, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>, soloPdf = false): void {
@@ -48,26 +50,39 @@ export class ImpresionService {
       });
   }
 
-  /** PDF A4 → visor integrado. */
-  private mostrarPdf(nombre: string, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
-    generar(null, false).pipe(take(1)).subscribe({
+  /**
+   * PDF → visor integrado. `anchoMm` null = A4; 58/80 = ticket angosto (#231).
+   * `aviso`, si viene, se muestra una vez abierto el visor.
+   */
+  private mostrarPdf(nombre: string, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>,
+                     anchoMm: number | null = null, aviso?: string): void {
+    generar(anchoMm, false).pipe(take(1)).subscribe({
       next: (base64: string) => {
         if (!base64) {
           this.notificacion.notification$.next({ texto: 'No se pudo generar el documento', color: NotificacionColor.warn, duracion: 3 });
           return;
         }
-        this.reporteService.onAdd(nombre, base64);
+        this.reporteService.onAdd(nombre, base64, anchoMm);
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+        if (aviso) {
+          this.notificacion.notification$.next({ texto: aviso, color: NotificacionColor.success, duracion: 8 });
+        }
       },
       // Un solo manejo para todos los recibos y comprobantes que pasan por acá (#390).
       error: () => this.notificacion.notification$.next({ texto: 'No se pudo generar el documento: ' + nombre, color: NotificacionColor.warn, duracion: 4 }),
     });
   }
 
-  /** Ticket → ESC/POS → impresora térmica local (printLocal). */
+  /**
+   * Ticket:
+   * - En Electron → ESC/POS → impresora térmica local (printLocal), sin visor ni diálogo.
+   * - En el navegador no hay printLocal (#231) → PDF angosto en el visor; se imprime con su
+   *   botón, eligiendo la térmica en el diálogo del sistema.
+   */
   private imprimirTicket(nombre: string, anchoMm: number, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
     if (!this.electronService.isElectron) {
-      this.notificacion.notification$.next({ texto: 'La impresión de ticket requiere la app de escritorio', color: NotificacionColor.warn, duracion: 4 });
+      this.mostrarPdf(nombre, generar, anchoMm,
+        `Ticket ${anchoMm}mm listo: usá «Imprimir ticket» y elegí la térmica`);
       return;
     }
     // Buscar la impresora de ticket configurada.

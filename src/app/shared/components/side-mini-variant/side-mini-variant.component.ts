@@ -65,6 +65,7 @@ import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-ho
 import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListSolicitudRecuperacionComponent } from '../../../modules/rrhh/recuperacion-contrasena/list-solicitud-recuperacion/list-solicitud-recuperacion.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
 import { ListLiquidacionConceptoComponent } from '../../../modules/rrhh/liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
@@ -82,6 +83,7 @@ import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tar
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
+import { ConfiguracionCobroDialogComponent } from '../../../modules/financiero/configuracion-cobro/configuracion-cobro-dialog/configuracion-cobro-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factura-legal/resumen-fiscal-ventas/resumen-fiscal-ventas.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
@@ -191,7 +193,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'groups',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.ADMIN],
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_SUCURSAL, ROLES.RRHH_APROBAR, ROLES.ADMIN],
       items: [
         {
           name: 'Manual de uso',
@@ -308,6 +310,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'receipt_long',
           action: 'list-liquidacion',
           visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.RRHH_SUCURSAL, ROLES.ADMIN]
+        },
+        {
+          name: 'Recuperación de contraseñas',
+          icon: 'lock_reset',
+          action: 'list-solicitud-recuperacion',
+          visibilityRoles: [ROLES.RRHH_APROBAR, ROLES.ADMIN]
         },
         {
           name: 'Configuración',
@@ -594,6 +602,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Monedas',
               icon: 'paid',
               action: 'list-moneda',
+              visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Cobro en PDV',
+              icon: 'point_of_sale',
+              action: 'configuracion-cobro',
               visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
             },
             {
@@ -1080,6 +1094,17 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
         break;
+      // Diálogo y no pestaña, como la configuración de tarjeta: es una perilla, no una pantalla.
+      case "configuracion-cobro":
+        if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.matDialog.open(ConfiguracionCobroDialogComponent, {
+            width: '560px',
+            panelClass: 'custom-dialog-container'
+          });
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
       case "list-moneda":
         if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(MonedaComponent, "Monedas", null, null));
@@ -1218,6 +1243,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-motivo-vale":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-solicitud-recuperacion":
+        this.openTabIfAuthorized(ROLES.RRHH_APROBAR, ListSolicitudRecuperacionComponent, "Recuperación de contraseñas");
         break;
       case "list-cargo":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");

@@ -6,8 +6,8 @@
   height: 100%;
   gap: 10px;
   padding: 0;
-  background-color: rgb(52, 52, 52);
-  color: white;
+  background-color: var(--frc-superficie-tabla);
+  color: var(--frc-texto-fuerte);
 }
 
 .header-section {
@@ -51,7 +51,7 @@ tr.mat-row.row-seleccionada {
 .footer-section {
   padding: 16px 20px;
   margin: 0 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(var(--frc-tinta), 0.12);
   border-radius: 0 0 8px 8px;
 }
 
@@ -63,13 +63,13 @@ tr.mat-row.row-seleccionada {
 }
 
 .footer-section .footer-buttons .exit-btn {
-  color: rgba(255, 255, 255, 0.7) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(var(--frc-tinta), 0.7) !important;
+  border: 1px solid rgba(var(--frc-tinta), 0.3);
 }
 
 .footer-section .footer-buttons .exit-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: white !important;
+  background-color: rgba(var(--frc-tinta), 0.05) !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 tr:focus {
@@ -110,7 +110,7 @@ tr.example-detail-row {
 }
 
 ::ng-deep .mat-mdc-button {
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 input::-webkit-outer-spin-button,
@@ -128,11 +128,11 @@ input::-webkit-inner-spin-button {
 }
 
 .expanded:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-superficie-tabla) !important;
 }
 
 .tableRows:hover {
-  background-color: rgb(51, 51, 51) !important;
+  background-color: var(--frc-superficie-tabla) !important;
 }
 
 th {
@@ -144,15 +144,15 @@ input {
 }
 
 ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-outline {
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(var(--frc-tinta), 0.3) !important;
 }
 
 ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-label {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(var(--frc-tinta), 0.7) !important;
 }
 
 ::ng-deep .mat-mdc-form-field input {
-  color: white !important;
+  color: var(--frc-texto-fuerte) !important;
 }
 
 .estado-busqueda {
@@ -160,7 +160,7 @@ input {
   justify-content: center;
   align-items: center;
   padding: 24px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(var(--frc-tinta), 0.6);
 }
 
 @media (max-width: 768px) {

@@ -41,18 +41,10 @@
           <mat-hint>{{ ayudaTipo || 'Decide si la caja ofrece el lector o la cámara.' }}</mat-hint>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="campo-con-hint-largo">
-          <mat-label>Proveedor</mat-label>
-          <mat-select formControlName="proveedorServicioId">
-            <mat-option [value]="null">Cualquiera (comodín)</mat-option>
-            <mat-option *ngFor="let p of proveedores" [value]="p.id">
-              {{ p.persona?.nombre || p.nombreContacto || ('Proveedor ' + p.id) }}
-            </mat-option>
-          </mat-select>
-          <mat-hint>
-            Un proveedor puede tener varios formatos: uno por modelo de aparato.
-          </mat-hint>
-        </mat-form-field>
+        <app-buscador-field appearance="outline" tipo="proveedorServicio"
+          titulo="Proveedor" placeholder="Cualquiera (comodín)" formControlName="proveedorServicio">
+        </app-buscador-field>
+        <div class="hint-proveedor">Vacío = cualquiera (comodín). Un proveedor puede tener varios formatos: uno por modelo de aparato.</div>
 
         <mat-slide-toggle formControlName="activo">Elegible para terminales nuevas</mat-slide-toggle>
       </div>

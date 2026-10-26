@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Apollo } from 'apollo-angular';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { gql } from 'apollo-angular';
+import { Mutation, gql } from 'apollo-angular';
 
 export interface AsignacionError {
   pedidoItemId: number;
@@ -47,23 +44,11 @@ const ASIGNAR_ITEMS_A_NOTA = gql`
   }
 `;
 
+// Antes era un apollo.mutate a mano: sin «Guardando…» y el motivo del rechazo lo tenía que mostrar cada pantalla.
+// Como Mutation pasa por GenericCrudService.onCustomMutation (#501).
 @Injectable({
   providedIn: 'root'
 })
-export class AsignarItemsANotaGQL {
-  constructor(private apollo: Apollo) {}
-
-  mutate(notaRecepcionId: number, pedidoItemIds: number[], usuarioId: number): Observable<AsignacionResult> {
-    return this.apollo.mutate<AsignarItemsANotaResponse>({
-      mutation: ASIGNAR_ITEMS_A_NOTA,
-      variables: {
-        notaRecepcionId,
-        pedidoItemIds,
-        usuarioId
-      },
-      context: { clientName: 'servidor' }
-    }).pipe(
-      map(result => result.data!.data)
-    );
-  }
-} 
+export class AsignarItemsANotaGQL extends Mutation<AsignarItemsANotaResponse> {
+  document = ASIGNAR_ITEMS_A_NOTA;
+}

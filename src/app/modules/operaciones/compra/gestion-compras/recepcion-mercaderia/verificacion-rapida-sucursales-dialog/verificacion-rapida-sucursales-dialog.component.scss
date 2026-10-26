@@ -1,5 +1,5 @@
 .verificacion-rapida-sucursales-dialog {
-  color: #ffffff;
+  color: var(--frc-texto-fuerte);
   min-width: 700px;
   max-width: 900px;
 
@@ -36,8 +36,8 @@
   // Información del Producto
   .producto-info {
     .producto-card {
-      background-color: #2d2d2d;
-      border: 1px solid #444;
+      background-color: var(--frc-superficie);
+      border: 1px solid var(--frc-borde-solido);
       border-radius: 8px;
 
       .producto-header {
@@ -62,7 +62,7 @@
           }
 
           .producto-descripcion {
-            color: #ffffff;
+            color: var(--frc-texto-fuerte);
             font-size: 16px;
             font-weight: 500;
           }
@@ -80,13 +80,13 @@
           gap: 4px;
 
           .label {
-            color: #cccccc;
+            color: var(--frc-texto-secundario);
             font-size: 12px;
             font-weight: 500;
           }
 
           .value {
-            color: #ffffff;
+            color: var(--frc-texto-fuerte);
             font-size: 16px;
             font-weight: 500;
 
@@ -136,18 +136,18 @@
     .sucursales-table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #2d2d2d;
-      border: 1px solid #444;
+      background-color: var(--frc-superficie);
+      border: 1px solid var(--frc-borde-solido);
       border-radius: 8px;
       overflow: hidden;
 
       th {
-        background-color: #1e1e1e;
+        background-color: var(--frc-superficie-baja);
         color: #ffa726;
         font-weight: 500;
         padding: 12px;
         text-align: left;
-        border-bottom: 1px solid #444;
+        border-bottom: 1px solid var(--frc-borde-solido);
 
         &.text-center {
           text-align: center;
@@ -161,8 +161,8 @@
 
       td {
         padding: 12px;
-        border-bottom: 1px solid #444;
-        color: #ffffff;
+        border-bottom: 1px solid var(--frc-borde-solido);
+        color: var(--frc-texto-fuerte);
 
         &.text-center {
           text-align: center;
@@ -175,14 +175,14 @@
 
         &.sucursal-info {
           .sucursal-nombre {
-            color: #ffffff;
+            color: var(--frc-texto-fuerte);
             font-weight: 500;
             font-size: 14px;
             margin-bottom: 4px;
           }
 
           .sucursal-codigo {
-            color: #cccccc;
+            color: var(--frc-texto-secundario);
             font-size: 12px;
           }
         }
@@ -198,7 +198,7 @@
         transition: background-color 0.2s ease;
 
         &:hover {
-          background-color: #3d3d3d;
+          background-color: var(--frc-superficie-alta);
         }
 
         &.seleccionada {
@@ -219,14 +219,14 @@
   }
 
   .estado-no-seleccionada {
-    background-color: #666 !important;
-    color: #ffffff !important;
+    background-color: var(--frc-relleno-fuerte) !important;
+    color: var(--frc-texto-fuerte) !important;
   }
 
   // Resumen de Verificación
   .resumen-verificacion {
     .resumen-card {
-      background-color: #1e1e1e;
+      background-color: var(--frc-superficie-baja);
       border: 1px solid #4caf50;
       border-radius: 8px;
 
@@ -248,13 +248,13 @@
           align-items: center;
 
           .label {
-            color: #cccccc;
+            color: var(--frc-texto-secundario);
             font-size: 14px;
             font-weight: 500;
           }
 
           .value {
-            color: #ffffff;
+            color: var(--frc-texto-fuerte);
             font-size: 14px;
             font-weight: 500;
 
@@ -271,13 +271,13 @@
   mat-dialog-actions {
     padding: 16px 0 0 0;
     margin: 0;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--frc-borde-solido);
 
     button {
       margin-left: 8px;
 
       &[mat-button] {
-        color: #cccccc;
+        color: var(--frc-texto-secundario);
       }
 
       &[mat-raised-button] {
@@ -285,7 +285,7 @@
         color: #ffffff;
 
         &:disabled {
-          background-color: #555;
+          background-color: var(--frc-relleno-fuerte);
           color: #666;
         }
 
@@ -335,7 +335,7 @@
 ::ng-deep .verificacion-rapida-sucursales-dialog {
   .mat-mdc-checkbox {
     .mat-mdc-checkbox-background {
-      border-color: #555 !important;
+      border-color: var(--frc-borde-solido-fuerte) !important;
     }
 
     &.mat-mdc-checkbox-checked .mat-mdc-checkbox-background {
@@ -353,11 +353,11 @@
   }
 
   .mat-mdc-stroked-button {
-    border-color: #555 !important;
-    color: #ffffff !important;
+    border-color: var(--frc-borde-solido-fuerte) !important;
+    color: var(--frc-texto-fuerte) !important;
 
     &:disabled {
-      border-color: #333 !important;
+      border-color: var(--frc-borde-solido) !important;
       color: #666 !important;
     }
   }
