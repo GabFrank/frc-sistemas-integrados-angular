@@ -32,6 +32,7 @@
           (click)="editItem(item, i)"
         >
           {{ item?.producto?.descripcion }}
+          <div *ngIf="item?.lotesEtiqueta" style="font-size: 0.8em; opacity: 0.75">{{ item.lotesEtiqueta }}</div>
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           {{ item.precioVenta?.tipoPrecio?.descripcion?.substring(0, 4) }}({{
