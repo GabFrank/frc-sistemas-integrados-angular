@@ -28,9 +28,11 @@ import { ListImpresorasComponent } from './impresoras/list-impresoras/list-impre
 import { AdicionarImpresoraDialogComponent } from './impresoras/adicionar-impresora-dialog/adicionar-impresora-dialog.component';
 import { CredencialesCupsDialogComponent } from './impresoras/credenciales-cups-dialog/credenciales-cups-dialog.component';
 import { AgregarDesdeSucursalDialogComponent } from './impresoras/agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
+import { InteligenciaArtificialComponent } from './inteligencia-artificial/inteligencia-artificial.component';
 
 @NgModule({
   declarations: [
+    InteligenciaArtificialComponent,
     ListImpresorasComponent,
     AdicionarImpresoraDialogComponent,
     CredencialesCupsDialogComponent,

@@ -43,6 +43,7 @@ import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-ret
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
+import { InteligenciaArtificialComponent } from '../../../modules/configuracion/inteligencia-artificial/inteligencia-artificial.component';
 import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
@@ -828,6 +829,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
         },
         {
+          name: 'Inteligencia artificial',
+          icon: 'smart_toy',
+          action: 'inteligencia-artificial',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
           name: 'Replicación Lógica',
           icon: 'sync',
           action: 'logical-replication',
@@ -1410,6 +1417,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "inteligencia-artificial":
+        this.openTabIfAuthorized(ROLES.ADMIN, InteligenciaArtificialComponent, "Inteligencia artificial");
         break;
       case "logical-replication":
         this.openTabIfAuthorized(ROLES.ADMIN, ListReplicationComponent, "Replicación Lógica");
