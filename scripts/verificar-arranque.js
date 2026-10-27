@@ -67,14 +67,17 @@ async function main() {
     const ventana = await app.firstWindow().catch(() => null);
     if (ventana) {
       ventana.on('pageerror', (e) => anotar(`Uncaught ${e.name || 'Error'}: ${e.message}`));
-      dibujo = await ventana
-        .waitForFunction(() => (document.querySelector('app-root')?.childElementCount ?? 0) > 0, null, {
-          timeout: ESPERA_RENDER_MS,
-          // Por intervalo y no por cuadro: sin gestor de ventanas la página puede no pintar cuadros.
-          polling: 250,
-        })
-        .then(() => true)
-        .catch(() => false);
+      // Se consulta con evaluate en un bucle y no con waitForFunction: waitForFunction evalúa la
+      // condición con eval dentro de la página, y la CSP del index.html (sin 'unsafe-eval') lo
+      // bloquea en silencio, así que nunca resolvía aunque la app ya hubiera dibujado.
+      // Por intervalo y no por cuadro: sin gestor de ventanas la página puede no pintar cuadros.
+      const limite = Date.now() + ESPERA_RENDER_MS;
+      while (!dibujo && Date.now() < limite) {
+        dibujo = await ventana
+          .evaluate(() => (document.querySelector('app-root')?.childElementCount ?? 0) > 0)
+          .catch(() => false);
+        if (!dibujo) await ventana.waitForTimeout(250).catch(() => {});
+      }
       // Margen para que un error de un módulo que carga después del primer dibujo llegue a anotarse.
       await ventana.waitForTimeout(3000).catch(() => {});
     }

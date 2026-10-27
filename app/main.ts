@@ -277,8 +277,6 @@ let printers: PrinterConfig[] = [];
 
 const { ipcMain } = require('electron');
 
-require("@electron/remote/main").initialize();
-
 let win: BrowserWindow;
 let windows: BrowserWindow[] = [];
 // Particion (sesion/localStorage propios) para la 2da ventana: permite tener un
@@ -309,6 +307,78 @@ app.on('second-instance', () => {
   createWindow(SECOND_INSTANCE_PARTITION);
 });
 
+/**
+ * Abre en el navegador del sistema solo enlaces web (http/https) y mailto. Nunca `file:`,
+ * `smb:` ni protocolos que lancen programas: shell.openExternal ejecuta lo que el sistema
+ * tenga asociado a ese protocolo.
+ */
+function abrirEnNavegador(destino: string): void {
+  try {
+    const protocolo = new URL(destino).protocol;
+    if (protocolo === 'https:' || protocolo === 'http:' || protocolo === 'mailto:') {
+      require('electron').shell.openExternal(destino);
+    } else {
+      log.warn(`Enlace externo bloqueado (protocolo ${protocolo}): ${destino}`);
+    }
+  } catch {
+    log.warn(`Enlace externo inválido bloqueado: ${destino}`);
+  }
+}
+
+/** Carpeta del index.html que carga la ventana (dist/ en local, la raíz del asar empaquetada). */
+function carpetaDeLaApp(): string {
+  return fs.existsSync(path.join(__dirname, '../dist/index.html'))
+    ? path.join(__dirname, '../dist')
+    : __dirname;
+}
+
+/**
+ * La ventana solo puede mostrar la app: en dev el ng serve, empaquetada los archivos de su propia
+ * carpeta. Con useHash el router deja la URL en `dist/#/…` (sin index.html), por eso se compara
+ * por carpeta y no por nombre de archivo.
+ */
+function esUrlDeLaApp(destino: string): boolean {
+  try {
+    const u = new URL(destino);
+    if (serve) {
+      return u.origin === 'http://localhost:4200';
+    }
+    if (u.protocol !== 'file:') {
+      return false;
+    }
+    const pedido = path.resolve(url.fileURLToPath(u));
+    const base = path.resolve(carpetaDeLaApp());
+    return pedido === base || pedido.startsWith(base + path.sep);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Impide que la ventana principal salga de la app: ventanas nuevas, navegación a otro sitio o
+ * <webview> embebidos. Un enlace externo se abre en el navegador del sistema.
+ */
+function protegerNavegacion(w: BrowserWindow): void {
+  w.webContents.setWindowOpenHandler(({ url: destino }) => {
+    abrirEnNavegador(destino);
+    return { action: 'deny' };
+  });
+  w.webContents.on('will-navigate', (event, destino) => {
+    if (!esUrlDeLaApp(destino)) {
+      event.preventDefault();
+      abrirEnNavegador(destino);
+    }
+  });
+  w.webContents.on('will-redirect', (event, destino) => {
+    if (event.isMainFrame && !esUrlDeLaApp(destino)) {
+      event.preventDefault();
+    }
+  });
+  w.webContents.on('will-attach-webview', (event) => {
+    event.preventDefault();
+  });
+}
+
 export async function createWindow(partition?: string): Promise<BrowserWindow> {
   const electronScreen = screen;
   const size = screen.getPrimaryDisplay().workAreaSize;
@@ -329,16 +399,23 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     y: 0,
     width: size.width,
     height: size.height,
+    // La pantalla no tiene acceso a Node: todo lo del sistema operativo pasa por el preload, que
+    // expone solo los canales IPC permitidos. Con esto un XSS no puede tocar archivos ni ejecutar
+    // comandos en la PC. Ver app/preload.ts.
     webPreferences: {
-      nodeIntegration: true,
-      allowRunningInsecureContent: (serve),
-      contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: false,
       ...(partition ? { partition } : {}),
     },
   });
   win = w;
   windows.push(w);
-  require("@electron/remote/main").enable(w.webContents);
+  protegerNavegacion(w);
   // 'win' (global) apunta siempre a la ventana enfocada: menu, zoom y update-status operan sobre ella.
   w.on('focus', () => { win = w; });
   w.on('closed', () => {
@@ -440,11 +517,6 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     }
   });
 
-  w.webContents.setWindowOpenHandler(({ url }) => {
-    require("electron").shell.openExternal(url);
-    return { action: "deny" };
-  });
-
   w.webContents.on('did-finish-load', () => {
     // Leer zoom desde archivo (no depende de localStorage ni del renderer)
     const zoom = loadZoomLevel();
@@ -486,6 +558,60 @@ ipcMain.on('save-config-backup', (event: any, configData: string) => {
     log.info(`Config backup saved by main process to: ${configPath}`);
   } catch (e) {
     log.error('Error saving config backup from renderer:', e);
+  }
+});
+
+/**
+ * Respaldo de configuración guardado en disco, para cuando el localStorage está vacío (perfil nuevo,
+ * caché borrada). Lee las mismas ubicaciones donde lo escribían las versiones anteriores, que lo
+ * guardaban desde el renderer con fs. Devuelve el texto o null.
+ */
+ipcMain.handle('leer-config-backup', () => {
+  const ubicaciones = [
+    path.join(app.getPath('userData'), 'config', 'config-backup.json'),
+    path.join(app.getPath('appData'), 'frc-sistemas', 'config-backup.json'),
+    path.join(app.getPath('home'), '.frc-sistemas', 'config-backup.json'),
+  ];
+  for (const ubicacion of ubicaciones) {
+    try {
+      if (fs.existsSync(ubicacion)) {
+        return fs.readFileSync(ubicacion, 'utf8');
+      }
+    } catch (e) {
+      log.warn(`No se pudo leer el respaldo de configuración en ${ubicacion}:`, e);
+    }
+  }
+  return null;
+});
+
+/**
+ * Exporta la configuración a un archivo que elige el usuario. El renderer solo manda el contenido;
+ * la ruta la decide el diálogo nativo, así la pantalla nunca escribe donde quiere.
+ */
+ipcMain.handle('exportar-config-backup', async (event: any, configData: string) => {
+  try {
+    if (typeof configData !== 'string') {
+      return { ok: false, error: 'Contenido inválido' };
+    }
+    JSON.parse(configData);
+    const ventana = BrowserWindow.fromWebContents(event.sender);
+    const opciones = {
+      title: 'Guardar Respaldo de Configuración',
+      defaultPath: path.join(app.getPath('documents'), 'config-backup.json'),
+      filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
+    };
+    const resultado = ventana
+      ? await dialog.showSaveDialog(ventana, opciones)
+      : await dialog.showSaveDialog(opciones);
+    if (resultado.canceled || !resultado.filePath) {
+      return { ok: false, cancelado: true };
+    }
+    fs.writeFileSync(resultado.filePath, configData, 'utf8');
+    log.info(`Respaldo de configuración exportado a ${resultado.filePath}`);
+    return { ok: true };
+  } catch (e) {
+    log.error('Error exportando el respaldo de configuración:', e);
+    return { ok: false, error: (e as any)?.message || String(e) };
   }
 });
 

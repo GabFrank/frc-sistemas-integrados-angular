@@ -277,7 +277,6 @@ function loadZoomLevel() {
 }
 let printers = [];
 const { ipcMain } = require('electron');
-require("@electron/remote/main").initialize();
 let win;
 let windows = [];
 // Particion (sesion/localStorage propios) para la 2da ventana: permite tener un
@@ -306,6 +305,77 @@ electron_1.app.on('second-instance', () => {
     }
     createWindow(SECOND_INSTANCE_PARTITION);
 });
+/**
+ * Abre en el navegador del sistema solo enlaces web (http/https) y mailto. Nunca `file:`,
+ * `smb:` ni protocolos que lancen programas: shell.openExternal ejecuta lo que el sistema
+ * tenga asociado a ese protocolo.
+ */
+function abrirEnNavegador(destino) {
+    try {
+        const protocolo = new URL(destino).protocol;
+        if (protocolo === 'https:' || protocolo === 'http:' || protocolo === 'mailto:') {
+            require('electron').shell.openExternal(destino);
+        }
+        else {
+            log.warn(`Enlace externo bloqueado (protocolo ${protocolo}): ${destino}`);
+        }
+    }
+    catch (_a) {
+        log.warn(`Enlace externo inválido bloqueado: ${destino}`);
+    }
+}
+/** Carpeta del index.html que carga la ventana (dist/ en local, la raíz del asar empaquetada). */
+function carpetaDeLaApp() {
+    return fs.existsSync(path.join(__dirname, '../dist/index.html'))
+        ? path.join(__dirname, '../dist')
+        : __dirname;
+}
+/**
+ * La ventana solo puede mostrar la app: en dev el ng serve, empaquetada los archivos de su propia
+ * carpeta. Con useHash el router deja la URL en `dist/#/…` (sin index.html), por eso se compara
+ * por carpeta y no por nombre de archivo.
+ */
+function esUrlDeLaApp(destino) {
+    try {
+        const u = new URL(destino);
+        if (serve) {
+            return u.origin === 'http://localhost:4200';
+        }
+        if (u.protocol !== 'file:') {
+            return false;
+        }
+        const pedido = path.resolve(url.fileURLToPath(u));
+        const base = path.resolve(carpetaDeLaApp());
+        return pedido === base || pedido.startsWith(base + path.sep);
+    }
+    catch (_a) {
+        return false;
+    }
+}
+/**
+ * Impide que la ventana principal salga de la app: ventanas nuevas, navegación a otro sitio o
+ * <webview> embebidos. Un enlace externo se abre en el navegador del sistema.
+ */
+function protegerNavegacion(w) {
+    w.webContents.setWindowOpenHandler(({ url: destino }) => {
+        abrirEnNavegador(destino);
+        return { action: 'deny' };
+    });
+    w.webContents.on('will-navigate', (event, destino) => {
+        if (!esUrlDeLaApp(destino)) {
+            event.preventDefault();
+            abrirEnNavegador(destino);
+        }
+    });
+    w.webContents.on('will-redirect', (event, destino) => {
+        if (event.isMainFrame && !esUrlDeLaApp(destino)) {
+            event.preventDefault();
+        }
+    });
+    w.webContents.on('will-attach-webview', (event) => {
+        event.preventDefault();
+    });
+}
 function createWindow(partition) {
     return __awaiter(this, void 0, void 0, function* () {
         const electronScreen = electron_1.screen;
@@ -326,11 +396,14 @@ function createWindow(partition) {
             y: 0,
             width: size.width,
             height: size.height,
-            webPreferences: Object.assign({ nodeIntegration: true, allowRunningInsecureContent: (serve), contextIsolation: false }, (partition ? { partition } : {})),
+            // La pantalla no tiene acceso a Node: todo lo del sistema operativo pasa por el preload, que
+            // expone solo los canales IPC permitidos. Con esto un XSS no puede tocar archivos ni ejecutar
+            // comandos en la PC. Ver app/preload.ts.
+            webPreferences: Object.assign({ preload: path.join(__dirname, 'preload.js'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false }, (partition ? { partition } : {})),
         });
         win = w;
         windows.push(w);
-        require("@electron/remote/main").enable(w.webContents);
+        protegerNavegacion(w);
         // 'win' (global) apunta siempre a la ventana enfocada: menu, zoom y update-status operan sobre ella.
         w.on('focus', () => { win = w; });
         w.on('closed', () => {
@@ -417,10 +490,6 @@ function createWindow(partition) {
                 console.log("Error en recurso secundario o no crítico, continuando sin relanzar");
             }
         });
-        w.webContents.setWindowOpenHandler(({ url }) => {
-            require("electron").shell.openExternal(url);
-            return { action: "deny" };
-        });
         w.webContents.on('did-finish-load', () => {
             // Leer zoom desde archivo (no depende de localStorage ni del renderer)
             const zoom = loadZoomLevel();
@@ -466,6 +535,60 @@ ipcMain.on('save-config-backup', (event, configData) => {
         log.error('Error saving config backup from renderer:', e);
     }
 });
+/**
+ * Respaldo de configuración guardado en disco, para cuando el localStorage está vacío (perfil nuevo,
+ * caché borrada). Lee las mismas ubicaciones donde lo escribían las versiones anteriores, que lo
+ * guardaban desde el renderer con fs. Devuelve el texto o null.
+ */
+ipcMain.handle('leer-config-backup', () => {
+    const ubicaciones = [
+        path.join(electron_1.app.getPath('userData'), 'config', 'config-backup.json'),
+        path.join(electron_1.app.getPath('appData'), 'frc-sistemas', 'config-backup.json'),
+        path.join(electron_1.app.getPath('home'), '.frc-sistemas', 'config-backup.json'),
+    ];
+    for (const ubicacion of ubicaciones) {
+        try {
+            if (fs.existsSync(ubicacion)) {
+                return fs.readFileSync(ubicacion, 'utf8');
+            }
+        }
+        catch (e) {
+            log.warn(`No se pudo leer el respaldo de configuración en ${ubicacion}:`, e);
+        }
+    }
+    return null;
+});
+/**
+ * Exporta la configuración a un archivo que elige el usuario. El renderer solo manda el contenido;
+ * la ruta la decide el diálogo nativo, así la pantalla nunca escribe donde quiere.
+ */
+ipcMain.handle('exportar-config-backup', (event, configData) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (typeof configData !== 'string') {
+            return { ok: false, error: 'Contenido inválido' };
+        }
+        JSON.parse(configData);
+        const ventana = electron_1.BrowserWindow.fromWebContents(event.sender);
+        const opciones = {
+            title: 'Guardar Respaldo de Configuración',
+            defaultPath: path.join(electron_1.app.getPath('documents'), 'config-backup.json'),
+            filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
+        };
+        const resultado = ventana
+            ? yield electron_1.dialog.showSaveDialog(ventana, opciones)
+            : yield electron_1.dialog.showSaveDialog(opciones);
+        if (resultado.canceled || !resultado.filePath) {
+            return { ok: false, cancelado: true };
+        }
+        fs.writeFileSync(resultado.filePath, configData, 'utf8');
+        log.info(`Respaldo de configuración exportado a ${resultado.filePath}`);
+        return { ok: true };
+    }
+    catch (e) {
+        log.error('Error exportando el respaldo de configuración:', e);
+        return { ok: false, error: (e === null || e === void 0 ? void 0 : e.message) || String(e) };
+    }
+}));
 // Canal guardado, para que el renderer lo adopte al arrancar en vez de imponer el de su
 // localStorage (#384). Siempre responde: un sendSync sin respuesta congela el renderer.
 ipcMain.on('get-update-channel', (event) => {

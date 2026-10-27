@@ -4,10 +4,9 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, EMPTY, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, EMPTY } from 'rxjs';
 import { catchError, filter, switchMap, tap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
-import { isDevMode } from '@angular/core';
 import { ConfigDialogComponent } from '../components/config-dialog/config-dialog.component';
 import { NotificacionSnackbarService } from '../../notificacion-snackbar.service';
 
@@ -125,44 +124,9 @@ export class ConfigService {
    * Load configuration from file system (Electron environment)
    */
   private loadFromFile(): Observable<AppConfig | null> {
-    if (!window.require) {
-      console.log('Not in Electron environment, skipping file load');
-      return of(null); // Not in Electron
-    }
-    
-    try {
-      const fs = window.require('fs');
-      const path = this.getConfigFilePath();
-      
-      // Check if file exists
-      if (!fs.existsSync(path)) {
-        console.log(`Config file not found at ${path}`);
-        
-        // Try fallback to asset paths for backward compatibility
-        const assetsPaths = [
-          './assets/configuracion-local.json',
-          './src/assets/configuracion-local.json'
-        ];
-        
-        for (const assetPath of assetsPaths) {
-          if (fs.existsSync(assetPath)) {
-            console.log(`Found legacy config at ${assetPath}, will migrate`);
-            // Here we would load and convert legacy format to new format
-            const legacyData = JSON.parse(fs.readFileSync(assetPath, 'utf8'));
-            return of(this.convertLegacyConfig(legacyData));
-          }
-        }
-        
-        return of(null);
-      }
-      
-      const configData = fs.readFileSync(path, 'utf8');
-      const config = JSON.parse(configData);
-      return of(config);
-    } catch (err) {
-      console.error('Error reading config file:', err);
-      return throwError(err);
-    }
+    // La ventana de Electron ya no tiene acceso a disco (sin nodeIntegration). Este servicio está
+    // en desuso y nadie lo inyecta: queda solo localStorage.
+    return of(null);
   }
 
   /**
@@ -196,18 +160,6 @@ export class ConfigService {
       console.error('Error converting legacy config:', err);
       return this.DEFAULT_CONFIG;
     }
-  }
-
-  /**
-   * Get the appropriate file path based on platform
-   */
-  private getConfigFilePath(): string {
-    const basePath = isDevMode() ? './src/assets' : './assets';
-    const fileName = 'app-config.json';
-    
-    return process.platform === 'win32' 
-      ? `${basePath}\\${fileName}`
-      : `${basePath}/${fileName}`;
   }
 
   /**
@@ -303,27 +255,7 @@ export class ConfigService {
    * Save configuration to file system (Electron environment)
    */
   private saveToFile(config: AppConfig): void {
-    if (!window.require) {
-      console.log('Not in Electron environment, skipping file save');
-      return; // Not in Electron
-    }
-    
-    try {
-      const fs = window.require('fs');
-      const path = this.getConfigFilePath();
-      const dir = path.substring(0, path.lastIndexOf(process.platform === 'win32' ? '\\' : '/'));
-      
-      // Create directory if it doesn't exist
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      
-      // Write config file
-      fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
-      console.log(`Configuration saved to ${path}`);
-    } catch (err) {
-      console.error('Error saving config to file:', err);
-    }
+    // Sin acceso a disco desde la ventana: la configuración queda en localStorage (setConfig).
   }
 
   /**

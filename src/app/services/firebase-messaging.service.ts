@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { Subject } from 'rxjs';
+import { esElectron } from '../commons/core/electron/electron-bridge';
 
 @Injectable({
     providedIn: 'root'
@@ -39,7 +40,7 @@ export class FirebaseMessagingService {
     }
 
     private isElectron(): boolean {
-        return !!(window && (window as any).process && (window as any).process.type);
+        return esElectron();
     }
 
     async requestPermission(): Promise<string | null> {
