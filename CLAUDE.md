@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `FRC` (`package.json` name), aplicación **desktop POS / admin** del producto **Franco Systems 3.0.9**. Es uno de los 4 componentes que forman `frc-comercial/`. Repo git independiente: `GabFrank/frc-sistemas-integrados-angular`.
 
-Stack: **Angular 15.1.5** + **Electron 22** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **en modo oscuro por defecto**, con modo claro opcional (botón del header): colores neutros siempre con los tokens `--frc-*`.
+Stack: **Angular 15.1.5** + **Electron 43** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **en modo oscuro por defecto**, con modo claro opcional (botón del header): colores neutros siempre con los tokens `--frc-*`.
 
 Habla GraphQL contra `frc-comercial/central` (el server principal del SaaS). No habla con `frc-efact` (proyecto independiente con REST/Auth0).
 
@@ -26,6 +26,12 @@ npm run lint               # ng lint (ESLint)
 npm run verificar:imports  # Chequeo estático: nadie lee una constante del genérico al cargarse (segundos)
 npm run verificar:arranque # Abre dist/ en Electron y falla si queda en blanco (necesita build:prod antes)
 ```
+
+> ⚠️ **Node 22.12 o más** (`engines` del `package.json`, y el CI usa Node 22). Electron 43 no se
+> instala con Node 18. Además su paquete npm **ya no baja el binario al instalarse**: lo baja el
+> `postinstall` del proyecto con `install-electron` (idempotente: si ya está, sale enseguida). Si
+> `npm run electron`/`npm start` dice «Electron failed to install correctly», correr
+> `npx install-electron`.
 
 > ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` hace `npm ci`, `npm run verificar:imports`,
 > `npm run build:prod`, `npm run electron:serve-tsc` y, solo en ubuntu, `npm run verificar:arranque`
