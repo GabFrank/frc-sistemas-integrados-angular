@@ -63,7 +63,7 @@
       mat-raised-button
       color="accent"
       (click)="onConfirm()"
-      [disabled]="usuarioControl.invalid || passwordControl.invalid"
+      [disabled]="enCurso || usuarioControl.invalid || passwordControl.invalid"
     >
       Transferir
     </button>
