@@ -1,52 +1,143 @@
 <div class="ia-container">
-  <h2 class="titulo">Inteligencia artificial</h2>
-  <span class="subtitulo">Lectura de facturas en papel con OpenAI</span>
+  <div class="encabezado">
+    <mat-icon class="icono-titulo">smart_toy</mat-icon>
+    <div>
+      <h2 class="titulo">Inteligencia artificial</h2>
+      <span class="subtitulo">Lectura de facturas en papel con {{ proveedorActivoNombre }}</span>
+    </div>
+  </div>
 
   <div class="banner-advertencia" *ngIf="configuracion && !cifradoDisponible">
     <mat-icon>warning</mat-icon>
-    Falta CONFIG_MASTER_KEY en el servidor: no se puede guardar la clave
+    Falta CONFIG_MASTER_KEY en el servidor: no se pueden guardar las claves
   </div>
 
   <form [formGroup]="form" (ngSubmit)="guardar()" autocomplete="off" class="formulario">
-    <div class="estado-clave">
-      <mat-icon>{{ configuracion?.claveCargada ? 'vpn_key' : 'key_off' }}</mat-icon>
-      <span *ngIf="configuracion?.claveCargada">Clave cargada (…{{ configuracion?.claveFinal }})</span>
-      <span *ngIf="configuracion && !configuracion.claveCargada">Sin clave</span>
-      <button mat-stroked-button color="warn" type="button" *ngIf="configuracion?.claveCargada"
-        [disabled]="ocupado || !cifradoDisponible" (click)="borrarClave()">
-        <mat-icon>delete</mat-icon>
-        Borrar clave
-      </button>
+    <div class="campo">
+      <span class="etiqueta">Proveedor activo</span>
+      <mat-button-toggle-group formControlName="proveedor" class="selector-proveedor">
+        <mat-button-toggle value="OPENAI">OpenAI</mat-button-toggle>
+        <mat-button-toggle value="CLAUDE">Claude</mat-button-toggle>
+      </mat-button-toggle-group>
+      <span class="ayuda">Es el que lee las facturas en papel. Se aplica al guardar.</span>
     </div>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Clave de API de OpenAI</mat-label>
-      <input matInput type="password" formControlName="apiKey" autocomplete="new-password"
-        placeholder="Dejar vacío para no cambiarla" [attr.disabled]="!cifradoDisponible ? true : null">
-      <mat-hint>Solo se envía si escribís algo</mat-hint>
-    </mat-form-field>
+    <!-- OpenAI -->
+    <section class="proveedor" [class.activo]="form.value.proveedor === 'OPENAI'">
+      <div class="proveedor-encabezado">
+        <span class="proveedor-nombre">OpenAI</span>
+        <span class="chip-activo" *ngIf="form.value.proveedor === 'OPENAI'">Activo</span>
+      </div>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Modelo</mat-label>
-      <input matInput formControlName="modelo" placeholder="gpt-4o">
-    </mat-form-field>
+      <div class="estado-clave" [class.cargada]="configuracion?.claveCargada">
+        <mat-icon>{{ configuracion?.claveCargada ? 'vpn_key' : 'key_off' }}</mat-icon>
+        <div class="estado-texto">
+          <span class="estado-titulo">{{ configuracion?.claveCargada ? 'Clave cargada' : 'Sin clave' }}</span>
+          <span class="estado-detalle" *ngIf="configuracion?.claveCargada">Termina en {{ configuracion?.claveFinal }}</span>
+        </div>
+        <button mat-stroked-button color="warn" type="button" *ngIf="configuracion?.claveCargada"
+          [disabled]="ocupado || !cifradoDisponible" (click)="borrarClave('OPENAI')">
+          <mat-icon>delete</mat-icon>
+          Borrar clave
+        </button>
+      </div>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Prompt adicional</mat-label>
-      <textarea matInput formControlName="promptAdicional" rows="6"></textarea>
-    </mat-form-field>
+      <div class="campo">
+        <mat-form-field appearance="outline">
+          <mat-label>Clave de API de OpenAI</mat-label>
+          <input matInput type="password" formControlName="apiKey" autocomplete="new-password"
+            placeholder="Dejar vacío para no cambiarla">
+        </mat-form-field>
+        <span class="ayuda">Solo se envía si escribís algo. Empieza con sk- (platform.openai.com).</span>
+      </div>
+
+      <div class="campo">
+        <mat-form-field appearance="outline">
+          <mat-label>Modelo</mat-label>
+          <input matInput formControlName="modelo" [placeholder]="modeloOpenAiPorDefecto">
+        </mat-form-field>
+        <span class="ayuda">Tiene que leer imágenes. Por defecto {{ modeloOpenAiPorDefecto }}.</span>
+      </div>
+
+      <div class="acciones">
+        <button mat-stroked-button color="primary" type="button" [disabled]="ocupado || !configuracion?.claveCargada"
+          (click)="probarConexion('OPENAI')">
+          <mat-icon>wifi_tethering</mat-icon>
+          Probar conexión
+        </button>
+      </div>
+
+      <div class="resultado-prueba" *ngIf="pruebas.OPENAI as p" [class.ok]="p.ok" [class.error]="!p.ok">
+        <mat-icon>{{ p.ok ? 'check_circle' : 'error' }}</mat-icon>
+        <span>{{ p.texto }}</span>
+      </div>
+    </section>
+
+    <!-- Claude -->
+    <section class="proveedor" [class.activo]="form.value.proveedor === 'CLAUDE'">
+      <div class="proveedor-encabezado">
+        <span class="proveedor-nombre">Claude</span>
+        <span class="chip-activo" *ngIf="form.value.proveedor === 'CLAUDE'">Activo</span>
+      </div>
+
+      <div class="estado-clave" [class.cargada]="configuracion?.claudeClaveCargada">
+        <mat-icon>{{ configuracion?.claudeClaveCargada ? 'vpn_key' : 'key_off' }}</mat-icon>
+        <div class="estado-texto">
+          <span class="estado-titulo">{{ configuracion?.claudeClaveCargada ? 'Clave cargada' : 'Sin clave' }}</span>
+          <span class="estado-detalle" *ngIf="configuracion?.claudeClaveCargada">Termina en {{ configuracion?.claudeClaveFinal }}</span>
+        </div>
+        <button mat-stroked-button color="warn" type="button" *ngIf="configuracion?.claudeClaveCargada"
+          [disabled]="ocupado || !cifradoDisponible" (click)="borrarClave('CLAUDE')">
+          <mat-icon>delete</mat-icon>
+          Borrar clave
+        </button>
+      </div>
+
+      <div class="campo">
+        <mat-form-field appearance="outline">
+          <mat-label>Clave de API de Claude</mat-label>
+          <input matInput type="password" formControlName="claudeApiKey" autocomplete="new-password"
+            placeholder="Dejar vacío para no cambiarla">
+        </mat-form-field>
+        <span class="ayuda">Solo se envía si escribís algo. Empieza con sk-ant- (console.anthropic.com). La suscripción Pro/Max de Claude no sirve.</span>
+      </div>
+
+      <div class="campo">
+        <mat-form-field appearance="outline">
+          <mat-label>Modelo</mat-label>
+          <input matInput formControlName="claudeModelo" [placeholder]="modeloClaudePorDefecto">
+        </mat-form-field>
+        <span class="ayuda">Por defecto {{ modeloClaudePorDefecto }}.</span>
+      </div>
+
+      <div class="acciones">
+        <button mat-stroked-button color="primary" type="button" [disabled]="ocupado || !configuracion?.claudeClaveCargada"
+          (click)="probarConexion('CLAUDE')">
+          <mat-icon>wifi_tethering</mat-icon>
+          Probar conexión
+        </button>
+      </div>
+
+      <div class="resultado-prueba" *ngIf="pruebas.CLAUDE as p" [class.ok]="p.ok" [class.error]="!p.ok">
+        <mat-icon>{{ p.ok ? 'check_circle' : 'error' }}</mat-icon>
+        <span>{{ p.texto }}</span>
+      </div>
+    </section>
+
+    <div class="campo">
+      <mat-form-field appearance="outline" class="campo-prompt">
+        <mat-label>Prompt adicional</mat-label>
+        <textarea matInput formControlName="promptAdicional" rows="6"
+          placeholder="Indicaciones extra para la IA (opcional)"></textarea>
+      </mat-form-field>
+      <span class="ayuda">Vale para los dos proveedores.</span>
+    </div>
 
     <div class="acciones">
       <button mat-flat-button color="primary" type="submit" [disabled]="ocupado">
         <mat-icon>save</mat-icon>
         Guardar
       </button>
-      <button mat-stroked-button color="primary" type="button" [disabled]="ocupado" (click)="probarConexion()">
-        <mat-icon>wifi_tethering</mat-icon>
-        Probar conexión
-      </button>
     </div>
-
-    <div class="resultado-prueba" *ngIf="resultadoPrueba">{{ resultadoPrueba }}</div>
   </form>
 </div>
