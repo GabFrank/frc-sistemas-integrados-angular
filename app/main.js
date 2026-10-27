@@ -303,7 +303,7 @@ electron_1.app.on('second-instance', () => {
         }
         return;
     }
-    createWindow(SECOND_INSTANCE_PARTITION);
+    createWindow(SECOND_INSTANCE_PARTITION).catch((e) => log.error('No se pudo crear la 2da ventana:', e));
 });
 /**
  * Abre en el navegador del sistema solo enlaces web (http/https) y mailto. Nunca `file:`,
@@ -323,6 +323,14 @@ function abrirEnNavegador(destino) {
     catch (_a) {
         log.warn(`Enlace externo inválido bloqueado: ${destino}`);
     }
+}
+/**
+ * Dirección `file://` del index.html de la app. Con `pathToFileURL` y no armando el texto a mano:
+ * `path.join('file:', __dirname, …)` en Windows con el Node de Electron 43 da `.\file:\C:\…`,
+ * `new URL` lo rechaza y la ventana quedaba en blanco hasta «Reiniciar» (alphas .295 a .297).
+ */
+function urlDelIndex() {
+    return url.pathToFileURL(path.join(carpetaDeLaApp(), 'index.html')).href;
 }
 /** Carpeta del index.html que carga la ventana (dist/ en local, la raíz del asar empaquetada). */
 function carpetaDeLaApp() {
@@ -468,12 +476,7 @@ function createWindow(partition) {
             w.loadURL('http://localhost:4200');
         }
         else {
-            let pathIndex = './index.html';
-            if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
-                pathIndex = '../dist/index.html';
-            }
-            const url = new URL(path.join('file:', __dirname, pathIndex));
-            w.loadURL(url.href);
+            w.loadURL(urlDelIndex());
         }
         w.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
             console.log("did-fail-load", { errorCode, errorDescription, validatedURL });
@@ -2492,9 +2495,9 @@ try {
             }
         ]));
         log.info(`=== FRC v${electron_1.app.getVersion()} started ===`);
-        createWindow().then(() => {
-            registerPrinterIpcHandlers();
-        });
+        createWindow()
+            .catch((e) => log.error('No se pudo crear la ventana principal:', e))
+            .then(() => registerPrinterIpcHandlers());
         if (!isDev) {
             if (configureUpdateChannel()) {
                 electron_updater_1.autoUpdater.checkForUpdates();
@@ -2567,8 +2570,9 @@ try {
         }
     });
     electron_1.app.on("activate", function () {
-        if (electron_1.BrowserWindow.getAllWindows().length === 0)
-            createWindow();
+        if (electron_1.BrowserWindow.getAllWindows().length === 0) {
+            createWindow().catch((e) => log.error('No se pudo crear la ventana:', e));
+        }
     });
 }
 catch (e) {
@@ -2583,15 +2587,7 @@ function relaunchElectron() {
         win.loadURL("http://localhost:4200");
     }
     else {
-        let pathIndex = "./index.html";
-        if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
-            pathIndex = "../dist/index.html";
-        }
-        win.loadURL(url.format({
-            pathname: path.join(__dirname, pathIndex),
-            protocol: "file:",
-            slashes: true,
-        }));
+        win.loadURL(urlDelIndex());
     }
 }
 exports.relaunchElectron = relaunchElectron;

@@ -304,7 +304,7 @@ app.on('second-instance', () => {
     }
     return;
   }
-  createWindow(SECOND_INSTANCE_PARTITION);
+  createWindow(SECOND_INSTANCE_PARTITION).catch((e) => log.error('No se pudo crear la 2da ventana:', e));
 });
 
 /**
@@ -323,6 +323,15 @@ function abrirEnNavegador(destino: string): void {
   } catch {
     log.warn(`Enlace externo inválido bloqueado: ${destino}`);
   }
+}
+
+/**
+ * Dirección `file://` del index.html de la app. Con `pathToFileURL` y no armando el texto a mano:
+ * `path.join('file:', __dirname, …)` en Windows con el Node de Electron 43 da `.\file:\C:\…`,
+ * `new URL` lo rechaza y la ventana quedaba en blanco hasta «Reiniciar» (alphas .295 a .297).
+ */
+function urlDelIndex(): string {
+  return url.pathToFileURL(path.join(carpetaDeLaApp(), 'index.html')).href;
 }
 
 /** Carpeta del index.html que carga la ventana (dist/ en local, la raíz del asar empaquetada). */
@@ -489,14 +498,7 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     require('electron-reloader')(module);
     w.loadURL('http://localhost:4200');
   } else {
-    let pathIndex = './index.html';
-
-    if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
-      pathIndex = '../dist/index.html';
-    }
-
-    const url = new URL(path.join('file:', __dirname, pathIndex));
-    w.loadURL(url.href);
+    w.loadURL(urlDelIndex());
   }
 
   w.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
@@ -2592,9 +2594,9 @@ try {
 
     log.info(`=== FRC v${app.getVersion()} started ===`);
 
-    createWindow().then(() => {
-      registerPrinterIpcHandlers();
-    });
+    createWindow()
+      .catch((e) => log.error('No se pudo crear la ventana principal:', e))
+      .then(() => registerPrinterIpcHandlers());
 
     if (!isDev) {
       if (configureUpdateChannel()) {
@@ -2670,7 +2672,9 @@ try {
   });
 
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow().catch((e) => log.error('No se pudo crear la ventana:', e));
+    }
   });
 
 } catch (e) {
@@ -2685,19 +2689,7 @@ export function relaunchElectron() {
     });
     win.loadURL("http://localhost:4200");
   } else {
-    let pathIndex = "./index.html";
-
-    if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
-      pathIndex = "../dist/index.html";
-    }
-
-    win.loadURL(
-      url.format({
-        pathname: path.join(__dirname, pathIndex),
-        protocol: "file:",
-        slashes: true,
-      })
-    );
+    win.loadURL(urlDelIndex());
   }
 }
 
