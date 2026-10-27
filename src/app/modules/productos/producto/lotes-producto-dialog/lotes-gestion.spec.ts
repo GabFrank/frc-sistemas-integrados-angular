@@ -1,4 +1,4 @@
-import { aplicarGestion } from './lotes-producto-dialog.component';
+import { marcarEliminado, aplicarGestion } from './lotes-producto-dialog.component';
 
 describe('Lotes del producto: gestión (lotes flexibles, entrega 5)', () => {
   const base = { id: 1, saldoTotal: null, saldoLabel: '-', archivado: false, puedeArchivar: false };
@@ -25,5 +25,23 @@ describe('Lotes del producto: gestión (lotes flexibles, entrega 5)', () => {
     const fila = aplicarGestion(base, undefined);
     expect(fila.puedeArchivar).toBeFalse();
     expect(fila.saldoTotal).toBeNull();
+  });
+});
+
+describe('Lotes del producto: eliminados (lotes fase 3)', () => {
+  const base: { saldoLabel: string; puedeArchivar: boolean; eliminado?: boolean } = { saldoLabel: '0', puedeArchivar: true };
+
+  it('eliminado se rotula y no ofrece archivar', () => {
+    const fila = marcarEliminado(base, true);
+    expect(fila.eliminado).toBeTrue();
+    expect(fila.puedeArchivar).toBeFalse();
+    expect(fila.saldoLabel).toContain('eliminado');
+  });
+
+  it('no eliminado queda igual', () => {
+    const fila = marcarEliminado(base, false);
+    expect(fila.eliminado).toBeFalse();
+    expect(fila.puedeArchivar).toBeTrue();
+    expect(fila.saldoLabel).toBe('0');
   });
 });

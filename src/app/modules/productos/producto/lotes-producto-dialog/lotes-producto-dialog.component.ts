@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, OnDestroy } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import {
   ESTADO_LOTE_LABELS,
   EstadoLote,
@@ -39,6 +40,8 @@ interface LoteRow {
   archivado: boolean;
   /** Archivar exige saldo 0 en toda la red (el central lo vuelve a validar). */
   puedeArchivar: boolean;
+  /** Eliminado por error (lotes fase 3): queda BLOQUEADO y solo se puede restaurar. */
+  eliminado?: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -81,7 +84,8 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private mainService: MainService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -149,6 +153,7 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
           this.gestionDisponible = true;
           this.lotes = this.lotes.map((fila) => aplicarGestion(fila, porId.get(+fila.id)));
           this.cdr.markForCheck();
+          this.cargarEliminados(productoId);
         },
         error: () => {
           // Central viejo o sin red: la lista ya está, solo sin saldo ni archivar.
@@ -209,6 +214,93 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           const aviso = avisoTrasMutacion(error, 'se desarchivó el lote');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+        }
+      });
+  }
+
+  /** True cuando el central informa lotes eliminados (fase 3). Sin eso no se ofrece eliminar. */
+  eliminarDisponible = false;
+
+  /** Consulta aparte: contra un central anterior falla y la pantalla sigue sin eliminar. */
+  private cargarEliminados(productoId: number): void {
+    this.loteService
+      .onLotesEliminadosDeProducto(productoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pagina) => {
+          if (pagina == null) {
+            return;
+          }
+          const eliminados = new Set<number>(
+            (pagina?.getContent || []).filter((f) => f.eliminado).map((f) => +f.loteId)
+          );
+          this.eliminarDisponible = true;
+          this.lotes = this.lotes.map((fila) => marcarEliminado(fila, eliminados.has(+fila.id)));
+          this.cdr.markForCheck();
+        },
+        error: () => {}
+      });
+  }
+
+  puedeEliminar(fila: LoteRow): boolean {
+    return this.puedeCambiarEstado && this.eliminarDisponible && !fila.eliminado && fila.saldoTotal === 0;
+  }
+
+  onEliminar(fila: LoteRow): void {
+    if (!this.puedeEliminar(fila)) {
+      return;
+    }
+    const data: MotivoDialogData = {
+      titulo: 'Eliminar lote',
+      mensaje: `El lote ${fila.numeroLote} se da de baja por haberse creado por error.`,
+      detalle: 'Queda bloqueado en todas las sucursales y deja de aparecer. Solo se puede si no tiene ningún movimiento. Se puede restaurar.',
+      botonConfirmar: 'Eliminar'
+    };
+    this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((motivo: string | null) => {
+        if (!motivo) {
+          return;
+        }
+        this.loteService
+          .onEliminarLote(fila.id, motivo, this.mainService.usuarioActual?.id)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: (ok) => {
+              if (ok) {
+                this.notificacionService.openSucess('Lote eliminado');
+                this.cargarLotes();
+              }
+            },
+            error: (error) => {
+              const aviso = avisoTrasMutacion(error, 'se eliminó el lote');
+              if (aviso != null) {
+                this.notificacionService.openWarn(aviso, 8);
+              }
+            }
+          });
+      });
+  }
+
+  onRestaurar(fila: LoteRow): void {
+    if (!this.puedeCambiarEstado || !fila.eliminado) {
+      return;
+    }
+    this.loteService
+      .onRestaurarLote(fila.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (ok) {
+            this.notificacionService.openSucess('Lote restaurado');
+            this.cargarLotes();
+          }
+        },
+        error: (error) => {
+          const aviso = avisoTrasMutacion(error, 'se restauró el lote');
           if (aviso != null) {
             this.notificacionService.openWarn(aviso, 8);
           }
@@ -354,4 +446,15 @@ export function aplicarGestion<T extends { saldoTotal: number | null; saldoLabel
     archivado,
     puedeArchivar: !archivado && Math.abs(saldo) <= EPSILON_SALDO
   };
+}
+
+/** Marca un lote eliminado: se rotula y no ofrece archivar (lotes fase 3). */
+export function marcarEliminado<T extends { saldoLabel: string; puedeArchivar: boolean; eliminado?: boolean }>(
+  fila: T,
+  eliminado: boolean
+): T {
+  if (!eliminado) {
+    return { ...fila, eliminado: false };
+  }
+  return { ...fila, eliminado: true, puedeArchivar: false, saldoLabel: `${fila.saldoLabel} (eliminado)` };
 }
