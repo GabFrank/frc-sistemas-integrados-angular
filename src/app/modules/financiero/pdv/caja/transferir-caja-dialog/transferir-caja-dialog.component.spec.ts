@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { of, Subject, throwError } from 'rxjs';
+import { discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { LoginService } from '../../../../login/login.service';
 import { TransferirCajaDialogComponent } from './transferir-caja-dialog.component';
 
@@ -18,7 +19,7 @@ describe('TransferirCajaDialogComponent', () => {
   let dialogo: TransferirCajaDialogComponent;
 
   beforeEach(() => {
-    loginService = jasmine.createSpyObj('LoginService', ['verificarCredenciales', 'login']);
+    loginService = jasmine.createSpyObj('LoginService', ['verificarCredenciales', 'login', 'cerrarSesionActiva']);
     cajaService = jasmine.createSpyObj('CajaService', ['onTransferirCaja']);
     notificaciones = jasmine.createSpyObj('Notificaciones', ['openWarn', 'openAlgoSalioMal', 'openSucess']);
     dialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -47,11 +48,12 @@ describe('TransferirCajaDialogComponent', () => {
     const orden: string[] = [];
     loginService.verificarCredenciales.and.callFake(() => { orden.push('verificar'); return of(7); });
     cajaService.onTransferirCaja.and.callFake(() => { orden.push('transferir'); return of(true); });
+    loginService.cerrarSesionActiva.and.callFake(() => { orden.push('cerrar-sesion-duenio'); });
     loginService.login.and.callFake(() => { orden.push('login'); return of({ usuario: { id: 7 } as any }); });
 
     dialogo.onConfirm();
 
-    expect(orden).toEqual(['verificar', 'transferir', 'login']);
+    expect(orden).toEqual(['verificar', 'transferir', 'cerrar-sesion-duenio', 'login']);
     expect(cajaService.onTransferirCaja).toHaveBeenCalledWith(50, 7);
     expect(loginService.login).toHaveBeenCalledWith('DESTINO', 'CLAVE');
     expect(dialogRef.close).toHaveBeenCalledWith(true);
@@ -89,6 +91,20 @@ describe('TransferirCajaDialogComponent', () => {
 
     expect(loginService.verificarCredenciales).toHaveBeenCalledTimes(1);
   });
+
+  it('si el login del destino no termina, corta la espera y cancela el login', fakeAsync(() => {
+    let cancelado = false;
+    loginService.verificarCredenciales.and.returnValue(of(7));
+    cajaService.onTransferirCaja.and.returnValue(of(true));
+    loginService.login.and.returnValue(new Observable<any>(() => () => { cancelado = true; }));
+
+    dialogo.onConfirm();
+    tick(45000);
+
+    expect(cancelado).toBeTrue();
+    expect(mainService.logout).toHaveBeenCalled();
+    discardPeriodicTasks();
+  }));
 
   it('si el login del destino falla con la caja ya transferida, cierra la sesión', () => {
     loginService.verificarCredenciales.and.returnValue(of(7));
@@ -155,5 +171,14 @@ describe('LoginService.verificarCredenciales', () => {
         done();
       }
     });
+  });
+
+  it('desuscribirse de login() cancela el POST en curso', () => {
+    const respuesta = new Subject<any>();
+    http.post.and.returnValue(respuesta);
+    const sub = servicio.login('DESTINO', 'CLAVE').subscribe();
+    expect(respuesta.observed).toBeTrue();
+    sub.unsubscribe();
+    expect(respuesta.observed).toBeFalse();
   });
 });

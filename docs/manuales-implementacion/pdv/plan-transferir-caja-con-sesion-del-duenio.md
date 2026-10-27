@@ -92,3 +92,29 @@ versiones viejas durante semanas, de ahí el orden de la tabla.
 - Eje B: agregado `enCurso` (Enter), timeout y `usuarioId` ausente en la validación, mensaje de red,
   caso «transferencia en duda», rollback irreversible tras la fase del filial, spec Karma y casos de
   error en las pruebas.
+
+## Auditoría del diff (paso 8)
+
+- `login()` no se cancelaba al desuscribirse: con el timeout del diálogo, un login tardío podía dejar
+  armada la sesión del destino después del logout. Ahora devuelve teardown (POST, carga del usuario y
+  autenticación en el central) y el diálogo espera hasta 45 s (más que el peor caso normal, ~20,5 s).
+- Se cierra la sesión activa del dueño (`cerrarSesionActiva`) antes del login del destino, con su
+  token todavía vigente. Antes quedaba abierta, también con el flujo viejo.
+- Con `isLocal=false` la mutation igual va al filial (`servidor=false`); sin cambio respecto de hoy.
+- Queda: `sucursalActual` no se limpia en el logout del camino de error (el próximo login la pisa).
+
+## Resultado de las pruebas (2026-10-27)
+
+- Karma (`transferir-caja-dialog.component.spec.ts`): 12 tests; 6 del diálogo fallan con el código
+  anterior. `npm run check` sin errores.
+- Por pantalla, desktop servido en el browser contra un filial que **solo acepta dueño o rol**, con
+  dos cajeros solo `VENTA TOUCH`:
+  - clave incorrecta con dos Enter seguidos → una sola validación, la sesión no cambia;
+  - transferir → «Caja transferida correctamente», la caja pasa al destino, la sesión también; la
+    sesión del dueño queda cerrada en el servidor;
+  - el diálogo de `develop` contra el mismo filial → «No autorizado» y la caja no cambia (confirma el
+    orden de despliegue; además deja logueado al destino, el error que corrige este cambio);
+  - carga del usuario destino cortada → la caja se transfiere, aviso «iniciá sesión con ese usuario»,
+    logout y diálogo de login;
+  - respuesta de la transferencia cortada → sin login final, aviso «revisá antes de repetir», botón
+    activo y sesión del dueño.

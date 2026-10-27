@@ -16,8 +16,12 @@ export interface TransferirCajaData {
   cajaId: number;
 }
 
-/** El login final ya no tiene vuelta atrás (la caja es del destino): no puede quedar esperando. */
-const TIMEOUT_LOGIN_DESTINO_MS = 20000;
+/**
+ * El login final ya no tiene vuelta atrás (la caja es del destino): no puede quedar esperando. Más largo
+ * que el peor caso normal de login() (POST + 500 ms + consulta del usuario de hasta 20 s); al vencer,
+ * la desuscripción cancela el login en curso.
+ */
+const TIMEOUT_LOGIN_DESTINO_MS = 45000;
 
 @Component({
   selector: 'app-transferir-caja-dialog',
@@ -93,6 +97,8 @@ export class TransferirCajaDialogComponent implements OnInit {
 
   /** La caja ya es del destino: la PC queda con su sesión, o sin sesión si no se puede iniciar. */
   private pasarSesionAlDestino(nickname: string, password: string) {
+    // Con el token del dueño todavía vigente: después de login() ya no se puede cerrar su sesión.
+    this.loginService.cerrarSesionActiva();
     this.loginService.login(nickname, password).pipe(
       take(1),
       timeout(TIMEOUT_LOGIN_DESTINO_MS),

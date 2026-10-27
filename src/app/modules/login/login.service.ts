@@ -136,6 +136,11 @@ export class LoginService {
         nickname: nickname,
         password: password
       };
+      // Para poder cancelarlo todo si quien llama se desuscribe (ej. un timeout): un login que termina
+      // tarde no puede dejar una sesión armada detrás de un logout.
+      let autenticacionCentral: Subscription = null;
+      let cargaDelUsuario: ReturnType<typeof setTimeout> = null;
+      let consultaDelUsuario: Subscription = null;
       let httpResponse = this.http
         .post(
           `${urlsDeServidor(serverIp, serverPort).http}/login`,
@@ -156,14 +161,13 @@ export class LoginService {
               this.mainService.sucursalActual = res["sucursal"];
               // Se guarda para cancelarla si el usuario no carga: si no, escribía token_central después
               // de que noSeCargoElUsuario limpiara la sesión (#390).
-              let autenticacionCentral: Subscription = null;
               if (config.isLocal) {
                 autenticacionCentral = this.autenticarEnCentral(nickname, password).subscribe();
               }
 
-              setTimeout(() => {
+              cargaDelUsuario = setTimeout(() => {
                 if (res["usuarioId"] != null) {
-                  this.usuarioService
+                  consultaDelUsuario = this.usuarioService
                     .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe({
@@ -209,6 +213,12 @@ export class LoginService {
             obs.next(response);
           }
         );
+      return () => {
+        httpResponse.unsubscribe();
+        clearTimeout(cargaDelUsuario);
+        consultaDelUsuario?.unsubscribe();
+        autenticacionCentral?.unsubscribe();
+      };
     });
   }
 
