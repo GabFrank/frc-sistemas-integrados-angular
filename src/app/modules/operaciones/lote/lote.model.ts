@@ -266,3 +266,14 @@ export interface ResultadoBusquedaLote {
   lotes: LoteEncontrado[];
   trazabilidad?: TrazabilidadProducto;
 }
+
+/** De qué lote salió un ítem de una venta: una fila por ítem y lote («SIN LOTE» con loteId nulo). */
+export interface LoteVentaItem {
+  ventaItemId: number;
+  productoId: number;
+  loteId?: number;
+  numeroLote: string;
+  fechaVencimiento?: string;
+  cantidad: number;
+  anulado?: boolean;
+}

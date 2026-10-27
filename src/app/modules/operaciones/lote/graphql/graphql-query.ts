@@ -432,3 +432,18 @@ export const buscarLotePorNumeroQuery = gql`
     }
   }
 `;
+
+/** De qué lote salió cada ítem de una venta (#429 fase 2, entrega 2). Requiere un central con la fase 2. */
+export const lotesDeVentaQuery = gql`
+  query ($ventaId: ID!, $sucursalId: ID!) {
+    data: lotesDeVenta(ventaId: $ventaId, sucursalId: $sucursalId) {
+      ventaItemId
+      productoId
+      loteId
+      numeroLote
+      fechaVencimiento
+      cantidad
+      anulado
+    }
+  }
+`;

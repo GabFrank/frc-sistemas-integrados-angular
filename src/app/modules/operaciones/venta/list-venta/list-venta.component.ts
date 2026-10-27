@@ -46,6 +46,9 @@ import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-cat
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LoteService } from '../../lote/lote.service';
+import { LoteVentaItem } from '../../lote/lote.model';
+import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from '../../lote/lotes-de-venta.util';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -123,7 +126,14 @@ export class ListVentaComponent implements OnInit {
   /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
   puedeCancelarVenta = false;
 
+  /** Ver de qué lote salió cada ítem (#429 fase 2): VER PRODUCTOS y análisis de caja o de venta. */
+  puedeVerLotes = false;
+  /** Lotes por ítem de la venta abierta, cargados aparte; vacío si el central es viejo o falla. */
+  lotesPorItem: { [ventaItemId: string]: LoteVentaItem[] } = {};
+  private lotesCargadosDe: string = null;
+
   constructor(
+    private loteService: LoteService,
     private cajaService: CajaService,
     private ventaService: VentaService,
     private cargandoService: CargandoDialogService,
@@ -141,6 +151,7 @@ export class ListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
+    this.puedeVerLotes = puedeVerLotesDeVenta(this.mainService.usuarioActual?.roles);
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
       this.monedaList = data;
     });
@@ -312,6 +323,7 @@ export class ListVentaComponent implements OnInit {
   }
 
   onClickRow(venta: Venta, index) {
+    this.cargarLotesDeVenta(venta);
     if (venta.ventaItemList == null) {
       this.loading = true;
       this.ventaService
@@ -341,6 +353,34 @@ export class ListVentaComponent implements OnInit {
       this.getTotales(venta);
     }
     // this.loadObservaciones();
+  }
+
+  /**
+   * Carga aparte, sin bloquear el detalle, de qué lote salió cada ítem. Si el central todavía no
+   * tiene la consulta o falla, no se muestra nada y el detalle sigue igual.
+   */
+  cargarLotesDeVenta(venta: Venta) {
+    const sucursalId = venta?.sucursalId ?? this.selectedCaja?.sucursalId;
+    if (!this.puedeVerLotes || venta?.id == null || sucursalId == null) return;
+    const clave = venta.id + '-' + sucursalId;
+    if (this.lotesCargadosDe === clave) return;
+    this.lotesCargadosDe = clave;
+    this.lotesPorItem = {};
+    this.loteService.onLotesDeVenta(venta.id, sucursalId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (filas) => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = agruparLotesPorItem(filas);
+        },
+        error: () => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = {};
+        }
+      });
+  }
+
+  /** «Lote X · Vto dd/mm/aa» de un ítem; con varios lotes, cada uno con sus unidades. */
+  textoLotes(ventaItemId: number): string {
+    return textoLotesDeItem(this.lotesPorItem[String(ventaItemId)]);
   }
 
   getTotales(venta: Venta) {

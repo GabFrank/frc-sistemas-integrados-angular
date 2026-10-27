@@ -5,7 +5,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
 import { ContextoConsulta, GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
+import { CONTEXTO_SONDEO, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import {
   SearchListDialogComponent,
@@ -24,6 +24,7 @@ import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { BuscarLotePorNumeroGQL } from './graphql/buscarLotePorNumero';
+import { LotesDeVentaGQL } from './graphql/lotesDeVenta';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
 import {
@@ -35,6 +36,7 @@ import {
   LoteDeProducto,
   MovimientoLote,
   ResumenStockLote,
+  LoteVentaItem,
   ResultadoBusquedaLote,
   StockLote,
   StockLotePresentacion,
@@ -73,6 +75,7 @@ export class LoteService {
     private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
     private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
+    private lotesDeVentaGQL: LotesDeVentaGQL,
     private dialog: MatDialog
   ) {}
 
@@ -89,6 +92,22 @@ export class LoteService {
       PROPAGAR_ERROR_DE_RED,
       false,
       CONSULTA_LISTADO_LOTE
+    );
+  }
+
+  /**
+   * De qué lote salió cada ítem de una venta. Lectura de fondo y silenciosa: si el central todavía
+   * no tiene la consulta (versión vieja) o el usuario no tiene permiso, no avisa nada y quien llama
+   * simplemente no muestra los lotes.
+   */
+  onLotesDeVenta(ventaId: number, sucursalId: number): Observable<LoteVentaItem[]> {
+    return this.genericService.onCustomQuery(
+      this.lotesDeVentaGQL,
+      { ventaId, sucursalId },
+      true,
+      { graphError: { show: false, propagate: true }, networkError: { show: false, propagate: true } },
+      true,
+      CONTEXTO_SONDEO
     );
   }
 
