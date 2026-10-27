@@ -498,10 +498,83 @@ function createWindow(partition) {
             w.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${zoom});`, true);
             log.info(`Zoom level applied on load: ${zoom}`);
         });
+        vigilarPantallaEnBlanco(w);
         return w;
     });
 }
 exports.createWindow = createWindow;
+/** Cuánto se espera a que Angular dibuje algo antes de recargar la ventana. */
+const ESPERA_PRIMER_DIBUJO_MS = 20000;
+/** Recargas automáticas seguidas por ventana; después se deja como está y queda en main.log. */
+const MAX_RECARGAS_AUTOMATICAS = 2;
+/**
+ * Red de seguridad contra la ventana en blanco al abrir la app o después de actualizar (Windows):
+ * si a los 20 s `app-root` sigue vacío, o si el proceso de la pantalla se cae, recarga la ventana
+ * (lo mismo que hacía el usuario con «Reiniciar»). Además deja en main.log los errores de la
+ * pantalla, que antes solo se veían con las DevTools abiertas.
+ */
+function vigilarPantallaEnBlanco(w) {
+    const wc = w.webContents;
+    let recargas = 0;
+    let temporizador;
+    const recargar = (motivo) => {
+        if (w.isDestroyed())
+            return;
+        if (recargas >= MAX_RECARGAS_AUTOMATICAS) {
+            log.error(`Pantalla: ${motivo}. Ya se recargó ${recargas} veces, no se reintenta.`);
+            return;
+        }
+        recargas++;
+        log.warn(`Pantalla: ${motivo}. Recarga automática ${recargas}/${MAX_RECARGAS_AUTOMATICAS}.`);
+        wc.reloadIgnoringCache();
+    };
+    const comprobarDibujo = (desde) => __awaiter(this, void 0, void 0, function* () {
+        if (w.isDestroyed())
+            return;
+        const dibujo = yield wc
+            .executeJavaScript(`(document.querySelector('app-root')?.childElementCount ?? 0) > 0`, true)
+            .catch(() => false);
+        if (dibujo) {
+            recargas = 0;
+            log.info(`Pantalla: primer dibujo en ${Date.now() - desde} ms.`);
+            return;
+        }
+        if (Date.now() - desde >= ESPERA_PRIMER_DIBUJO_MS) {
+            recargar(`app-root vacío a los ${ESPERA_PRIMER_DIBUJO_MS / 1000} s (ventana en blanco)`);
+            return;
+        }
+        temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+    });
+    // did-navigate llega apenas empieza a cargar el documento, antes de que un recurso colgado
+    // (CSS, script) frene el resto; did-finish-load podría no llegar nunca.
+    wc.on('did-navigate', () => {
+        if (temporizador)
+            clearTimeout(temporizador);
+        const desde = Date.now();
+        temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+    });
+    wc.on('render-process-gone', (_event, details) => {
+        if (temporizador)
+            clearTimeout(temporizador);
+        log.error(`Pantalla: el proceso de la pantalla terminó (${details.reason}, código ${details.exitCode}).`);
+        if (details.reason !== 'clean-exit') {
+            recargar(`proceso de la pantalla caído (${details.reason})`);
+        }
+    });
+    wc.on('unresponsive', () => log.warn('Pantalla: la ventana no responde.'));
+    wc.on('responsive', () => log.info('Pantalla: la ventana vuelve a responder.'));
+    // Electron 35+ manda los datos en el evento; las versiones viejas, como argumentos sueltos.
+    wc.on('console-message', (event, ...resto) => {
+        var _a, _b, _c, _d;
+        const nivel = (_a = event === null || event === void 0 ? void 0 : event.level) !== null && _a !== void 0 ? _a : resto[0];
+        if (nivel !== 'error' && nivel !== 3)
+            return;
+        const mensaje = (_b = event === null || event === void 0 ? void 0 : event.message) !== null && _b !== void 0 ? _b : resto[1];
+        const origen = (_c = event === null || event === void 0 ? void 0 : event.sourceId) !== null && _c !== void 0 ? _c : resto[3];
+        const linea = (_d = event === null || event === void 0 ? void 0 : event.lineNumber) !== null && _d !== void 0 ? _d : resto[2];
+        log.error(`Pantalla (consola): ${mensaje}${origen ? ` [${origen}:${linea}]` : ''}`);
+    });
+}
 ipcMain.on('get-config-file', (event, arg) => {
     console.log(arg);
 });

@@ -526,7 +526,83 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     log.info(`Zoom level applied on load: ${zoom}`);
   });
 
+  vigilarPantallaEnBlanco(w);
+
   return w;
+}
+
+/** Cuánto se espera a que Angular dibuje algo antes de recargar la ventana. */
+const ESPERA_PRIMER_DIBUJO_MS = 20000;
+/** Recargas automáticas seguidas por ventana; después se deja como está y queda en main.log. */
+const MAX_RECARGAS_AUTOMATICAS = 2;
+
+/**
+ * Red de seguridad contra la ventana en blanco al abrir la app o después de actualizar (Windows):
+ * si a los 20 s `app-root` sigue vacío, o si el proceso de la pantalla se cae, recarga la ventana
+ * (lo mismo que hacía el usuario con «Reiniciar»). Además deja en main.log los errores de la
+ * pantalla, que antes solo se veían con las DevTools abiertas.
+ */
+function vigilarPantallaEnBlanco(w: BrowserWindow): void {
+  const wc = w.webContents;
+  let recargas = 0;
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+
+  const recargar = (motivo: string) => {
+    if (w.isDestroyed()) return;
+    if (recargas >= MAX_RECARGAS_AUTOMATICAS) {
+      log.error(`Pantalla: ${motivo}. Ya se recargó ${recargas} veces, no se reintenta.`);
+      return;
+    }
+    recargas++;
+    log.warn(`Pantalla: ${motivo}. Recarga automática ${recargas}/${MAX_RECARGAS_AUTOMATICAS}.`);
+    wc.reloadIgnoringCache();
+  };
+
+  const comprobarDibujo = async (desde: number) => {
+    if (w.isDestroyed()) return;
+    const dibujo = await wc
+      .executeJavaScript(`(document.querySelector('app-root')?.childElementCount ?? 0) > 0`, true)
+      .catch(() => false);
+    if (dibujo) {
+      recargas = 0;
+      log.info(`Pantalla: primer dibujo en ${Date.now() - desde} ms.`);
+      return;
+    }
+    if (Date.now() - desde >= ESPERA_PRIMER_DIBUJO_MS) {
+      recargar(`app-root vacío a los ${ESPERA_PRIMER_DIBUJO_MS / 1000} s (ventana en blanco)`);
+      return;
+    }
+    temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+  };
+
+  // did-navigate llega apenas empieza a cargar el documento, antes de que un recurso colgado
+  // (CSS, script) frene el resto; did-finish-load podría no llegar nunca.
+  wc.on('did-navigate', () => {
+    if (temporizador) clearTimeout(temporizador);
+    const desde = Date.now();
+    temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+  });
+
+  wc.on('render-process-gone', (_event, details) => {
+    if (temporizador) clearTimeout(temporizador);
+    log.error(`Pantalla: el proceso de la pantalla terminó (${details.reason}, código ${details.exitCode}).`);
+    if (details.reason !== 'clean-exit') {
+      recargar(`proceso de la pantalla caído (${details.reason})`);
+    }
+  });
+
+  wc.on('unresponsive', () => log.warn('Pantalla: la ventana no responde.'));
+  wc.on('responsive', () => log.info('Pantalla: la ventana vuelve a responder.'));
+
+  // Electron 35+ manda los datos en el evento; las versiones viejas, como argumentos sueltos.
+  wc.on('console-message', (event: any, ...resto: any[]) => {
+    const nivel = event?.level ?? resto[0];
+    if (nivel !== 'error' && nivel !== 3) return;
+    const mensaje = event?.message ?? resto[1];
+    const origen = event?.sourceId ?? resto[3];
+    const linea = event?.lineNumber ?? resto[2];
+    log.error(`Pantalla (consola): ${mensaje}${origen ? ` [${origen}:${linea}]` : ''}`);
+  });
 }
 
 ipcMain.on('get-config-file', (event: any, arg: any) => {
