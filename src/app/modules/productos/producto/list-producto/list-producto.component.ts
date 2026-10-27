@@ -1,3 +1,4 @@
+import { ReasignarLoteDialogComponent } from '../reasignar-lote-dialog/reasignar-lote-dialog.component';
 import {
   animate,
   state,
@@ -699,6 +700,16 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.matDialog.open(ConteoRapidoLotesDialogComponent, {
       data: { producto },
       width: '760px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
+    });
+  }
+
+  /** Pasar unidades de un lote a otro en una sucursal, sin cambiar el stock (lotes fase 3). */
+  onReasignarLote(producto: Producto): void {
+    this.matDialog.open(ReasignarLoteDialogComponent, {
+      data: { producto },
+      width: '560px',
       maxWidth: '95vw',
       maxHeight: '90vh'
     });

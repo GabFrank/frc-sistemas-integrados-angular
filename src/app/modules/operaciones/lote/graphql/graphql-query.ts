@@ -500,3 +500,44 @@ export const descartarLotePendienteMutation = gql`
     data: descartarLotePendiente(mslId: $mslId, sucursalId: $sucursalId, motivo: $motivo) { ${RESOLUCION_LOTE_PENDIENTE_CAMPOS} }
   }
 `;
+
+/** Pasar unidades de un lote a otro sin cambiar existencia (#429 fase 3). */
+export const reasignarLoteMutation = gql`
+  mutation reasignarLote($input: ReasignarLoteInput!) {
+    data: reasignarLote(input: $input) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+    }
+  }
+`;
+
+/**
+ * Lotes fase 3, entrega 3: lotes eliminados por error (baja lógica). Consulta aparte de la gestión
+ * para no romper «Lotes del producto» contra un central que todavía no tiene el campo.
+ */
+export const lotesEliminadosDeProductoQuery = gql`
+  query lotesEliminadosDeProducto($productoId: ID!, $size: Int) {
+    data: buscarLotesDeProducto(productoId: $productoId, page: 0, size: $size, incluirArchivados: true) {
+      getContent {
+        loteId
+        eliminado
+      }
+    }
+  }
+`;
+
+export const eliminarLoteMutation = gql`
+  mutation eliminarLote($loteId: ID!, $motivo: String!, $usuarioId: ID) {
+    data: eliminarLote(loteId: $loteId, motivo: $motivo, usuarioId: $usuarioId)
+  }
+`;
+
+export const restaurarLoteMutation = gql`
+  mutation restaurarLote($loteId: ID!) {
+    data: restaurarLote(loteId: $loteId)
+  }
+`;

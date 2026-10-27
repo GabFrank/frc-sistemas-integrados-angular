@@ -14,10 +14,18 @@ import {
 } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { AjustarStockLoteGQL } from './graphql/ajustarStockLote';
 import { AjustarStockLoteListaGQL } from './graphql/ajustarStockLoteLista';
+import { ReasignarLoteGQL } from './graphql/reasignarLote';
 import { BuscarLotesDeProductoGQL } from './graphql/buscarLotesDeProducto';
 import { ResumenStockLoteGQL } from './graphql/resumenStockLote';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
-import { ArchivarLoteGQL, DesarchivarLoteGQL, GestionLotesDeProductoGQL } from './graphql/gestionLotes';
+import {
+  ArchivarLoteGQL,
+  DesarchivarLoteGQL,
+  EliminarLoteGQL,
+  GestionLotesDeProductoGQL,
+  LotesEliminadosDeProductoGQL,
+  RestaurarLoteGQL
+} from './graphql/gestionLotes';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { ClientesPorLoteGQL } from './graphql/clientesPorLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
@@ -71,6 +79,9 @@ export class LoteService {
     private gestionLotesDeProductoGQL: GestionLotesDeProductoGQL,
     private archivarLoteGQL: ArchivarLoteGQL,
     private desarchivarLoteGQL: DesarchivarLoteGQL,
+    private lotesEliminadosDeProductoGQL: LotesEliminadosDeProductoGQL,
+    private eliminarLoteGQL: EliminarLoteGQL,
+    private restaurarLoteGQL: RestaurarLoteGQL,
     private genericService: GenericCrudService,
     private lotesPorProductoGQL: LotesPorProductoGQL,
     private stockPorLoteGQL: StockPorLoteGQL,
@@ -83,6 +94,7 @@ export class LoteService {
     private resumenStockLoteGQL: ResumenStockLoteGQL,
     private ajustarStockLoteGQL: AjustarStockLoteGQL,
     private ajustarStockLoteListaGQL: AjustarStockLoteListaGQL,
+    private reasignarLoteGQL: ReasignarLoteGQL,
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
     private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
     private lotesDeVentaGQL: LotesDeVentaGQL,
@@ -456,6 +468,11 @@ export class LoteService {
     );
   }
 
+  /** Pasa unidades de un lote a otro en una sucursal, sin cambiar el stock (lotes fase 3). */
+  onReasignarLote(input: any, servidor = true): Observable<AjusteStockLoteResultado> {
+    return this.genericService.onCustomMutation(this.reasignarLoteGQL, { input }, servidor);
+  }
+
   /** Saldo en la red y archivado de cada lote del producto (pantalla «Lotes del producto»). */
   onGestionLotesDeProducto(productoId: number, size = 200, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(
@@ -473,6 +490,25 @@ export class LoteService {
 
   onDesarchivarLote(loteId: number, servidor = true): Observable<boolean> {
     return this.genericService.onCustomMutation(this.desarchivarLoteGQL, { loteId }, servidor);
+  }
+
+  /** Qué lotes del producto están eliminados (lotes fase 3). Falla contra un central anterior: el llamador lo ignora. */
+  onLotesEliminadosDeProducto(productoId: number, size = 200, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(
+      this.lotesEliminadosDeProductoGQL,
+      { productoId, size },
+      servidor,
+      PROPAGAR_ERROR_DE_RED
+    );
+  }
+
+  /** Elimina un lote creado por error (baja lógica: queda BLOQUEADO y se puede restaurar). */
+  onEliminarLote(loteId: number, motivo: string, usuarioId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.eliminarLoteGQL, { loteId, motivo, usuarioId }, servidor);
+  }
+
+  onRestaurarLote(loteId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.restaurarLoteGQL, { loteId }, servidor);
   }
 
   // ---- Recepciones pendientes de lote (#429 fase 2, entrega 3). Requieren un central con la fase 2.
