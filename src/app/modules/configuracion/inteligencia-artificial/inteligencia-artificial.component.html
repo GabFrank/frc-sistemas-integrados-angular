@@ -9,7 +9,8 @@
 
   <div class="banner-advertencia" *ngIf="configuracion && !cifradoDisponible">
     <mat-icon>warning</mat-icon>
-    Falta CONFIG_MASTER_KEY en el servidor: no se pueden guardar las claves
+    Falta CONFIG_MASTER_KEY en el servidor (la llave con la que el central cifra las claves de la IA):
+    no se pueden guardar. Se configura en el servidor, no en esta pantalla.
   </div>
 
   <form [formGroup]="form" (ngSubmit)="guardar()" autocomplete="off" class="formulario">
@@ -22,6 +23,7 @@
       <span class="ayuda">Es el que lee las facturas en papel. Se aplica al guardar.</span>
     </div>
 
+    <div class="proveedores">
     <!-- OpenAI -->
     <section class="proveedor" [class.activo]="form.value.proveedor === 'OPENAI'">
       <div class="proveedor-encabezado">
@@ -123,6 +125,7 @@
         <span>{{ p.texto }}</span>
       </div>
     </section>
+    </div>
 
     <div class="campo">
       <mat-form-field appearance="outline" class="campo-prompt">

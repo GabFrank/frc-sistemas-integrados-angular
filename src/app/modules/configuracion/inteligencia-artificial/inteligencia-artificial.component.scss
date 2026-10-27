@@ -1,6 +1,18 @@
 .ia-container {
   padding: 20px;
-  max-width: 720px;
+  max-width: 1200px;
+}
+
+// Los dos proveedores uno al lado del otro; en pantallas angostas, uno debajo del otro.
+.proveedores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .encabezado {
@@ -142,6 +154,11 @@
 :host ::ng-deep {
   input {
     text-transform: none !important;
+  }
+
+  .selector-proveedor .mat-button-toggle-checked {
+    background-color: #f44336;
+    color: #fff;
   }
 
   .campo-prompt {
