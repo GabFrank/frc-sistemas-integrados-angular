@@ -552,16 +552,11 @@ export class PagarComprasDialogComponent implements OnInit {
   }
 
   private decimales(moneda: any): number {
-    return moneda?.decimales != null ? moneda.decimales : ((moneda?.denominacion || '').toUpperCase().includes('GUARANI') ? 0 : 2);
+    return this.monedaService.decimalesDeMoneda(moneda);
   }
 
   private currencyOpts(moneda: any): any {
-    const dec = this.decimales(moneda);
-    return {
-      allowNegative: false, allowZero: false, precision: dec,
-      thousands: '.', decimal: dec > 0 ? ',' : '', align: 'right',
-      prefix: (moneda?.simbolo ? moneda.simbolo + ' ' : ''), suffix: '', nullable: true, min: 0, max: null,
-    };
+    return this.monedaService.currencyOptionsMontoPositivo(moneda, { allowZero: false });
   }
 
   /** Cambio de un filtro: la página actual puede quedar fuera del resultado. La carga y las recargas usan aplicarFiltro() y conservan la página. */

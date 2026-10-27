@@ -1,0 +1,42 @@
+:host { display: block; }
+
+.acmm {
+  margin: 20px;
+}
+
+.acmm__titulo {
+  text-align: center;
+  font-weight: 500;
+  color: var(--frc-texto-fuerte);
+}
+
+.acmm__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.acmm__fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acmm__fecha {
+  flex: 1 1 60%;
+}
+
+.acmm__hora {
+  flex: 1 1 30%;
+}
+
+.acmm__error {
+  color: #f44336;
+  font-size: 13px;
+}
+
+.acmm__ayuda {
+  font-size: 12px;
+  color: var(--frc-texto-suave);
+}

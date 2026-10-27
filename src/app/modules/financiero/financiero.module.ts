@@ -12,6 +12,8 @@ import { FormaPagoComponent } from "./forma-pago/forma-pago.component";
 import { MaletinComponent } from "./maletin/maletin.component";
 import { MonedaComponent } from "./moneda/moneda.component";
 import { AddMonedaDialogComponent } from "./moneda/add-moneda-dialog/add-moneda-dialog.component";
+import { ConfiguracionMonedaModuloComponent } from "./moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.component";
+import { AddConfiguracionMonedaModuloDialogComponent } from "./moneda/configuracion-moneda-modulo/add-configuracion-moneda-modulo-dialog/add-configuracion-moneda-modulo-dialog.component";
 import { ListCajaComponent } from "./pdv/caja/list-caja/list-caja.component";
 import { FlexLayoutModule } from "ngx-flexible-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
@@ -127,6 +129,8 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     MaletinComponent,
     MonedaComponent,
     AddMonedaDialogComponent,
+    ConfiguracionMonedaModuloComponent,
+    AddConfiguracionMonedaModuloDialogComponent,
     ListCajaComponent,
     ListMaletinComponent,
     AdicionarMaletinDialogComponent,

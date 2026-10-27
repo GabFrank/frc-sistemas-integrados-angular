@@ -10,6 +10,8 @@ export class MonedaInput {
     decimales: number;
     reglaRedondeo: string;
     redondeoMultiplo: number;
+    /** Sin inicializar a propósito: si queda `undefined` la clave no viaja (ver Moneda.toInput). */
+    codigoIso?: string;
     paisId: number;
     usuarioId: number = null;
 }

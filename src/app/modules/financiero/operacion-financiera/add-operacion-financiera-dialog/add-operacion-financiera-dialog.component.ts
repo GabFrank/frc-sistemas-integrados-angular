@@ -634,20 +634,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   /** Formato de moneda PY: Gs sin decimales, resto 2 decimales; miles ".", decimal ","; sin negativos. */
   private buildCurrencyOptions(moneda: Moneda | null): any {
-    const decimales = moneda?.decimales != null ? moneda.decimales : (this.esGuarani(moneda) ? 0 : 2);
-    return {
-      allowNegative: false,
-      allowZero: true,
-      precision: decimales,
-      thousands: '.',
-      decimal: decimales > 0 ? ',' : '',
-      align: 'right',
-      prefix: moneda?.simbolo ? moneda.simbolo + ' ' : '',
-      suffix: '',
-      nullable: true,
-      min: 0,
-      max: null,
-    };
+    return this.monedaService.currencyOptionsMontoPositivo(moneda, { allowZero: true });
   }
 
   private esGuarani(moneda: Moneda | null): boolean {

@@ -30,6 +30,8 @@ import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nue
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 import { DialogosService } from "./shared/components/dialogos/dialogos.service";
 import { NotificacionesTableroService } from "./modules/notificaciones/services/notificaciones-tablero.service";
+import { MonedaModuloService } from "./shared/services/moneda-modulo.service";
+import { VersionMinimaDesktopService } from "./shared/services/version-minima-desktop.service";
 import { UpdateDialogComponent } from "./shared/components/update-dialog/update-dialog.component";
 
 export class Pageable {
@@ -67,6 +69,10 @@ export class MultiPageable {
 })
 export class AppComponent implements OnInit, OnDestroy {
   private dialogos = inject(DialogosService);
+  // Se inyectan para que escuchen el login desde el arranque (no los usa este componente):
+  // la moneda de cada módulo y el control de versión mínima del escritorio.
+  private monedaModuloService = inject(MonedaModuloService);
+  private versionMinimaDesktopService = inject(VersionMinimaDesktopService);
   @ViewChild("container", { static: true }) container: ElementRef<any>;
 
   title = "franco-dev-systems";

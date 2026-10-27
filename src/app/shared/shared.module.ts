@@ -63,6 +63,7 @@ import { ConfiguracionFullDialogComponent } from './components/configuracion-ful
 import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
 import { ImpresoraLocalDialogComponent } from './components/configuracion-dialog/impresora-local-dialog/impresora-local-dialog.component';
 import { UpdateDialogComponent } from './components/update-dialog/update-dialog.component';
+import { VersionNoHabilitadaDialogComponent } from './components/version-no-habilitada-dialog/version-no-habilitada-dialog.component';
 import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
 import { CellFormatPipe } from '../commons/core/pipes/cell-format.pipe';
 import { NotificationBoardComponent } from '../modules/notificaciones/components/notification-board/notification-board.component';
@@ -128,6 +129,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ConfiguracionDialogComponent,
     ImpresoraLocalDialogComponent,
     UpdateDialogComponent,
+    VersionNoHabilitadaDialogComponent,
     SideMiniVariantComponent,
     CellFormatPipe,
     GraficoShellComponent,

@@ -1,0 +1,65 @@
+<div class="acmm">
+  <h2 class="acmm__titulo">Nueva configuración</h2>
+
+  <mat-dialog-content [formGroup]="formGroup" class="acmm__contenido">
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Módulo</mat-label>
+      <mat-select formControlName="modulo">
+        <mat-option *ngFor="let m of modulos" [value]="m.value">{{ m.label }}</mat-option>
+      </mat-select>
+      <mat-error *ngIf="moduloControl.hasError('required')">Requerido</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" *ngIf="esPdv">
+      <mat-label>Sucursal</mat-label>
+      <mat-select formControlName="sucursal">
+        <mat-option [value]="null">TODAS</mat-option>
+        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+      </mat-select>
+      <mat-hint>Solo el PDV admite una moneda por sucursal</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Moneda</mat-label>
+      <mat-select formControlName="moneda">
+        <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }} ({{ m.simbolo }})</mat-option>
+      </mat-select>
+      <mat-hint *ngIf="cargandoMonedas">Cargando monedas…</mat-hint>
+      <mat-hint *ngIf="!cargandoMonedas && !errorMonedas && !monedas.length">No hay monedas activas</mat-hint>
+      <mat-error *ngIf="monedaControl.hasError('required')">Requerido</mat-error>
+    </mat-form-field>
+    <div *ngIf="errorMonedas" class="acmm__error">
+      No se pudieron cargar las monedas.
+      <button mat-button type="button" (click)="cargarMonedas()">Reintentar</button>
+    </div>
+
+    <div class="acmm__fila">
+      <mat-form-field appearance="outline" class="acmm__fecha">
+        <mat-label>Vigente desde</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="fecha" placeholder="Ahora" />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-hint>Vacío = desde ahora</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="acmm__hora">
+        <mat-label>Hora</mat-label>
+        <input matInput type="time" formControlName="hora" />
+      </mat-form-field>
+      <button mat-icon-button type="button" (click)="onLimpiarFecha()" matTooltip="Desde ahora">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="acmm__ayuda">
+      Se crea una configuración nueva; la anterior queda en el historial. La moneda tiene que tener
+      cotización cargada.
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="formGroup.invalid || guardando">
+      <mat-icon>save</mat-icon> Guardar
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -130,12 +130,7 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
 
   /** Formato PY: Gs sin decimales, resto 2; miles ".", decimal ","; sin negativos. */
   private buildCurrencyOptions(moneda: Moneda | null): any {
-    const decimales = moneda?.decimales != null ? moneda.decimales : ((moneda?.denominacion || '').toUpperCase().includes('GUARANI') ? 0 : 2);
-    return {
-      allowNegative: false, allowZero: false, precision: decimales,
-      thousands: '.', decimal: decimales > 0 ? ',' : '', align: 'right',
-      prefix: moneda?.simbolo ? moneda.simbolo + ' ' : '', suffix: '', nullable: true, min: 0, max: null,
-    };
+    return this.monedaService.currencyOptionsMontoPositivo(moneda, { allowZero: false });
   }
 
   onSave() {

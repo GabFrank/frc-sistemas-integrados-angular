@@ -92,6 +92,7 @@ import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factur
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
+import { ConfiguracionMonedaModuloComponent } from '../../../modules/financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.component';
 import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
 import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
@@ -466,7 +467,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       // grupo. checkItemVisibility exige el rol en CADA nivel --solo ADMIN hace bypass--, asi que
       // sin esto la mudanza desde 'Reportes y Analisis' le escondia Terminales POS justo al rol
       // que la usa todos los dias.
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.VENTA_TARJETA_COMPLETAR],
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CAJA, ROLES.VENTA_TARJETA_COMPLETAR, ROLES.CONFIGURAR_MONEDA],
       items: [
         {
           name: 'Dashboard',
@@ -598,7 +599,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Configuración',
           icon: 'settings',
           isExpanded: false,
-          visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.CAMBIAR_COTIZACION, ROLES.ADMIN],
+          visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.CAMBIAR_COTIZACION, ROLES.CONFIGURAR_MONEDA, ROLES.ADMIN],
           items: [
             {
               name: 'Cotización',
@@ -611,6 +612,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'paid',
               action: 'list-moneda',
               visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Moneda por módulo',
+              icon: 'currency_exchange',
+              action: 'configuracion-moneda-modulo',
+              visibilityRoles: [ROLES.CONFIGURAR_MONEDA, ROLES.ADMIN]
             },
             {
               name: 'Cobro en PDV',
@@ -1124,6 +1131,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "configuracion-moneda-modulo":
+        this.openTabIfAuthorized(ROLES.CONFIGURAR_MONEDA, ConfiguracionMonedaModuloComponent, "Moneda por módulo");
         break;
       case "list-moneda":
         if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {

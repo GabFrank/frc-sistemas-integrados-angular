@@ -22,6 +22,11 @@
         <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.simbolo }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="codigoIso">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">ISO</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.codigoIso || '-' }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="decimales">
         <th mat-header-cell *matHeaderCellDef style="text-align: center;">Decimales</th>
         <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.decimales != null ? row.decimales : '-' }}</td>
