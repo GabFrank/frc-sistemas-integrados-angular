@@ -25,6 +25,13 @@ import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { BuscarLotePorNumeroGQL } from './graphql/buscarLotePorNumero';
 import { LotesDeVentaGQL } from './graphql/lotesDeVenta';
+import {
+  CompletarLotePendienteGQL,
+  ContarRecepcionesConLotePendienteGQL,
+  DescartarLotePendienteGQL,
+  InfoLotePendienteGQL,
+  RecepcionesConLotePendienteGQL
+} from './graphql/lotePendiente';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
 import {
@@ -37,6 +44,9 @@ import {
   MovimientoLote,
   ResumenStockLote,
   LoteVentaItem,
+  InfoPendienteLote,
+  PendienteLotePage,
+  ResolucionLotePendiente,
   ResultadoBusquedaLote,
   StockLote,
   StockLotePresentacion,
@@ -76,6 +86,11 @@ export class LoteService {
     private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
     private buscarLotePorNumeroGQL: BuscarLotePorNumeroGQL,
     private lotesDeVentaGQL: LotesDeVentaGQL,
+    private recepcionesConLotePendienteGQL: RecepcionesConLotePendienteGQL,
+    private contarRecepcionesConLotePendienteGQL: ContarRecepcionesConLotePendienteGQL,
+    private infoLotePendienteGQL: InfoLotePendienteGQL,
+    private completarLotePendienteGQL: CompletarLotePendienteGQL,
+    private descartarLotePendienteGQL: DescartarLotePendienteGQL,
     private dialog: MatDialog
   ) {}
 
@@ -458,5 +473,54 @@ export class LoteService {
 
   onDesarchivarLote(loteId: number, servidor = true): Observable<boolean> {
     return this.genericService.onCustomMutation(this.desarchivarLoteGQL, { loteId }, servidor);
+  }
+
+  // ---- Recepciones pendientes de lote (#429 fase 2, entrega 3). Requieren un central con la fase 2.
+
+  onRecepcionesConLotePendiente(sucursalId: number | null, desde: string | null, hasta: string | null,
+                                page = 0, size = 20): Observable<PendienteLotePage> {
+    return this.genericService.onCustomQuery(
+      this.recepcionesConLotePendienteGQL,
+      { sucursalId, desde, hasta, page, size },
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      false,
+      CONSULTA_LISTADO_LOTE
+    );
+  }
+
+  /** Contador de fondo y silencioso: si el central es viejo, no muestra nada. */
+  onContarRecepcionesConLotePendiente(sucursalId: number | null = null): Observable<number> {
+    return this.genericService.onCustomQuery(
+      this.contarRecepcionesConLotePendienteGQL,
+      { sucursalId },
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONTEXTO_SONDEO
+    );
+  }
+
+  onInfoLotePendiente(mslId: number, sucursalId: number, numeroLote: string | null): Observable<InfoPendienteLote> {
+    return this.genericService.onCustomQuery(
+      this.infoLotePendienteGQL,
+      { mslId, sucursalId, numeroLote: numeroLote || null },
+      true,
+      PROPAGAR_ERROR_DE_RED,
+      true,
+      CONSULTA_LISTADO_LOTE
+    );
+  }
+
+  onCompletarLotePendiente(vars: {
+    mslId: number; sucursalId: number; numeroLote: string; fechaVencimiento?: string | null;
+    cantidad: number; saldoSinLoteEsperado: number; cerrarRemanente?: boolean;
+    motivoRemanente?: string | null; confirmarVencimiento?: boolean;
+  }): Observable<ResolucionLotePendiente> {
+    return this.genericService.onCustomMutation(this.completarLotePendienteGQL, vars, true);
+  }
+
+  onDescartarLotePendiente(mslId: number, sucursalId: number, motivo: string): Observable<ResolucionLotePendiente> {
+    return this.genericService.onCustomMutation(this.descartarLotePendienteGQL, { mslId, sucursalId, motivo }, true);
   }
 }
