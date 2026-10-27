@@ -221,3 +221,48 @@ export interface AjusteStockLoteInput {
   /** yyyy-MM-dd. Solo se usa al crear el lote. */
   fechaRetiro?: string;
 }
+
+/** Un lote que coincide con el número buscado (#429 fase 2). Sale del maestro: incluye saldo 0 y archivados. */
+export interface LoteEncontrado {
+  loteId: number;
+  productoId: number;
+  productoDescripcion: string;
+  numeroLote: string;
+  fechaVencimiento?: string;
+  estado?: EstadoLote;
+  proveedorNombre?: string;
+  archivado?: boolean;
+  primeraEntradaFecha?: string;
+  primeraEntradaTipo?: string;
+  primeraEntradaDocumentoId?: number;
+  saldoTotal: number;
+  totalVendido: number;
+  cantidadVentas: number;
+}
+
+export interface EntradaSinLote {
+  tipoMovimiento: string;
+  movimientos: number;
+  cantidad: number;
+}
+
+/** Cuánto vale un "no hay registro" para el producto. */
+export interface TrazabilidadProducto {
+  productoId: number;
+  productoDescripcion?: string;
+  /** Nulo: el producto nunca se controló por lote. */
+  trazadoDesde?: string;
+  entradasSinLote: EntradaSinLote[];
+  comprasAnteriores: number;
+  todasLasEntradasConLote: boolean;
+}
+
+export interface ResultadoBusquedaLote {
+  numeroBuscado: string;
+  claveBusqueda?: string;
+  /** false = no hay registro. NO quiere decir "nunca entró". */
+  encontrado: boolean;
+  coincidenciaExacta: boolean;
+  lotes: LoteEncontrado[];
+  trazabilidad?: TrazabilidadProducto;
+}
