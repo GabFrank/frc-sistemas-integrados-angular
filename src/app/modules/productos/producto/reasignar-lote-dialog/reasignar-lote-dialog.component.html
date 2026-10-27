@@ -35,7 +35,7 @@
       <mat-label>Venta, transferencia o recepción (opcional)</mat-label>
       <input matInput [(ngModel)]="referencia" maxlength="100" aria-label="Referencia" />
     </mat-form-field>
-    <mat-checkbox *ngIf="esAdmin" [(ngModel)]="forzar">Forzar aunque la sucursal esté atrasada o el lote haya vendido recién</mat-checkbox>
+    <mat-checkbox *ngIf="esAdmin" [(ngModel)]="forzar">Forzar aunque el lote haya vendido recién (no aplica si la sucursal está atrasada)</mat-checkbox>
     <div class="error" *ngIf="error">{{ error }}</div>
   </ng-container>
 </mat-dialog-content>
