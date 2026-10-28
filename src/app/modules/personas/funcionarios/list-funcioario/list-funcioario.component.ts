@@ -18,6 +18,24 @@ import { CargoService } from '../../../empresarial/cargo/cargo.service';
 import { Cargo } from '../../../empresarial/cargo/cargo.model';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
+import { Horario } from '../../../administrativo/horarios/models/horario.model';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+
+/** Un horario asignado, listo para la fila desplegada de la lista. */
+interface HorarioAsignado {
+  id: number;
+  entrada: string;
+  salida: string;
+  dias: string;
+  turno: string;
+}
+
+const NOMBRE_DIA: Record<string, string> = {
+  LUNES: 'Lunes', MARTES: 'Martes', MIERCOLES: 'Miércoles', JUEVES: 'Jueves',
+  VIERNES: 'Viernes', SABADO: 'Sábado', DOMINGO: 'Domingo',
+};
+const ORDEN_DIAS = Object.keys(NOMBRE_DIA);
+const NOMBRE_TURNO: Record<string, string> = { DIA: 'Día', NOCHE: 'Noche', MADRUGADA: 'Madrugada' };
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -71,6 +89,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
+  /** Horarios asignados por id de funcionario, para la fila desplegada (#523). */
+  horariosAsignados: Record<number, HorarioAsignado[]> = {};
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'horario', 'acciones'];
 
   sucursalList: Sucursal[];
@@ -85,7 +105,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     private tabService: TabService,
     private notificacionService: NotificacionSnackbarService,
     private mainService: MainService,
-    private cargoService: CargoService
+    private cargoService: CargoService,
+    private dialogosService: DialogosService
   ) {
   }
 
@@ -234,6 +255,62 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       },
       error: () => { },
     });
+  }
+
+
+  /** Despliega la fila con los horarios asignados al funcionario (#523). */
+  onVerHorarios(funcionario: Funcionario, event: Event): void {
+    event.stopPropagation();
+    if (this.expandedFuncionario === funcionario) {
+      this.expandedFuncionario = null;
+      return;
+    }
+    this.expandedFuncionario = funcionario;
+    this.cargarHorarios(funcionario);
+  }
+
+  private cargarHorarios(funcionario: Funcionario): void {
+    this.horarioService.onGetHorariosPorFuncionario(funcionario.id).pipe(untilDestroyed(this)).subscribe({
+      next: (horarios: Horario[]) => {
+        this.horariosAsignados = {
+          ...this.horariosAsignados,
+          [funcionario.id]: (horarios || [])
+            .map(h => this.aHorarioAsignado(h))
+            .sort((a, b) => (a.entrada || '').localeCompare(b.entrada || '')),
+        };
+      },
+      error: () => { },
+    });
+  }
+
+  private aHorarioAsignado(h: Horario): HorarioAsignado {
+    const dias = (h.dias || []).filter(d => d !== 'TODOS');
+    const todos = !h.dias?.length || h.dias.includes('TODOS');
+    return {
+      id: h.id,
+      entrada: h.horaEntrada?.substring(0, 5),
+      salida: h.horaSalida?.substring(0, 5),
+      dias: todos ? 'Todos' : ORDEN_DIAS.filter(d => dias.includes(d)).map(d => NOMBRE_DIA[d]).join(', '),
+      turno: NOMBRE_TURNO[h.turno] || h.turno,
+    };
+  }
+
+  onQuitarHorario(funcionario: Funcionario, horario: HorarioAsignado): void {
+    this.dialogosService
+      .confirm('Quitar horario', `¿Quitarle a ${funcionario.persona?.nombre || 'este funcionario'} el horario ` +
+        `${horario.turno} ${horario.entrada}-${horario.salida} (${horario.dias})?`)
+      .pipe(untilDestroyed(this))
+      .subscribe(ok => {
+        if (!ok) return;
+        this.horarioService.onQuitarHorarioFuncionario(funcionario.id, horario.id).pipe(untilDestroyed(this)).subscribe({
+          next: res => {
+            if (res) funcionario.horarioResumen = res.horarioResumen;
+            this.notificacionService.openSucess('Horario quitado');
+            this.cargarHorarios(funcionario);
+          },
+          error: () => { },
+        });
+      });
   }
 
 }

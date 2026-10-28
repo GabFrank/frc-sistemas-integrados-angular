@@ -160,7 +160,14 @@
           Horario Asignado
         </th>
         <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 15%">
-          {{ funcionario?.horarioResumen || 'SIN ASIGNAR' }}
+          <div class="celda-horario">
+            <button mat-icon-button (click)="onVerHorarios(funcionario, $event)"
+              [matTooltip]="funcionario === expandedFuncionario ? 'Ocultar horarios' : (funcionario?.horarioResumen || 'Sin horario asignado')">
+              <mat-icon [class.sin-horario]="!funcionario?.horarioResumen">
+                {{ funcionario === expandedFuncionario ? 'visibility_off' : 'visibility' }}
+              </mat-icon>
+            </button>
+          </div>
         </td>
       </ng-container>
 
@@ -186,7 +193,35 @@
         <td mat-cell *matCellDef="let funcionario" [attr.colspan]="displayedColumns.length" class="expanded">
           <div class="example-funcionario-detail" [@detailExpand]="
               funcionario == expandedFuncionario ? 'expanded' : 'collapsed'
-            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start"></div>
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
+            <div class="horarios-asignados" *ngIf="funcionario === expandedFuncionario">
+              <div class="horarios-titulo">Horarios asignados</div>
+              <table class="tabla-horarios" *ngIf="horariosAsignados[funcionario.id]?.length; else sinHorarios">
+                <tr>
+                  <th>Entrada</th>
+                  <th>Salida</th>
+                  <th>Días</th>
+                  <th>Turno</th>
+                  <th></th>
+                </tr>
+                <tr *ngFor="let horario of horariosAsignados[funcionario.id]">
+                  <td>{{ horario.entrada }}</td>
+                  <td>{{ horario.salida }}</td>
+                  <td>{{ horario.dias }}</td>
+                  <td>{{ horario.turno }}</td>
+                  <td>
+                    <button mat-icon-button color="warn" matTooltip="Quitar este horario"
+                      (click)="$event.stopPropagation(); onQuitarHorario(funcionario, horario)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              </table>
+              <ng-template #sinHorarios>
+                <div class="sin-horarios">{{ horariosAsignados[funcionario.id] ? 'Sin horarios asignados' : 'Cargando…' }}</div>
+              </ng-template>
+            </div>
+          </div>
         </td>
       </ng-container>
 

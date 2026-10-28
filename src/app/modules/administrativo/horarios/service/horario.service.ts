@@ -12,6 +12,9 @@ import { HorariosGQL } from '../graphql/horarios';
 import { HorariosPorUsuarioGQL } from '../graphql/horariosPorUsuario';
 import { SaveHorariosUsuarioGQL } from '../graphql/saveHorariosUsuario';
 import { CopiarHorarioGQL } from '../graphql/copiarHorario';
+import { HorariosPorFuncionarioGQL } from '../graphql/horariosPorFuncionario';
+import { QuitarHorarioFuncionarioGQL } from '../graphql/quitarHorarioFuncionario';
+import type { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 @Injectable({
     providedIn: 'root'
@@ -26,8 +29,20 @@ export class HorarioService {
         private horarios: HorariosGQL,
         private horariosPorUsuario: HorariosPorUsuarioGQL,
         private saveHorariosUsuario: SaveHorariosUsuarioGQL,
-        private copiarHorario: CopiarHorarioGQL
+        private copiarHorario: CopiarHorarioGQL,
+        private horariosPorFuncionario: HorariosPorFuncionarioGQL,
+        private quitarHorarioFuncionario: QuitarHorarioFuncionarioGQL
     ) { }
+
+    /** Los horarios que rigen para el funcionario (los que usa la marcación). Sin diálogo de carga. */
+    onGetHorariosPorFuncionario(funcionarioId: number): Observable<Horario[]> {
+        return this.genericCrudService.onCustomQuery(this.horariosPorFuncionario, { funcionarioId }, true, undefined, true);
+    }
+
+    /** Le quita el horario al funcionario. Devuelve el funcionario con el resumen actualizado. */
+    onQuitarHorarioFuncionario(funcionarioId: number, horarioId: number): Observable<Funcionario> {
+        return this.genericCrudService.onCustomMutation(this.quitarHorarioFuncionario, { funcionarioId, horarioId });
+    }
 
     /**
      * Guarda la tabla del usuario entera de una vez (#523): el central valida que no se crucen.
