@@ -6,9 +6,6 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { ConfigurarServidorDialogComponent } from './configurar-servidor-dialog/configurar-servidor-dialog.component';
-import { ListActualizacionComponent } from './actualizacion/list-actualizacion/list-actualizacion.component';
-import { EditActualizacionComponent } from './actualizacion/edit-actualizacion/edit-actualizacion.component';
-import { UpdateWizardComponent } from './actualizacion/update-wizard/update-wizard.component';
 import { ListRolesComponent } from './roles/list-roles/list-roles.component';
 import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adicionar-role-dialog.component';
 import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
@@ -38,9 +35,6 @@ import { InteligenciaArtificialComponent } from './inteligencia-artificial/intel
     CredencialesCupsDialogComponent,
     AgregarDesdeSucursalDialogComponent,
     ConfigurarServidorDialogComponent, 
-    ListActualizacionComponent, 
-    EditActualizacionComponent, 
-    UpdateWizardComponent, 
     ListRolesComponent, 
     AdicionarRoleDialogComponent, 
     AdicionarGrupoRoleDialogComponent, 
