@@ -1,0 +1,48 @@
+.so-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.so-campo {
+  flex: 1 1 180px;
+}
+
+.so-campo--ancho {
+  flex: 1 1 100%;
+}
+
+.so-ayuda {
+  margin: 0 0 12px;
+  opacity: 0.75;
+}
+
+.so-ayuda--tickets {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.so-aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  background: rgba(245, 124, 0, 0.16);
+}
+
+.so-premios {
+  width: 100%;
+}
+
+.so-premios td,
+.so-premios th {
+  padding: 4px 8px;
+}
+
+.so-producto {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
