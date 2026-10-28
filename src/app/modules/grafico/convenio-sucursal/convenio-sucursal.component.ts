@@ -206,13 +206,16 @@ export class ConvenioSucursalComponent implements OnInit {
         untilDestroyed(this)
       )
       .subscribe((items) => {
-        if (items) {
-          this.vistaSubject.next({
-            opciones: opcionesConveniosPorSucursal(items),
-            filas: items.map(filaVista),
-            resumen: resumen(items),
-          });
-        }
+        // Si la consulta falló (el aviso ya salió) se limpia: no dejar a la vista datos de la corrida anterior.
+        this.vistaSubject.next(
+          items
+            ? {
+                opciones: opcionesConveniosPorSucursal(items),
+                filas: items.map(filaVista),
+                resumen: resumen(items),
+              }
+            : null
+        );
         this.cdr.markForCheck();
       });
   }

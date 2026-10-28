@@ -78,7 +78,7 @@
       titulo="Convenios por Sucursal"
       [opciones]="v.vista?.opciones"
       [cargando]="v.cargando"
-      [hayDatos]="v.vista?.filas?.length > 0"
+      [hayDatos]="!!v.vista?.filas?.length"
       [datosListos]="!!v.vista"
       mensajeInicial="Elegí el rango y apretá Filtrar: se consulta el central y la base de cada filial"
       alturaMinima="420px"
