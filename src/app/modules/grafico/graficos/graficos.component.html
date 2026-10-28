@@ -144,6 +144,18 @@
           class="chart"
         ></div>
       </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('convenio-sucursal')"
+      >
+        <div
+          *ngIf="vista.conveniosSucursal as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
     </div>
   </ng-container>
 </div>

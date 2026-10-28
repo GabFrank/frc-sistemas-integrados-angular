@@ -1,0 +1,67 @@
+@import '../styles/grafico-filtros';
+
+.convenio-sucursal-container {
+    .grafico-wrapper {
+        background-color: #424242;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .integridad {
+        margin-top: 16px;
+        background-color: #424242;
+        border-radius: 8px;
+        padding: 16px 20px;
+        color: #E0E0E0;
+
+        &__resumen {
+            color: #9E9E9E;
+            margin-bottom: 12px;
+        }
+
+        &__tabla-scroll {
+            overflow-x: auto;
+        }
+
+        &__tabla {
+            width: 100%;
+            border-collapse: collapse;
+
+            th, td {
+                padding: 8px 10px;
+                border-bottom: 1px solid #555555;
+                text-align: left;
+                white-space: nowrap;
+            }
+
+            th {
+                color: #9E9E9E;
+                font-weight: 500;
+            }
+
+            .num {
+                text-align: right;
+            }
+
+            .alerta {
+                color: #FF5252;
+                font-weight: bold;
+            }
+        }
+
+        &__chip {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #212121;
+            background-color: #9E9E9E;
+
+            &.integridad--ok { background-color: #4CAF50; }
+            &.integridad--diferencia { background-color: #FF5252; }
+            &.integridad--sin_conexion { background-color: #FF9800; }
+            &.integridad--sin_ip { background-color: #9E9E9E; }
+        }
+    }
+}
