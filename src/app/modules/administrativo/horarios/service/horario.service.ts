@@ -14,6 +14,7 @@ import { SaveHorariosUsuarioGQL } from '../graphql/saveHorariosUsuario';
 import { CopiarHorarioGQL } from '../graphql/copiarHorario';
 import { HorariosPorFuncionarioGQL } from '../graphql/horariosPorFuncionario';
 import { QuitarHorarioFuncionarioGQL } from '../graphql/quitarHorarioFuncionario';
+import { AgregarHorarioFuncionarioGQL } from '../graphql/agregarHorarioFuncionario';
 import type { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 @Injectable({
@@ -31,8 +32,14 @@ export class HorarioService {
         private saveHorariosUsuario: SaveHorariosUsuarioGQL,
         private copiarHorario: CopiarHorarioGQL,
         private horariosPorFuncionario: HorariosPorFuncionarioGQL,
-        private quitarHorarioFuncionario: QuitarHorarioFuncionarioGQL
+        private quitarHorarioFuncionario: QuitarHorarioFuncionarioGQL,
+        private agregarHorarioFuncionario: AgregarHorarioFuncionarioGQL
     ) { }
+
+    /** Crea un horario y se lo deja asignado al funcionario. Devuelve el funcionario con el resumen nuevo. */
+    onAgregarHorarioFuncionario(funcionarioId: number, horario: HorarioInput): Observable<Funcionario> {
+        return this.genericCrudService.onCustomMutation(this.agregarHorarioFuncionario, { funcionarioId, horario });
+    }
 
     /** Los horarios que rigen para el funcionario (los que usa la marcación). Sin diálogo de carga. */
     onGetHorariosPorFuncionario(funcionarioId: number): Observable<Horario[]> {

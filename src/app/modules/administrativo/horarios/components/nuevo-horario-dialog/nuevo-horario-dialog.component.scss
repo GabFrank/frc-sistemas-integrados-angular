@@ -1,0 +1,17 @@
+.contenido {
+  min-width: 460px;
+}
+
+.para {
+  color: var(--frc-texto-suave);
+  margin-bottom: 12px;
+}
+
+.fila {
+  display: flex;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}

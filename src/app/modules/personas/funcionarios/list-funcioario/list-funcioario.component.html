@@ -220,6 +220,10 @@
               <ng-template #sinHorarios>
                 <div class="sin-horarios">{{ horariosAsignados[funcionario.id] ? 'Sin horarios asignados' : 'Cargando…' }}</div>
               </ng-template>
+              <button mat-raised-button color="primary" class="boton-nuevo-horario"
+                (click)="$event.stopPropagation(); onNuevoHorario(funcionario)">
+                <mat-icon>add</mat-icon> Nuevo horario
+              </button>
             </div>
           </div>
         </td>

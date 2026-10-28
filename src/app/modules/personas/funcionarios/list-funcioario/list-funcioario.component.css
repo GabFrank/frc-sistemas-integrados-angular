@@ -112,6 +112,10 @@ input {
   text-align: center;
 }
 
+.boton-nuevo-horario {
+  margin-top: 10px;
+}
+
 .sin-horarios {
   color: var(--frc-texto-tenue);
   padding: 8px 0;

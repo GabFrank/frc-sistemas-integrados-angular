@@ -20,6 +20,7 @@ import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funciona
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
 import { Horario } from '../../../administrativo/horarios/models/horario.model';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NuevoHorarioDialogComponent, NuevoHorarioDialogData } from '../../../administrativo/horarios/components/nuevo-horario-dialog/nuevo-horario-dialog.component';
 
 /** Un horario asignado, listo para la fila desplegada de la lista. */
 interface HorarioAsignado {
@@ -310,6 +311,20 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
           },
           error: () => { },
         });
+      });
+  }
+
+
+  /** Crea un horario y se lo deja asignado al funcionario; al volver refresca la tabla. */
+  onNuevoHorario(funcionario: Funcionario): void {
+    const data: NuevoHorarioDialogData = { funcionarioId: funcionario.id, nombre: funcionario.persona?.nombre };
+    this.matDialog.open(NuevoHorarioDialogComponent, { data, autoFocus: false })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Funcionario) => {
+        if (!res) return;
+        funcionario.horarioResumen = res.horarioResumen;
+        this.cargarHorarios(funcionario);
       });
   }
 

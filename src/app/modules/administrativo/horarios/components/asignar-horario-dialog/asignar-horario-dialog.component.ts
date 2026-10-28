@@ -2,6 +2,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit, AfterViewInit } from '@angular/core';
 import { AbstractControl, FormControl, Validators } from '@angular/forms';
 import { MatAutocomplete } from '@angular/material/autocomplete';
+import { HORA_VALIDA, OPCIONES_HORA, normalizarHora, posicionarListaHora } from '../../utils/selector-hora';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { ViewChild } from '@angular/core';
@@ -12,10 +13,6 @@ import { Horario, HorarioInput } from '../../models/horario.model';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ListFuncioarioComponent } from '../../../../personas/funcionarios/list-funcioario/list-funcioario.component';
-
-const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
-/** Alto de una opción de la lista (mat-option de Material 15). */
-const ALTO_OPCION_PX = 48;
 
 export interface HorarioElement {
     id?: number;
@@ -40,12 +37,8 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     entradaControl = new FormControl(null, [Validators.required, Validators.pattern(HORA_VALIDA)]);
     salidaControl = new FormControl(null, [Validators.required, Validators.pattern(HORA_VALIDA)]);
 
-    /**
-     * Opciones de la lista desplegable de hora, cada 30 min, como el MatTimepicker de Material
-     * 19 (este proyecto está en Material 15, que no lo trae). Se puede escribir cualquier otra.
-     */
-    readonly opcionesHora: string[] = Array.from({ length: 48 }, (_, i) =>
-        `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+    /** Lista desplegable de horas cada 30 min (ver utils/selector-hora). */
+    readonly opcionesHora = OPCIONES_HORA;
     diasControl = new FormControl(null, [Validators.required]);
     turnoControl = new FormControl(null, [Validators.required]);
 
@@ -110,36 +103,13 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         };
     }
 
-    /** Al abrir la lista, la deja en la hora del campo (o en las 08:00 si está vacío). */
     onListaHoraAbierta(lista: MatAutocomplete, control: AbstractControl): void {
-        const valor: string = HORA_VALIDA.test(control.value || '') ? control.value : '08:00';
-        const [h, m] = valor.split(':').map(Number);
-        const indice = Math.min(h * 2 + (m >= 30 ? 1 : 0), this.opcionesHora.length - 1);
-        setTimeout(() => {
-            const panel = lista.panel?.nativeElement as HTMLElement;
-            if (panel) panel.scrollTop = Math.max(0, (indice - 2) * ALTO_OPCION_PX);
-        });
+        posicionarListaHora(lista, control.value);
     }
 
-    /** Acepta lo que se escribe rápido: "8" → 08:00, "830" o "8.30" → 08:30, "17:5" → 17:05. */
     onNormalizarHora(control: AbstractControl): void {
-        const texto: string = (control.value || '').toString().trim();
-        if (!texto || HORA_VALIDA.test(texto)) return;
-        let h: number, m: number;
-        const partes = texto.split(/[:.,\s]/).filter(p => p !== '');
-        if (partes.length >= 2) {
-            h = Number(partes[0]);
-            m = Number(partes[1]);
-        } else if (/^\d{1,2}$/.test(texto)) {
-            h = Number(texto);
-            m = 0;
-        } else if (/^\d{3,4}$/.test(texto)) {
-            h = Number(texto.slice(0, -2));
-            m = Number(texto.slice(-2));
-        }
-        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-            control.setValue(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-        }
+        const hora = normalizarHora(control.value);
+        if (hora && hora !== control.value) control.setValue(hora);
     }
 
     /** "Todos" no se combina con días sueltos: elegir uno quita al otro. */
