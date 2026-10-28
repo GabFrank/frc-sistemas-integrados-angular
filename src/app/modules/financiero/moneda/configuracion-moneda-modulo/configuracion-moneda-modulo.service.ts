@@ -31,6 +31,15 @@ export function mensajeSinCotizacion(mensaje: string | null | undefined): string
   return 'Sin cotización: ' + (detalle || 'la moneda no tiene cotización cargada.');
 }
 
+/**
+ * El central rechazó la consulta por el schema: no conoce `ModuloMoneda` ni la query (anterior a
+ * V258.5). No es una falla sino un central sin actualizar. Exportada para el spec.
+ */
+export function esCentralSinMonedaPorModulo(err: any): boolean {
+  const texto = JSON.stringify(err?.graphQLErrors ?? []) + ' ' + String(err?.message ?? '');
+  return /FieldUndefined|UnknownType|Cannot query field/.test(texto);
+}
+
 @Injectable({
   providedIn: 'root'
 })

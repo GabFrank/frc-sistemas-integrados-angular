@@ -14,7 +14,7 @@ import {
   ModuloMoneda,
   MODULOS_MONEDA
 } from './configuracion-moneda-modulo.model';
-import { ConfiguracionMonedaModuloService } from './configuracion-moneda-modulo.service';
+import { ConfiguracionMonedaModuloService, esCentralSinMonedaPorModulo } from './configuracion-moneda-modulo.service';
 import { AddConfiguracionMonedaModuloDialogComponent } from './add-configuracion-moneda-modulo-dialog/add-configuracion-moneda-modulo-dialog.component';
 
 /** Fila de la tabla con los textos ya armados (el template no llama funciones). */
@@ -98,6 +98,11 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
         error: (err) => {
           this.dataSource.data = [];
           this.estado = 'error';
+          // Un central sin V258.5 no conoce el tipo ni la query: no es una falla, falta actualizarlo.
+          if (esCentralSinMonedaPorModulo(err)) {
+            this.mensajeError = 'El servidor central todavía no tiene esta función: hay que actualizarlo.';
+            return;
+          }
           this.mensajeError = err?.message || 'No se pudo consultar el servidor.';
           this.notificacion.openAlgoSalioMal('No se pudieron cargar las configuraciones: ' + this.mensajeError);
         },
