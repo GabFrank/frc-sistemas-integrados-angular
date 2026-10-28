@@ -1,18 +1,21 @@
 
 import { ChangeDetectorRef, Component, Input, OnInit, AfterViewInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, Validators } from '@angular/forms';
+import { MatAutocomplete } from '@angular/material/autocomplete';
 import { MatTableDataSource } from '@angular/material/table';
-import { forkJoin } from 'rxjs';
 import { MatPaginator } from '@angular/material/paginator';
 import { ViewChild } from '@angular/core';
 import { HorarioService } from '../../service/horario.service';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
-import { HorarioInput } from '../../models/horario.model';
-import { MainService } from '../../../../../main.service';
+import { Horario, HorarioInput } from '../../models/horario.model';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ListFuncioarioComponent } from '../../../../personas/funcionarios/list-funcioario/list-funcioario.component';
+
+const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Alto de una opción de la lista (mat-option de Material 15). */
+const ALTO_OPCION_PX = 48;
 
 export interface HorarioElement {
     id?: number;
@@ -34,8 +37,15 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     @Input() data: Tab;
     usuarioId: number;
 
-    entradaControl = new FormControl(null, [Validators.required]);
-    salidaControl = new FormControl(null, [Validators.required]);
+    entradaControl = new FormControl(null, [Validators.required, Validators.pattern(HORA_VALIDA)]);
+    salidaControl = new FormControl(null, [Validators.required, Validators.pattern(HORA_VALIDA)]);
+
+    /**
+     * Opciones de la lista desplegable de hora, cada 30 min, como el MatTimepicker de Material
+     * 19 (este proyecto está en Material 15, que no lo trae). Se puede escribir cualquier otra.
+     */
+    readonly opcionesHora: string[] = Array.from({ length: 48 }, (_, i) =>
+        `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
     diasControl = new FormControl(null, [Validators.required]);
     turnoControl = new FormControl(null, [Validators.required]);
 
@@ -62,47 +72,86 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     @ViewChild(MatPaginator) paginator: MatPaginator;
 
     elementoEnEdicion: HorarioElement | null = null;
+    private diasAnteriores: string[] = [];
 
     constructor(
         private horarioService: HorarioService,
         private cdr: ChangeDetectorRef,
         private tabService: TabService,
-        private mainService: MainService,
         private notificacionService: NotificacionSnackbarService
     ) { }
 
     ngOnInit(): void {
         this.usuarioId = this.data?.tabData?.id;
         if (this.usuarioId) {
-            this.horarioService.onGetHorariosPorUsuario(this.usuarioId).subscribe(res => {
-                if (res) {
-                    const uniqueSchedules = [];
-                    res.forEach(h => {
-                        const daysKey = JSON.stringify((h.dias || []).sort());
-                        const isDuplicate = uniqueSchedules.some(us => 
-                            us.entrada === h.horaEntrada &&
-                            us.salida === h.horaSalida &&
-                            us.turnoValue === h.turno &&
-                            JSON.stringify((us.diasValue || []).sort()) === daysKey
-                        );
-                        if (!isDuplicate) {
-                            uniqueSchedules.push({
-                                id: h.id,
-                                entrada: h.horaEntrada,
-                                salida: h.horaSalida,
-                                dias: h.dias?.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', '),
-                                turno: this.listaTurnos.find(t => t.code == h.turno)?.name,
-                                diasValue: h.dias,
-                                turnoValue: h.turno
-                            });
-                        }
-                    });
-                    this.dataSource.data = uniqueSchedules;
-                    this.dataSource.paginator = this.paginator;
-                    this.cdr.markForCheck();
-                }
-            })
+            this.horarioService.onGetHorariosPorUsuario(this.usuarioId).pipe(untilDestroyed(this)).subscribe(res => {
+                if (res) this.mostrar(res);
+            });
         }
+    }
+
+    /** Muestra todos los horarios del usuario tal cual están guardados (antes se escondían los repetidos). */
+    private mostrar(horarios: Horario[]): void {
+        this.dataSource.data = horarios.map(h => this.aFila(h.id, h.horaEntrada, h.horaSalida, h.dias, h.turno));
+        this.dataSource.paginator = this.paginator;
+        this.cdr.markForCheck();
+    }
+
+    private aFila(id: number, entrada: string, salida: string, dias: string[], turno: string): HorarioElement {
+        const diasOrdenados = this.diasSemana.map(d => d.value).filter(d => (dias || []).includes(d));
+        return {
+            id,
+            entrada: entrada?.substring(0, 5),
+            salida: salida?.substring(0, 5),
+            dias: diasOrdenados.length ? diasOrdenados.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', ') : 'Todos',
+            turno: this.listaTurnos.find(t => t.code == turno)?.name,
+            diasValue: diasOrdenados,
+            turnoValue: turno
+        };
+    }
+
+    /** Al abrir la lista, la deja en la hora del campo (o en las 08:00 si está vacío). */
+    onListaHoraAbierta(lista: MatAutocomplete, control: AbstractControl): void {
+        const valor: string = HORA_VALIDA.test(control.value || '') ? control.value : '08:00';
+        const [h, m] = valor.split(':').map(Number);
+        const indice = Math.min(h * 2 + (m >= 30 ? 1 : 0), this.opcionesHora.length - 1);
+        setTimeout(() => {
+            const panel = lista.panel?.nativeElement as HTMLElement;
+            if (panel) panel.scrollTop = Math.max(0, (indice - 2) * ALTO_OPCION_PX);
+        });
+    }
+
+    /** Acepta lo que se escribe rápido: "8" → 08:00, "830" o "8.30" → 08:30, "17:5" → 17:05. */
+    onNormalizarHora(control: AbstractControl): void {
+        const texto: string = (control.value || '').toString().trim();
+        if (!texto || HORA_VALIDA.test(texto)) return;
+        let h: number, m: number;
+        const partes = texto.split(/[:.,\s]/).filter(p => p !== '');
+        if (partes.length >= 2) {
+            h = Number(partes[0]);
+            m = Number(partes[1]);
+        } else if (/^\d{1,2}$/.test(texto)) {
+            h = Number(texto);
+            m = 0;
+        } else if (/^\d{3,4}$/.test(texto)) {
+            h = Number(texto.slice(0, -2));
+            m = Number(texto.slice(-2));
+        }
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            control.setValue(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+        }
+    }
+
+    /** "Todos" no se combina con días sueltos: elegir uno quita al otro. */
+    onCambioDias(): void {
+        const dias: string[] = this.diasControl.value || [];
+        const anteriores: string[] = this.diasAnteriores;
+        const eligioTodos = dias.includes('TODOS') && !anteriores.includes('TODOS');
+        let nuevos = dias;
+        if (eligioTodos) nuevos = ['TODOS'];
+        else if (dias.includes('TODOS') && dias.length > 1) nuevos = dias.filter(d => d !== 'TODOS');
+        if (nuevos !== dias) this.diasControl.setValue(nuevos);
+        this.diasAnteriores = nuevos;
     }
 
     ngAfterViewInit() {
@@ -123,15 +172,7 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
             );
 
             if (!existe) {
-                let item: HorarioElement = {
-                    id: this.elementoEnEdicion?.id,
-                    entrada: entrada,
-                    salida: salida,
-                    dias: this.diasControl.value?.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', '),
-                    turno: this.listaTurnos.find(t => t.code == turnoValue)?.name,
-                    diasValue: this.diasControl.value,
-                    turnoValue: turnoValue
-                }
+                const item = this.aFila(this.elementoEnEdicion?.id, entrada, salida, diasValue, turnoValue);
                 this.dataSource.data = [...this.dataSource.data, item];
                 this.dataSource.paginator = this.paginator;
                 this.elementoEnEdicion = null;
@@ -139,8 +180,9 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
                 this.salidaControl.reset();
                 this.diasControl.reset();
                 this.turnoControl.reset();
+                this.diasAnteriores = [];
             } else {
-                this.notificacionService.openWarn('El horario ya existe');
+                this.notificacionService.openWarn('Ese horario ya está en la tabla');
             }
         }
     }
@@ -160,7 +202,8 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     onEditarHorario(element: HorarioElement): void {
         this.entradaControl.setValue(element.entrada);
         this.salidaControl.setValue(element.salida);
-        this.diasControl.setValue(element.diasValue);
+        this.diasControl.setValue(element.diasValue?.length ? element.diasValue : ['TODOS']);
+        this.diasAnteriores = this.diasControl.value;
         this.turnoControl.setValue(element.turnoValue);
         this.elementoEnEdicion = element;
         this.dataSource.data = this.dataSource.data.filter(i => i !== element);
@@ -168,7 +211,11 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     }
 
     onAsignarAOtros(element: HorarioElement): void {
-        const data = new TabData(null, { horarioParaAsignar: element });
+        if (!element.id) {
+            this.notificacionService.openWarn('Guardá el horario antes de asignarlo a otros funcionarios');
+            return;
+        }
+        const data = new TabData(null, { horarioParaAsignar: { horarioId: element.id } });
         this.tabService.addTab(
             new Tab(
                 ListFuncioarioComponent,
@@ -179,26 +226,33 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         );
     }
 
+    /**
+     * Guarda la tabla entera de una vez (#523). Se aceptan varios horarios el mismo día, aunque
+     * se pisen o repitan uno de "Todos": al marcar, el central usa el de entrada más cercana.
+     */
     onGuardar(): void {
-        if (this.dataSource.data && this.dataSource.data.length > 0) {
-            // Un solo verde, al final y solo si se guardaron todos: antes salía en el acto, sin esperar
-            // respuesta, junto a un «Guardado con éxito» por horario (#501). Un fallo lo avisa el genérico.
-            const guardados = this.dataSource.data.map(h => {
-                let horarioInput = new HorarioInput();
-                horarioInput.id = h.id;
-                horarioInput.horaEntrada = h.entrada;
-                horarioInput.horaSalida = h.salida;
-                horarioInput.usuarioId = this.usuarioId;
-                horarioInput.dias = h.diasValue;
-                horarioInput.turno = h.turnoValue;
-
-                return this.horarioService.onSaveHorario(horarioInput, true, undefined, { avisarExito: false });
-            });
-            forkJoin(guardados).pipe(untilDestroyed(this)).subscribe({
-                next: () => this.notificacionService.openSucess('Horarios asignados correctamente'),
-                error: () => {},
-            });
-        }
+        const horarios = this.dataSource.data.map(h => {
+            const input = new HorarioInput();
+            input.id = h.id;
+            input.horaEntrada = h.entrada;
+            input.horaSalida = h.salida;
+            input.dias = h.diasValue?.length ? h.diasValue : ['TODOS'];
+            input.turno = h.turnoValue;
+            return input;
+        });
+        this.horarioService.onSaveHorariosUsuario(this.usuarioId, horarios).pipe(untilDestroyed(this)).subscribe({
+            next: res => {
+                if (res) this.mostrar(res);
+                this.notificacionService.openSucess('Horarios guardados');
+            },
+            // Nada se guarda: la tabla queda como está para corregir y volver a guardar.
+            error: (error) => {
+                const motivo = Array.isArray(error) ? error[0]?.message : null;
+                this.notificacionService.openWarn(motivo
+                    ? `No se guardaron los horarios. ${motivo}`
+                    : 'No se guardaron los horarios: no hubo respuesta del servidor. Probá de nuevo.', motivo ? 15 : 6);
+            },
+        });
     }
 
     onCancelar(): void {
@@ -210,6 +264,7 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         this.salidaControl.reset();
         this.diasControl.reset();
         this.turnoControl.reset();
+        this.diasAnteriores = [];
     }
 }
 

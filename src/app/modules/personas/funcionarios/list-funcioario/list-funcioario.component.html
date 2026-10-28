@@ -160,8 +160,7 @@
           Horario Asignado
         </th>
         <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 15%">
-          {{ funcionario?.horario ? (funcionario?.horario?.horaEntrada + ' A ' + funcionario?.horario?.horaSalida) :
-          'SIN ASIGNAR' }}
+          {{ funcionario?.horarioResumen || 'SIN ASIGNAR' }}
         </td>
       </ng-container>
 

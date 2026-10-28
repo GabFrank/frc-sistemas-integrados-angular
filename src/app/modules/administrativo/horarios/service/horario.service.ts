@@ -3,14 +3,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
-import { MainService } from '../../../../main.service';
 import { PageInfo } from '../../../../app.component';
-import { Horario, HorarioInput } from '../models/horario.model';
+import { CopiaHorarioResultado, Horario, HorarioInput } from '../models/horario.model';
 import { HorarioByIdGQL } from '../graphql/horarioById';
 import { SaveHorarioGQL } from '../graphql/saveHorario';
 import { DeleteHorarioGQL } from '../graphql/deleteHorario';
 import { HorariosGQL } from '../graphql/horarios';
 import { HorariosPorUsuarioGQL } from '../graphql/horariosPorUsuario';
+import { SaveHorariosUsuarioGQL } from '../graphql/saveHorariosUsuario';
+import { CopiarHorarioGQL } from '../graphql/copiarHorario';
 
 @Injectable({
     providedIn: 'root'
@@ -19,13 +20,28 @@ export class HorarioService {
 
     constructor(
         private genericCrudService: GenericCrudService,
-        private mainService: MainService,
         private horarioById: HorarioByIdGQL,
         private saveHorario: SaveHorarioGQL,
         private deleteHorario: DeleteHorarioGQL,
         private horarios: HorariosGQL,
-        private horariosPorUsuario: HorariosPorUsuarioGQL
+        private horariosPorUsuario: HorariosPorUsuarioGQL,
+        private saveHorariosUsuario: SaveHorariosUsuarioGQL,
+        private copiarHorario: CopiarHorarioGQL
     ) { }
+
+    /**
+     * Guarda la tabla del usuario entera de una vez (#523): el central valida que no se crucen.
+     * Sin aviso genérico: el de 3 s («Ups! Algo salió mal») no dejaba leer qué horarios chocan,
+     * así que la pantalla muestra el suyo.
+     */
+    onSaveHorariosUsuario(usuarioId: number, horarios: HorarioInput[]): Observable<Horario[]> {
+        return this.genericCrudService.onCustomMutation(this.saveHorariosUsuario, { usuarioId, horarios }, true, true);
+    }
+
+    /** Copia el horario a cada funcionario como horario propio; el central busca su cuenta. */
+    onCopiarHorario(horarioId: number, funcionarioIds: number[]): Observable<CopiaHorarioResultado> {
+        return this.genericCrudService.onCustomMutation(this.copiarHorario, { horarioId, funcionarioIds });
+    }
 
     onGetHorario(id: number, servidor = true): Observable<Horario> {
         return this.genericCrudService.onGetById(this.horarioById, id, null, null, servidor);
@@ -46,9 +62,6 @@ export class HorarioService {
      */
     onSaveHorario(input: HorarioInput, servidor = true, errorConf?: QueryError,
                   opciones?: { avisarExito?: boolean }): Observable<Horario> {
-        if (!input.usuarioId && this.mainService.usuarioActual?.id) {
-            input.usuarioId = this.mainService.usuarioActual.id;
-        }
         return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor, errorConf, undefined, opciones);
     }
 
