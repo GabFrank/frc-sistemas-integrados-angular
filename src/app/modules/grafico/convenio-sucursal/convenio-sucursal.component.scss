@@ -1,6 +1,12 @@
 @import '../styles/grafico-filtros';
 
 .convenio-sucursal-container {
+    .grafico-filtros__campo--estado {
+        min-width: 160px;
+        width: 200px;
+        max-width: 240px;
+    }
+
     .grafico-wrapper {
         background-color: #424242;
         border-radius: 8px;

@@ -27,8 +27,11 @@ import {
 
 const COLOR_CANCELADAS = "#FF5252";
 
+/** mat-select muestra vacío un valor null: «Todos» usa un centinela y se manda null al central. */
+const ESTADO_TODOS = "TODOS";
+
 const ESTADOS_VENTA_CREDITO = [
-  { valor: null, nombre: "Todos" },
+  { valor: ESTADO_TODOS, nombre: "Todos" },
   { valor: "ABIERTO", nombre: "Abiertas" },
   { valor: "FINALIZADO", nombre: "Finalizadas" },
   { valor: "CANCELADO", nombre: "Canceladas" },
@@ -127,8 +130,9 @@ export function opcionesConveniosPorSucursal(
   return {
     title: tituloGraficoCentrado("Convenios por Sucursal", subtitulo),
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { top: 36, textStyle: { color: GRAFICO_COLORES.text } },
-    grid: { left: "3%", right: "3%", top: 80, bottom: 8, containLabel: true },
+    // Leyenda al pie: arriba se encima con el subtítulo de la vista previa del tablero.
+    legend: { bottom: 0, textStyle: { color: GRAFICO_COLORES.text } },
+    grid: { left: "3%", right: "3%", top: 70, bottom: 36, containLabel: true },
     xAxis: {
       type: "category",
       data: nombres,
@@ -173,7 +177,7 @@ export class ConvenioSucursalComponent implements OnInit {
 
   readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   readonly estados = ESTADOS_VENTA_CREDITO;
-  readonly estadoControl = new FormControl<string | null>(null);
+  readonly estadoControl = new FormControl<string>(ESTADO_TODOS);
   readonly fechaRango = new FormGroup({
     inicio: new FormControl<Date | null>(null, Validators.required),
     fin: new FormControl<Date | null>(null, Validators.required),
@@ -220,7 +224,7 @@ export class ConvenioSucursalComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
-    this.estadoControl.setValue(null);
+    this.estadoControl.setValue(ESTADO_TODOS);
     this.rangoPorDefecto();
     this.vistaSubject.next(null);
     this.cdr.markForCheck();
@@ -239,7 +243,7 @@ export class ConvenioSucursalComponent implements OnInit {
       .obtenerConvenioIntegridadPorSucursal(
         dateToString(inicio, "yyyy-MM-dd"),
         dateToString(fin, "yyyy-MM-dd"),
-        this.estadoControl.value,
+        this.estadoControl.value === ESTADO_TODOS ? null : this.estadoControl.value,
         this.filtroSucursales.normalizarIds()
       )
       .pipe(
