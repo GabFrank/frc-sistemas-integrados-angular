@@ -48,3 +48,12 @@ export const cortarSorteoMutation = gql`
     data: cortarSorteo(id: $id) { ${campos} }
   }
 `;
+
+/** A la FILIAL (servidor=false): sorteos en los que califica la venta que se está cobrando. */
+export const sorteosAplicablesQuery = gql`
+  query sorteosAplicables($input: SorteoEvaluacionInput!) {
+    data: sorteosAplicables(input: $input) {
+      sorteoId nombre descripcion cantidadTickets fechaSorteo fechaDesde fechaHasta premios
+    }
+  }
+`;

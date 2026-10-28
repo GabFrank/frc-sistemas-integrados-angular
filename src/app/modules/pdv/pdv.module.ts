@@ -12,6 +12,7 @@ import { DeliveryOpcionesDialogComponent } from './comercial/venta-touch/list-de
 import { EditDeliveryDialogComponent } from './comercial/venta-touch/list-delivery/edit-delivery-dialog/edit-delivery-dialog.component';
 import { ListDeliveryComponent } from './comercial/venta-touch/list-delivery/list-delivery.component';
 import { ClienteParaFacturaDialogComponent } from "./comercial/venta-touch/cliente-para-factura-dialog/cliente-para-factura-dialog.component";
+import { SorteoClienteDialogComponent } from "./comercial/venta-touch/sorteo-cliente-dialog/sorteo-cliente-dialog.component";
 import { DescuentoDialogComponent } from "./comercial/venta-touch/pago-touch/descuento-dialog/descuento-dialog.component";
 import { PagoTouchComponent } from "./comercial/venta-touch/pago-touch/pago-touch.component";
 import { AddCategoriaDialogComponent } from "./comercial/venta-touch/pdv-categoria/add-categoria-dialog/add-categoria-dialog.component";
@@ -46,6 +47,7 @@ import { DynamicFontSizeDirective } from "../../shared/directives/dynamic-font-s
     EditItemDialogComponent,
     PagoTouchComponent,
     ClienteParaFacturaDialogComponent,
+    SorteoClienteDialogComponent,
     VueltoDialogComponent,
     SeleccionarBilletesTouchComponent,
     DescuentoDialogComponent,

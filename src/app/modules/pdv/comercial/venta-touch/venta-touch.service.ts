@@ -5,6 +5,7 @@ import { CajaService } from '../../../financiero/pdv/caja/caja.service';
 import { Cobro } from '../../../operaciones/venta/cobro/cobro.model';
 import { Venta } from '../../../operaciones/venta/venta.model';
 import { VentaService } from '../../../operaciones/venta/venta.service';
+import type { SorteoClienteInput } from '../../../operaciones/sorteo/sorteo.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
@@ -43,7 +44,7 @@ export class VentaTouchService {
     }
   }
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura?: boolean, servidor: boolean = false): Observable<any>{
-    return this.ventaService.onSaveVenta(venta, cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura, servidor)
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura?: boolean, servidor: boolean = false, sorteoCliente?: SorteoClienteInput): Observable<any>{
+    return this.ventaService.onSaveVenta(venta, cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura, servidor, sorteoCliente)
   }
 }

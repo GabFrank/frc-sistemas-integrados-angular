@@ -202,6 +202,88 @@ export const saveVentaCliente = gql`
   }
 `;
 
+/**
+ * saveVenta con participante de sorteo. Documento aparte a propósito, igual que saveVentaCliente: los de
+ * arriba no se tocan porque una filial sin sorteos no conoce `sorteoCliente` ni `sorteoTickets` y
+ * rechazaría la venta entera. Solo se usa cuando hay un participante.
+ */
+export const saveVentaSorteo = gql`
+  mutation saveVentaSorteo(
+    $ventaInput: VentaInput!
+    $ventaItemList: [VentaItemInput]
+    $cobro: CobroInput
+    $cobroDetalleList: [CobroDetalleInput]
+    $ticket: Boolean
+    $facturar: Boolean
+    $printerName: String
+    $local: String
+    $pdvId: Int
+    $ventaCreditoInput: VentaCreditoInput
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
+    $sorteoCliente: SorteoClienteInput
+  ) {
+    data: saveVenta(
+      ventaInput: $ventaInput
+      ventaItemList: $ventaItemList
+      cobro: $cobro
+      cobroDetalleList: $cobroDetalleList
+      ticket: $ticket
+      facturar: $facturar
+      printerName: $printerName
+      local: $local
+      pdvId: $pdvId
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
+      sorteoCliente: $sorteoCliente
+    ) {
+      id
+      sorteoTickets {
+        nombreSorteo
+        cantidad
+      }
+    }
+  }
+`;
+
+/** saveVentaCliente ("Imprimir desde esta PC") con participante de sorteo. Ver saveVentaSorteo. */
+export const saveVentaClienteSorteo = gql`
+  mutation saveVentaClienteSorteo(
+    $ventaInput: VentaInput!
+    $ventaItemList: [VentaItemInput]
+    $cobro: CobroInput
+    $cobroDetalleList: [CobroDetalleInput]
+    $ticket: Boolean
+    $facturar: Boolean
+    $local: String
+    $pdvId: Int
+    $ventaCreditoInput: VentaCreditoInput
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
+    $sorteoCliente: SorteoClienteInput
+  ) {
+    data: saveVenta(
+      ventaInput: $ventaInput
+      ventaItemList: $ventaItemList
+      cobro: $cobro
+      cobroDetalleList: $cobroDetalleList
+      ticket: $ticket
+      facturar: $facturar
+      local: $local
+      pdvId: $pdvId
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
+      imprimirEnCliente: true
+      sorteoCliente: $sorteoCliente
+    ) {
+      id
+      ticketEscpos
+      sorteoTickets {
+        nombreSorteo
+        cantidad
+      }
+    }
+  }
+`;
+
 export const saveVentaDelivery = gql`
   mutation saveVentaDelivery(
     $ventaInput: VentaInput!

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Mutation, Query } from 'apollo-angular';
 import {
   cortarSorteoMutation, filterSorteosQuery, saveSorteoMutation, sorteoParticipacionesQuery, sorteoResumenQuery,
+  sorteosAplicablesQuery,
 } from './graphql-query';
 
 @Injectable({ providedIn: 'root' })
@@ -18,3 +19,6 @@ export class SaveSorteoGQL extends Mutation<any> { document = saveSorteoMutation
 
 @Injectable({ providedIn: 'root' })
 export class CortarSorteoGQL extends Mutation<any> { document = cortarSorteoMutation; }
+
+@Injectable({ providedIn: 'root' })
+export class SorteosAplicablesGQL extends Query<any> { document = sorteosAplicablesQuery; }

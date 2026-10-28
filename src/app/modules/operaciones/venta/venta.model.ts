@@ -6,6 +6,7 @@ import { Delivery } from "../delivery/delivery.model";
 import { Cobro } from "./cobro/cobro.model";
 import { VentaEstado } from "./enums/venta-estado.enums";
 import { VentaItem, VentaItemInput } from "./venta-item.model";
+import type { SorteoTicketInfo } from "../sorteo/sorteo.model";
 
 export class Venta {
     id: number;
@@ -28,6 +29,8 @@ export class Venta {
     ventaObservacionList: any[];
     /** Comprobante ESC/POS (base64) que devuelve la filial en modo "Imprimir desde esta PC". */
     ticketEscpos?: string;
+    /** Tickets de sorteo que salieron con la venta (solo con saveVentaSorteo). */
+    sorteoTickets?: SorteoTicketInfo[];
 
     toInput(): VentaInput {
         let input = new VentaInput()

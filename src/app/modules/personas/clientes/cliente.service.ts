@@ -124,14 +124,18 @@ export class ClienteService {
       .pipe(map((pagina: PageInfo<Cliente>) => pagina?.getContent ?? []));
   }
 
-  onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{
-    let errorConf: QueryError = {
+  /**
+   * `errorConf` y `silentLoad` son opcionales: sin ellos se comporta como siempre. El diálogo de sorteo del
+   * POS los pasa para consultar sin el «Buscando…» ni el aviso de error (si falla, el nombre va a mano).
+   */
+  onConsultaRuc(ruc:string, servidor: boolean = true, errorConf?: QueryError, silentLoad?: boolean): Observable<RucResponse>{
+    errorConf = errorConf ?? {
       networkError: {
         show: false,
         propagate: true
       }
     }
-    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, servidor, errorConf)
+    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, servidor, errorConf, silentLoad)
   }
 
 }

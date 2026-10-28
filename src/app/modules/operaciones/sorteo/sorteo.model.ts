@@ -75,3 +75,28 @@ export class SorteoResumenSucursal {
   participaciones: number;
   tickets: number;
 }
+
+/** Sorteo en el que califica una venta, según la filial (`sorteosAplicables`). */
+export class SorteoAplicable {
+  sorteoId: number;
+  nombre: string;
+  descripcion: string;
+  cantidadTickets: number;
+  fechaSorteo: string;
+  fechaDesde: string;
+  fechaHasta: string;
+  premios: string[];
+}
+
+/** Quién participa del sorteo con la venta (`saveVenta(sorteoCliente)`). Null = no participa. */
+export class SorteoClienteInput {
+  clienteId?: number | null;
+  documento?: string | null;
+  nombre: string;
+}
+
+/** Tickets de sorteo que salieron con una venta (`Venta.sorteoTickets`). */
+export class SorteoTicketInfo {
+  nombreSorteo: string;
+  cantidad: number;
+}
