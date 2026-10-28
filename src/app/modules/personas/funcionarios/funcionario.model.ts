@@ -23,6 +23,8 @@ export class Funcionario {
   nickname: string;
   imagenPrincipal: string;
   horario: Horario;
+  /** Horario por día, ej. "L-Mi Día 08:00-17:00 · J Madrugada 17:00-01:00" (#523). Lo arma el central. */
+  horarioResumen: string;
   // El egreso se escribia en la base pero no existia de este lado: por eso el legajo
   // mostraba solo el badge INACTIVO, sin cuando ni por que.
   fechaEgreso: Date;

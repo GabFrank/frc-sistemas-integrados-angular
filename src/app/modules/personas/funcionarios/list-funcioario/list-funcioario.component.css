@@ -60,3 +60,69 @@ background-color: var(--frc-superficie-tabla) !important;
 input {
   text-transform: uppercase;
 }
+/* Horarios asignados en la fila desplegada (#523) */
+.celda-horario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.celda-horario mat-icon {
+  color: #4caf50;
+}
+
+/* Sin horarios: el ojo queda tenue en vez de verde. */
+.celda-horario mat-icon.sin-horario {
+  color: var(--frc-texto-tenue);
+}
+
+.horarios-asignados {
+  width: 100%;
+  padding: 8px 24px 16px;
+}
+
+.horarios-titulo {
+  color: var(--frc-texto-suave);
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.tabla-horarios {
+  width: 100%;
+  max-width: 900px;
+  border-collapse: collapse;
+  background: var(--frc-superficie-alta);
+}
+
+.tabla-horarios th {
+  background: var(--frc-encabezado-tabla);
+  color: var(--frc-encabezado-tabla-texto);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px;
+  text-align: center;
+}
+
+.tabla-horarios td {
+  color: var(--frc-texto);
+  border-top: 1px solid var(--frc-borde-suave);
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.boton-nuevo-horario {
+  margin-top: 10px;
+}
+
+.sin-horarios {
+  color: var(--frc-texto-tenue);
+  padding: 8px 0;
+}
+
+/* Sin esto la fila "cerrada" (alto 0) deja ver su contenido. */
+.example-funcionario-detail {
+  overflow: hidden;
+  width: 100%;
+}

@@ -41,3 +41,9 @@ export class HorarioInput {
     dias: string[];
     turno: string;
 }
+
+/** Resultado de copiar un horario a varios funcionarios (#523). */
+export interface CopiaHorarioResultado {
+    copiados: number;
+    errores: string[];
+}
