@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, timer } from 'rxjs';
-import { catchError, filter, map, take } from 'rxjs/operators';
+import { catchError, filter, map, take, tap } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { CONTEXTO_SONDEO, LECTURA_ESTRICTA } from '../../../generics/generic-crud.constantes';
 import { Moneda } from '../../financiero/moneda/moneda.model';
@@ -103,7 +103,18 @@ export class PrecioMonedaService {
    * vacío si no hay ninguno o si la filial no conoce la operación (todo en la moneda de la empresa).
    */
   preciosEnOtraMoneda(): Observable<Map<string, Moneda>> {
-    return this.leerPreciosEnOtraMoneda(false).pipe(map((m) => m ?? new Map<string, Moneda>()));
+    return this.leerPreciosEnOtraMoneda(false).pipe(
+      map((m) => m ?? new Map<string, Moneda>()),
+      tap((m) => (this.mapaPdv = m)),
+    );
+  }
+
+  /** El último mapa leído de la filial para el PDV (vacío hasta abrirlo): lo usan los diálogos del PDV. */
+  mapaPdv = new Map<string, Moneda>();
+
+  /** La moneda de un precio del PDV, o null si es de la moneda de la empresa. */
+  monedaPdvDe(precioId: number | string | null | undefined): Moneda | null {
+    return precioId == null ? null : this.mapaPdv.get(String(precioId)) ?? null;
   }
 
   /** Lee `preciosEnOtraMoneda` del central o de la filial; emite null si falla. */

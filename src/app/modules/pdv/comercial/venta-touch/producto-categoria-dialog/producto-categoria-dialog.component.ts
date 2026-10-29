@@ -20,6 +20,8 @@ import { TecladoNumericoComponent } from "../../../../../shared/components/tecla
 import { WindowInfoService } from "../../../../../shared/services/window-info.service";
 import { PrecioDelivery } from "../../../../operaciones/delivery/precio-delivery.model";
 import { PrecioPorSucursal } from "../../../../productos/precio-por-sucursal/precio-por-sucursal.model";
+import { PrecioMonedaService } from "../../../../productos/precio-por-sucursal/precio-moneda.service";
+import { Moneda } from "../../../../financiero/moneda/moneda.model";
 import { Presentacion } from "../../../../productos/presentacion/presentacion.model";
 import { PdvGruposProductos } from "../pdv-grupos-productos/pdv-grupos-productos.model";
 
@@ -71,7 +73,8 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
     public matDialog: MatDialog,
     public mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private precioMonedaService: PrecioMonedaService
   ) {
     this.presentaciones = data?.presentaciones;
     this.cantidad = +data?.cantidad;
@@ -212,5 +215,15 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
         this.desplegarTipoPrecio = true;
         break;
     }
+  }
+
+  /** La moneda del precio si no es la de la empresa (Fase 3): la tarjeta muestra «US$ 5,85», no «5,85». */
+  monedaDe(precio: PrecioPorSucursal | null | undefined): Moneda | null {
+    return this.precioMonedaService.monedaPdvDe(precio?.id);
+  }
+
+  digitosDe(m: Moneda): string {
+    const d = m?.decimales != null && m.decimales >= 0 ? m.decimales : 2;
+    return `1.${d}-${d}`;
   }
 }
