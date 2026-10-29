@@ -154,11 +154,14 @@
     </mat-form-field>
   </div>
 
-  <div class="aviso-neto-negativo" *ngIf="liq.estado === 'APROBADA' && netoNegativo"
+  <div class="aviso-neto-negativo" *ngIf="(liq.estado === 'BORRADOR' || liq.estado === 'APROBADA') && netoNegativo"
     fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
     <mat-icon color="warn">error_outline</mat-icon>
-    <span>Los descuentos superan a los haberes: el funcionario le debe a la empresa, no hay nada que pagar.
-      Corrija los items o cobre la diferencia por separado.</span>
+    <span>Los descuentos superan a los haberes: el funcionario le debe a la empresa, no se puede aprobar ni pagar.
+      <ng-container *ngIf="liq.estado === 'APROBADA' && (puedeProgramar || puedeAprobar)">Vuelva a borrador y corrija</ng-container>
+      <ng-container *ngIf="liq.estado === 'APROBADA' && !(puedeProgramar || puedeAprobar)">Pida a RRHH que la vuelva a borrador y corrija</ng-container>
+      <ng-container *ngIf="liq.estado === 'BORRADOR'">Corrija</ng-container>
+      los ítems o pase el saldo al mes siguiente con un ítem programado.</span>
   </div>
 
   <div *ngIf="itemsFallo" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
@@ -174,7 +177,9 @@
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar"
-        [disabled]="!itemsCargados" (click)="onAprobar()">Aprobar</button>
+        [disabled]="!itemsCargados || netoNegativo"
+        matTooltip="Neto negativo: los descuentos superan a los haberes, no se puede aprobar"
+        [matTooltipDisabled]="!netoNegativo" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && (puedeProgramar || puedeAprobar)" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
