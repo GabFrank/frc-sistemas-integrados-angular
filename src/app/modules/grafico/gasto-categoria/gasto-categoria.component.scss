@@ -3,7 +3,7 @@
 .gasto-categoria-container {
     .grafico-wrapper {
         flex: 1;
-        background-color: #424242;
+        background-color: var(--frc-superficie-elevada);
         border-radius: 8px;
         padding: 20px;
         min-height: 400px;
@@ -21,6 +21,6 @@
         align-items: center;
         height: 400px;
         gap: 20px;
-        color: #9E9E9E;
+        color: var(--frc-dash-texto-2);
     }
 }

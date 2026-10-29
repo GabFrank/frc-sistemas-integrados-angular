@@ -46,6 +46,9 @@ import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-cat
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { LoteService } from '../../lote/lote.service';
+import { LoteVentaItem } from '../../lote/lote.model';
+import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from '../../lote/lotes-de-venta.util';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -123,7 +126,14 @@ export class ListVentaComponent implements OnInit {
   /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
   puedeCancelarVenta = false;
 
+  /** Ver de qué lote salió cada ítem (#429 fase 2): VER PRODUCTOS y análisis de caja o de venta. */
+  puedeVerLotes = false;
+  /** Lotes por ítem de la venta abierta, cargados aparte; vacío si el central es viejo o falla. */
+  lotesPorItem: { [ventaItemId: string]: LoteVentaItem[] } = {};
+  private lotesCargadosDe: string = null;
+
   constructor(
+    private loteService: LoteService,
     private cajaService: CajaService,
     private ventaService: VentaService,
     private cargandoService: CargandoDialogService,
@@ -141,6 +151,7 @@ export class ListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
+    this.puedeVerLotes = puedeVerLotesDeVenta(this.mainService.usuarioActual?.roles);
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
       this.monedaList = data;
     });
@@ -168,7 +179,7 @@ export class ListVentaComponent implements OnInit {
             return;
           }
           if (ventaId) this.idVentaControl.setValue(ventaId);
-          this.onFiltrar();
+          this.buscar();
           this.onGetBalance();
         }))
         .subscribe((res) => {
@@ -178,7 +189,7 @@ export class ListVentaComponent implements OnInit {
             if (ventaId) {
               this.idVentaControl.setValue(ventaId);
             }
-            this.onFiltrar();
+            this.buscar();
             this.onGetBalance();
           }
         });
@@ -212,7 +223,16 @@ export class ListVentaComponent implements OnInit {
     });
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     // if (this.idVentaControl.value != null) {
     //   this.ventaService
     //     .onGetPorId(this.idVentaControl.value, this.selectedCaja?.sucursalId)
@@ -303,6 +323,7 @@ export class ListVentaComponent implements OnInit {
   }
 
   onClickRow(venta: Venta, index) {
+    this.cargarLotesDeVenta(venta);
     if (venta.ventaItemList == null) {
       this.loading = true;
       this.ventaService
@@ -332,6 +353,34 @@ export class ListVentaComponent implements OnInit {
       this.getTotales(venta);
     }
     // this.loadObservaciones();
+  }
+
+  /**
+   * Carga aparte, sin bloquear el detalle, de qué lote salió cada ítem. Si el central todavía no
+   * tiene la consulta o falla, no se muestra nada y el detalle sigue igual.
+   */
+  cargarLotesDeVenta(venta: Venta) {
+    const sucursalId = venta?.sucursalId ?? this.selectedCaja?.sucursalId;
+    if (!this.puedeVerLotes || venta?.id == null || sucursalId == null) return;
+    const clave = venta.id + '-' + sucursalId;
+    if (this.lotesCargadosDe === clave) return;
+    this.lotesCargadosDe = clave;
+    this.lotesPorItem = {};
+    this.loteService.onLotesDeVenta(venta.id, sucursalId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (filas) => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = agruparLotesPorItem(filas);
+        },
+        error: () => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = {};
+        }
+      });
+  }
+
+  /** «Lote X · Vto dd/mm/aa» de un ítem; con varios lotes, cada uno con sus unidades. */
+  textoLotes(ventaItemId: number): string {
+    return textoLotesDeItem(this.lotesPorItem[String(ventaItemId)]);
   }
 
   getTotales(venta: Venta) {
@@ -518,8 +567,16 @@ export class ListVentaComponent implements OnInit {
     this.idVentaControl.setValue(null);
     this.formaPagoControl.setValue(null);
     this.estadoControl.setValue(null);
+    this.modoControl.setValue(null);
+    this.monedaControl.setValue(null);
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
+    // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
+    this.selectedPageInfo = null;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.conObsControl.setValue(false);
     this.conDescuentoControl.setValue(false);
     this.conAumentoControl.setValue(false);
@@ -560,7 +617,7 @@ export class ListVentaComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   abrirConteo() {

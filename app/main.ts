@@ -277,8 +277,6 @@ let printers: PrinterConfig[] = [];
 
 const { ipcMain } = require('electron');
 
-require("@electron/remote/main").initialize();
-
 let win: BrowserWindow;
 let windows: BrowserWindow[] = [];
 // Particion (sesion/localStorage propios) para la 2da ventana: permite tener un
@@ -306,8 +304,89 @@ app.on('second-instance', () => {
     }
     return;
   }
-  createWindow(SECOND_INSTANCE_PARTITION);
+  createWindow(SECOND_INSTANCE_PARTITION).catch((e) => log.error('No se pudo crear la 2da ventana:', e));
 });
+
+/**
+ * Abre en el navegador del sistema solo enlaces web (http/https) y mailto. Nunca `file:`,
+ * `smb:` ni protocolos que lancen programas: shell.openExternal ejecuta lo que el sistema
+ * tenga asociado a ese protocolo.
+ */
+function abrirEnNavegador(destino: string): void {
+  try {
+    const protocolo = new URL(destino).protocol;
+    if (protocolo === 'https:' || protocolo === 'http:' || protocolo === 'mailto:') {
+      require('electron').shell.openExternal(destino);
+    } else {
+      log.warn(`Enlace externo bloqueado (protocolo ${protocolo}): ${destino}`);
+    }
+  } catch {
+    log.warn(`Enlace externo inválido bloqueado: ${destino}`);
+  }
+}
+
+/**
+ * Dirección `file://` del index.html de la app. Con `pathToFileURL` y no armando el texto a mano:
+ * `path.join('file:', __dirname, …)` en Windows con el Node de Electron 43 da `.\file:\C:\…`,
+ * `new URL` lo rechaza y la ventana quedaba en blanco hasta «Reiniciar» (alphas .295 a .297).
+ */
+function urlDelIndex(): string {
+  return url.pathToFileURL(path.join(carpetaDeLaApp(), 'index.html')).href;
+}
+
+/** Carpeta del index.html que carga la ventana (dist/ en local, la raíz del asar empaquetada). */
+function carpetaDeLaApp(): string {
+  return fs.existsSync(path.join(__dirname, '../dist/index.html'))
+    ? path.join(__dirname, '../dist')
+    : __dirname;
+}
+
+/**
+ * La ventana solo puede mostrar la app: en dev el ng serve, empaquetada los archivos de su propia
+ * carpeta. Con useHash el router deja la URL en `dist/#/…` (sin index.html), por eso se compara
+ * por carpeta y no por nombre de archivo.
+ */
+function esUrlDeLaApp(destino: string): boolean {
+  try {
+    const u = new URL(destino);
+    if (serve) {
+      return u.origin === 'http://localhost:4200';
+    }
+    if (u.protocol !== 'file:') {
+      return false;
+    }
+    const pedido = path.resolve(url.fileURLToPath(u));
+    const base = path.resolve(carpetaDeLaApp());
+    return pedido === base || pedido.startsWith(base + path.sep);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Impide que la ventana principal salga de la app: ventanas nuevas, navegación a otro sitio o
+ * <webview> embebidos. Un enlace externo se abre en el navegador del sistema.
+ */
+function protegerNavegacion(w: BrowserWindow): void {
+  w.webContents.setWindowOpenHandler(({ url: destino }) => {
+    abrirEnNavegador(destino);
+    return { action: 'deny' };
+  });
+  w.webContents.on('will-navigate', (event, destino) => {
+    if (!esUrlDeLaApp(destino)) {
+      event.preventDefault();
+      abrirEnNavegador(destino);
+    }
+  });
+  w.webContents.on('will-redirect', (event, destino) => {
+    if (event.isMainFrame && !esUrlDeLaApp(destino)) {
+      event.preventDefault();
+    }
+  });
+  w.webContents.on('will-attach-webview', (event) => {
+    event.preventDefault();
+  });
+}
 
 export async function createWindow(partition?: string): Promise<BrowserWindow> {
   const electronScreen = screen;
@@ -329,16 +408,23 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     y: 0,
     width: size.width,
     height: size.height,
+    // La pantalla no tiene acceso a Node: todo lo del sistema operativo pasa por el preload, que
+    // expone solo los canales IPC permitidos. Con esto un XSS no puede tocar archivos ni ejecutar
+    // comandos en la PC. Ver app/preload.ts.
     webPreferences: {
-      nodeIntegration: true,
-      allowRunningInsecureContent: (serve),
-      contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: false,
       ...(partition ? { partition } : {}),
     },
   });
   win = w;
   windows.push(w);
-  require("@electron/remote/main").enable(w.webContents);
+  protegerNavegacion(w);
   // 'win' (global) apunta siempre a la ventana enfocada: menu, zoom y update-status operan sobre ella.
   w.on('focus', () => { win = w; });
   w.on('closed', () => {
@@ -412,14 +498,7 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     require('electron-reloader')(module);
     w.loadURL('http://localhost:4200');
   } else {
-    let pathIndex = './index.html';
-
-    if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
-      pathIndex = '../dist/index.html';
-    }
-
-    const url = new URL(path.join('file:', __dirname, pathIndex));
-    w.loadURL(url.href);
+    w.loadURL(urlDelIndex());
   }
 
   w.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
@@ -440,11 +519,6 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     }
   });
 
-  w.webContents.setWindowOpenHandler(({ url }) => {
-    require("electron").shell.openExternal(url);
-    return { action: "deny" };
-  });
-
   w.webContents.on('did-finish-load', () => {
     // Leer zoom desde archivo (no depende de localStorage ni del renderer)
     const zoom = loadZoomLevel();
@@ -454,7 +528,83 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
     log.info(`Zoom level applied on load: ${zoom}`);
   });
 
+  vigilarPantallaEnBlanco(w);
+
   return w;
+}
+
+/** Cuánto se espera a que Angular dibuje algo antes de recargar la ventana. */
+const ESPERA_PRIMER_DIBUJO_MS = 20000;
+/** Recargas automáticas seguidas por ventana; después se deja como está y queda en main.log. */
+const MAX_RECARGAS_AUTOMATICAS = 2;
+
+/**
+ * Red de seguridad contra la ventana en blanco al abrir la app o después de actualizar (Windows):
+ * si a los 20 s `app-root` sigue vacío, o si el proceso de la pantalla se cae, recarga la ventana
+ * (lo mismo que hacía el usuario con «Reiniciar»). Además deja en main.log los errores de la
+ * pantalla, que antes solo se veían con las DevTools abiertas.
+ */
+function vigilarPantallaEnBlanco(w: BrowserWindow): void {
+  const wc = w.webContents;
+  let recargas = 0;
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+
+  const recargar = (motivo: string) => {
+    if (w.isDestroyed()) return;
+    if (recargas >= MAX_RECARGAS_AUTOMATICAS) {
+      log.error(`Pantalla: ${motivo}. Ya se recargó ${recargas} veces, no se reintenta.`);
+      return;
+    }
+    recargas++;
+    log.warn(`Pantalla: ${motivo}. Recarga automática ${recargas}/${MAX_RECARGAS_AUTOMATICAS}.`);
+    wc.reloadIgnoringCache();
+  };
+
+  const comprobarDibujo = async (desde: number) => {
+    if (w.isDestroyed()) return;
+    const dibujo = await wc
+      .executeJavaScript(`(document.querySelector('app-root')?.childElementCount ?? 0) > 0`, true)
+      .catch(() => false);
+    if (dibujo) {
+      recargas = 0;
+      log.info(`Pantalla: primer dibujo en ${Date.now() - desde} ms.`);
+      return;
+    }
+    if (Date.now() - desde >= ESPERA_PRIMER_DIBUJO_MS) {
+      recargar(`app-root vacío a los ${ESPERA_PRIMER_DIBUJO_MS / 1000} s (ventana en blanco)`);
+      return;
+    }
+    temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+  };
+
+  // did-navigate llega apenas empieza a cargar el documento, antes de que un recurso colgado
+  // (CSS, script) frene el resto; did-finish-load podría no llegar nunca.
+  wc.on('did-navigate', () => {
+    if (temporizador) clearTimeout(temporizador);
+    const desde = Date.now();
+    temporizador = setTimeout(() => comprobarDibujo(desde), 1000);
+  });
+
+  wc.on('render-process-gone', (_event, details) => {
+    if (temporizador) clearTimeout(temporizador);
+    log.error(`Pantalla: el proceso de la pantalla terminó (${details.reason}, código ${details.exitCode}).`);
+    if (details.reason !== 'clean-exit') {
+      recargar(`proceso de la pantalla caído (${details.reason})`);
+    }
+  });
+
+  wc.on('unresponsive', () => log.warn('Pantalla: la ventana no responde.'));
+  wc.on('responsive', () => log.info('Pantalla: la ventana vuelve a responder.'));
+
+  // Electron 35+ manda los datos en el evento; las versiones viejas, como argumentos sueltos.
+  wc.on('console-message', (event: any, ...resto: any[]) => {
+    const nivel = event?.level ?? resto[0];
+    if (nivel !== 'error' && nivel !== 3) return;
+    const mensaje = event?.message ?? resto[1];
+    const origen = event?.sourceId ?? resto[3];
+    const linea = event?.lineNumber ?? resto[2];
+    log.error(`Pantalla (consola): ${mensaje}${origen ? ` [${origen}:${linea}]` : ''}`);
+  });
 }
 
 ipcMain.on('get-config-file', (event: any, arg: any) => {
@@ -486,6 +636,60 @@ ipcMain.on('save-config-backup', (event: any, configData: string) => {
     log.info(`Config backup saved by main process to: ${configPath}`);
   } catch (e) {
     log.error('Error saving config backup from renderer:', e);
+  }
+});
+
+/**
+ * Respaldo de configuración guardado en disco, para cuando el localStorage está vacío (perfil nuevo,
+ * caché borrada). Lee las mismas ubicaciones donde lo escribían las versiones anteriores, que lo
+ * guardaban desde el renderer con fs. Devuelve el texto o null.
+ */
+ipcMain.handle('leer-config-backup', () => {
+  const ubicaciones = [
+    path.join(app.getPath('userData'), 'config', 'config-backup.json'),
+    path.join(app.getPath('appData'), 'frc-sistemas', 'config-backup.json'),
+    path.join(app.getPath('home'), '.frc-sistemas', 'config-backup.json'),
+  ];
+  for (const ubicacion of ubicaciones) {
+    try {
+      if (fs.existsSync(ubicacion)) {
+        return fs.readFileSync(ubicacion, 'utf8');
+      }
+    } catch (e) {
+      log.warn(`No se pudo leer el respaldo de configuración en ${ubicacion}:`, e);
+    }
+  }
+  return null;
+});
+
+/**
+ * Exporta la configuración a un archivo que elige el usuario. El renderer solo manda el contenido;
+ * la ruta la decide el diálogo nativo, así la pantalla nunca escribe donde quiere.
+ */
+ipcMain.handle('exportar-config-backup', async (event: any, configData: string) => {
+  try {
+    if (typeof configData !== 'string') {
+      return { ok: false, error: 'Contenido inválido' };
+    }
+    JSON.parse(configData);
+    const ventana = BrowserWindow.fromWebContents(event.sender);
+    const opciones = {
+      title: 'Guardar Respaldo de Configuración',
+      defaultPath: path.join(app.getPath('documents'), 'config-backup.json'),
+      filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
+    };
+    const resultado = ventana
+      ? await dialog.showSaveDialog(ventana, opciones)
+      : await dialog.showSaveDialog(opciones);
+    if (resultado.canceled || !resultado.filePath) {
+      return { ok: false, cancelado: true };
+    }
+    fs.writeFileSync(resultado.filePath, configData, 'utf8');
+    log.info(`Respaldo de configuración exportado a ${resultado.filePath}`);
+    return { ok: true };
+  } catch (e) {
+    log.error('Error exportando el respaldo de configuración:', e);
+    return { ok: false, error: (e as any)?.message || String(e) };
   }
 });
 
@@ -2390,9 +2594,9 @@ try {
 
     log.info(`=== FRC v${app.getVersion()} started ===`);
 
-    createWindow().then(() => {
-      registerPrinterIpcHandlers();
-    });
+    createWindow()
+      .catch((e) => log.error('No se pudo crear la ventana principal:', e))
+      .then(() => registerPrinterIpcHandlers());
 
     if (!isDev) {
       if (configureUpdateChannel()) {
@@ -2422,22 +2626,37 @@ try {
       if (win) win.webContents.send('update-status', `Descargando: ${progress.percent.toFixed(0)}%`);
     });
 
-    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
-      const version = event.version || 'desconocida';
+    // Con el instalador en caché, cada chequeo de 5 min vuelve a emitir update-downloaded:
+    // sin esta bandera los diálogos se apilan si el usuario no contesta.
+    let dialogoActualizacionAbierto = false;
+    autoUpdater.on('update-downloaded', async (event: UpdateDownloadedEvent) => {
+      const version = event?.version || 'desconocida';
       log.info(`Actualizacion descargada: version ${version}`);
+      if (dialogoActualizacionAbierto) {
+        log.info('Dialogo de actualizacion ya abierto, no se abre otro.');
+        return;
+      }
       const dialogOpts: MessageBoxOptions = {
         type: 'info',
         buttons: ['Cerrar y actualizar', 'Mas tarde'],
+        // Cerrar con la X o Esc devuelve cancelId; sin él Electron devuelve 0 e instalaba.
+        cancelId: 1,
         title: 'Actualizacion disponible',
         message: `Version ${version}`,
         detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',
       };
 
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+      dialogoActualizacionAbierto = true;
+      try {
+        const returnValue = await dialog.showMessageBox(dialogOpts);
         if (returnValue.response === 0) {
           autoUpdater.quitAndInstall(false, true);
         }
-      });
+      } catch (err) {
+        log.error('Error en el dialogo de actualizacion:', err);
+      } finally {
+        dialogoActualizacionAbierto = false;
+      }
     });
 
     autoUpdater.on('error', (err) => {
@@ -2453,7 +2672,9 @@ try {
   });
 
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow().catch((e) => log.error('No se pudo crear la ventana:', e));
+    }
   });
 
 } catch (e) {
@@ -2468,19 +2689,7 @@ export function relaunchElectron() {
     });
     win.loadURL("http://localhost:4200");
   } else {
-    let pathIndex = "./index.html";
-
-    if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
-      pathIndex = "../dist/index.html";
-    }
-
-    win.loadURL(
-      url.format({
-        pathname: path.join(__dirname, pathIndex),
-        protocol: "file:",
-        slashes: true,
-      })
-    );
+    win.loadURL(urlDelIndex());
   }
 }
 

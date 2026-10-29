@@ -67,7 +67,7 @@ export class ListLiquidacionComponent implements OnInit {
   ngOnInit(): void {
     this.acotado = liquidaAcotadoRrhh(this.mainService);
     this.periodoControl.setValue(this.periodoActual());
-    this.onFiltrar();
+    this.buscar();
 
     this.periodoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(valor => {
       const formateado = formatearPeriodo(valor);
@@ -82,7 +82,16 @@ export class ListLiquidacionComponent implements OnInit {
     return hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2);
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.liquidacionService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -102,21 +111,20 @@ export class ListLiquidacionComponent implements OnInit {
     this.funcionarioNombreControl.setValue(null);
     this.periodoControl.setValue(this.periodoActual());
     this.estadoControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onGenerar() {
     this.dialog.open(GenerarLiquidacionDialogComponent, {
       data: { periodo: this.periodoControl.value },
       width: '560px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   /**

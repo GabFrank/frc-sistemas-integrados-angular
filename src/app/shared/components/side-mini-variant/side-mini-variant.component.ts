@@ -30,6 +30,8 @@ import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
 import { ListStockLoteComponent } from "../../../modules/operaciones/lote/list-stock-lote/list-stock-lote.component";
+import { BuscarLoteComponent } from "../../../modules/operaciones/lote/buscar-lote/buscar-lote.component";
+import { PendientesLoteComponent } from "../../../modules/operaciones/lote/pendientes-lote/pendientes-lote.component";
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
@@ -41,6 +43,7 @@ import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-ret
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
+import { InteligenciaArtificialComponent } from '../../../modules/configuracion/inteligencia-artificial/inteligencia-artificial.component';
 import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
@@ -161,8 +164,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       // abierto a cualquier usuario autenticado, incluida Solicitud de pago, que muestra la
       // deuda a proveedores con montos y estados.
       visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
-        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR,
+        ROLES.VER_PRODUCTOS, ROLES.EDITAR_PRODUCTOS, ROLES.ADMIN],
       items: [
+        {
+          name: 'Pendientes de lote', icon: 'pending_actions', action: 'pendientes-lote',
+          visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.EDITAR_PRODUCTOS, ROLES.ADMIN]
+        },
         {
           name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
@@ -712,6 +720,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         },
         {
+          name: 'Buscar lote',
+          icon: 'manage_search',
+          action: 'buscar-lote',
+          visibilityRoles: [ROLES.ADMIN, ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_DE_VENTA]
+        },
+        {
           name: 'Promociones',
           icon: 'local_offer',
           action: 'list-precio-especial',
@@ -753,7 +767,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'admin_panel_settings',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS],
+      visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS],
       items: [
         {
           name: 'Clientes',
@@ -813,6 +827,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'print',
           action: 'impresoras',
           visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
+        },
+        {
+          name: 'Inteligencia artificial',
+          icon: 'smart_toy',
+          action: 'inteligencia-artificial',
+          visibilityRoles: [ROLES.ADMIN]
         },
         {
           name: 'Replicación Lógica',
@@ -1280,10 +1300,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
         break;
       case "list-funcionarios":
-        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListFuncioarioComponent, "Funcionarios");
+        // Los mismos roles que muestran la entrada (la lista no pide rol en el central).
+        this.openTabIfAuthorized([ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR], ListFuncioarioComponent, "Funcionarios");
         break;
       case "solicitudes-funcionarios":
-        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
+        this.openTabIfAuthorized([ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR], ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
         break;
       case "manual-rrhh":
         if (this.hasAnyRole([ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN])) {
@@ -1353,6 +1374,25 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
         break;
+      case "pendientes-lote": {
+        const roles = this.mainService.usuarioActual?.roles || [];
+        if (roles.includes(ROLES.ADMIN) || roles.includes(ROLES.VER_PRODUCTOS) || roles.includes(ROLES.EDITAR_PRODUCTOS)) {
+          this.tabService.addTab(new Tab(PendientesLoteComponent, "Pendientes de lote", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      }
+      case "buscar-lote": {
+        const roles = this.mainService.usuarioActual?.roles || [];
+        if (roles.includes(ROLES.ADMIN) || (roles.includes(ROLES.VER_PRODUCTOS)
+          && (roles.includes(ROLES.ANALISIS_DE_CAJA) || roles.includes(ROLES.ANALISIS_DE_VENTA)))) {
+          this.tabService.addTab(new Tab(BuscarLoteComponent, "Buscar lote", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      }
       case "list-stock-lote":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
@@ -1377,6 +1417,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "inteligencia-artificial":
+        this.openTabIfAuthorized(ROLES.ADMIN, InteligenciaArtificialComponent, "Inteligencia artificial");
         break;
       case "logical-replication":
         this.openTabIfAuthorized(ROLES.ADMIN, ListReplicationComponent, "Replicación Lógica");

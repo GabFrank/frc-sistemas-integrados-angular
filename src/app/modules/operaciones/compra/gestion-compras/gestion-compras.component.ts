@@ -59,7 +59,7 @@ import {
 import { NotaRecepcion, NotaRecepcionEstado } from "./nota-recepcion.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
-import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { dateToString, stringToLocalDate } from "../../../../commons/core/utils/dateUtils";
 import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
@@ -90,6 +90,7 @@ import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graph
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
 import { PedidoService } from "../pedido.service";
+import { VariacionCostoPedidoItem } from "./graphql/getVariacionCostoPedidoItems";
 import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
@@ -166,6 +167,13 @@ interface MockPedidoItem extends PedidoItem {
   distributionStatusClassComputed: string;
   isSelectedComputed?: boolean; // Para step 3
   cantidadPendienteComputed?: number; // Para step 3 - cantidad pendiente de conciliar
+  /** Vencimiento como Date local, para el datepicker de la tabla. */
+  vencimientoDateComputed?: Date | null;
+  guardandoVencimientoComputed?: boolean;
+  /** Clase de la fila según el cambio de costo que informa el central: 'costo-subio' | 'costo-bajo' | null. */
+  variacionCostoClaseComputed?: string | null;
+  variacionCostoIconoComputed?: string | null;
+  variacionCostoTextoComputed?: string | null;
 }
 
 interface MockNotaRecepcion extends NotaRecepcion {
@@ -351,6 +359,9 @@ export class GestionComprasComponent
 
   // Items table
   itemsDataSource = new MatTableDataSource<MockPedidoItem>([]);
+  /** Variación de costo por id de ítem (string: GraphQL manda los ID así), del pedido variacionCostoPedidoId. */
+  private variacionCostoPorItemId = new Map<string, VariacionCostoPedidoItem>();
+  private variacionCostoPedidoId: number | null = null;
   itemsDisplayedColumns = [
     "producto",
     "cantidadSolicitada",
@@ -434,10 +445,6 @@ export class GestionComprasComponent
   productosProveedorSearchText = '';
   private proveedorBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly BUSQUEDA_DEBOUNCE_MS = 300;
-  ultimasComprasPageSize = 5;
-  ultimasComprasPageIndex = 0;
-  ultimasComprasTotalElements = 0;
-  ultimasComprasAllData: UltimaCompraItem[] = [];
   lastClickTime = 0;
   lastClickedProduct: ProductoProveedorItem | null = null;
 
@@ -658,6 +665,8 @@ export class GestionComprasComponent
             .get("vendedor")
             ?.setValue(value.vendedor, { emitEvent: false });
           
+          // Otro proveedor: su lista arranca en la página 1 (también al entrar luego a Ítems).
+          this.productosProveedorPageIndex = 0;
           // Si estamos en el tab de items, cargar productos del proveedor
           if (this.selectedTabIndex === 1) {
             this.loadProductosProveedor();
@@ -667,10 +676,9 @@ export class GestionComprasComponent
           this.showProveedorCard = false;
           // Si se remueve el proveedor, limpiar la lista de productos
           this.productosProveedorDataSource.data = [];
+          this.productosProveedorPageIndex = 0;
           this.ultimasComprasDataSource.data = [];
-          this.ultimasComprasAllData = [];
-          this.ultimasComprasTotalElements = 0;
-          this.ultimasComprasPageIndex = 0;
+          this.ultimasComprasLoading = false;
           this.selectedProductoProveedor = null;
         }
       });
@@ -3137,12 +3145,16 @@ export class GestionComprasComponent
   /**
    * Carga los datos de los ítems del pedido desde el backend con paginación
    */
-  private loadItemsData(): void {
+  private loadItemsData(recargarVariacionCosto = true): void {
     if (!this.currentPedido?.id) {
       return;
     }
 
     this.itemsLoading = true;
+    // La variación de costo abarca todos los ítems del pedido: se pide al recargar, no al paginar o buscar
+    if (recargarVariacionCosto || this.variacionCostoPedidoId !== this.currentPedido.id) {
+      this.loadVariacionCosto(this.currentPedido.id);
+    }
 
 
     this.pedidoService
@@ -3178,6 +3190,114 @@ export class GestionComprasComponent
           this.itemsLoading = false;
         }
       });
+  }
+
+  /**
+   * Carga del central la variación de costo de todos los ítems del pedido y pinta las filas visibles.
+   * Es solo decoración: si falla, la tabla queda como antes, sin avisos.
+   */
+  private loadVariacionCosto(pedidoId: number): void {
+    this.variacionCostoPedidoId = pedidoId;
+    this.variacionCostoPorItemId = new Map();
+    this.pedidoService
+      .onGetVariacionCostoPedidoItems(pedidoId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (variaciones) => {
+          // Si mientras tanto cambió el pedido, la respuesta ya no corresponde
+          if (this.variacionCostoPedidoId !== pedidoId || this.currentPedido?.id !== pedidoId) {
+            return;
+          }
+          const mapa = new Map<string, VariacionCostoPedidoItem>();
+          (variaciones || []).forEach((v) => mapa.set(String(v.pedidoItemId), v));
+          this.variacionCostoPorItemId = mapa;
+          this.itemsDataSource.data.forEach((item) => this.aplicarVariacionCosto(item));
+          this.itemsDataSource.data = [...this.itemsDataSource.data];
+        },
+        error: (error) => console.error("Error cargando la variación de costo de los ítems:", error),
+      });
+  }
+
+  /** Pinta un ítem según la dirección que manda el central; el texto del tooltip también viene de allá. */
+  private aplicarVariacionCosto(item: MockPedidoItem): void {
+    const variacion = item?.id != null ? this.variacionCostoPorItemId.get(String(item.id)) : undefined;
+    switch (variacion?.direccion) {
+      case "SUBIO":
+        item.variacionCostoClaseComputed = "costo-subio";
+        item.variacionCostoIconoComputed = "trending_up";
+        break;
+      case "BAJO":
+        item.variacionCostoClaseComputed = "costo-bajo";
+        item.variacionCostoIconoComputed = "trending_down";
+        break;
+      default:
+        item.variacionCostoClaseComputed = null;
+        item.variacionCostoIconoComputed = null;
+    }
+    item.variacionCostoTextoComputed = item.variacionCostoClaseComputed ? variacion?.texto || null : null;
+  }
+
+  /** El backend manda "yyyy-MM-dd" o "yyyy-MM-dd HH:mm": se lleva a medianoche local para no correr el día. */
+  private vencimientoComoFecha(valor: Date | string | null | undefined): Date | null {
+    if (!valor) {
+      return null;
+    }
+    if (valor instanceof Date) {
+      return isNaN(valor.getTime()) ? null : valor;
+    }
+    const fecha = stringToLocalDate(valor);
+    return fecha && !isNaN(fecha.getTime()) ? fecha : null;
+  }
+
+  /**
+   * Guarda al momento el vencimiento elegido en la tabla (null = sin vencimiento) y actualiza solo esa fila.
+   * Habilitado con el tab de ítems editable (etapa CREACIÓN), igual que agregar ítems.
+   */
+  onVencimientoItemChange(item: MockPedidoItem, fecha: Date | null): void {
+    if (this.itemsTabState !== "editable" || item?.id == null || item.guardandoVencimientoComputed) {
+      return;
+    }
+    const nuevo = fecha ? dateToString(fecha, "yyyy-MM-dd") : null;
+    const actual = item.vencimientoDateComputed ? dateToString(item.vencimientoDateComputed, "yyyy-MM-dd") : null;
+    if (nuevo === actual) {
+      return;
+    }
+    const pedidoId = this.currentPedido?.id;
+    this.reemplazarItemEnTabla(item.id, { guardandoVencimientoComputed: true });
+    this.pedidoService
+      .onActualizarVencimientoPedidoItem(item.id, nuevo)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (actualizado) => {
+          if (this.currentPedido?.id !== pedidoId) {
+            return;
+          }
+          const vencimiento = actualizado ? actualizado.vencimientoEsperado : (nuevo as any);
+          this.reemplazarItemEnTabla(item.id, {
+            vencimientoEsperado: vencimiento,
+            vencimientoDateComputed: this.vencimientoComoFecha(vencimiento),
+            guardandoVencimientoComputed: false,
+          });
+          // Los ítems pendientes del paso 3 se vuelven a leer en la próxima visita
+          this.markTabAsUnloaded(2);
+        },
+        error: (error) => {
+          console.error("Error guardando el vencimiento del ítem:", error);
+          // Se vuelve a mostrar el vencimiento que tenía (el datepicker ya mostraba el nuevo)
+          this.reemplazarItemEnTabla(item.id, {
+            vencimientoDateComputed: item.vencimientoDateComputed ? new Date(item.vencimientoDateComputed) : null,
+            guardandoVencimientoComputed: false,
+          });
+          this.trasFalloDeMutacion(error, "se guardó el vencimiento", () => this.recargarItemsTrasCorte());
+        },
+      });
+  }
+
+  /** Reemplaza una fila de la tabla de ítems por una copia con los cambios, sin recargar la página. */
+  private reemplazarItemEnTabla(itemId: number, cambios: Partial<MockPedidoItem>): void {
+    this.itemsDataSource.data = this.itemsDataSource.data.map((i) =>
+      i.id === itemId ? ({ ...i, ...cambios } as MockPedidoItem) : i
+    );
   }
 
   /**
@@ -3295,8 +3415,11 @@ export class GestionComprasComponent
       distributionStatusTextComputed: item.distribucionConcluida ? "Concluida" : "Pendiente", 
       distributionStatusClassComputed: item.distribucionConcluida ? "estado-activo" : "estado-pendiente",
       isSelectedComputed: false,
-      distribuciones: []
+      distribuciones: [],
+      vencimientoDateComputed: this.vencimientoComoFecha(item.vencimientoEsperado),
+      guardandoVencimientoComputed: false,
     } as any;
+    this.aplicarVariacionCosto(processedItem);
 
     return processedItem;
   }
@@ -3607,13 +3730,13 @@ export class GestionComprasComponent
   onItemsPageChange(event: PageEvent): void {
     this.itemsPageIndex = event.pageIndex;
     this.itemsPageSize = event.pageSize;
-    this.loadItemsData();
+    this.loadItemsData(false);
   }
 
   onItemsSearchChange(searchText: string): void {
     this.itemsSearchText = searchText;
     this.itemsPageIndex = 0; // Reset to first page
-    this.loadItemsData();
+    this.loadItemsData(false);
   }
 
   onToggleItemsSearch(): void {
@@ -3622,7 +3745,7 @@ export class GestionComprasComponent
       // Si se oculta el buscador, limpiar el texto de búsqueda y recargar
       this.itemsSearchText = '';
       this.itemsPageIndex = 0;
-      this.loadItemsData();
+      this.loadItemsData(false);
     }
   }
 
@@ -4715,12 +4838,10 @@ export class GestionComprasComponent
   private loadUltimasCompras(productoId: number): void {
     if (!productoId) {
       this.ultimasComprasDataSource.data = [];
-      this.ultimasComprasAllData = [];
-      this.ultimasComprasTotalElements = 0;
-      this.ultimasComprasPageIndex = 0;
       return;
     }
 
+    this.ultimasComprasDataSource.data = [];
     this.ultimasComprasLoading = true;
 
     this.productoUltimasComprasGQL
@@ -4734,7 +4855,8 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
+          if (this.descartarUltimasCompras(productoId)) return;
+
           // La respuesta tiene la estructura: response.data.data.productoUltimasCompras
           const producto = response.data?.data;
           const ultimasCompras = (producto?.productoUltimasCompras || []) as any[];
@@ -4770,13 +4892,12 @@ export class GestionComprasComponent
             return item;
           });
 
-          // Guardar todos los datos y aplicar paginación del lado del cliente
-          this.ultimasComprasAllData = compras;
-          this.ultimasComprasTotalElements = compras.length;
-          this.applyUltimasComprasPagination();
+          // Sin paginador: el central devuelve como máximo las 5 últimas (#594).
+          this.ultimasComprasDataSource.data = compras;
           this.ultimasComprasLoading = false;
         },
         error: (error) => {
+          if (this.descartarUltimasCompras(productoId)) return;
           console.error("Error cargando últimas compras:", error);
           this.notificacionService.openAlgoSalioMal(
             "Error al cargar las últimas compras del producto"
@@ -4784,6 +4905,17 @@ export class GestionComprasComponent
           this.ultimasComprasLoading = false;
         },
       });
+  }
+
+  /**
+   * true si la respuesta es de un producto que ya no está seleccionado (clics rápidos o limpieza, #611).
+   * Si quedó otro seleccionado, su propio fetch apaga la carga; si no queda ninguno, la apaga acá.
+   */
+  private descartarUltimasCompras(productoId: number): boolean {
+    const seleccionadoId = this.selectedProductoProveedor?.producto?.id;
+    if (seleccionadoId === productoId) return false;
+    if (!seleccionadoId) this.ultimasComprasLoading = false;
+    return true;
   }
 
   /**
@@ -5009,25 +5141,6 @@ export class GestionComprasComponent
   }
 
   /**
-   * Aplica la paginación del lado del cliente a las últimas compras
-   */
-  private applyUltimasComprasPagination(): void {
-    const startIndex = this.ultimasComprasPageIndex * this.ultimasComprasPageSize;
-    const endIndex = startIndex + this.ultimasComprasPageSize;
-    const paginatedData = this.ultimasComprasAllData.slice(startIndex, endIndex);
-    this.ultimasComprasDataSource.data = paginatedData;
-  }
-
-  /**
-   * Maneja el cambio de página en la lista de últimas compras
-   */
-  onUltimasComprasPageChange(event: any): void {
-    this.ultimasComprasPageIndex = event.pageIndex;
-    this.ultimasComprasPageSize = event.pageSize;
-    this.applyUltimasComprasPagination();
-  }
-
-  /**
    * Abre el diálogo de stock detallado por sucursal para un producto
    */
   onVerStockDetallado(producto: ProductoProveedorItem, event: MouseEvent): void {
@@ -5070,9 +5183,7 @@ export class GestionComprasComponent
             if (this.selectedProductoProveedor?.id === producto.id) {
               this.selectedProductoProveedor = null;
               this.ultimasComprasDataSource.data = [];
-          this.ultimasComprasAllData = [];
-          this.ultimasComprasTotalElements = 0;
-          this.ultimasComprasPageIndex = 0;
+              this.ultimasComprasLoading = false;
             }
           } else {
             this.notificacionService.openAlgoSalioMal("No se pudo desvincular el producto");

@@ -15,8 +15,8 @@ export interface LoginResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable, of, Subscription } from "rxjs";
-import { catchError, tap, timeout } from 'rxjs/operators';
+import { Observable, of, Subscription, throwError } from "rxjs";
+import { catchError, map, tap, timeout } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
@@ -24,6 +24,9 @@ import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
 import { TipoDispositivo } from "../configuracion/inicio-sesion/tipo-dispositivo.model";
 import { NotificarInicioSesionGQL } from "../configuracion/inicio-sesion/graphql/notificarInicioSesion.gql";
 import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
+
+/** Validar credenciales no puede dejar el diálogo esperando para siempre si el servidor no contesta. */
+const TIMEOUT_VERIFICAR_CREDENCIALES_MS = 10000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -133,6 +136,11 @@ export class LoginService {
         nickname: nickname,
         password: password
       };
+      // Para poder cancelarlo todo si quien llama se desuscribe (ej. un timeout): un login que termina
+      // tarde no puede dejar una sesión armada detrás de un logout.
+      let autenticacionCentral: Subscription = null;
+      let cargaDelUsuario: ReturnType<typeof setTimeout> = null;
+      let consultaDelUsuario: Subscription = null;
       let httpResponse = this.http
         .post(
           `${urlsDeServidor(serverIp, serverPort).http}/login`,
@@ -153,14 +161,13 @@ export class LoginService {
               this.mainService.sucursalActual = res["sucursal"];
               // Se guarda para cancelarla si el usuario no carga: si no, escribía token_central después
               // de que noSeCargoElUsuario limpiara la sesión (#390).
-              let autenticacionCentral: Subscription = null;
               if (config.isLocal) {
                 autenticacionCentral = this.autenticarEnCentral(nickname, password).subscribe();
               }
 
-              setTimeout(() => {
+              cargaDelUsuario = setTimeout(() => {
                 if (res["usuarioId"] != null) {
-                  this.usuarioService
+                  consultaDelUsuario = this.usuarioService
                     .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe({
@@ -206,7 +213,42 @@ export class LoginService {
             obs.next(response);
           }
         );
+      return () => {
+        httpResponse.unsubscribe();
+        clearTimeout(cargaDelUsuario);
+        consultaDelUsuario?.unsubscribe();
+        autenticacionCentral?.unsubscribe();
+      };
     });
+  }
+
+  /**
+   * Valida usuario y clave contra el mismo servidor que `login()`, sin tocar la sesión actual (no guarda
+   * token, no cambia `mainService`, no autentica en el central). Emite el id del usuario; si falla, el
+   * error es un HttpErrorResponse con el motivo en `error.message`.
+   */
+  verificarCredenciales(nickname: string, password: string): Observable<number> {
+    const config = this.configService.getConfig();
+    const serverIp = config.isLocal ? config.serverIp : config.serverCentralIp;
+    const serverPort = config.isLocal ? config.serverPort : config.serverCentralPort;
+    return this.http
+      .post(`${urlsDeServidor(serverIp, serverPort).http}/login`, { nickname, password }, this.httpOptions)
+      .pipe(
+        timeout(TIMEOUT_VERIFICAR_CREDENCIALES_MS),
+        catchError((err) => throwError(() => err?.name === "TimeoutError"
+          ? this.buildServerErrorResponse("El servidor no responde. Intente nuevamente.")
+          : this.normalizeLoginError(err))),
+        map((res: any) => {
+          if (res?.token == null) {
+            // 200 sin token: el filial explica el motivo en 'aviso' (ej. usuario inactivo).
+            throw this.buildAuthErrorResponse(res?.message || res?.mensaje || res?.aviso || undefined);
+          }
+          if (res?.usuarioId == null) {
+            throw this.buildServerErrorResponse("El servidor no devolvió el usuario. Intente nuevamente.");
+          }
+          return Number(res.usuarioId);
+        })
+      );
   }
 
   private notificarInicioSesion(usuarioId: number): void {

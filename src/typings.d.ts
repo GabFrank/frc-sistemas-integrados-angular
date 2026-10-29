@@ -6,8 +6,8 @@ interface NodeModule {
 }
 
 interface Window {
-  process: any;
-  require: any;
+  /** Puente del preload de Electron (app/preload.ts). Ver commons/core/electron/electron-bridge.ts. */
+  electron?: import('./app/commons/core/electron/electron-bridge').ElectronBridge;
 }
 
 // CAMBIO PRINCIPAL: Actualizar declaración de módulo para @superhuman/electron-push-receiver

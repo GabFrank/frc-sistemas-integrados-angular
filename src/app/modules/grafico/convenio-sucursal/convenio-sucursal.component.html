@@ -1,0 +1,125 @@
+<div class="convenio-sucursal-container grafico-pantalla">
+  <div class="grafico-filtros">
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="filtroSucursales.control"
+        multiple
+        placeholder="Todas las sucursales"
+        (selectionChange)="filtroSucursales.onSeleccionChange($event.value)"
+      >
+        <mat-option [value]="filtroSucursales.todosValor">Todos</mat-option>
+        <mat-option
+          *ngFor="let sucursal of sucursales$ | async"
+          [value]="sucursal.id"
+        >
+          {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--rango"
+    >
+      <mat-label>Rango de fechas</mat-label>
+      <mat-date-range-input [formGroup]="fechaRango" [rangePicker]="pickerRango">
+        <input matStartDate formControlName="inicio" placeholder="Desde" />
+        <input matEndDate formControlName="fin" placeholder="Hasta" />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--estado"
+    >
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="estadoControl">
+        <mat-option *ngFor="let e of estados" [value]="e.valor">
+          {{ e.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>filter_list</mat-icon>
+    </mat-form-field>
+
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+        [disabled]="(cargando$ | async) || fechaRango.invalid"
+        aria-label="Aplicar filtros"
+      >
+        Filtrar
+      </button>
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="{ vista: vista$ | async, cargando: cargando$ | async } as v">
+    <frc-grafico-shell
+      class="grafico-wrapper"
+      titulo="Convenios por Sucursal"
+      [opciones]="v.vista?.opciones"
+      [cargando]="v.cargando"
+      [hayDatos]="!!v.vista?.filas?.length"
+      [datosListos]="!!v.vista"
+      mensajeInicial="Elegí el rango y apretá Filtrar: se consulta el central y la base de cada filial"
+      alturaMinima="420px"
+    ></frc-grafico-shell>
+
+    <div class="integridad" *ngIf="v.vista?.filas?.length">
+      <div class="integridad__resumen">{{ v.vista.resumen }}</div>
+      <div class="integridad__tabla-scroll">
+        <table class="integridad__tabla">
+          <thead>
+            <tr>
+              <th>Sucursal</th>
+              <th class="num">Central</th>
+              <th class="num">Filial</th>
+              <th class="num">Faltan en central</th>
+              <th class="num">Sobran en central</th>
+              <th class="num">Estado distinto</th>
+              <th>Último en central</th>
+              <th>Último en filial</th>
+              <th>Integridad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of v.vista.filas">
+              <td>{{ f.sucursal }}</td>
+              <td class="num" [matTooltip]="f.centralDetalle">{{ f.centralTotal }}</td>
+              <td class="num" [matTooltip]="f.filialDetalle">{{ f.filialTotal }}</td>
+              <td class="num" [class.alerta]="f.faltan" [matTooltip]="f.tooltipFaltan">{{ f.faltan }}</td>
+              <td class="num" [class.alerta]="f.sobran" [matTooltip]="f.tooltipSobran">{{ f.sobran }}</td>
+              <td class="num" [class.alerta]="f.distinto" [matTooltip]="f.tooltipDistinto">{{ f.distinto }}</td>
+              <td>{{ f.ultimoCentral }}</td>
+              <td>{{ f.ultimoFilial }}</td>
+              <td>
+                <span class="integridad__chip" [ngClass]="f.claseIntegridad" [matTooltip]="f.tooltipIntegridad">
+                  {{ f.integridad }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>

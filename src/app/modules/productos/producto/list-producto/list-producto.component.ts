@@ -1,3 +1,4 @@
+import { ReasignarLoteDialogComponent } from '../reasignar-lote-dialog/reasignar-lote-dialog.component';
 import {
   animate,
   state,
@@ -77,6 +78,7 @@ import { ComponentType } from "@angular/cdk/portal";
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
+import { ConteoRapidoLotesDialogComponent } from "../conteo-rapido-lotes-dialog/conteo-rapido-lotes-dialog.component";
 import { LotesProductoDialogComponent } from "../lotes-producto-dialog/lotes-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
@@ -693,6 +695,26 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
    * Abre el maestro de lotes del producto. Desde ahí se puede bloquear un lote (recall):
    * deja de venderse en todas las sucursales sin modificar el stock físico.
    */
+  /** Conteo rápido: se cuentan todos los lotes del producto en una sucursal y se guardan juntos. */
+  onConteoRapidoLotes(producto: Producto): void {
+    this.matDialog.open(ConteoRapidoLotesDialogComponent, {
+      data: { producto },
+      width: '760px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
+    });
+  }
+
+  /** Pasar unidades de un lote a otro en una sucursal, sin cambiar el stock (lotes fase 3). */
+  onReasignarLote(producto: Producto): void {
+    this.matDialog.open(ReasignarLoteDialogComponent, {
+      data: { producto },
+      width: '560px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
+    });
+  }
+
   onVerLotes(producto: Producto): void {
     this.matDialog.open(LotesProductoDialogComponent, {
       data: { producto },

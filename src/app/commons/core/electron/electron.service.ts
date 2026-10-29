@@ -10,11 +10,11 @@ import {
   TOKEN_UPDATED,
 } from '@superhuman/electron-push-receiver/src/constants';
 
-// Guard para poder servir la app en un browser normal (dev/test): fuera de Electron
-// `window.require` no existe. Todo consumidor de `electron`/`ipcRenderer` está detrás
-// del getter `isElectron` (false en web), así que en browser quedan null sin romper.
-const electron = (window && (window as any).require) ? (window as any).require('electron') : null;
-const ipcRenderer = electron ? electron.ipcRenderer : null;
+import { electronBridge } from './electron-bridge';
+
+// Puente del preload (window.electron). Fuera de Electron (browser en dev/test) es null y todo
+// consumidor está detrás del getter `isElectron`, así que no rompe.
+const ipcRenderer = electronBridge();
 
 export interface PrinterInfo {
   name: string;
@@ -114,7 +114,7 @@ export class ElectronService {
   public notificationReceived = new Subject<any>();
 
   get isElectron(): boolean {
-    return !!(window && window.process && window.process.type);
+    return !!ipcRenderer;
   }
 
   constructor(
@@ -152,7 +152,7 @@ export class ElectronService {
     ipcRenderer.removeAllListeners(NOTIFICATION_SERVICE_ERROR);
     ipcRenderer.removeAllListeners(ON_NOTIFICATION_RECEIVED);
 
-    ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (_: any, token: string) => {
+    ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (token: string) => {
       if (token) {
         localStorage.setItem('pushToken', token);
         if (onToken) {
@@ -161,7 +161,7 @@ export class ElectronService {
       }
     });
 
-    ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
+    ipcRenderer.on(TOKEN_UPDATED, (token: string) => {
       if (token) {
         localStorage.setItem('pushToken', token);
         if (onToken) {
@@ -170,7 +170,7 @@ export class ElectronService {
       }
     });
 
-    ipcRenderer.on(NOTIFICATION_SERVICE_ERROR, (_: any, error: any) => {
+    ipcRenderer.on(NOTIFICATION_SERVICE_ERROR, (error: any) => {
       // Log del error pero no bloqueamos la aplicación
       // PHONE_REGISTRATION_ERROR es un error conocido de la librería cuando falla el registro con FCM
       // Puede deberse a problemas de red, configuración de Firebase, o bugs de la librería
@@ -181,7 +181,7 @@ export class ElectronService {
     let lastNotificationTime = 0;
     let lastNotificationJson = '';
 
-    ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
+    ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (notification: any) => {
       try {
         const now = Date.now();
         const notificationJson = JSON.stringify(notification);
@@ -221,24 +221,6 @@ export class ElectronService {
 
   relaunch() {
     ipcRenderer.send('reiniciar')
-  }
-
-  print(data) {
-    const options = {
-      preview: false,
-      margin: '0 0 0 0',
-      copies: 1,
-      printerName: this.configService?.getConfig()?.printers?.ticket,
-      timeOutPerLine: 400,
-      pageSize: '58mm',
-      silent: true,
-      dpi: {
-        horizontal: 300,
-        vertical: 300
-      }
-    }
-
-    ipcRenderer.send('print', data, options)
   }
 
   getAppVersion() {

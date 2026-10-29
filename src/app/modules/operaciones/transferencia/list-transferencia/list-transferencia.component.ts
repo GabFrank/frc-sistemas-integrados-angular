@@ -34,7 +34,7 @@ import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
-import { interval } from "rxjs";
+import { interval, Subscription } from "rxjs";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import {
@@ -177,7 +177,7 @@ export class ListTransferenciaComponent implements OnInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFilter();
+      this.buscar();
     }, 0);
 
     this.fechaFormGroup = new FormGroup({
@@ -204,7 +204,7 @@ export class ListTransferenciaComponent implements OnInit {
     });
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(() => {
-      this.onFilter();
+      this.buscar();
     });
   }
 
@@ -213,10 +213,23 @@ export class ListTransferenciaComponent implements OnInit {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
-    this.onFilter();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  /** La consulta en vuelo de un filtro o una página anterior (o del refresco de 5 min) no pisa la nueva. */
+  private listaSub: Subscription;
+
+  buscar() {
+    this.listaSub?.unsubscribe();
     if (this.fechaFinControl.value == null)
       this.fechaFinControl.setValue(this.today);
     let unaSemanaAtras = new Date();
@@ -228,7 +241,7 @@ export class ListTransferenciaComponent implements OnInit {
       let fechaFin: Date = this.fechaFinControl.value;
       fechaInicio.setHours(0, 0, 0);
       fechaFin.setHours(23, 59, 59);
-      this.transferenciaService
+      this.listaSub = this.transferenciaService
         .onGetTransferenciasWithFilters(
           this.sucOrigenControl.value?.id,
           this.sucDestinoControl.value?.id,
@@ -258,7 +271,7 @@ export class ListTransferenciaComponent implements OnInit {
           error: () => this.avisarListaNoCargada()
         });
     } else {
-      this.transferenciaService
+      this.listaSub = this.transferenciaService
         .onGetTransferencia(this.idControl.value)
         .subscribe({
           next: (res) => {
@@ -290,6 +303,7 @@ export class ListTransferenciaComponent implements OnInit {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
+    this.onFilter();
   }
 
   // Se recalcula solo al cambiar la seleccion (no en cada change detection cycle,
@@ -620,7 +634,7 @@ export class ListTransferenciaComponent implements OnInit {
     } finally {
       this.cargandoService.closeDialog(requestId);
       this.selection.clear();
-      this.onFilter();
+      this.buscar();
     }
   }
 
@@ -645,7 +659,7 @@ export class ListTransferenciaComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFilter();
+    this.buscar();
   }
 
   /**

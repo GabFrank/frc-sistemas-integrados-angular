@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
-import { BehaviorSubject, Observable } from "rxjs";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { ProductoVendidoComponent } from "../producto-vendido/producto-vendido.component";
@@ -14,8 +15,11 @@ import { DeliverySucursalComponent } from "../delivery-sucursal/delivery-sucursa
 import { VentaCiudadComponent } from "../venta-ciudad/venta-ciudad.component";
 import { EvolucionCostoComponent } from "../evolucion-costo/evolucion-costo.component";
 import { RankingInflacionComponent } from "../ranking-inflacion/ranking-inflacion.component";
+import { ConvenioSucursalComponent } from "../convenio-sucursal/convenio-sucursal.component";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import { construirVistaDashboardMock } from "./graficos-dashboard-opciones.util";
+import { Tema, TemaService } from "../../../shared/services/tema.service";
+import { opcionesSegunTema } from "../../../shared/utils/grafico-echarts.theme";
 
 type TipoGraficoDashboard =
   | "productos"
@@ -29,7 +33,8 @@ type TipoGraficoDashboard =
   | "delivery-sucursal"
   | "venta-ciudad"
   | "evolucion-costo"
-  | "ranking-inflacion";
+  | "ranking-inflacion"
+  | "convenio-sucursal";
 
 @Component({
   selector: "app-graficos",
@@ -42,10 +47,14 @@ type TipoGraficoDashboard =
 })
 export class GraficosComponent {
   private tabService = inject(TabService);
+  private temaService = inject(TemaService);
 
-  readonly vista$: Observable<GraficosDashboardVista> = new BehaviorSubject(
-    construirVistaDashboardMock()
-  ).asObservable();
+  private readonly vistaBase = construirVistaDashboardMock();
+
+  /** Los gráficos con los grises del tema actual: ECharts dibuja en canvas y no ve las variables CSS. */
+  readonly vista$: Observable<GraficosDashboardVista> = this.temaService.tema$.pipe(
+    map((tema) => vistaSegunTema(this.vistaBase, tema))
+  );
 
   onChartClick(tipo: TipoGraficoDashboard): void {
     switch (tipo) {
@@ -114,6 +123,21 @@ export class GraficosComponent {
           new Tab(RankingInflacionComponent, "Inflación de Costos", null, null)
         );
         break;
+      case "convenio-sucursal":
+        this.tabService.addTab(
+          new Tab(ConvenioSucursalComponent, "Convenios por Sucursal", null, null)
+        );
+        break;
     }
   }
+}
+
+function vistaSegunTema(vista: GraficosDashboardVista, tema: Tema): GraficosDashboardVista {
+  const resultado = { ...vista };
+  for (const clave of Object.keys(resultado) as (keyof GraficosDashboardVista)[]) {
+    if (clave !== "cargando") {
+      resultado[clave] = opcionesSegunTema(vista[clave], tema);
+    }
+  }
+  return resultado;
 }

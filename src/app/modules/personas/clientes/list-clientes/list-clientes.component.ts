@@ -19,7 +19,7 @@ import { PageInfo } from '../../../../app.component';
 import { SelectionModel } from '@angular/cdk/collections';
 import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
-import { forkJoin, timer } from 'rxjs';
+import { forkJoin, Subscription, timer } from 'rxjs';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
@@ -84,6 +84,8 @@ export class ListClientesComponent implements OnInit {
   orderByNombre = null;
   selectedPageInfo: PageInfo<Cliente>;
   selection = new SelectionModel<Cliente>(true, []);
+  sinFiltro = true;
+  busqueda: Subscription;
 
 
   constructor(
@@ -102,7 +104,7 @@ export class ListClientesComponent implements OnInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
+      this.buscar()
     }, 0);
 
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
@@ -115,14 +117,39 @@ export class ListClientesComponent implements OnInit {
           this.onFiltrar()
         }, 800);
       } else {
-        this.dataSource.data = []
+        this.onFiltrar()
       }
     });
+
+    this.tipoClienteControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
   }
 
-  onFiltrar(keepSelection = false) {
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
+  onFiltrar() {
+    // El debounce del texto pendiente repetiría la misma consulta.
+    clearTimeout(this.timer);
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar(keepSelection = false) {
+    // Una respuesta tardía de la consulta anterior no debe pisar la actual ni el aviso.
+    this.busqueda?.unsubscribe();
+    // El central no lista todos los clientes a propósito (#587): sin texto ni tipo no se consulta.
+    // Un texto de solo espacios, % o _ también listaría todos: el central los toma como comodines.
+    if (!/[^%_\s]/.test(this.buscarControl.value ?? '') && this.tipoClienteControl.value == null) {
+      this.dataSource.data = [];
+      this.selectedPageInfo = null;
+      this.selection.clear();
+      this.sinFiltro = true;
+      return;
+    }
+    this.sinFiltro = false;
     const selectedIds = this.selection.selected.map(s => s.id);
-    this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
+    this.busqueda = this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
@@ -141,12 +168,10 @@ export class ListClientesComponent implements OnInit {
     });
   }
 
+  // El tipo se limpia sin evento: limpiar el texto ya dispara onFiltrar, una vez y sin filtro.
   resetFiltro() {
-    this.pageIndex = 0;
-    this.dataSource.data = [];
-    this.selectedPageInfo = null;
+    this.tipoClienteControl.setValue(null, { emitEvent: false });
     this.buscarControl.setValue(null);
-    this.tipoClienteControl.setValue(null);
   }
 
   onEditCliente(cliente: Cliente, i) {
@@ -172,6 +197,8 @@ export class ListClientesComponent implements OnInit {
       if (res != null) {
         this.buscarControl.setValue(res.persona.nombre)
         this.dataSource.data = [res]
+        this.selection.clear()
+        this.sinFiltro = false
       }
     });
   }
@@ -185,7 +212,7 @@ export class ListClientesComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   isAllSelected() {
@@ -330,7 +357,7 @@ export class ListClientesComponent implements OnInit {
                   this.notificacionService.openSucess(
                     `Se cobraron las ventas de ${totalClientesConVentas} cliente(s) correctamente`
                   );
-                  this.onFiltrar(true);
+                  this.buscar(true);
                 }
               },
               // En un rechazo el genérico ya mostró el motivo. Sin respuesta pudo cobrarse: se relee después (#501)
@@ -338,7 +365,7 @@ export class ListClientesComponent implements OnInit {
                 if (erroresDeRechazo(err) != null) return;
                 const aviso = avisoTrasMutacion(err, 'se cobraron las ventas');
                 if (aviso != null) this.notificacionService.openWarn(aviso, 8);
-                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar(true));
+                timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.buscar(true));
               }
             });
           } else {

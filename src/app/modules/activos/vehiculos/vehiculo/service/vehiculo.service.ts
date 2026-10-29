@@ -137,11 +137,13 @@ export class VehiculoService {
     return this.genericService.onCustomQuery(this.vehiculoSearchGQL, { texto, page, size });
   }
 
-  refrescar(): void {
+  /** volverAPagina1: un filtro nuevo; la página se reinicia al llegar la lista, no antes (sin ver la vieja en la 1, y un error no mueve la página). */
+  refrescar(volverAPagina1 = false): void {
     this.loadingSubject.next(true);
     const texto = this._searchText$.value;
     this.onFiltrar(texto, 0, 1000).subscribe({
       next: (res) => {
+        if (volverAPagina1) this.updatePagination(0, this._paginationState$.value.pageSize);
         this.vehiculosSubject.next(res || []);
         this.loadingSubject.next(false);
       },
@@ -153,7 +155,15 @@ export class VehiculoService {
 
   setSearchText(texto: string): void {
     this._searchText$.next(texto);
-    this.refrescar();
+    this.refrescar(true);
+  }
+
+  /** El servicio es singleton: una lista recién abierta arranca sin el filtro ni la página de la anterior (#589). Conserva el tamaño de página. */
+  reiniciarFiltros(): void {
+    this._searchText$.next('');
+    this._tipoFilter$.next(null);
+    this.vehiculosSubject.next([]);
+    this.updatePagination(0, this._paginationState$.value.pageSize);
   }
 
   cargarTiposCache(): void {
