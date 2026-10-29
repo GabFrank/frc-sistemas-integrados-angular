@@ -1,124 +1,157 @@
 <h2 mat-dialog-title>{{ editando ? 'Editar sorteo' : 'Nuevo sorteo' }}</h2>
-<mat-dialog-content>
+<mat-dialog-content class="so-contenido">
   <div class="so-aviso" *ngIf="bloqueado">
     <mat-icon>lock</mat-icon>
-    <span>Este sorteo ya tiene participaciones: el monto mínimo, el modo, las cantidades, la tarjeta y las sucursales
-      no se pueden cambiar. Para cambiar las reglas, cortalo y creá uno nuevo.</span>
+    <span>Este sorteo ya tiene participaciones: el monto mínimo, el modo, las cantidades y la tarjeta no se pueden
+      cambiar. Las sucursales se pueden agregar, pero no quitar. Para cambiar las reglas, cortalo y creá uno nuevo.</span>
   </div>
 
   <form [formGroup]="form">
-    <div class="so-fila">
-      <mat-form-field appearance="outline" class="so-campo so-campo--ancho">
+    <!-- 1. Datos que salen en el ticket -->
+    <section class="so-seccion">
+      <h3 class="so-titulo"><mat-icon>confirmation_number</mat-icon> Datos del sorteo</h3>
+      <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
         <mat-label>Nombre</mat-label>
-        <input matInput formControlName="nombre" autocomplete="off" maxlength="120" />
-        <mat-hint>Sale impreso en el ticket</mat-hint>
+        <input matInput formControlName="nombre" autocomplete="off" maxlength="120"
+          placeholder="Ej: SORTEO DÍA DE LA MADRE" />
+        <mat-hint>Sale en grande en el ticket. Corto y fácil de reconocer.</mat-hint>
       </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo so-campo--ancho">
+      <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
         <mat-label>Descripción (opcional)</mat-label>
-        <textarea matInput formControlName="descripcion" rows="2" maxlength="300"></textarea>
-        <mat-hint>Texto corto para el ticket: bases, condiciones</mat-hint>
+        <textarea matInput formControlName="descripcion" rows="2" maxlength="300"
+          placeholder="Ej: Por compras desde 50.000 Gs. participás por una bicicleta y dos termos. El sorteo es en vivo en la sucursal."></textarea>
+        <mat-hint>Bases o condiciones que el cliente lee en el ticket.</mat-hint>
       </mat-form-field>
-    </div>
+    </section>
 
-    <div class="so-fila" style="margin-top: 16px">
-      <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Monto mínimo de compra</mat-label>
-        <input matInput type="number" min="1" formControlName="montoMinimo" autocomplete="off" />
-        <span matTextSuffix>Gs.</span>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Modo de participación</mat-label>
-        <mat-select formControlName="modoParticipacion">
-          <mat-option *ngFor="let m of modos" [value]="m.valor">{{ m.texto }}</mat-option>
+    <!-- 2. Quién participa y con cuántos tickets -->
+    <section class="so-seccion">
+      <h3 class="so-titulo"><mat-icon>rule</mat-icon> Reglas de participación</h3>
+      <div class="so-fila">
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic">
+          <mat-label>Monto mínimo de compra</mat-label>
+          <input matInput type="number" min="1" formControlName="montoMinimo" autocomplete="off" placeholder="Ej: 50000" />
+          <span matTextSuffix>Gs.</span>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic">
+          <mat-label>Tickets por compra</mat-label>
+          <mat-select formControlName="modoParticipacion">
+            <mat-option *ngFor="let m of modos" [value]="m.valor">{{ m.texto }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic"
+          *ngIf="form.controls.modoParticipacion.value === 'CANTIDAD_FIJA'">
+          <mat-label>Cantidad de tickets</mat-label>
+          <input matInput type="number" min="1" formControlName="cantidadFija" autocomplete="off" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic"
+          *ngIf="form.controls.modoParticipacion.value === 'POR_MULTIPLO'">
+          <mat-label>Máximo por compra (opcional)</mat-label>
+          <input matInput type="number" min="1" formControlName="topePorVenta" autocomplete="off" />
+        </mat-form-field>
+      </div>
+      <p class="so-ejemplo" *ngIf="ayuda"><mat-icon>lightbulb</mat-icon> {{ ayuda }}</p>
+      <mat-checkbox formControlName="incluyeTarjeta">Cuenta lo pagado con tarjeta</mat-checkbox>
+      <p class="so-ayuda">Los recargos (por ejemplo el de tarjeta) nunca suman al monto de la compra.</p>
+    </section>
+
+    <!-- 3. Fechas -->
+    <section class="so-seccion">
+      <h3 class="so-titulo"><mat-icon>event</mat-icon> Fechas</h3>
+      <div class="so-fila">
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic">
+          <mat-label>Participan compras desde</mat-label>
+          <input matInput [matDatepicker]="pDesde" formControlName="fechaDesde" placeholder="Hoy" />
+          <mat-datepicker-toggle matSuffix [for]="pDesde"></mat-datepicker-toggle>
+          <mat-datepicker #pDesde></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic">
+          <mat-label>Hasta</mat-label>
+          <input matInput [matDatepicker]="pHasta" formControlName="fechaHasta" [min]="form.controls.fechaDesde.value"
+            placeholder="Sin fin" />
+          <mat-datepicker-toggle matSuffix [for]="pHasta"></mat-datepicker-toggle>
+          <mat-datepicker #pHasta></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="so-campo" subscriptSizing="dynamic">
+          <mat-label>Día del sorteo</mat-label>
+          <input matInput [matDatepicker]="pSorteo" formControlName="fechaSorteo" required />
+          <mat-datepicker-toggle matSuffix [for]="pSorteo"></mat-datepicker-toggle>
+          <mat-datepicker #pSorteo></mat-datepicker>
+          <mat-error>El día del sorteo es obligatorio.</mat-error>
+        </mat-form-field>
+      </div>
+      <p class="so-ayuda">"Desde" y "Hasta" son opcionales y se cuentan completas. El día del sorteo sale en el ticket.</p>
+    </section>
+
+    <!-- 4. Sucursales -->
+    <section class="so-seccion">
+      <h3 class="so-titulo"><mat-icon>store</mat-icon> Sucursales</h3>
+      <mat-checkbox formControlName="todasSucursales">Todas las sucursales (incluye las que se abran después)</mat-checkbox>
+      <mat-form-field appearance="outline" class="so-ancho so-sucursales" subscriptSizing="dynamic"
+        *ngIf="!form.controls.todasSucursales.value">
+        <mat-label>Elegí las sucursales</mat-label>
+        <mat-select formControlName="sucursales" multiple>
+          <mat-option *ngFor="let s of sucursalOpciones" [value]="s.id" [disabled]="s.fija">
+            {{ s.id }} · {{ s.nombre | titlecase }}
+          </mat-option>
         </mat-select>
+        <mat-hint *ngIf="bloqueado">Las que ya participaban quedan fijas; podés sumar otras.</mat-hint>
+        <mat-hint *ngIf="sucursalesFallo">
+          No se pudieron cargar las sucursales.
+          <a href="#" (click)="cargarSucursales(); $event.preventDefault()">Reintentar</a>
+        </mat-hint>
       </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo" *ngIf="form.controls.modoParticipacion.value === 'CANTIDAD_FIJA'">
-        <mat-label>Tickets por venta</mat-label>
-        <input matInput type="number" min="1" formControlName="cantidadFija" autocomplete="off" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo" *ngIf="form.controls.modoParticipacion.value === 'POR_MULTIPLO'">
-        <mat-label>Máximo de tickets por venta (opcional)</mat-label>
-        <input matInput type="number" min="1" formControlName="topePorVenta" autocomplete="off" />
-      </mat-form-field>
-    </div>
-    <p class="so-ayuda so-ayuda--tickets" *ngIf="ayuda">{{ ayuda }}</p>
+    </section>
 
-    <mat-checkbox formControlName="incluyeTarjeta">Cuenta lo pagado con tarjeta</mat-checkbox>
-    <p class="so-ayuda">Los recargos (por ejemplo el de tarjeta) nunca suman al monto de la compra.</p>
-
-    <div class="so-fila">
-      <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Desde</mat-label>
-        <input matInput [matDatepicker]="pDesde" formControlName="fechaDesde" placeholder="Hoy" />
-        <mat-datepicker-toggle matSuffix [for]="pDesde"></mat-datepicker-toggle>
-        <mat-datepicker #pDesde></mat-datepicker>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Hasta</mat-label>
-        <input matInput [matDatepicker]="pHasta" formControlName="fechaHasta" [min]="form.controls.fechaDesde.value" placeholder="Sin fin" />
-        <mat-datepicker-toggle matSuffix [for]="pHasta"></mat-datepicker-toggle>
-        <mat-datepicker #pHasta></mat-datepicker>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Día del sorteo</mat-label>
-        <input matInput [matDatepicker]="pSorteo" formControlName="fechaSorteo" required />
-        <mat-datepicker-toggle matSuffix [for]="pSorteo"></mat-datepicker-toggle>
-        <mat-datepicker #pSorteo></mat-datepicker>
-        <mat-error>El día del sorteo es obligatorio.</mat-error>
-      </mat-form-field>
-    </div>
-    <p class="so-ayuda">Las fechas de vigencia son opcionales y se cuentan completas. El día del sorteo es obligatorio.</p>
-
-    <mat-checkbox formControlName="todasSucursales">Todas las sucursales</mat-checkbox>
-    <mat-form-field appearance="outline" class="so-campo so-campo--ancho" style="margin-top: 8px">
-      <mat-label>Sucursales</mat-label>
-      <mat-select formControlName="sucursales" multiple>
-        <mat-option *ngFor="let s of sucursalList" [value]="s.id">{{ s.id }} · {{ s.nombre | titlecase }}</mat-option>
-      </mat-select>
-      <mat-hint *ngIf="sucursalesFallo">
-        No se pudieron cargar las sucursales.
-        <a href="#" (click)="cargarSucursales(); $event.preventDefault()">Reintentar</a>
-      </mat-hint>
-      <mat-hint *ngIf="form.controls.todasSucursales.value">Aplica también a las sucursales nuevas</mat-hint>
-    </mat-form-field>
-
-    <h3 style="margin-top: 16px">Premios</h3>
-    <table class="so-premios">
-      <thead>
-        <tr><th>Descripción</th><th>Producto del sistema</th><th style="width: 90px">Cantidad</th><th style="width: 48px"></th></tr>
-      </thead>
-      <tbody formArrayName="premios">
-        <tr *ngFor="let p of premios.controls; let i = index" [formGroupName]="i">
-          <td>
-            <mat-form-field appearance="outline" style="width: 100%">
-              <input matInput formControlName="descripcion" placeholder="Ej: Moto 110cc" autocomplete="off" />
-            </mat-form-field>
-          </td>
-          <td>
-            <div class="so-producto">
-              <button mat-stroked-button type="button" (click)="onElegirProducto(i)">
-                {{ p.value.producto ? p.value.producto.descripcion : 'Elegir producto' }}
+    <!-- 5. Premios -->
+    <section class="so-seccion">
+      <h3 class="so-titulo"><mat-icon>card_giftcard</mat-icon> Premios</h3>
+      <p class="so-ayuda">Escribí el premio o elegí un producto del sistema. Ej: "BICICLETA RODADO 26".</p>
+      <table class="so-premios" *ngIf="premios.length">
+        <thead>
+          <tr>
+            <th class="so-col-desc">Premio</th>
+            <th class="so-col-prod">Producto del sistema (opcional)</th>
+            <th class="so-col-cant">Cantidad</th>
+            <th class="so-col-acc"></th>
+          </tr>
+        </thead>
+        <tbody formArrayName="premios">
+          <tr *ngFor="let p of premios.controls; let i = index" [formGroupName]="i">
+            <td>
+              <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
+                <input matInput formControlName="descripcion" placeholder="Ej: MOTO 110CC" autocomplete="off" />
+              </mat-form-field>
+            </td>
+            <td>
+              <div class="so-producto">
+                <button mat-stroked-button type="button" class="so-producto-btn" (click)="onElegirProducto(i)"
+                  [matTooltip]="p.value.producto ? p.value.producto.descripcion : ''">
+                  <mat-icon>{{ p.value.producto ? 'inventory_2' : 'search' }}</mat-icon>
+                  <span class="so-producto-texto">{{ p.value.producto ? p.value.producto.descripcion : 'Elegir producto' }}</span>
+                </button>
+                <button mat-icon-button type="button" *ngIf="p.value.producto" matTooltip="Quitar producto"
+                  (click)="onQuitarProducto(i)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </td>
+            <td>
+              <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
+                <input matInput type="number" min="1" formControlName="cantidad" />
+              </mat-form-field>
+            </td>
+            <td>
+              <button mat-icon-button type="button" matTooltip="Quitar premio" (click)="onQuitarPremio(i)">
+                <mat-icon>delete</mat-icon>
               </button>
-              <button mat-icon-button type="button" *ngIf="p.value.producto" matTooltip="Quitar producto" (click)="onQuitarProducto(i)">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          </td>
-          <td>
-            <mat-form-field appearance="outline" style="width: 100%">
-              <input matInput type="number" min="1" formControlName="cantidad" />
-            </mat-form-field>
-          </td>
-          <td>
-            <button mat-icon-button type="button" matTooltip="Quitar premio" (click)="onQuitarPremio(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="so-ayuda" *ngIf="!premios.length">Todavía no hay premios. Agregá al menos uno.</p>
-    <button mat-stroked-button type="button" (click)="onAgregarPremio()"><mat-icon>add</mat-icon> Agregar premio</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="so-ayuda" *ngIf="!premios.length">Todavía no hay premios. Agregá al menos uno.</p>
+      <button mat-stroked-button type="button" (click)="onAgregarPremio()"><mat-icon>add</mat-icon> Agregar premio</button>
+    </section>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

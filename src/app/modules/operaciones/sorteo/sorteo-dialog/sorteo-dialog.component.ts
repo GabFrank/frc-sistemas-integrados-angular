@@ -33,6 +33,11 @@ export class SorteoDialogComponent implements OnInit {
   /** El sorteo ya tiene participaciones: las reglas no se tocan. */
   bloqueado = false;
   sucursalList: Sucursal[] = [];
+  /** Opciones del selector. `fija`: ya participaba y el sorteo tiene participaciones (no se quita). */
+  sucursalOpciones: { id: number; nombre: string; fija: boolean }[] = [];
+  /** Sucursales y "todas" con las que se abrió la edición: con participaciones solo se agregan. */
+  private sucursalesOriginales = new Set<number>();
+  todasOriginal = false;
   sucursalesFallo = false;
   ayuda = '';
 
@@ -95,10 +100,15 @@ export class SorteoDialogComponent implements OnInit {
       sucursales: (s.sucursales ?? []).map((x) => Number(x.id)),
     }, { emitEvent: false });
     (s.premios ?? []).forEach((p) => this.premios.push(this.nuevoPremio(p.descripcion, p.producto ?? null, p.cantidad)));
+    this.sucursalesOriginales = new Set((s.sucursales ?? []).map((x) => Number(x.id)));
+    this.todasOriginal = !!s.todasSucursales;
     if (this.bloqueado) {
-      ['montoMinimo', 'modoParticipacion', 'cantidadFija', 'topePorVenta', 'incluyeTarjeta', 'todasSucursales']
+      ['montoMinimo', 'modoParticipacion', 'cantidadFija', 'topePorVenta', 'incluyeTarjeta']
         .forEach((c) => this.form.get(c).disable({ emitEvent: false }));
+      // Las sucursales solo crecen: si ya era para todas, queda así.
+      if (this.todasOriginal) this.form.controls.todasSucursales.disable({ emitEvent: false });
     }
+    this.armarOpciones();
   }
 
   cargarSucursales(): void {
@@ -115,14 +125,22 @@ export class SorteoDialogComponent implements OnInit {
           return;
         }
         this.sucursalList = res.filter((s) => Number(s.id) !== 0);
+        this.armarOpciones();
       } });
   }
 
-  /** "Todas" deshabilita el selector; las reglas bloqueadas lo mantienen deshabilitado. */
+  private armarOpciones(): void {
+    this.sucursalOpciones = this.sucursalList.map((s) => ({
+      id: Number(s.id),
+      nombre: s.nombre,
+      fija: this.bloqueado && this.sucursalesOriginales.has(Number(s.id)),
+    }));
+  }
+
+  /** "Todas" deshabilita el selector. Con participaciones se pueden sumar sucursales, no quitar. */
   private actualizarSucursales(): void {
     const ctrl = this.form.controls.sucursales;
-    const todas = !!this.form.controls.todasSucursales.value;
-    if (todas || this.bloqueado) ctrl.disable({ emitEvent: false });
+    if (this.form.controls.todasSucursales.value) ctrl.disable({ emitEvent: false });
     else ctrl.enable({ emitEvent: false });
   }
 

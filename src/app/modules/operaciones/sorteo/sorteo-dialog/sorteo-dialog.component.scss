@@ -1,3 +1,32 @@
+.so-contenido {
+  min-width: 640px;
+}
+
+.so-seccion {
+  padding: 12px 0 8px;
+  border-bottom: 1px solid var(--frc-borde);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.so-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    opacity: 0.8;
+  }
+}
+
 .so-fila {
   display: flex;
   flex-wrap: wrap;
@@ -8,18 +37,36 @@
   flex: 1 1 180px;
 }
 
-.so-campo--ancho {
-  flex: 1 1 100%;
+.so-ancho {
+  width: 100%;
+}
+
+mat-form-field.so-ancho + mat-form-field.so-ancho {
+  margin-top: 8px;
+}
+
+.so-sucursales {
+  margin-top: 8px;
 }
 
 .so-ayuda {
-  margin: 0 0 12px;
-  opacity: 0.75;
+  margin: 4px 0 8px;
+  color: var(--frc-texto-suave);
 }
 
-.so-ayuda--tickets {
+.so-ejemplo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 12px;
   font-weight: 600;
-  opacity: 1;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #ffb300;
+  }
 }
 
 .so-aviso {
@@ -27,22 +74,62 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   border-radius: 6px;
   background: rgba(245, 124, 0, 0.16);
 }
 
 .so-premios {
   width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--frc-texto-suave);
+  }
+
+  td,
+  th {
+    padding: 4px 6px;
+    vertical-align: middle;
+  }
 }
 
-.so-premios td,
-.so-premios th {
-  padding: 4px 8px;
+.so-col-desc {
+  width: 40%;
+}
+
+.so-col-prod {
+  width: 38%;
+}
+
+.so-col-cant {
+  width: 90px;
+}
+
+.so-col-acc {
+  width: 48px;
 }
 
 .so-producto {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.so-producto-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.so-producto-texto {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
