@@ -10,8 +10,12 @@ import { Cobro, CobroInput } from "./cobro/cobro.model";
 import { VentaEstado } from "./enums/venta-estado.enums";
 import { CancelarVentaGQL } from "./graphql/cancelarVenta";
 import { ReimprimirVentaGQL } from "./graphql/reimprimirVenta";
+import { ReimprimirSorteoGQL } from "./graphql/reimprimirSorteo";
+import { VentaTieneSorteoGQL } from "./graphql/ventaTieneSorteo";
 import { SaveVentaGQL } from "./graphql/saveVenta";
 import { SaveVentaClienteGQL } from "./graphql/saveVentaCliente";
+import { SaveVentaClienteSorteoGQL, SaveVentaSorteoGQL } from "./graphql/saveVentaSorteo";
+import type { SorteoClienteInput } from "../sorteo/sorteo.model";
 import { VentaPorIdGQL } from "./graphql/ventaPorId";
 import { VentaPorCajaIdGQL } from "./graphql/ventasPorCajaId";
 import { VentaItem, VentaItemInput } from "./venta-item.model";
@@ -91,6 +95,8 @@ export class VentaService {
     private mainService: MainService,
     private cancelarVenta: CancelarVentaGQL,
     private reimprimirVenta: ReimprimirVentaGQL,
+    private reimprimirSorteo: ReimprimirSorteoGQL,
+    private ventaTieneSorteo: VentaTieneSorteoGQL,
     private ventasPorCajaId: VentaPorCajaIdGQL,
     private ventaPorId: VentaPorIdGQL,
     private ventaPorPeriodo: VentaPorPeriodoGQL,
@@ -113,7 +119,9 @@ export class VentaService {
     private lucroPorFuncionarioList: LucroPorFuncionarioListGQL,
     private reporteLucroPorFuncionario: ReporteLucroPorFuncionarioGQL,
     private saveVentaCliente: SaveVentaClienteGQL,
-    private impresionPos: ImpresionPosService
+    private impresionPos: ImpresionPosService,
+    private saveVentaSorteo: SaveVentaSorteoGQL,
+    private saveVentaClienteSorteo: SaveVentaClienteSorteoGQL
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -146,7 +154,8 @@ export class VentaService {
     ventaCreditoInput?,
     ventaCreditoCuotaInputList?,
     isFactura?: boolean,
-    servidor = true
+    servidor = true,
+    sorteoCliente?: SorteoClienteInput
   ): Observable<Venta> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
@@ -160,15 +169,15 @@ export class VentaService {
       let aux = new VentaItem();
       ventaItemInputList.push(Object.assign(aux, e).toInput());
     });
-    cobro.cobroDetalleList.forEach((e) => {
-      let aux = new CobroDetalle();
-      cobroDetalleInputList.push(Object.assign(aux, e).toInput());
-    });
+    cobroDetalleInputList = this.cobroDetalleInputs(cobro);
 
+    // Con participante se usan los documentos con `sorteoCliente`; sin él, los de siempre, que también
+    // entiende una filial sin sorteos.
+    const conSorteo = sorteoCliente != null;
     if (this.impresionPos.porCliente(servidor)) {
       // "Imprimir desde esta PC": misma venta, la filial devuelve el comprobante y se imprime acá.
       // La impresión va aparte: la venta se entrega apenas se guardó, sin esperar el papel.
-      return this.genericService.onCustomMutation(this.saveVentaCliente, {
+      return this.genericService.onCustomMutation(conSorteo ? this.saveVentaClienteSorteo : this.saveVentaCliente, {
         ventaInput: ventaInput,
         ventaItemList: ventaItemInputList,
         cobro: cobroInput,
@@ -179,12 +188,13 @@ export class VentaService {
         pdvId: this.configService?.getConfig()?.pdvId,
         ventaCreditoInput,
         ventaCreditoCuotaInputList,
+        ...(conSorteo ? { sorteoCliente } : {}),
       }, servidor).pipe(
         tap((res: Venta) => this.impresionPos.imprimir(res?.ticketEscpos, "El comprobante de la venta").subscribe())
       );
     }
 
-    return this.genericService.onCustomMutation(this.saveVenta, {
+    return this.genericService.onCustomMutation(conSorteo ? this.saveVentaSorteo : this.saveVenta, {
       ventaInput: ventaInput,
       ventaItemList: ventaItemInputList,
       cobro: cobroInput,
@@ -196,7 +206,21 @@ export class VentaService {
       pdvId: this.configService?.getConfig()?.pdvId,
       ventaCreditoInput,
       ventaCreditoCuotaInputList,
+      ...(conSorteo ? { sorteoCliente } : {}),
     }, servidor);
+  }
+
+  /**
+   * Las líneas del cobro tal como las manda onSaveVenta. La consulta de sorteos (`sorteosAplicables`) usa
+   * esta misma lista, así la filial evalúa exactamente lo que después se guarda.
+   */
+  cobroDetalleInputs(cobro: Cobro): CobroDetalleInput[] {
+    const lista: CobroDetalleInput[] = [];
+    cobro.cobroDetalleList.forEach((e) => {
+      let aux = new CobroDetalle();
+      lista.push(Object.assign(aux, e).toInput());
+    });
+    return lista;
   }
 
   onSaveVenta2(ventaInput?: VentaInput, servidor = true): Observable<Venta> {
@@ -245,6 +269,37 @@ export class VentaService {
       },
       servidor
     );
+  }
+
+  onReimprimirSorteo(id, servidor = true): Observable<boolean> {
+    if (this.impresionPos.porCliente(servidor)) {
+      // null si no salió: quien llama solo avisa "Reimpreso con éxito" con un resultado no nulo.
+      return this.impresionPos
+        .imprimirTicket("SORTEO", id, "La reimpresión del ticket de sorteo")
+        .pipe(map((ok) => (ok ? true : null)));
+    }
+    return this.genericService.onCustomMutation(
+      this.reimprimirSorteo,
+      {
+        ventaId: id,
+        printerName: this.configService?.getConfig()?.printers?.ticket,
+        local: this.configService?.getConfig()?.local,
+      },
+      servidor
+    );
+  }
+
+  /**
+   * Si la venta tiene tickets de sorteo (filial). Nunca falla: una filial vieja que no conoce el campo, un corte
+   * o un rechazo dan false y solo se oculta el botón de reimprimir el sorteo.
+   */
+  onTieneSorteo(id, sucId?, servidor = false): Observable<boolean> {
+    return this.genericService
+      .onCustomQuery(this.ventaTieneSorteo, { id, sucId }, servidor, RELECTURA_SILENCIOSA, true, CONSULTA_RELECTURA)
+      .pipe(
+        map((v) => v?.tieneSorteo === true),
+        catchError(() => of(false))
+      );
   }
 
   onImprimirPagare(id, itens, servidor = true): Observable<boolean> {

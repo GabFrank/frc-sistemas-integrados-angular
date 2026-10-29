@@ -1,0 +1,17 @@
+.centro {
+  text-align: center;
+}
+
+.acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+
+  mat-icon {
+    cursor: pointer;
+  }
+
+  .cortar {
+    color: red;
+  }
+}

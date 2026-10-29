@@ -11,7 +11,7 @@ import { TicketEscposGQL } from "./graphql/ticketEscpos";
 import { TicketEscposCentralGQL } from "./graphql/ticketEscposCentral";
 
 /** Qué comprobante del POS genera la filial (enum TicketEscposTipo del filial). */
-export type TicketEscposTipo = "VENTA" | "FACTURA" | "BALANCE" | "GASTO" | "RETIRO" | "DELIVERY";
+export type TicketEscposTipo = "VENTA" | "FACTURA" | "BALANCE" | "GASTO" | "RETIRO" | "DELIVERY" | "SORTEO";
 
 /** Qué comprobante genera el central (enum TicketEscposTipo del central). */
 export type TicketEscposCentralTipo = "FACTURA" | "BALANCE";

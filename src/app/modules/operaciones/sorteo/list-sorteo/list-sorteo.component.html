@@ -1,0 +1,44 @@
+<app-generic-list titulo="Sorteos" (adicionar)="onNuevo()" (filtrar)="onFilter()" (resetFiltro)="onLimpiarFiltros()"
+  [isAdicionar]="true" [data]="dataSource.data">
+  <div filtros>
+    <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
+      <mat-form-field appearance="outline" fxFlex="30%">
+        <mat-label>Nombre</mat-label>
+        <input matInput [formControl]="textoControl" (keyup.enter)="onFilter()" autocomplete="off" />
+      </mat-form-field>
+      <mat-slide-toggle [formControl]="soloVigentesControl" (change)="onFilter()">Solo vigentes</mat-slide-toggle>
+    </div>
+  </div>
+  <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
+    <div *ngIf="listaFallo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 0">
+      <mat-icon>error_outline</mat-icon>
+      <span *ngIf="!dataSource.data.length">No se pudieron cargar los sorteos.</span>
+      <span *ngIf="dataSource.data.length">No se pudo actualizar la lista: puede no reflejar el último cambio.</span>
+      <button mat-stroked-button type="button" (click)="onGetData()">Reintentar</button>
+    </div>
+    <div fxFlex style="overflow: auto; min-height: 0">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+        <ng-container matColumnDef="nombre"><th mat-header-cell *matHeaderCellDef>Nombre</th><td mat-cell *matCellDef="let f">{{ f.sorteo.nombre }}</td></ng-container>
+        <ng-container matColumnDef="minimo"><th mat-header-cell *matHeaderCellDef class="centro">Mínimo</th><td mat-cell *matCellDef="let f" class="centro">{{ f.sorteo.montoMinimo | number: '1.0-0' }}</td></ng-container>
+        <ng-container matColumnDef="modo"><th mat-header-cell *matHeaderCellDef class="centro">Modo</th><td mat-cell *matCellDef="let f" class="centro">{{ f.modo }}</td></ng-container>
+        <ng-container matColumnDef="vigencia"><th mat-header-cell *matHeaderCellDef class="centro">Vigencia</th><td mat-cell *matCellDef="let f" class="centro">{{ f.vigencia }}</td></ng-container>
+        <ng-container matColumnDef="sucursales"><th mat-header-cell *matHeaderCellDef class="centro">Sucursales</th><td mat-cell *matCellDef="let f" class="centro" [matTooltip]="f.sucursalesDetalle">{{ f.sucursales }}</td></ng-container>
+        <ng-container matColumnDef="estado"><th mat-header-cell *matHeaderCellDef class="centro">Estado</th><td mat-cell *matCellDef="let f" class="centro">{{ f.estadoTexto }}</td></ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="centro">Acciones</th>
+          <td mat-cell *matCellDef="let f" class="centro">
+            <div class="acciones">
+              <mat-icon matTooltip="Editar" (click)="onEditar(f)">edit</mat-icon>
+              <mat-icon matTooltip="Participaciones" (click)="onParticipaciones(f)">confirmation_number</mat-icon>
+              <mat-icon *ngIf="f.sorteo.activo" class="cortar" matTooltip="Cortar" (click)="onCortar(f)">block</mat-icon>
+            </div>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+    <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]" [pageIndex]="pageIndex" [pageSize]="pageSize" (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements" showFirstLastButtons style="width: 100%"></mat-paginator>
+  </div>
+</app-generic-list>

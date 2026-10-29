@@ -111,7 +111,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, finalize, map, startWith, switchMap, take, takeUntil, timeout } from "rxjs/operators";
+import { catchError, defaultIfEmpty, finalize, map, startWith, switchMap, take, takeUntil, timeout } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -130,6 +130,9 @@ import { ClienteParaFacturaDialogComponent } from './cliente-para-factura-dialog
 import { LoteService } from '../../../operaciones/lote/lote.service';
 import { StockLotePresentacion } from '../../../operaciones/lote/lote.model';
 import { etiquetaLote, lotesVendibles, loteUnicoParaAsignar } from './seleccionar-lote-venta-dialog/lotes-caja';
+import { SorteoPosService } from './sorteo-pos.service';
+import { textoTicketsImpresos } from '../../../operaciones/sorteo/sorteo.util';
+import type { SorteoClienteInput } from '../../../operaciones/sorteo/sorteo.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -226,7 +229,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private facturaLegalService: FacturaLegalService,
     private productoService: ProductoService,
     private pdvCategoriaService: PdvCategoriaService,
-    private loteService: LoteService
+    private loteService: LoteService,
+    private sorteoPos: SorteoPosService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -1200,7 +1204,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * El filial rechazó la venta porque lleva factura electrónica sin nombre y llega a 7.000.000: no guardó
    * nada. Se pide el cliente y se reenvía la misma venta con el mismo cobro, sin volver a cobrar (#473).
    */
-  private pedirClienteYReintentar(venta: Venta, cobro, ticket, facturar, pedidos: number): void {
+  private pedirClienteYReintentar(
+    venta: Venta,
+    cobro,
+    ticket,
+    facturar,
+    pedidos: number,
+    sorteoCliente: SorteoClienteInput | null = null
+  ): void {
     // Mientras se elige el cliente no se vende ni se toca el carrito: F8/F11 y el buscador miran esto.
     this.isDialogOpen = true;
     this.pidiendoClienteParaFacturar = true;
@@ -1221,7 +1232,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           return;
         }
         venta.cliente = cliente;
-        this.onSaveVenta(venta, cobro, ticket, facturar, null, null, null, pedidos + 1)?.subscribe();
+        // El sorteo ya se decidió en el primer intento: no se vuelve a preguntar.
+        this.onSaveVenta(venta, cobro, ticket, facturar, null, null, null, pedidos + 1, sorteoCliente)?.subscribe();
       });
   }
 
@@ -1756,7 +1768,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     ventaCreditoInput?,
     ventaCreditoCuotaInputList?,
     facturaLegalId?: number,
-    pedidosCliente = 0
+    pedidosCliente = 0,
+    sorteoPrevio?: SorteoClienteInput | null
   ): Observable<Venta> {
     if (facturar == null) {
       // Solo el Cobro Rapido + Ticket (F11) pide factura explicita. Para el Cobro
@@ -1776,193 +1789,247 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       // finalize del pipe interno: onTicketClick hace .subscribe().unsubscribe() sobre este observable
       // y un finalize externo lo bajaría en el mismo tick (#316).
       this.guardandoVenta = true;
-      let guardado$: Observable<any>;
-      try {
-        // VentaService.onSaveVenta arma los toInput() antes de devolver el observable.
-        guardado$ = this.ventaTouchServive.onSaveVenta(
-          venta,
-          cobro,
-          ticket || ventaCreditoInput != null,
-          ventaCreditoInput,
-          ventaCreditoCuotaInputList,
-          facturar,
-          false
-        );
-      } catch (err) {
-        this.guardandoVenta = false;
-        this.avisarErrorAlGuardar(
-          err,
-          facturaLegalId != null
-            ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
-            : "No se pudo guardar la venta. Verifique antes de continuar."
-        );
-        obs.next(null);
-        return;
-      }
-      guardado$
-        .pipe(
-          untilDestroyed(this),
-          finalize(() => (this.guardandoVenta = false))
-        )
-        .subscribe({
-          next: (res) => {
-            if (res?.id != null) {
-              this.notificacionSnackbar.notification$.next({
-                color: NotificacionColor.success,
-                texto: "Venta guardada con éxito",
-                duracion: 2,
-              });
-              // La venta ya está guardada: nada de lo que sigue puede impedir que se limpie el
-              // carrito, o se podría cobrar dos veces (#316).
-              try {
-                if (facturaLegalId != null) {
-                  // La factura se generó manualmente antes de que la venta existiera
-                  // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
-                  this.vincularFacturaManual(facturaLegalId, res.id);
-                }
-                if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
-                  const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
-                  const personaId = venta.cliente?.persona?.id;
-    
-                  if (personaId && sucursalId) {
-                    this.notificationHttpService.sendCompraCreditoNotification(
-                      res.id,
-                      sucursalId,
-                      personaId,
-                      ventaCreditoInput.valorTotal,
-                      this.mainService.sucursalActual?.nombre
-                    ).subscribe({
-                      next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
-                      error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
-                    });
+      // El cuerpo de siempre, con el participante del sorteo (null = no participa).
+      const guardar = (sorteoCliente: SorteoClienteInput | null) => {
+        let guardado$: Observable<any>;
+        try {
+          // VentaService.onSaveVenta arma los toInput() antes de devolver el observable.
+          guardado$ = this.ventaTouchServive.onSaveVenta(
+            venta,
+            cobro,
+            ticket || ventaCreditoInput != null,
+            ventaCreditoInput,
+            ventaCreditoCuotaInputList,
+            facturar,
+            false,
+            sorteoCliente
+          );
+        } catch (err) {
+          this.guardandoVenta = false;
+          this.avisarErrorAlGuardar(
+            err,
+            facturaLegalId != null
+              ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+              : "No se pudo guardar la venta. Verifique antes de continuar."
+          );
+          obs.next(null);
+          return;
+        }
+        guardado$
+          .pipe(
+            untilDestroyed(this),
+            finalize(() => (this.guardandoVenta = false))
+          )
+          .subscribe({
+            next: (res) => {
+              if (res?.id != null) {
+                this.notificacionSnackbar.notification$.next({
+                  color: NotificacionColor.success,
+                  texto: "Venta guardada con éxito",
+                  duracion: 2,
+                });
+                // La venta ya está guardada: nada de lo que sigue puede impedir que se limpie el
+                // carrito, o se podría cobrar dos veces (#316).
+                try {
+                  if (facturaLegalId != null) {
+                    // La factura se generó manualmente antes de que la venta existiera
+                    // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+                    this.vincularFacturaManual(facturaLegalId, res.id);
                   }
-                }
-                if (cobro?.cobroDetalleList?.length > 0) {
-                  const pagoTransferencia = cobro.cobroDetalleList.find(
-                    (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
-                  );
+                  if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
+                    const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
+                    const personaId = venta.cliente?.persona?.id;
     
-                  if (pagoTransferencia) {
-                    const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-    
-                    const totalTransferencia = cobro.cobroDetalleList
-                      .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
-                      .reduce((acc, curr) => acc + curr.valor, 0);
-    
-                    if (sucursalId && totalTransferencia > 0) {
-                      this.notificationHttpService.sendVentaTransferenciaNotification(
+                    if (personaId && sucursalId) {
+                      this.notificationHttpService.sendCompraCreditoNotification(
                         res.id,
                         sucursalId,
-                        totalTransferencia,
-                        this.mainService.usuarioActual?.persona?.nombre,
+                        personaId,
+                        ventaCreditoInput.valorTotal,
                         this.mainService.sucursalActual?.nombre
                       ).subscribe({
-                        next: () => console.log('Notificación de Transferencia enviada exitosamente'),
-                        error: (err) => console.error('Error al enviar notificación de transferencia:', err)
+                        next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                        error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                       });
                     }
                   }
-                }
+                  if (cobro?.cobroDetalleList?.length > 0) {
+                    const pagoTransferencia = cobro.cobroDetalleList.find(
+                      (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
+                    );
     
-                const sucursalId =
-                  this.cajaService.selectedCaja?.sucursalId ||
-                  this.mainService.sucursalActual?.id;
-                if (res.id && sucursalId) {
-                  this.getStockCriticoItems$(sucursalId)
-                    .pipe(untilDestroyed(this))
-                    .subscribe((stockCriticoItems) => {
-                      if (stockCriticoItems.length === 0) {
-                        return;
-                      }
-                      this.notificationHttpService
-                        .sendVentaStockCriticoNotification({
-                          ventaId: res.id,
+                    if (pagoTransferencia) {
+                      const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+    
+                      const totalTransferencia = cobro.cobroDetalleList
+                        .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
+                        .reduce((acc, curr) => acc + curr.valor, 0);
+    
+                      if (sucursalId && totalTransferencia > 0) {
+                        this.notificationHttpService.sendVentaTransferenciaNotification(
+                          res.id,
                           sucursalId,
-                          usuarioNombre:
-                            this.mainService.usuarioActual?.persona?.nombre,
-                          sucursalNombre: this.mainService.sucursalActual?.nombre,
-                          items: stockCriticoItems,
-                        })
-                        .subscribe({
-                          next: () =>
-                            console.log(
-                              "Notificación de stock crítico enviada exitosamente"
-                            ),
-                          error: (err) =>
-                            console.error(
-                              "Error al enviar notificación de stock crítico:",
-                              err
-                            ),
+                          totalTransferencia,
+                          this.mainService.usuarioActual?.persona?.nombre,
+                          this.mainService.sucursalActual?.nombre
+                        ).subscribe({
+                          next: () => console.log('Notificación de Transferencia enviada exitosamente'),
+                          error: (err) => console.error('Error al enviar notificación de transferencia:', err)
                         });
-                    });
-                }
+                      }
+                    }
+                  }
     
-                const tarjetaPagos = this._pendingTarjetaPagos;
-                this._pendingTarjetaPagos = [];
-                this.registrarPagosConTarjeta(tarjetaPagos, res.id);
-              } catch (err) {
-                console.error("Error después de guardar la venta:", err);
-              }
+                  const sucursalId =
+                    this.cajaService.selectedCaja?.sucursalId ||
+                    this.mainService.sucursalActual?.id;
+                  if (res.id && sucursalId) {
+                    this.getStockCriticoItems$(sucursalId)
+                      .pipe(untilDestroyed(this))
+                      .subscribe((stockCriticoItems) => {
+                        if (stockCriticoItems.length === 0) {
+                          return;
+                        }
+                        this.notificationHttpService
+                          .sendVentaStockCriticoNotification({
+                            ventaId: res.id,
+                            sucursalId,
+                            usuarioNombre:
+                              this.mainService.usuarioActual?.persona?.nombre,
+                            sucursalNombre: this.mainService.sucursalActual?.nombre,
+                            items: stockCriticoItems,
+                          })
+                          .subscribe({
+                            next: () =>
+                              console.log(
+                                "Notificación de stock crítico enviada exitosamente"
+                              ),
+                            error: (err) =>
+                              console.error(
+                                "Error al enviar notificación de stock crítico:",
+                                err
+                              ),
+                          });
+                      });
+                  }
+    
+                  const tarjetaPagos = this._pendingTarjetaPagos;
+                  this._pendingTarjetaPagos = [];
+                  this.registrarPagosConTarjeta(tarjetaPagos, res.id);
 
-              this.resetForm();
-              obs.next(res);
-            } else {
-              this.notificacionSnackbar.notification$.next({
-                color: NotificacionColor.danger,
-                texto: "Ups! Ocurrió un problema al guardar",
-                duracion: 3,
-              });
+                  // Sorteos: la filial imprimió los tickets con el comprobante; el cajero tiene que saberlo.
+                  const sorteoTickets = res?.sorteoTickets;
+                  if (sorteoTickets?.length > 0) {
+                    sorteoTickets.forEach((t) => {
+                      if (t == null) return;
+                      this.notificacionSnackbar.notification$.next({
+                        color: NotificacionColor.info,
+                        texto: textoTicketsImpresos(t.nombreSorteo, t.cantidad),
+                        duracion: 8,
+                      });
+                    });
+                  }
+                } catch (err) {
+                  console.error("Error después de guardar la venta:", err);
+                }
+
+                this.resetForm();
+                obs.next(res);
+              } else {
+                this.notificacionSnackbar.notification$.next({
+                  color: NotificacionColor.danger,
+                  texto: "Ups! Ocurrió un problema al guardar",
+                  duracion: 3,
+                });
+                obs.next(null);
+              }
+            },
+            // Sin este handler el error quedaba sin manejar: la venta no se
+            // guardaba y el cajero no se enteraba. Cuando ya se emitió la
+            // factura eso deja una factura legal sin venta asociada, con el
+            // número de timbrado ya consumido y el stock sin descontar.
+            error: (err) => {
+              console.error("Error al guardar la venta:", err);
+              // El aviso genérico es para el estado DESCONOCIDO: red caída o timeout, donde la
+              // venta pudo haberse aplicado igual y por eso hay que verificar antes de seguir.
+              // Un rechazo del servidor no es ese caso: respondió, explicó por qué, y no escribió
+              // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
+              // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
+              // que necesita el caso caro de abajo.
+              // El discriminador es esRechazoDelServidor: un array de errores GraphQL si el servidor rechazó.
+              // La respuesta vacía también llega como array pero es un «sin respuesta» (la venta pudo
+              // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
+              // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
+              // venta asociada, con el timbrado consumido y el stock sin descontar.
+              if (debePedirClienteParaFacturar({
+                error: err,
+                tieneCliente: venta.cliente?.id != null,
+                facturaManualEmitida: facturaLegalId != null,
+                esCredito: ventaCreditoInput != null,
+                esDelivery: this.isDelivery,
+                pedidos: pedidosCliente,
+              })) {
+                this.pedirClienteYReintentar(venta, cobro, ticket, facturar, pedidosCliente, sorteoCliente);
+                obs.next(null);
+                return;
+              }
+              if (pedidosCliente > 0 && esRechazoPorFacturaSinNombre(err)) {
+                this.avisarVentaSinGuardarPorCliente(
+                  "El servidor volvió a rechazar la factura con ese cliente. La venta no se guardó: cobre con el botón de factura."
+                );
+                obs.next(null);
+                return;
+              }
+              const rechazoDelServidor = esRechazoDelServidor(err);
+              if (!rechazoDelServidor || facturaLegalId != null) {
+                this.notificacionSnackbar.notification$.next({
+                  color: NotificacionColor.danger,
+                  texto: facturaLegalId != null
+                    ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+                    : "No se pudo guardar la venta. Verifique antes de continuar.",
+                  duracion: 10,
+                });
+              }
               obs.next(null);
-            }
-          },
-          // Sin este handler el error quedaba sin manejar: la venta no se
-          // guardaba y el cajero no se enteraba. Cuando ya se emitió la
-          // factura eso deja una factura legal sin venta asociada, con el
-          // número de timbrado ya consumido y el stock sin descontar.
-          error: (err) => {
-            console.error("Error al guardar la venta:", err);
-            // El aviso genérico es para el estado DESCONOCIDO: red caída o timeout, donde la
-            // venta pudo haberse aplicado igual y por eso hay que verificar antes de seguir.
-            // Un rechazo del servidor no es ese caso: respondió, explicó por qué, y no escribió
-            // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
-            // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
-            // que necesita el caso caro de abajo.
-            // El discriminador es esRechazoDelServidor: un array de errores GraphQL si el servidor rechazó.
-            // La respuesta vacía también llega como array pero es un «sin respuesta» (la venta pudo
-            // haberse guardado): cae del lado del aviso, igual que el error crudo de transporte.
-            // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
-            // venta asociada, con el timbrado consumido y el stock sin descontar.
-            if (debePedirClienteParaFacturar({
-              error: err,
-              tieneCliente: venta.cliente?.id != null,
-              facturaManualEmitida: facturaLegalId != null,
-              esCredito: ventaCreditoInput != null,
-              esDelivery: this.isDelivery,
-              pedidos: pedidosCliente,
-            })) {
-              this.pedirClienteYReintentar(venta, cobro, ticket, facturar, pedidosCliente);
-              obs.next(null);
-              return;
-            }
-            if (pedidosCliente > 0 && esRechazoPorFacturaSinNombre(err)) {
-              this.avisarVentaSinGuardarPorCliente(
-                "El servidor volvió a rechazar la factura con ese cliente. La venta no se guardó: cobre con el botón de factura."
-              );
-              obs.next(null);
-              return;
-            }
-            const rechazoDelServidor = esRechazoDelServidor(err);
-            if (!rechazoDelServidor || facturaLegalId != null) {
-              this.notificacionSnackbar.notification$.next({
-                color: NotificacionColor.danger,
-                texto: facturaLegalId != null
-                  ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
-                  : "No se pudo guardar la venta. Verifique antes de continuar.",
-                duracion: 10,
-              });
-            }
-            obs.next(null);
-          },
+            },
+          });
+      };
+
+      // Sorteos: antes de guardar se averigua si la venta participa y quién es el cliente (puede abrir un
+      // diálogo). Esta suscripción, como la del guardado, vive acá adentro y no en la del llamador: el
+      // .subscribe().unsubscribe() de onTicketClick no la corta. resolverParticipante nunca falla y emite
+      // una sola vez; ante cualquier problema da null y la venta sigue como siempre.
+      // En el reintento por cliente de factura (#473) no se vuelve a preguntar: se respeta la decisión
+      // del primer intento y, si participaba, va el cliente elegido.
+      // Se arma después de `guardar` porque puede emitir en el acto (delivery, reintento).
+      let participante$: Observable<SorteoClienteInput | null>;
+      try {
+        if (pedidosCliente > 0 && sorteoPrevio !== undefined) {
+          participante$ = of(
+            sorteoPrevio == null ? null : this.sorteoPos.participanteDeVenta(venta, null) ?? sorteoPrevio
+          );
+        } else {
+          participante$ = this.sorteoPos.resolverParticipante(venta, cobro, ventaCreditoInput, (abierto) => {
+            this.isDialogOpen = abierto;
+            if (!abierto) this.buscadorFocusSub.next();
+          });
+        }
+      } catch (err) {
+        console.error("Sorteos: no se pudo resolver el participante; la venta sigue sin sorteo", err);
+        participante$ = of(null);
+      }
+      participante$
+        .pipe(
+          take(1),
+          catchError(() => of(null)),
+          // Si completara sin emitir, la venta no se guardaría y guardandoVenta quedaría en true.
+          defaultIfEmpty(null),
+          untilDestroyed(this)
+        )
+        .subscribe({
+          next: (sorteoCliente) => guardar(sorteoCliente ?? null),
+          // No debería pasar (catchError): por las dudas, no dejar el PDV trabado.
+          error: () => guardar(null),
         });
     });
   }
