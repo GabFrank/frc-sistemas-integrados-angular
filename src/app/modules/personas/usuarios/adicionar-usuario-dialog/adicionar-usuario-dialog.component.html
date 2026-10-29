@@ -55,6 +55,12 @@
         </button>
       </mat-form-field>
     </div>
+    <div *ngIf="sugerencias.length > 0" class="sugerencias" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <span class="secundario">Disponibles:</span>
+      <button *ngFor="let sugerencia of sugerencias" mat-stroked-button type="button" (click)="onElegirSugerencia(sugerencia)">
+        {{ sugerencia }}
+      </button>
+    </div>
   </form>
 
   <div *ngIf="!esAlta" class="roles">

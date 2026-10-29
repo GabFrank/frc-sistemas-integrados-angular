@@ -11,11 +11,14 @@ import { UsuarioInput } from "./usuario-input.model";
 import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable } from "rxjs";
+import { forkJoin, Observable, of } from "rxjs";
+import { catchError, defaultIfEmpty, map, timeout } from "rxjs/operators";
+import { candidatosNickname } from "../../../commons/core/utils/nicknameUtils";
 import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
 import {
   ContextoConsulta,
   GenericCrudService,
+  LECTURA_ESTRICTA,
   PROPAGAR_ERROR_DE_RED,
   QueryError,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -109,6 +112,23 @@ export class UsuarioService {
 
   onVerificarUsuario(texto, servidor: boolean = true): Observable<boolean> {
     return this.genericService.onGetByTexto(this.verificarUsuario, texto, servidor)
+  }
+
+  /**
+   * Hasta 4 nicknames libres «nombre + apellido» del nombre completo de la persona. Nunca falla ni avisa:
+   * el aviso de «ya existe» lo da quien llama, y lo que no se pudo verificar no se sugiere.
+   */
+  onSugerirNicknames(nombreCompleto: string, excluir: string[]): Observable<string[]> {
+    const candidatos = candidatosNickname(nombreCompleto, excluir);
+    if (candidatos.length == 0) return of([]);
+    // LECTURA_ESTRICTA: sin aviso y siempre termina; con un errorConf sin propagate, forkJoin quedaría esperando.
+    return forkJoin(candidatos.map(c =>
+      this.genericService.onGetByTexto(this.verificarUsuario, c, true, undefined, LECTURA_ESTRICTA).pipe(
+        timeout(15000),
+        catchError(() => of(true)),
+        defaultIfEmpty(true)
+      )
+    )).pipe(map(tomados => candidatos.filter((_, i) => tomados[i] !== true && tomados[i] != null).slice(0, 4)));
   }
 
   /**
