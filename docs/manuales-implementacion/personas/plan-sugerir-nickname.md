@@ -102,6 +102,30 @@ Nada nuevo en base, GraphQL ni configuración.
   9. Editar un usuario sin cambiar el nickname → no verifica ni sugiere.
 - `npm run check` al final.
 
+## Cambios durante la prueba (29/10)
+
+- **Sin «Buscando…»**: `onGetByTexto` abre el spinner de pantalla completa en cada consulta; con un central
+  lento tapaba el diálogo hasta que llegaban las sugerencias (el clic en «Cambiar» se perdía). Las
+  sugerencias van por `onCustomQuery` con `silentLoad` y un contexto de 15 s sin avisos.
+- **Chips** (pedido de Franco): `mat-chip-listbox` + `mat-chip-option` en lugar de botones, con un margen
+  chico entre los campos y la fila de sugerencias. Se elige con clic o teclado.
+
+## Resultado de la prueba por pantalla (central de `develop` en 8081, Flyway apagado; desktop web)
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Persona 848 `PEDRO PABLO AMARILLA PRIETO`, `PEDRO AMARILLA` tomado | aviso + PEDRO PRIETO · PABLO AMARILLA · PABLO PRIETO; clic → campo; guardado OK |
+| 2 | Persona 512 `ABEL MELGAREJO` (2 palabras, tomado) | solo el aviso, 1 consulta |
+| 3 | Nuevo usuario sin persona | N/A: «Guardar» deshabilitado sin persona |
+| 4 | Editar usuario y poner un nickname tomado | sugiere desde su persona, sin su propio nickname |
+| 5 | Una consulta de candidato falla por red | ese no se sugiere, el resto sí; ningún «Ups!» |
+| 6 | Asistente de pre-registro con nickname tomado | chips; elegido → persona, usuario y funcionario creados, pre-registro verificado |
+| 7 | Respuestas demoradas 6 s y cambio de persona | sin spinner; no aparecen sugerencias viejas |
+| 8 | Sugerencia tomada entre medio (SQL) | vuelve el aviso con sugerencias recalculadas |
+| 9 | Editar sin cambiar el nickname | guarda sin verificar ni sugerir |
+
+Datos de prueba borrados al terminar (usuarios 624/625, persona 6722, funcionario 621, pre-registro 680).
+
 ## Auditoría del plan (paso 5)
 
 | Hallazgo | Eje | Qué se hizo |
