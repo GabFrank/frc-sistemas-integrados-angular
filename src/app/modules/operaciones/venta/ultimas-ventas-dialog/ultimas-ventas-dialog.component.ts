@@ -250,7 +250,11 @@ export class UltimasVentasDialogComponent implements OnInit {
   reimpresionSorteo(id) {
     this.ventaService.onReimprimirSorteo(id, false).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
-        if (res != null) {
+        // La filial devuelve false si no encuentra la impresora o falla la impresión (a diferencia de reimpresionVenta)
+        if (res === false) {
+          this.notificacionSnackBar.openWarn(
+            "No se pudo reimprimir el ticket de sorteo de la venta " + id + ": revisá la impresora.", 8);
+        } else if (res != null) {
           this.notificacionSnackBar.openSucess("Reimpreso con éxito");
         }
       },
