@@ -9,6 +9,7 @@ import {
   MENSAJE_RESPUESTA_VACIA,
   mensajeDeError,
   motivoDelRechazo,
+  motivoVersionMinima,
 } from "./graphqlErrorUtils";
 
 // Texto de VentaNoFacturableException en el filial (FacturaLegalBuilder.ensayarDE).
@@ -277,5 +278,19 @@ describe('mensajeDeError', () => {
     const err = { graphQLErrors: [], message: 'Network error' };
 
     expect(mensajeDeError(err, 'fallback')).toBe('Network error');
+  });
+});
+
+describe("motivoVersionMinima", () => {
+  it("deja solo el motivo del central, sin el «Ups! Algo salió mal»", () => {
+    const texto = "Ups! Algo salió mal en operacion: VERSION_MINIMA: para guardar un precio en otra moneda primero hay que configurar la version minima.";
+    expect(motivoVersionMinima(texto)).toBe(
+      "Versión mínima del escritorio: para guardar un precio en otra moneda primero hay que configurar la version minima.");
+  });
+
+  it("es null si no es ese rechazo", () => {
+    expect(motivoVersionMinima("Ups! Algo salió mal: otra cosa")).toBeNull();
+    expect(motivoVersionMinima(null)).toBeNull();
+    expect(motivoVersionMinima("VERSION_MINIMA:")).toBeNull();
   });
 });

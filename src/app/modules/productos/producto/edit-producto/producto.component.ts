@@ -75,6 +75,8 @@ import {
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
+import { PrecioMonedaService } from "../../precio-por-sucursal/precio-moneda.service";
+import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import {
   PrecioEspecialDialogComponent,
   PrecioEspecialDialogData,
@@ -282,7 +284,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
     private notificacionService: NotificacionSnackbarService,
     private thermalPrinterService: ThermalPrinterService,
-    private configuracionService: ConfiguracionService
+    private configuracionService: ConfiguracionService,
+    private precioMonedaService: PrecioMonedaService,
+    private monedaModulo: MonedaModuloService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1123,7 +1127,30 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
+        this.cargarSimbolosDePrecios(data);
       } });
+  }
+
+  /**
+   * Símbolo de la moneda de cada precio que NO está en la de la empresa, por id de precio. Se lee con una
+   * operación aparte que puede fallar (servidor viejo): sin símbolo, el precio se ve como siempre.
+   */
+  simbolosPrecio: Record<string, string> = {};
+
+  private cargarSimbolosDePrecios(presentaciones: Presentacion[]): void {
+    this.simbolosPrecio = {};
+    (presentaciones || []).filter((p) => p?.id != null && p.precios?.length > 0).forEach((p) => {
+      this.precioMonedaService.monedasDePreciosDePresentacion(p.id)
+        .pipe(untilDestroyed(this))
+        .subscribe((mapa) => {
+          if (mapa == null) return;
+          const nuevos = { ...this.simbolosPrecio };
+          mapa.forEach((moneda, precioId) => {
+            if (moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda)) nuevos[precioId] = moneda.simbolo || '';
+          });
+          this.simbolosPrecio = nuevos;
+        });
+    });
   }
 
   /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
@@ -1376,6 +1403,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.promocion = promocion;
     // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
+    data.productoId = this.selectedProducto?.id;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,

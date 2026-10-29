@@ -1,4 +1,4 @@
-import { evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from './margen-precio.util';
+import { costoEnMonedaDelPrecio, evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from './margen-precio.util';
 
 describe('evaluarMargenPrecio', () => {
   it('avisa cuando el margen queda por debajo del mínimo', () => {
@@ -55,5 +55,42 @@ describe('evaluarMargenPrecio', () => {
   it('no evalúa nada cuando el precio no es un número válido', () => {
     expect(evaluarMargenPrecio(null, 10000, 1)).toBeNull();
     expect(evaluarMargenPrecio(Number('abc'), 10000, 1)).toBeNull();
+  });
+});
+
+describe('costoEnMonedaDelPrecio', () => {
+  const PYG = { id: 1, cambio: 1 };
+  const USD = { id: 3, cambio: 5980 };
+
+  it('precio en la moneda de la empresa: el costo de la empresa, tal cual', () => {
+    expect(costoEnMonedaDelPrecio(10000, PYG, PYG)).toBe(10000);
+    expect(costoEnMonedaDelPrecio(10000, null, PYG)).toBe(10000);
+    // ids como texto (GraphQL) y como número
+    expect(costoEnMonedaDelPrecio(10000, { id: '1' }, { id: 1 })).toBe(10000);
+    expect(costoEnMonedaDelPrecio(null, PYG, PYG)).toBeNull();
+  });
+
+  it('moneda de costeo igual a la del precio: ese costo, sin convertir', () => {
+    const costeo = { moneda: { id: '3' }, costoMedio: 2.5 };
+    expect(costoEnMonedaDelPrecio(14950, USD, PYG, costeo)).toBe(2.5);
+  });
+
+  it('moneda de costeo distinta: convierte el costo de la empresa con los cambios del comercio', () => {
+    const costeo = { moneda: { id: 2 }, costoMedio: 99 };
+    expect(costoEnMonedaDelPrecio(11960, USD, PYG, costeo)).toBeCloseTo(2, 10);
+    expect(costoEnMonedaDelPrecio(11960, USD, PYG, null)).toBeCloseTo(2, 10);
+  });
+
+  it('sin cambio de la moneda del precio o sin costo: null (no se avisa)', () => {
+    expect(costoEnMonedaDelPrecio(11960, { id: 3, cambio: null }, PYG)).toBeNull();
+    expect(costoEnMonedaDelPrecio(0, USD, PYG)).toBeNull();
+    expect(costoEnMonedaDelPrecio(null, USD, PYG)).toBeNull();
+  });
+
+  it('el margen se calcula en la moneda del precio', () => {
+    const costo = costoEnMonedaDelPrecio(11960, USD, PYG); // US$ 2
+    const res = evaluarMargenPrecio(2.2, costo, 1);
+    expect(res.margenPorcentaje).toBeCloseTo(10, 5);
+    expect(res.debeAvisar).toBeTrue();
   });
 });

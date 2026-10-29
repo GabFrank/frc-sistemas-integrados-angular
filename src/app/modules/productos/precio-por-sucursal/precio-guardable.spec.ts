@@ -28,3 +28,12 @@ describe("esPrecioGuardable", () => {
     expect(esPrecioGuardable("0", 0)).toBeTrue();
   });
 });
+
+describe("esPrecioGuardable con mínimo de la moneda", () => {
+  it("acepta US$ 0,50 si el mínimo es un centavo, y sigue rechazando cero", () => {
+    expect(esPrecioGuardable(0.5, undefined, 0.01)).toBeTrue();
+    expect(esPrecioGuardable(0.01, undefined, 0.01)).toBeTrue();
+    expect(esPrecioGuardable(0, undefined, 0.01)).toBeFalse();
+    expect(esPrecioGuardable(0.5)).toBeFalse();
+  });
+});
