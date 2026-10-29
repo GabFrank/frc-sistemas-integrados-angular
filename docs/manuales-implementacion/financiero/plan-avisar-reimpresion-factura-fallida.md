@@ -42,6 +42,17 @@ falla sigue volviendo `true`. Va en la etapa del filial.
 local con el código de `develop` en un puerto propio, cola CUPS que rechaza ⇒ aviso; que acepta ⇒ «Guardado con
 éxito».
 
+### Resultado (29/10)
+
+- Spec: los 10 de `factura-legal.service.spec.ts` pasan (Karma con `DISPLAY=:0` y tsconfig acotado); con el servicio
+  anterior falla el caso nuevo de `false`.
+- `npm run check`: sin errores.
+- Pantalla, desktop web de esta rama contra un central local en el 8093 (Reportes y Análisis → Facturas → Reimprimir
+  la factura 452581): con la cola `zz_rechaza`, aviso «La factura está guardada, pero no se pudo reimprimir: revisá
+  la impresora y reimprimila desde la lista de facturas.»; con `zz_ok`, «Guardado con éxito» y el trabajo en la
+  cola. El camino del diálogo de alta (reimprimir después de emitir) usa el mismo método y el mismo texto; no se
+  emitió una factura nueva para probarlo.
+
 ## Auditoría del plan (paso 5)
 
 | Hallazgo | Eje | Qué se hizo |
