@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { catchError, tap, timeout } from "rxjs/operators";
-import { GenericCrudService, LECTURA_ESTRICTA, QueryError } from "../../../generics/generic-crud.service";
+import { GenericCrudService, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import {
   FacturaLegal,
@@ -204,10 +204,16 @@ export class FacturaLegalService {
         id,
         sucId,
         printerName: this.configService?.getConfig()?.printers?.ticket,
-      }, servidor)
+      }, servidor, PROPAGAR_ERROR_DE_RED, null, this.impresionPos.contextoImpresionServidor)
+      .pipe(this.impresionPos.avisarSinRespuesta("la reimpresión de la factura"))
       .subscribe((res) => {
         if (res) {
           this.notificacionService.openGuardadoConExito();
+        } else if (res === false) {
+          // false = el backend no pudo imprimir. Un error GraphQL llega como null y ya lo avisó el genérico.
+          // Dice que está guardada: desde el diálogo de alta, emitirla de nuevo consumiría otro número.
+          this.notificacionService.openWarn(
+            "La factura está guardada, pero no se pudo reimprimir: revisá la impresora y reimprimila desde la lista de facturas.", 8);
         }
       });
   }
