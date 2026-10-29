@@ -10,18 +10,22 @@
     <!-- 1. Datos que salen en el ticket -->
     <section class="so-seccion">
       <h3 class="so-titulo"><mat-icon>confirmation_number</mat-icon> Datos del sorteo</h3>
-      <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
-        <mat-label>Nombre</mat-label>
-        <input matInput formControlName="nombre" autocomplete="off" maxlength="120"
-          placeholder="Ej: SORTEO DÍA DE LA MADRE" />
-        <mat-hint>Sale en grande en el ticket. Corto y fácil de reconocer.</mat-hint>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
-        <mat-label>Descripción (opcional)</mat-label>
-        <textarea matInput formControlName="descripcion" rows="2" maxlength="300"
-          placeholder="Ej: Por compras desde 50.000 Gs. participás por una bicicleta y dos termos. El sorteo es en vivo en la sucursal."></textarea>
-        <mat-hint>Bases o condiciones que el cliente lee en el ticket.</mat-hint>
-      </mat-form-field>
+      <div class="so-bloque">
+        <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="nombre" autocomplete="off" maxlength="120"
+            placeholder="Ej: SORTEO DÍA DE LA MADRE" />
+          <mat-hint>Sale en grande en el ticket. Corto y fácil de reconocer.</mat-hint>
+        </mat-form-field>
+      </div>
+      <div class="so-bloque">
+        <mat-form-field appearance="outline" class="so-ancho" subscriptSizing="dynamic">
+          <mat-label>Descripción (opcional)</mat-label>
+          <textarea matInput formControlName="descripcion" rows="2" maxlength="300"
+            placeholder="Ej: Por compras desde 50.000 Gs. participás por una bicicleta y dos termos. El sorteo es en vivo en la sucursal."></textarea>
+          <mat-hint>Bases o condiciones que el cliente lee en el ticket.</mat-hint>
+        </mat-form-field>
+      </div>
     </section>
 
     <!-- 2. Quién participa y con cuántos tickets -->

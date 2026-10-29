@@ -41,8 +41,9 @@
   width: 100%;
 }
 
-mat-form-field.so-ancho + mat-form-field.so-ancho {
-  margin-top: 8px;
+// Cada campo con ayuda debajo en su propio bloque: el borde del siguiente no pisa la ayuda.
+.so-bloque {
+  margin-bottom: 14px;
 }
 
 .so-sucursales {
