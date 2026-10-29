@@ -130,7 +130,9 @@ export class SorteoPosService {
       })
       .afterClosed()
       .pipe(
-        map((res: SorteoClienteInput) => (res?.nombre != null && res.nombre.trim() !== "" ? res : null)),
+        // Cualquier respuesta del diálogo participa. «Imprimir normal» llega con el nombre vacío: el
+        // ticket sale con líneas en blanco para completar a mano (nombre es obligatorio en el schema).
+        map((res: SorteoClienteInput) => (res != null ? { ...res, nombre: (res.nombre ?? "").trim() } : null)),
         map((res) => {
           alDialogo?.(false);
           return res;
