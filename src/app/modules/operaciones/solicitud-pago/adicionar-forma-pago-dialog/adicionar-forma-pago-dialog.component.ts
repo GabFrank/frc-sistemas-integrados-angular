@@ -305,7 +305,7 @@ export class AdicionarFormaPagoDialogComponent implements OnDestroy {
     }
     const tasa = Number(this.form.get('cotizacion').value);
     const montoGs = this.data?.montoSugerido;
-    const monedaSel = this.monedaList.find((m) => m.id === this.form.get('monedaId').value);
+    const monedaSel = this.monedaList.find((m) => String(m.id) === String(this.form.get('monedaId').value));
     const valor = tasa > 0 && montoGs != null && montoGs > 0 ? this.redondearA(montoGs / tasa, monedaSel) : null;
     this.form.patchValue({ valor }, { emitEvent: false });
   }

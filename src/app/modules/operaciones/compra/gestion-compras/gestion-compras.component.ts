@@ -733,7 +733,7 @@ export class GestionComprasComponent
 
         // Initialize with default values if available
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
-          const monedaDefault = monedas.find((m) => m.id === monedaCompras?.id) ?? monedas[0];
+          const monedaDefault = monedas.find((m) => String(m.id) === String(monedaCompras?.id)) ?? monedas[0];
           this.datosGeneralesForm.patchValue({ moneda: monedaDefault }, { emitEvent: false });
         }
         this.ensureDefaultFormaPago();

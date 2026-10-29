@@ -90,7 +90,8 @@ export class MonedaModuloService implements OnDestroy {
   esMonedaEmpresa(moneda: Partial<Moneda> | null | undefined): boolean {
     if (!moneda) return true;
     const empresa = this.empresa$.value;
-    if (empresa && moneda.id != null) return empresa.id === moneda.id;
+    // Por texto: GraphQL devuelve los ID como string y hay monedas armadas a mano con id numérico.
+    if (empresa?.id != null && moneda.id != null) return String(empresa.id) === String(moneda.id);
     return (moneda.denominacion || '').toUpperCase().includes('GUARANI');
   }
 

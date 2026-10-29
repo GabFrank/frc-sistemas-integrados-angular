@@ -250,7 +250,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   /** La moneda de COMPRAS dentro de la lista cargada (misma instancia que usa mat-option); si no, la primera. */
   private monedaComprasEn(monedas: Moneda[]): Moneda {
-    return monedas.find((m) => m.id === this.monedaCompras?.id) ?? monedas[0];
+    return monedas.find((m) => String(m.id) === String(this.monedaCompras?.id)) ?? monedas[0];
   }
 
   private loadMonedas(): void {
