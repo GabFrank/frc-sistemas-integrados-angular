@@ -60,13 +60,14 @@
         <mat-datepicker #pHasta></mat-datepicker>
       </mat-form-field>
       <mat-form-field appearance="outline" class="so-campo">
-        <mat-label>Día del sorteo (opcional)</mat-label>
-        <input matInput [matDatepicker]="pSorteo" formControlName="fechaSorteo" />
+        <mat-label>Día del sorteo</mat-label>
+        <input matInput [matDatepicker]="pSorteo" formControlName="fechaSorteo" required />
         <mat-datepicker-toggle matSuffix [for]="pSorteo"></mat-datepicker-toggle>
         <mat-datepicker #pSorteo></mat-datepicker>
+        <mat-error>El día del sorteo es obligatorio.</mat-error>
       </mat-form-field>
     </div>
-    <p class="so-ayuda">Las fechas de vigencia son opcionales y se cuentan completas.</p>
+    <p class="so-ayuda">Las fechas de vigencia son opcionales y se cuentan completas. El día del sorteo es obligatorio.</p>
 
     <mat-checkbox formControlName="todasSucursales">Todas las sucursales</mat-checkbox>
     <mat-form-field appearance="outline" class="so-campo so-campo--ancho" style="margin-top: 8px">

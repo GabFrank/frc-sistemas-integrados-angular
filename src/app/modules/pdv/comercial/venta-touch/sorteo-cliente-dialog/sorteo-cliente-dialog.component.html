@@ -32,7 +32,7 @@
     <div *ngIf="!buscando && mensaje != null" class="mensaje">{{ mensaje }}</div>
   </div>
   <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="end center">
-    <button mat-stroked-button type="button" (click)="onNoParticipa()">No participa</button>
+    <button mat-stroked-button type="button" [disabled]="buscando" (click)="onImprimirNormal()">Imprimir normal</button>
     <button mat-flat-button color="accent" type="button" [disabled]="buscando" (click)="onConfirmar()">
       Confirmar
     </button>

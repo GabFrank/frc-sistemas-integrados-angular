@@ -46,7 +46,7 @@ export class SorteoDialogComponent implements OnInit {
     incluyeTarjeta: new FormControl<boolean>(true),
     fechaDesde: new FormControl<Date>(null),
     fechaHasta: new FormControl<Date>(null),
-    fechaSorteo: new FormControl<Date>(null),
+    fechaSorteo: new FormControl<Date>(null, Validators.required),
     todasSucursales: new FormControl<boolean>(true),
     sucursales: new FormControl<number[]>([]),
     premios: new FormArray<FormGroup>([]),

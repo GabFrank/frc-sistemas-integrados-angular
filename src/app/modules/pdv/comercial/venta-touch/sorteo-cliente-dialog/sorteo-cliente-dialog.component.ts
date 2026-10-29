@@ -36,8 +36,9 @@ function nombreDe(cliente: Cliente): string {
 
 /**
  * Diálogo «Sorteo» del POS: la venta califica y no tiene cliente. Busca el RUC/CI primero en la base de la
- * filial y después en SET; si no aparece, el cajero escribe el nombre. Devuelve el participante o null
- * («No participa»). Solo cierran los dos botones (disableClose): Esc no hace nada.
+ * filial y después en SET; si no aparece, el cajero escribe el nombre. «Imprimir normal» saca el ticket sin
+ * datos: el cliente escribe nombre y CI/RUC a mano y firma. Solo cierran los dos botones (disableClose):
+ * Esc no hace nada.
  *
  * Teclado: Enter en RUC/CI busca; con el cliente ya encontrado, Enter confirma. Enter en Nombre confirma.
  */
@@ -193,8 +194,10 @@ export class SorteoClienteDialogComponent implements AfterViewInit, OnDestroy {
     this.dialogRef.close({ clienteId, documento: documento !== "" ? documento : null, nombre });
   }
 
-  onNoParticipa() {
-    this.dialogRef.close(null);
+  /** Participa igual, sin datos: el ticket sale con líneas en blanco para completar a mano. */
+  onImprimirNormal() {
+    if (this.buscando) return;
+    this.dialogRef.close({ clienteId: null, documento: null, nombre: "" });
   }
 
   private enfocar(input: () => ElementRef, ms: number) {

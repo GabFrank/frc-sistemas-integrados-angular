@@ -2000,7 +2000,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       // .subscribe().unsubscribe() de onTicketClick no la corta. resolverParticipante nunca falla y emite
       // una sola vez; ante cualquier problema da null y la venta sigue como siempre.
       // En el reintento por cliente de factura (#473) no se vuelve a preguntar: se respeta la decisión
-      // del primer intento («No participa» sigue sin participar) y, si participaba, va el cliente elegido.
+      // del primer intento y, si participaba, va el cliente elegido.
       // Se arma después de `guardar` porque puede emitir en el acto (delivery, reintento).
       let participante$: Observable<SorteoClienteInput | null>;
       try {

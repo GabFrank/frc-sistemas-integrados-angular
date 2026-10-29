@@ -45,8 +45,8 @@ export class SorteoPosService {
 
   /**
    * Quién participa del sorteo con esta venta, o null si no participa (no califica, delivery, la filial
-   * no conoce los sorteos, falló la consulta o el cajero eligió «No participa»). Nunca falla y siempre
-   * emite una sola vez.
+   * no conoce los sorteos o falló la consulta). «Imprimir normal» devuelve un participante sin datos.
+   * Nunca falla y siempre emite una sola vez.
    *
    * `alDialogo` avisa cuando se abre (true) y se cierra (false) el diálogo, para que el PDV no tome
    * atajos de teclado mientras tanto.
