@@ -13,7 +13,7 @@ import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
 import { MonedaModuloService } from '../../../../../shared/services/moneda-modulo.service';
 import { PrecioMonedaService } from '../../../precio-por-sucursal/precio-moneda.service';
-import { precioEnMonedaEmpresa, textoPrecioEtiqueta } from '../../../precio-por-sucursal/etiqueta-precio.util';
+import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta } from '../../../precio-por-sucursal/etiqueta-precio.util';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @Component({
@@ -60,7 +60,7 @@ export class PrintLabelDialogComponent implements OnInit {
    * (entonces la etiqueta sale como siempre). La etiqueta imprime el precio en SU moneda.
    */
   monedaPrecio: Moneda | null = null;
-  monedaPrecioEstado: 'cargando' | 'ok' | 'error' = 'cargando';
+  monedaPrecioEstado: 'cargando' | 'ok' | 'sinConfirmar' = 'cargando';
   /** Las monedas con su cambio (guaraníes por unidad), para llevar un precio en otra moneda a reales o dólares. */
   private monedasConCambio: Moneda[] = [];
 
@@ -164,10 +164,11 @@ export class PrintLabelDialogComponent implements OnInit {
    * Con el mapa todavía cargando se espera como mucho 2 s y se sigue como moneda de la empresa (con un aviso en el
    * log). Solo si hay precios en otra moneda hace falta una lectura más para saber cuál es el principal, con el mismo tope.
    */
-  private loadMonedaPrecio(): void {
+  loadMonedaPrecio(): void {
     const productoId = this.data?.producto?.id;
     const actual = this.precioMonedaService.mapaCentral$.value;
-    if (productoId == null || (actual.estado === 'ok' && actual.mapa.size === 0) || actual.estado === 'error') {
+    if (productoId == null || (actual.estado !== 'cargando' && actual.estado !== 'sinCargar'
+        && decisionMonedaEtiqueta(actual.estado, actual.mapa.size) === 'empresa')) {
       this.monedaPrecioEstado = 'ok';
       return;
     }
@@ -178,15 +179,17 @@ export class PrintLabelDialogComponent implements OnInit {
         this.monedaPrecioEstado = 'ok';
         return;
       }
-      if (m.estado === 'error' || m.mapa.size === 0) {
+      if (decisionMonedaEtiqueta(m.estado, m.mapa.size) === 'empresa') {
         this.monedaPrecioEstado = 'ok';
         return;
       }
       // Hay precios en otra moneda: se averigua si el principal de este producto es uno de ellos
       this.precioMonedaService.monedaDelPrecioPrincipal(productoId).pipe(timeout(2000), catchError(() => of(undefined as Moneda | null | undefined)))
         .subscribe((moneda) => {
-          if (moneda === undefined) {
-            console.warn('[etiqueta] no se pudo leer la moneda del precio principal: se imprime en la moneda de la empresa');
+          if (!lecturaDelPrincipalConfirmada(moneda)) {
+            // No se cae a la moneda de la empresa: un precio en otra moneda saldría con «Gs.»
+            this.monedaPrecioEstado = 'sinConfirmar';
+            return;
           }
           this.monedaPrecio = moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda) ? moneda : null;
           this.monedaPrecioEstado = 'ok';
@@ -239,6 +242,10 @@ export class PrintLabelDialogComponent implements OnInit {
 
   /** Guarda de las dos entradas de impresión (térmica y afiche). */
   private impresionBloqueadaPorCotizacion(): boolean {
+    if (this.monedaPrecioEstado === 'sinConfirmar') {
+      this.notificacionService.openWarn('No se pudo confirmar la moneda del precio; reintentá.', 6);
+      return true;
+    }
     if (this.monedaPrecioEstado === 'cargando') {
       this.notificacionService.openWarn('Leyendo la moneda del precio: esperá un instante y volvé a imprimir.', 4);
       return true;

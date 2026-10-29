@@ -18,6 +18,26 @@ export function textoPrecioEtiqueta(
 }
 
 /**
+ * Qué hacer con la moneda de una etiqueta según el mapa en caché de precios en otra moneda.
+ *  - `empresa`: el mapa está vacío (bodega) o falló, o sigue cargando pasado el tope de espera: moneda de la empresa.
+ *  - `consultar`: hay precios en otra moneda; hay que saber si el principal de este producto es uno de ellos.
+ */
+export function decisionMonedaEtiqueta(
+  estadoMapa: 'sinCargar' | 'cargando' | 'ok' | 'error',
+  tamanoMapa: number,
+): 'empresa' | 'consultar' {
+  return estadoMapa === 'ok' && tamanoMapa > 0 ? 'consultar' : 'empresa';
+}
+
+/**
+ * Con precios en otra moneda en juego, una lectura del principal que no se pudo confirmar (`undefined`) NO cae a la
+ * moneda de la empresa: un precio en dólares saldría como «Gs. 4». Bloquea la impresión hasta reintentar.
+ */
+export function lecturaDelPrincipalConfirmada(moneda: unknown | null | undefined): boolean {
+  return moneda !== undefined;
+}
+
+/**
  * El precio llevado a la moneda de la empresa (para convertirlo luego a reales o dólares con sus cotizaciones,
  * que son «moneda de la empresa por unidad»). En la moneda de la empresa es el mismo número. En otra:
  * `precio * cambio` de esa moneda; null si no se conoce su cambio.

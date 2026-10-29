@@ -1,4 +1,4 @@
-import { precioEnMonedaEmpresa, textoPrecioEtiqueta } from './etiqueta-precio.util';
+import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta } from './etiqueta-precio.util';
 
 describe('textoPrecioEtiqueta', () => {
   it('moneda de la empresa: el texto de siempre, igual byte a byte', () => {
@@ -27,5 +27,25 @@ describe('precioEnMonedaEmpresa', () => {
   it('otra moneda: por su cambio; sin cambio, null', () => {
     expect(precioEnMonedaEmpresa(4, {}, 5980)).toBe(23920);
     expect(precioEnMonedaEmpresa(4, {}, null)).toBeNull();
+  });
+});
+
+describe('decisionMonedaEtiqueta', () => {
+  it('mapa vacío, fallido o sin cargar: la moneda de la empresa', () => {
+    expect(decisionMonedaEtiqueta('ok', 0)).toBe('empresa');
+    expect(decisionMonedaEtiqueta('error', 0)).toBe('empresa');
+    expect(decisionMonedaEtiqueta('cargando', 0)).toBe('empresa');
+  });
+
+  it('mapa con precios en otra moneda: hay que consultar el principal', () => {
+    expect(decisionMonedaEtiqueta('ok', 3)).toBe('consultar');
+  });
+});
+
+describe('lecturaDelPrincipalConfirmada', () => {
+  it('undefined (falló o tardó) no está confirmada; null (empresa) y una moneda sí', () => {
+    expect(lecturaDelPrincipalConfirmada(undefined)).toBeFalse();
+    expect(lecturaDelPrincipalConfirmada(null)).toBeTrue();
+    expect(lecturaDelPrincipalConfirmada({ id: 3 })).toBeTrue();
   });
 });
