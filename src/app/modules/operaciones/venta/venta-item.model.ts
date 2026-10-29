@@ -25,6 +25,17 @@ export class VentaItem {
      * control de lote y solo si el cajero abre el selector.
      */
     lotes: VentaItemLoteInput[];
+    /**
+     * Rastro de un precio en otra moneda (Fase 3): solo si el ítem se convirtió al agregarlo. `precio` queda en
+     * la moneda de cobro y estos tres dicen de dónde salió: id de la moneda del precio, precio de lista en esa
+     * moneda y cotización usada (unidades de la moneda de cobro por unidad de la del precio). Ausentes en un
+     * ítem en la moneda de la empresa.
+     */
+    precioMonedaId?: number;
+    precioLista?: number;
+    precioCotizacion?: number;
+    /** Solo pantalla (no viaja): el precio de lista con su símbolo, p. ej. "US$ 4,39". */
+    precioListaTexto?: string;
     /** Solo pantalla (no viaja al servidor): "Lote X · Vto dd/mm/aa" bajo el ítem antes de cobrar (#429). */
     lotesEtiqueta?: string;
 
@@ -46,6 +57,13 @@ export class VentaItem {
         input.activo = this.activo;
         // Se omite cuando está vacío para que el backend lo lea como FEFO puro.
         input.lotes = this.lotes?.length ? this.lotes : null;
+        // El rastro viaja SOLO si el ítem se convirtió: las claves se omiten (no se mandan en null), porque una
+        // filial anterior rechaza el input entero si llega una clave que no conoce.
+        if (this.precioMonedaId != null && this.precioLista != null && this.precioCotizacion != null) {
+            input.precioMonedaId = this.precioMonedaId;
+            input.precioLista = this.precioLista;
+            input.precioCotizacion = this.precioCotizacion;
+        }
         return input;
     }
 }
@@ -77,4 +95,8 @@ export class VentaItemInput {
     activo: boolean
     /** Null = FEFO puro. Ver VentaLoteService en el filial. */
     lotes: VentaItemLoteInput[];
+    /** Rastro del precio convertido (ver VentaItem). Las tres claves existen solo si el ítem se convirtió. */
+    precioMonedaId?: number;
+    precioLista?: number;
+    precioCotizacion?: number;
 }

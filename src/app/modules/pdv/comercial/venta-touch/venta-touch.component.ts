@@ -44,6 +44,9 @@ import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.mod
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
+import { resolverPrecioDeItem } from "./precio-en-moneda";
+import { PrecioMonedaService } from "../../../productos/precio-por-sucursal/precio-moneda.service";
+import { elegirMonedaEmpresa, MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import { Venta } from "../../../operaciones/venta/venta.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import {
@@ -198,6 +201,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * necesita este mapa para escalarlo bien.
    */
   decimalesPorMoneda: DecimalesPorMoneda = {};
+  /**
+   * Precios de venta que NO están en la moneda de la empresa (precioId → moneda), de `preciosEnOtraMoneda` de la
+   * filial. Vacío si no hay ninguno o la filial no conoce la operación: todo se vende como siempre.
+   */
+  preciosEnOtraMoneda = new Map<string, Moneda>();
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
@@ -230,7 +238,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private productoService: ProductoService,
     private pdvCategoriaService: PdvCategoriaService,
     private loteService: LoteService,
-    private sorteoPos: SorteoPosService
+    private sorteoPos: SorteoPosService,
+    private monedaModulo: MonedaModuloService,
+    private precioMonedaService: PrecioMonedaService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -595,7 +605,49 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /** Lee de nuevo los precios en otra moneda (al abrir el PDV y al refrescar productos). Nunca falla: sin datos, todo en la moneda de la empresa. */
+  private cargarPreciosEnOtraMoneda(): void {
+    this.precioMonedaService
+      .preciosEnOtraMoneda()
+      .pipe(take(1), untilDestroyed(this))
+      .subscribe((mapa) => (this.preciosEnOtraMoneda = mapa));
+  }
+
+  /** La moneda en que se cobra (hoy, la de la empresa). */
+  private monedaDeCobro(): Moneda | null {
+    return this.monedaModulo.empresa$.value ?? elegirMonedaEmpresa(this.monedas);
+  }
+
+  /**
+   * Fija el precio del ítem según la moneda de su precio de lista. En la moneda de la empresa NO toca nada. En otra,
+   * convierte con la cotización del comercio, deja el precio ya convertido en `item.precio` y el rastro para
+   * `saveVenta`. Si no hay cotización, avisa y devuelve false: el ítem no se vende.
+   */
+  private aplicarMonedaDelPrecio(item: VentaItem): boolean {
+    // El ítem puede traer el rastro de otro precio (la caja se arma copiando el ítem): se parte de cero.
+    delete item.precioMonedaId;
+    delete item.precioLista;
+    delete item.precioCotizacion;
+    delete item.precioListaTexto;
+    const resolucion = resolverPrecioDeItem(
+      item.precioVenta?.id, item.precioVenta?.precio, this.preciosEnOtraMoneda, this.monedas, this.monedaDeCobro());
+    if (resolucion.tipo === "empresa") return true;
+    if (resolucion.tipo === "sinCotizacion") {
+      const moneda = resolucion.moneda?.denominacion ?? "esa moneda";
+      this.notificacionSnackbar.openWarn(
+        `No hay cotización de ${moneda} para vender ${item.producto?.descripcion ?? "este producto"}.`, 6);
+      return false;
+    }
+    item.precio = resolucion.rastro.precio;
+    item.precioMonedaId = resolucion.rastro.precioMonedaId;
+    item.precioLista = resolucion.rastro.precioLista;
+    item.precioCotizacion = resolucion.rastro.precioCotizacion;
+    item.precioListaTexto = resolucion.textoLista;
+    return true;
+  }
+
   setPrecios() {
+    this.cargarPreciosEnOtraMoneda();
     this.monedaService
       .onGetAll(false)
       .pipe(untilDestroyed(this))
@@ -650,6 +702,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     this.cargandoGrupo = true;
+    this.cargarPreciosEnOtraMoneda();
     // Los favoritos se cargan al abrir el POS: se vuelven a pedir a la filial para que un precio
     // especial nuevo, cortado o vencido valga desde este toque. Si la consulta falla, se usa lo
     // que ya estaba cargado.
@@ -909,6 +962,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
+    // Precio en otra moneda: se convierte acá (con la cotización del comercio de este momento) y queda el rastro.
+    if (!this.aplicarMonedaDelPrecio(item)) {
+      this.selectedTipoPrecio = this.tiposPrecios[0];
+      this.cantidadControl.setValue(1);
+      return;
+    }
+
     let presentacionCaja: Presentacion;
     item.producto.presentaciones.forEach((p) => {
       if (
@@ -956,6 +1016,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         cantidad -= cantAux / item.presentacion.cantidad;
         item.cantidad = cantidad;
         item.precio = item?.precioVenta?.precio;
+        this.aplicarMonedaDelPrecio(item);
 
         this.addItem(item2);
       }
@@ -965,7 +1026,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       index = this.selectedItemList.findIndex(
         (i) =>
           i.presentacion?.id == item.presentacion?.id &&
-          i.precioVenta?.precio == item.precioVenta?.precio
+          i.precioVenta?.precio == item.precioVenta?.precio &&
+          i.precioMonedaId == item.precioMonedaId
       );
     }
     if (index != -1 && index != null) {

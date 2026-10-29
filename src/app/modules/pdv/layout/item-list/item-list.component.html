@@ -44,6 +44,10 @@
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           {{ item.precio | number : "1.0-0" }}
+          <!-- Precio en otra moneda: el de lista, discreto (el cobrado es el de arriba) -->
+          <div *ngIf="item?.precioListaTexto" style="font-size: 0.75em; opacity: 0.7" [title]="'Precio de lista: ' + item.precioListaTexto">
+            {{ item.precioListaTexto }}
+          </div>
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           {{ item.valorDescuento | number : "1.0-0" }}
