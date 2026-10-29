@@ -57,9 +57,12 @@
     </div>
     <div *ngIf="sugerencias.length > 0" class="sugerencias" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="8px">
       <span class="secundario">Disponibles:</span>
-      <button *ngFor="let sugerencia of sugerencias" mat-stroked-button type="button" (click)="onElegirSugerencia(sugerencia)">
-        {{ sugerencia }}
-      </button>
+      <mat-chip-listbox aria-label="Nombres de usuario disponibles">
+        <mat-chip-option
+          *ngFor="let sugerencia of sugerencias"
+          (selectionChange)="$event.selected && onElegirSugerencia(sugerencia)"
+        >{{ sugerencia }}</mat-chip-option>
+      </mat-chip-listbox>
     </div>
   </form>
 

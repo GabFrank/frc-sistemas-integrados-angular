@@ -6,16 +6,16 @@ import { UsuarioService } from './usuario.service';
 describe('UsuarioService.onSugerirNicknames', () => {
   let respuestas: { [nickname: string]: () => Observable<any> };
   let service: UsuarioService;
-  let errorConfs: any[];
+  let llamadas: { errorConf: any; silentLoad: boolean; contexto: any }[];
 
   beforeEach(() => {
-    errorConfs = [];
+    llamadas = [];
     respuestas = {};
     service = Object.create(UsuarioService.prototype);
     (service as any).genericService = {
-      onGetByTexto: (_gql, texto: string, _servidor, _duracion, errorConf) => {
-        errorConfs.push(errorConf);
-        return (respuestas[texto] ?? (() => of(false)))();
+      onCustomQuery: (_gql, data: { texto: string }, _servidor, errorConf, silentLoad, contexto) => {
+        llamadas.push({ errorConf, silentLoad, contexto });
+        return (respuestas[data.texto] ?? (() => of(false)))();
       },
     };
   });
@@ -26,10 +26,15 @@ describe('UsuarioService.onSugerirNicknames', () => {
     return res;
   };
 
-  it('devuelve solo las libres, en orden, hasta 4, y consulta sin aviso del genérico', () => {
+  it('devuelve solo las libres, en orden, hasta 4, sin «Buscando…» ni avisos del genérico', () => {
     respuestas['ROLANDO RIVAS'] = () => of(true);
     expect(sugerir('MAURO ROLANDO RIVAS FERNANDEZ', ['MAURO RIVAS'])).toEqual(['MAURO FERNANDEZ', 'ROLANDO FERNANDEZ']);
-    expect(errorConfs.every(e => e === LECTURA_ESTRICTA)).toBeTrue();
+    expect(llamadas.length).toBe(3);
+    llamadas.forEach(l => {
+      expect(l.errorConf).toBe(LECTURA_ESTRICTA);
+      expect(l.silentLoad).toBeTrue();
+      expect(l.contexto).toEqual(jasmine.objectContaining({ timeoutMs: 15000, sinAviso: true, silenciarAvisoTimeout: true }));
+    });
   });
 
   it('corta en 4', () => {
@@ -45,6 +50,6 @@ describe('UsuarioService.onSugerirNicknames', () => {
 
   it('sin candidatos no consulta', () => {
     expect(sugerir('MAURO')).toEqual([]);
-    expect(errorConfs.length).toBe(0);
+    expect(llamadas.length).toBe(0);
   });
 });

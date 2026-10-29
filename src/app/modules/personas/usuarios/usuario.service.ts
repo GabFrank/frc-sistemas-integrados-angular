@@ -12,7 +12,7 @@ import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { forkJoin, Observable, of } from "rxjs";
-import { catchError, defaultIfEmpty, map, timeout } from "rxjs/operators";
+import { catchError, defaultIfEmpty, map } from "rxjs/operators";
 import { candidatosNickname } from "../../../commons/core/utils/nicknameUtils";
 import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
 import {
@@ -38,6 +38,9 @@ import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 import { UsuariosSearchPaginatedPorRolesGQL } from "./graphql/usuarioSearchPaginatedPorRoles";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+
+/** Sugerencias de nickname: 15 s como mucho y sin avisos (nadie las está esperando). */
+const CONTEXTO_SUGERENCIAS: ContextoConsulta = { timeoutMs: 15000, silenciarAvisoTimeout: true, sinAviso: true };
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -121,14 +124,14 @@ export class UsuarioService {
   onSugerirNicknames(nombreCompleto: string, excluir: string[]): Observable<string[]> {
     const candidatos = candidatosNickname(nombreCompleto, excluir);
     if (candidatos.length == 0) return of([]);
-    // LECTURA_ESTRICTA: sin aviso y siempre termina; con un errorConf sin propagate, forkJoin quedaría esperando.
+    // Sin «Buscando…» (es una ayuda: no bloquea el diálogo) y sin avisos; LECTURA_ESTRICTA hace que siempre
+    // termine (con un errorConf sin propagate, forkJoin quedaría esperando).
     return forkJoin(candidatos.map(c =>
-      this.genericService.onGetByTexto(this.verificarUsuario, c, true, undefined, LECTURA_ESTRICTA).pipe(
-        timeout(15000),
+      this.genericService.onCustomQuery(this.verificarUsuario, { texto: c }, true, LECTURA_ESTRICTA, true, CONTEXTO_SUGERENCIAS).pipe(
         catchError(() => of(true)),
         defaultIfEmpty(true)
       )
-    )).pipe(map(tomados => candidatos.filter((_, i) => tomados[i] !== true && tomados[i] != null).slice(0, 4)));
+    )).pipe(map(tomados => candidatos.filter((_, i) => tomados[i] === false).slice(0, 4)));
   }
 
   /**
