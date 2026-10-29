@@ -17,7 +17,7 @@ import { RoleService } from '../../../configuracion/roles/role.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { Observable, of } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
 import { catchError, defaultIfEmpty, timeout } from 'rxjs/operators';
 import { ROLES } from '../../roles/roles.enum';
 import { MainService } from '../../../../main.service';
@@ -61,6 +61,9 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   usuarioRoleList = new MatTableDataSource<UsuarioRole>([])
   /** Los roles del usuario no se pudieron leer: no se muestran como «sin roles» ni se dejan tocar. */
   rolesNoDisponibles = false;
+  /** Nicknames libres armados con el nombre de la persona, cuando el escrito ya existe. */
+  sugerencias: string[] = [];
+  private sugerenciasSub: Subscription;
   roleList: Role[];
   selectedUsuarioRole;
 
@@ -151,6 +154,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
 
   /** Una persona tiene un solo usuario (usuario_un_persona): si ya lo tiene, se abre ese. */
   elegirPersona(persona: Persona) {
+    this.cancelarSugerencias();
     this.buscandoPersona = true;
     this.actualizarPuedeGuardar();
     this.usuarioService.onGetUsuarioPorPersonaId(persona.id)
@@ -189,6 +193,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
 
   onSave() {
     if (this.guardando) return;
+    this.cancelarSugerencias();
     const eraAlta = this.esAlta;
     this.guardando = true;
     this.actualizarPuedeGuardar();
@@ -207,10 +212,29 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
           this.notificacionService.openWarn(`Ya existe un usuario ${nickname.toUpperCase()}. Elegí otro nombre.`, 4);
           this.guardando = false;
           this.actualizarPuedeGuardar();
+          this.pedirSugerencias(nickname, nicknameAnterior);
         } else {
           this.guardar(eraAlta);
         }
       })
+  }
+
+  /** Aparte del guardado: no toca `guardando`, y una respuesta tardía se descarta con cancelarSugerencias. */
+  private pedirSugerencias(tomado: string, nicknameAnterior: string) {
+    if (this.selectedPersona?.nombre == null) return;
+    this.sugerenciasSub = this.usuarioService.onSugerirNicknames(this.selectedPersona.nombre, [tomado, nicknameAnterior])
+      .pipe(untilDestroyed(this))
+      .subscribe(sugerencias => this.sugerencias = sugerencias);
+  }
+
+  private cancelarSugerencias() {
+    this.sugerenciasSub?.unsubscribe();
+    this.sugerencias = [];
+  }
+
+  onElegirSugerencia(nickname: string) {
+    this.cancelarSugerencias();
+    this.nicknameControl.setValue(nickname);
   }
 
   private guardar(eraAlta: boolean) {

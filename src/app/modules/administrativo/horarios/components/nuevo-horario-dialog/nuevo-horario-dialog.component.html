@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>Nuevo horario</h2>
+<div mat-dialog-content class="contenido">
+  <div class="para">Se le asigna a <b>{{ data.nombre }}</b></div>
+
+  <div class="fila">
+    <mat-form-field>
+      <mat-label>Entrada</mat-label>
+      <input matInput [formControl]="form.controls.entrada" placeholder="HH:MM" maxlength="5" autocomplete="off"
+        [matAutocomplete]="listaEntrada" #triggerEntrada="matAutocompleteTrigger"
+        (blur)="onNormalizarHora(form.controls.entrada)" cdkFocusInitial>
+      <button mat-icon-button matSuffix type="button" tabindex="-1" matTooltip="Elegir hora"
+        (click)="$event.stopPropagation(); triggerEntrada.openPanel()">
+        <mat-icon>schedule</mat-icon>
+      </button>
+      <mat-autocomplete #listaEntrada="matAutocomplete"
+        (opened)="onListaHoraAbierta(listaEntrada, form.controls.entrada)">
+        <mat-option *ngFor="let hora of opcionesHora" [value]="hora">{{ hora }}</mat-option>
+      </mat-autocomplete>
+      <mat-error>Ingresá una hora HH:MM</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Salida</mat-label>
+      <input matInput [formControl]="form.controls.salida" placeholder="HH:MM" maxlength="5" autocomplete="off"
+        [matAutocomplete]="listaSalida" #triggerSalida="matAutocompleteTrigger"
+        (blur)="onNormalizarHora(form.controls.salida)">
+      <button mat-icon-button matSuffix type="button" tabindex="-1" matTooltip="Elegir hora"
+        (click)="$event.stopPropagation(); triggerSalida.openPanel()">
+        <mat-icon>schedule</mat-icon>
+      </button>
+      <mat-autocomplete #listaSalida="matAutocomplete"
+        (opened)="onListaHoraAbierta(listaSalida, form.controls.salida)">
+        <mat-option *ngFor="let hora of opcionesHora" [value]="hora">{{ hora }}</mat-option>
+      </mat-autocomplete>
+      <mat-error>Ingresá una hora HH:MM</mat-error>
+    </mat-form-field>
+  </div>
+
+  <div class="fila">
+    <mat-form-field>
+      <mat-label>Turno</mat-label>
+      <mat-select [formControl]="form.controls.turno">
+        <mat-option *ngFor="let turno of listaTurnos" [value]="turno.code">{{ turno.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Días</mat-label>
+      <mat-select [formControl]="form.controls.dias" multiple (selectionChange)="onCambioDias()">
+        <mat-option *ngFor="let dia of diasSemana" [value]="dia.value">{{ dia.viewValue }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="guardando">
+    <mat-icon>save</mat-icon> Guardar
+  </button>
+</div>

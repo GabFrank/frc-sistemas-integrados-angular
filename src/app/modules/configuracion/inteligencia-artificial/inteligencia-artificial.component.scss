@@ -1,6 +1,31 @@
 .ia-container {
   padding: 20px;
-  max-width: 720px;
+  max-width: 1200px;
+}
+
+// Los dos proveedores uno al lado del otro; en pantallas angostas, uno debajo del otro.
+.proveedores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.encabezado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icono-titulo {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  opacity: 0.8;
 }
 
 .titulo {
@@ -27,15 +52,126 @@
 .formulario {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   margin-top: 20px;
 }
 
 .estado-clave {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--frc-borde);
+  background: var(--frc-relleno-tenue);
+
+  &.cargada {
+    border-color: rgba(76, 175, 80, 0.6);
+    background: rgba(76, 175, 80, 0.1);
+
+    > mat-icon {
+      color: #4caf50;
+    }
+  }
+
+  .estado-texto {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .estado-titulo {
+    font-weight: 500;
+  }
+
+  .estado-detalle {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.ayuda {
+  font-size: 12px;
+  opacity: 0.6;
+  padding-left: 4px;
+}
+
+.etiqueta {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.selector-proveedor {
+  align-self: flex-start;
+}
+
+.proveedor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--frc-borde);
+  background: var(--frc-superficie-baja);
+
+  &.activo {
+    border-color: rgba(244, 67, 54, 0.6);
+  }
+}
+
+.proveedor-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proveedor-nombre {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.chip-activo {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+  background: #f44336;
+}
+
+// Los estilos globales fijan la altura de todos los campos (40px) y esconden el
+// texto de ayuda; acá el textarea necesita crecer y la clave/modelo no van en mayúsculas.
+:host ::ng-deep {
+  input {
+    text-transform: none !important;
+  }
+
+  .selector-proveedor .mat-button-toggle-checked {
+    background-color: #f44336;
+    color: #fff;
+  }
+
+  .campo-prompt {
+    .mat-mdc-form-field-flex,
+    .mat-mdc-form-field-infix {
+      height: auto !important;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+  }
 }
 
 .acciones {
@@ -44,9 +180,30 @@
 }
 
 .resultado-prueba {
-  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 6px;
-  border: 1px solid var(--frc-border, rgba(128, 128, 128, 0.4));
+  border: 1px solid var(--frc-borde);
   white-space: pre-wrap;
+  word-break: break-word;
+
+  &.ok {
+    border-color: rgba(76, 175, 80, 0.6);
+    background: rgba(76, 175, 80, 0.1);
+
+    mat-icon {
+      color: #4caf50;
+    }
+  }
+
+  &.error {
+    border-color: rgba(244, 67, 54, 0.6);
+    background: rgba(244, 67, 54, 0.1);
+
+    mat-icon {
+      color: #f44336;
+    }
+  }
 }

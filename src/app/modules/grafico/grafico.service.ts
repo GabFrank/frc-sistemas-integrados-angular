@@ -11,6 +11,8 @@ import { Familia } from '../productos/familia/familia.model';
 import { VentasPorFuncionarioMultiGQL } from './graphql/ventas-por-funcionario-multi.gql';
 import { FormaPagoEstadisticasMultiGQL } from './graphql/forma-pago-estadisticas-multi.gql';
 import { GastosPorCategoriaMultiGQL } from './graphql/gastos-por-categoria-multi.gql';
+import { ConvenioIntegridadPorSucursalGQL } from './graphql/convenio-integridad-por-sucursal.gql';
+import { ConvenioSucursalIntegridad } from './convenio-sucursal/interfaces/convenio-sucursal-integridad.model';
 import { VentasPorSucursalMultiGQL } from './graphql/ventas-por-sucursal-multi.gql';
 import { DeliveryPorSucursalMultiGQL } from './graphql/delivery-por-sucursal-multi.gql';
 import { VentasPorCiudadMultiGQL } from './graphql/ventas-por-ciudad-multi.gql';
@@ -54,6 +56,7 @@ export class GraficoService {
   private ventasPorFuncionarioMultiGQL = inject(VentasPorFuncionarioMultiGQL);
   private formaPagoMultiGQL = inject(FormaPagoEstadisticasMultiGQL);
   private gastosPorCategoriaMultiGQL = inject(GastosPorCategoriaMultiGQL);
+  private convenioIntegridadPorSucursalGQL = inject(ConvenioIntegridadPorSucursalGQL);
   private ventasPorSucursalMultiGQL = inject(VentasPorSucursalMultiGQL);
   private deliveryPorSucursalMultiGQL = inject(DeliveryPorSucursalMultiGQL);
   private ventasPorCiudadMultiGQL = inject(VentasPorCiudadMultiGQL);
@@ -240,6 +243,30 @@ export class GraficoService {
       this.formaPagoMultiGQL,
       {
         periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  /**
+   * Convenios por sucursal y su comparación contra la base de cada filial.
+   * Fechas `yyyy-MM-dd` (ambas inclusive); el error lo avisa onCustomQuery y llega a quien llama.
+   */
+  obtenerConvenioIntegridadPorSucursal(
+    fechaInicio: string,
+    fechaFin: string,
+    estado: string | null,
+    sucIds?: number[]
+  ): Observable<ConvenioSucursalIntegridad[]> {
+    return this.genericService.onCustomQuery(
+      this.convenioIntegridadPorSucursalGQL,
+      {
+        fechaInicio,
+        fechaFin,
+        estado,
         sucIds: sucIds?.length ? sucIds.map(String) : null,
       },
       true,

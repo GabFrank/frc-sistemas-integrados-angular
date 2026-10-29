@@ -21,6 +21,7 @@ import { VentaCiudadComponent } from './venta-ciudad/venta-ciudad.component';
 import { VentaMesComponent } from './venta-mes/venta-mes.component';
 import { EvolucionCostoComponent } from './evolucion-costo/evolucion-costo.component';
 import { RankingInflacionComponent } from './ranking-inflacion/ranking-inflacion.component';
+import { ConvenioSucursalComponent } from './convenio-sucursal/convenio-sucursal.component';
 
 export function loadEcharts() {
     return import('echarts/core').then(echarts => {
@@ -60,6 +61,7 @@ export function loadEcharts() {
         VentaMesComponent,
         EvolucionCostoComponent,
         RankingInflacionComponent,
+        ConvenioSucursalComponent,
     ],
     imports: [
         CommonModule,

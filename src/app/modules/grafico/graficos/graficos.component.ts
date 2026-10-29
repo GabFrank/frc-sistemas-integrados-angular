@@ -15,6 +15,7 @@ import { DeliverySucursalComponent } from "../delivery-sucursal/delivery-sucursa
 import { VentaCiudadComponent } from "../venta-ciudad/venta-ciudad.component";
 import { EvolucionCostoComponent } from "../evolucion-costo/evolucion-costo.component";
 import { RankingInflacionComponent } from "../ranking-inflacion/ranking-inflacion.component";
+import { ConvenioSucursalComponent } from "../convenio-sucursal/convenio-sucursal.component";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import { construirVistaDashboardMock } from "./graficos-dashboard-opciones.util";
 import { Tema, TemaService } from "../../../shared/services/tema.service";
@@ -32,7 +33,8 @@ type TipoGraficoDashboard =
   | "delivery-sucursal"
   | "venta-ciudad"
   | "evolucion-costo"
-  | "ranking-inflacion";
+  | "ranking-inflacion"
+  | "convenio-sucursal";
 
 @Component({
   selector: "app-graficos",
@@ -119,6 +121,11 @@ export class GraficosComponent {
       case "ranking-inflacion":
         this.tabService.addTab(
           new Tab(RankingInflacionComponent, "Inflación de Costos", null, null)
+        );
+        break;
+      case "convenio-sucursal":
+        this.tabService.addTab(
+          new Tab(ConvenioSucursalComponent, "Convenios por Sucursal", null, null)
         );
         break;
     }

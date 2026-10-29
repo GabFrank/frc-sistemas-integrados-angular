@@ -21,6 +21,8 @@ import { VentaSucursalItem } from "../venta-sucursal/venta-sucursal-item.model";
 import { VentaCiudadItem } from "../venta-ciudad/venta-ciudad-item.model";
 import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
+import { ConvenioSucursalIntegridad } from "../convenio-sucursal/interfaces/convenio-sucursal-integridad.model";
+import { opcionesConveniosPorSucursal } from "../convenio-sucursal/convenio-sucursal.component";
 import {
   MOCK_FORMAS_PAGO,
   MOCK_GASTOS_CATEGORIA,
@@ -563,6 +565,23 @@ export function opcionesRankingInflacionMock(): EChartsOption {
   };
 }
 
+function convenioMock(nombre: string, abiertas: number, finalizadas: number, canceladas: number): ConvenioSucursalIntegridad {
+  const conteo = { total: abiertas + finalizadas + canceladas, abiertas, finalizadas, canceladas, otras: 0 };
+  return {
+    sucursalId: 0, sucursalNombre: nombre, central: conteo, filial: conteo, estadoIntegridad: "OK", error: null,
+    faltanEnCentral: 0, sobranEnCentral: 0, estadoDistinto: 0,
+    idsFaltanEnCentral: [], idsSobranEnCentral: [], idsEstadoDistinto: [],
+    ultimoCentral: null, ultimoFilial: null,
+  };
+}
+
+const MOCK_CONVENIOS_SUCURSAL: ConvenioSucursalIntegridad[] = [
+  convenioMock("Suc. A", 42, 10, 2),
+  convenioMock("Suc. B", 30, 6, 1),
+  convenioMock("Suc. C", 25, 12, 0),
+  convenioMock("Suc. D", 18, 4, 3),
+];
+
 export function construirVistaDashboardMock(): GraficosDashboardVista {
   return {
     cargando: false,
@@ -592,5 +611,9 @@ export function construirVistaDashboardMock(): GraficosDashboardVista {
     ),
     evolucionCosto: opcionesEvolucionCostoMock(),
     rankingInflacion: opcionesRankingInflacionMock(),
+    conveniosSucursal: opcionesConveniosPorSucursal(
+      MOCK_CONVENIOS_SUCURSAL,
+      SUBTITULO_VISTA_PREVIA
+    ),
   };
 }

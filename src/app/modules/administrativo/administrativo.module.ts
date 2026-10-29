@@ -15,6 +15,7 @@ import { ResumenMarcacionesComponent } from './marcacion/components/resumen-marc
 import { EstadoMarcacionComponent } from './marcacion/components/estado-marcacion/estado-marcacion.component';
 import { BusquedaUsuarioComponent } from './marcacion/components/busqueda-usuario/busqueda-usuario.component';
 import { AsignarHorarioDialogComponent } from './horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
+import { NuevoHorarioDialogComponent } from './horarios/components/nuevo-horario-dialog/nuevo-horario-dialog.component';
 import { ObservacionJornadaDialogComponent } from './marcacion/components/observacion-jornada-dialog.component';
 import { UbicacionMarcacionComponent } from './marcacion/pages/ubicacion-marcacion/ubicacion-marcacion.component';
 
@@ -28,6 +29,7 @@ import { UbicacionMarcacionComponent } from './marcacion/pages/ubicacion-marcaci
     EstadoMarcacionComponent,
     BusquedaUsuarioComponent,
     AsignarHorarioDialogComponent,
+    NuevoHorarioDialogComponent,
     ObservacionJornadaDialogComponent,
     UbicacionMarcacionComponent
   ],

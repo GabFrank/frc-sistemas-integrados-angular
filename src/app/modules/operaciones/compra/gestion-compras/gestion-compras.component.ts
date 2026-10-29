@@ -4125,7 +4125,9 @@ export class GestionComprasComponent
       pedidoItem: item,
       notaRecepcion: this.selectedNotaRecepcion || undefined,
       notasDisponibles: this.notasRecepcionDataSource.data,
-      pedidoId: this.pedidoId || 0
+      pedidoId: this.pedidoId || 0,
+      // La lista de pendientes trae solo `pedido { id }`: el alta de una nota nueva necesita moneda y proveedor
+      pedido: this.currentPedido ?? undefined,
     };
 
     const dialogRef = this.dialog.open(DividirItemDialogComponent, {
@@ -4146,6 +4148,10 @@ export class GestionComprasComponent
         this.notificacionService.openSucess(result.message || 'Ítem dividido exitosamente');
         
         // Recargar datos del tab 3
+        this.markTabAsUnloaded(2);
+        this.loadTabDataIfNeeded(2);
+      } else if (result?.notasCreadas) {
+        // No se dividió, pero las notas creadas desde el diálogo tienen que aparecer
         this.markTabAsUnloaded(2);
         this.loadTabDataIfNeeded(2);
       }

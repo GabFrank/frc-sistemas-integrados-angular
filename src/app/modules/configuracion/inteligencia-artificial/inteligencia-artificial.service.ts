@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { ConfiguracionIa } from './configuracion-ia.model';
+import { ConfiguracionIa, ConfiguracionIaInput, ProveedorIa } from './configuracion-ia.model';
 import { ConfiguracionIaGQL } from './graphql/configuracionIa';
 import { GuardarConfiguracionIaGQL } from './graphql/guardarConfiguracionIa';
 import { ProbarConexionIaGQL } from './graphql/probarConexionIa';
@@ -21,16 +21,13 @@ export class InteligenciaArtificialService {
     return this.genericService.onCustomQuery(this.configuracionIaGQL, {}, true);
   }
 
-  /** apiKey null = no cambia la clave, "" = la borra. */
-  guardar(apiKey: string | null, modelo: string, promptAdicional: string): Observable<ConfiguracionIa> {
-    return this.genericService.onCustomMutation(
-      this.guardarConfiguracionIaGQL,
-      { apiKey, modelo, promptAdicional },
-      true,
-    );
+  /** En las claves: null = no cambia, "" = la borra. */
+  guardar(input: ConfiguracionIaInput): Observable<ConfiguracionIa> {
+    return this.genericService.onCustomMutation(this.guardarConfiguracionIaGQL, input, true);
   }
 
-  probarConexion(): Observable<string> {
-    return this.genericService.onCustomMutation(this.probarConexionIaGQL, {}, true);
+  /** Prueba la clave guardada del proveedor indicado. */
+  probarConexion(proveedor: ProveedorIa): Observable<string> {
+    return this.genericService.onCustomMutation(this.probarConexionIaGQL, { proveedor }, true);
   }
 }

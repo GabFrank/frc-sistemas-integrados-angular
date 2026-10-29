@@ -104,6 +104,16 @@
     </div>
   </ng-container>
 
+  <div *ngIf="liq != null && (liq.estado === 'BORRADOR' || liq.estado === 'APROBADA') && totalNegativo"
+    fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>Los descuentos superan a los haberes: el funcionario le debe a la empresa, no se puede aprobar ni pagar.
+      <ng-container *ngIf="liq.estado === 'APROBADA' && puedeVolverBorrador">Vuelva a borrador y corrija</ng-container>
+      <ng-container *ngIf="liq.estado === 'APROBADA' && !puedeVolverBorrador">Pida a RRHH que lo vuelva a borrador y corrija</ng-container>
+      <ng-container *ngIf="liq.estado === 'BORRADOR'">Corrija</ng-container>
+      los ítems o cobre la diferencia por separado.</span>
+  </div>
+
   <div *ngIf="cargaFallo" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
     <mat-icon color="warn">error_outline</mat-icon>
     <span>No se pudo consultar el finiquito: lo que se ve puede no estar actualizado y no se puede aprobar.</span>
@@ -117,12 +127,15 @@
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar"
-        [disabled]="cargaFallo" (click)="onAprobar()">Aprobar</button>
+        [disabled]="cargaFallo || totalNegativo"
+        matTooltip="Total negativo: los descuentos superan a los haberes, no se puede aprobar"
+        [matTooltipDisabled]="!totalNegativo" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && puedeVolverBorrador" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA' && puedePagar" (click)="onPagar()">Pagar</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA' && puedePagar"
+        [disabled]="totalNegativo" (click)="onPagar()">Pagar</button>
       <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA' && puedePagar" (click)="onAnular()">Anular</button>
     </div>
   </div>

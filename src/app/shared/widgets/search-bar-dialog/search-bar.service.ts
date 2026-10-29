@@ -12,7 +12,6 @@ import { Producto } from '../../../modules/productos/producto/producto.model';
 import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
-import { ListActualizacionComponent } from '../../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
@@ -25,6 +24,7 @@ import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-ret
 import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
+import { ListSorteoComponent } from '../../../modules/operaciones/sorteo/list-sorteo/list-sorteo.component';
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { NavegacionMenuService } from '../../components/side-mini-variant/navegacion-menu.service';
 
@@ -63,7 +63,6 @@ export const componenteList: SearchData[] =
     { title: 'Nueva Transferencia', component: EditTransferenciaComponent, visibilityRoles: [ROLES.CREAR_TRANSFERENCIA] },
     { title: 'Cotización', component: CambioComponent, menuAction: 'list-cotizacion', visibilityRoles: [ROLES.CAMBIAR_COTIZACION] },
     { title: 'Funcionarios', component: FuncionarioDashboardComponent, visibilityRoles: [ROLES.VER_FUNCIONARIOS] },
-    { title: 'Actualizacion', component: ListActualizacionComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de cajas', component: ListCajaComponent, menuAction: 'list-caja', visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lista de sectores', component: ListSectorComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de cargos', component: ListCargoComponent, menuAction: 'list-cargo', visibilityRoles: [ROLES.ADMIN] },
@@ -75,7 +74,8 @@ export const componenteList: SearchData[] =
     { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, menuAction: 'lucro-por-funcionario', visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lucro por producto', component: LucroPorProductoComponent, menuAction: 'lucro-por-producto', visibilityRoles: [ROLES.ADMIN] },
-    { title: 'Promociones', component: ListPrecioEspecialComponent, menuAction: 'list-precio-especial', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
+    { title: 'Promociones', component: ListPrecioEspecialComponent, menuAction: 'list-precio-especial', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] },
+    { title: 'Sorteos', component: ListSorteoComponent, menuAction: 'list-sorteo', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
   ]
 
 @UntilDestroy()
