@@ -94,3 +94,46 @@ describe('FacturaLegalService: onSaveFactura', () => {
     expect(esRechazoDelServidor(valores[0].error)).toBeFalse();
   });
 });
+
+describe('FacturaLegalService: onReimprimirFactura', () => {
+  let avisos: string[];
+  let exitos: number;
+
+  /** El backend responde `respuesta` (true / false / null por error GraphQL ya avisado por el genérico). */
+  const reimprimir = (respuesta: boolean | null) => {
+    const notificacion: any = {
+      openWarn: (texto: string) => avisos.push(texto),
+      openGuardadoConExito: () => exitos++,
+    };
+    const args: any[] = new Array(26).fill(null);
+    args[1] = { onCustomQuery: () => of(respuesta) };
+    args[2] = notificacion;
+    args[12] = { getConfig: () => ({ printers: { ticket: 'ticket' } }) };
+    args[25] = { contextoImpresionServidor: {}, avisarSinRespuesta: () => (o: Observable<any>) => o };
+    (new (FacturaLegalService as any)(...args) as FacturaLegalService).onReimprimirFactura(9, 1);
+  };
+
+  beforeEach(() => {
+    avisos = [];
+    exitos = 0;
+  });
+
+  it('si el backend no pudo imprimir avisa que la factura esta guardada pero no salio', () => {
+    reimprimir(false);
+    expect(exitos).toBe(0);
+    expect(avisos.length).toBe(1);
+    expect(avisos[0]).toContain('La factura está guardada, pero no se pudo reimprimir');
+  });
+
+  it('si imprimio avisa exito', () => {
+    reimprimir(true);
+    expect(exitos).toBe(1);
+    expect(avisos).toEqual([]);
+  });
+
+  it('con un error GraphQL (null) no agrega otro aviso: ya lo mostro el generico', () => {
+    reimprimir(null);
+    expect(exitos).toBe(0);
+    expect(avisos).toEqual([]);
+  });
+});
