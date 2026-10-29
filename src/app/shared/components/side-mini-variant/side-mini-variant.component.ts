@@ -736,7 +736,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Sorteos',
           icon: 'confirmation_number',
           action: 'list-sorteo',
-          requiresServerMode: true,
           visibilityRoles: [ROLES.ADMIN, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]
         }
       ]

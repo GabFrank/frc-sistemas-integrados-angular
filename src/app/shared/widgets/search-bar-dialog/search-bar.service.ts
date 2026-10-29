@@ -6,7 +6,6 @@ import { Tab } from './../../../layouts/tab/tab.model';
 import { TabData, TabService } from './../../../layouts/tab/tab.service';
 import { ListProductoComponent } from './../../../modules/productos/producto/list-producto/list-producto.component';
 import { Injectable, Type } from '@angular/core';
-import { MainService } from './../../../main.service';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Producto } from '../../../modules/productos/producto/producto.model';
@@ -42,8 +41,6 @@ export interface SearchData {
   data?: any;
   role?: string; // Mantener para compatibilidad hacia atrás
   visibilityRoles?: string[]; // Nueva propiedad para múltiples roles
-  // Solo se ofrece en una PC en modo servidor (igual que requiresServerMode del menu lateral)
-  requiresServerMode?: boolean;
   // Pantalla del menu lateral: se abre con su action en vez de con component
   action?: string;
   ruta?: string;
@@ -78,7 +75,7 @@ export const componenteList: SearchData[] =
     { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, menuAction: 'lucro-por-funcionario', visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lucro por producto', component: LucroPorProductoComponent, menuAction: 'lucro-por-producto', visibilityRoles: [ROLES.ADMIN] },
     { title: 'Promociones', component: ListPrecioEspecialComponent, menuAction: 'list-precio-especial', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] },
-    { title: 'Sorteos', component: ListSorteoComponent, menuAction: 'list-sorteo', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], requiresServerMode: true }
+    { title: 'Sorteos', component: ListSorteoComponent, menuAction: 'list-sorteo', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
   ]
 
 @UntilDestroy()
@@ -92,8 +89,7 @@ export class SearchBarService {
   constructor(
     private tabService: TabService,
     private productoService: ProductoService,
-    private navegacionMenuService: NavegacionMenuService,
-    private mainService: MainService
+    private navegacionMenuService: NavegacionMenuService
   ) { }
 
   onSearch(texto: string): Observable<SearchDataResult> {
@@ -129,7 +125,7 @@ export class SearchBarService {
       action: p.action
     }));
     const actionsDelMenu = new Set(delMenu.map((e) => e.action));
-    const extras = componenteList.filter((e) => (!e.menuAction || !actionsDelMenu.has(e.menuAction)) && (!e.requiresServerMode || this.mainService.isServidor));
+    const extras = componenteList.filter((e) => !e.menuAction || !actionsDelMenu.has(e.menuAction));
 
     const porTitulo: SearchData[] = [];
     const porRuta: SearchData[] = [];
