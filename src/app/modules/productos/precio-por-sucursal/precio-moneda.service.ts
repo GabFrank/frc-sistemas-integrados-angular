@@ -7,8 +7,7 @@ import { Moneda } from '../../financiero/moneda/moneda.model';
 import {
   MonedaDePreciosDeProductoGQL,
   PrecioEnOtraMoneda,
-  PreciosEnOtraMonedaGQL,
-} from './graphql/preciosMoneda';
+  PreciosEnOtraMonedaGQL, MonedaPrecioPrincipalDeProductosGQL } from './graphql/preciosMoneda';
 
 /** Estado del mapa de precios en otra moneda del central. */
 export type EstadoMapaPrecios = 'sinCargar' | 'cargando' | 'ok' | 'error';
@@ -32,6 +31,7 @@ export class PrecioMonedaService {
   constructor(
     private genericService: GenericCrudService,
     private preciosEnOtraMonedaGQL: PreciosEnOtraMonedaGQL,
+    private monedaPrecioPrincipalDeProductosGQL: MonedaPrecioPrincipalDeProductosGQL,
     private monedaDePreciosDeProductoGQL: MonedaDePreciosDeProductoGQL,
   ) {}
 
@@ -107,6 +107,28 @@ export class PrecioMonedaService {
       map((m) => m ?? new Map<string, Moneda>()),
       tap((m) => (this.mapaPdv = m)),
     );
+  }
+
+  /**
+   * CENTRAL: productoId → moneda del precio principal, para una página del listado. En silencio: si falla
+   * (central viejo) emite un mapa vacío y la columna se muestra como siempre.
+   */
+  monedaPrecioPrincipalDeProductos(productoIds: (number | string)[]): Observable<Map<string, Moneda>> {
+    if (!productoIds?.length || this.mapaCentral$.value.estado === 'error'
+        || (this.mapaCentral$.value.estado === 'ok' && this.mapaCentral$.value.mapa.size === 0)) {
+      // Sin precios en otra moneda (bodega) no hace falta preguntar.
+      return of(new Map<string, Moneda>());
+    }
+    return this.genericService
+      .onCustomQuery(this.monedaPrecioPrincipalDeProductosGQL, { productoIds }, true, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO)
+      .pipe(
+        map((filas: { productoId: number | string; moneda: Moneda }[]) => {
+          const m = new Map<string, Moneda>();
+          (filas || []).forEach((f) => f?.productoId != null && f?.moneda && m.set(String(f.productoId), f.moneda));
+          return m;
+        }),
+        catchError(() => of(new Map<string, Moneda>())),
+      );
   }
 
   /** El último mapa leído de la filial para el PDV (vacío hasta abrirlo): lo usan los diálogos del PDV. */

@@ -48,6 +48,21 @@ export const monedaDePreciosDeProductoQuery = gql`
   }
 `;
 
+/** CENTRAL: para una página de productos, la moneda del precio principal (solo los que no están en la de la empresa). */
+export const monedaPrecioPrincipalDeProductosQuery = gql`
+  query ($productoIds: [ID]!) {
+    data: monedaPrecioPrincipalDeProductos(productoIds: $productoIds) {
+      productoId
+      moneda {
+        id
+        denominacion
+        simbolo
+        decimales
+      }
+    }
+  }
+`;
+
 export interface PrecioEnOtraMoneda {
   precioId: number | string;
   moneda: Moneda;
@@ -61,4 +76,9 @@ export class PreciosEnOtraMonedaGQL extends Query<{ data: PrecioEnOtraMoneda[] }
 @Injectable({ providedIn: 'root' })
 export class MonedaDePreciosDeProductoGQL extends Query<{ data: any }> {
   document = monedaDePreciosDeProductoQuery;
+}
+
+@Injectable({ providedIn: 'root' })
+export class MonedaPrecioPrincipalDeProductosGQL extends Query<{ data: { productoId: number | string; moneda: Moneda }[] }> {
+  document = monedaPrecioPrincipalDeProductosQuery;
 }
