@@ -106,7 +106,11 @@
             <div class="item-nota">
               <mat-form-field appearance="outline">
                 <mat-label>Nota de Recepción</mat-label>
-                <mat-select formControlName="notaRecepcionId">
+                <mat-select
+                  formControlName="notaRecepcionId"
+                  (openedChange)="onNotaAbierta(i, $event)"
+                  (selectionChange)="onNotaElegida(i, $event.value)"
+                >
                   <mat-option
                     *ngFor="let nota of notasDisponiblesDisplay"
                     [value]="nota.value"
