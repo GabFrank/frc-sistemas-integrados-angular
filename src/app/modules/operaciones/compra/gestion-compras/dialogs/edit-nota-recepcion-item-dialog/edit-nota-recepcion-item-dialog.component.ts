@@ -17,6 +17,9 @@ import { Producto } from '../../../../../productos/producto/producto.model';
 import { PedidoService } from '../../../pedido.service';
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
+import { Moneda } from '../../../../../financiero/moneda/moneda.model';
+import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
+import { MonedaModuloService } from '../../../../../../shared/services/moneda-modulo.service';
 import { avisoTrasMutacion, erroresDeRechazo } from '../../../../../../commons/core/utils/graphqlErrorUtils';
 import { AVISO_SIN_PRESENTACIONES } from '../../utils/recepcion-documental.utils';
 
@@ -30,6 +33,8 @@ export interface EditNotaRecepcionItemDialogData {
    * `notaRecepcion` todavía llega con el id solo, así que la cotización la pasa el diálogo padre.
    */
   cotizacion?: number;
+  /** Moneda de la nota: define la máscara y el símbolo de los precios. Sin ella se usa la de la empresa. */
+  moneda?: Moneda;
 }
 
 /**
@@ -71,6 +76,8 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
   private presentacionService = inject(PresentacionService);
   private matDialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private monedaService = inject(MonedaService);
+  private monedaModuloService = inject(MonedaModuloService);
 
   @ViewChild('presentacionSelect') presentacionSelect?: MatSelect;
   @ViewChild('cantidadInput') cantidadInput?: ElementRef<HTMLInputElement>;
@@ -146,6 +153,10 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
 
   // Currency mask para campos de precio
   currencyMask = new CurrencyMask();
+  /** Máscara y símbolo de los precios, según la moneda de la nota. */
+  precioOptions: any = this.currencyMask.currencyOptionsGuarani;
+  simboloMoneda = '₲';
+  private monedaNota: Moneda | null = null;
 
   ngOnInit(): void {
     this.isNewItem = this.data.isNewItem || false;
@@ -174,6 +185,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
       }
     }
 
+    this.resolverMonedaNota();
     this.initializeForm();
     this.initializePresentaciones();
     this.updateComputedProperties();
@@ -751,6 +763,16 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
     }
   }
 
+  /** Moneda de la nota (la del diálogo padre, la de la nota o, en su defecto, la de la empresa) → máscara y símbolo. */
+  private resolverMonedaNota(): void {
+    const moneda = this.data.moneda ?? this.originalItem?.notaRecepcion?.moneda ?? this.monedaModuloService.empresa$.value;
+    if (!moneda) return;
+    this.monedaNota = moneda;
+    this.precioOptions = this.monedaService.currencyOptionsByMoneda(moneda);
+    // El guaraní conserva su «₲» de siempre
+    this.simboloMoneda = (moneda.denominacion || '').toUpperCase().includes('GUARANI') ? '₲' : (moneda.simbolo || '');
+  }
+
   /**
    * Costo sugerido para el ítem, expresado en la moneda de la nota.
    *
@@ -766,9 +788,12 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
     const cotizacion = this.data.cotizacion
       ?? this.originalItem?.notaRecepcion?.cotizacion
       ?? 1;
-    // cotizacion > 1 identifica a la moneda extranjera: el guaraní cotiza 1.
-    if (costoEnGs > 0 && cotizacion > 1) {
-      return Math.round((costoEnGs / cotizacion) * 100) / 100;
+    // El costo viene en la moneda de la empresa: si la nota está en otra se divide por su cotización.
+    // Sin la moneda de la nota (no llegó), cotizacion > 1 identifica a la extranjera, como siempre.
+    const distinta = this.monedaNota ? !this.monedaModuloService.esMonedaEmpresa(this.monedaNota) : cotizacion > 1;
+    if (costoEnGs > 0 && distinta && cotizacion > 0) {
+      const factor = Math.pow(10, this.monedaNota?.decimales ?? 2);
+      return Math.round((costoEnGs / cotizacion) * factor) / factor;
     }
     return costoEnGs;
   }
