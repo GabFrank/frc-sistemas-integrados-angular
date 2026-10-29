@@ -13,7 +13,7 @@ import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject, forkJoin } from 'rxjs';
-import { takeUntil, first, timeout } from 'rxjs/operators';
+import { takeUntil, first, timeout, take } from 'rxjs/operators';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 
 import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta } from '../../nota-recepcion.model';
@@ -21,6 +21,8 @@ import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion
 import { Pedido } from '../../pedido.model';
 import { Moneda } from '../../../../../financiero/moneda/moneda.model';
 import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
+import { ModuloMoneda } from '../../../../../financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model';
+import { MonedaModuloService } from '../../../../../../shared/services/moneda-modulo.service';
 import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
@@ -123,6 +125,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   
   cotizacionRequiredError: boolean = false;
   cotizacionMinError: boolean = false;
+  /** Moneda del módulo COMPRAS: la de la nota cuando el pedido no trae una. */
+  private monedaCompras: Moneda | null = null;
   cotizacionErrorMessage: string = '';
 
   // Propiedades computadas para el card informativo
@@ -212,6 +216,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     @Inject(MAT_DIALOG_DATA) public data: AddEditNotaRecepcionDialogData,
     private formBuilder: FormBuilder,
     private monedaService: MonedaService,
+    private monedaModuloService: MonedaModuloService,
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
@@ -221,6 +226,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private cdr: ChangeDetectorRef
   ) {
     this.readOnly = !!data.readOnly;
+    this.monedaModuloService.monedaDe(ModuloMoneda.COMPRAS).pipe(take(1), takeUntil(this.destroy$)).subscribe((m) => this.monedaCompras = m);
     this.textoBotonSalir = this.readOnly ? 'Cerrar' : 'Salir';
     this.initialIsEdit = data.isEdit;
     this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
@@ -236,6 +242,15 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     if (this.autoAssignItems && this.selectedItemsToAssign.length > 0) {
       this.dialogTitle = `Nueva Nota de Recepción (${this.selectedItemsToAssign.length} ítems seleccionados)`;
     }
+  }
+
+  private esMonedaEmpresa(moneda: Moneda | null | undefined): boolean {
+    return this.monedaModuloService.esMonedaEmpresa(moneda);
+  }
+
+  /** La moneda de COMPRAS dentro de la lista cargada (misma instancia que usa mat-option); si no, la primera. */
+  private monedaComprasEn(monedas: Moneda[]): Moneda {
+    return monedas.find((m) => m.id === this.monedaCompras?.id) ?? monedas[0];
   }
 
   private loadMonedas(): void {
@@ -260,13 +275,13 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           if (this.notaRecepcionForm && !this.notaRecepcionForm.get('moneda')?.value && monedas.length > 0) {
             const pedidoMonedaId = this.data.pedido?.moneda?.id;
             const monedaPedido = pedidoMonedaId ? monedas.find(m => m.id === pedidoMonedaId) : null;
-            const monedaDefault = monedaPedido || monedas[0];
+            const monedaDefault = monedaPedido || this.monedaComprasEn(monedas);
             this.notaRecepcionForm.patchValue({ moneda: monedaDefault }, { emitEvent: false });
 
             // Cotización: si la moneda del pedido es no-Gs y tiene cotización fijada, prefilear.
             if (
               !this.data.isEdit &&
-              monedaDefault?.denominacion !== 'GUARANI' &&
+              !this.esMonedaEmpresa(monedaDefault) &&
               this.data.pedido?.cotizacion
             ) {
               this.notaRecepcionForm.patchValue(
@@ -289,10 +304,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     const id = monedaId || this.data.pedido?.moneda?.id;
     // La denominación de la moneda elegida, no la del pedido: con el pedido en Gs y la nota cambiada a otra
     // moneda, mirar el pedido dejaba la cotización en 1 sin consultar (#390).
-    const denominacion = monedaId
-      ? (this.monedas.find((m) => Number(m.id) === Number(monedaId))?.denominacion ?? this.data.pedido?.moneda?.denominacion)
-      : this.data.pedido?.moneda?.denominacion;
-    if (!id || denominacion === 'GUARANI') {
+    const monedaElegida = monedaId
+      ? (this.monedas.find((m) => Number(m.id) === Number(monedaId)) ?? this.data.pedido?.moneda)
+      : this.data.pedido?.moneda;
+    if (!id || this.esMonedaEmpresa(monedaElegida)) {
       if (!monedaId) return; // Initial call — skip for Guarani
       // Explicit moneda change to Guarani — reset to 1
       this.notaRecepcionForm.patchValue({ cotizacion: 1 });
@@ -452,7 +467,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       .pipe(takeUntil(this.destroy$))
       .subscribe((moneda: Moneda) => {
         if (!this.data.isEdit && moneda) {
-          if (moneda.denominacion === 'GUARANI') {
+          if (this.esMonedaEmpresa(moneda)) {
             this.notaRecepcionForm.patchValue({ cotizacion: 1 });
           } else {
             // Reset cotizacion to trigger auto-fill
@@ -746,10 +761,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
     const moneda = this.notaRecepcionForm.get('moneda')?.value;
     this.notaSimbolo = moneda?.simbolo || '';
-    this.notaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+    const decimales = moneda?.decimales != null ? moneda.decimales : (this.esMonedaEmpresa(moneda) ? 0 : 2);
+    this.notaDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
 
     const cotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
-    this.mostrarHintCotizacionMercado = cotizacion > 1;
+    this.mostrarHintCotizacionMercado = !this.esMonedaEmpresa(moneda) && cotizacion > 0 && cotizacion !== 1;
   }
 
   private updateItemsComputedData(): void {
@@ -916,7 +932,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         notaRecepcionId: this.data.nota.id,
         isNewItem: true,
         // Para sugerir el costo del producto en la moneda de la nota (el costo se guarda en Gs).
-        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value
+        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value,
+        moneda: this.notaRecepcionForm.get('moneda')?.value
       },
       disableClose: true
     });
@@ -953,7 +970,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         item: item,
         notaRecepcionId: this.data.nota?.id || 0,
         // Para sugerir el costo del producto en la moneda de la nota (el costo se guarda en Gs).
-        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value
+        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value,
+        moneda: this.notaRecepcionForm.get('moneda')?.value
       },
       disableClose: true
     });
@@ -1404,7 +1422,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
     const pedidoMonedaId = this.data.pedido?.moneda?.id;
     const monedaPedido = pedidoMonedaId ? this.monedas.find(m => m.id === pedidoMonedaId) : null;
-    const monedaDefault = monedaPedido || this.monedas[0];
+    const monedaDefault = monedaPedido || this.monedaComprasEn(this.monedas);
 
     this.notaRecepcionForm.reset({
       numero: '',
@@ -1419,9 +1437,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.notaRecepcionForm.markAsPristine();
     this.notaRecepcionForm.enable();
 
-    if (monedaDefault?.denominacion !== 'GUARANI' && this.data.pedido?.cotizacion) {
+    if (!this.esMonedaEmpresa(monedaDefault) && this.data.pedido?.cotizacion) {
       this.notaRecepcionForm.patchValue({ cotizacion: this.data.pedido.cotizacion });
-    } else if (monedaDefault?.denominacion !== 'GUARANI') {
+    } else if (!this.esMonedaEmpresa(monedaDefault)) {
       this.loadCotizacionFromCambio(monedaDefault?.id);
     }
 
@@ -1866,18 +1884,18 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
    * @returns Promise<boolean> - true si puede continuar, false si canceló
    */
   /**
-   * Una moneda extranjera nunca cotiza 1 contra el guaraní. Se exige al crear o cuando el usuario tocó moneda o
+   * Una moneda distinta de la de la empresa necesita cotización (mayor a 0). Se exige al crear o cuando el usuario tocó moneda o
    * cotización: una nota vieja guardada con 1 se sigue pudiendo editar en lo demás (#390).
    */
   private cotizacionValidaParaGuardar(formValue: any): boolean {
     const moneda = formValue?.moneda as Moneda;
-    if (!moneda || moneda.denominacion === 'GUARANI') {
+    if (!moneda || this.esMonedaEmpresa(moneda)) {
       return true;
     }
     const tocada = !this.data.isEdit
       || this.notaRecepcionForm.get('moneda')?.dirty
       || this.notaRecepcionForm.get('cotizacion')?.dirty;
-    return !tocada || Number(formValue?.cotizacion) > 1;
+    return !tocada || Number(formValue?.cotizacion) > 0;
   }
 
   private async validarNotaDuplicada(numero: number, proveedorId: number, notaId?: number): Promise<boolean> {

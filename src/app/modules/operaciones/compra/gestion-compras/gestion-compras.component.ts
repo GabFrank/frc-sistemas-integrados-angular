@@ -73,6 +73,8 @@ import { PedidoResumen } from "./graphql/getPedidoResumen";
 
 // Services
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
+import { ModuloMoneda } from "../../../financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model";
+import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import { CambioService } from "../../../financiero/cambio/cambio.service";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
@@ -485,6 +487,7 @@ export class GestionComprasComponent
     private fb: FormBuilder,
     private dialog: MatDialog,
     private monedaService: MonedaService,
+    private monedaModuloService: MonedaModuloService,
     private cambioService: CambioService,
     private formaPagoService: FormaPagoService,
     private sucursalService: SucursalService,
@@ -702,11 +705,13 @@ export class GestionComprasComponent
     const sinRespuesta = <T>(o: Observable<T>) => o.pipe(timeout(TIMEOUT_POR_DEFECTO_MS + 5000), catchError(() => of(null as T)));
     return forkJoin({
       monedas: sinRespuesta(this.monedaService.onGetAll(true, SIN_AVISO_DEL_GENERICO)),
+      // La moneda de COMPRAS; si no llega a tiempo se usa la primera de la lista, como antes
+      monedaCompras: this.monedaModuloService.monedaDe(ModuloMoneda.COMPRAS).pipe(take(1), timeout(3000), catchError(() => of(null as Moneda))),
       formasPago: sinRespuesta(this.formaPagoService.onGetAllFormaPago(true, SIN_AVISO_DEL_GENERICO)),
       sucursales: this.sucursalService.onGetAllSucursales(true, PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(catchError(() => of(null)))
     }).pipe(
-      tap(({ monedas, formasPago, sucursales }) => {
+      tap(({ monedas, monedaCompras, formasPago, sucursales }) => {
         this.datosInicialesFallo = monedas == null || formasPago == null || sucursales == null;
         if (this.datosInicialesFallo) {
           this.notificacionService.openWarn("No se pudieron cargar monedas, formas de pago o sucursales: usá «Reintentar».", 6);
@@ -728,12 +733,18 @@ export class GestionComprasComponent
 
         // Initialize with default values if available
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
-          this.datosGeneralesForm.patchValue({ moneda: monedas[0] }, { emitEvent: false });
+          const monedaDefault = monedas.find((m) => m.id === monedaCompras?.id) ?? monedas[0];
+          this.datosGeneralesForm.patchValue({ moneda: monedaDefault }, { emitEvent: false });
         }
         this.ensureDefaultFormaPago();
       }),
       takeUntil(this.destroy$)
     );
+  }
+
+  /** ¿Es la moneda de la empresa (la que no lleva cotización)? */
+  esMonedaEmpresa(moneda: Moneda | null | undefined): boolean {
+    return this.monedaModuloService.esMonedaEmpresa(moneda);
   }
 
   reintentarDatosIniciales(): void {
@@ -1117,7 +1128,7 @@ export class GestionComprasComponent
     });
     // Aplicar validators según moneda cargada
     const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
-    if (monedaPedido && monedaPedido.denominacion !== 'GUARANI') {
+    if (monedaPedido && !this.esMonedaEmpresa(monedaPedido)) {
       cotizacionCtrl?.setValidators([Validators.required, Validators.min(0.0001)]);
     } else {
       cotizacionCtrl?.clearValidators();
@@ -1491,7 +1502,8 @@ export class GestionComprasComponent
     // Moneda display
     const moneda = this.headerDataComputed?.moneda;
     this.pedidoMonedaSimbolo = moneda?.simbolo || '';
-    this.pedidoMonedaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+    const decimales = moneda?.decimales != null ? moneda.decimales : (this.esMonedaEmpresa(moneda) ? 0 : 2);
+    this.pedidoMonedaDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
 
     // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties
     // ahora se llaman de forma selectiva solo cuando los datos de items cambian
@@ -2286,7 +2298,7 @@ export class GestionComprasComponent
     // Navegar al siguiente campo después de que se cierre el dropdown
     setTimeout(() => {
       const moneda: Moneda | null = this.datosGeneralesForm.get("moneda")?.value;
-      if (moneda && moneda.denominacion !== "GUARANI") {
+      if (moneda && !this.esMonedaEmpresa(moneda)) {
         this.focusCotizacion();
       } else {
         this.focusFormaPago();
@@ -2303,7 +2315,7 @@ export class GestionComprasComponent
     const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
     if (!cotizacionCtrl) return;
 
-    if (!moneda || moneda.denominacion === 'GUARANI') {
+    if (!moneda || this.esMonedaEmpresa(moneda)) {
       // Descarta una consulta de cotización en vuelo de la moneda anterior
       this.cotizacionConsulta++;
       this.cotizacionRefreshing = false;
@@ -2391,7 +2403,7 @@ export class GestionComprasComponent
    */
   onRefreshCotizacionMercado(): void {
     const moneda: Moneda = this.datosGeneralesForm.get("moneda")?.value;
-    if (!moneda || moneda.denominacion === 'GUARANI') return;
+    if (!moneda || this.esMonedaEmpresa(moneda)) return;
     this.cotizacionRefreshing = true;
     this.cambioService.onActualizarCotizacionesMercado()
       .pipe(takeUntil(this.destroy$))

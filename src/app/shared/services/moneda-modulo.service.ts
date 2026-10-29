@@ -82,6 +82,18 @@ export class MonedaModuloService implements OnDestroy {
     return sujeto.pipe(filter((m) => m != null));
   }
 
+  /**
+   * ¿Es la moneda de la empresa? Compara ids con {@link empresa$}. Mientras la empresa no se
+   * resolvió, usa la regla de siempre (la denominación contiene GUARANI), así con todo en guaraníes
+   * se comporta igual que antes. Sin moneda: true (nada que convertir).
+   */
+  esMonedaEmpresa(moneda: Partial<Moneda> | null | undefined): boolean {
+    if (!moneda) return true;
+    const empresa = this.empresa$.value;
+    if (empresa && moneda.id != null) return empresa.id === moneda.id;
+    return (moneda.denominacion || '').toUpperCase().includes('GUARANI');
+  }
+
   /** Vuelve a leer todo (tras guardar o desactivar una configuración). */
   refrescar(): void {
     this.cargarEmpresa();

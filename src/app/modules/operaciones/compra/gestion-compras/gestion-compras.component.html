@@ -85,7 +85,7 @@
                   {{ headerDataComputed?.moneda?.denominacion | titlecase }}<ng-container
                     *ngIf="
                       headerDataComputed?.moneda?.denominacion &&
-                      headerDataComputed?.moneda?.denominacion !== 'GUARANI' &&
+                      !esMonedaEmpresa(headerDataComputed?.moneda) &&
                       headerDataComputed?.cotizacion
                     "
                     >: {{ headerDataComputed.cotizacion | number : '1.0-0' }}</ng-container>
@@ -394,7 +394,7 @@
                   appearance="outline"
                   *ngIf="
                     datosGeneralesForm.get('moneda')?.value &&
-                    datosGeneralesForm.get('moneda')?.value?.denominacion !== 'GUARANI'
+                    !esMonedaEmpresa(datosGeneralesForm.get('moneda')?.value)
                   "
                 >
                   <mat-label>Cotización</mat-label>

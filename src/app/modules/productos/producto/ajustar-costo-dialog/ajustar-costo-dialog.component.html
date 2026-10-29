@@ -43,15 +43,30 @@
         </div>
       </div>
 
+      <div *ngIf="costoCosteo" fxLayout="row" fxLayoutGap="20px" style="text-align: center">
+        <div fxFlex="50">
+          <div class="titulo-center">Costo actual en {{ costoCosteo.moneda.denominacion | titlecase }}</div>
+          <div class="info-text">
+            <app-costo-display [valorCosteo]="costoCosteo.costoMedio" [monedaCosteo]="costoCosteo.moneda"></app-costo-display>
+          </div>
+        </div>
+        <div fxFlex="50">
+          <div class="titulo-center">Última compra en {{ costoCosteo.moneda.denominacion | titlecase }}</div>
+          <div class="info-text">
+            <app-costo-display [valorCosteo]="costoCosteo.ultimoPrecioCompra" [monedaCosteo]="costoCosteo.moneda"></app-costo-display>
+          </div>
+        </div>
+      </div>
+
     <mat-form-field appearance="outline" style="width: 100%;">
-      <mat-label>Nuevo Costo (Gs.)</mat-label>
+      <mat-label>Nuevo Costo ({{ simboloEmpresa }})</mat-label>
       <input 
         #costoInput
         matInput 
         type="number" 
         formControlName="costo"
         min="0"
-        step="1"
+        [step]="stepCosto"
         placeholder="Ingrese el nuevo costo"
         (focus)="costoInput.select()"
       >
