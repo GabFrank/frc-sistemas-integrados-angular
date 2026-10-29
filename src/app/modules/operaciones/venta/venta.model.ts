@@ -10,6 +10,8 @@ import type { SorteoTicketInfo } from "../sorteo/sorteo.model";
 
 export class Venta {
     id: number;
+    /** Solo la trae la consulta aparte de las últimas ventas (filial); no viene en el resto de las lecturas. */
+    tieneSorteo?: boolean;
     caja: PdvCaja
     cliente: Cliente;
     formaPago: FormaPago;

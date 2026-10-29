@@ -356,6 +356,23 @@ export const reimprimirVentaQuery = gql`
   }
 `;
 
+export const reimprimirSorteoQuery = gql`
+  mutation reimprimirSorteo($ventaId: ID!, $printerName: String, $local: String) {
+    data: reimprimirSorteo(ventaId: $ventaId, printerName: $printerName, local: $local)
+  }
+`;
+
+// Consulta aparte (no va en ventaQuery ni ventasPorCajaId, que tambien se piden al central y a filiales sin
+// sorteos): si el campo no existe, solo falla esta lectura y el boton no se muestra.
+export const ventaTieneSorteoQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: venta(id: $id, sucId: $sucId) {
+      id
+      tieneSorteo
+    }
+  }
+`;
+
 //ventasPorCajaId
 
 export const ventasPorCajaIdQuery = gql`

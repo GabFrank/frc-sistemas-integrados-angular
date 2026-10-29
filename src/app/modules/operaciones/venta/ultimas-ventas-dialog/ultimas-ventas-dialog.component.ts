@@ -98,6 +98,7 @@ export class UltimasVentasDialogComponent implements OnInit {
         if (res != null) {
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
+          this.marcarSorteos(res.getContent);
         } else {
           this.vaciarSinRespuesta(null); // error GraphQL: el servicio ya avisó
         }
@@ -125,6 +126,7 @@ export class UltimasVentasDialogComponent implements OnInit {
         next: (res) => {
           if (res != null) {
             this.dataSource.data = [res];
+            this.marcarSorteos([res]);
           } else {
             this.notificacionSnackBar.notification$.next({
               texto:
@@ -225,6 +227,39 @@ export class UltimasVentasDialogComponent implements OnInit {
         if (erroresDeRechazo(err) == null && !esTimeoutDeLink(err)) {
           this.notificacionSnackBar.openWarn(
             "No se pudo confirmar si se reimprimió la venta " + id + ": revisá la impresora antes de repetir.", 8);
+        }
+      },
+    });
+  }
+
+  /**
+   * Pide aparte si cada venta tiene ticket de sorteo, para mostrar el botón de reimprimirlo. Si no responde (o la
+   * filial es vieja y no conoce el campo) simplemente no se muestra: no frena la lista.
+   */
+  private marcarSorteos(ventas: Venta[]): void {
+    for (const venta of ventas ?? []) {
+      this.ventaService.onTieneSorteo(venta.id, venta.sucursalId).pipe(untilDestroyed(this)).subscribe((tiene) => {
+        if (tiene) {
+          venta.tieneSorteo = true;
+          this.dataSource.data = [...this.dataSource.data];
+        }
+      });
+    }
+  }
+
+  reimpresionSorteo(id) {
+    this.ventaService.onReimprimirSorteo(id, false).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        if (res != null) {
+          this.notificacionSnackBar.openSucess("Reimpreso con éxito");
+        }
+      },
+      // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link. Sin respuesta pudo imprimirse:
+      // repetir imprime otra vez (#501)
+      error: (err) => {
+        if (erroresDeRechazo(err) == null && !esTimeoutDeLink(err)) {
+          this.notificacionSnackBar.openWarn(
+            "No se pudo confirmar si se reimprimió el ticket de sorteo de la venta " + id + ": revisá la impresora antes de repetir.", 8);
         }
       },
     });
