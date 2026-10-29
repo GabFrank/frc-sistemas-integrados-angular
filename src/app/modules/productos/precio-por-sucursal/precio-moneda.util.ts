@@ -119,3 +119,16 @@ export function convertirConRastro(
   if (cotizacion == null || precio == null) return null;
   return { precio, precioMonedaId: Number(monedaPrecioId), precioLista, precioCotizacion: cotizacion };
 }
+
+/**
+ * ¿Se ofrece el selector de moneda en el ABM de precios? Solo si la moneda del módulo PRECIOS no es la de la
+ * empresa, o ya hay algún precio en otra moneda, o el precio que se edita tiene moneda propia. En bodega (todo
+ * en la moneda de la empresa) nunca: el diálogo es el de siempre y se guarda sin `monedaId`.
+ */
+export function debeMostrarSelectorMoneda(
+  monedaPreciosEsEmpresa: boolean,
+  cantidadPreciosEnOtraMoneda: number,
+  precioEditadoTieneMonedaPropia: boolean,
+): boolean {
+  return !monedaPreciosEsEmpresa || cantidadPreciosEnOtraMoneda > 0 || precioEditadoTieneMonedaPropia;
+}

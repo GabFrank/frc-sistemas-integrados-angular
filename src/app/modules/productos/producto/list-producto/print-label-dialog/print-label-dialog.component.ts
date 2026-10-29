@@ -5,7 +5,7 @@ import { ThermalPrinterService } from '../../../../configuracion/thermal-printer
 import { MatSnackBar } from '@angular/material/snack-bar';
 import html2canvas from 'html2canvas';
 import { Observable, of, from } from 'rxjs';
-import { catchError, map, switchMap, take } from 'rxjs/operators';
+import { catchError, map, switchMap, take, timeout } from 'rxjs/operators';
 import { Producto } from '../../producto.model';
 import { PrinterInfo, PrintResult } from '../../../../../commons/core/electron/electron.service';
 import { BarcodeQrGeneratorService } from './barcode-qr-generator.service';
@@ -159,20 +159,39 @@ export class PrintLabelDialogComponent implements OnInit {
   }
 
   /**
-   * Lee en qué moneda está el precio principal, con una operación aparte que puede fallar: si falla, o el precio es de
-   * la empresa, no cambia nada. Mientras se lee no se imprime (saldría «Gs.» con el valor de otra moneda).
+   * Decide la moneda del precio a partir del mapa en caché de precios en otra moneda (una lectura del central tras
+   * el login). Sin precios en otra moneda (bodega) o con el mapa fallido, es la de la empresa y se decide en el acto.
+   * Con el mapa todavía cargando se espera como mucho 2 s y se sigue como moneda de la empresa (con un aviso en el
+   * log). Solo si hay precios en otra moneda hace falta una lectura más para saber cuál es el principal, con el mismo tope.
    */
   private loadMonedaPrecio(): void {
     const productoId = this.data?.producto?.id;
-    if (productoId == null) {
+    const actual = this.precioMonedaService.mapaCentral$.value;
+    if (productoId == null || (actual.estado === 'ok' && actual.mapa.size === 0) || actual.estado === 'error') {
       this.monedaPrecioEstado = 'ok';
       return;
     }
     this.monedaPrecioEstado = 'cargando';
-    this.precioMonedaService.monedaDelPrecioPrincipal(productoId).subscribe((moneda) => {
-      this.monedaPrecio = moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda) ? moneda : null;
-      this.monedaPrecioEstado = moneda === undefined ? 'error' : 'ok';
-      this.updatePreviewComputedProperties();
+    this.precioMonedaService.esperarMapaCentral(2000).subscribe((m) => {
+      if (m.estado === 'cargando' || m.estado === 'sinCargar') {
+        console.warn('[etiqueta] el mapa de precios en otra moneda no llegó en 2 s: se imprime en la moneda de la empresa');
+        this.monedaPrecioEstado = 'ok';
+        return;
+      }
+      if (m.estado === 'error' || m.mapa.size === 0) {
+        this.monedaPrecioEstado = 'ok';
+        return;
+      }
+      // Hay precios en otra moneda: se averigua si el principal de este producto es uno de ellos
+      this.precioMonedaService.monedaDelPrecioPrincipal(productoId).pipe(timeout(2000), catchError(() => of(undefined as Moneda | null | undefined)))
+        .subscribe((moneda) => {
+          if (moneda === undefined) {
+            console.warn('[etiqueta] no se pudo leer la moneda del precio principal: se imprime en la moneda de la empresa');
+          }
+          this.monedaPrecio = moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda) ? moneda : null;
+          this.monedaPrecioEstado = 'ok';
+          this.updatePreviewComputedProperties();
+        });
     });
   }
 

@@ -22,7 +22,7 @@ import { ModuloMoneda } from '../../../financiero/moneda/configuracion-moneda-mo
 import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
 import { CostoPorProductoService } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
 import { PrecioMonedaService } from '../precio-moneda.service';
-import { redondearMonto } from '../precio-moneda.util';
+import { debeMostrarSelectorMoneda, redondearMonto } from '../precio-moneda.util';
 
 export class AdicionarPrecioPorSucursalData {
   precio: PrecioPorSucursal;
@@ -100,6 +100,9 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   private monedaGuardada: Moneda | null = null;
   /** En una edición, ¿se pudo leer la moneda guardada? Sin eso no se ofrece cambiarla. */
   private monedaGuardadaLeida = false;
+  /** La moneda del módulo PRECIOS es la de la empresa (true hasta saber lo contrario: bodega no ve nada nuevo). */
+  private monedaPreciosEsEmpresa = true;
+  private cantidadPreciosOtraMoneda = 0;
   /** El campo del precio que esté a la vista (plano o enmascarado). */
   @ViewChild('precioInput') campoPrecio: ElementRef<HTMLInputElement>;
 
@@ -165,27 +168,30 @@ export class AdicionarPrecioDialogComponent implements OnInit {
         error: () => {},
       });
 
-    if (this.data?.precio?.id == null) {
-      // Alta: nace en la moneda del módulo PRECIOS
-      this.monedaModulo.monedaDe(ModuloMoneda.PRECIOS).pipe(take(1), untilDestroyed(this))
-        .subscribe((m) => this.monedaControl.setValue(m.id, { emitEvent: true }));
-      return;
-    }
-    // Edición: la moneda guardada se lee con una operación aparte (null = no se pudo leer)
-    this.precioMonedaService.monedasDePreciosDePresentacion(this.data.presentacion?.id)
-      .pipe(take(1), untilDestroyed(this))
-      .subscribe((mapa) => {
-        if (mapa == null) return;
+    // Moneda del módulo PRECIOS (decide si se ofrece el selector y la moneda de un alta)
+    this.monedaModulo.monedaDe(ModuloMoneda.PRECIOS).pipe(take(1), untilDestroyed(this)).subscribe((m) => {
+      this.monedaPreciosEsEmpresa = this.monedaModulo.esMonedaEmpresa(m);
+      if (this.data?.precio?.id == null) this.monedaControl.setValue(m.id, { emitEvent: true });
+      this.actualizarMoneda();
+    });
+
+    // El mapa de precios en otra moneda (una lectura única del central, en caché). Sin él (falló o todavía no
+    // llegó) un precio editado se trata como de la empresa y no se ofrece cambiar su moneda.
+    this.precioMonedaService.asegurarMapaCentral();
+    this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((m) => {
+      this.cantidadPreciosOtraMoneda = m.mapa.size;
+      if (this.data?.precio?.id != null && m.estado === 'ok' && !this.monedaGuardadaLeida) {
         this.monedaGuardadaLeida = true;
-        const m = mapa.get(String(this.data.precio.id)) ?? null;
-        if (m != null && !this.monedaModulo.esMonedaEmpresa(m)) {
-          this.monedaGuardada = m;
-          this.monedaControl.setValue(m.id);
+        const guardada = m.mapa.get(String(this.data.precio.id)) ?? null;
+        if (guardada != null && !this.monedaModulo.esMonedaEmpresa(guardada)) {
+          this.monedaGuardada = guardada;
+          this.monedaControl.setValue(guardada.id);
         } else if (this.monedaEmpresa?.id != null) {
           this.monedaControl.setValue(this.monedaEmpresa.id);
         }
-        this.actualizarMoneda();
-      });
+      }
+      this.actualizarMoneda();
+    });
   }
 
   /** La moneda elegida; null si no hay selección (se trata como la de la empresa). */
@@ -208,7 +214,9 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.simboloPrecio = otra ? (elegida?.simbolo || '') : '';
     this.opcionesMascara = otra ? this.monedaService.currencyOptionsMontoPositivo(elegida, { allowZero: true }) : null;
     const hayEleccion = this.monedaList.length > 1 || this.monedaGuardada != null;
-    this.mostrarSelectorMoneda = hayEleccion && (this.data?.precio?.id == null || this.monedaGuardadaLeida);
+    this.mostrarSelectorMoneda = hayEleccion
+      && (this.data?.precio?.id == null || this.monedaGuardadaLeida)
+      && debeMostrarSelectorMoneda(this.monedaPreciosEsEmpresa, this.cantidadPreciosOtraMoneda, this.monedaGuardada != null);
   }
 
   /** Mínimo guardable: 1 en la moneda de la empresa (como siempre); el centavo de la moneda en otra con decimales. */

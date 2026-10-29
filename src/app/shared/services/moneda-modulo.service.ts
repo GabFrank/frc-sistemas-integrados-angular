@@ -8,6 +8,7 @@ import { Moneda } from '../../modules/financiero/moneda/moneda.model';
 import { MonedaService } from '../../modules/financiero/moneda/moneda.service';
 import { MonedaDeModuloGQL } from '../../modules/financiero/moneda/graphql/monedaDeModulo';
 import { MonedaEmpresaGQL } from '../../modules/financiero/moneda/graphql/monedaEmpresa';
+import { PrecioMonedaService } from '../../modules/productos/precio-por-sucursal/precio-moneda.service';
 import { ModuloMoneda } from '../../modules/financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model';
 
 /**
@@ -53,6 +54,7 @@ export class MonedaModuloService implements OnDestroy {
     private monedaService: MonedaService,
     private monedaDeModuloGQL: MonedaDeModuloGQL,
     private monedaEmpresaGQL: MonedaEmpresaGQL,
+    private precioMonedaService: PrecioMonedaService,
   ) {
     this.authSub = this.mainService.authenticationSub.subscribe((auth) => {
       if (auth) {
@@ -107,9 +109,12 @@ export class MonedaModuloService implements OnDestroy {
   private bootstrap(): void {
     this.contratoNuevo$.next(null);
     this.refrescar();
+    // Una vez tras el login, en silencio: los precios que no están en la moneda de la empresa (vacío en bodega)
+    this.precioMonedaService.refrescarMapaCentral();
   }
 
   private limpiar(): void {
+    this.precioMonedaService.limpiarMapaCentral();
     this.empresa$.next(null);
     this.contratoNuevo$.next(null);
     // Los sujetos se conservan (alguien puede estar suscripto): vuelven a null, que no se emite,

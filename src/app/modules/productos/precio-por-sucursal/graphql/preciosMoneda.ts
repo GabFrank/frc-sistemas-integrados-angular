@@ -9,22 +9,7 @@ import { Moneda } from '../../../financiero/moneda/moneda.model';
  * se comporta como siempre (todo en la moneda de la empresa).
  */
 
-/** CENTRAL: la moneda de cada precio de una presentación (null = la de la empresa). */
-export const monedaDePreciosPorPresentacionQuery = gql`
-  query ($id: Int) {
-    data: precioPorSucursalPorPresentacionId(id: $id) {
-      id
-      moneda {
-        id
-        denominacion
-        simbolo
-        decimales
-      }
-    }
-  }
-`;
-
-/** FILIAL: solo los precios que NO están en la moneda de la empresa. */
+/** FILIAL y CENTRAL (misma forma): solo los precios que NO están en la moneda de la empresa. */
 export const preciosEnOtraMonedaQuery = gql`
   query {
     data: preciosEnOtraMoneda {
@@ -63,19 +48,9 @@ export const monedaDePreciosDeProductoQuery = gql`
   }
 `;
 
-export interface MonedaDePrecioFila {
-  id: number | string;
-  moneda: Moneda | null;
-}
-
 export interface PrecioEnOtraMoneda {
   precioId: number | string;
   moneda: Moneda;
-}
-
-@Injectable({ providedIn: 'root' })
-export class MonedaDePreciosPorPresentacionGQL extends Query<{ data: MonedaDePrecioFila[] }> {
-  document = monedaDePreciosPorPresentacionQuery;
 }
 
 @Injectable({ providedIn: 'root' })

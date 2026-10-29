@@ -1,48 +1,93 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, timer } from 'rxjs';
+import { catchError, filter, map, take } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { CONTEXTO_SONDEO, LECTURA_ESTRICTA } from '../../../generics/generic-crud.constantes';
 import { Moneda } from '../../financiero/moneda/moneda.model';
 import {
   MonedaDePreciosDeProductoGQL,
-  MonedaDePreciosPorPresentacionGQL,
-  MonedaDePrecioFila,
   PrecioEnOtraMoneda,
   PreciosEnOtraMonedaGQL,
 } from './graphql/preciosMoneda';
 
+/** Estado del mapa de precios en otra moneda del central. */
+export type EstadoMapaPrecios = 'sinCargar' | 'cargando' | 'ok' | 'error';
+
+export interface MapaPreciosCentral {
+  estado: EstadoMapaPrecios;
+  /** precioId (texto) → moneda; solo precios que NO están en la moneda de la empresa. Vacío en bodega. */
+  mapa: Map<string, Moneda>;
+}
+
 /**
- * Monedas de los precios de venta (Fase 3). Todo se lee con operaciones separadas que pueden fallar
- * (servidor viejo, sin red): en ese caso no hay mapa y quien llama sigue como siempre, con todo en la
- * moneda de la empresa.
+ * Monedas de los precios de venta (Fase 3). Una sola lectura del central (`preciosEnOtraMoneda`) se guarda en
+ * un mapa que se carga una vez tras el login, en silencio, y se refresca al guardar o borrar un precio. Si
+ * falla, el mapa queda vacío en estado `error` y todo se comporta como siempre (moneda de la empresa).
  */
 @Injectable({ providedIn: 'root' })
 export class PrecioMonedaService {
+  readonly mapaCentral$ = new BehaviorSubject<MapaPreciosCentral>({ estado: 'sinCargar', mapa: new Map() });
+  private lectura = 0;
+
   constructor(
     private genericService: GenericCrudService,
-    private monedaDePreciosGQL: MonedaDePreciosPorPresentacionGQL,
     private preciosEnOtraMonedaGQL: PreciosEnOtraMonedaGQL,
     private monedaDePreciosDeProductoGQL: MonedaDePreciosDeProductoGQL,
   ) {}
 
-  /**
-   * CENTRAL. La moneda de cada precio de una presentación, por id del precio (como texto). El valor es
-   * null cuando el precio está en la moneda de la empresa. Emite `null` (no el mapa) si no se pudo leer:
-   * no se sabe en qué moneda están.
-   */
-  monedasDePreciosDePresentacion(presentacionId: number): Observable<Map<string, Moneda | null> | null> {
-    return this.genericService
-      .onCustomQuery(this.monedaDePreciosGQL, { id: presentacionId }, true, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO)
-      .pipe(
-        map((filas: MonedaDePrecioFila[]) => (Array.isArray(filas) ? mapaDeMonedasPorPrecio(filas) : null)),
-        catchError(() => of(null)),
-      );
+  /** Carga el mapa si todavía no se cargó (idempotente). */
+  asegurarMapaCentral(): void {
+    if (this.mapaCentral$.value.estado === 'sinCargar') this.refrescarMapaCentral();
+  }
+
+  /** Vuelve a leer el mapa del central. Solo aplica la última lectura. */
+  refrescarMapaCentral(): void {
+    const n = ++this.lectura;
+    const previo = this.mapaCentral$.value;
+    // Mientras se relee se conserva lo que había (un guardado no hace parpadear los símbolos)
+    this.mapaCentral$.next({ estado: 'cargando', mapa: previo.mapa });
+    this.leerPreciosEnOtraMoneda(true).subscribe((mapa) => {
+      if (n !== this.lectura) return;
+      this.mapaCentral$.next(mapa == null ? { estado: 'error', mapa: new Map() } : { estado: 'ok', mapa });
+    });
+  }
+
+  /** Al cerrar sesión. */
+  limpiarMapaCentral(): void {
+    this.lectura++;
+    this.mapaCentral$.next({ estado: 'sinCargar', mapa: new Map() });
+  }
+
+  /** La moneda de un precio si NO es la de la empresa; null = la de la empresa (o no se sabe). Síncrono. */
+  monedaDePrecio(precioId: number | string | null | undefined): Moneda | null {
+    return precioId == null ? null : this.mapaCentral$.value.mapa.get(String(precioId)) ?? null;
   }
 
   /**
-   * CENTRAL. La moneda del precio principal de un producto (el de la presentación principal), para las
-   * etiquetas. `null` = en la moneda de la empresa; `undefined` = no se pudo leer (se asume la de la empresa).
+   * Emite el estado cuando el mapa terminó de cargar (ok o error) o, a lo sumo, a los `maxMs`: pasado ese
+   * tiempo se sigue con lo que haya (estado `cargando`), nunca se espera más.
+   */
+  esperarMapaCentral(maxMs = 2000): Observable<MapaPreciosCentral> {
+    this.asegurarMapaCentral();
+    const listo$ = this.mapaCentral$.pipe(filter((m) => m.estado === 'ok' || m.estado === 'error'), take(1));
+    return new Observable<MapaPreciosCentral>((obs) => {
+      let hecho = false;
+      const fin = (m: MapaPreciosCentral) => {
+        if (hecho) return;
+        hecho = true;
+        obs.next(m);
+        obs.complete();
+      };
+      const s1 = listo$.subscribe(fin);
+      const s2 = timer(maxMs).subscribe(() => fin(this.mapaCentral$.value));
+      return () => { s1.unsubscribe(); s2.unsubscribe(); };
+    });
+  }
+
+  /**
+   * CENTRAL. La moneda del precio principal de un producto (presentación principal → precio principal). Solo se usa
+   * cuando el mapa tiene algún precio en otra moneda, para saber cuál es el precio principal. `null` = la de
+   * la empresa; `undefined` = no se pudo leer.
    */
   monedaDelPrecioPrincipal(productoId: number): Observable<Moneda | null | undefined> {
     return this.genericService
@@ -58,22 +103,18 @@ export class PrecioMonedaService {
    * vacío si no hay ninguno o si la filial no conoce la operación (todo en la moneda de la empresa).
    */
   preciosEnOtraMoneda(): Observable<Map<string, Moneda>> {
+    return this.leerPreciosEnOtraMoneda(false).pipe(map((m) => m ?? new Map<string, Moneda>()));
+  }
+
+  /** Lee `preciosEnOtraMoneda` del central o de la filial; emite null si falla. */
+  private leerPreciosEnOtraMoneda(central: boolean): Observable<Map<string, Moneda> | null> {
     return this.genericService
-      .onCustomQuery(this.preciosEnOtraMonedaGQL, {}, false, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO)
+      .onCustomQuery(this.preciosEnOtraMonedaGQL, {}, central, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO)
       .pipe(
-        map((filas: PrecioEnOtraMoneda[]) => mapaDePreciosEnOtraMoneda(filas)),
-        catchError(() => of(new Map<string, Moneda>())),
+        map((filas: PrecioEnOtraMoneda[]) => (Array.isArray(filas) ? mapaDePreciosEnOtraMoneda(filas) : null)),
+        catchError(() => of(null)),
       );
   }
-}
-
-/** Función pura: filas `{id, moneda}` del central → mapa por id (texto). */
-export function mapaDeMonedasPorPrecio(filas: MonedaDePrecioFila[]): Map<string, Moneda | null> {
-  const mapa = new Map<string, Moneda | null>();
-  (filas || []).forEach((f) => {
-    if (f?.id != null) mapa.set(String(f.id), f.moneda ?? null);
-  });
-  return mapa;
 }
 
 /** Función pura: filas de `preciosEnOtraMoneda` → mapa precioId (texto) → moneda. */

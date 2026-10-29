@@ -1127,7 +1127,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
-        this.cargarSimbolosDePrecios(data);
+        this.cargarSimbolosDePrecios();
       } });
   }
 
@@ -1137,21 +1137,19 @@ export class ProductoComponent implements OnInit, OnDestroy {
    */
   simbolosPrecio: Record<string, string> = {};
 
-  private cargarSimbolosDePrecios(presentaciones: Presentacion[]): void {
-    this.simbolosPrecio = {};
-    (presentaciones || []).filter((p) => p?.id != null && p.precios?.length > 0).forEach((p) => {
-      this.precioMonedaService.monedasDePreciosDePresentacion(p.id)
-        .pipe(untilDestroyed(this))
-        .subscribe((mapa) => {
-          if (mapa == null) return;
-          const nuevos = { ...this.simbolosPrecio };
-          mapa.forEach((moneda, precioId) => {
-            if (moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda)) nuevos[precioId] = moneda.simbolo || '';
-          });
-          this.simbolosPrecio = nuevos;
-        });
+  private cargarSimbolosDePrecios(): void {
+    if (this.simbolosSub) return;
+    this.precioMonedaService.asegurarMapaCentral();
+    // Del mapa en caché de precios en otra moneda: vacío en bodega, y si no se pudo leer, sin símbolos
+    this.simbolosSub = this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((e) => {
+      const nuevos: Record<string, string> = {};
+      e.mapa.forEach((moneda, precioId) => {
+        if (!this.monedaModulo.esMonedaEmpresa(moneda)) nuevos[precioId] = moneda.simbolo || '';
+      });
+      this.simbolosPrecio = nuevos;
     });
   }
+  private simbolosSub: Subscription;
 
   /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
   private marcarPresentacionesSinCargar(): void {

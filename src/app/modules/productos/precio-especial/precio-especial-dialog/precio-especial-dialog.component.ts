@@ -3,7 +3,7 @@ import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, take } from 'rxjs/operators';
+import { catchError, filter, take } from 'rxjs/operators';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -156,12 +156,13 @@ export class PrecioEspecialDialogComponent implements OnInit {
    * margen se compara en esa moneda.
    */
   private leerMonedaBase(): void {
-    const presentacionId = this.data.presentacion?.id;
-    if (presentacionId == null || this.data.precio?.id == null) return;
-    this.precioMonedaService.monedasDePreciosDePresentacion(presentacionId)
-      .pipe(take(1), untilDestroyed(this))
-      .subscribe((mapa) => {
-        const m = mapa?.get(String(this.data.precio.id)) ?? null;
+    if (this.data.precio?.id == null) return;
+    this.precioMonedaService.asegurarMapaCentral();
+    // El mapa de precios en otra moneda (en caché); si falló, queda la moneda de la empresa
+    this.precioMonedaService.mapaCentral$
+      .pipe(filter((e) => e.estado === 'ok'), take(1), untilDestroyed(this))
+      .subscribe((e) => {
+        const m = e.mapa.get(String(this.data.precio.id)) ?? null;
         if (m == null || this.monedaModulo.esMonedaEmpresa(m)) return;
         this.monedaBase = m;
         const decimales = m.decimales > 0 ? m.decimales : 0;

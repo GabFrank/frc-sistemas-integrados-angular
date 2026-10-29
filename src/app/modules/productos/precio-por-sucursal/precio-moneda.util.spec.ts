@@ -2,6 +2,7 @@ import {
   convertirConRastro,
   convertirPrecioLista,
   cotizacionEntreMonedas,
+  debeMostrarSelectorMoneda,
   redondearMonto,
 } from './precio-moneda.util';
 
@@ -80,5 +81,23 @@ describe('convertirConRastro', () => {
   it('sin cotización devuelve null (no se vende)', () => {
     expect(convertirConRastro(4.39, 3, null, 1, 0)).toBeNull();
     expect(convertirConRastro(4.39, 3, 0, 1, 0)).toBeNull();
+  });
+});
+
+describe('debeMostrarSelectorMoneda', () => {
+  it('bodega (PRECIOS = empresa, sin precios en otra moneda, precio sin moneda propia): oculto', () => {
+    expect(debeMostrarSelectorMoneda(true, 0, false)).toBeFalse();
+  });
+
+  it('PRECIOS en otra moneda que la de la empresa: visible', () => {
+    expect(debeMostrarSelectorMoneda(false, 0, false)).toBeTrue();
+  });
+
+  it('hay al menos un precio en otra moneda: visible', () => {
+    expect(debeMostrarSelectorMoneda(true, 1, false)).toBeTrue();
+  });
+
+  it('el precio editado ya tiene moneda propia: visible', () => {
+    expect(debeMostrarSelectorMoneda(true, 0, true)).toBeTrue();
   });
 });
