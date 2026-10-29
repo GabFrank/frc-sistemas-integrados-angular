@@ -9,6 +9,7 @@ import {
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
 } from "../../../../../generics/generic-crud.constantes";
 import { SorteoAplicable, SorteoClienteInput } from "../../../../operaciones/sorteo/sorteo.model";
+import { textoParticipaSorteo } from "../../../../operaciones/sorteo/sorteo.util";
 import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { ClienteService } from "../../../../personas/clientes/cliente.service";
 
@@ -68,7 +69,7 @@ export class SorteoClienteDialogComponent implements AfterViewInit, OnDestroy {
     private clienteService: ClienteService
   ) {
     this.lineas = (data?.sorteos ?? []).map(
-      (s) => `Esta compra participa del sorteo ${s.nombre} (${s.cantidadTickets} tickets).`
+      (s) => textoParticipaSorteo(s.nombre, s.cantidadTickets)
     );
     const documento = normalizarDocumento(data?.documento);
     if (documento !== "" && documento !== "0") this.documentoControl.setValue(documento);

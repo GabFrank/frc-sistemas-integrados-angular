@@ -78,3 +78,15 @@ export function ayudaTickets(
       return '';
   }
 }
+
+/** Texto del diálogo del POS: «(1 ticket)» o «(N tickets)». */
+export function textoParticipaSorteo(nombre: string, cantidad: number): string {
+  return `Esta compra participa del sorteo ${nombre} (${cantidad} ${cantidad === 1 ? 'ticket' : 'tickets'}).`;
+}
+
+/** Aviso del POS después de guardar la venta, en singular para un solo ticket. */
+export function textoTicketsImpresos(nombreSorteo: string, cantidad: number): string {
+  return cantidad === 1
+    ? `Se imprimió 1 ticket del sorteo ${nombreSorteo}. El cliente debe firmarlo y depositarlo en la urna.`
+    : `Se imprimieron ${cantidad} tickets del sorteo ${nombreSorteo}. El cliente debe firmarlos y depositarlos en la urna.`;
+}

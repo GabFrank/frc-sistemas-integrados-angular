@@ -131,6 +131,7 @@ import { LoteService } from '../../../operaciones/lote/lote.service';
 import { StockLotePresentacion } from '../../../operaciones/lote/lote.model';
 import { etiquetaLote, lotesVendibles, loteUnicoParaAsignar } from './seleccionar-lote-venta-dialog/lotes-caja';
 import { SorteoPosService } from './sorteo-pos.service';
+import { textoTicketsImpresos } from '../../../operaciones/sorteo/sorteo.util';
 import type { SorteoClienteInput } from '../../../operaciones/sorteo/sorteo.model';
 
 @UntilDestroy({ checkProperties: true })
@@ -1923,7 +1924,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                       if (t == null) return;
                       this.notificacionSnackbar.notification$.next({
                         color: NotificacionColor.info,
-                        texto: `Se imprimieron ${t.cantidad} tickets del sorteo ${t.nombreSorteo}. El cliente debe firmarlos y depositarlos en la urna.`,
+                        texto: textoTicketsImpresos(t.nombreSorteo, t.cantidad),
                         duracion: 8,
                       });
                     });

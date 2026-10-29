@@ -3,11 +3,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Observable, of } from "rxjs";
 import { catchError, defaultIfEmpty, map, switchMap, take, timeout } from "rxjs/operators";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
-import {
-  ContextoConsulta,
-  LECTURA_ESTRICTA,
-  TIMEOUT_CONSULTA_MOSTRADOR_MS,
-} from "../../../../generics/generic-crud.constantes";
+import { ContextoConsulta, LECTURA_ESTRICTA } from "../../../../generics/generic-crud.constantes";
 import { SorteosAplicablesGQL } from "../../../operaciones/sorteo/graphql/sorteo.gql";
 import { SorteoAplicable, SorteoClienteInput } from "../../../operaciones/sorteo/sorteo.model";
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
@@ -19,9 +15,15 @@ import {
   SorteoClienteDialogData,
 } from "./sorteo-cliente-dialog/sorteo-cliente-dialog.component";
 
+/**
+ * Corte de la consulta previa: es contra la filial local y el cajero está esperando. Si no contesta en 3 s
+ * la venta sigue como siempre, sin sorteo.
+ */
+const TIMEOUT_SORTEOS_MS = 3000;
+
 /** Sin «Buscando…», sin aviso de corte ni de error: si la consulta falla, la venta sigue como siempre. */
 const CONTEXTO_SORTEOS: ContextoConsulta = {
-  timeoutMs: TIMEOUT_CONSULTA_MOSTRADOR_MS,
+  timeoutMs: TIMEOUT_SORTEOS_MS,
   silenciarAvisoTimeout: true,
   sinAviso: true,
 };
@@ -67,7 +69,7 @@ export class SorteoPosService {
         .onCustomQuery(this.sorteosAplicables, { input }, false, LECTURA_ESTRICTA, true, CONTEXTO_SORTEOS)
         .pipe(
           // Red de seguridad por si el link no corta: el cajero no puede quedar esperando.
-          timeout(TIMEOUT_CONSULTA_MOSTRADOR_MS + 2000),
+          timeout(TIMEOUT_SORTEOS_MS + 1000),
           take(1),
           catchError((err) => {
             // Una filial sin sorteos responde con error de validación: es el caso normal, sin aviso.
