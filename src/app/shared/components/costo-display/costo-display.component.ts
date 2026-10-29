@@ -98,7 +98,11 @@ export class CostoDisplayComponent implements OnInit, OnChanges, OnDestroy {
     this.valorMostrado = (costeo ? this.valorCosteo : this.valor) ?? null;
 
     const decimales = monedaMostrada?.decimales ?? 0;
-    this.digitosMostrados = this.digitos ?? (decimales > 0 ? `1.0-${decimales}` : '1.0-0');
+    // El costo de costeo se guarda con al menos 4 decimales (central CosteoMoneda.DECIMALES_COSTO):
+    // los de la moneda siempre, y hasta 4 si los trae (0,4014 US$, no 0,4).
+    this.digitosMostrados = this.digitos ?? (costeo
+      ? `1.${decimales}-${Math.max(decimales, 4)}`
+      : (decimales > 0 ? `1.0-${decimales}` : '1.0-0'));
     const simboloMoneda = monedaMostrada?.denominacion && monedaMostrada.denominacion.toUpperCase().includes('GUARANI')
       ? 'Gs.'
       : (monedaMostrada?.simbolo || 'Gs.');
