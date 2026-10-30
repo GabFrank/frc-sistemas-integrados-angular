@@ -1,0 +1,140 @@
+<div class="vuelto-dialog">
+  <h2 class="titulo-dialog">Vuelto de un egreso</h2>
+  <div class="subtitulo-dialog">{{ data?.cajaVirtual?.nombre }}</div>
+
+  <!-- ═══ Listado: egresos con algo pendiente de devolver (paginado en el central) ═══ -->
+  <mat-dialog-content class="contenido" *ngIf="!seleccionado">
+    <div class="filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="filtro-texto">
+        <mat-label>Buscar por descripción o responsable</mat-label>
+        <input matInput [formControl]="textoControl" (keyup.enter)="buscar()" placeholder="Enter para buscar" />
+        <button mat-icon-button matSuffix *ngIf="textoControl.value" (click)="limpiarBusqueda()" matTooltip="Limpiar">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <button mat-stroked-button (click)="buscar()"><mat-icon>search</mat-icon> Buscar</button>
+      <span class="spacer"></span>
+      <span class="hint" *ngIf="!isLoading">{{ totalElements }} egreso(s) con vuelto pendiente</span>
+    </div>
+
+    <div class="tabla-wrap">
+      <table mat-table [dataSource]="dataSource" class="tabla">
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let row">{{ row.movimiento?.creadoEn | date: 'dd/MM/yy HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let row"><span class="chip-tipo">{{ row._tipo }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="responsable">
+          <th mat-header-cell *matHeaderCellDef>Responsable</th>
+          <td mat-cell *matCellDef="let row" class="celda-elipsis" [title]="row._responsable">{{ row._responsable }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+          <td mat-cell *matCellDef="let row" class="celda-elipsis desc" [title]="row.movimiento?.descripcion || ''">
+            {{ row.movimiento?.descripcion || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef>Egreso</th>
+          <td mat-cell *matCellDef="let row" class="num">{{ row.movimiento?.cantidad | number: row._decimales }} {{ row._simbolo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="pendiente">
+          <th mat-header-cell *matHeaderCellDef>Pendiente</th>
+          <td mat-cell *matCellDef="let row" class="num pendiente">{{ row.pendiente | number: row._decimales }} {{ row._simbolo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row">
+            <button mat-raised-button color="primary" (click)="elegir(row)">Vuelto</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" (dblclick)="elegir(row)"></tr>
+      </table>
+
+      <div class="empty" *ngIf="isLoading">Cargando…</div>
+      <div class="empty" *ngIf="!isLoading && dataSource.data.length === 0">
+        No hay egresos con vuelto pendiente en esta caja.
+      </div>
+    </div>
+
+    <mat-paginator [length]="totalElements" [pageSize]="pageSize" [pageIndex]="pageIndex"
+      [pageSizeOptions]="[10, 20, 50]" (page)="onPage($event)"></mat-paginator>
+  </mat-dialog-content>
+
+  <!-- ═══ Formulario del vuelto del egreso elegido ═══ -->
+  <mat-dialog-content class="contenido contenido-form" *ngIf="seleccionado">
+    <div class="egreso-resumen">
+      <div class="egreso-linea"><span class="etq">Egreso #{{ seleccionado.movimiento?.id }}</span>
+        <span class="chip-tipo">{{ seleccionado._tipo }}</span>
+        <span>{{ seleccionado.movimiento?.creadoEn | date: 'dd/MM/yy HH:mm' }}</span></div>
+      <div class="egreso-desc">{{ seleccionado.movimiento?.descripcion || '—' }}</div>
+      <div class="egreso-linea"><span class="etq">Responsable</span> {{ seleccionado._responsable }}</div>
+      <div class="egreso-montos">
+        <div><span class="etq">Egreso</span> {{ seleccionado.movimiento?.cantidad | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
+        <div><span class="etq">Ya devuelto</span> {{ seleccionado.devuelto | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
+        <div class="pendiente"><span class="etq">Pendiente</span> {{ seleccionado.pendiente | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
+      </div>
+    </div>
+
+    <div class="aviso-sin-confirmar" *ngIf="hayPendiente">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <div><b>No se pudo confirmar si el vuelto se registró.</b></div>
+        <div class="aviso-detalle">Reintentá: si ya se había registrado no se repite, y si no, se registra ahora.</div>
+      </div>
+    </div>
+
+    <div *ngIf="!hayPendiente" fxLayout="column" fxLayoutGap="8px" class="form-vuelto">
+      <div fxLayout="row" fxLayoutGap="12px">
+        <mat-form-field appearance="outline" fxFlex="180px">
+          <mat-label>Moneda del vuelto</mat-label>
+          <mat-select [formControl]="monedaControl" (selectionChange)="onMonedaChange()">
+            <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex>
+          <mat-label>Monto devuelto</mat-label>
+          <input matInput currencyMask [options]="currencyOptions" [formControl]="montoControl" placeholder="0" />
+          <span matSuffix class="sufijo">{{ monedaControl.value?.simbolo }}</span>
+        </mat-form-field>
+      </div>
+      <div class="hint-conversion" *ngIf="otraMoneda">
+        <mat-icon>currency_exchange</mat-icon>
+        Se convierte a {{ seleccionado._simbolo }} con la última cotización; no puede pasar lo pendiente.
+      </div>
+      <mat-form-field appearance="outline" style="text-transform: uppercase;">
+        <mat-label>Descripción</mat-label>
+        <textarea matInput [formControl]="descripcionControl" rows="2" placeholder="Opcional"></textarea>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" *ngIf="!seleccionado">
+    <button mat-stroked-button (click)="onCancel()">Cerrar</button>
+  </mat-dialog-actions>
+
+  <mat-dialog-actions align="end" *ngIf="seleccionado && hayPendiente">
+    <button mat-stroked-button (click)="cerrarSinConfirmar()" [disabled]="isSaving">Cerrar</button>
+    <button mat-raised-button color="primary" (click)="reenviar()" [disabled]="isSaving">
+      <mat-icon>replay</mat-icon> {{ isSaving ? 'Reintentando…' : 'Reintentar' }}
+    </button>
+  </mat-dialog-actions>
+
+  <mat-dialog-actions align="end" *ngIf="seleccionado && !hayPendiente">
+    <button mat-stroked-button (click)="volver()" [disabled]="isSaving"><mat-icon>arrow_back</mat-icon> Volver</button>
+    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="isSaving || !montoControl.value">
+      <mat-icon>save</mat-icon> {{ isSaving ? 'Guardando…' : 'Registrar vuelto' }}
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -90,6 +90,7 @@ import { DetalleCasoDialogComponent } from './retiro/verificacion/detalle-caso-d
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent } from './caja-virtual/ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
+import { VueltoEgresoDialogComponent } from './caja-virtual/vuelto-egreso-dialog/vuelto-egreso-dialog.component';
 import { MaletinTesoreriaDialogComponent } from './maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 import { PagarComprasDialogComponent } from './caja-virtual/pagar-compras-dialog/pagar-compras-dialog.component';
 import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
@@ -196,6 +197,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     ConfigurarCajaVirtualDialogComponent,
     RegistrarIngresoDialogComponent,
     IngresarRetiroCajaMayorDialogComponent,
+    VueltoEgresoDialogComponent,
     MaletinTesoreriaDialogComponent,
     PagarComprasDialogComponent,
     RegistrarEgresoDialogComponent,

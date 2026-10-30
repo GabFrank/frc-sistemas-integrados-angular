@@ -16,6 +16,17 @@ export interface PedidoDeMovimientos {
   montos: MontoCajaVirtual[];
   descripcion: string | null;
   claveIdempotencia: string;
+  /** Funcionario que retira la plata (solo egresos). Opcional. */
+  responsableId?: number | null;
+}
+
+/** Vuelto de un egreso, tal como se envía: en cualquier moneda; el central lo convierte y controla el tope. */
+export interface PedidoDeVuelto {
+  egresoId: number;
+  monedaId: number;
+  monto: number;
+  descripcion: string | null;
+  claveIdempotencia: string;
 }
 
 /** Transferencia entre dos cajas en una o más monedas, tal como se envía. */

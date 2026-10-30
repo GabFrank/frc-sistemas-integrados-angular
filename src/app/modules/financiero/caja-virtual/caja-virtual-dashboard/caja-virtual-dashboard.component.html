@@ -171,7 +171,11 @@
 
             <ng-container matColumnDef="responsable">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Responsable</th>
-              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.usuario?.persona?.nombre || '-' }}</td>
+              <!-- El responsable elegido en el egreso; si no hay, quien lo cargó. -->
+              <td mat-cell *matCellDef="let row" style="text-align: center;"
+                  [title]="row.responsable ? 'Cargado por ' + (row.usuario?.persona?.nombre || '-') : ''">
+                {{ row.responsable?.persona?.nombre || row.usuario?.persona?.nombre || '-' }}
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="tipoMovimiento">

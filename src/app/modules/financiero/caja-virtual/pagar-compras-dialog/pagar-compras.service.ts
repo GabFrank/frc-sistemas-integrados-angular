@@ -31,6 +31,8 @@ export interface GastoParaPagoInput {
   beneficiarioPersonaId?: number;
   fechaVencimiento?: string;
   sucursalId?: number;
+  /** Funcionario responsable del gasto. Opcional; se omite si no se eligió. */
+  responsableId?: number;
 }
 
 export interface PagoLote { solicitudId: number; monedaId: number; monto: number; }

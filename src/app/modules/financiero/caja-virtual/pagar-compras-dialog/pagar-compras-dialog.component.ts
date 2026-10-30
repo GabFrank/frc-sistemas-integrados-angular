@@ -291,6 +291,8 @@ export class PagarComprasDialogComponent implements OnInit {
   // Form de nuevo gasto
   nuevoGastoCurrencyOpts: any;
   ngBeneficiarioControl = new FormControl<Proveedor>(null);
+  /** Funcionario responsable del gasto. Opcional: al pagarse queda en el movimiento de la caja. */
+  ngResponsableControl = new FormControl<Funcionario>(null);
   ngTipoGastoControl = new FormControl(null);          // categoría obligatoria
   ngDescripcionControl = new FormControl('');
   ngMonedaControl = new FormControl(null);
@@ -645,6 +647,7 @@ export class PagarComprasDialogComponent implements OnInit {
       monto,
       beneficiarioProveedorId: ben?.id ?? undefined,
       fechaVencimiento: this.ngVencimientoControl.value ? dateToString(this.ngVencimientoControl.value) : undefined,
+      responsableId: this.ngResponsableControl.value?.id ?? undefined,
     };
     // Una clave por cada «Crear». El input se guarda con ella, para poder reenviarlo idéntico.
     this.enviarAlta({
@@ -723,7 +726,7 @@ export class PagarComprasDialogComponent implements OnInit {
         if (alta.que === 'gasto') {
           this.notificacion.openSucess('Gasto creado');
           this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
-          this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
+          this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset(); this.ngResponsableControl.reset();
         } else {
           this.notificacion.openSucess('Vale registrado (pendiente de pago)');
           this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();

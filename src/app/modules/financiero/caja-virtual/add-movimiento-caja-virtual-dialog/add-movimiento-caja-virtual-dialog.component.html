@@ -95,6 +95,10 @@
       </div>
     </div>
 
+    <!-- Responsable: quien retira la plata (opcional, solo egreso) -->
+    <app-buscador-field *ngIf="esEgresoEfectivo" appearance="outline" tipo="funcionario"
+      titulo="Responsable (opcional)" [rapido]="true" [formControl]="responsableControl"></app-buscador-field>
+
     <!-- Descripción -->
     <mat-form-field 
       appearance="outline" 

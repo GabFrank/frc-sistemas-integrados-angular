@@ -200,10 +200,11 @@ export const ingresarMaletinCajaMayorMutation = gql`
 `;
 
 // Con y sin `claveIdempotencia`: un central anterior al cambio no conoce el argumento y rechaza el pedido
-// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376).
+// entero, así que el servicio cae a la versión sin clave (franco-system-backend-servidor#376). El responsable
+// va solo en la versión con clave: el central que no conoce la clave tampoco lo conoce.
 const egresarMaletinCajaMayor = (conClave: boolean) => gql`
-  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String${conClave ? ', $claveIdempotencia: String' : ''}) {
-    data: egresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion${conClave ? ', claveIdempotencia: $claveIdempotencia' : ''}) {
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String${conClave ? ', $claveIdempotencia: String, $responsableId: ID' : ''}) {
+    data: egresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion${conClave ? ', claveIdempotencia: $claveIdempotencia, responsableId: $responsableId' : ''}) {
       id
     }
   }
