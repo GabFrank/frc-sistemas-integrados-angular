@@ -73,7 +73,7 @@
   </mat-dialog-content>
 
   <!-- ═══ Formulario del vuelto del egreso elegido ═══ -->
-  <mat-dialog-content class="contenido" *ngIf="seleccionado">
+  <mat-dialog-content class="contenido contenido-form" *ngIf="seleccionado">
     <div class="egreso-resumen">
       <div class="egreso-linea"><span class="etq">Egreso #{{ seleccionado.movimiento?.id }}</span>
         <span class="chip-tipo">{{ seleccionado._tipo }}</span>
@@ -115,7 +115,7 @@
       </div>
       <mat-form-field appearance="outline" style="text-transform: uppercase;">
         <mat-label>Descripción</mat-label>
-        <input matInput [formControl]="descripcionControl" placeholder="Opcional" />
+        <textarea matInput [formControl]="descripcionControl" rows="2" placeholder="Opcional"></textarea>
       </mat-form-field>
     </div>
   </mat-dialog-content>

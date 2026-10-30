@@ -28,6 +28,12 @@
     padding: 0;
   }
 
+  // El formulario no scrollea ni recorta: el diálogo toma su altura (la lista sí necesita overflow hidden).
+  .contenido-form {
+    overflow: visible;
+    padding-top: 4px;
+  }
+
   .filtros {
     flex: 0 0 auto;
     .filtro-texto { width: 380px; }
