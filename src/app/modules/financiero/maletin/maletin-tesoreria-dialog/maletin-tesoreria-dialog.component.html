@@ -47,6 +47,10 @@
         <mat-label class="required-field">Monto</mat-label>
         <input matInput currencyMask [options]="currencyOpts" [formControl]="montoControl" />
       </mat-form-field>
+
+      <!-- Responsable: quien lleva el maletín (opcional) -->
+      <app-buscador-field appearance="outline" tipo="funcionario" titulo="Responsable (opcional)"
+        [rapido]="true" [formControl]="responsableControl"></app-buscador-field>
     </ng-container>
 
     <mat-form-field appearance="outline">

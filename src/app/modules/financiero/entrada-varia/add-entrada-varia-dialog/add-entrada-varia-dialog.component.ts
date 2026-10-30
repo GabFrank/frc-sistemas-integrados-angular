@@ -14,6 +14,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { MainService } from '../../../../main.service';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 export interface EntradaVariaDialogData {
   cajaVirtual: CajaVirtual;
@@ -35,6 +36,8 @@ export class AddEntradaVariaDialogComponent implements OnInit {
   formaPagoControl = new FormControl(null);
   descripcionControl = new FormControl('', Validators.required);
   numeroComprobanteControl = new FormControl('');
+  /** Funcionario que retira la plata. Opcional y solo en el egreso. */
+  responsableControl = new FormControl<Funcionario>(null);
 
   monedaList: Moneda[] = [];
   categoriaList: EntradaVariaCategoria[] = [];
@@ -122,7 +125,11 @@ export class AddEntradaVariaDialogComponent implements OnInit {
     const que = entradaVaria.esIngreso ? 'ingreso' : 'egreso';
     this.pendienteDescripcion = `${que} de ${entradaVaria.moneda?.simbolo || ''} ${(entradaVaria.monto || 0).toLocaleString('es-PY')}`.trim();
     // Una clave por cada «Guardar». El input se arma una sola vez y se guarda con ella, para reenviarlo idéntico.
-    this.enviar({ input: entradaVaria.toInput(), claveIdempotencia: nuevaClaveIdempotencia() }, entradaVaria, false);
+    const input = entradaVaria.toInput();
+    // Solo si se eligió: así el pedido sigue siendo válido para un central que no conoce el campo.
+    const responsableId = entradaVaria.esIngreso ? null : this.responsableControl.value?.id;
+    if (responsableId != null) input.responsableId = responsableId;
+    this.enviar({ input, claveIdempotencia: nuevaClaveIdempotencia() }, entradaVaria, false);
   }
 
   /**

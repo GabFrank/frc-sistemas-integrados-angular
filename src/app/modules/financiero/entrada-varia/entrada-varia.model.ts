@@ -49,4 +49,6 @@ export class EntradaVariaInput {
   categoriaId?: number;
   formaPagoId?: number;
   numeroComprobante?: string;
+  /** Solo en egresos: funcionario que retira la plata. Opcional; se omite si no se eligió. */
+  responsableId?: number;
 }

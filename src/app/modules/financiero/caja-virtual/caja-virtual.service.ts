@@ -7,7 +7,7 @@ import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PageInfo } from '../../../app.component';
 import { CajaVirtual, CajaVirtualTipo, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
-         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion, CajaVirtualConfiguracionInput } from './caja-virtual.model';
+         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion, CajaVirtualConfiguracionInput, EgresoParaVuelto } from './caja-virtual.model';
 import { CajaVirtualesGQL } from './graphql/cajaVirtuales';
 import { CajaVirtualesFilterGQL } from './graphql/cajaVirtualesFilter';
 import { CajaVirtualesPorTipoGQL } from './graphql/cajaVirtualesPorTipo';
@@ -22,7 +22,8 @@ import { SaveMovimientoCajaVirtualGQL } from './graphql/saveMovimientoCajaVirtua
 import { AjustarCajaVirtualPorConteoGQL } from './graphql/ajustarCajaVirtualPorConteo';
 import { MovimientosCajaVirtualGQL, MovimientosCajaVirtualPorFechaGQL } from './graphql/movimientosCajaVirtual';
 import { RealizarTransferenciasCajaVirtualGQL, RegistrarMovimientosCajaVirtualGQL } from './graphql/movimientosEnLote';
-import { PedidoDeMovimientos, PedidoDeTransferencias } from './pedido-en-lote';
+import { PedidoDeMovimientos, PedidoDeTransferencias, PedidoDeVuelto } from './pedido-en-lote';
+import { EgresosParaVueltoGQL, RegistrarVueltoEgresoGQL } from './graphql/vueltoEgreso';
 import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVirtual';
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
@@ -51,6 +52,8 @@ export class CajaVirtualService {
 
   constructor(
     private genericService: GenericCrudService,
+    private egresosParaVueltoGQL: EgresosParaVueltoGQL,
+    private registrarVueltoEgresoGQL: RegistrarVueltoEgresoGQL,
     private cajaVirtualesGQL: CajaVirtualesGQL,
     private cajaVirtualesFilterGQL: CajaVirtualesFilterGQL,
     private cajaVirtualesPorTipoGQL: CajaVirtualesPorTipoGQL,
@@ -310,5 +313,16 @@ export class CajaVirtualService {
   /** Transferencia entre dos cajas en una o más monedas, en un solo pedido: todo o nada. */
   onRealizarTransferencias(pedido: PedidoDeTransferencias, opciones?: { avisarExito?: boolean }): Observable<boolean> {
     return this.genericService.onSaveCustom(this.realizarTransferenciasGQL, pedido, true, opciones);
+  }
+
+  /** Egresos de la caja con algo pendiente de devolver (efectivo, vario, maletín y pago de gasto), paginados. */
+  onGetEgresosParaVuelto(cajaVirtualId: number, texto: string | null, page = 0, size = 10): Observable<PageInfo<EgresoParaVuelto>> {
+    return this.genericService.onCustomQuery(this.egresosParaVueltoGQL, { cajaVirtualId, texto: texto || null, page, size },
+      true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /** Registra el vuelto de un egreso; con la misma clave el central no lo registra dos veces. */
+  onRegistrarVuelto(pedido: PedidoDeVuelto, opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom(this.registrarVueltoEgresoGQL, pedido, true, opciones);
   }
 }

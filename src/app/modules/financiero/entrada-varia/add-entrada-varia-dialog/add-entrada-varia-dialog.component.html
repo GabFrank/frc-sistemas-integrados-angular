@@ -56,6 +56,10 @@
       </mat-select>
     </mat-form-field>
 
+    <!-- Responsable: quien retira la plata (opcional, solo egreso) -->
+    <app-buscador-field *ngIf="!data?.esIngreso" appearance="outline" tipo="funcionario"
+      titulo="Responsable (opcional)" [rapido]="true" [formControl]="responsableControl"></app-buscador-field>
+
     <mat-form-field appearance="outline">
       <mat-label>N° Comprobante</mat-label>
       <input matInput [formControl]="numeroComprobanteControl" placeholder="Opcional" />

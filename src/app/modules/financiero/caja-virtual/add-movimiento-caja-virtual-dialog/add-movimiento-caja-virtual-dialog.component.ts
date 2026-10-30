@@ -12,6 +12,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { MainService } from '../../../../main.service';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 export interface MovimientoDialogData {
   cajaVirtual: CajaVirtual;
@@ -34,6 +35,9 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
   cantidadRsControl = new FormControl(null, [Validators.min(0.01)]);
   cantidadDsControl = new FormControl(null, [Validators.min(0.01)]);
   descripcionControl = new FormControl('', Validators.required);
+  /** Funcionario que retira la plata. Opcional y solo en el egreso. */
+  responsableControl = new FormControl<Funcionario>(null);
+  esEgresoEfectivo = false;
 
   monedaGs: Moneda;
   monedaRs: Moneda;
@@ -88,6 +92,7 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
     });
 
     this.titulo = this.tipoLabels[this.data?.tipoMovimiento] || 'Movimiento';
+    this.esEgresoEfectivo = this.data?.tipoMovimiento === CajaVirtualTipoMovimiento.EGRESO;
   }
 
   onSave() {
@@ -140,6 +145,7 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
       montos,
       descripcion: this.descripcionControl.value?.toUpperCase() || null,
       claveIdempotencia: nuevaClaveIdempotencia(),
+      responsableId: this.esEgresoEfectivo ? (this.responsableControl.value?.id ?? null) : null,
     }, false);
   }
 

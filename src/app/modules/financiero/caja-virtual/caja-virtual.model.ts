@@ -83,6 +83,8 @@ export class MovimientoCajaVirtual {
   esPagoConsolidado: boolean;
   descripcion: string;
   usuario: Usuario;
+  /** Funcionario que retira o rinde la plata del egreso; null = se muestra `usuario`. */
+  responsable?: Funcionario;
   cajaOrigen: CajaVirtual;
   cajaDestino: CajaVirtual;
   activo: boolean;
@@ -178,7 +180,15 @@ export const ORIGEN_MOVIMIENTO_LABELS: Record<string, string> = {
   CHEQUE: 'Cheque',
   ACREDITACION_POS: 'Acreditación POS',
   MALETIN: 'Maletín',
+  VUELTO: 'Vuelto',
 };
+
+/** Fila de la lista de egresos para vuelto: devuelto y pendiente en la moneda del egreso. */
+export interface EgresoParaVuelto {
+  movimiento: MovimientoCajaVirtual;
+  devuelto: number;
+  pendiente: number;
+}
 
 /**
  * Etiqueta a mostrar para un movimiento. `fallback` es el mapa de `tipoMovimiento` del

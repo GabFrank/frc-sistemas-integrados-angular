@@ -272,6 +272,13 @@ const movimientoFields = `
       nombre
     }
   }
+  responsable {
+    id
+    persona {
+      id
+      nombre
+    }
+  }
   cajaOrigen {
     id
     nombre
@@ -385,6 +392,7 @@ export const registrarMovimientosCajaVirtualMutation = gql`
     $montos: [MontoCajaVirtualInput!]!
     $descripcion: String
     $claveIdempotencia: String
+    $responsableId: ID
   ) {
     data: registrarMovimientosCajaVirtual(
       cajaVirtualId: $cajaVirtualId
@@ -392,6 +400,7 @@ export const registrarMovimientosCajaVirtualMutation = gql`
       montos: $montos
       descripcion: $descripcion
       claveIdempotencia: $claveIdempotencia
+      responsableId: $responsableId
     )
   }
 `;
@@ -466,6 +475,37 @@ export const tesoreriaCambioSubQuery = gql`
     data: tesoreriaCambioSub {
       cajaVirtualId
       cuentaBancariaId
+    }
+  }
+`;
+
+// Vuelto de un egreso (efectivo, vario, maletín o pago de gasto): lista paginada de egresos con algo pendiente
+// de devolver, y el registro del vuelto. devuelto y pendiente vienen en la moneda del egreso.
+export const egresosParaVueltoQuery = gql`
+  query ($cajaVirtualId: ID!, $texto: String, $page: Int, $size: Int) {
+    data: egresosParaVuelto(cajaVirtualId: $cajaVirtualId, texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        devuelto
+        pendiente
+        movimiento {
+          ${movimientoFields}
+        }
+      }
+    }
+  }
+`;
+
+export const registrarVueltoEgresoMutation = gql`
+  mutation ($egresoId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String, $claveIdempotencia: String) {
+    data: registrarVueltoEgreso(egresoId: $egresoId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion, claveIdempotencia: $claveIdempotencia) {
+      id
     }
   }
 `;
