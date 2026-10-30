@@ -5,7 +5,7 @@ import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '.
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent, IngresarRetiroCajaMayorDialogData } from '../ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
-import { VueltoEgresoDialogComponent, VueltoEgresoDialogData } from '../vuelto-egreso-dialog/vuelto-egreso-dialog.component';
+import { TAMANO_LISTA, VueltoEgresoDialogComponent, VueltoEgresoDialogData } from '../vuelto-egreso-dialog/vuelto-egreso-dialog.component';
 import { MainService } from '../../../../main.service';
 import { operaAcotadoCaja } from '../rol-tesoreria-caja';
 
@@ -28,7 +28,7 @@ export class RegistrarIngresoDialogComponent {
     { tipo: 'EFECTIVO', titulo: 'Ingreso de Efectivo', descripcion: 'Ingreso manual de efectivo a la caja', icono: 'payments', color: '#2e7d32' },
     { tipo: 'RETIRO_PDV', titulo: 'Ingresar Retiro de PDV', descripcion: 'Retiro de una caja de venta que está flotando', icono: 'move_to_inbox', color: '#00695c' },
     { tipo: 'ENTRADA_VARIA', titulo: 'Entrada Varia', descripcion: 'Ingreso categorizado (cobros varios, otros)', icono: 'trending_up', color: '#1565c0' },
-    { tipo: 'VUELTO', titulo: 'Vuelto', descripcion: 'Lo que sobró de un egreso (efectivo, vario, maletín o gasto)', icono: 'currency_exchange', color: '#ef6c00' },
+    { tipo: 'VUELTO', titulo: 'Vuelto', descripcion: 'Lo que sobró de un egreso (efectivo, vario o gasto)', icono: 'currency_exchange', color: '#ef6c00' },
     { tipo: 'MALETIN', titulo: 'Ingreso de Maletín', descripcion: 'Recaudación que llega dentro de un maletín', icono: 'work', color: '#00838f' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección positiva del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
   ];
@@ -59,7 +59,7 @@ export class RegistrarIngresoDialogComponent {
     }
     if (op.tipo === 'VUELTO') {
       const d: VueltoEgresoDialogData = { cajaVirtual: this.data.cajaVirtual };
-      this.abrir(VueltoEgresoDialogComponent, { width: '75vw', height: '75vh', maxWidth: '96vw', data: d });
+      this.abrir(VueltoEgresoDialogComponent, { ...TAMANO_LISTA, maxWidth: '96vw', data: d });
       return;
     }
     if (op.tipo === 'MALETIN') {

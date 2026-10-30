@@ -479,7 +479,7 @@ export const tesoreriaCambioSubQuery = gql`
   }
 `;
 
-// Vuelto de un egreso (efectivo, vario, maletín o pago de gasto): lista paginada de egresos con algo pendiente
+// Vuelto de un egreso (efectivo, vario o pago de gasto): lista paginada de egresos con algo pendiente
 // de devolver, y el registro del vuelto. devuelto y pendiente vienen en la moneda del egreso.
 export const egresosParaVueltoQuery = gql`
   query ($cajaVirtualId: ID!, $texto: String, $page: Int, $size: Int) {

@@ -18,6 +18,10 @@ export interface VueltoEgresoDialogData {
   cajaVirtual: CajaVirtual;
 }
 
+/** La lista necesita espacio; el formulario de un vuelto, no. Quien abre el diálogo usa TAMANO_LISTA. */
+export const TAMANO_LISTA = { width: '75vw', height: '75vh' };
+const TAMANO_FORMULARIO = { width: '560px', height: 'auto' };
+
 /** Fila de la tabla, con lo que muestra ya resuelto (sin llamadas desde el template). */
 interface FilaVuelto extends EgresoParaVuelto {
   _tipo: string;
@@ -28,7 +32,7 @@ interface FilaVuelto extends EgresoParaVuelto {
 
 /**
  * Vuelto de un egreso de la caja mayor: se elige de la lista (paginada en el central) el egreso de efectivo,
- * vario, maletín o pago de gasto que se rinde, y se registra lo devuelto en cualquier moneda. El central convierte
+ * vario o pago de gasto que se rinde, y se registra lo devuelto en cualquier moneda. El central convierte
  * con la última cotización y no deja pasar lo pendiente.
  */
 @UntilDestroy({ checkProperties: true })
@@ -125,25 +129,26 @@ export class VueltoEgresoDialogComponent implements OnInit {
 
   elegir(fila: FilaVuelto): void {
     this.seleccionado = fila;
+    // El formulario es chico: el diálogo se achica a su contenido y vuelve al tamaño de la lista con «Volver».
+    this.dialogRef.updateSize(TAMANO_FORMULARIO.width, TAMANO_FORMULARIO.height);
     const moneda = this.monedaList.find(x => x.id === fila.movimiento?.moneda?.id) ?? fila.movimiento?.moneda ?? null;
     this.monedaControl.setValue(moneda);
     this.onMonedaChange();
-    this.montoControl.setValue(fila.pendiente);
     this.descripcionControl.setValue('');
   }
 
   volver(): void {
     if (this.isSaving || this.hayPendiente) return;
     this.seleccionado = null;
+    this.dialogRef.updateSize(TAMANO_LISTA.width, TAMANO_LISTA.height);
   }
 
   onMonedaChange(): void {
     const m = this.monedaControl.value;
     this.currencyOptions = m ? this.monedaService.currencyOptionsByMoneda(m) : null;
     this.otraMoneda = !!m && m.id !== this.seleccionado?.movimiento?.moneda?.id;
-    // En otra moneda el pendiente ya no sirve de monto sugerido.
-    if (this.otraMoneda) this.montoControl.setValue(null);
-    else if (this.seleccionado) this.montoControl.setValue(this.seleccionado.pendiente);
+    // Arranca en cero: se escribe lo que efectivamente se devolvió (el pendiente es solo referencia).
+    this.montoControl.setValue(0);
   }
 
   onConfirmar(): void {
