@@ -169,13 +169,16 @@
               <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="responsable">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Responsable</th>
-              <!-- El responsable elegido en el egreso; si no hay, quien lo cargó. -->
-              <td mat-cell *matCellDef="let row" style="text-align: center;"
-                  [title]="row.responsable ? 'Cargado por ' + (row.usuario?.persona?.nombre || '-') : ''">
-                {{ row.responsable?.persona?.nombre || row.usuario?.persona?.nombre || '-' }}
-              </td>
+            <!-- Quien operó la caja (el usuario logueado que registró el movimiento). -->
+            <ng-container matColumnDef="usuario">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Usuario</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.usuario?.persona?.nombre || '-' }}</td>
+            </ng-container>
+
+            <!-- Funcionario al que se le entregó la plata, elegido al registrar el egreso. -->
+            <ng-container matColumnDef="entregadoA">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Entregado a</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.responsable?.persona?.nombre || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="tipoMovimiento">
@@ -246,8 +249,8 @@
               <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="responsableBanco">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Responsable</th>
+            <ng-container matColumnDef="usuarioBanco">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Usuario</th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.usuario?.persona?.nombre || '-' }}</td>
             </ng-container>
 

@@ -173,7 +173,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
-  displayedColumns = ['creadoEn', 'responsable', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
+  displayedColumns = ['creadoEn', 'usuario', 'entregadoA', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
 
   // Fuente de la tabla: caja mayor o una cuenta bancaria (los movimientos de banco no
   // ocurren en la caja mayor; el selector permite verlos sin salir del dashboard).
@@ -183,7 +183,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   fuenteEsBanco = false;
 
   dataSourceBanco = new MatTableDataSource<MovimientoBancarioRow>([]);
-  displayedColumnsBanco = ['creadoEn', 'responsableBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco', 'accionesBanco'];
+  displayedColumnsBanco = ['creadoEn', 'usuarioBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco', 'accionesBanco'];
   private permisosAnulacionBanco: PermisosAnulacionBancaria = { gestionar: false, pagarCpp: false };
 
   bancoTipoLabels: Record<string, string> = {

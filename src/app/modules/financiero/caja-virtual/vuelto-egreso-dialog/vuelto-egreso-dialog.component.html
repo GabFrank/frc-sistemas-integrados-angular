@@ -6,7 +6,7 @@
   <mat-dialog-content class="contenido" *ngIf="!seleccionado">
     <div class="filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="filtro-texto">
-        <mat-label>Buscar por descripción o responsable</mat-label>
+        <mat-label>Buscar por descripción o a quién se entregó</mat-label>
         <input matInput [formControl]="textoControl" (keyup.enter)="buscar()" placeholder="Enter para buscar" />
         <button mat-icon-button matSuffix *ngIf="textoControl.value" (click)="limpiarBusqueda()" matTooltip="Limpiar">
           <mat-icon>close</mat-icon>
@@ -29,9 +29,9 @@
           <td mat-cell *matCellDef="let row"><span class="chip-tipo">{{ row._tipo }}</span></td>
         </ng-container>
 
-        <ng-container matColumnDef="responsable">
-          <th mat-header-cell *matHeaderCellDef>Responsable</th>
-          <td mat-cell *matCellDef="let row" class="celda-elipsis" [title]="row._responsable">{{ row._responsable }}</td>
+        <ng-container matColumnDef="entregadoA">
+          <th mat-header-cell *matHeaderCellDef>Entregado a</th>
+          <td mat-cell *matCellDef="let row" class="celda-elipsis" [title]="row._entregadoA">{{ row._entregadoA }}</td>
         </ng-container>
 
         <ng-container matColumnDef="descripcion">
@@ -79,7 +79,7 @@
         <span class="chip-tipo">{{ seleccionado._tipo }}</span>
         <span>{{ seleccionado.movimiento?.creadoEn | date: 'dd/MM/yy HH:mm' }}</span></div>
       <div class="egreso-desc">{{ seleccionado.movimiento?.descripcion || '—' }}</div>
-      <div class="egreso-linea"><span class="etq">Responsable</span> {{ seleccionado._responsable }}</div>
+      <div class="egreso-linea"><span class="etq">Entregado a</span> {{ seleccionado._entregadoA }}</div>
       <div class="egreso-montos">
         <div><span class="etq">Egreso</span> {{ seleccionado.movimiento?.cantidad | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
         <div><span class="etq">Ya devuelto</span> {{ seleccionado.devuelto | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
