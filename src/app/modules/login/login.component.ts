@@ -10,6 +10,18 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { ConfiguracionDialogComponent } from "../../shared/components/configuracion-dialog/configuracion-dialog.component";
 import { ConfiguracionService } from "../../shared/services/configuracion.service";
 import { RecuperarContrasenaDialogComponent, RecuperarContrasenaDialogData } from "./recuperar-contrasena-dialog/recuperar-contrasena-dialog.component";
+import { EmpresaHeaderService } from "../../shared/services/empresa-header.service";
+
+/**
+ * Logo del login según la empresa, los dos dentro de la app (no dependen de la red).
+ * El nombre es el mismo que muestra el header; lo que no es farmacia usa el de la bodega.
+ */
+const LOGO_BODEGA = 'assets/logo_inicio.png';
+const LOGO_FARMACIA = 'assets/logo_inicio_farmacia.png';
+
+function logoDeEmpresa(nombreEmpresa: string): string {
+  return (nombreEmpresa ?? '').toUpperCase().includes('FARMACIA') ? LOGO_FARMACIA : LOGO_BODEGA;
+}
 
 @UntilDestroy()
 @Component({
@@ -31,6 +43,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   errorMessage: string;
   hidePassword = true;
   logoBackgroundColor = '#c30e0e';
+  logoSrc = LOGO_BODEGA;
   serverInfo: string;
 
   statusSub: Subscription;
@@ -42,7 +55,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private configService: ConfiguracionService,
-    private elementRef: ElementRef
+    private elementRef: ElementRef,
+    private empresaHeaderService: EmpresaHeaderService
   ) { }
 
   ngOnInit(): void {
@@ -61,6 +75,14 @@ export class LoginComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.updateServerInfo();
+      });
+    this.empresaHeaderService.nombreEmpresa$
+      .pipe(untilDestroyed(this))
+      .subscribe((nombre) => {
+        const logo = logoDeEmpresa(nombre);
+        if (logo === this.logoSrc) return;
+        this.logoSrc = logo;
+        setTimeout(() => this.detectLogoBackgroundColor());
       });
   }
 
