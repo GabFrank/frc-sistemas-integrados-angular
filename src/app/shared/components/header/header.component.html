@@ -12,17 +12,17 @@
         <span class="frc-header__brand-stack">
           <span class="frc-header__brand-title">
             <ng-container *ngIf="isLocal; else cloudTitle">
-              BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+              {{ nombreEmpresa$ | async }} {{ mainService?.sucursalActual?.nombre | uppercase }}
               <span *ngIf="isDev && isLocalhost" class="frc-header__tag">DEV</span>
             </ng-container>
             <ng-template #cloudTitle>
               <ng-container
                 *ngIf="mainService?.sucursalActual?.id != null && mainService?.sucursalActual?.id != 0; else defaultCloudTitle">
-                BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+                {{ nombreEmpresa$ | async }} {{ mainService?.sucursalActual?.nombre | uppercase }}
                 <span *ngIf="isDev" class="frc-header__tag">DEV</span>
               </ng-container>
               <ng-template #defaultCloudTitle>
-                BODEGA FRANCO CLOUD <span *ngIf="isDev" class="frc-header__tag">DEV</span>
+                {{ nombreEmpresa$ | async }} CLOUD <span *ngIf="isDev" class="frc-header__tag">DEV</span>
               </ng-template>
             </ng-template>
           </span>
