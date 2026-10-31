@@ -74,6 +74,14 @@
         </tr>
       </table>
 
+      <p class="op-nota op-nc-anulada" *ngFor="let nc of op.notasCreditoAnuladas">
+        <mat-icon>block</mat-icon>
+        NC {{ nc.nroNotaCredito || "sin número" }} por {{ nc.montoTotal | number: "1.0-0" }}
+        anulada{{ nc.anuladoEn ? " el " + (nc.anuladoEn | date: "dd/MM/yyyy HH:mm") : "" }}{{
+          nc.anuladoPor?.nickname ? " por " + nc.anuladoPor.nickname : ""
+        }}
+      </p>
+
       <div class="op-acciones" *ngIf="op._puedeAcreditar || op._revertible || op._acreditada">
         <button
           mat-raised-button

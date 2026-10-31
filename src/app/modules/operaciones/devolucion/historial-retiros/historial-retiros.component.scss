@@ -125,6 +125,12 @@
       width: 16px;
     }
   }
+
+  .op-nc-anulada {
+    margin: 2px 0 6px;
+    text-decoration: line-through;
+    text-decoration-color: rgba(183, 28, 28, 0.6);
+  }
 }
 
 mat-paginator {
