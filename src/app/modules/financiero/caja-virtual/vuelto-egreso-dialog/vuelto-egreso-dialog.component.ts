@@ -25,7 +25,7 @@ const TAMANO_FORMULARIO = { width: '560px', height: 'auto' };
 /** Fila de la tabla, con lo que muestra ya resuelto (sin llamadas desde el template). */
 interface FilaVuelto extends EgresoParaVuelto {
   _tipo: string;
-  _responsable: string;
+  _entregadoA: string;
   _simbolo: string;
   _decimales: string;
 }
@@ -43,7 +43,7 @@ interface FilaVuelto extends EgresoParaVuelto {
 })
 export class VueltoEgresoDialogComponent implements OnInit {
 
-  readonly displayedColumns = ['creadoEn', 'tipo', 'responsable', 'descripcion', 'monto', 'pendiente', 'acciones'];
+  readonly displayedColumns = ['creadoEn', 'tipo', 'entregadoA', 'descripcion', 'monto', 'pendiente', 'acciones'];
   dataSource = new MatTableDataSource<FilaVuelto>([]);
   totalElements = 0;
   pageIndex = 0;
@@ -121,7 +121,7 @@ export class VueltoEgresoDialogComponent implements OnInit {
     return {
       ...e,
       _tipo: labelMovimiento(m?.origenTipo, m?.tipoMovimiento, { EGRESO: 'Egreso', PAGO_PROVEEDOR: 'Pago' }),
-      _responsable: m?.responsable?.persona?.nombre || m?.usuario?.persona?.nombre || '—',
+      _entregadoA: m?.responsable?.persona?.nombre || '—',
       _simbolo: m?.moneda?.simbolo || '',
       _decimales: m?.moneda?.denominacion?.toUpperCase().includes('GUARANI') ? '1.0-0' : '1.2-2',
     };
