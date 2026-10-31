@@ -25,6 +25,7 @@ export const retirosDevolucionQuery = gql`
         ${opFields}
         proveedor { id persona { nombre } }
         notaCredito { id nroNotaCredito estado montoTotal }
+        notasCreditoAnuladas { id nroNotaCredito montoTotal anuladoEn anuladoPor { id nickname } }
         ${lineaFields}
       }
     }
