@@ -36,7 +36,7 @@ import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-male
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
-import { PdvCaja, PdvCajaInput } from "../caja.model";
+import { PdvCaja, PdvCajaInput, PdvCajaReapertura } from "../caja.model";
 import { CajaService } from "../caja.service";
 
 export class AdicionarCajaData {
@@ -145,6 +145,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
   /** «Reabrir caja» (#662): ADMIN, caja cerrada y sin verificar, fuera del PDV. */
   puedeReabrir = false;
 
+  /** Reaperturas de la caja (#662), para el resumen. Vacío en el PDV y si la consulta falla. */
+  reaperturas: PdvCajaReapertura[] = [];
+
   /** Ignora un segundo «Conteo Cierre» mientras se verifica el primero. */
   private verificandoCierre = false;
 
@@ -224,6 +227,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
               (this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false) &&
               this.selectedCaja?.verificado !== true;
             this.puedeReabrir = !this.isVentaTouch && this.cajaService.puedeReabrir(this.selectedCaja);
+            this.cargarReaperturas();
             this.cargarDatos();
 
             const targetSection = this.data?.tabData?.goToSection;
@@ -350,6 +354,17 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.usuarioControl.setValue(this.selectedCaja.usuario.persona.nombre);
     this.siguienteSubject.next(1);
     this.siguienteCierreSubject.next(1);
+  }
+
+  /** Las reaperturas viven en el central: en el PDV (contra el filial) no se piden. */
+  private cargarReaperturas(): void {
+    this.reaperturas = [];
+    const caja = this.selectedCaja;
+    if (this.isVentaTouch || caja?.id == null || caja.sucursalId == null) return;
+    this.cajaService
+      .onGetReaperturas(+caja.id, +caja.sucursalId)
+      .pipe(catchError(() => of([])), untilDestroyed(this))
+      .subscribe((res) => this.reaperturas = res ?? []);
   }
 
   /**

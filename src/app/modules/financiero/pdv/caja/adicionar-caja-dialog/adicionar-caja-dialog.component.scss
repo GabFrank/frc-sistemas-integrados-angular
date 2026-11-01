@@ -79,3 +79,55 @@ mat-step {
 // La caja existente no se pudo leer: se oculta el cuerpo (que arrancaría como «caja nueva») sin destruirlo.
 .caja-no-cargada-aviso { padding: 40px; color: #ffb74d; }
 .caja-dialog__cuerpo.caja-no-cargada { display: none !important; }
+
+// Reaperturas de la caja (#662) en el resumen.
+.caja-reaperturas {
+  margin-top: 10px;
+  border-top: 1px solid var(--frc-borde-solido-fuerte);
+  padding-top: 5px;
+
+  &__titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #ff9800;
+    font-weight: 500;
+    margin-bottom: 4px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &__item {
+    padding: 4px 0;
+
+    & + & {
+      border-top: 1px dashed var(--frc-borde-solido-fuerte);
+    }
+  }
+
+  &__motivo {
+    font-style: italic;
+    word-break: break-word;
+  }
+
+  &__detalle {
+    color: var(--frc-texto-suave);
+    font-size: 0.85em;
+  }
+}
+
+// Panel izquierdo: Apertura, Cierre y Reaperturas toman su alto natural en vez del 30% fijo de fxFlex
+// (con las reaperturas no entraban y los textos se pisaban); si no alcanza el alto, el panel scrollea.
+.caja-resumen {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.caja-resumen__totales {
+  flex: 0 0 auto !important;
+  max-height: none !important;
+}

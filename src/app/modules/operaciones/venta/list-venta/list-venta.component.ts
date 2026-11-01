@@ -10,7 +10,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
+import { PdvCaja, PdvCajaReapertura } from "../../../financiero/pdv/caja/caja.model";
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CajaPorIdGQL } from "../../../financiero/pdv/caja/graphql/cajaPorId";
 import { CobroDetalle } from "../cobro/cobro-detalle.model";
@@ -20,6 +20,8 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../..
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { of } from "rxjs";
+import { catchError } from "rxjs/operators";
 import { FormControl, FormGroup } from "@angular/forms";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -88,6 +90,8 @@ export class ListVentaComponent implements OnInit {
   expandedVenta: Venta;
   ventaList: Venta[];
   selectedCaja: PdvCaja;
+  /** Reaperturas de la caja (#662) para el resumen. Vacío si nunca se reabrió o si la consulta falla. */
+  reaperturas: PdvCajaReapertura[] = [];
   ventaObservacionList: VentaObservacion[];
   loading = false;
   isCargando = false;
@@ -251,7 +255,22 @@ export class ListVentaComponent implements OnInit {
     // }
   }
 
+  /** Quién reabrió la caja, cuándo y por qué (#662). Se lee del central. */
+  cargarReaperturas(): void {
+    const cajaId = this.selectedCaja?.id;
+    const sucursalId = this.selectedCaja?.sucursalId ?? this.selectedCaja?.sucursal?.id;
+    if (cajaId == null || sucursalId == null) {
+      this.reaperturas = [];
+      return;
+    }
+    this.cajaService
+      .onGetReaperturas(+cajaId, +sucursalId)
+      .pipe(catchError(() => of([])), untilDestroyed(this))
+      .subscribe((res) => this.reaperturas = res ?? []);
+  }
+
   onGetBalance() {
+    this.cargarReaperturas();
     this.isLoading = true;
     this.cajaService
       .onCajaBalancePorIdAndSucursalId(
