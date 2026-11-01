@@ -7,12 +7,13 @@ import { MotivoDialogComponent, MotivoDialogData } from "../../../../shared/comp
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, SIN_AVISO_DEL_GENERICO, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
   PdvCaja,
   PdvCajaEstado,
   PdvCajaInput,
+  PdvCajaReapertura,
 } from "./caja.model";
 import { CajaPorIdGQL } from "./graphql/cajaPorId";
 import { CajaPorUsuarioIdAndAbiertoGQL } from "./graphql/cajaPorUsuarioIdAndAbierto";
@@ -38,6 +39,7 @@ import { ConfiguracionService } from "../../../../shared/services/configuracion.
 import { ImpresionPosService } from "../../../../shared/services/impresion-pos/impresion-pos.service";
 import { TransferirCajaGQL } from "./graphql/transferirCaja";
 import { ReabrirCajaDesdeServidorGQL } from "./graphql/reabrirCaja";
+import { ReaperturasPorCajaGQL } from "./graphql/reaperturasPorCaja";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -68,6 +70,7 @@ export class CajaService {
     private configService: ConfiguracionService,
     private transferirCaja: TransferirCajaGQL,
     private reabrirCaja: ReabrirCajaDesdeServidorGQL,
+    private reaperturasPorCaja: ReaperturasPorCajaGQL,
     private matDialog: MatDialog,
     private notificacionBar: NotificacionSnackbarService,
     private impresionPos: ImpresionPosService
@@ -324,6 +327,15 @@ export class CajaService {
    */
   onReabrirCaja(cajaId: number, sucursalId: number, motivo: string): Observable<any> {
     return this.genericService.onCustomMutation(this.reabrirCaja, { cajaId, sucursalId, motivo }, true);
+  }
+
+  /**
+   * Reaperturas de la caja (#662), siempre del central. Sin cargando ni avisos: es un dato extra del
+   * resumen y, si falla, el resumen se muestra igual sin ese bloque.
+   */
+  onGetReaperturas(cajaId: number, sucursalId: number): Observable<PdvCajaReapertura[]> {
+    return this.genericService.onCustomQuery(this.reaperturasPorCaja, { cajaId, sucursalId }, true,
+      SIN_AVISO_DEL_GENERICO, true);
   }
 
   /**

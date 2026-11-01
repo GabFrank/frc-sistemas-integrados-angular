@@ -889,3 +889,16 @@ export const reabrirCajaDesdeServidorQuery = gql`
     }
   }
 `;
+
+/** Reaperturas de una caja (#662), para el resumen del diálogo de la caja. */
+export const reaperturasPorCajaQuery = gql`
+  query ($cajaId: ID!, $sucursalId: ID!) {
+    data: reaperturasPorCaja(cajaId: $cajaId, sucursalId: $sucursalId) {
+      id
+      motivo
+      usuarioNombre
+      fechaCierreAnterior
+      creadoEn
+    }
+  }
+`;

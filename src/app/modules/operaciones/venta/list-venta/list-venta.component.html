@@ -65,6 +65,23 @@
           {{ selectedCaja?.verificadoPor?.persona?.nombre }}
         </div>
       </div>
+      <div
+        *ngFor="let r of reaperturas"
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Reabierta por:</div>
+        <div fxFlex style="text-align: left">
+          {{ r.usuarioNombre | uppercase }} · {{ r.creadoEn | date: "dd/MM/yyyy HH:mm" }}
+        </div>
+        <div fxFlex style="text-align: left; font-style: italic; word-break: break-word">
+          Motivo: {{ r.motivo }}
+        </div>
+        <div fxFlex *ngIf="r.fechaCierreAnterior" style="text-align: left; color: var(--frc-texto-suave); font-size: 0.85em">
+          Cierre descartado: {{ r.fechaCierreAnterior | date: "dd/MM/yyyy HH:mm" }}
+        </div>
+      </div>
       <mat-accordion [multi]="true" fxFlex style="width: 100%">
         <mat-expansion-panel [expanded]="true">
           <mat-expansion-panel-header>

@@ -17,7 +17,7 @@
       fxLayoutGap="10px"
       style="background-color: var(--frc-superficie-baja); height: 100%"
     >
-      <div fxFlex="70%" fxLayout="column" fxLayoutAlign="start">
+      <div class="caja-resumen" fxFlex="70%" fxLayout="column" fxLayoutAlign="start">
         <div style="padding: 10px;">
           <button
             style="width: 100%"
@@ -99,6 +99,7 @@
         <br />
         <div
           *ngIf="selectedConteoApertura"
+          class="caja-resumen__totales"
           fxFlex="30"
           fxLayout="column"
           style="width: 100%; padding: 10px;"
@@ -127,6 +128,7 @@
           <br />
           <div
             *ngIf="selectedConteoCierre"
+            class="caja-resumen__totales"
             fxFlex="30"
             fxLayout="column"
             style="width: 100%"
@@ -156,6 +158,20 @@
               <div fxFlex="30%" style="text-align: start">Responsable:</div>
               <div fxFlex="70%" style="text-align: end">
                 {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
+              </div>
+            </div>
+          </div>
+          <div *ngIf="reaperturas.length > 0" class="caja-reaperturas">
+            <div class="caja-reaperturas__titulo">
+              <mat-icon>lock_open</mat-icon>
+              Reabierta {{ reaperturas.length }} {{ reaperturas.length == 1 ? "vez" : "veces" }}
+            </div>
+            <div *ngFor="let r of reaperturas" class="caja-reaperturas__item">
+              <div>{{ r.creadoEn | date: "dd/MM/yyyy HH:mm" }}</div>
+              <div>Por: {{ r.usuarioNombre | uppercase }}</div>
+              <div class="caja-reaperturas__motivo">{{ r.motivo }}</div>
+              <div *ngIf="r.fechaCierreAnterior" class="caja-reaperturas__detalle">
+                Cierre descartado: {{ r.fechaCierreAnterior | date: "dd/MM/yyyy HH:mm" }}
               </div>
             </div>
           </div>

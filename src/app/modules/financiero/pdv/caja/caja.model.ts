@@ -126,3 +126,11 @@ export class CajaBalance {
     diferenciaRs: number;
     diferenciaDs: number;
 }
+/** Reapertura de una caja cerrada por equivocación (#662). La escribe la filial. */
+export interface PdvCajaReapertura {
+  id: number;
+  motivo: string;
+  usuarioNombre: string;
+  fechaCierreAnterior: Date;
+  creadoEn: Date;
+}
