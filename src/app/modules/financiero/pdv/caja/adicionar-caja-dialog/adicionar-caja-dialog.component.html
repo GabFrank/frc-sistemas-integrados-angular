@@ -89,6 +89,12 @@
             Imprimir Cierre
           </button>
         </div>
+        <div style="padding: 10px;" *ngIf="puedeReabrir">
+          <button style="width: 100%" mat-stroked-button color="warn" (click)="onReabrirCaja()">
+            <mat-icon>lock_open</mat-icon>
+            Reabrir caja
+          </button>
+        </div>
 
         <br />
         <div

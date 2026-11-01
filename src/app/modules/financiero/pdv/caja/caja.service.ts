@@ -1,6 +1,11 @@
 import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { catchError, defaultIfEmpty, map, switchMap, take } from "rxjs/operators";
+import { MatDialog } from "@angular/material/dialog";
+import { MotivoDialogComponent, MotivoDialogData } from "../../../../shared/components/motivo-dialog/motivo-dialog.component";
+import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError, TIMEOUT_CONSULTA_MOSTRADOR_MS } from "../../../../generics/generic-crud.service";
 import {
@@ -32,6 +37,7 @@ import { CajerosConCajaAbiertaGQL } from "./graphql/cajerosConCajaAbierta";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 import { ImpresionPosService } from "../../../../shared/services/impresion-pos/impresion-pos.service";
 import { TransferirCajaGQL } from "./graphql/transferirCaja";
+import { ReabrirCajaDesdeServidorGQL } from "./graphql/reabrirCaja";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -61,6 +67,9 @@ export class CajaService {
     private cajerosConCajaAbierta: CajerosConCajaAbiertaGQL,
     private configService: ConfiguracionService,
     private transferirCaja: TransferirCajaGQL,
+    private reabrirCaja: ReabrirCajaDesdeServidorGQL,
+    private matDialog: MatDialog,
+    private notificacionBar: NotificacionSnackbarService,
     private impresionPos: ImpresionPosService
   ) { }
 
@@ -307,5 +316,56 @@ export class CajaService {
 
   onTransferirCaja(cajaId: number, usuarioId: number, servidor: boolean = false): Observable<any> {
     return this.genericService.onCustomMutation(this.transferirCaja, { cajaId, usuarioId }, servidor);
+  }
+
+  /**
+   * Reabre una caja cerrada por equivocacion (#662). Siempre por el central, que la reenvia a la
+   * filial duena de la caja. Solo ADMIN, con motivo; si la filial la rechaza, el aviso trae el motivo.
+   */
+  onReabrirCaja(cajaId: number, sucursalId: number, motivo: string): Observable<any> {
+    return this.genericService.onCustomMutation(this.reabrirCaja, { cajaId, sucursalId, motivo }, true);
+  }
+
+  /**
+   * Muestra «Reabrir caja»: ADMIN y caja cerrada sin verificar. El resto de las reglas (mismo dia,
+   * maletin, cajero con otra caja) las valida la filial y su rechazo explica el motivo.
+   */
+  puedeReabrir(caja: PdvCaja): boolean {
+    return caja != null
+      && caja.verificado !== true
+      && (caja.conteoCierre != null || caja.fechaCierre != null || caja.activo === false)
+      && this.mainService.tieneAlgunRol([ROLES.ADMIN]);
+  }
+
+  /** Pide el motivo y reabre la caja. Emite true si quedo reabierta. */
+  reabrirConMotivo(caja: PdvCaja): Observable<boolean> {
+    if (caja?.id == null || caja.sucursalId == null) return of(false);
+    const data: MotivoDialogData = {
+      titulo: "Reabrir caja " + caja.id,
+      mensaje: "La caja vuelve a quedar abierta para que el cajero siga vendiendo y la cierre de nuevo.",
+      detalle: "El cierre actual se descarta (queda en el historial) y se registra quién la reabrió y por qué.",
+      etiqueta: "Motivo de la reapertura",
+      botonConfirmar: "Sí, reabrir",
+    };
+    return this.matDialog.open(MotivoDialogComponent, { data, width: "520px", maxWidth: "95vw" }).afterClosed().pipe(
+      take(1),
+      switchMap((motivo: string | null) => motivo
+        ? this.onReabrirCaja(+caja.id, +caja.sucursalId, motivo).pipe(
+          map((res) => {
+            const ok = res?.exito === true;
+            if (ok) {
+              this.notificacionBar.notification$.next({
+                texto: "Caja " + caja.id + " reabierta: el cajero puede seguir vendiendo en ella.",
+                color: NotificacionColor.success,
+                duracion: 4,
+              });
+            }
+            return ok;
+          }),
+          // El aviso del rechazo (con su motivo) ya lo dio el generico.
+          catchError(() => of(false)))
+        : of(false)),
+      defaultIfEmpty(false),
+    );
   }
 }
