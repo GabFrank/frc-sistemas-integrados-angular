@@ -877,3 +877,15 @@ export const transferirCajaQuery = gql`
       }
     }
   `;
+/**
+ * Reabre una caja cerrada por equivocacion (issue #662). Va al central, que la reenvia a la filial
+ * duena de la caja. Solo ADMIN, con motivo: las reglas las valida la filial.
+ */
+export const reabrirCajaDesdeServidorQuery = gql`
+  mutation reabrirCajaDesdeServidor($cajaId: Int!, $sucursalId: Int!, $motivo: String!) {
+    data: reabrirCajaDesdeServidor(cajaId: $cajaId, sucursalId: $sucursalId, motivo: $motivo) {
+      exito
+      cajaId
+    }
+  }
+`;
