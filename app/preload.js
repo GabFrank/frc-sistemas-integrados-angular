@@ -22,6 +22,7 @@ const PUSH_TOKEN_UPDATED = 'PUSH_RECEIVER:::TOKEN_UPDATED';
 /** Renderer → main, sin respuesta. */
 const CANALES_SEND = [
     'reiniciar',
+    'set-window-icon',
     'save-config-backup',
     'set-update-channel',
     'check-for-update-manual',
