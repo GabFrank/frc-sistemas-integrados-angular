@@ -95,6 +95,7 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
 import { ListSorteoComponent } from './sorteo/list-sorteo/list-sorteo.component';
 import { SorteoDialogComponent } from './sorteo/sorteo-dialog/sorteo-dialog.component';
 import { SorteoParticipacionesDialogComponent } from './sorteo/sorteo-participaciones-dialog/sorteo-participaciones-dialog.component';
+import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.directive";
 
 @NgModule({
   declarations: [
@@ -184,6 +185,7 @@ import { SorteoParticipacionesDialogComponent } from './sorteo/sorteo-participac
     ReingresoCanjeDialogComponent
   ],
   imports: [
+    MascaraFechaDirective,
     CommonModule,
     FlexLayoutModule,
     ReactiveFormsModule,

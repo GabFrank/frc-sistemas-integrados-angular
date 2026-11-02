@@ -18,6 +18,8 @@ import {
 import { MatCheckbox } from "@angular/material/checkbox";
 import { MatSelect } from "@angular/material/select";
 import { MatDatepicker } from "@angular/material/datepicker";
+import { DateAdapter } from "@angular/material/core";
+import { FechaPyDateAdapter } from "../../../../../../shared/utils/fecha-py-date-adapter";
 import { MatButtonToggleChange } from "@angular/material/button-toggle";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
@@ -27,7 +29,7 @@ import {
   ComprasSearchProductoResponse,
 } from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { BuscadorComprasService } from "../../buscador-compras.service";
-import { take } from "rxjs/operators";
+import { distinctUntilChanged, take } from "rxjs/operators";
 import { ContextoConsulta, QueryError } from "../../../../../../generics/generic-crud.service";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../../../generics/generic-crud.constantes";
 import {
@@ -122,6 +124,8 @@ interface PrecioVentaFila {
   templateUrl: "./add-edit-item-dialog.component.html",
   styleUrls: ["./add-edit-item-dialog.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // El vencimiento se puede tipear: se lee día/mes/año.
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("productoInput") productoInput!: ElementRef;
@@ -549,6 +553,14 @@ export class AddEditItemDialogComponent implements OnInit {
         this.itemForm.get("precioUnitarioPorPresentacion")?.enable();
       }
       this.updateComputedProperties();
+    });
+
+    // Un vencimiento tipeado que no es fecha deja el form inválido: Guardar se recalcula.
+    // Se escucha el form y no el control: cuando el control avisa, el estado del form todavía
+    // es el anterior, y Guardar quedaba apagado con la fecha ya completa.
+    this.itemForm.statusChanges.pipe(distinctUntilChanged()).subscribe(() => {
+      this.updateComputedProperties();
+      this.cdr.markForCheck();
     });
 
     // Listen to distribuciones changes
