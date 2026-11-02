@@ -88,6 +88,7 @@
       <!-- Pagination -->
       <mat-paginator *ngIf="data?.paginator == true" itemsPerPageLabel="Items por página"
         [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)"
+        [pageIndex]="pageIndex" [pageSize]="pageSize"
         [length]="selectedPageInfo?.getTotalElements" showFirstLastButtons class="results-paginator"></mat-paginator>
     </div>
   </div>

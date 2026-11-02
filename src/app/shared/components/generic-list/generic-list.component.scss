@@ -128,6 +128,13 @@ $verde: #4caf50;
     box-shadow: none;
   }
 
+  // Sombra solo hacia abajo: la tabla y su caja tienen el mismo fondo y Material no dibuja el borde
+  // de la última fila, así que sin ella no se ve dónde termina la lista. Las tablas dentro de una fila
+  // de detalle (ej. zonas de un sector) siguen planas.
+  table.mat-mdc-table:not(td table) {
+    box-shadow: 0 4px 6px -2px var(--frc-sombra);
+  }
+
   th.mat-mdc-header-cell {
     background-color: var(--frc-encabezado-tabla);
     color: var(--frc-encabezado-tabla-texto);

@@ -12,7 +12,6 @@ import { Producto } from '../../../modules/productos/producto/producto.model';
 import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
-import { ListActualizacionComponent } from '../../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
@@ -63,7 +62,6 @@ export const componenteList: SearchData[] =
     { title: 'Nueva Transferencia', component: EditTransferenciaComponent, visibilityRoles: [ROLES.CREAR_TRANSFERENCIA] },
     { title: 'Cotización', component: CambioComponent, menuAction: 'list-cotizacion', visibilityRoles: [ROLES.CAMBIAR_COTIZACION] },
     { title: 'Funcionarios', component: FuncionarioDashboardComponent, visibilityRoles: [ROLES.VER_FUNCIONARIOS] },
-    { title: 'Actualizacion', component: ListActualizacionComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de cajas', component: ListCajaComponent, menuAction: 'list-caja', visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lista de sectores', component: ListSectorComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de cargos', component: ListCargoComponent, menuAction: 'list-cargo', visibilityRoles: [ROLES.ADMIN] },

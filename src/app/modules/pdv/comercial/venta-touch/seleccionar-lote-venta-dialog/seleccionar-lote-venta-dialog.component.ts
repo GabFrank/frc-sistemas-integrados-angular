@@ -15,11 +15,13 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PageInfo } from '../../../../../app.component';
+import { etiquetaLote } from './lotes-caja';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { StockLotePresentacion } from '../../../../operaciones/lote/lote.model';
 import { LoteService } from '../../../../operaciones/lote/lote.service';
 import { VentaItemLoteInput } from '../../../../operaciones/venta/venta-item.model';
+import { loteMasProximoAVencer } from './lotes-caja';
 
 /** Tolerancia al comparar cantidades en punto flotante. */
 const EPSILON = 0.0001;
@@ -50,6 +52,8 @@ export interface SeleccionarLoteVentaDialogData {
 /** Lo que devuelve el diálogo. Lista vacía = FEFO automático. Las cantidades van EN UNIDADES. */
 export interface SeleccionarLoteVentaDialogResult {
   lotes: VentaItemLoteInput[];
+  /** Texto para mostrar bajo el ítem en la venta (#429). */
+  etiqueta?: string;
 }
 
 /**
@@ -62,6 +66,7 @@ export interface SeleccionarLoteVentaDialogResult {
 interface LoteElegido {
   loteId: number;
   numeroLote: string;
+  vencimientoLabel?: string;
   cantidad: number;
   cantidadLabel: string;
 }
@@ -261,6 +266,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
             disponible: lote.cantidadDisponible || 0
           }));
           this.universoCargado = true;
+          this.premarcarMasProximo(res?.getContent || []);
           this.recalcular();
         },
         error: () => {
@@ -269,6 +275,34 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
           this.recalcular();
         }
       });
+  }
+
+  /**
+   * Lotes flexibles (#429): al abrir, el lote más próximo a vencer viene marcado con lo que pueda
+   * cubrir. El cajero lo cambia si tiene otro en la mano.
+   */
+  private premarcarMasProximo(lotes: StockLotePresentacion[]): void {
+    if (this.seleccion.size > 0) {
+      return;
+    }
+    const lote = loteMasProximoAVencer(lotes);
+    if (lote == null) {
+      return;
+    }
+    const cantidad = Math.min(lote.cantidadDisponible || 0, this.cantidadRequerida);
+    if (cantidad <= EPSILON) {
+      return;
+    }
+    this.seleccion.set(lote.loteId, {
+      loteId: lote.loteId,
+      numeroLote: lote.numeroLote || '-',
+      vencimientoLabel: this.fechaCorta(lote.fechaVencimiento),
+      cantidad,
+      cantidadLabel: `${cantidad}`
+    });
+    this.filas = this.filas.map((f) => f.loteId === lote.loteId
+      ? { ...f, seleccionado: true, cantidad, cantidadLabel: `${cantidad}` }
+      : f);
   }
 
   /**
@@ -459,6 +493,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     this.seleccion.set(fila.loteId, {
       loteId: fila.loteId,
       numeroLote: fila.numeroLote,
+      vencimientoLabel: fila.vencimientoLabel,
       cantidad: fila.cantidad,
       cantidadLabel: `${fila.cantidad}`
     });
@@ -584,10 +619,13 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       this.puedeConfirmar = true;
       return;
     }
+    // Lotes flexibles (#429): confirmar nunca se bloquea. Lo que no se cubre lo asigna el
+    // sistema (lote más próximo a vencer y, si no alcanza, SIN LOTE).
     if (this.hayLotesSinMarcar) {
-      this.faltanteLabel = `Faltan ${this.pendiente} unid. — elegí otro lote para cubrirlas.`;
-      this.motivoBloqueo = `Elegí de qué lote salen las ${this.pendiente} unid. que faltan.`;
-      this.puedeConfirmar = false;
+      this.faltanteLabel = `Faltan ${this.pendiente} unid.: podés marcar otro lote o confirmar `
+        + 'y el sistema las asigna.';
+      this.motivoBloqueo = '';
+      this.puedeConfirmar = true;
       return;
     }
     this.faltanteLabel = `Faltan ${this.pendiente} unid. y no hay más stock por lote: `
@@ -600,7 +638,11 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     const lotes: VentaItemLoteInput[] = this.lotesElegidos
       .filter((elegido) => elegido.cantidad > EPSILON)
       .map((elegido) => ({ loteId: elegido.loteId, cantidad: elegido.cantidad }));
-    this.dialogRef.close({ lotes } as SeleccionarLoteVentaDialogResult);
+    const etiqueta = this.lotesElegidos
+      .filter((elegido) => elegido.cantidad > EPSILON)
+      .map((elegido) => etiquetaLote(elegido.numeroLote, elegido.vencimientoLabel))
+      .join(' + ');
+    this.dialogRef.close({ lotes, etiqueta } as SeleccionarLoteVentaDialogResult);
   }
 
   cancelar(): void {

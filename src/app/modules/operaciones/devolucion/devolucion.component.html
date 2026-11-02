@@ -9,7 +9,7 @@
       </span>
     </div>
     <div class="dash-header-actions">
-      <button mat-icon-button matTooltip="Configuración" (click)="onConfigurar()">
+      <button *ngIf="esAdmin" mat-icon-button matTooltip="Configuración" (click)="onConfigurar()">
         <mat-icon>settings</mat-icon>
       </button>
       <button

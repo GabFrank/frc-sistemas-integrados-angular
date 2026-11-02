@@ -6,6 +6,10 @@
         <div class="header-title" style="flex: 4">
           <mat-icon>inventory_2</mat-icon>
           <h3>Recepción Física de Mercadería</h3>
+          <button mat-stroked-button color="warn" type="button" class="pendientes-lote"
+                  *ngIf="pendientesLote > 0" (click)="abrirPendientesLote()">
+            {{ pendientesLote }} pendiente(s) de lote
+          </button>
         </div>
 
         <!-- Configuración de recepción -->

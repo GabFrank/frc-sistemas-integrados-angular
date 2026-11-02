@@ -50,7 +50,7 @@ export class ListJustificativoComponent implements OnInit {
     this.inicializarFechasMesActual();
     this.justificativoService.onGetTiposActivos().pipe(untilDestroyed(this))
       .subscribe((res: TipoJustificativo[]) => { this.tipoOptions = res || []; });
-    this.onFiltrar();
+    this.buscar();
   }
 
   private inicializarFechasMesActual() {
@@ -59,7 +59,16 @@ export class ListJustificativoComponent implements OnInit {
     this.hastaControl.setValue(hoy);
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.justificativoService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -79,14 +88,13 @@ export class ListJustificativoComponent implements OnInit {
     this.funcionarioControl.setValue(null);
     this.tipoControl.setValue(null);
     this.inicializarFechasMesActual();
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNueva() {
@@ -95,7 +103,7 @@ export class ListJustificativoComponent implements OnInit {
       width: '520px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -105,7 +113,7 @@ export class ListJustificativoComponent implements OnInit {
       width: '520px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -118,7 +126,7 @@ export class ListJustificativoComponent implements OnInit {
       if (res === true) {
         this.justificativoService.onDelete(n.id)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.onFiltrar(); });
+          .subscribe(ok => { if (ok) this.buscar(); });
       }
     });
   }

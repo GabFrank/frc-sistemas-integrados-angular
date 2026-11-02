@@ -14,7 +14,6 @@ import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { IpcRenderer } from "electron";
-import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
 import { ConfiguracionService } from "./shared/services/configuracion.service";

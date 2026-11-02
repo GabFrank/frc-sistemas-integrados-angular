@@ -1,9 +1,9 @@
 // Tokens compartidos del módulo de gráficos
-$grafico-bg-dark: #303030;
-$grafico-bg-panel: #424242;
-$grafico-text: #e0e0e0;
-$grafico-text-secondary: #9e9e9e;
-$grafico-border: #555;
+$grafico-bg-dark: var(--frc-fondo);
+$grafico-bg-panel: var(--frc-superficie-elevada);
+$grafico-text: var(--frc-dash-texto);
+$grafico-text-secondary: var(--frc-dash-texto-2);
+$grafico-border: var(--frc-borde-solido-fuerte);
 $grafico-primary: #689f38;
 $grafico-warn: #f44336;
 

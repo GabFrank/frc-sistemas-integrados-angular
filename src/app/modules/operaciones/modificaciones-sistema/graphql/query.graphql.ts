@@ -196,3 +196,53 @@ export const detallesModificacionQuery = gql`
   }
 `;
 
+
+export const modificacionesPorSchemasQuery = gql`
+  query (
+    $schemaNombres: [String!]!
+    $inicio: Date!
+    $fin: Date!
+    $page: Int
+    $size: Int
+  ) {
+    data: modificacionesPorSchemas(
+      schemaNombres: $schemaNombres
+      inicio: $inicio
+      fin: $fin
+      page: $page
+      size: $size
+    ) {
+      content {
+        id
+        tipoEntidad
+        entidadId
+        entidadSucursalId
+        schemaNombre
+        tablaNombre
+        tipoOperacion
+        modificadoEn
+        creadoEn
+        ipAddress
+        userAgent
+        observacion
+        activo
+        usuario {
+          id
+          nickname
+          persona {
+            id
+            nombre
+          }
+        }
+        sucursal {
+          id
+          nombre
+        }
+      }
+      pageNumber
+      pageSize
+      totalElements
+      totalPages
+    }
+  }
+`;

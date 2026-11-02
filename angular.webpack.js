@@ -7,21 +7,11 @@ const path = require("path");
  * Custom angular webpack configuration
  */
 module.exports = (config, options) => {
-    config.target = 'electron-renderer';
-
-    if (options.fileReplacements) {
-        for(let fileReplacement of options.fileReplacements) {
-            if (fileReplacement.replace !== 'src/environments/environment.ts') {
-                continue;
-            }
-
-            let fileReplacementParts = fileReplacement['with'].split('.');
-            if (fileReplacementParts.length > 1 && ['web'].indexOf(fileReplacementParts[1]) >= 0) {
-                config.target = 'web';
-            }
-            break;
-        }
-    }
+    // Siempre 'web': la ventana de Electron corre sin Node (contextIsolation + sandbox, ver
+    // app/preload.ts). Con 'electron-renderer' webpack deja require("crypto"), require("events")…
+    // en el bundle, que fallan sin nodeIntegration. Los módulos de Node que usan las librerías
+    // los cubre NodePolyfillPlugin.
+    config.target = 'web';
 
     config.plugins = [
         ...config.plugins,

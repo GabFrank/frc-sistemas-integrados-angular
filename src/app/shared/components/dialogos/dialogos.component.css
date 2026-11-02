@@ -1,13 +1,13 @@
-/* La raiz es 10px: 1.6rem = 16px, el tamano del h3 de antes. */
+/* En px: la raiz del documento es 16px (no 10px), asi que 1.6rem salia a 25.6px. */
 .mensaje {
   margin: 0 0 8px;
-  font-size: 1.6rem;
+  font-size: 16px;
   font-weight: 500;
 }
 
 .detalle,
 li {
-  font-size: 1.4rem;
+  font-size: 14px;
 }
 
 .detalle {

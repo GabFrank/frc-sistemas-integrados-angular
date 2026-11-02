@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, OnDestroy } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import {
   ESTADO_LOTE_LABELS,
   EstadoLote,
@@ -33,6 +34,14 @@ interface LoteRow {
   estadoClase: string;
   proveedorNombre: string;
   observacion: string;
+  /** Saldo en toda la red. Null si el central todavía no informa gestión de lotes. */
+  saldoTotal: number | null;
+  saldoLabel: string;
+  archivado: boolean;
+  /** Archivar exige saldo 0 en toda la red (el central lo vuelve a validar). */
+  puedeArchivar: boolean;
+  /** Eliminado por error (lotes fase 3): queda BLOQUEADO y solo se puede restaurar. */
+  eliminado?: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -46,11 +55,11 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
   private recargasTrasCorte = new Set<any>();
   private destruido = false;
 
-  displayedColumns = ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'estado', 'acciones'];
+  displayedColumns = ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'saldo', 'estado', 'acciones'];
 
   /** Sin permiso la columna no tiene nada que mostrar: se saca entera, encabezado incluido. */
   private static readonly COLUMNAS_SIN_ACCIONES =
-    ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'estado'];
+    ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'saldo', 'estado'];
 
   lotes: LoteRow[] = [];
   cargando = false;
@@ -75,7 +84,8 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private mainService: MainService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -112,10 +122,188 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
           this.sinLotes = this.lotes.length === 0;
           this.cargando = false;
           this.cdr.markForCheck();
+          this.cargarGestion(productoId);
         },
         error: () => {
           this.notificacionService.openWarn('No se pudieron cargar los lotes del producto: el servidor no responde.', 4);
           this.marcarCargaFallida();
+        }
+      });
+  }
+
+  /** True cuando el central informó saldo y archivado (entrega 5). Sin eso no se ofrece archivar. */
+  gestionDisponible = false;
+
+  /**
+   * Saldo en la red y archivado de cada lote. Va aparte de la lista: si el central es anterior a la
+   * gestión de lotes, la consulta falla y la pantalla sigue igual que antes, sin archivar.
+   */
+  private cargarGestion(productoId: number): void {
+    this.loteService
+      .onGestionLotesDeProducto(productoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pagina) => {
+          const filas: any[] = pagina?.getContent || [];
+          if (pagina == null) {
+            return;
+          }
+          const porId = new Map<number, any>();
+          filas.forEach((f) => porId.set(+f.loteId, f));
+          this.gestionDisponible = true;
+          this.lotes = this.lotes.map((fila) => aplicarGestion(fila, porId.get(+fila.id)));
+          this.cdr.markForCheck();
+          this.cargarEliminados(productoId);
+        },
+        error: () => {
+          // Central viejo o sin red: la lista ya está, solo sin saldo ni archivar.
+        }
+      });
+  }
+
+  onArchivar(fila: LoteRow): void {
+    if (!this.puedeCambiarEstado || !fila.puedeArchivar) {
+      return;
+    }
+    this.dialogosService
+      .confirm(
+        'Archivar lote',
+        `El lote ${fila.numeroLote} no tiene saldo en ninguna sucursal. Archivado deja de aparecer en los buscadores y selectores.`,
+        'No mueve stock ni cambia el estado. Se puede desarchivar después.',
+        undefined, true, 'Archivar', 'Cancelar'
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        if (!confirmado) {
+          return;
+        }
+        this.loteService
+          .onArchivarLote(fila.id, 'Lote sin saldo archivado desde Lotes del producto',
+            this.mainService.usuarioActual?.id)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: (ok) => {
+              if (ok) {
+                this.notificacionService.openSucess('Lote archivado');
+                this.cargarLotes();
+              }
+            },
+            error: (error) => {
+              const aviso = avisoTrasMutacion(error, 'se archivó el lote');
+              if (aviso != null) {
+                this.notificacionService.openWarn(aviso, 8);
+              }
+            }
+          });
+      });
+  }
+
+  onDesarchivar(fila: LoteRow): void {
+    if (!this.puedeCambiarEstado || !fila.archivado) {
+      return;
+    }
+    this.loteService
+      .onDesarchivarLote(fila.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (ok) {
+            this.notificacionService.openSucess('Lote desarchivado');
+            this.cargarLotes();
+          }
+        },
+        error: (error) => {
+          const aviso = avisoTrasMutacion(error, 'se desarchivó el lote');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
+        }
+      });
+  }
+
+  /** True cuando el central informa lotes eliminados (fase 3). Sin eso no se ofrece eliminar. */
+  eliminarDisponible = false;
+
+  /** Consulta aparte: contra un central anterior falla y la pantalla sigue sin eliminar. */
+  private cargarEliminados(productoId: number): void {
+    this.loteService
+      .onLotesEliminadosDeProducto(productoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pagina) => {
+          if (pagina == null) {
+            return;
+          }
+          const eliminados = new Set<number>(
+            (pagina?.getContent || []).filter((f) => f.eliminado).map((f) => +f.loteId)
+          );
+          this.eliminarDisponible = true;
+          this.lotes = this.lotes.map((fila) => marcarEliminado(fila, eliminados.has(+fila.id)));
+          this.cdr.markForCheck();
+        },
+        error: () => {}
+      });
+  }
+
+  puedeEliminar(fila: LoteRow): boolean {
+    return this.puedeCambiarEstado && this.eliminarDisponible && !fila.eliminado && fila.saldoTotal === 0;
+  }
+
+  onEliminar(fila: LoteRow): void {
+    if (!this.puedeEliminar(fila)) {
+      return;
+    }
+    const data: MotivoDialogData = {
+      titulo: 'Eliminar lote',
+      mensaje: `El lote ${fila.numeroLote} se da de baja por haberse creado por error.`,
+      detalle: 'Queda bloqueado en todas las sucursales y deja de aparecer. Solo se puede si no tiene ningún movimiento. Se puede restaurar.',
+      botonConfirmar: 'Eliminar'
+    };
+    this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((motivo: string | null) => {
+        if (!motivo) {
+          return;
+        }
+        this.loteService
+          .onEliminarLote(fila.id, motivo, this.mainService.usuarioActual?.id)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: (ok) => {
+              if (ok) {
+                this.notificacionService.openSucess('Lote eliminado');
+                this.cargarLotes();
+              }
+            },
+            error: (error) => {
+              const aviso = avisoTrasMutacion(error, 'se eliminó el lote');
+              if (aviso != null) {
+                this.notificacionService.openWarn(aviso, 8);
+              }
+            }
+          });
+      });
+  }
+
+  onRestaurar(fila: LoteRow): void {
+    if (!this.puedeCambiarEstado || !fila.eliminado) {
+      return;
+    }
+    this.loteService
+      .onRestaurarLote(fila.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (ok) {
+            this.notificacionService.openSucess('Lote restaurado');
+            this.cargarLotes();
+          }
+        },
+        error: (error) => {
+          const aviso = avisoTrasMutacion(error, 'se restauró el lote');
+          if (aviso != null) {
+            this.notificacionService.openWarn(aviso, 8);
+          }
         }
       });
   }
@@ -143,7 +331,11 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
       estadoLabel: ESTADO_LOTE_LABELS[lote.estado] || lote.estado,
       estadoClase: this.claseSegunEstado(lote.estado),
       proveedorNombre: lote.proveedor?.persona?.nombre || '-',
-      observacion: lote.observacion || ''
+      observacion: lote.observacion || '',
+      saldoTotal: null,
+      saldoLabel: '-',
+      archivado: false,
+      puedeArchivar: false
     };
   }
 
@@ -231,4 +423,38 @@ export class LotesProductoDialogComponent implements OnInit, OnDestroy {
     }, RECARGA_TRAS_CORTE_MS);
     this.recargasTrasCorte.add(timeout);
   }
+}
+
+/** Tolerancia al comparar saldos en punto flotante, igual que en el backend. */
+const EPSILON_SALDO = 0.0001;
+
+/** Completa la fila con el saldo en la red y el archivado. Pura para poder probarla. */
+export function aplicarGestion<T extends { saldoTotal: number | null; saldoLabel: string; archivado: boolean; puedeArchivar: boolean }>(
+  fila: T, gestion: { saldoTotal?: number; archivado?: boolean } | undefined
+): T {
+  if (gestion == null) {
+    // El buscador oculta archivados sin saldo solo si no se pide incluirlos; acá se piden todos,
+    // así que un lote ausente es un dato que no llegó: no se ofrece archivar.
+    return { ...fila, saldoTotal: null, saldoLabel: '-', archivado: false, puedeArchivar: false };
+  }
+  const saldo = gestion.saldoTotal ?? 0;
+  const archivado = gestion.archivado === true;
+  return {
+    ...fila,
+    saldoTotal: saldo,
+    saldoLabel: archivado ? `${saldo} (archivado)` : `${saldo}`,
+    archivado,
+    puedeArchivar: !archivado && Math.abs(saldo) <= EPSILON_SALDO
+  };
+}
+
+/** Marca un lote eliminado: se rotula y no ofrece archivar (lotes fase 3). */
+export function marcarEliminado<T extends { saldoLabel: string; puedeArchivar: boolean; eliminado?: boolean }>(
+  fila: T,
+  eliminado: boolean
+): T {
+  if (!eliminado) {
+    return { ...fila, eliminado: false };
+  }
+  return { ...fila, eliminado: true, puedeArchivar: false, saldoLabel: `${fila.saldoLabel} (eliminado)` };
 }

@@ -22,7 +22,6 @@ import { isDevMode } from "@angular/core";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../environments/environment";
 import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
-import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
 import { ConfiguracionService } from "../../services/configuracion.service";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
@@ -81,7 +80,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private tabService: TabService,
     private electronService: ElectronService,
     private loginService: LoginService,
-    private actualizacionService: ActualizacionService,
     private configService: ConfiguracionService,
     private dialogoService: DialogosService,
     private usuarioService: UsuarioService,

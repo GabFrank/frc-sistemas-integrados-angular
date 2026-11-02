@@ -1,0 +1,66 @@
+/* Cabecera, cuerpo y pie vienen de ruta-hoja.component.scss (ver styleUrls). Neutros con los
+   tokens --frc-*; acento y estados son iguales en los dos modos. */
+$acento: #f57c00;
+$danger: #f44336;
+
+.item-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 14px 20px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background-color: var(--frc-superficie-elevada);
+  border: 1px solid var(--frc-borde);
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.etiqueta {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: $acento;
+}
+
+.valor {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--frc-texto-fuerte);
+}
+
+.campo {
+  width: 100%;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--frc-texto-terciario);
+
+  mat-icon {
+    color: $danger;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+}
+
+.dialog-header .header-icon.peligro {
+  background-color: rgba(244, 67, 54, 0.18);
+
+  mat-icon {
+    color: $danger;
+  }
+}
+
+// Mismo botón que «Confirmar» (verde en ruta-hoja), en rojo para el rechazo.
+.dialog-footer .btn-guardar.btn-rechazar:not([disabled]) {
+  background-color: $danger !important;
+}

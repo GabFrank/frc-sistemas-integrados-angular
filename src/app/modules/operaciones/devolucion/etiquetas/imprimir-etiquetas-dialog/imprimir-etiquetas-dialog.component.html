@@ -1,11 +1,12 @@
 <div class="etiq-dialog">
-  <h2 mat-dialog-title>Imprimir etiquetas de separado</h2>
+  <h2 mat-dialog-title>Imprimir etiqueta de separado</h2>
 
   <div mat-dialog-content>
     <p class="etiq-sub">
-      Se imprimirá una etiqueta por producto ({{ cantidad }} en total) con el
-      identificador <strong>{{ data.identificador }}</strong>, producto,
-      cantidad, motivo y un código QR.
+      Se imprimirá <strong>una sola etiqueta</strong> para la devolución
+      <strong>{{ data.identificador }}</strong>, con un código QR y la lista de
+      sus {{ cantidad }} {{ cantidad === 1 ? 'producto' : 'productos' }}. Al
+      escanear el QR se ven todos los productos.
     </p>
 
     <table mat-table [dataSource]="filas" class="mat-elevation-z2 etiq-tabla">

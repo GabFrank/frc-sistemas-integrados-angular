@@ -158,6 +158,8 @@ export class LoteDeProducto {
    * igual que un lote agotado: los dos en cero.
    */
   saldoTotal: number;
+  /** Archivado: sin saldo en la red y oculto de buscadores y selectores. */
+  archivado?: boolean;
 }
 
 /**
@@ -169,7 +171,9 @@ export enum ModoAjusteLote {
   /** El stock ya estaba contado pero sin lote. El total no cambia, solo se traza. */
   ATRIBUIR = 'ATRIBUIR',
   /** La existencia estaba mal: rotura, faltante, mercadería encontrada. El total cambia. */
-  CORREGIR = 'CORREGIR'
+  CORREGIR = 'CORREGIR',
+  /** El lote tiene más saldo del que hay con ese número: baja el lote y lo pasa a SIN LOTE. El total no cambia. */
+  LIBERAR = 'LIBERAR'
 }
 
 /**
@@ -212,6 +216,117 @@ export interface AjusteStockLoteInput {
   numeroLote?: string;
   /** yyyy-MM-dd. Solo se usa al crear el lote. */
   fechaVencimiento?: string;
+  /** Saldo del lote que vio el operador: si cambió al confirmar, el backend rechaza para recargar. */
+  saldoEsperado?: number;
   /** yyyy-MM-dd. Solo se usa al crear el lote. */
   fechaRetiro?: string;
+}
+
+/** Un lote que coincide con el número buscado (#429 fase 2). Sale del maestro: incluye saldo 0 y archivados. */
+export interface LoteEncontrado {
+  loteId: number;
+  productoId: number;
+  productoDescripcion: string;
+  numeroLote: string;
+  fechaVencimiento?: string;
+  estado?: EstadoLote;
+  proveedorNombre?: string;
+  archivado?: boolean;
+  primeraEntradaFecha?: string;
+  primeraEntradaTipo?: string;
+  primeraEntradaDocumentoId?: number;
+  saldoTotal: number;
+  totalVendido: number;
+  cantidadVentas: number;
+}
+
+export interface EntradaSinLote {
+  tipoMovimiento: string;
+  movimientos: number;
+  cantidad: number;
+}
+
+/** Cuánto vale un "no hay registro" para el producto. */
+export interface TrazabilidadProducto {
+  productoId: number;
+  productoDescripcion?: string;
+  /** Nulo: el producto nunca se controló por lote. */
+  trazadoDesde?: string;
+  entradasSinLote: EntradaSinLote[];
+  comprasAnteriores: number;
+  todasLasEntradasConLote: boolean;
+}
+
+export interface ResultadoBusquedaLote {
+  numeroBuscado: string;
+  claveBusqueda?: string;
+  /** false = no hay registro. NO quiere decir "nunca entró". */
+  encontrado: boolean;
+  coincidenciaExacta: boolean;
+  lotes: LoteEncontrado[];
+  trazabilidad?: TrazabilidadProducto;
+}
+
+/** De qué lote salió un ítem de una venta: una fila por ítem y lote («SIN LOTE» con loteId nulo). */
+export interface LoteVentaItem {
+  ventaItemId: number;
+  productoId: number;
+  loteId?: number;
+  numeroLote: string;
+  fechaVencimiento?: string;
+  cantidad: number;
+  anulado?: boolean;
+}
+
+/** Recepción que entró sin lote («Cargar lote después») y sigue pendiente (#429 fase 2, entrega 3). */
+export interface PendienteLote {
+  mslId: number;
+  sucursalId: number;
+  sucursalNombre?: string;
+  productoId: number;
+  productoDescripcion?: string;
+  recepcionId?: number;
+  recepcionItemId?: number;
+  proveedorNombre?: string;
+  fecha?: string;
+  cantidad: number;
+  resuelto: number;
+  remanente: number;
+}
+
+export interface PendienteLotePage {
+  content: PendienteLote[];
+  totalElements: number;
+  page: number;
+  size: number;
+}
+
+export interface InfoPendienteLote {
+  pendiente: PendienteLote;
+  saldoSinLote: number;
+  atribuidoManualDespues: number;
+  cantidadSugerida: number;
+  ultimaSincronizacion?: string;
+  sincronizacionVencida: boolean;
+  maxDesfaseMinutos: number;
+  lotesParecidos: LoteEncontrado[];
+}
+
+export interface ResolucionLotePendiente {
+  id: number;
+  mslId: number;
+  sucursalId: number;
+  productoId?: number;
+  productoDescripcion?: string;
+  loteId?: number;
+  numeroLote?: string;
+  cantidadAtribuida: number;
+  cantidadNoAtribuida: number;
+  accion: 'ATRIBUIDO' | 'DESCARTADO';
+  motivo?: string;
+  movimientoStockId?: number;
+  usuarioId?: number;
+  usuarioNickname?: string;
+  fecha?: string;
+  anulada?: boolean;
 }

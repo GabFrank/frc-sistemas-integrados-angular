@@ -8,6 +8,7 @@ import { MatTabGroup } from "@angular/material/tabs";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
+import { ROLES } from "../../modules/personas/roles/roles.enum";
 
 import {
   MarcarNotificacionLeidaGQL
@@ -38,6 +39,8 @@ export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
 
   sideBarOpen = false;
   notificationsOpen = false;
+  /** «Crear Notificación»: el central solo deja enviarla a un administrador. */
+  esAdmin = false;
 
   tabs = new Array<Tab>();
 
@@ -133,6 +136,8 @@ export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mainService.authenticationSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
+        // En cada emisión: el layout vive antes del login y entre sesiones de distintos usuarios.
+        this.esAdmin = !!res && this.mainService.tieneAlgunRol([ROLES.ADMIN]);
         if (res) {
           this.tabService.tabSub
             .pipe(untilDestroyed(this))

@@ -45,8 +45,8 @@
       role="status"
       aria-live="polite"
     >
-      Estás sacando del lote {{ numeroLoteSeleccionado }}. Solo se puede transferir de un lote
-      por vez: para cambiarlo, borrá la cantidad.
+      Lotes elegidos: {{ numeroLoteSeleccionado }}. Podés repartir entre varios lotes; lo que no
+      asignes lo completa el sistema.
     </span>
   </div>
 
@@ -218,6 +218,9 @@
     <div class="resumen-mensaje">
       {{ mensajeFaltante }}
     </div>
+    <div class="resumen-mensaje aviso-sobre-saldo" *ngIf="avisoSobreSaldo">
+      {{ avisoSobreSaldo }}
+    </div>
   </div>
 
 </mat-dialog-content>
@@ -241,7 +244,7 @@
     mat-raised-button
     color="accent"
     (click)="onConfirmar()"
-    [disabled]="cargando || cargaFallo || excedeRequerido"
+    [disabled]="cargando || excedeRequerido"
   >
     Confirmar
   </button>

@@ -21,6 +21,7 @@ import { BalancePorFechaGQL } from "./graphql/balancePorFecha";
 import { environment } from "../../../../../environments/environment";
 import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
+import { CajasWithFiltersActivoGQL } from "./graphql/cajaWithFiltersActivo";
 import { CajasAnalisisDiferenciasGQL } from "../../analisis-diferencia/graphql/cajasAnalisisDiferencias";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
@@ -52,6 +53,7 @@ export class CajaService {
     private balancePorFecha: BalancePorFechaGQL,
     private balancePorCajaId: BalancePorCajaIdGQL,
     private cajasWithFilters: CajasWithFiltersGQL,
+    private cajasWithFiltersActivo: CajasWithFiltersActivoGQL,
     private cajasAnalisisDiferencias: CajasAnalisisDiferenciasGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
@@ -87,6 +89,7 @@ export class CajaService {
     fechaFin: Date,
     sucId: number,
     verificado: boolean,
+    activo: boolean,
     page: number,
     size: number,
     servidor: boolean = true,
@@ -107,8 +110,16 @@ export class CajaService {
       size: size || 15
     };
     
+    // Abiertas/Cerradas (#599) va solo al central: el filial no conoce `activo`. Con TODAS se manda la
+    // query de siempre, que también anda contra un central que todavía no lo tiene.
+    let query: CajasWithFiltersGQL | CajasWithFiltersActivoGQL = this.cajasWithFilters;
+    if (activo != null && (servidor == null || servidor)) {
+      queryParams.activo = activo;
+      query = this.cajasWithFiltersActivo;
+    }
+
     // errorConf/contexto: solo Últimas cajas del POS (#390); list-caja no los pasa y queda como antes.
-    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor, errorConf, undefined, contexto);
+    return this.genericService.onCustomQuery(query, queryParams, servidor, errorConf, undefined, contexto);
   }
 
   onGetCajasAnalisisDiferencias(

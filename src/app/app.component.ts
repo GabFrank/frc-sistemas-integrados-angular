@@ -15,6 +15,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
 import { ElectronService } from "./commons/core/electron/electron.service";
+import { electronBridge } from "./commons/core/electron/electron-bridge";
 import { ConfiguracionService } from "./shared/services/configuracion.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
@@ -139,9 +140,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Listen for update dialog open request from Electron menu
     try {
-      const isElectron = window && typeof window['require'] === 'function';
-      if (isElectron) {
-        const { ipcRenderer } = window['require']('electron');
+      const ipcRenderer = electronBridge();
+      if (ipcRenderer) {
         ipcRenderer.on('open-update-dialog', () => {
           this.matDialog.open(UpdateDialogComponent, {
             width: '450px',

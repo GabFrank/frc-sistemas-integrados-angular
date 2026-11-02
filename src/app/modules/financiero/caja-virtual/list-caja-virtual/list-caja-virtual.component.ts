@@ -1,10 +1,10 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { auditTime, filter } from 'rxjs/operators';
 import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
-import { PageEvent } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { CajaVirtual, CajaVirtualTipo } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -30,6 +30,8 @@ import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
   styleUrls: ['./list-caja-virtual.component.scss']
 })
 export class ListCajaVirtualComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
 
   @Input() data: Tab;
 
@@ -89,7 +91,7 @@ export class ListCajaVirtualComponent implements OnInit {
     this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) this.sucursalList = res;
     });
-    this.onFiltrar();
+    this.buscar();
     // El saldo de una caja de la página que cambió en otro lado se ve sin volver a buscar. A lo sumo una relectura
     // por segundo, con los filtros de la última búsqueda (no lo que haya a medio escribir) y sin avisos si falla.
     this.cajaVirtualService.onCambiosTesoreria()
@@ -105,7 +107,16 @@ export class ListCajaVirtualComponent implements OnInit {
 
   private filtrosAplicados: { nombre: string; tipo: CajaVirtualTipo; sucursalId: number; activo: boolean };
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.filtrosAplicados = {
       nombre: this.nombreControl.value || null,
       tipo: this.tipoControl.value || null,
@@ -145,7 +156,6 @@ export class ListCajaVirtualComponent implements OnInit {
     this.tipoControl.setValue(null);
     this.sucursalControl.setValue(null);
     this.activoControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
@@ -154,7 +164,7 @@ export class ListCajaVirtualComponent implements OnInit {
       width: '500px',
       data: null
     }).afterClosed().subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -204,7 +214,7 @@ export class ListCajaVirtualComponent implements OnInit {
       width: '65vw', maxWidth: '95vw', height: '70vh', data
     }).afterClosed().subscribe(res => {
       // La transferencia de responsabilidad cambia quién puede administrar: recargar.
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -261,7 +271,7 @@ export class ListCajaVirtualComponent implements OnInit {
       width: '500px',
       data: item
     }).afterClosed().subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -279,7 +289,7 @@ export class ListCajaVirtualComponent implements OnInit {
             next: res => {
               if (res) {
                 this.notificacion.openSucess('Caja virtual eliminada correctamente');
-                this.onFiltrar();
+                this.buscar();
               } else {
                 this.notificacion.openAlgoSalioMal('No se pudo eliminar la caja virtual');
               }
@@ -312,7 +322,7 @@ export class ListCajaVirtualComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
 }

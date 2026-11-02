@@ -353,10 +353,12 @@ export class AdicionarPrecioDialogComponent implements OnInit {
         // De a una: si una falla no se sigue con las demás
         concat(...bajas).pipe(toArray(), untilDestroyed(this)).subscribe({
           next: () => this.guardarPrecio(requestId, true),
-          error: () => {
+          error: (error) => {
             this.cargandoDialog.closeDialog(requestId);
-            this.notificacionSnackBar.openWarn(
-              'No se pudo quitar el precio principal anterior: el precio nuevo NO se guardó. Revisá los precios de la presentación.', 10);
+            // Rechazo: el motivo ya lo mostró el servicio; no decir «no se pudo» como si fuera un corte
+            this.notificacionSnackBar.openWarn(esRechazoDelServidor(error)
+              ? 'No se guardó el precio nuevo: el servidor rechazó quitar el precio principal anterior. Revisá los precios de la presentación.'
+              : 'No se pudo quitar el precio principal anterior: el precio nuevo NO se guardó. Revisá los precios de la presentación.', 10);
             // La baja pudo haberse aplicado: el padre recarga los precios
             this.matDialogRef.close(PRECIO_SIN_CONFIRMAR);
           }

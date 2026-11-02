@@ -27,24 +27,24 @@
         margin-top: 20px;
 
         .resumen-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(var(--frc-tinta), 0.05);
             padding: 16px 24px;
             border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-width: 180px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(var(--frc-tinta), 0.1);
             transition: transform 0.3s ease;
 
             &:hover {
                 transform: translateY(-5px);
-                background: rgba(255, 255, 255, 0.08);
+                background: rgba(var(--frc-tinta), 0.08);
             }
 
             .label {
                 font-size: 0.9rem;
-                color: #9E9E9E;
+                color: var(--frc-dash-texto-2);
                 margin-bottom: 8px;
                 text-transform: uppercase;
                 letter-spacing: 1px;
@@ -69,6 +69,6 @@
         justify-content: center;
         height: 400px;
         gap: 16px;
-        color: #9E9E9E;
+        color: var(--frc-dash-texto-2);
     }
 }

@@ -30,6 +30,9 @@ import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tar
 import { MainService } from "../../../../main.service";
 import { erroresDeRechazo, motivoDelRechazo } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { ROLES } from "../../../personas/roles/roles.enum";
+import { LoteService } from "../../lote/lote.service";
+import { LoteVentaItem } from "../../lote/lote.model";
+import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from "../../lote/lotes-de-venta.util";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -113,7 +116,14 @@ export class GenericListVentaComponent implements OnInit {
   /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
   puedeCancelarVenta = false;
 
+  /** Ver de qué lote salió cada ítem (#429 fase 2): VER PRODUCTOS y análisis de caja o de venta. */
+  puedeVerLotes = false;
+  /** Lotes por ítem de la venta abierta, cargados aparte; vacío si el central es viejo o falla. */
+  lotesPorItem: { [ventaItemId: string]: LoteVentaItem[] } = {};
+  private lotesCargadosDe: string = null;
+
   constructor(
+    private loteService: LoteService,
     private matDialog: MatDialog,
     private cajaService: CajaService,
     private ventaService: VentaService,
@@ -130,6 +140,7 @@ export class GenericListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
+    this.puedeVerLotes = puedeVerLotesDeVenta(this.mainService.usuarioActual?.roles);
     
     let hoy = new Date();
     let aux = new Date();
@@ -282,7 +293,36 @@ export class GenericListVentaComponent implements OnInit {
     this.isGenerarReporteDisabled = true;
   }
   
+  /**
+   * Carga aparte, sin bloquear el detalle, de qué lote salió cada ítem. Si el central todavía no
+   * tiene la consulta o falla, no se muestra nada y el detalle sigue igual.
+   */
+  cargarLotesDeVenta(venta: Venta) {
+    const sucursalId = venta?.sucursalId;
+    if (!this.puedeVerLotes || venta?.id == null || sucursalId == null) return;
+    const clave = venta.id + '-' + sucursalId;
+    if (this.lotesCargadosDe === clave) return;
+    this.lotesCargadosDe = clave;
+    this.lotesPorItem = {};
+    this.loteService.onLotesDeVenta(venta.id, sucursalId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (filas) => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = agruparLotesPorItem(filas);
+        },
+        error: () => {
+          if (this.lotesCargadosDe === clave) this.lotesPorItem = {};
+        }
+      });
+  }
+
+  /** «Lote X · Vto dd/mm/aa» de un ítem; con varios lotes, cada uno con sus unidades. */
+  textoLotes(ventaItemId: number): string {
+    return textoLotesDeItem(this.lotesPorItem[String(ventaItemId)]);
+  }
+
   onClickRow(venta: Venta, index) {
+    this.cargarLotesDeVenta(venta);
     if (venta.ventaItemList == null) {
       this.isLoading = true;
       this.ventaService

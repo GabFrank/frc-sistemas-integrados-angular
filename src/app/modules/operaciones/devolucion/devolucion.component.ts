@@ -74,6 +74,8 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   cargando = false;
+  /** El central solo deja guardar la configuración a un administrador. */
+  esAdmin = false;
 
   // Filtro de fecha (inputs type=date, formato YYYY-MM-DD). Default: este mes.
   desde = "";
@@ -120,6 +122,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
     this.resolverSucursalFija();
     this.armarAccesos();
     // La config define umbrales / top-N / rango por defecto; se carga antes.

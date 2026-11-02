@@ -3,9 +3,8 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { TransferenciaItem, TransferenciaItemMotivoModificacion, TransferenciaItemMotivoRechazo, EtapaTransferencia } from './../transferencia.model';
 import { Validators } from '@angular/forms';
 import { FormControl } from '@angular/forms';
-import { Presentacion } from './../../../productos/presentacion/presentacion.model';
 import { Component, Inject, OnInit } from '@angular/core';
-import { aplicarConfirmacion } from '../transferencia-item-confirmacion';
+import { aplicarConfirmacion, datosDeOrigen, DatosDeEtapa } from '../transferencia-item-confirmacion';
 
 export interface ModificarItemDialoData {
   item: TransferenciaItem
@@ -15,21 +14,35 @@ export interface ModificarItemDialoData {
   etapa?: EtapaTransferencia
 }
 
+const MOTIVOS_RECHAZO: { value: TransferenciaItemMotivoRechazo; label: string }[] = [
+  { value: TransferenciaItemMotivoRechazo.FALTA_PRODUCTO, label: 'Falta producto' },
+  { value: TransferenciaItemMotivoRechazo.PRODUCTO_AVERIADO, label: 'Producto averiado' },
+  { value: TransferenciaItemMotivoRechazo.PRODUCTO_VENCIDO, label: 'Producto vencido' },
+  { value: TransferenciaItemMotivoRechazo.PRODUCTO_EQUIVOCADO, label: 'Producto equivocado' },
+];
+
 @Component({
   selector: 'app-modificar-item-dialog',
   templateUrl: './modificar-item-dialog.component.html',
-  styleUrls: ['./modificar-item-dialog.component.scss']
+  styleUrls: ['../ruta-hoja/ruta-hoja.component.scss', './modificar-item-dialog.component.scss']
 })
 export class ModificarItemDialogComponent implements OnInit {
 
   selectedItem: TransferenciaItem;
-  selectedCantidadAnterior: number;
-  selectedVencimientoAnterior: Date;
-  selectedPresentacion: Presentacion
   cantidadControl = new FormControl(null, Validators.required)
-  motivoList: string[];
+  motivoList = MOTIVOS_RECHAZO;
   motivoControl = new FormControl(null, Validators.required)
   vencimientoControl = new FormControl(null, Validators.required)
+
+  // Lo que muestra el template, calculado una vez (nada de funciones en el HTML).
+  controlActivo: FormControl;
+  titulo: string;
+  icono: string;
+  productoDescripcion: string;
+  productoCodigo: string;
+  /** Datos de la etapa de la que copia esta: los mismos que guarda aplicarConfirmacion. */
+  origen: DatosDeEtapa;
+  totalUnidades: number;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ModificarItemDialoData,
@@ -37,38 +50,39 @@ export class ModificarItemDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.motivoList = Object.values(TransferenciaItemMotivoRechazo);
     this.selectedItem = new TransferenciaItem;
     Object.assign(this.selectedItem, this.data?.item)
-    switch (this.data.etapa) {
-      case EtapaTransferencia.PREPARACION_MERCADERIA:
-        this.selectedPresentacion = this.selectedItem.presentacionPreTransferencia;
-        if (this.data.isCantidad) {
-          this.selectedCantidadAnterior = this.selectedItem?.cantidadPreTransferencia;
-        } else if (this.data.isVencimiento) {
-          this.selectedVencimientoAnterior = this.selectedItem?.vencimientoPreTransferencia;
-        }
-        break;
-      case EtapaTransferencia.TRANSPORTE_VERIFICACION:
-        this.selectedPresentacion = this.selectedItem.presentacionTransporte;
-        if (this.data.isCantidad) {
-          this.selectedCantidadAnterior = this.selectedItem?.cantidadTransporte;
-        } else if (this.data.isVencimiento) {
-          this.selectedVencimientoAnterior = this.selectedItem?.vencimientoTransporte;
-        }
-        break;
-      case EtapaTransferencia.RECEPCION_EN_VERIFICACION:
-        this.selectedPresentacion = this.selectedItem.presentacionRecepcion;
-        if (this.data.isCantidad) {
-          this.selectedCantidadAnterior = this.selectedItem?.cantidadRecepcion;
-        } else if (this.data.isVencimiento) {
-          this.selectedVencimientoAnterior = this.selectedItem?.vencimientoRecepcion;
-        }
-        break;
 
-      default:
-        break;
+    if (this.data?.isCantidad) {
+      this.controlActivo = this.cantidadControl;
+      this.titulo = 'Modificar cantidad';
+      this.icono = 'edit';
+    } else if (this.data?.isVencimiento) {
+      this.controlActivo = this.vencimientoControl;
+      this.titulo = 'Modificar vencimiento';
+      this.icono = 'event';
+    } else {
+      this.controlActivo = this.motivoControl;
+      this.titulo = 'Rechazar ítem';
+      this.icono = 'block';
     }
+
+    // Tras desconfirmar, la fila puede venir sin producto en las presentaciones de etapa:
+    // el producto se lee de la de pre-transferencia, que la grilla siempre trae.
+    const producto = this.selectedItem.presentacionPreTransferencia?.producto;
+    this.productoDescripcion = producto?.descripcion ?? '';
+    this.productoCodigo = producto?.codigoPrincipal ?? '';
+    this.origen = datosDeOrigen(this.selectedItem, this.data?.etapa);
+    this.totalUnidades =
+      this.origen?.cantidad != null && this.origen?.presentacion?.cantidad != null
+        ? this.origen.cantidad * this.origen.presentacion.cantidad
+        : null;
+  }
+
+  /** Enter en un input: confirma solo si el campo es válido, igual que el botón. */
+  onEnter() {
+    if (this.controlActivo.invalid) return;
+    this.onAceptar();
   }
 
   onCancelar() {
@@ -149,10 +163,6 @@ export class ModificarItemDialogComponent implements OnInit {
     }
 
     this.matDialogRef.close({ item: this.selectedItem })
-  }
-
-  onSelectMotivo(motivo: string) {
-    console.log(this.motivoControl.value)
   }
 
 }

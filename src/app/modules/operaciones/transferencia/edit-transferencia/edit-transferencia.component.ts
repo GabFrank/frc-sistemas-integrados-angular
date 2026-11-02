@@ -233,6 +233,8 @@ export class EditTransferenciaComponent implements OnInit {
    * backend en cualquier guardado que no pase por la elección de lotes.
    */
   lotesPendientes: TransferenciaItemLoteInput[] = null;
+  /** Abrir el selector de lotes al cargar un ítem nuevo. Apagado desde #429: cantidad primero. */
+  private readonly elegirLotesAlCargar = false;
   /**
    * Presentación con la que se hizo la elección pendiente. Si el operador cambia de presentación
    * después de elegir lotes, el reparto queda expresado en una medida que ya no es la del ítem,
@@ -252,6 +254,8 @@ export class EditTransferenciaComponent implements OnInit {
   //filtro de productos
   filtroProductosOpen = false;
   filtroProductoControl = new FormControl(null);
+  /** Texto que se buscó con Enter: el del input puede estar a medio escribir. Toda carga de ítems lo usa. */
+  private filtroProductoAplicado: string = null;
   constructor(
     private matDialog: MatDialog,
     public mainService: MainService,
@@ -483,12 +487,20 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   getTransferenciaItemList() {
+    // Paginar, la carga inicial y las recargas piden lo mismo: antes paginar perdía el filtro de producto.
     this.cargarPaginaItems(
-      this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
-        this.selectedTransferencia.id,
-        this.pageIndex,
-        this.pageSize
-      )
+      this.filtroProductoAplicado
+        ? this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
+          this.selectedTransferencia.id,
+          this.filtroProductoAplicado,
+          this.pageIndex,
+          this.pageSize
+        )
+        : this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
+          this.selectedTransferencia.id,
+          this.pageIndex,
+          this.pageSize
+        )
     );
   }
 
@@ -758,6 +770,10 @@ export class EditTransferenciaComponent implements OnInit {
    * @returns true si abrió el diálogo, para que el llamador no siga moviendo el foco.
    */
   private abrirSeleccionDeLotesSiCorresponde(): boolean {
+    // Lotes flexibles fase 1 (#429): la cantidad va primero, como en cualquier producto. Elegir
+    // lotes es opcional y se hace después desde «Elegir lotes» en la fila; si no se eligen, el
+    // central reparte por FEFO y lo que no cubra queda SIN LOTE en origen y destino.
+    if (!this.elegirLotesAlCargar) return false;
     if (!this.isPreTransferenciaCreacion) return false;
     if (this.selectedProducto?.lote !== true) return false;
     const presentacion = this.presentacionControl.value;
@@ -1275,6 +1291,7 @@ export class EditTransferenciaComponent implements OnInit {
           etapa,
         },
         width: "500px",
+        maxWidth: "95vw",
       })
       .afterClosed()
       .subscribe((res) => {
@@ -1893,7 +1910,7 @@ export class EditTransferenciaComponent implements OnInit {
   abrirFiltroProductos() {
     this.filtroProductosOpen = !this.filtroProductosOpen;
     if (!this.filtroProductosOpen) {
-      this.getTransferenciaItemList();
+      this.aplicarFiltroProducto(null);
     } else {
       setTimeout(() => {
         this.focusFilterProductoInput();
@@ -1906,17 +1923,18 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onFilterProducto() {
-    let texto: string = this.filtroProductoControl.value;
-    if (texto != null && texto.trim().length > 0) {
-      this.cargarPaginaItems(
-        this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
-          this.selectedTransferencia.id,
-          texto,
-          this.pageIndex,
-          this.pageSize
-        )
-      );
+    const texto: string = this.filtroProductoControl.value;
+    this.aplicarFiltroProducto(texto != null && texto.trim().length > 0 ? texto : null);
+  }
+
+  /** Un filtro nuevo (o quitarlo) arranca en la página 1. */
+  private aplicarFiltroProducto(texto: string): void {
+    this.filtroProductoAplicado = texto;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
     }
+    this.getTransferenciaItemList();
   }
 
   onValidarCostoConDialogo(): Promise<boolean> {

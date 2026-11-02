@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `FRC` (`package.json` name), aplicación **desktop POS / admin** del producto **Franco Systems 3.0.9**. Es uno de los 4 componentes que forman `frc-comercial/`. Repo git independiente: `GabFrank/frc-sistemas-integrados-angular`.
 
-Stack: **Angular 15.1.5** + **Electron 22** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **en modo oscuro por defecto**, con modo claro opcional (botón del header): colores neutros siempre con los tokens `--frc-*`.
+Stack: **Angular 15.1.5** + **Electron 43** + **TypeScript** + **SCSS** + **Apollo Client 3.7** (GraphQL) + **Angular Material 15** + **ng-bootstrap** + **Playwright** (e2e). Husky para pre-commit hooks. App **en modo oscuro por defecto**, con modo claro opcional (botón del header): colores neutros siempre con los tokens `--frc-*`.
 
 Habla GraphQL contra `frc-comercial/central` (el server principal del SaaS). No habla con `frc-efact` (proyecto independiente con REST/Auth0).
 
@@ -26,6 +26,12 @@ npm run lint               # ng lint (ESLint)
 npm run verificar:imports  # Chequeo estático: nadie lee una constante del genérico al cargarse (segundos)
 npm run verificar:arranque # Abre dist/ en Electron y falla si queda en blanco (necesita build:prod antes)
 ```
+
+> ⚠️ **Node 22.12 o más** (`engines` del `package.json`, y el CI usa Node 22). Electron 43 no se
+> instala con Node 18. Además su paquete npm **ya no baja el binario al instalarse**: lo baja el
+> `postinstall` del proyecto con `install-electron` (idempotente: si ya está, sale enseguida). Si
+> `npm run electron`/`npm start` dice «Electron failed to install correctly», correr
+> `npx install-electron`.
 
 > ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` hace `npm ci`, `npm run verificar:imports`,
 > `npm run build:prod`, `npm run electron:serve-tsc` y, solo en ubuntu, `npm run verificar:arranque`
@@ -76,6 +82,9 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 
 ### Electron main process
 - Editar **siempre** `.ts` Y `.js` en paralelo (`main.ts` ↔ `main.js`, `preload.ts` ↔ `preload.js`). El `.ts` se compila vía `tsc -p tsconfig.serve.json` antes de cada electron serve, pero el `.js` es lo que efectivamente carga Electron en builds locales.
+- **La ventana corre sin Node** (`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, sin `@electron/remote`). El Angular no tiene `window.require`, `fs` ni `process`: todo lo del sistema operativo va por `window.electron` (expuesto por [app/preload.ts](app/preload.ts), tipado en `commons/core/electron/electron-bridge.ts`), que solo deja pasar los canales IPC de sus listas blancas. **Un canal nuevo en `main.ts` que use el Angular hay que agregarlo a la lista del tipo de llamada correspondiente** (`send`, `sendSync`, `invoke`, `on`); si no, tira «Canal IPC no permitido». Leer o escribir archivos se hace en un handler del main, nunca desde la pantalla.
+- **CSP en `src/index.html`**: `script-src` solo admite el bundle propio (sin `eval` ni código inline). Un recurso externo nuevo que no carga muestra «Refused to … Content Security Policy» en consola: agregar el origen en la directiva que corresponda, nunca `'unsafe-eval'`/`'unsafe-inline'` en `script-src`. Por la CSP el build va con `inlineCritical: false`, dev compila en AOT, y `verificar:arranque` consulta con `evaluate` (el `waitForFunction` de Playwright usa eval y queda colgado).
+- La ventana no puede navegar fuera de la app (`protegerNavegacion` en `main.ts`): enlaces externos se abren en el navegador del sistema, solo `http`/`https`/`mailto`.
 - Hay un instalador NSIS custom en [app/installer.nsh](app/installer.nsh) — propenso a romperse en updates entre canales (alpha → beta → stable). Ver [../../propuesta-fix-NSIS-1.md](../../propuesta-fix-NSIS-1.md) antes de tocar el flujo de update.
 - Sub-package interno: [electron-printer/](electron-printer/) — código aparte para impresión térmica con su propio `package.json` y `node_modules`.
 
@@ -128,6 +137,14 @@ App inicia → lee canal de config (alpha/beta/stable/dev)
            → si acepta: quitAndInstall() → NSIS instala → app reinicia
            → re-check automático cada 5 minutos mientras la app está abierta
 ```
+
+Con el instalador ya en caché, `electron-updater` vuelve a emitir `update-downloaded` en **cada**
+re-check. El handler de `main.ts` abre un solo diálogo a la vez (bandera
+`dialogoActualizacionAbierto`, liberada en un `finally`): sin ella, un diálogo sin contestar se
+apilaba con uno nuevo cada 5 min. Si «Mas tarde», vuelve a aparecer —uno— en el próximo re-check.
+El diálogo lleva `cancelId: 1`: cerrar con la X o Esc devuelve `cancelId`, y sin él Electron
+devuelve `0` («Cerrar y actualizar») e instalaba. Todo `showMessageBox` con una acción en el botón
+0 necesita su `cancelId`.
 
 ### Canales
 

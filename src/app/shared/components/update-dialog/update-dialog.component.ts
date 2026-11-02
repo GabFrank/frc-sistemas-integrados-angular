@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 import { ConfiguracionService, UpdateChannel } from '../../services/configuracion.service';
+import { electronBridge, ElectronBridge } from '../../../commons/core/electron/electron-bridge';
 
 @Component({
   selector: 'app-update-dialog',
@@ -14,19 +15,13 @@ export class UpdateDialogComponent implements OnInit, OnDestroy {
   checkingForUpdate: boolean = false;
   updateStatus: string = '';
 
-  private ipcRenderer: any = null;
-  private isElectron: boolean = false;
+  private ipcRenderer: ElectronBridge | null = electronBridge();
+  private dejarDeEscucharEstado: (() => void) | null = null;
 
   constructor(
     private dialogRef: MatDialogRef<UpdateDialogComponent>,
     private configService: ConfiguracionService
   ) {
-    this.isElectron = window && typeof window['require'] === 'function';
-    if (this.isElectron) {
-      try {
-        this.ipcRenderer = window['require']('electron').ipcRenderer;
-      } catch (e) { }
-    }
   }
 
   ngOnInit(): void {
@@ -42,17 +37,15 @@ export class UpdateDialogComponent implements OnInit, OnDestroy {
 
     // Listen for update events from main process
     if (this.ipcRenderer) {
-      this.ipcRenderer.on('update-status', this.onUpdateStatus);
+      this.dejarDeEscucharEstado = this.ipcRenderer.on('update-status', this.onUpdateStatus);
     }
   }
 
   ngOnDestroy(): void {
-    if (this.ipcRenderer) {
-      this.ipcRenderer.removeListener('update-status', this.onUpdateStatus);
-    }
+    this.dejarDeEscucharEstado?.();
   }
 
-  private onUpdateStatus = (_event: any, status: string) => {
+  private onUpdateStatus = (status: string) => {
     this.checkingForUpdate = false;
     this.updateStatus = status;
   }

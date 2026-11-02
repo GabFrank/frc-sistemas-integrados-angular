@@ -1,0 +1,52 @@
+<div class="contenedor">
+  <div class="barra">
+    <h3>Pendientes de lote</h3>
+    <mat-form-field appearance="outline">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [(ngModel)]="sucursalId" (selectionChange)="buscar()">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.id }} - {{ s.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <label>Desde <input class="campo-input" type="date" [(ngModel)]="desde" aria-label="Desde" /></label>
+    <label>Hasta <input class="campo-input" type="date" [(ngModel)]="hasta" aria-label="Hasta" /></label>
+    <button mat-stroked-button type="button" (click)="buscar()">Buscar</button>
+    <span class="detalle">{{ total }} pendiente(s)</span>
+  </div>
+  <mat-spinner *ngIf="cargando" diameter="30"></mat-spinner>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="!cargando && !error && filas.length === 0" class="vacio">No hay recepciones pendientes de lote.</div>
+  <div *ngIf="descartando" class="barra aviso">
+    Descartar {{ descartando.productoDescripcion }} (recepción {{ descartando.recepcionId }}), sin mover stock:
+    <input class="campo-input motivo-descarte" [(ngModel)]="motivoDescarte"
+           placeholder="Motivo (lote ilegible, ya vendido, ya atribuido a mano...)" aria-label="Motivo del descarte" />
+    <button mat-stroked-button color="warn" type="button" [disabled]="!motivoDescarte.trim()" (click)="confirmarDescarte()">Descartar</button>
+    <button mat-button type="button" (click)="descartando = null">Cancelar</button>
+  </div>
+  <table *ngIf="filas.length > 0">
+    <tr>
+      <th>Fecha</th><th>Sucursal</th><th>Producto</th><th>Proveedor</th><th>Recepción</th>
+      <th class="num">Recibido sin lote</th><th class="num">Pendiente</th><th></th>
+    </tr>
+    <tr *ngFor="let p of filas">
+      <td>{{ p.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+      <td>{{ p.sucursalNombre }}</td>
+      <td>{{ p.productoDescripcion }}</td>
+      <td>{{ p.proveedorNombre }}</td>
+      <td>{{ p.recepcionId }}</td>
+      <td class="num">{{ p.cantidad }}</td>
+      <td class="num">{{ p.remanente }}</td>
+      <td>
+        <ng-container *ngIf="puedeEditar">
+          <button mat-stroked-button color="primary" type="button" (click)="completar(p)">Completar</button>
+          <button mat-button type="button" (click)="descartar(p)">Descartar</button>
+        </ng-container>
+      </td>
+    </tr>
+  </table>
+  <div class="barra" *ngIf="total > size">
+    <button mat-button type="button" [disabled]="page === 0" (click)="buscar(page - 1)">Anterior</button>
+    <span>Página {{ page + 1 }} de {{ paginas }}</span>
+    <button mat-button type="button" [disabled]="page + 1 >= paginas" (click)="buscar(page + 1)">Siguiente</button>
+  </div>
+</div>

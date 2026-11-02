@@ -191,8 +191,9 @@
     mat-button
     type="button"
     (click)="cancelar()"
+    matTooltip="Agrega el producto y el sistema asigna el lote"
   >
-    Cancelar
+    Lote automático
   </button>
   <!-- El tooltip cuelga del span: un boton deshabilitado no emite los eventos que lo abren. -->
   <span [matTooltip]="motivoBloqueo" [matTooltipDisabled]="puedeConfirmar">

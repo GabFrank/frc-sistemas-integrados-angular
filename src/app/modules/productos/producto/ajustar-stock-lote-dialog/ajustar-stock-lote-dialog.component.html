@@ -113,9 +113,30 @@
         </mat-form-field>
       </div>
 
+      <div class="fila fila-liberar" *ngIf="hayLote">
+        <mat-checkbox formControlName="liberar">
+          Liberar a «SIN LOTE» (no cambia el stock del producto)
+        </mat-checkbox>
+      </div>
+
+      <mat-form-field class="campo-completo" *ngIf="hayLote">
+        <mat-label>Motivo{{ liberando ? ' (obligatorio)' : '' }}</mat-label>
+        <input matInput type="text" formControlName="motivo" maxlength="200" />
+      </mat-form-field>
+
+      <div class="nota nota-alerta" *ngIf="avisoLiberar">
+        <mat-icon class="nota-icono">warning</mat-icon>
+        {{ avisoLiberar }}
+      </div>
+
+      <div class="nota" *ngIf="liberando && hayAjuste && !avisoLiberar">
+        <mat-icon class="nota-icono">info</mat-icon>
+        {{ -diferencia }} unidades salen del lote y quedan como «SIN LOTE».
+      </div>
+
       <!-- Lo único que se avisa: el estado del lote y cómo queda el stock del producto. Todo lo
            demás lo resuelve el backend y no cambia lo que el operador tiene que decidir. -->
-      <div class="nota" *ngIf="hayAjuste && existenciaCargada">
+      <div class="nota" *ngIf="hayAjuste && existenciaCargada && !liberando">
         <mat-icon class="nota-icono">info</mat-icon>
         El stock del producto pasa de <strong>{{ existencia }}</strong>
         a <strong>{{ existenciaDespues }}</strong> unidades.

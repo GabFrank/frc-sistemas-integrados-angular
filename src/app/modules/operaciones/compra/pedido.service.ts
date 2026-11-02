@@ -23,6 +23,8 @@ import { GetPedidoResumenGQL, PedidoResumen } from './gestion-compras/graphql/ge
 import { Pedido } from './gestion-compras/pedido.model';
 import { PedidoItem, PedidoItemInput } from './gestion-compras/pedido-item.model';
 import { GetPedidoItemPorPedidoPageGQL } from './gestion-compras/graphql/getPedidoItemPage';
+import { GetVariacionCostoPedidoItemsGQL, VariacionCostoPedidoItem } from './gestion-compras/graphql/getVariacionCostoPedidoItems';
+import { ActualizarVencimientoPedidoItemGQL } from './gestion-compras/graphql/actualizarVencimientoPedidoItem';
 import { PageInfo } from '../../../app.component';
 
 // PedidoItemDistribucion imports
@@ -100,6 +102,8 @@ export class PedidoService {
 
   private rechazarNotaRecepcionItemGQL = inject(RechazarNotaRecepcionItemGQL);
   private dividirPedidoItemEnNotasGQL = inject(DividirPedidoItemEnNotasGQL);
+  private getVariacionCostoPedidoItemsGQL = inject(GetVariacionCostoPedidoItemsGQL);
+  private actualizarVencimientoPedidoItemGQL = inject(ActualizarVencimientoPedidoItemGQL);
 
   constructor(
     private genericCrudService: GenericCrudService,
@@ -193,6 +197,25 @@ export class PedidoService {
   onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto?: string, soloPendientes?: boolean): Observable<PageInfo<PedidoItem>> {
     return this.genericCrudService.onCustomQuery(this.getPedidoItemPorPedidoPageGQL, { pedidoId, page, size, texto, soloPendientes },
       true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_PEDIDO);
+  }
+
+  /**
+   * Variación del costo de cada ítem del pedido contra la última compra del producto (todos los ítems).
+   * Es solo decoración de la tabla: sin «Buscando…» ni avisos; ante un error emite null o no emite.
+   */
+  onGetVariacionCostoPedidoItems(pedidoId: number): Observable<VariacionCostoPedidoItem[]> {
+    return this.genericCrudService.onCustomQuery(this.getVariacionCostoPedidoItemsGQL, { pedidoId },
+      true, { graphError: { show: false }, networkError: { show: false } }, true,
+      { ...CONSULTA_PEDIDO, sinAviso: true });
+  }
+
+  /**
+   * Cambia el vencimiento esperado de un ítem del pedido.
+   * @param vencimiento - "yyyy-MM-dd", o null para dejarlo sin vencimiento
+   */
+  onActualizarVencimientoPedidoItem(pedidoItemId: number, vencimiento: string | null): Observable<PedidoItem> {
+    return this.genericCrudService.onCustomMutation(this.actualizarVencimientoPedidoItemGQL,
+      { pedidoItemId, vencimiento });
   }
 
   /**

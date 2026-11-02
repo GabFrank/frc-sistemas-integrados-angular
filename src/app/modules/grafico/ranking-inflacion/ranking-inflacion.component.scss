@@ -2,11 +2,11 @@
 
 $primary: #689F38;
 $warn: #F44336;
-$background: #424242;
-$background-dark: #303030;
-$text: #E0E0E0;
-$text-secondary: #9E9E9E;
-$border: #555;
+$background: var(--frc-superficie-elevada);
+$background-dark: var(--frc-fondo);
+$text: var(--frc-dash-texto);
+$text-secondary: var(--frc-dash-texto-2);
+$border: var(--frc-borde-solido-fuerte);
 
 .ranking-inflacion-container {
   min-height: 100%;

@@ -64,12 +64,15 @@ const ENVIO_A_FILIAL_SIN_CONFIRMAR =
  * `FILIAL_RECHAZO`), y eso manda. Un central anterior no manda código: se reconoce por el texto de
  * `FacturaLegalFilialService`, anclado a su prefijo. Un error sin código ni ese prefijo (el central falló fuera de
  * su `catch`, por ejemplo al commitear después del 201) cuenta como sin confirmar: un aviso de más es el lado seguro.
+ * La excepción es un «No autorizado» del central (control de rol antes del envío), siempre que sean todos así.
  */
 export function esEnvioAFilialSinConfirmar(error: any): boolean {
   if (!Array.isArray(error)) return false;
   const codigos = error.map((e) => e?.extensions?.codigo);
   if (codigos.includes("FILIAL_SIN_CONFIRMAR")) return true;
   if (codigos.includes("FILIAL_RECHAZO")) return false;
+  // Un rechazo de rol del central corta antes de llamar al filial: no se emitió nada.
+  if (error.every((e) => typeof e?.message === "string" && /^No autorizado/.test(e.message))) return false;
   const delCentral = (e: any) => typeof e?.message === "string" && e.message.startsWith(PREFIJO_ENVIO_A_FILIAL);
   if (!error.every(delCentral)) return true;
   return error.some((e) => ENVIO_A_FILIAL_SIN_CONFIRMAR.test(e.message));

@@ -55,6 +55,8 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
   }
 
   onFiltrar() {
+    this.page = 0;
+    this.isLastPage = false;
     this.cargarDatos()
   }
 

@@ -107,7 +107,7 @@
         (clickEvent)="onIniciarCanje()"></app-boton>
     </div>
     <div class="boton" *ngIf="puedeImprimirEtiquetas">
-      <app-boton nombre="Imprimir etiquetas" (clickEvent)="onImprimirEtiquetas()"></app-boton>
+      <app-boton nombre="Imprimir etiqueta" (clickEvent)="onImprimirEtiquetas()"></app-boton>
     </div>
     <div class="boton" *ngIf="canRevertir">
       <app-boton nombre="Revertir" [disableExpression]="procesando" (clickEvent)="onRevertir()"></app-boton>

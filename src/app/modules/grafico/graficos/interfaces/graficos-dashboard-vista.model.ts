@@ -14,6 +14,7 @@ export interface GraficosDashboardVista {
   analisisProducto: EChartsOption | null;
   evolucionCosto: EChartsOption | null;
   rankingInflacion: EChartsOption | null;
+  conveniosSucursal: EChartsOption | null;
 }
 
 export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
@@ -30,4 +31,5 @@ export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
   analisisProducto: null,
   evolucionCosto: null,
   rankingInflacion: null,
+  conveniosSucursal: null,
 };

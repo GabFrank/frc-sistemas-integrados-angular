@@ -26,7 +26,8 @@ import {
 } from '../../../../commons/core/utils/dateUtils';
 import { combineDateTime } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -121,18 +122,37 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      this.onFiltrar();
+      this.buscar();
     }, 500);
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar(): void {
-    if (!this.schemaControl.value) {
-      this.notificacionService.openWarn('Debe seleccionar un módulo');
+    // Validar antes: si no, el paginador quedaría en 1 con la tabla todavía en la página anterior.
+    if (!this.filtrosValidos()) {
       return;
     }
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
 
+  private filtrosValidos(): boolean {
+    if (!this.schemaControl.value) {
+      this.notificacionService.openWarn('Debe seleccionar un módulo');
+      return false;
+    }
     if (!this.fechaInicioControl.value || !this.fechaFinalControl.value) {
       this.notificacionService.openWarn('Debe seleccionar un rango de fechas');
+      return false;
+    }
+    return true;
+  }
+
+  buscar(): void {
+    if (!this.filtrosValidos()) {
       return;
     }
 
@@ -228,52 +248,32 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
           }
         );
     } else {
-      const busquedas = schemasABuscar.map(schema =>
-        this.service.onModificacionesPorSchema(
-          schema,
-          fechaInicio,
-          fechaFin,
-          this.pageIndex,
-          this.pageSize
+      const pagina = this.pageIndex;
+      const tamanio = this.pageSize;
+      // Los módulos se paginan juntos en el central: pedir la página N a cada uno pierde filas (#583).
+      this.service
+        .onModificacionesPorSchemas(schemasABuscar, fechaInicio, fechaFin, pagina, tamanio)
+        .pipe(
+          // shortcut: respaldo para un central que todavía no tiene modificacionesPorSchemas; borrarlo cuando todos los canales la tengan.
+          // Solo si el central no conoce la query: un timeout o un error de red no se repite con consultas más pesadas.
+          catchError(e => /FieldUndefined|Cannot query field/.test(e?.message)
+            ? this.unirEnCliente(schemasABuscar, fechaInicio, fechaFin, pagina, tamanio)
+            : throwError(() => e)),
+          untilDestroyed(this)
         )
-      );
-
-      forkJoin(busquedas)
-        .pipe(untilDestroyed(this))
         .subscribe(
-          (resultados: PageInfo<ModificacionRegistro>[]) => {
-            let contenidoCombinado: ModificacionRegistro[] = [];
-            let totalElementos = 0;
-
-            resultados.forEach(res => {
-              if (res.getContent) {
-                contenidoCombinado = contenidoCombinado.concat(res.getContent);
-                totalElementos += res.getTotalElements || 0;
-              }
-            });
-
-            contenidoCombinado.sort((a, b) => {
-              const fechaA = new Date(a.modificadoEn).getTime();
-              const fechaB = new Date(b.modificadoEn).getTime();
-              return fechaB - fechaA;
-            });
-
-            const contenidoProcesado = contenidoCombinado.map(reg => ({
+          (resultado: PageInfo<ModificacionRegistro>) => {
+            this.selectedPageInfo = resultado;
+            this.dataSource.data = resultado.getContent.map(reg => ({
               ...reg,
               tipoOperacionLabel: this.getTipoOperacionLabel(reg.tipoOperacion),
               tipoOperacionColor: this.getTipoOperacionColor(reg.tipoOperacion)
             }));
 
-            const contenidoPaginado = contenidoProcesado.slice(0, this.pageSize);
-
-            this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
-            this.selectedPageInfo.getTotalElements = totalElementos;
-            this.dataSource.data = contenidoPaginado;
-
             this.isSearching = false;
             this.cdr.markForCheck();
 
-            if (contenidoProcesado.length === 0) {
+            if (resultado.getTotalElements === 0) {
               this.notificacionService.openWarn('No se encontraron modificaciones');
             }
           },
@@ -284,6 +284,34 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
           }
         );
     }
+  }
+
+  // Cada módulo trae desde el principio hasta el final de la página pedida y la página se corta del
+  // resultado unido, con el id como desempate de fechas iguales.
+  private unirEnCliente(
+    schemas: string[],
+    inicio: Date,
+    fin: Date,
+    pagina: number,
+    tamanio: number
+  ): Observable<PageInfo<ModificacionRegistro>> {
+    const varios = schemas.length > 1;
+    const desde = varios ? pagina * tamanio : 0;
+    const hasta = desde + tamanio;
+    const busquedas = schemas.map(schema =>
+      this.service.onModificacionesPorSchema(schema, inicio, fin, varios ? 0 : pagina, hasta)
+    );
+    return forkJoin(busquedas).pipe(
+      map(resultados => {
+        const unido = new PageInfo<ModificacionRegistro>();
+        unido.getTotalElements = resultados.reduce((total, r) => total + (r.getTotalElements || 0), 0);
+        unido.getContent = [].concat(...resultados.map(r => r.getContent || []))
+          .sort((a: ModificacionRegistro, b: ModificacionRegistro) =>
+            new Date(b.modificadoEn).getTime() - new Date(a.modificadoEn).getTime() || b.id - a.id)
+          .slice(desde, hasta);
+        return unido;
+      })
+    );
   }
 
 
@@ -297,6 +325,10 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
     this.schemaControl.setValue('productos');
     this.tipoEntidadControl.setValue(null);
     this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.selectedPageInfo = null;
     this.dataSource.data = [];
     this.expandedModificacion = null;
     this.selectedModificacion = null;
@@ -307,7 +339,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   toggleRow(row: ModificacionRegistro): void {

@@ -35,7 +35,7 @@ import {
   ComprasSearchProductoResponse,
 } from "../gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
-import { interval } from "rxjs";
+import { interval, Subscription } from "rxjs";
 import { SucursalRecepcionFisica } from "../gestion-compras/graphql/getPedidoRecepcionFisicaResumen";
 import {
   ImprimirPedidoDialogComponent,
@@ -138,7 +138,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFilter();
+      this.buscar();
     }, 0);
 
     this.fechaFormGroup = new FormGroup({
@@ -151,7 +151,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     this.loadProveedores();
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(() => {
-      this.onFilter();
+      this.buscar();
     });
   }
 
@@ -160,7 +160,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
-    this.onFilter();
+    this.buscar();
   }
 
   loadSucursales() {
@@ -182,7 +182,20 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     // Proveedores se cargan mediante búsqueda cuando el usuario lo necesita
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  /** La consulta en vuelo de un filtro o una página anterior (o del refresco de 5 min) no pisa la nueva. */
+  private listaSub: Subscription;
+
+  buscar() {
+    this.listaSub?.unsubscribe();
     if (this.fechaFinControl.value == null)
       this.fechaFinControl.setValue(this.today);
     let unaSemanaAtras = new Date();
@@ -196,7 +209,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
       fechaInicio.setHours(0, 0, 0);
       fechaFin.setHours(23, 59, 59);
       
-      this.pedidoService
+      this.listaSub = this.pedidoService
         .onGetPedidosWithFilters(
           this.sucursalControl.value?.id || null,
           this.selectedProducto?.id,
@@ -219,7 +232,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
           error: () => this.avisarListaSinRespuesta(),
         });
     } else {
-      this.pedidoService
+      this.listaSub = this.pedidoService
         .onGetPedidoById(this.idControl.value)
         .subscribe({
           next: (res) => {
@@ -377,7 +390,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
             index
           );
           // El verde «Pedido cancelado correctamente» lo muestra onDelete: antes salían dos (#501)
-          this.onFilter(); // Refresh list
+          this.buscar(); // Refresh list
         } else if (res === null) {
           // onDelete ya avisó (rechazo o sin respuesta) y no emite error: el pedido pudo cancelarse igual,
           // así que se recarga la lista a los 5 s (#488)
@@ -406,7 +419,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     const timeout = setTimeout(() => {
       this.recargasTrasCorte.delete(timeout);
       if (!this.destruido) {
-        this.onFilter();
+        this.buscar();
       }
     }, RECARGA_TRAS_CORTE_MS);
     this.recargasTrasCorte.add(timeout);
@@ -426,7 +439,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFilter();
+    this.buscar();
   }
 
   onSearchProducto() {

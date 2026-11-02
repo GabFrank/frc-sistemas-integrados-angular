@@ -403,6 +403,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
   }
 
+  /**
+   * La moneda de la nota llega de la consulta, no es el mismo objeto que las
+   * opciones: sin comparar por id el selector queda vacío.
+   */
+  readonly compararMoneda = (a: any, b: any): boolean => a?.id != null && a?.id === b?.id;
+
   private initializeForm(): void {
     this.notaRecepcionForm = this.formBuilder.group({
       numero: [

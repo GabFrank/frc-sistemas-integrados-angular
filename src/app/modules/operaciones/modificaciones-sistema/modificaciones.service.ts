@@ -4,6 +4,7 @@ import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { ModificacionRegistro, ModificacionDetalle } from './modificaciones.models';
 import { ModificacionesPorSchemaGQL } from './graphql/modificacionesPorSchema';
+import { ModificacionesPorSchemasGQL } from './graphql/modificacionesPorSchemas';
 import { ModificacionesPorTipoEntidadGQL } from './graphql/modificacionesPorTipoEntidad';
 import { ModificacionesPorTipoEntidadAndSchemaGQL } from './graphql/modificacionesPorTipoEntidadAndSchema';
 import { ModificacionRegistroGQL } from './graphql/modificacionRegistro';
@@ -19,6 +20,7 @@ export class ModificacionesService {
   constructor(
     private genericService: GenericCrudService,
     private modificacionesPorSchema: ModificacionesPorSchemaGQL,
+    private modificacionesPorSchemas: ModificacionesPorSchemasGQL,
     private modificacionesPorTipoEntidad: ModificacionesPorTipoEntidadGQL,
     private modificacionesPorTipoEntidadAndSchema: ModificacionesPorTipoEntidadAndSchemaGQL,
     private modificacionRegistro: ModificacionRegistroGQL,
@@ -42,6 +44,30 @@ export class ModificacionesService {
         size: size
       },
       true
+    ).pipe(
+      map((response: any) => this.mapToPageInfo(response))
+    );
+  }
+
+  /** Varios esquemas paginados juntos en el central. Propaga el error sin avisar: quien llama decide el respaldo. */
+  onModificacionesPorSchemas(
+    schemaNombres: string[],
+    inicio: Date,
+    fin: Date,
+    page: number,
+    size: number
+  ): Observable<PageInfo<ModificacionRegistro>> {
+    return this.genericService.onCustomQuery(
+      this.modificacionesPorSchemas,
+      {
+        schemaNombres,
+        inicio: dateToString(inicio),
+        fin: dateToString(fin),
+        page,
+        size
+      },
+      true,
+      { graphError: { propagate: true, show: false } }
     ).pipe(
       map((response: any) => this.mapToPageInfo(response))
     );

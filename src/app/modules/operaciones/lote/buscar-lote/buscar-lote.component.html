@@ -1,0 +1,114 @@
+<div class="buscar-lote">
+  <h2 class="titulo">Buscar lote</h2>
+
+  <div *ngIf="!puedeVer" class="aviso">
+    Para buscar lotes hace falta ver productos y además análisis de caja o de venta.
+  </div>
+
+  <div *ngIf="puedeVer" class="filtros" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
+    <mat-form-field fxFlex="260px">
+      <mat-label>Número de lote</mat-label>
+      <input matInput [formControl]="numeroControl" placeholder="Ej: 03497" (keyup.enter)="onBuscar()" autocomplete="off" />
+      <mat-hint>No importan mayúsculas, espacios ni ceros adelante</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="340px">
+      <mat-label>Producto (opcional)</mat-label>
+      <input matInput readonly [value]="producto?.descripcion || ''" placeholder="Elegir producto..." (click)="onElegirProducto()" />
+      <button *ngIf="producto" type="button" matSuffix mat-icon-button aria-label="Quitar producto" (click)="onQuitarProducto()">
+        <mat-icon>clear</mat-icon>
+      </button>
+      <mat-icon *ngIf="!producto" matSuffix class="clic" (click)="onElegirProducto()">search</mat-icon>
+      <mat-hint>Con producto, si no aparece te dice desde cuándo se controla</mat-hint>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="button" [disabled]="buscando || !numeroControl.value?.trim()" (click)="onBuscar()">
+      <mat-icon>search</mat-icon> Buscar
+    </button>
+  </div>
+
+  <mat-progress-bar *ngIf="buscando" mode="indeterminate"></mat-progress-bar>
+
+  <div *ngIf="error" class="aviso error">{{ error }}</div>
+
+  <ng-container *ngIf="resultado as r">
+    <!-- Encontrado -->
+    <ng-container *ngIf="r.encontrado">
+      <div class="sub" *ngIf="!r.coincidenciaExacta">
+        No hay un lote exactamente «{{ r.numeroBuscado }}». Lotes que lo contienen:
+      </div>
+      <div class="sub" *ngIf="r.coincidenciaExacta && r.lotes.length > 1">
+        {{ r.lotes.length }} lotes con ese número (de distintos productos):
+      </div>
+
+      <div class="tarjeta" *ngFor="let l of r.lotes; trackBy: trackLote" [class.abierta]="expandido === l.loteId">
+        <div class="cabecera" (click)="onExpandir(l)">
+          <div class="lote">
+            <span class="numero">Lote {{ l.numeroLote }}</span>
+            <span class="producto">{{ l.productoDescripcion }}</span>
+          </div>
+          <mat-icon>{{ expandido === l.loteId ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+        <div class="datos">
+          <div><span class="et">Vence</span>{{ fecha(l.fechaVencimiento) }}</div>
+          <div><span class="et">Proveedor</span>{{ l.proveedorNombre || '-' }}</div>
+          <div><span class="et">Estado</span>{{ estado(l) }}</div>
+          <div><span class="et">Entró</span>{{ fecha(l.primeraEntradaFecha) }}
+            <span *ngIf="l.primeraEntradaTipo" class="tenue">({{ tipoMovimiento(l.primeraEntradaTipo) | lowercase }}<ng-container *ngIf="l.primeraEntradaDocumentoId"> nº {{ l.primeraEntradaDocumentoId }}</ng-container>)</span>
+          </div>
+          <div><span class="et">Vendido</span>{{ l.totalVendido | number:'1.0-2' }} u. en {{ l.cantidadVentas }} venta(s)</div>
+          <div><span class="et">Saldo hoy</span>{{ l.saldoTotal | number:'1.0-2' }} u.</div>
+        </div>
+
+        <div class="detalle" *ngIf="expandido === l.loteId">
+          <div class="et">Saldo por sucursal</div>
+          <ng-container *ngIf="sucursalesPorLote[l.loteId] as sucs; else cargandoSuc">
+            <div *ngIf="!sucs.length" class="tenue">Sin saldo en ninguna sucursal.</div>
+            <div *ngFor="let s of sucs" class="suc">
+              <span>{{ s.sucursalNombre }}</span><span>{{ s.cantidadDisponible | number:'1.0-2' }}</span>
+            </div>
+          </ng-container>
+          <ng-template #cargandoSuc><div class="tenue">Cargando...</div></ng-template>
+          <button mat-stroked-button type="button" (click)="onVerHistorial(l)">
+            <mat-icon>history</mat-icon> Ver historial (ventas y clientes)
+          </button>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Sin registro: nunca afirma "nunca entró" -->
+    <div *ngIf="!r.encontrado" class="tarjeta sin-registro">
+      <div class="numero">No hay registro de este lote en el sistema</div>
+      <div class="tenue">Buscado: «{{ r.numeroBuscado }}»</div>
+
+      <ng-container [ngSwitch]="nivelSinRegistro(r.trazabilidad)">
+        <div *ngSwitchCase="'sin-producto'" class="linea">
+          Elegí el producto y buscá de nuevo para saber desde cuándo se controla su lote.
+        </div>
+        <div *ngSwitchCase="'producto-sin-control'" class="linea">
+          {{ r.trazabilidad.productoDescripcion }} no tiene control de lote: el sistema no puede confirmarlo.
+        </div>
+        <ng-container *ngSwitchDefault>
+          <div class="linea">
+            Se controla el lote de {{ r.trazabilidad.productoDescripcion }} desde el
+            <b>{{ fecha(r.trazabilidad.trazadoDesde) }}</b>.
+          </div>
+          <div class="linea" *ngIf="r.trazabilidad.comprasAnteriores > 0">
+            Compras anteriores a esa fecha: <b>{{ r.trazabilidad.comprasAnteriores }}</b> (su lote no se conoce).
+          </div>
+          <div class="linea" *ngIf="r.trazabilidad.entradasSinLote?.length">
+            Entradas sin lote desde entonces:
+            <ul>
+              <li *ngFor="let e of r.trazabilidad.entradasSinLote">
+                {{ tipoMovimiento(e.tipoMovimiento) }}: {{ e.movimientos }} ({{ e.cantidad | number:'1.0-2' }} u.)
+              </li>
+            </ul>
+          </div>
+          <div class="linea fuerte" *ngIf="r.trazabilidad.todasLasEntradasConLote">
+            Todas las entradas del producto desde el {{ fecha(r.trazabilidad.trazadoDesde) }} tienen lote registrado.
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>

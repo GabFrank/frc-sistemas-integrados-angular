@@ -52,10 +52,19 @@ export class ListPrestamoComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.prestamoService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -72,25 +81,24 @@ export class ListPrestamoComponent implements OnInit {
   onResetFiltro() {
     this.funcionarioControl.setValue(null);
     this.estadoControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNuevo() {
     this.dialog.open(EditPrestamoDialogComponent, {
       data: { funcionarioId: this.funcionarioControl.value },
       width: '560px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.buscar(); });
   }
 
   onVerCuotas(prestamo: Prestamo) {
     this.dialog.open(PrestamoCuotasDialogComponent, { data: { prestamo }, width: '640px', disableClose: false })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(() => { this.onFiltrar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(() => { this.buscar(); });
   }
 }

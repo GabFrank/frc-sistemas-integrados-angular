@@ -1006,7 +1006,7 @@ export const transferenciaItemQuery = gql`
 
 
 export const transferenciaItensPorTransferenciaIdWithFilter = gql`
-  query ($id: Int, $name: String, $page:Int = 0, $size:Int = 10) {
+  query ($id: ID, $name: String, $page:Int = 0, $size:Int = 10) {
     data: transferenciaItensPorTransferenciaIdWithFilter(
       id: $id
       name: $name

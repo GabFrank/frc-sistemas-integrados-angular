@@ -1,5 +1,7 @@
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
+import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.constantes';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -455,10 +457,12 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       // guardar acá lo pisaba con el sueldo viejo — el síntoma era que el salario "volvía"
       // solo al mínimo legal, que suele ser el valor anterior.
 
-      this.funcionarioService.onSaveFuncionario(input).pipe(
+      this.funcionarioService.onSaveFuncionario(input, true, PROPAGAR_ERROR_DE_RED).pipe(
         // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
-        terminarSiFalla(() => this.notificacion.openWarn(
-          'Los datos personales se guardaron, pero los del funcionario no. Volvé a guardar.', 6)),
+        // Un rechazo (su motivo ya lo mostró el servicio) no se arregla reintentando; sin respuesta, pudo guardarse.
+        terminarSiFalla((error) => this.notificacion.openWarn(esRechazoDelServidor(error)
+          ? 'Los datos personales se guardaron, pero el servidor rechazó los del funcionario.'
+          : 'Los datos personales se guardaron; no se pudo confirmar si los del funcionario también: revisalos antes de volver a guardar.', 8)),
         untilDestroyed(this)
       ).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }

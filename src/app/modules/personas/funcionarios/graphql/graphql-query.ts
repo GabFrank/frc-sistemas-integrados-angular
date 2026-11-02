@@ -91,6 +91,7 @@ export const funcionariosWithPageQuery = gql`
             horaEntrada
             horaSalida
           }
+          horarioResumen
         } 
       }
     }

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { GenericListService } from './generic-list.service';
 
 import { WindowInfoService } from '../../services/window-info.service';
@@ -93,6 +93,7 @@ export class GenericListComponent implements OnInit {
 
   constructor(
     public windowInfoService: WindowInfoService,
+    private cdr: ChangeDetectorRef,
   ) {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.80;
@@ -140,6 +141,8 @@ export class GenericListComponent implements OnInit {
     this.bloqueados = { ...this.bloqueados, [boton]: true };
     setTimeout(() => {
       this.bloqueados = { ...this.bloqueados, [boton]: false };
+      // Si el padre es OnPush, sin esto el tick saltea la vista y el boton queda deshabilitado (#576).
+      this.cdr.markForCheck();
     }, 1000);
   }
 

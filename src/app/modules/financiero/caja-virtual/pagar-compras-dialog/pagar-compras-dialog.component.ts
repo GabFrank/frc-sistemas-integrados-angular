@@ -339,7 +339,7 @@ export class PagarComprasDialogComponent implements OnInit {
         : this.conceptoRrhh === 'FINIQUITO' ? 'finiquitos' : 'aguinaldos';
       this.displayedColumns = ['sel', 'id', 'funcionario', 'periodo', 'descripcion', 'saldo', 'montoAPagar'];
       // Filtros de la tabla: N° / Funcionario (client-side sobre lo cargado).
-      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
     }
     if (this.esVale) {
       this.titulo = 'Pagar Vale';
@@ -349,16 +349,16 @@ export class PagarComprasDialogComponent implements OnInit {
         if (res != null) this.motivoList = res;
       });
       // Filtros de la tabla: N° / Funcionario / Motivo (client-side sobre lo cargado).
-      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
-      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
+      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
     }
     if (this.esGasto) {
       this.titulo = 'Pagar Gasto';
       this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar'];
       // Filtros de la tabla (client-side sobre lo cargado).
-      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
-      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
-      this.filtroDescripcionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
+      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
+      this.filtroDescripcionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
     }
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
@@ -384,7 +384,7 @@ export class PagarComprasDialogComponent implements OnInit {
       this.cargarChequerasActivas();
     }
     this.cargar();
-    this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+    this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
   }
 
   /** Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud). */
@@ -562,6 +562,12 @@ export class PagarComprasDialogComponent implements OnInit {
       thousands: '.', decimal: dec > 0 ? ',' : '', align: 'right',
       prefix: (moneda?.simbolo ? moneda.simbolo + ' ' : ''), suffix: '', nullable: true, min: 0, max: null,
     };
+  }
+
+  /** Cambio de un filtro: la página actual puede quedar fuera del resultado. La carga y las recargas usan aplicarFiltro() y conservan la página. */
+  filtrarDesdeLaPrimeraPagina() {
+    this.aplicarFiltro();
+    this.dataSource.paginator?.firstPage();
   }
 
   aplicarFiltro() {

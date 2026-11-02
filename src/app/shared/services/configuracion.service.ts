@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError, Subject } from 'rxjs';
+import { Observable, of, throwError, Subject, from } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
 import { apiCentralDelHost } from '../../commons/core/utils/webEndpoints';
+import { electronBridge } from '../../commons/core/electron/electron-bridge';
 
 export type UpdateChannel = 'stable' | 'beta' | 'alpha' | 'dev';
 
@@ -115,11 +116,11 @@ export class ConfiguracionService {
 
   private leerCanalDelMain(): UpdateChannel | null {
     try {
-      const isElectron = window && typeof window['require'] === 'function';
-      if (!isElectron) {
+      const bridge = electronBridge();
+      if (!bridge) {
         return null;
       }
-      const canal = window['require']('electron').ipcRenderer.sendSync('get-update-channel');
+      const canal = bridge.sendSync('get-update-channel');
       return ['stable', 'beta', 'alpha', 'dev'].includes(canal) ? canal : null;
     } catch (e) {
       console.warn('No se pudo leer el canal de actualización del main:', e);
@@ -270,70 +271,30 @@ export class ConfiguracionService {
       console.warn('Error checking localStorage backup:', e);
     }
 
-    // Check if we're in Electron environment
-    const isElectron = window && typeof window['require'] === 'function';
-
-    if (isElectron) {
-      try {
-        const fs = window['require']('fs');
-        const path = window['require']('path');
-        let userDataPath = '';
-        let homePath = '';
-        let appPath = '';
-
-        try {
-          // Try to get Electron's app paths
-          const remote = window['require']('@electron/remote');
-          if (remote && remote.app) {
-            try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
-            try { homePath = remote.app.getPath('home'); } catch (e) { }
-            try { appPath = remote.app.getPath('appData'); } catch (e) { }
+    // En Electron, el respaldo en disco lo lee el proceso principal (la pantalla no tiene fs)
+    const bridge = electronBridge();
+    const desdeDisco$: Observable<ConfiguracionSistema | null> = bridge
+      ? from(bridge.invoke<string | null>('leer-config-backup')).pipe(
+        map((texto) => {
+          if (!texto) {
+            return null;
           }
-        } catch (e) {
-          // Fallback to environment variables
-          console.warn('Could not get Electron app paths, falling back to environment variables', e);
-          homePath = process.env.HOME || process.env.USERPROFILE || '';
-          try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) { }
-        }
-
-        // Try to find the backup file in the same locations we might have saved it
-        const possiblePaths = [
-          userDataPath ? path.join(userDataPath, 'config', BACKUP_FILE_NAME) : null,
-          appPath ? path.join(appPath, 'frc-sistemas', BACKUP_FILE_NAME) : null,
-          homePath ? path.join(homePath, '.frc-sistemas', BACKUP_FILE_NAME) : null
-        ].filter(Boolean);
-
-        // Try each path until we find the file
-        for (const filePath of possiblePaths) {
-          try {
-            if (fs.existsSync(filePath)) {
-              const fileContent = fs.readFileSync(filePath, 'utf8');
-              const config = JSON.parse(fileContent);
-              console.log('Found configuration backup file at:', filePath);
-
-              // Validate the configuration before using it
-              if (config && config.serverIp && config.serverPort) {
-                // Found valid config in file
-                const validatedConfig = this.validateConfigObject(config);
-                console.log('Using validated configuration from backup file');
-                return of(validatedConfig);
-              }
-            }
-          } catch (e) {
-            console.warn(`Error reading backup file at ${filePath}:`, e);
-            // Continue to next path
+          const config = JSON.parse(texto);
+          if (config && config.serverIp && config.serverPort) {
+            console.log('Using validated configuration from backup file');
+            return this.validateConfigObject(config);
           }
-        }
+          return null;
+        }),
+        catchError((e) => {
+          console.warn('No se pudo leer el respaldo de configuración en disco:', e);
+          return of(null);
+        })
+      )
+      : of(null);
 
-        // If we got here, we failed to find a valid backup in any of the local paths
-        console.warn('No valid configuration found in backup files');
-      } catch (e) {
-        console.error('Error trying to load backup files in Electron environment:', e);
-      }
-    }
-
-    // If Electron file loading failed or we're not in Electron, try the asset file as a last resort
-    return this.http.get<ConfiguracionSistema>(BACKUP_CONFIG_FILE).pipe(
+    // Si no hay respaldo en disco (o no es Electron), el archivo de assets como último recurso
+    return desdeDisco$.pipe(switchMap((configDisco) => configDisco ? of(configDisco) : this.http.get<ConfiguracionSistema>(BACKUP_CONFIG_FILE).pipe(
       map(config => {
         if (!config) {
           console.warn('Assets backup file contained null or invalid configuration');
@@ -355,7 +316,7 @@ export class ConfiguracionService {
         console.warn('No backup configuration file found in assets.', err);
         return of(null);
       })
-    );
+    )));
   }
 
   /**
@@ -392,112 +353,20 @@ export class ConfiguracionService {
    * @param config Configuration to save
    */
   private saveToBackupFile(config: ConfiguracionSistema): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      try {
-        // Create JSON data
-        const configData = JSON.stringify(config, null, 2);
-
-        // Check if running in Electron environment
-        const isElectron = window && typeof window['require'] === 'function';
-
-        if (isElectron) {
-          try {
-            // Electron environment - save to userData folder
-            const fs = window['require']('fs');
-            const path = window['require']('path');
-            let userDataPath = '';
-            let homePath = '';
-            let appPath = '';
-
-            try {
-              // Try to get Electron's app paths
-              const remote = window['require']('@electron/remote');
-              if (remote && remote.app) {
-                try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
-                try { homePath = remote.app.getPath('home'); } catch (e) { }
-                try { appPath = remote.app.getPath('appData'); } catch (e) { }
-              }
-            } catch (e) {
-              // Fallback to environment variables
-              console.warn('Could not get Electron app paths, falling back to environment variables', e);
-              homePath = process.env.HOME || process.env.USERPROFILE || '';
-              try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) { }
-            }
-
-            // Define backup file path - first try userData (preferred)
-            let backupFilePath = '';
-            if (userDataPath) {
-              try {
-                // Ensure the directory exists
-                const configDir = path.join(userDataPath, 'config');
-                if (!fs.existsSync(configDir)) {
-                  fs.mkdirSync(configDir, { recursive: true });
-                }
-                backupFilePath = path.join(configDir, BACKUP_FILE_NAME);
-              } catch (e) {
-                console.warn('Failed to create config directory in userData:', e);
-              }
-            }
-
-            // If userData path didn't work, try appData
-            if (!backupFilePath && appPath) {
-              try {
-                // Ensure the directory exists
-                const configDir = path.join(appPath, 'frc-sistemas');
-                if (!fs.existsSync(configDir)) {
-                  fs.mkdirSync(configDir, { recursive: true });
-                }
-                backupFilePath = path.join(configDir, BACKUP_FILE_NAME);
-              } catch (e) {
-                console.warn('Failed to create config directory in appData:', e);
-              }
-            }
-
-            // Last resort - try home directory
-            if (!backupFilePath && homePath) {
-              try {
-                const configDir = path.join(homePath, '.frc-sistemas');
-                if (!fs.existsSync(configDir)) {
-                  fs.mkdirSync(configDir, { recursive: true });
-                }
-                backupFilePath = path.join(configDir, BACKUP_FILE_NAME);
-              } catch (e) {
-                console.warn('Failed to create config directory in home:', e);
-              }
-            }
-
-            // If we have a path, write the file
-            if (backupFilePath) {
-              fs.writeFileSync(backupFilePath, configData, 'utf8');
-              console.log('Configuration backup saved to:', backupFilePath);
-
-              // Also save to localStorage backup for additional redundancy
-              localStorage.setItem('config_backup', configData);
-
-              resolve();
-            } else {
-              throw new Error('Could not determine a writable location for backup file');
-            }
-          } catch (e) {
-            console.error('Error saving configuration backup in Electron environment:', e);
-
-            // Fall back to localStorage backup only
-            localStorage.setItem('config_backup', configData);
-            console.log('Saved configuration backup to localStorage only');
-
-            resolve(); // Still resolve as we at least saved to localStorage
-          }
-        } else {
-          // Browser environment - just save to localStorage backup
-          localStorage.setItem('config_backup', configData);
-          console.log('In browser environment, saved configuration backup to localStorage only');
-          resolve();
-        }
-      } catch (error) {
-        console.error('Error in saveToBackupFile:', error);
-        reject(error);
+    try {
+      const configData = JSON.stringify(config, null, 2);
+      // Copia en localStorage siempre; en Electron además el proceso principal la escribe en
+      // userData/config/config-backup.json (la pantalla no tiene acceso a disco).
+      localStorage.setItem('config_backup', configData);
+      const bridge = electronBridge();
+      if (bridge) {
+        bridge.send('save-config-backup', configData);
       }
-    });
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error in saveToBackupFile:', error);
+      return Promise.reject(error);
+    }
   }
 
   /**
@@ -505,12 +374,11 @@ export class ConfiguracionService {
    */
   private syncConfigToMainProcess(config: ConfiguracionSistema): void {
     try {
-      const isElectron = window && typeof window['require'] === 'function';
-      if (isElectron) {
-        const { ipcRenderer } = window['require']('electron');
-        ipcRenderer.send('save-config-backup', JSON.stringify(config, null, 2));
+      const bridge = electronBridge();
+      if (bridge) {
+        bridge.send('save-config-backup', JSON.stringify(config, null, 2));
         if (config.updateChannel && config.updateChannel !== 'dev') {
-          ipcRenderer.send('set-update-channel', config.updateChannel);
+          bridge.send('set-update-channel', config.updateChannel);
         }
         console.log('Configuration synced to main process via IPC');
       }
@@ -623,11 +491,7 @@ export class ConfiguracionService {
         console.error('Failed to save configuration backup file:', error);
       });
       this.config = validConfig;
-      const isElectron = window && typeof window['require'] === 'function';
-      if (isElectron) {
-        const { ipcRenderer } = window['require']('electron');
-        ipcRenderer.send('save-config-backup', JSON.stringify(validConfig, null, 2));
-      }
+      electronBridge()?.send('save-config-backup', JSON.stringify(validConfig, null, 2));
     } catch (e) {
       console.error('Error guardando la impresora local:', e);
     }
@@ -661,12 +525,10 @@ export class ConfiguracionService {
 
       // Notify Electron main process of channel change and save config via IPC
       try {
-        const isElectron = window && typeof window['require'] === 'function';
-        if (isElectron) {
-          const { ipcRenderer } = window['require']('electron');
-          // Send config to main process for reliable file saving (avoids @electron/remote path issues)
-          ipcRenderer.send('save-config-backup', JSON.stringify(validConfig, null, 2));
-          ipcRenderer.send('set-update-channel', validConfig.updateChannel || 'stable');
+        const bridge = electronBridge();
+        if (bridge) {
+          bridge.send('save-config-backup', JSON.stringify(validConfig, null, 2));
+          bridge.send('set-update-channel', validConfig.updateChannel || 'stable');
         }
       } catch (e) {
         console.warn('Could not notify main process of config/channel change:', e);
@@ -900,64 +762,21 @@ export class ConfiguracionService {
     const config = this.getConfig();
     const configData = JSON.stringify(config, null, 2);
 
-    // Check if running in Electron
-    const isElectron = window && typeof window['require'] === 'function';
+    // En Electron el diálogo y la escritura los hace el proceso principal
+    const bridge = electronBridge();
 
-    if (isElectron) {
-      try {
-        // Electron environment
-        const fs = window['require']('fs');
-        const path = window['require']('path');
-        let dialog = null;
-
-        // Try to get the dialog module from Electron
-        try {
-          // First try @electron/remote (preferred in newer Electron)
-          const remote = window['require']('@electron/remote');
-          if (remote && remote.dialog) {
-            dialog = remote.dialog;
-          }
-        } catch (e) {
-          console.warn('Could not load @electron/remote, trying electron.remote', e);
-          try {
-            // Fall back to older electron.remote
-            const electronRemote = window['require']('electron').remote;
-            if (electronRemote && electronRemote.dialog) {
-              dialog = electronRemote.dialog;
-            }
-          } catch (e2) {
-            console.error('Could not load Electron dialog module', e2);
-          }
-        }
-
-        if (dialog) {
-          // Use dialog to let user select save location
-          dialog.showSaveDialog({
-            title: 'Guardar Respaldo de Configuración',
-            defaultPath: BACKUP_FILE_NAME,
-            filters: [{ name: 'Archivos JSON', extensions: ['json'] }]
-          }).then(result => {
-            if (!result.canceled && result.filePath) {
-              try {
-                fs.writeFileSync(result.filePath, configData, 'utf8');
-                console.log('Configuration backup saved to user-selected location:', result.filePath);
-              } catch (writeErr) {
-                console.error('Error writing to selected file:', writeErr);
-                this.fallbackDownload(configData);
-              }
-            }
-          }).catch(err => {
-            console.error('Error showing save dialog:', err);
+    if (bridge) {
+      bridge.invoke<{ ok: boolean; cancelado?: boolean; error?: string }>('exportar-config-backup', configData)
+        .then((resultado) => {
+          if (!resultado?.ok && !resultado?.cancelado) {
+            console.error('Error exportando la configuración:', resultado?.error);
             this.fallbackDownload(configData);
-          });
-        } else {
-          // If dialog is not available, use fallback paths
-          this.saveToFallbackPath(configData, fs, path);
-        }
-      } catch (e) {
-        console.error('Error in Electron backup process:', e);
-        this.fallbackDownload(configData);
-      }
+          }
+        })
+        .catch((e) => {
+          console.error('Error en el respaldo de configuración (Electron):', e);
+          this.fallbackDownload(configData);
+        });
     } else if ('showSaveFilePicker' in window) {
       // Modern browser with File System Access API
       this.saveWithFileSystemAccessAPI(configData);
@@ -965,53 +784,6 @@ export class ConfiguracionService {
       // Fallback to download method
       this.fallbackDownload(configData);
     }
-  }
-
-  /**
-   * Helper method to save configuration to fallback paths when dialog is not available
-   */
-  private saveToFallbackPath(configData: string, fs: any, path: any): void {
-    // Get user-writable paths
-    let userDataPath = '';
-    let homePath = '';
-    let documentsPath = '';
-
-    try {
-      // Try to get Electron's app paths
-      const remote = window['require']('@electron/remote');
-      if (remote && remote.app) {
-        try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
-        try { homePath = remote.app.getPath('home'); } catch (e) { }
-        try { documentsPath = remote.app.getPath('documents'); } catch (e) { }
-      }
-    } catch (e) {
-      // Fallback to environment variables
-      homePath = process.env.HOME || process.env.USERPROFILE || '';
-      documentsPath = homePath ? path.join(homePath, 'Documents') : '';
-    }
-
-    // Priority order of paths to try
-    const possiblePaths = [
-      documentsPath ? path.join(documentsPath, BACKUP_FILE_NAME) : null,
-      userDataPath ? path.join(userDataPath, BACKUP_FILE_NAME) : null,
-      homePath ? path.join(homePath, BACKUP_FILE_NAME) : null,
-      path.join(process.cwd(), BACKUP_FILE_NAME)
-    ].filter(Boolean);
-
-    // Try each path until one works
-    for (const filePath of possiblePaths) {
-      try {
-        fs.writeFileSync(filePath, configData, 'utf8');
-        console.log('Configuration backup saved to fallback location:', filePath);
-        return; // Success
-      } catch (err) {
-        console.warn(`Failed to write to ${filePath}:`, err);
-      }
-    }
-
-    // If all paths fail, use download method
-    console.warn('All fallback paths failed, using browser download method');
-    this.fallbackDownload(configData);
   }
 
   /**

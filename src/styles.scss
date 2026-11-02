@@ -1,5 +1,7 @@
 @use '@angular/material' as mat;
-@import url('https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css');
+// Bootstrap 3.3.7 va local (src/vendor, primero en angular.json > styles). Antes era un @import de
+// unpkg.com: bloqueaba el CSS y el arranque de Angular hasta que respondía internet, y con la red lenta
+// al abrir la app (Windows recién encendido o recién actualizado) la ventana quedaba en blanco.
 
 @import 'material-design-icons-iconfont/dist/material-design-icons.css';
 @import 'leaflet/dist/leaflet.css';

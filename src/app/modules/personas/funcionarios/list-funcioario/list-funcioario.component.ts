@@ -18,15 +18,30 @@ import { CargoService } from '../../../empresarial/cargo/cargo.service';
 import { Cargo } from '../../../empresarial/cargo/cargo.model';
 import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
-import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
+import { Horario } from '../../../administrativo/horarios/models/horario.model';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NuevoHorarioDialogComponent, NuevoHorarioDialogData } from '../../../administrativo/horarios/components/nuevo-horario-dialog/nuevo-horario-dialog.component';
+
+/** Un horario asignado, listo para la fila desplegada de la lista. */
+interface HorarioAsignado {
+  id: number;
+  entrada: string;
+  salida: string;
+  dias: string;
+  turno: string;
+}
+
+const NOMBRE_DIA: Record<string, string> = {
+  LUNES: 'Lunes', MARTES: 'Martes', MIERCOLES: 'Miércoles', JUEVES: 'Jueves',
+  VIERNES: 'Viernes', SABADO: 'Sábado', DOMINGO: 'Domingo',
+};
+const ORDEN_DIAS = Object.keys(NOMBRE_DIA);
+const NOMBRE_TURNO: Record<string, string> = { DIA: 'Día', NOCHE: 'Noche', MADRUGADA: 'Madrugada' };
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
-import { FuncionarioInput } from '../funcionario-input.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -75,6 +90,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
+  /** Horarios asignados por id de funcionario, para la fila desplegada (#523). */
+  horariosAsignados: Record<number, HorarioAsignado[]> = {};
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'horario', 'acciones'];
 
   sucursalList: Sucursal[];
@@ -89,7 +106,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     private tabService: TabService,
     private notificacionService: NotificacionSnackbarService,
     private mainService: MainService,
-    private cargoService: CargoService
+    private cargoService: CargoService,
+    private dialogosService: DialogosService
   ) {
   }
 
@@ -97,7 +115,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
+      this.buscar()
     }, 0);
 
 
@@ -129,7 +147,16 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     ));
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     let sucursalIdList = [];
     this.sucursalControl.value?.forEach(s => {
       if (s != null) {
@@ -174,7 +201,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     this.ipsActivoControl.setValue(null)
     this.fasePruebaControl.setValue(null)
     this.cobraBancoControl.setValue(null)
-    this.onFiltrar()
+    this.onFiltrar();
   }
 
   onVerLegajo(funcionario: Funcionario) {
@@ -192,7 +219,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   isAllSelected() {
@@ -207,132 +234,98 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.dataSource.data.forEach(row => this.seleccionados.select(row));
   }
 
+  /**
+   * "Asignar a otros" desde Asignar horario: copia el horario a los seleccionados como horario
+   * propio de cada uno (#523). Si ya tiene uno igual no se duplica; sin usuario para marcar, se avisa.
+   */
   onAsignarHorario(): void {
-    if (this.seleccionados.selected.length > 0 && this.horarioParaAsignar) {
-      // 1. Agrupar funcionarios por ID de usuario para evitar procesar al mismo usuario varias veces
-      const funcionariosPorUsuario = new Map<number, Funcionario[]>();
-      this.seleccionados.selected.forEach(f => {
-        const uId = f.usuario?.id;
-        if (uId) {
-          if (!funcionariosPorUsuario.has(uId)) funcionariosPorUsuario.set(uId, []);
-          funcionariosPorUsuario.get(uId).push(f);
-        }
-      });
-
-      let usuariosProcesados = 0;
-      let usuariosConFalla = 0;
-      const totalUsuarios = funcionariosPorUsuario.size;
-
-      // Cada usuario termina una vez, bien o con falla: antes un error o un null colgaba el conteo y no
-      // salía ningún aviso (#390).
-      const finalizarUsuario = (ok: boolean) => {
-        usuariosProcesados++;
-        if (!ok) usuariosConFalla++;
-        if (usuariosProcesados !== totalUsuarios) return;
-        if (usuariosConFalla === 0) {
-          this.notificacionService.openSucess('Horarios asignados correctamente');
-          this.seleccionados.clear();
-        } else {
-          // La selección queda para reintentar.
+    const horarioId = this.horarioParaAsignar?.horarioId;
+    if (this.seleccionados.selected.length === 0 || !horarioId) return;
+    const funcionarioIds = this.seleccionados.selected.map(f => f.id);
+    this.horarioService.onCopiarHorario(horarioId, funcionarioIds).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (!res) return;
+        if (res.errores?.length) {
           this.notificacionService.openWarn(
-            `Se asignaron horarios a ${totalUsuarios - usuariosConFalla} de ${totalUsuarios} usuarios: ` +
-            'el servidor no respondió para el resto.',
-            5
-          );
+            `Horario asignado a ${res.copiados}. No se pudo a ${res.errores.length}: ${res.errores.join(' | ')}`, 12);
+        } else {
+          this.notificacionService.openSucess(`Horario asignado a ${res.copiados} funcionarios`);
         }
-        this.dataSource.data = [...this.dataSource.data];
-      };
-
-      // 2. Para cada usuario único, verificar si ya tiene el horario antes de crear uno nuevo
-      funcionariosPorUsuario.forEach((funcionarios, usuarioId) => {
-        this.horarioService
-          .onGetHorariosPorUsuario(usuarioId, true, PROPAGAR_ERROR_DE_RED, {
-            timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS,
-            silenciarAvisoTimeout: true,
-          })
-          .pipe(untilDestroyed(this))
-          .subscribe({
-            error: () => finalizarUsuario(false),
-            next: (horariosExistentes) => {
-          // Un null es un error del servidor: crear un horario nuevo acá lo duplicaba en cada reintento.
-          if (horariosExistentes == null) {
-            finalizarUsuario(false);
-            return;
-          }
-          // Buscar un horario idéntico en los registros del usuario
-          const horarioExistente = horariosExistentes.find(h =>
-            h.horaEntrada === this.horarioParaAsignar.entrada &&
-            h.horaSalida === this.horarioParaAsignar.salida &&
-            h.turno === this.horarioParaAsignar.turnoValue &&
-            JSON.stringify((h.dias || []).sort()) === JSON.stringify((this.horarioParaAsignar.diasValue || []).sort())
-          );
-
-          if (horarioExistente) {
-            // Si ya existe para este usuario, lo REUTILIZAMOS para todos sus funcionarios
-            this.vincularMultiplesFuncionarios(funcionarios, horarioExistente.id, finalizarUsuario);
-          } else {
-            // Si no existe, creamos UNO SOLO para este usuario
-            let horarioInput = new HorarioInput();
-            horarioInput.horaEntrada = this.horarioParaAsignar.entrada;
-            horarioInput.horaSalida = this.horarioParaAsignar.salida;
-            horarioInput.usuarioId = usuarioId;
-            horarioInput.dias = this.horarioParaAsignar.diasValue;
-            horarioInput.turno = this.horarioParaAsignar.turnoValue;
-
-            // El verde es el del final del lote (#501)
-            this.horarioService.onSaveHorario(horarioInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
-              next: (res: any) => {
-                if (res?.id == null) {
-                  finalizarUsuario(false);
-                  return;
-                }
-                this.vincularMultiplesFuncionarios(funcionarios, res.id, finalizarUsuario);
-              },
-              error: () => finalizarUsuario(false),
-            });
-          }
-            },
-          });
-      });
-    }
+        this.seleccionados.clear();
+        this.buscar();
+      },
+      error: () => { },
+    });
   }
 
-  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: (ok: boolean) => void) {
-    let completados = 0;
-    let todosOk = true;
-    funcionarios.forEach(f => {
-      let funcInput = new FuncionarioInput();
-      funcInput.id = f.id;
-      funcInput.personaId = f.persona?.id;
-      funcInput.cargoId = f.cargo?.id;
-      funcInput.sucursalId = f.sucursal?.id;
-      funcInput.credito = f.credito;
-      funcInput.sueldo = f.sueldo;
-      funcInput.fasePrueba = f.fasePrueba;
-      funcInput.diarista = f.diarista;
-      funcInput.supervisadoPorId = f.supervisadoPor?.id;
-      funcInput.activo = f.activo;
-      funcInput.usuarioId = f.usuario?.id;
-      funcInput.horarioId = horarioId;
-      if (f.fechaIngreso) {
-        funcInput.fechaIngreso = dateToString(new Date(f.fechaIngreso));
-      }
 
-      const terminar = (ok: boolean) => {
-        if (!ok) todosOk = false;
-        completados++;
-        if (completados === funcionarios.length) onComplete(todosOk);
-      };
-      // El verde es el del final del lote (#501)
-      this.service.onSaveFuncionario(funcInput, true, PROPAGAR_ERROR_DE_RED, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
-        next: (saved) => {
-          if (saved == null) return terminar(false);
-          f.horario = saved.horario;
-          terminar(true);
-        },
-        error: () => terminar(false),
-      });
+  /** Despliega la fila con los horarios asignados al funcionario (#523). */
+  onVerHorarios(funcionario: Funcionario, event: Event): void {
+    event.stopPropagation();
+    if (this.expandedFuncionario === funcionario) {
+      this.expandedFuncionario = null;
+      return;
+    }
+    this.expandedFuncionario = funcionario;
+    this.cargarHorarios(funcionario);
+  }
+
+  private cargarHorarios(funcionario: Funcionario): void {
+    this.horarioService.onGetHorariosPorFuncionario(funcionario.id).pipe(untilDestroyed(this)).subscribe({
+      next: (horarios: Horario[]) => {
+        this.horariosAsignados = {
+          ...this.horariosAsignados,
+          [funcionario.id]: (horarios || [])
+            .map(h => this.aHorarioAsignado(h))
+            .sort((a, b) => (a.entrada || '').localeCompare(b.entrada || '')),
+        };
+      },
+      error: () => { },
     });
+  }
+
+  private aHorarioAsignado(h: Horario): HorarioAsignado {
+    const dias = (h.dias || []).filter(d => d !== 'TODOS');
+    const todos = !h.dias?.length || h.dias.includes('TODOS');
+    return {
+      id: h.id,
+      entrada: h.horaEntrada?.substring(0, 5),
+      salida: h.horaSalida?.substring(0, 5),
+      dias: todos ? 'Todos' : ORDEN_DIAS.filter(d => dias.includes(d)).map(d => NOMBRE_DIA[d]).join(', '),
+      turno: NOMBRE_TURNO[h.turno] || h.turno,
+    };
+  }
+
+  onQuitarHorario(funcionario: Funcionario, horario: HorarioAsignado): void {
+    this.dialogosService
+      .confirm('Quitar horario', `¿Quitarle a ${funcionario.persona?.nombre || 'este funcionario'} el horario ` +
+        `${horario.turno} ${horario.entrada}-${horario.salida} (${horario.dias})?`)
+      .pipe(untilDestroyed(this))
+      .subscribe(ok => {
+        if (!ok) return;
+        this.horarioService.onQuitarHorarioFuncionario(funcionario.id, horario.id).pipe(untilDestroyed(this)).subscribe({
+          next: res => {
+            if (res) funcionario.horarioResumen = res.horarioResumen;
+            this.notificacionService.openSucess('Horario quitado');
+            this.cargarHorarios(funcionario);
+          },
+          error: () => { },
+        });
+      });
+  }
+
+
+  /** Crea un horario y se lo deja asignado al funcionario; al volver refresca la tabla. */
+  onNuevoHorario(funcionario: Funcionario): void {
+    const data: NuevoHorarioDialogData = { funcionarioId: funcionario.id, nombre: funcionario.persona?.nombre };
+    this.matDialog.open(NuevoHorarioDialogComponent, { data, autoFocus: false })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Funcionario) => {
+        if (!res) return;
+        funcionario.horarioResumen = res.horarioResumen;
+        this.cargarHorarios(funcionario);
+      });
   }
 
 }

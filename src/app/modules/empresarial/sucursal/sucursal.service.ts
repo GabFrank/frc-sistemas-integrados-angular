@@ -62,9 +62,10 @@ export class SucursalService {
   ) {
   }
 
+  // Filtra y pagina en el central: el total es el de la consulta, no el de la página (#593).
   onSearchConFiltros(term: string, deposito: boolean, activo: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
     return this.genericService.onCustomQuery(
-      this.sucursalesByNombre,
+      this.sucursalesSearchConFiltros,
       {
         texto: term,
         deposito: deposito,
@@ -73,30 +74,6 @@ export class SucursalService {
         size: pageSize
       },
       servidor
-    ).pipe(
-      map((res: any) => {
-        const pageInfo = new PageInfo<Sucursal>();
-        pageInfo.getContent = res.getContent || [];
-        pageInfo.getTotalElements = res.getTotalElements || 0;
-        pageInfo.getNumberOfElements = res.getNumberOfElements || 0;
-        pageInfo.getTotalPages = res.getTotalPages || 0;
-        pageInfo.isFirst = res.isFirst || false;
-        pageInfo.isLast = res.isLast || false;
-        pageInfo.hasNext = res.hasNext || false;
-        pageInfo.hasPrevious = res.hasPrevious || false;
-        if (deposito !== null && deposito !== undefined) {
-          pageInfo.getContent = pageInfo.getContent.filter(s => s.deposito === deposito);
-          pageInfo.getTotalElements = pageInfo.getContent.length;
-          pageInfo.getNumberOfElements = pageInfo.getContent.length;
-        }
-        if (activo !== null && activo !== undefined) {
-          pageInfo.getContent = pageInfo.getContent.filter(s => s.activo === activo);
-          pageInfo.getTotalElements = pageInfo.getContent.length;
-          pageInfo.getNumberOfElements = pageInfo.getContent.length;
-        }
-
-        return pageInfo;
-      })
     );
   }
 

@@ -1,4 +1,4 @@
-<div>
+<div class="pantalla">
   <div class="header">
     <h2 class="titulo-center">Tablas de Replicación</h2>
     <div class="actions">
@@ -98,7 +98,7 @@
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
       <!-- Row shown when there is no matching data -->
@@ -106,15 +106,15 @@
         <td class="mat-cell no-data" colspan="5">No se encontraron tablas de replicación</td>
       </tr>
     </table>
-
-    <mat-paginator 
-      [length]="tablesPage?.getTotalElements || 0"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="[5, 10, 25, 50]"
-      (page)="handlePageEvent($event)"
-      showFirstLastButtons
-      aria-label="Seleccionar página de tablas">
-    </mat-paginator>
   </div>
+
+  <mat-paginator 
+    [length]="tablesPage?.getTotalElements || 0"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[5, 10, 25, 50]"
+    (page)="handlePageEvent($event)"
+    showFirstLastButtons
+    aria-label="Seleccionar página de tablas">
+  </mat-paginator>
 </div> 

@@ -50,10 +50,19 @@ export class ListHoraExtraComponent implements OnInit {
     const hoy = new Date();
     this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     this.hastaControl.setValue(hoy);
-    this.onFiltrar();
+    this.buscar();
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.horaExtraService.onGetPage(
       this.pageIndex,
       this.pageSize,
@@ -74,14 +83,13 @@ export class ListHoraExtraComponent implements OnInit {
     this.tipoControl.setValue(null);
     this.desdeControl.setValue(null);
     this.hastaControl.setValue(null);
-    this.pageIndex = 0;
     this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
   onNueva() {
@@ -90,7 +98,7 @@ export class ListHoraExtraComponent implements OnInit {
       width: '560px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.onFiltrar();
+      if (res != null) this.buscar();
     });
   }
 
@@ -104,7 +112,7 @@ export class ListHoraExtraComponent implements OnInit {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.horaExtraService.onAnular(he.id)
           .pipe(untilDestroyed(this))
-          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
+          .subscribe({ next: ok => { if (ok) this.buscar(); }, error: () => {} });
       }
     });
   }

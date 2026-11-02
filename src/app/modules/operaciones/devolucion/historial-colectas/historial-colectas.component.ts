@@ -14,7 +14,7 @@ import { OperacionDevolucionService } from "../operacion-devolucion/operacion-de
 
 /**
  * Histórico de colectas internas (cabeceras origen -> destino). Permite
- * reimprimir las etiquetas de cada devolución y revertir la colecta (solo si
+ * reimprimir la etiqueta de cada devolución y revertir la colecta (solo si
  * sus devoluciones siguen en COLECTADO).
  */
 @UntilDestroy()
@@ -126,13 +126,13 @@ export class HistorialColectasComponent implements OnInit {
       .subscribe({
         next: (pdf: string) => {
           if (pdf) {
-            this.reporteService.onAdd(`Etiquetas ${d.identificador || "#" + d.id}`, pdf);
+            this.reporteService.onAdd(`Etiqueta ${d.identificador || "#" + d.id}`, pdf);
             this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
           } else {
-            this.notificacionService.openWarn("No se pudieron generar las etiquetas.");
+            this.notificacionService.openWarn("No se pudo generar la etiqueta.");
           }
         },
-        error: () => this.notificacionService.openWarn("No se pudieron generar las etiquetas: el servidor no responde.")
+        error: () => this.notificacionService.openWarn("No se pudo generar la etiqueta: el servidor no responde.")
       });
   }
 

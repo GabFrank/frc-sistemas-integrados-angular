@@ -1,5 +1,15 @@
-.container {
-  padding: 16px;
+// Altura fija al área de la pestaña: la tabla scrollea por dentro y el paginador queda siempre a la vista
+.pantalla {
+  position: relative;
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.header,
+.filters-container,
+mat-paginator {
+  flex-shrink: 0;
 }
 
 .header {
@@ -54,7 +64,8 @@
 
 .table-container {
   position: relative;
-  min-height: 400px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 
   table {
@@ -65,7 +76,7 @@
     padding: 20px;
     text-align: center;
     font-style: italic;
-    color: rgba(0, 0, 0, 0.54);
+    color: var(--frc-texto-suave);
   }
 }
 

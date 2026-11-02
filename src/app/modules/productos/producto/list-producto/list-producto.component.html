@@ -359,6 +359,22 @@
               <mat-icon>inventory_2</mat-icon>
               Lotes
             </button>
+            <button
+              mat-menu-item
+              (click)="onConteoRapidoLotes(producto)"
+              *ngIf="producto.lote && mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS)"
+            >
+              <mat-icon>fact_check</mat-icon>
+              Conteo rápido de lotes
+            </button>
+            <button
+              mat-menu-item
+              (click)="onReasignarLote(producto)"
+              *ngIf="producto.lote && mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS)"
+            >
+              <mat-icon>swap_horiz</mat-icon>
+              Pasar unidades a otro lote
+            </button>
           </mat-menu>
         </td>
       </ng-container>

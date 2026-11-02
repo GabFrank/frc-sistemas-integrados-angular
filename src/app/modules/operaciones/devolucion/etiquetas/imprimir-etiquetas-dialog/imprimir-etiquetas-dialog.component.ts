@@ -20,8 +20,9 @@ interface FilaVista {
 }
 
 /**
- * Diálogo de impresión de etiquetas de separado. Muestra qué se va a imprimir
- * (una etiqueta por ítem) y deja elegir ticket térmico o PDF A4.
+ * Diálogo de impresión de la etiqueta de separado. Muestra qué se va a imprimir
+ * (una sola etiqueta por devolución, con un QR y la lista de productos) y deja
+ * elegir ticket térmico o PDF A4.
  */
 @Component({
   selector: "app-imprimir-etiquetas-dialog",

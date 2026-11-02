@@ -335,7 +335,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   onRefrescar(): void {
     this.enviosSinConfirmar = {};
-    this.refetchSubject.next();
+    // Volver a la página 1 ya vuelve a consultar (combineLatest); refetch aparte saldría dos veces.
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
   onLimpiarFiltro(): void {

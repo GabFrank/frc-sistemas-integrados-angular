@@ -63,6 +63,7 @@ export class UltimasCajasDialogComponent implements OnInit {
       fechaFin,
       this.mainService.sucursalActual?.id || null,
       null,
+      null,
       this.pageIndex,
       this.pageSize,
       false,

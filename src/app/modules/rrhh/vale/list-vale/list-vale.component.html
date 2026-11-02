@@ -2,10 +2,10 @@
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
   <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
-    <div fxFlex="320px">
+    <div fxFlex="420px">
       <app-select-funcionario
         [funcionarioId]="funcionarioControl.value"
-        (idSelected)="funcionarioControl.setValue($event)">
+        (idSelected)="onFuncionarioSelected($event)">
       </app-select-funcionario>
     </div>
 
@@ -17,14 +17,14 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field fxFlex="150px">
+    <mat-form-field fxFlex="157px">
       <mat-label>Desde</mat-label>
       <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
       <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
       <mat-datepicker #dp1></mat-datepicker>
     </mat-form-field>
 
-    <mat-form-field fxFlex="150px">
+    <mat-form-field fxFlex="157px">
       <mat-label>Hasta</mat-label>
       <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" />
       <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>

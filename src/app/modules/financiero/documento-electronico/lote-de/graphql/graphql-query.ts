@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const loteDeQuery = gql`
-  query ($id: ID!) {
-    data: loteDe(id: $id) {
+  query ($id: ID!, $sucId: ID!) {
+    data: loteDe(id: $id, sucursalId: $sucId) {
       id
+      sucursalId
       estado
       fechaProcesado
       fechaUltimoIntento
@@ -32,6 +33,7 @@ export const loteDesQuery = gql`
       hasPrevious
       getContent {
         id
+        sucursalId
         estado
         fechaProcesado
         fechaUltimoIntento

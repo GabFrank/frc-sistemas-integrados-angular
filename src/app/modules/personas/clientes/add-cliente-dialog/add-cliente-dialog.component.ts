@@ -1,4 +1,5 @@
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
+import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -245,8 +246,10 @@ export class AddClienteDialogComponent implements OnInit {
         // El verde es el de abajo, uno solo: antes salían tres iguales (persona, cliente y este) (#501)
         this.clienteService.onSaveCliente(newCliente.toInput(), true, { avisarExito: false }).pipe(
           // Quedó a medias: se dice, y al volver a guardar se reusa la persona ya guardada (#390).
-          terminarSiFalla(() => this.notificacionService.openWarn(
-            'Los datos de la persona se guardaron, pero el cliente no. Volvé a guardar.', 6)),
+          // Un rechazo (su motivo ya lo mostró el servicio) no se arregla reintentando; sin respuesta, pudo guardarse.
+          terminarSiFalla((error) => this.notificacionService.openWarn(esRechazoDelServidor(error)
+            ? 'Los datos de la persona se guardaron, pero el servidor rechazó el cliente.'
+            : 'Los datos de la persona se guardaron; no se pudo confirmar si el cliente también: revisalo antes de volver a guardar.', 8)),
           untilDestroyed(this)
         ).subscribe((clienteRes: Cliente) => {
           if (clienteRes != null) {

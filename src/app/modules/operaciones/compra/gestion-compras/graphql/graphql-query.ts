@@ -878,8 +878,17 @@ export const notaRecepcionPorPedidoIdAndNumeroPageQuery = gql`
       getContent {
         id
         numero
+        tipoBoleta
+        timbrado
         fecha
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        cotizacion
         estado
+        pagado
         esNotaRechazo
         valorTotal
         pedido {

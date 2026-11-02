@@ -102,7 +102,7 @@ export class ListDevolucionComponent implements OnInit {
       if (this.paginator != null) {
         this.paginator._changePageSize(this.pageSize);
       }
-      this.onFilter();
+      this.buscar();
     }, 0);
 
     // La pestaña queda viva en segundo plano: al volver, releer con los mismos
@@ -110,7 +110,7 @@ export class ListDevolucionComponent implements OnInit {
     this.tabService
       .onTabReactivada(this.data)
       .pipe(untilDestroyed(this))
-      .subscribe(() => this.onFilter(true));
+      .subscribe(() => this.buscar(true));
   }
 
   onBuscarProveedor() {
@@ -132,7 +132,16 @@ export class ListDevolucionComponent implements OnInit {
     this.onFilter();
   }
 
-  onFilter(silencioso = false) {
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
+  onFilter() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar(silencioso = false) {
     let fechaInicio: Date = this.fechaInicioControl.value;
     let fechaFin: Date = this.fechaFinControl.value;
     let inicioStr: string = null;
@@ -190,7 +199,6 @@ export class ListDevolucionComponent implements OnInit {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
-    this.pageIndex = 0;
     this.onFilter();
   }
 
@@ -219,6 +227,6 @@ export class ListDevolucionComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFilter();
+    this.buscar();
   }
 }

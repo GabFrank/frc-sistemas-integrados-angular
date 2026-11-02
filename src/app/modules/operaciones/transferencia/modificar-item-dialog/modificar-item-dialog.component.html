@@ -1,145 +1,98 @@
-<div fxLayout="column" fxLayoutGap="20px" style="width: 100%">
-  <div
-    *ngIf="data?.isCantidad"
-    fxFlex
-    fxLayout="column"
-    style="width: 100%"
-    fxLayoutGap="20px"
-  >
-    <div fxFlex style="width: 100%; text-align: center">Modificar cantidad</div>
-    <div fxFlex fxLayout="row">
-      <div fxFlex="30%">Cantidad anterior:</div>
-      <div fxFlex="70%">
-        {{ selectedCantidadAnterior | number: "1.0-2" }}
-      </div>
-    </div>
-    <div fxFlex fxLayout="row">
-      <div fxFlex="30%">Presentación:</div>
-      <div fxFlex="70%">
-        {{ selectedPresentacion?.cantidad | number: "1.0-2" }}
-      </div>
-    </div>
-    <div fxFlex fxLayout="row">
-      <div fxFlex="30%">Total en unidades:</div>
-      <div fxFlex="70%">
-        {{
-          selectedCantidadAnterior * selectedPresentacion?.cantidad
-            | number: "1.0-2"
-        }}
-      </div>
-    </div>
+<div class="hoja-ruta-dialog">
 
-    <div fxFlex>
-      <mat-form-field style="width: 100%">
-        <mat-label>Nueva cantidad</mat-label>
-        <input type="number" matInput [formControl]="cantidadControl" />
-      </mat-form-field>
+  <div class="dialog-header">
+    <div class="header-icon" [class.peligro]="data?.isRechazar">
+      <mat-icon>{{ icono }}</mat-icon>
     </div>
-    <!-- <div fxFlex fxLayout="row">
-        <div fxFlex="30">Motivo:</div>
-        <div fxFlex="70%">
-            <mat-select
-            #tipoEntradaSelect
-            [formControl]="motivoControl"
-            (selectionChange)="onSelectMotivo($event.value)"
-            >
-            <mat-option
-                *ngFor="let motivo of motivoList; let i = index"
-                [value]="motivo"
-            >
-                {{ motivo }}
-            </mat-option>
-            </mat-select>
-        </div>
-        </div> -->
-  </div>
-  <div
-    *ngIf="data?.isVencimiento"
-    fxFlex
-    fxLayout="column"
-    style="width: 100%"
-    fxLayoutGap="20px"
-  >
-    <div fxFlex fxLayout="row" style="width: 100%; text-align: center">
-      Modificar vencimiento
+    <div class="header-text">
+      <h2>{{ titulo }}</h2>
+      <span class="header-sub">{{ productoDescripcion | uppercase }}</span>
     </div>
-    <div fxFlex fxLayout="row">
-      Vencimiento anterior:
-      {{ selectedVencimientoAnterior | date: "shortDate" }}
-    </div>
-
-    <div fxFlex>
-      <mat-form-field style="width: 100%">
-        <mat-label>Vencimiento</mat-label>
-        <input
-          matInput
-          [matDatepicker]="picker"
-          [formControl]="vencimientoControl"
-        />
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
-    </div>
-    <!-- <div fxFlex fxLayout="row">
-      <div fxFlex="30">Motivo:</div>
-      <div fxFlex="70%">
-        <mat-select
-          #tipoEntradaSelect
-          [formControl]="motivoControl"
-          (selectionChange)="onSelectMotivo($event.value)"
-        >
-          <mat-option
-            *ngFor="let motivo of motivoList; let i = index"
-            [value]="motivo"
-          >
-            {{ motivo }}
-          </mat-option>
-        </mat-select>
-      </div>
-    </div> -->
-  </div>
-  <div
-    *ngIf="data?.isRechazar"
-    fxFlex
-    fxLayout="column"
-    style="width: 100%"
-    fxLayoutGap="20px"
-  >
-    <div fxFlex style="width: 100%; text-align: center">Rechazar item</div>
-    <div fxFlex fxLayout="row">
-      <div fxFlex="30">Motivo:</div>
-      <div fxFlex="70%">
-        <mat-select
-          #tipoEntradaSelect
-          [formControl]="motivoControl"
-        >
-          <mat-option
-            *ngFor="let motivo of motivoList; let i = index"
-            [value]="motivo"
-          >
-            {{ motivo }}
-          </mat-option>
-        </mat-select>
-      </div>
-    </div>
-  </div>
-  <div fxFlex style="width: 100%; text-align: center">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 150px"
-      (click)="onCancelar()"
-    >
-      Cancelar
+    <button mat-icon-button class="header-close" (click)="onCancelar()" matTooltip="Cerrar" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
     </button>
+  </div>
+
+  <mat-dialog-content class="dialog-body">
+
+    <div class="item-card">
+      <div class="dato" *ngIf="productoCodigo">
+        <span class="etiqueta">Código</span>
+        <span class="valor">{{ productoCodigo }}</span>
+      </div>
+      <div class="dato">
+        <span class="etiqueta">Presentación</span>
+        <span class="valor">x {{ origen?.presentacion?.cantidad | number: "1.0-3" }}</span>
+      </div>
+      <div class="dato">
+        <span class="etiqueta">Cantidad</span>
+        <span class="valor">{{ origen?.cantidad | number: "1.0-3" }}</span>
+      </div>
+      <div class="dato">
+        <span class="etiqueta">Total en unidades</span>
+        <span class="valor">{{ totalUnidades | number: "1.0-3" }}</span>
+      </div>
+      <div class="dato" *ngIf="origen?.vencimiento">
+        <span class="etiqueta">Vencimiento</span>
+        <span class="valor">{{ origen?.vencimiento | date: "dd/MM/yyyy" }}</span>
+      </div>
+    </div>
+
+    <mat-form-field *ngIf="data?.isCantidad" appearance="outline" class="campo">
+      <mat-label>Nueva cantidad</mat-label>
+      <input
+        matInput
+        type="number"
+        min="0"
+        autocomplete="off"
+        cdkFocusInitial
+        [formControl]="cantidadControl"
+        (keydown.enter)="onEnter()"
+      />
+    </mat-form-field>
+
+    <mat-form-field *ngIf="data?.isVencimiento" appearance="outline" class="campo">
+      <mat-label>Nuevo vencimiento</mat-label>
+      <input
+        matInput
+        autocomplete="off"
+        cdkFocusInitial
+        [matDatepicker]="picker"
+        [formControl]="vencimientoControl"
+        (keydown.enter)="onEnter()"
+      />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <ng-container *ngIf="data?.isRechazar">
+      <div class="aviso">
+        <mat-icon>warning</mat-icon>
+        <span>El ítem queda rechazado en esta etapa con la cantidad de arriba.</span>
+      </div>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Motivo del rechazo</mat-label>
+        <mat-select cdkFocusInitial [formControl]="motivoControl">
+          <mat-option *ngFor="let motivo of motivoList" [value]="motivo.value">
+            {{ motivo.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </ng-container>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-footer">
+    <button mat-button class="btn-cancelar" (click)="onCancelar()">Cancelar</button>
     <button
-      mat-raised-button
-      color="accent"
-      style="width: 150px; margin-left: 10px"
+      mat-flat-button
+      class="btn-guardar"
+      [class.btn-rechazar]="data?.isRechazar"
       (click)="onAceptar()"
-      [disabled]="!(cantidadControl.valid || vencimientoControl.valid || motivoControl.valid)"
+      [disabled]="controlActivo.invalid"
     >
-      Aceptar
+      <mat-icon>{{ data?.isRechazar ? "block" : "check" }}</mat-icon>
+      {{ data?.isRechazar ? "Rechazar" : "Confirmar" }}
     </button>
-  </div>
+  </mat-dialog-actions>
 </div>

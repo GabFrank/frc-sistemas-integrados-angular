@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { EstadoRetiro, Retiro } from '../retiro.model';
 import { animate, state, style, transition, trigger } from '@angular/animations';
@@ -14,7 +14,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { timer } from 'rxjs';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PageInfo } from '../../../../app.component';
-import { PageEvent } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -38,6 +38,8 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
   ],
 })
 export class ListRetiroComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
 
   @Input()
   data: Tab;
@@ -95,11 +97,20 @@ export class ListRetiroComponent implements OnInit {
       this.sucursalList = res.filter(s => s.id != 0)
       this.sucOrigenControl.setValue(this.sucursalList.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
       this.idCajaControl.setValue(this.data?.tabData?.data?.caja?.id);
-      this.onFiltrar();
+      this.buscar();
     })
   }
 
+  // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.buscar();
+  }
+
+  buscar() {
     this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.pageIndex, this.pageSize).subscribe(res => {      
       if(res!=null){
         this.selectedPageInfo = res;
@@ -114,6 +125,12 @@ export class ListRetiroComponent implements OnInit {
     this.idCajaControl.setValue(null)
     this.idRetiroControl.setValue(null)
     this.dataSource.data = []
+    // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
+    this.selectedPageInfo = null;
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
   }
 
   onIrACaja(cajaSalida: PdvCaja){
@@ -146,13 +163,13 @@ export class ListRetiroComponent implements OnInit {
           // rechazo suele querer decir que la lista estaba vieja: se relee.
           error: (err) => {
             if (erroresDeRechazo(err) != null) {
-              this.onFiltrar();
+              this.buscar();
               return;
             }
             // Sin respuesta pudo seguir aplicándose: se relee después. Repetir es seguro (manda el estado final) (#501)
             const aviso = avisoTrasMutacion(err, estabaCancelado ? 'se habilitó el retiro' : 'se canceló el retiro');
             if (aviso != null) this.notificacionService.openWarn(aviso, 8);
-            timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
+            timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.buscar());
           }
         });
       }
@@ -162,7 +179,7 @@ export class ListRetiroComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.buscar();
   }
 
 }

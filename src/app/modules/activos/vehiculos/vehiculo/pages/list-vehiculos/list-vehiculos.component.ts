@@ -24,6 +24,7 @@ export class ListVehiculosComponent implements OnInit {
 
     ngOnInit(): void {
         this.vehiculoService.cargarTiposCache();
+        this.vehiculoService.reiniciarFiltros();
         this.vehiculoService.refrescar();
         this.initFiltros();
     }
@@ -45,7 +46,7 @@ export class ListVehiculosComponent implements OnInit {
     }
 
     onFiltrar(): void {
-        this.vehiculoService.refrescar();
+        this.vehiculoService.refrescar(true);
     }
 
     handlePageEvent(event: PageEvent): void {

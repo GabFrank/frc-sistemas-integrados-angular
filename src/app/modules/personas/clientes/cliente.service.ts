@@ -41,10 +41,11 @@ export class ClienteService {
 
   /** `opciones.avisarExito = false` en un paso intermedio: el verde lo da el último paso o la pantalla (#501). */
   onSaveCliente(input: ClienteInput, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<Cliente> {
-    // Sin `show: false`: su único llamador no avisa nada, así que el aviso lo da el genérico (#390).
+    // `show: false`: su único llamador (alta de cliente) da su propio aviso, que dice qué quedó guardado.
     let errorConf: QueryError = {
       networkError: {
-        propagate: true
+        propagate: true,
+        show: false
       }
     }
     return this.genericService.onSave(this.saveCliente, input, null, null, servidor, errorConf, undefined, opciones);

@@ -3,14 +3,19 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ContextoConsulta, GenericCrudService, QueryError } from '../../../../generics/generic-crud.service';
-import { MainService } from '../../../../main.service';
 import { PageInfo } from '../../../../app.component';
-import { Horario, HorarioInput } from '../models/horario.model';
+import { CopiaHorarioResultado, Horario, HorarioInput } from '../models/horario.model';
 import { HorarioByIdGQL } from '../graphql/horarioById';
 import { SaveHorarioGQL } from '../graphql/saveHorario';
 import { DeleteHorarioGQL } from '../graphql/deleteHorario';
 import { HorariosGQL } from '../graphql/horarios';
 import { HorariosPorUsuarioGQL } from '../graphql/horariosPorUsuario';
+import { SaveHorariosUsuarioGQL } from '../graphql/saveHorariosUsuario';
+import { CopiarHorarioGQL } from '../graphql/copiarHorario';
+import { HorariosPorFuncionarioGQL } from '../graphql/horariosPorFuncionario';
+import { QuitarHorarioFuncionarioGQL } from '../graphql/quitarHorarioFuncionario';
+import { AgregarHorarioFuncionarioGQL } from '../graphql/agregarHorarioFuncionario';
+import type { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 @Injectable({
     providedIn: 'root'
@@ -19,13 +24,46 @@ export class HorarioService {
 
     constructor(
         private genericCrudService: GenericCrudService,
-        private mainService: MainService,
         private horarioById: HorarioByIdGQL,
         private saveHorario: SaveHorarioGQL,
         private deleteHorario: DeleteHorarioGQL,
         private horarios: HorariosGQL,
-        private horariosPorUsuario: HorariosPorUsuarioGQL
+        private horariosPorUsuario: HorariosPorUsuarioGQL,
+        private saveHorariosUsuario: SaveHorariosUsuarioGQL,
+        private copiarHorario: CopiarHorarioGQL,
+        private horariosPorFuncionario: HorariosPorFuncionarioGQL,
+        private quitarHorarioFuncionario: QuitarHorarioFuncionarioGQL,
+        private agregarHorarioFuncionario: AgregarHorarioFuncionarioGQL
     ) { }
+
+    /** Crea un horario y se lo deja asignado al funcionario. Devuelve el funcionario con el resumen nuevo. */
+    onAgregarHorarioFuncionario(funcionarioId: number, horario: HorarioInput): Observable<Funcionario> {
+        return this.genericCrudService.onCustomMutation(this.agregarHorarioFuncionario, { funcionarioId, horario });
+    }
+
+    /** Los horarios que rigen para el funcionario (los que usa la marcación). Sin diálogo de carga. */
+    onGetHorariosPorFuncionario(funcionarioId: number): Observable<Horario[]> {
+        return this.genericCrudService.onCustomQuery(this.horariosPorFuncionario, { funcionarioId }, true, undefined, true);
+    }
+
+    /** Le quita el horario al funcionario. Devuelve el funcionario con el resumen actualizado. */
+    onQuitarHorarioFuncionario(funcionarioId: number, horarioId: number): Observable<Funcionario> {
+        return this.genericCrudService.onCustomMutation(this.quitarHorarioFuncionario, { funcionarioId, horarioId });
+    }
+
+    /**
+     * Guarda la tabla del usuario entera de una vez (#523): el central valida que no se crucen.
+     * Sin aviso genérico: el de 3 s («Ups! Algo salió mal») no dejaba leer qué horarios chocan,
+     * así que la pantalla muestra el suyo.
+     */
+    onSaveHorariosUsuario(usuarioId: number, horarios: HorarioInput[]): Observable<Horario[]> {
+        return this.genericCrudService.onCustomMutation(this.saveHorariosUsuario, { usuarioId, horarios }, true, true);
+    }
+
+    /** Copia el horario a cada funcionario como horario propio; el central busca su cuenta. */
+    onCopiarHorario(horarioId: number, funcionarioIds: number[]): Observable<CopiaHorarioResultado> {
+        return this.genericCrudService.onCustomMutation(this.copiarHorario, { horarioId, funcionarioIds });
+    }
 
     onGetHorario(id: number, servidor = true): Observable<Horario> {
         return this.genericCrudService.onGetById(this.horarioById, id, null, null, servidor);
@@ -46,9 +84,6 @@ export class HorarioService {
      */
     onSaveHorario(input: HorarioInput, servidor = true, errorConf?: QueryError,
                   opciones?: { avisarExito?: boolean }): Observable<Horario> {
-        if (!input.usuarioId && this.mainService.usuarioActual?.id) {
-            input.usuarioId = this.mainService.usuarioActual.id;
-        }
         return this.genericCrudService.onSave(this.saveHorario, input, null, null, servidor, errorConf, undefined, opciones);
     }
 
