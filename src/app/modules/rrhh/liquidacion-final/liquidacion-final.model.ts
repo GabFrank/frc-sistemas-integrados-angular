@@ -22,6 +22,7 @@ export interface LiquidacionFinalItem {
   editadoPor?: any;
   editadoEn?: any;
   montoOriginal?: number;
+  referenciaTipo?: string;
 }
 
 export interface LiquidacionFinal {

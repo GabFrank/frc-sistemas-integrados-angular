@@ -76,7 +76,7 @@
             <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR' && row.referenciaTipo !== 'ITEM_PROGRAMADO'" (click)="onEditarItemInit(row)" matTooltip="Editar">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR' && row.referenciaTipo !== 'ITEM_PROGRAMADO'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
+            <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR' && (row.referenciaTipo !== 'ITEM_PROGRAMADO' || puedeEliminarProgramado)" (click)="onEliminarItem(row)" matTooltip="Eliminar">
               <mat-icon>delete</mat-icon>
             </button>
             <button mat-icon-button color="primary" *ngIf="liq.estado !== 'ANULADA' && row.monto > 0"
