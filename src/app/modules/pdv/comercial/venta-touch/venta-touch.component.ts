@@ -45,6 +45,12 @@ import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
 import { resolverPrecioDeItem } from "./precio-en-moneda";
+import {
+  cotizacionEmpresa,
+  equivalenteEmpresa,
+  factorABase,
+  redondearEnMoneda,
+} from "./moneda-pdv.util";
 import { PrecioMonedaService } from "../../../productos/precio-por-sucursal/precio-moneda.service";
 import { elegirMonedaEmpresa, MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import { Venta } from "../../../operaciones/venta/venta.model";
@@ -152,8 +158,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedVenta: Venta;
   winHeigth;
   winWidth;
+  // OJO: pese al nombre, `totalGs` es el total en la MONEDA DEL PDV (Fase 4); con la moneda del PDV igual a la
+  // de la empresa (toda instalación actual) son guaraníes, como siempre. Lo mismo `descuentoGs`. El equivalente
+  // en la moneda de la empresa se arma recién al guardar (aplicarMonedaDelPdv).
   totalGs = 0;
   descuentoGs = 0;
+  /** La moneda del PDV, con su cambio del comercio. null hasta que se lee. */
+  monedaPdv: Moneda | null = null;
+  /** true solo si la moneda del PDV NO es la de la empresa. Con false todo es exactamente lo de siempre. */
+  esOtraMoneda = false;
+  /** La moneda del PDV es otra y no tiene cotización cargada: no se puede vender. */
+  monedaPdvSinCotizacion = false;
+  /** Lo que devolvió `monedaDelPdv` de la filial, sin el cambio (null = la de la empresa / no se leyó). */
+  private monedaPdvLeida: Moneda | null = null;
+  // Presentación del total (componente de totales). Los valores por defecto son los de siempre.
+  totalesSimbolo = "Gs.";
+  totalesFormato: string = undefined;
+  totalesBandera: string | null = "assets/flags/py/py64.png";
+  totalEquivalente: number | null = null;
+  totalEquivalenteSimbolo = "";
+  totalEquivalenteFormato: string = undefined;
+  /** Cuántas unidades de la moneda del PDV vale 1 R$ / 1 US$ (con base == empresa, el cambio del comercio). */
+  factorRs: number = null;
+  factorDs: number = null;
+  factorArg: number = null;
   // null hasta que carguen las monedas: la plantilla muestra "—" y los totales en moneda
   // extranjera quedan null. Un 1 se mostraba como cotizacion real (PDV con "1").
   cambioRs: number = null;
@@ -377,10 +405,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             return;
           }
 
-          // PDV válido - proceder con la carga de caja
+          // PDV válido - proceder con la carga de caja, ya con la moneda del PDV leída
           this.setPrecios();
-          this.getFormaPagos();
-          this.iniciarCargaDeCaja();
+          this.cargarMonedaDelPdv(() => {
+            this.getFormaPagos();
+            this.iniciarCargaDeCaja();
+          });
         },
         // Llega por error de red, timeout de 20 s o error del servidor: depende del `propagate` del servicio.
         error: (err) => this.avisarErrorDeValidacion(err),
@@ -613,9 +643,148 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((mapa) => (this.preciosEnOtraMoneda = mapa));
   }
 
-  /** La moneda en que se cobra (hoy, la de la empresa). */
-  private monedaDeCobro(): Moneda | null {
+  /** La moneda de la empresa (principal). */
+  private monedaEmpresa(): Moneda | null {
     return this.monedaModulo.empresa$.value ?? elegirMonedaEmpresa(this.monedas);
+  }
+
+  /** La moneda en que se cobra: la del PDV (la de la empresa salvo que la sucursal tenga otra). */
+  private monedaDeCobro(): Moneda | null {
+    if (this.esOtraMoneda && this.monedaPdv != null) return this.monedaPdv;
+    return this.monedaEmpresa();
+  }
+
+  /**
+   * Lee la moneda del PDV de la filial (`monedaDelPdv`) y sigue con `continuar`. Una filial anterior no tiene la
+   * operación, o puede no responder: en cualquier error se usa la moneda de la empresa, como siempre.
+   */
+  private cargarMonedaDelPdv(continuar: () => void): void {
+    this.monedaService
+      .onGetMonedaDelPdv()
+      .pipe(take(1), catchError((err) => {
+        console.warn("monedaDelPdv no disponible: se usa la moneda de la empresa", err?.message ?? err);
+        return of(null);
+      }), untilDestroyed(this))
+      .subscribe({
+        next: (moneda) => {
+          this.monedaPdvLeida = moneda ?? null;
+          this.actualizarMonedaPdv();
+          continuar();
+        },
+        // catchError ya lo cubre; por las dudas el PDV no queda sin abrir.
+        error: () => continuar(),
+      });
+  }
+
+  /**
+   * Arma `monedaPdv`, `esOtraMoneda` y lo que muestra el total. Se llama al leer la moneda del PDV y al
+   * cargar las monedas (traen el cambio): lo que llegue último completa el cuadro.
+   */
+  private actualizarMonedaPdv(): void {
+    const empresa = this.monedaEmpresa();
+    const leida = this.monedaPdvLeida;
+    const otra = leida != null && !this.monedaModulo.esMonedaEmpresa(leida);
+    this.esOtraMoneda = otra;
+    if (!otra) {
+      this.monedaPdv = empresa;
+      this.monedaPdvSinCotizacion = false;
+      this.totalesSimbolo = "Gs.";
+      this.totalesFormato = undefined;
+      this.totalesBandera = "assets/flags/py/py64.png";
+      this.factorRs = this.cambioRs;
+      this.factorDs = this.cambioDs;
+      this.factorArg = this.cambioArg;
+      this.totalEquivalente = null;
+      return;
+    }
+    // La de la lista trae el cambio del comercio; la leída de la filial, no.
+    const completa = (this.monedas || []).find((m) => String(m?.id) === String(leida.id));
+    this.monedaPdv = completa ?? leida;
+    const listaCargada = (this.monedas || []).length > 0;
+    this.monedaPdvSinCotizacion = listaCargada && cotizacionEmpresa(this.monedaPdv, empresa) == null;
+    const dec = this.monedaPdv.decimales ?? 2;
+    this.totalesSimbolo = this.monedaPdv.simbolo || this.monedaPdv.denominacion || "";
+    this.totalesFormato = `1.${dec}-${dec}`;
+    this.totalesBandera = this.banderaDe(this.monedaPdv);
+    const porDenominacion = (d: string) => (this.monedas || []).find((m) => m.denominacion == d);
+    this.factorRs = factorABase(porDenominacion("REAL"), this.monedaPdv, empresa);
+    this.factorDs = factorABase(porDenominacion("DOLAR"), this.monedaPdv, empresa);
+    this.factorArg = factorABase(porDenominacion("PESO ARG"), this.monedaPdv, empresa);
+    const decEmp = empresa?.decimales ?? 0;
+    this.totalEquivalenteSimbolo = empresa?.simbolo || "";
+    this.totalEquivalenteFormato = `1.${decEmp}-${decEmp}`;
+    if (this.monedaPdvSinCotizacion) {
+      this.notificacionSnackbar.openWarn(
+        `La moneda del PDV (${this.monedaPdv.denominacion}) no tiene cotización cargada: no se puede vender hasta cargarla.`,
+        10
+      );
+    }
+    this.calcularEquivalente();
+  }
+
+  private banderaDe(moneda: Moneda): string | null {
+    const d = (moneda?.denominacion || "").toUpperCase();
+    if (d.includes("GUARANI")) return "assets/flags/py/py64.png";
+    if (d.includes("REAL")) return "assets/flags/br/br32.png";
+    if (d.includes("DOLAR")) return "assets/flags/usa/usa32.png";
+    return null;
+  }
+
+  /** El total del carrito en la moneda de la empresa, para mostrarlo bajo el total. Solo con otra moneda del PDV. */
+  private calcularEquivalente(): void {
+    if (!this.esOtraMoneda) {
+      this.totalEquivalente = null;
+      return;
+    }
+    const empresa = this.monedaEmpresa();
+    const cot = cotizacionEmpresa(this.monedaPdv, empresa);
+    this.totalEquivalente = cot == null ? null : equivalenteEmpresa(this.totalGs, cot, empresa?.decimales ?? 0);
+  }
+
+  /**
+   * Antes de guardar, con otra moneda del PDV: lleva a la moneda de la empresa lo que ahí se guarda (`totalGs`,
+   * `precio`, `valorDescuento`, `cobro.totalGs`) y deja la moneda del PDV en `monedaId` / `cotizacion` /
+   * `totalMoneda` / `precioEnMoneda` / `totalMoneda` del cobro / `cotizacion` de cada línea. Con la moneda de la
+   * empresa NO toca nada (las claves nuevas no viajan). false = no se pudo (sin cotización): no se guarda.
+   */
+  private aplicarMonedaDelPdv(venta: Venta, cobro: Cobro): boolean {
+    if (!this.esOtraMoneda) return true;
+    const empresa = this.monedaEmpresa();
+    const cot = cotizacionEmpresa(this.monedaPdv, empresa);
+    if (cot == null) {
+      this.notificacionSnackbar.openWarn(
+        `La moneda del PDV (${this.monedaPdv?.denominacion ?? ""}) no tiene cotización cargada: no se puede guardar la venta.`,
+        8
+      );
+      return false;
+    }
+    const decEmpresa = empresa?.decimales ?? 0;
+    const aEmpresa = (monto: number) => equivalenteEmpresa(monto, cot, decEmpresa);
+    const totalBase = venta.totalGs;
+    venta.monedaId = Number(this.monedaPdv.id);
+    venta.cotizacion = cot;
+    venta.totalMoneda = totalBase;
+    venta.totalGs = aEmpresa(totalBase);
+    // totalRs / totalDs: la fórmula de siempre, sobre el total en la moneda de la empresa.
+    venta.totalRs = this.cambioRs ? venta.totalGs / this.cambioRs : null;
+    venta.totalDs = this.cambioDs ? venta.totalGs / this.cambioDs : null;
+    // Copias: el carrito no cambia si el guardado falla y se reintenta.
+    venta.ventaItemList = (venta.ventaItemList || []).map((original) => {
+      const item = Object.assign(new VentaItem(), original);
+      item.precioEnMoneda = original.precio;
+      item.precio = aEmpresa(+original.precio);
+      if (original.valorDescuento != null && isFinite(+original.valorDescuento)) {
+        item.valorDescuento = aEmpresa(+original.valorDescuento);
+      }
+      return item;
+    });
+    cobro.totalMoneda = cobro.totalGs;
+    cobro.totalGs = aEmpresa(cobro.totalGs);
+    (cobro.cobroDetalleList || []).forEach((cd) => {
+      const c = cotizacionEmpresa(cd.moneda, empresa);
+      if (c != null) cd.cotizacion = c;
+    });
+    return true;
   }
 
   /**
@@ -629,8 +798,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     delete item.precioLista;
     delete item.precioCotizacion;
     delete item.precioListaTexto;
+    if (this.monedaPdvSinCotizacion) {
+      this.notificacionSnackbar.openWarn(
+        `La moneda del PDV (${this.monedaPdv?.denominacion ?? ""}) no tiene cotización cargada: no se puede vender.`, 6);
+      return false;
+    }
     const resolucion = resolverPrecioDeItem(
-      item.precioVenta?.id, item.precioVenta?.precio, this.preciosEnOtraMoneda, this.monedas, this.monedaDeCobro());
+      item.precioVenta?.id, item.precioVenta?.precio, this.preciosEnOtraMoneda, this.monedas, this.monedaDeCobro(),
+      this.esOtraMoneda ? this.monedaEmpresa() : null);
     if (resolucion.tipo === "empresa") return true;
     if (resolucion.tipo === "sinCotizacion") {
       const moneda = resolucion.moneda?.denominacion ?? "esa moneda";
@@ -667,6 +842,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.cambioArg = this.monedas.find(
             (m) => m.denominacion == "PESO ARG"
           )?.cambio ?? null;
+          this.actualizarMonedaPdv();
           return true;
         }
       });
@@ -766,9 +942,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.totalGs = 0;
     if (this.selectedItemList.length == 0) this.descuentoGs = 0;
     this.selectedItemList.forEach((item) => {
-      this.totalGs += Math.round(+item.cantidad * +item?.precio);
+      // Redondeo por los decimales de la moneda del PDV; con 0 decimales es el Math.round de siempre.
+      this.totalGs += redondearEnMoneda(+item.cantidad * +item?.precio, this.monedaDeCobro());
       this.descuentoGs += item.valorDescuento;
     });
+    this.calcularEquivalente();
   }
 
   /**
@@ -1436,6 +1614,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] =
               res["itens"];
             if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
+            // Otra moneda del PDV: lo que se guarda en la moneda de la empresa se calcula acá (delivery no aplica:
+            // onDeliveryClick no abre con otra moneda del PDV).
+            if (!this.isDelivery && !this.aplicarMonedaDelPdv(venta, cobro)) {
+              this.buscadorFocusSub.next();
+              return;
+            }
             if (this.isDelivery) {
               venta.id = this.selectedDelivery.venta.id;
               venta.ventaItemList = this.selectedDelivery.venta.ventaItemList;
@@ -1751,12 +1935,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // try/finally: pase lo que pase (ej. monedas no cargadas), el flag se
     // resetea siempre y los botones NUNCA quedan bloqueados.
     try {
-      // Guarda: la moneda base (GUARANI) debe estar cargada para armar el
+      // Guarda: la moneda base del cobro (la del PDV; el guaraní salvo Fase 4) debe estar cargada para armar el
       // cobro. Si las monedas no se cargaron (query al filial falló), avisar
       // y salir; el finally destraba los botones para reintentar.
-      const monedaGuarani = this.monedas?.find(
-        (m) => m.denominacion == "GUARANI"
-      );
+      const idBase = this.monedaDeCobro()?.id;
+      const monedaGuarani = this.esOtraMoneda
+        ? this.monedas?.find((m) => idBase != null && String(m.id) === String(idBase))
+        : this.monedas?.find((m) => m.denominacion == "GUARANI");
       if (monedaGuarani == null) {
         this.notificacionSnackbar.notification$.next({
           texto:
@@ -1766,7 +1951,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         });
         return;
       }
-      // Cambio de la moneda base: siempre 1 (guaraní). Fallback defensivo.
+      // Cambio de la moneda base: 1 si es el guaraní. Fallback defensivo.
       const cambioGuarani =
         monedaGuarani.cambio != null ? monedaGuarani.cambio : 1;
 
@@ -1815,6 +2000,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         cobro.cobroDetalleList.push(cobroDetalleDesc);
       }
       // cobroDetalle.
+      if (!this.aplicarMonedaDelPdv(venta, cobro)) return;
       this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
     } finally {
       this.disableCobroRapido = false;
@@ -2099,6 +2285,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onDeliveryClick() {
     if (this.modoConsulta) return;
     if (this.pdvSinValidar()) return;
+    if (this.esOtraMoneda) {
+      // Los deliveries se arman y cobran en la moneda de la empresa; con otra moneda del PDV no se mezclan.
+      this.notificacionSnackbar.openWarn(
+        "El delivery todavía no está disponible con una moneda del PDV distinta de la moneda de la empresa.", 6);
+      return;
+    }
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
       this.selectedDelivery = new Delivery();

@@ -24,6 +24,16 @@ export class Venta {
     totalGs: number;
     totalRs: number;
     totalDs: number;
+    /**
+     * Moneda del PDV (Fase 4). Solo se completan cuando la moneda del PDV NO es la de la empresa; con la de
+     * la empresa quedan sin definir y las claves ni viajan (una filial anterior rechaza un input con claves
+     * que no conoce). `totalGs` sigue siendo el equivalente en la moneda de la empresa.
+     */
+    monedaId?: number;
+    /** Unidades de la moneda de la empresa por 1 unidad de la moneda del PDV. */
+    cotizacion?: number;
+    /** El total en la moneda del PDV. */
+    totalMoneda?: number;
     cobro: Cobro
     sucursalId: number;
     isDelivery: boolean;
@@ -49,6 +59,12 @@ export class Venta {
         input.sucursalId = this.sucursalId;
         input.cobroId = this.cobro?.id;
         input.deliveryId = this.delivery?.id;
+        // Solo con una moneda del PDV distinta de la de la empresa; si no, las claves se omiten (no se mandan en null).
+        if (this.monedaId != null && this.cotizacion != null && this.totalMoneda != null) {
+            input.monedaId = this.monedaId;
+            input.cotizacion = this.cotizacion;
+            input.totalMoneda = this.totalMoneda;
+        }
         return input;
     }
 
@@ -77,6 +93,10 @@ export class VentaInput {
     sucursalId: number;
     cobroId: number;
     deliveryId: number;
+    /** Moneda del PDV (ver Venta): las tres existen solo si la moneda del PDV no es la de la empresa. */
+    monedaId?: number;
+    cotizacion?: number;
+    totalMoneda?: number;
 }
 
 export class VentaPorPeriodo {

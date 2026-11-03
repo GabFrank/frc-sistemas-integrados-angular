@@ -180,3 +180,31 @@ export const monedaEmpresaQuery = gql`
     }
   }
 `;
+
+/**
+ * Moneda del PDV de esta sucursal y la de facturación (Fase 4), contra la filial. Sin `codigoIso` ni `cambio`:
+ * el `cambio` del comercio sale de la lista de monedas, y una filial anterior ni conoce estas operaciones.
+ */
+const MONEDA_DEL_PDV_CAMPOS = `
+  id
+  denominacion
+  simbolo
+  principal
+  decimales
+`;
+
+export const monedaDelPdvQuery = gql`
+  {
+    data: monedaDelPdv {
+      ${MONEDA_DEL_PDV_CAMPOS}
+    }
+  }
+`;
+
+export const monedaDeFacturacionQuery = gql`
+  {
+    data: monedaDeFacturacion {
+      ${MONEDA_DEL_PDV_CAMPOS}
+    }
+  }
+`;

@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
-import { LECTURA_ESTRICTA } from '../../../generics/generic-crud.constantes';
+import { CONTEXTO_SONDEO, LECTURA_ESTRICTA } from '../../../generics/generic-crud.constantes';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
 import { MonedasAbmGQL } from './graphql/monedasAbm';
 import { SaveMonedaGQL } from './graphql/saveMoneda';
+import { MonedaDelPdvGQL } from './graphql/monedaDelPdv';
+import { MonedaDeFacturacionGQL } from './graphql/monedaDeFacturacion';
 import { DeleteMonedaGQL } from './graphql/deleteMoneda';
 import { Moneda } from './moneda.model';
 
@@ -54,6 +56,8 @@ export class MonedaService {
     private saveMonedaGQL: SaveMonedaGQL,
     private deleteMonedaGQL: DeleteMonedaGQL,
     private monedasAbmGQL: MonedasAbmGQL,
+    private monedaDelPdvGQL: MonedaDelPdvGQL,
+    private monedaDeFacturacionGQL: MonedaDeFacturacionGQL,
     private genericService: GenericCrudService,
     private mainService: MainService
   ) {
@@ -93,6 +97,19 @@ export class MonedaService {
    */
   onGetAllAbm(): Observable<Moneda[]> {
     return this.genericService.onCustomQuery(this.monedasAbmGQL, {}, true, LECTURA_ESTRICTA);
+  }
+
+  /**
+   * La moneda del PDV de esta sucursal (`monedaDelPdv` de la FILIAL; Fase 4). Falla si la filial no conoce
+   * la operación: quien llama usa la moneda de la empresa, como siempre.
+   */
+  onGetMonedaDelPdv(): Observable<Moneda> {
+    return this.genericService.onCustomQuery(this.monedaDelPdvGQL, {}, false, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO);
+  }
+
+  /** La moneda configurada para las facturas (`monedaDeFacturacion` de la FILIAL); null = la de la venta. */
+  onGetMonedaDeFacturacion(): Observable<Moneda> {
+    return this.genericService.onCustomQuery(this.monedaDeFacturacionGQL, {}, false, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO);
   }
 
   onSave(moneda: Moneda, opciones?: { avisarExito?: boolean }): Observable<Moneda> {

@@ -6,6 +6,8 @@ export class Cobro {
     creadoEn: Date
     usuario: Usuario
     totalGs: number
+    /** Total del cobro (neto de descuento/aumento) en la moneda del PDV; solo si no es la de la empresa (Fase 4). */
+    totalMoneda?: number
     cobroDetalleList: CobroDetalle[]
     sucursalId: number;
 
@@ -16,6 +18,7 @@ export class Cobro {
         input.totalGs = this.totalGs;
         input.usuarioId = this.usuario?.id;
         input.sucursalId = this.sucursalId
+        if (this.totalMoneda != null) input.totalMoneda = this.totalMoneda;
         return input;
     }
 
@@ -36,4 +39,5 @@ export class CobroInput {
     usuarioId: number
     totalGs: number
     sucursalId: number;
+    totalMoneda?: number
 }

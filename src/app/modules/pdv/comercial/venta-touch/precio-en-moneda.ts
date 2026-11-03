@@ -30,7 +30,10 @@ function formatearLista(valor: number, moneda: Moneda): string {
  * @param preciosOtraMoneda precioId (texto) → moneda, de `preciosEnOtraMoneda` de la filial; vacío si no hay
  *        ninguno o la filial no conoce la operación
  * @param monedas las monedas con el cambio del comercio (`Moneda.cambio`, guaraníes por unidad)
- * @param monedaCobro la moneda en que se cobra (hoy, la de la empresa)
+ * @param monedaCobro la moneda en que se cobra (la moneda del PDV: la de la empresa, salvo Fase 4)
+ * @param monedaEmpresa la moneda de la empresa. Solo importa si se cobra en OTRA moneda: un precio que no está en
+ *        el mapa está en la moneda de la empresa y hay que convertirlo a la de cobro. Con cobro == empresa (o
+ *        sin pasarla) un precio fuera del mapa se vende como siempre.
  */
 export function resolverPrecioDeItem(
   precioId: number | string | null | undefined,
@@ -38,8 +41,13 @@ export function resolverPrecioDeItem(
   preciosOtraMoneda: Map<string, Moneda>,
   monedas: Moneda[],
   monedaCobro: Moneda | null,
+  monedaEmpresa: Moneda | null = null,
 ): ResolucionPrecio {
-  const monedaPrecio = precioId != null ? preciosOtraMoneda?.get(String(precioId)) : undefined;
+  let monedaPrecio = precioId != null ? preciosOtraMoneda?.get(String(precioId)) : undefined;
+  if (monedaPrecio == null && precioLista != null && monedaEmpresa != null && monedaCobro != null
+    && String(monedaCobro.id) !== String(monedaEmpresa.id)) {
+    monedaPrecio = monedaEmpresa;
+  }
   if (monedaPrecio == null || precioLista == null) return { tipo: "empresa" };
   // En otra moneda y sin saber en cuál se cobra: venderlo al valor de lista sería cobrar 4,39 dólares como 4 guaraníes.
   if (monedaCobro == null) return { tipo: "sinCotizacion", moneda: monedaPrecio };

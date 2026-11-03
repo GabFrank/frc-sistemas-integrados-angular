@@ -2,8 +2,9 @@
   <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
     <div fxFlex="40" style="text-align: right">
       <img
-        src="assets/flags/py/py64.png"
-        alt="br"
+        *ngIf="bandera"
+        [src]="bandera"
+        alt="moneda"
         style="height: 50px; width: 50px"
       />
     </div>
@@ -13,7 +14,7 @@
       style="text-align: center"
       *ngIf="descuentoGs == 0 || descuentoGs == null"
     >
-      <div style="font-size: 2em">{{ totalGs | number }} Gs.</div>
+      <div style="font-size: 2em">{{ totalGs | number : formato }} {{ simbolo }}</div>
     </div>
     <div
       fxFlex="60"
@@ -22,9 +23,12 @@
       *ngIf="descuentoGs > 0"
       fxLayout="column"
     >
-      <div style="font-size: 1em">{{ totalGs | number }} Gs.</div>
-      <div fxFlex style="font-size: 2em">{{ totalGs - descuentoGs | number }} Gs.</div>
+      <div style="font-size: 1em">{{ totalGs | number : formato }} {{ simbolo }}</div>
+      <div fxFlex style="font-size: 2em">{{ totalGs - descuentoGs | number : formato }} {{ simbolo }}</div>
     </div>
+  </div>
+  <div *ngIf="totalEquivalente != null" style="text-align: center; font-size: 1em">
+    ≈ {{ totalEquivalente | number : formatoEquivalente }} {{ simboloEquivalente }}
   </div>
   <div fxFlex="1">
     <mat-divider style="height: 1vh"></mat-divider>
@@ -89,7 +93,7 @@
         />
       </div>
       <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-        {{ cambioRs ? (cambioRs | number) + " Gs." : "—" }}
+        {{ cambioRs ? (cambioRs | number) + " " + simbolo : "—" }}
       </div>
     </div>
     <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
@@ -101,7 +105,7 @@
         />
       </div>
       <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
-        {{ cambioDs ? (cambioDs | number) + " Gs." : "—" }}
+        {{ cambioDs ? (cambioDs | number) + " " + simbolo : "—" }}
       </div>
     </div>
   </div>

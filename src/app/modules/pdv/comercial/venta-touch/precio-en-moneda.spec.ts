@@ -43,4 +43,24 @@ describe("resolverPrecioDeItem", () => {
     const enPyg = new Map<string, Moneda>([["77", { id: 1 } as any]]);
     expect(resolverPrecioDeItem(77, 10000, enPyg, [PYG, USD], PYG)).toEqual({ tipo: "empresa" });
   });
+
+  describe("PDV en otra moneda (Fase 4)", () => {
+    it("un precio sin moneda propia está en la de la empresa y se convierte a la del PDV", () => {
+      const r = resolverPrecioDeItem(5, 36600, new Map(), [PYG, USD], USD, PYG);
+      expect(r.tipo).toBe("convertido");
+      if (r.tipo === "convertido") {
+        expect(r.rastro.precio).toBe(6);
+        expect(r.rastro.precioMonedaId).toBe(1);
+      }
+    });
+
+    it("un precio en la moneda del PDV no se convierte", () => {
+      const enUsd2 = new Map<string, Moneda>([["77", { id: "3", denominacion: "DOLAR", simbolo: "US$", decimales: 2 } as any]]);
+      expect(resolverPrecioDeItem(77, 4.39, enUsd2, [PYG, USD], USD, PYG)).toEqual({ tipo: "empresa" });
+    });
+
+    it("con el PDV en la moneda de la empresa pasar la empresa no cambia nada", () => {
+      expect(resolverPrecioDeItem(5, 10000, new Map(), [PYG, USD], PYG, PYG)).toEqual({ tipo: "empresa" });
+    });
+  });
 });

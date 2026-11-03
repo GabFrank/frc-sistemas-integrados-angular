@@ -34,6 +34,12 @@ export class VentaItem {
     precioMonedaId?: number;
     precioLista?: number;
     precioCotizacion?: number;
+    /**
+     * Precio unitario (bruto, como `precio`) en la moneda del PDV (Fase 4). Solo lo completa el PDV al guardar
+     * cuando la moneda del PDV no es la de la empresa: entonces `precio` y `valorDescuento` ya van en la moneda
+     * de la empresa (el equivalente). Sin definir = la clave no viaja.
+     */
+    precioEnMoneda?: number;
     /** Solo pantalla (no viaja): el precio de lista con su símbolo, p. ej. "US$ 4,39". */
     precioListaTexto?: string;
     /** Solo pantalla (no viaja al servidor): "Lote X · Vto dd/mm/aa" bajo el ítem antes de cobrar (#429). */
@@ -63,6 +69,9 @@ export class VentaItem {
             input.precioMonedaId = this.precioMonedaId;
             input.precioLista = this.precioLista;
             input.precioCotizacion = this.precioCotizacion;
+        }
+        if (this.precioEnMoneda != null) {
+            input.precioEnMoneda = this.precioEnMoneda;
         }
         return input;
     }
@@ -99,4 +108,6 @@ export class VentaItemInput {
     precioMonedaId?: number;
     precioLista?: number;
     precioCotizacion?: number;
+    /** Precio en la moneda del PDV (ver VentaItem). Existe solo si la moneda del PDV no es la de la empresa. */
+    precioEnMoneda?: number;
 }
