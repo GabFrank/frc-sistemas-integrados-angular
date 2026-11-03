@@ -46,6 +46,11 @@ import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
 import { resolverPrecioDeItem } from "./precio-en-moneda";
 import {
+  aplicarMonedaALaVenta,
+  aplicarMonedaAlCobro,
+  ContextoMonedaPdv,
+} from "./moneda-pdv-guardado";
+import {
   cotizacionEmpresa,
   equivalenteEmpresa,
   factorABase,
@@ -759,33 +764,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       return false;
     }
-    const decEmpresa = empresa?.decimales ?? 0;
-    const aEmpresa = (monto: number) => equivalenteEmpresa(monto, cot, decEmpresa);
-    const totalBase = venta.totalGs;
-    venta.monedaId = Number(this.monedaPdv.id);
-    venta.cotizacion = cot;
-    venta.totalMoneda = redondearEnMoneda(totalBase, this.monedaPdv);
-    venta.totalGs = aEmpresa(totalBase);
-    // totalRs / totalDs: la fórmula de siempre, sobre el total en la moneda de la empresa.
-    venta.totalRs = this.cambioRs ? venta.totalGs / this.cambioRs : null;
-    venta.totalDs = this.cambioDs ? venta.totalGs / this.cambioDs : null;
-    // Copias: el carrito no cambia si el guardado falla y se reintenta.
-    venta.ventaItemList = (venta.ventaItemList || []).map((original) => {
-      const item = Object.assign(new VentaItem(), original);
-      item.precioEnMoneda = original.precio;
-      item.precio = aEmpresa(+original.precio);
-      if (original.valorDescuento != null && isFinite(+original.valorDescuento)) {
-        item.valorDescuento = aEmpresa(+original.valorDescuento);
-      }
-      return item;
-    });
-    // El total del cobro sale de restar lineas: sin redondear quedaba 3.1500000000000004.
-    cobro.totalMoneda = redondearEnMoneda(cobro.totalGs, this.monedaPdv);
-    cobro.totalGs = aEmpresa(cobro.totalMoneda);
-    (cobro.cobroDetalleList || []).forEach((cd) => {
-      const c = cotizacionEmpresa(cd.moneda, empresa);
-      if (c != null) cd.cotizacion = c;
-    });
+    const contexto: ContextoMonedaPdv = {
+      monedaPdv: this.monedaPdv, empresa, cot, cambioRs: this.cambioRs, cambioDs: this.cambioDs,
+    };
+    aplicarMonedaALaVenta(venta, contexto);
+    aplicarMonedaAlCobro(cobro, contexto);
     return true;
   }
 
