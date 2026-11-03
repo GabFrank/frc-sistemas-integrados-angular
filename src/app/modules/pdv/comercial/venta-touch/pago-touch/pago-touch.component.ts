@@ -268,7 +268,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       if (data.delivery.precio?.valor == null) {
         this.notificacionSnackbar.openWarn('Este delivery no tiene tarifa de envío cargada: revisalo antes de cobrar.', 6);
       }
-      data.valor += data.delivery.precio?.valor ?? 0;
+      // La tarifa de envío está en la moneda de la empresa; con otra moneda del PDV el total (`data.valor`) está en esa
+      // moneda y la tarifa se lleva a ella. La cotización sale de la que ya tiene el delivery (viene convertido), si no
+      // de la actual.
+      let envio = data.delivery.precio?.valor ?? 0;
+      if (data?.monedaBase != null && envio !== 0) {
+        envio = data.delivery.envioEnBase ?? redondearEnMoneda(
+          envio / (cotizacionEmpresa(data.monedaBase, this.monedaEmpresa()) ?? 1), data.monedaBase);
+      }
+      data.valor += envio;
     }
     if (data?.isCredito == true) this.isCredito = true;
   }
@@ -807,6 +815,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       item.descuento = this.isDescuento;
       item.aumento = this.isAumento;
       item.pago = !this.isVuelto && !this.isDescuento && !this.isAumento;
+      // Una línea de delivery se guarda al agregarla (antes de finalizar): ya lleva la cotización de su moneda.
+      if (this.esOtraMoneda && esLineaNueva && this.data?.delivery != null) {
+        const cotizacion = cotizacionEmpresa(item.moneda, this.monedaEmpresa());
+        if (cotizacion != null) item.cotizacion = cotizacion;
+      }
       this.valorParcialPagado += item.valor * factor;
 
       this.formGroup
