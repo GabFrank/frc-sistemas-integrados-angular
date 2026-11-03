@@ -1,106 +1,90 @@
-.bloque.apilado {
-  border: 1px solid var(--frc-borde);
-  border-radius: 10px;
-  padding: 10px 12px 4px;
-  margin-bottom: 14px;
-}
+// Sin caja propia: las celdas caen en la grilla del diálogo (ver verificar-retiro-dialog.component.scss).
+:host { display: contents; }
 
-.bloque-encabezado {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  margin-bottom: 10px;
-
-  .bloque-titulo { font-weight: 500; font-size: 15px; color: var(--frc-texto-fuerte); }
-  .bloque-fecha,
-  .bloque-responsable { font-size: 12px; color: var(--frc-texto-suave); }
-}
-
-.aviso-borrador,
-.aviso-diferencia {
+.c {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  border-radius: 6px;
-  font-size: 13px;
+  min-height: 40px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--frc-borde-suave);
 
-  mat-icon { font-size: 19px; width: 19px; height: 19px; }
+  // Primera fila de cada retiro: separa un retiro del siguiente.
+  &.primera { border-top: 1px solid var(--frc-borde); }
 }
+
+.c-retiro {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1.2;
+
+  strong { color: var(--frc-texto-fuerte); font-weight: 500; }
+  .sub { font-size: 11px; color: var(--frc-texto-tenue); }
+}
+
+.c-moneda { color: var(--frc-texto-suave); font-size: 13px; }
+
+.c-num {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.contado-input {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--frc-borde-fuerte);
+  background: var(--frc-relleno-suave);
+  color: var(--frc-texto-fuerte);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+
+  &:focus { border-color: #26a69a; background: var(--frc-relleno-tenue); }
+  &.vacio { border-style: dashed; }
+  &::placeholder { color: var(--frc-texto-tenue); font-size: 12px; }
+}
+
+.c-dif {
+  gap: 8px;
+
+  .dif-texto { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; }
+
+  .motivo {
+    width: 120px;
+    font-size: 12px;
+  }
+}
+
+.c-acc {
+  justify-content: flex-end;
+  gap: 0;
+
+  button { color: var(--frc-texto-suave); }
+  button.activo { color: #26a69a; }
+}
+
+// Filas que ocupan todo el ancho de la tabla: grilla de billetes, observación, aviso de borrador.
+.fila-ancha {
+  grid-column: 1 / -1;
+  padding: 6px 10px;
+}
+
+.grilla {
+  background: var(--frc-relleno-tenue);
+  border-bottom: 1px solid var(--frc-borde-suave);
+}
+
+.observacion mat-form-field { width: 100%; }
 
 .aviso-borrador {
-  border-left: 3px solid #ffa726;
-  background: rgba(255, 167, 38, 0.1);
-}
-
-.aviso-diferencia {
-  margin-top: 12px;
-  margin-bottom: 0;
-  border-left: 3px solid #ff8a80;
-  background: rgba(244, 67, 54, 0.1);
-  color: #ff8a80;
-}
-
-/* Una moneda por bloque: declarado, contado, diferencia y las acciones en una línea. */
-.moneda {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  margin-bottom: 10px;
-  overflow: hidden;
-}
-
-.moneda-fila {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 12px 14px;
-  flex-wrap: wrap;
-}
-
-.moneda-nombre {
-  flex: 0 0 110px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-.moneda-monto {
-  display: flex;
-  flex-direction: column;
-  min-width: 110px;
-
-  .etiqueta {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.55;
-  }
-
-  strong {
-    font-size: 17px;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.moneda-acciones {
-  margin-left: auto;
-  display: flex;
   gap: 8px;
-}
+  font-size: 12px;
+  color: #ffb74d;
 
-.moneda-grilla {
-  padding: 4px 14px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.moneda-categoria {
-  padding: 0 14px 12px;
-
-  mat-form-field { width: 280px; }
-}
-
-.observacion {
-  width: 100%;
-  margin-top: 6px;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
 }

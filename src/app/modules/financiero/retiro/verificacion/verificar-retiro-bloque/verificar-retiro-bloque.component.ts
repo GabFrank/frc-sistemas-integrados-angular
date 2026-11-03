@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { CurrencyMaskInputMode } from 'ngx-currency';
 import { Retiro } from '../../retiro.model';
 import { RetiroDetalle } from '../../retiro-detalle.model';
 import { Moneda } from '../../../moneda/moneda.model';
@@ -7,25 +8,35 @@ import {
   BorradorVerificacion, CATEGORIA_LABEL, CategoriaDiferenciaRetiro, ConteoRetiroMonedaInput,
 } from '../retiro-verificacion.model';
 
-/** Una moneda del retiro: lo declarado, lo que se va contando y la diferencia. */
+/** Una moneda del retiro: lo declarado, lo contado (null = sin contar) y la diferencia. */
 interface FilaMoneda {
   moneda: Moneda;
   declarado: number;
-  contado: number;
-  diferencia: number;
+  /** null = sin contar. Un 0 es un conteo: el sobre llegó vacío. */
+  contado: number | null;
+  /** null mientras no se contó. */
+  diferencia: number | null;
   categoria: CategoriaDiferenciaRetiro;
+  decimales: number;
   /** digitsInfo del pipe number, según los decimales de la moneda. */
   formato: string;
-  /** Etiqueta y color de la diferencia, precalculados (no se llaman funciones desde el HTML). */
+  /** Opciones de la máscara del input, precalculadas (no se llaman funciones desde el HTML). */
+  opts: any;
+  /** Etiqueta y color de la diferencia, precalculados. */
   etiqueta: string;
   color: string;
-  /** La grilla de esta moneda no pudo cargar sus denominaciones: su 0 no es un conteo (#390). */
+  /** La grilla de esta moneda no pudo cargar sus denominaciones. */
   grillaNoCargo?: boolean;
 }
 
 /**
- * El conteo de un retiro dentro de la verificación: lo declarado por moneda, la grilla de billetes,
- * la diferencia y su motivo. El diálogo apila uno por retiro y los confirma juntos.
+ * El conteo de un retiro dentro de la verificación: sus filas de la tabla (una por moneda), con lo
+ * declarado, el contado editable, la diferencia y su motivo. El diálogo arma la tabla y apila un bloque
+ * por retiro: este componente se dibuja con `display: contents`, así sus celdas caen en la grilla del
+ * diálogo.
+ *
+ * El contado se tipea, se copia de lo declarado, o sale de la grilla de billetes. Vacío no es 0: una
+ * moneda sin contar bloquea la confirmación.
  *
  * El conteo se guarda en un borrador local a cada cambio. Contar plata se interrumpe —entra
  * alguien, suena el teléfono, se cierra el diálogo— y volver a empezar de cero es la forma más
@@ -39,19 +50,22 @@ interface FilaMoneda {
 export class VerificarRetiroBloqueComponent implements OnInit {
 
   @Input() retiro: Retiro;
-  /** Con varios retiros apilados cada bloque lleva su encabezado. */
+  /** Con varios retiros la tabla lleva la columna Retiro. */
   @Input() conEncabezado = false;
 
   filas: FilaMoneda[] = [];
   observacion = '';
+  verObservacion = false;
   hayDiferencia = false;
   huboBorrador = false;
 
   /** Moneda cuya grilla está abierta. Una sola a la vez: la grilla necesita ancho. */
   monedaAbierta: Moneda = null;
 
-  /** Cantidades por moneda y valor de billete, para la grilla y para el borrador. */
+  /** Billetes contados por moneda y valor: { monedaId: { valorBillete: cantidad } }. */
   cantidades: { [monedaId: string]: { [valor: string]: number } } = {};
+  /** Monto tipeado o tomado de lo declarado, por moneda. Si la moneda tiene billetes, mandan los billetes. */
+  montos: { [monedaId: string]: number } = {};
 
   categorias = Object.keys(CATEGORIA_LABEL).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
 
@@ -61,8 +75,10 @@ export class VerificarRetiroBloqueComponent implements OnInit {
     const borrador = this.service.leerBorrador(this.retiro.id, this.retiro.sucursalId);
     if (borrador) {
       this.cantidades = borrador.cantidades || {};
+      this.montos = borrador.montos || {};
       this.observacion = borrador.observacion || '';
-      this.huboBorrador = true;
+      this.verObservacion = !!this.observacion;
+      this.huboBorrador = this.service.hayBorrador(this.retiro.id, this.retiro.sucursalId);
     }
     this.armarFilas();
   }
@@ -77,16 +93,26 @@ export class VerificarRetiroBloqueComponent implements OnInit {
         ? d.moneda.decimales
         : ((d.moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
       const fila = porMoneda.get(d.moneda.id) || {
-        moneda: d.moneda, declarado: 0, contado: 0, diferencia: 0,
-        categoria: null, formato: `1.0-${dec}`, etiqueta: '', color: '#b0bec5',
+        moneda: d.moneda, declarado: 0, contado: null, diferencia: null, categoria: null,
+        decimales: dec, formato: `1.0-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
       };
       fila.declarado += d.cantidad || 0;
       porMoneda.set(d.moneda.id, fila);
     }
     this.filas = Array.from(porMoneda.values());
-    // Sembrar lo que haya en el borrador y recalcular.
-    this.filas.forEach(f => f.contado = this.totalDe(f.moneda.id));
+    // Del borrador: si hay billetes mandan los billetes, si no el monto, y si no queda sin contar.
+    this.filas.forEach(f => f.contado = this.contadoGuardado(f.moneda.id));
     this.recalcular();
+  }
+
+  private contadoGuardado(monedaId: number): number | null {
+    if (this.hayBilletes(monedaId)) return this.totalDe(monedaId);
+    const m = this.montos[String(monedaId)];
+    return m != null ? m : null;
+  }
+
+  private hayBilletes(monedaId: number): boolean {
+    return Object.values(this.cantidades[String(monedaId)] || {}).some(c => c > 0);
   }
 
   private totalDe(monedaId: number): number {
@@ -102,25 +128,50 @@ export class VerificarRetiroBloqueComponent implements OnInit {
     return this.cantidades[String(monedaId)] || {};
   }
 
+  /**
+   * Cambio en la grilla de billetes. Solo esta salida escribe el contado: `totalChange` también se emite
+   * al abrir la grilla, y pisaría un monto tipeado con el total de una grilla vacía.
+   */
   onCantidadesChange(fila: FilaMoneda, cantidades: { [valor: string]: number }) {
-    this.cantidades[String(fila.moneda.id)] = cantidades;
+    const id = String(fila.moneda.id);
+    this.cantidades[id] = cantidades;
+    delete this.montos[id];
     fila.contado = this.totalDe(fila.moneda.id);
     this.recalcular();
     this.guardarBorrador();
   }
 
-  /** Confirma lo declarado sin contar. Queda marcado como verificación rápida. */
-  usarDeclarado(fila: FilaMoneda) {
-    this.cantidades[String(fila.moneda.id)] = {};
-    fila.contado = fila.declarado;
+  /**
+   * Monto tipeado (null = campo vacío). Descarta los billetes de esa moneda, que ya no explican el monto,
+   * y cierra su grilla: la grilla guarda sus filas y no se entera de que se vaciaron.
+   */
+  onContadoChange(fila: FilaMoneda, valor: number | null) {
+    const id = String(fila.moneda.id);
+    fila.contado = valor != null && !isNaN(valor) ? valor : null;
+    delete this.cantidades[id];
+    if (fila.contado != null) this.montos[id] = fila.contado;
+    else delete this.montos[id];
+    if (this.monedaAbierta?.id === fila.moneda.id) this.monedaAbierta = null;
     this.recalcular();
     this.guardarBorrador();
+  }
+
+  /** Copia lo declarado sin contar por billetes. */
+  usarDeclarado(fila: FilaMoneda) {
+    this.onContadoChange(fila, fila.declarado);
   }
 
   private recalcular() {
     this.hayDiferencia = false;
     for (const f of this.filas) {
-      f.diferencia = (f.contado || 0) - (f.declarado || 0);
+      if (f.contado == null) {
+        f.diferencia = null;
+        f.categoria = null;
+        f.etiqueta = 'Sin contar';
+        f.color = 'var(--frc-texto-tenue)';
+        continue;
+      }
+      f.diferencia = redondear(f.contado, f.decimales) - redondear(f.declarado, f.decimales);
       if (Math.abs(f.diferencia) > 0.005) {
         this.hayDiferencia = true;
         if (!f.categoria) {
@@ -141,6 +192,7 @@ export class VerificarRetiroBloqueComponent implements OnInit {
   private guardarBorrador() {
     const borrador: BorradorVerificacion = {
       cantidades: this.cantidades,
+      montos: this.montos,
       observacion: this.observacion,
       actualizadoEn: new Date().toISOString(),
     };
@@ -153,36 +205,37 @@ export class VerificarRetiroBloqueComponent implements OnInit {
 
   /** Motivo por el que este retiro no se puede confirmar todavía, o null. */
   motivoParaNoConfirmar(): string | null {
-    // Sin lo declarado no hay contra qué contar: confirmar mandaría conteos vacíos, que el central
-    // tomaría como faltante de todo el retiro.
+    // Sin lo declarado no hay contra qué contar: confirmar mandaría conteos vacíos.
     if (!this.filas.length) {
       return `No se pudo leer lo declarado del retiro #${this.retiro.id}: cerrá y volvé a abrirlo.`;
     }
-    // Una moneda cuya grilla no cargó y que quedó en 0 no fue contada: acreditar ese 0 abriría un caso por
-    // todo lo declarado. «Usar declarado» sigue valiendo, porque ahí el contado deja de ser 0.
-    const sinContar = this.filas.find(f => f.grillaNoCargo && !(f.contado > 0) && f.declarado > 0);
+    const sinContar = this.filas.find(f => f.contado == null);
     if (sinContar != null) {
-      return `No se pudieron cargar las denominaciones de ${sinContar.moneda?.denominacion || 'una moneda'} `
-        + `del retiro #${this.retiro.id}: reintentá la carga o usá lo declarado antes de confirmar.`;
+      return `Falta contar el retiro #${this.retiro.id} (${sinContar.moneda?.denominacion || 'una moneda'}).`;
     }
     return null;
   }
 
+  /** Lo que se manda al central: redondeado a los decimales de cada moneda (allá se compara exacto). */
   conteos(): ConteoRetiroMonedaInput[] {
-    return this.filas.map(f => ({
-      monedaId: f.moneda.id,
-      contado: f.contado || 0,
-      categoria: f.categoria || null,
-    }));
+    return this.filas.map(f => {
+      // Nunca un 0 por omisión: el diálogo frena antes con motivoParaNoConfirmar.
+      if (f.contado == null) throw new Error(`El retiro #${this.retiro.id} tiene una moneda sin contar.`);
+      return {
+        monedaId: f.moneda.id,
+        contado: redondear(f.contado, f.decimales),
+        categoria: f.categoria || null,
+      };
+    });
   }
 
   /**
-   * true cuando no se contó ninguna denominación: el operador aceptó lo declarado. Se marca a
-   * propósito — si más adelante aparece una diferencia, hay que poder saber que ese retiro nunca
-   * se contó billete por billete.
+   * true cuando no se contó ningún billete en la grilla: el retiro no se contó billete por billete
+   * (aunque se haya tipeado el monto). Se marca a propósito, para poder saberlo si después aparece una
+   * diferencia.
    */
   esRapida(): boolean {
-    return Object.keys(this.cantidades).every(k => Object.keys(this.cantidades[k] || {}).length === 0);
+    return !this.filas.some(f => this.hayBilletes(f.moneda.id));
   }
 
   /**
@@ -191,12 +244,28 @@ export class VerificarRetiroBloqueComponent implements OnInit {
    */
   resumenDiferencias(): string {
     return this.filas
-      .filter(f => Math.abs(f.diferencia) > 0.005)
+      .filter(f => f.diferencia != null && Math.abs(f.diferencia) > 0.005)
       .map(f => {
-        const dec = f.formato.endsWith('-0') ? 0 : 2;
-        const monto = f.diferencia.toLocaleString('es-PY', { maximumFractionDigits: dec });
+        const monto = f.diferencia.toLocaleString('es-PY', { maximumFractionDigits: f.decimales });
         return `${f.moneda.denominacion}: ${f.diferencia > 0 ? '+' : ''}${monto} ${f.moneda.simbolo}`;
       })
       .join(' · ');
   }
+}
+
+function redondear(valor: number, decimales: number): number {
+  const factor = Math.pow(10, decimales);
+  return Math.round((valor || 0) * factor) / factor;
+}
+
+/**
+ * Máscara del contado. No se usan los presets compartidos: traen `nullable: false` (borrar dejaría 0 en vez
+ * de «sin contar»), aceptan negativos, y el de moneda extranjera es FINANCIAL («100» se leería 1,00).
+ */
+function opcionesMonto(decimales: number) {
+  return {
+    align: 'right', allowNegative: false, allowZero: true, decimal: decimales > 0 ? ',' : '',
+    precision: decimales, prefix: '', suffix: '', thousands: '.', nullable: true, min: 0, max: null,
+    inputMode: CurrencyMaskInputMode.NATURAL,
+  };
 }

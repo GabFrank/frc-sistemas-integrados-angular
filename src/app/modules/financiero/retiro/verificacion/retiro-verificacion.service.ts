@@ -5,7 +5,7 @@ import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link
 import { PageInfo } from '../../../../app.component';
 import {
   BorradorVerificacion, ConteoRetiroMonedaInput, EstadoCasoRetiro,
-  RetiroCaso, RetiroVerificacion, claveBorrador,
+  RetiroCaso, RetiroVerificacion, claveBorrador, claveBorradorV1,
 } from './retiro-verificacion.model';
 import { VerificacionDeRetiroGQL } from './graphql/verificacionDeRetiro';
 import { VerificarRetiroGQL } from './graphql/verificarRetiro';
@@ -94,7 +94,8 @@ export class RetiroVerificacionService {
 
   leerBorrador(retiroId: number, sucursalId: number): BorradorVerificacion {
     try {
-      const raw = localStorage.getItem(claveBorrador(retiroId, sucursalId));
+      const raw = localStorage.getItem(claveBorrador(retiroId, sucursalId))
+        ?? localStorage.getItem(claveBorradorV1(retiroId, sucursalId));
       return raw ? JSON.parse(raw) as BorradorVerificacion : null;
     } catch {
       return null;
@@ -113,14 +114,16 @@ export class RetiroVerificacionService {
   borrarBorrador(retiroId: number, sucursalId: number) {
     try {
       localStorage.removeItem(claveBorrador(retiroId, sucursalId));
+      localStorage.removeItem(claveBorradorV1(retiroId, sucursalId));
     } catch { /* nada que hacer */ }
   }
 
   hayBorrador(retiroId: number, sucursalId: number): boolean {
     const b = this.leerBorrador(retiroId, sucursalId);
-    if (!b?.cantidades) return false;
-    // Un borrador con todo en cero es como no haber empezado.
-    return Object.values(b.cantidades).some(porMoneda =>
+    if (!b) return false;
+    // Empezado = algún billete contado o algún monto cargado (un 0 tipeado también: el sobre llegó vacío).
+    const hayBilletes = Object.values(b.cantidades || {}).some(porMoneda =>
       Object.values(porMoneda || {}).some(c => c > 0));
+    return hayBilletes || Object.values(b.montos || {}).some(m => m != null);
   }
 }

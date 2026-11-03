@@ -82,6 +82,24 @@ describe('VerificarRetiroDialogComponent — retiros apilados', () => {
     expect(verificacion.onVerificar).not.toHaveBeenCalled();
   });
 
+  it('Enter en un contado pasa al siguiente, también de un retiro al otro', () => {
+    const tabla = document.createElement('div');
+    tabla.innerHTML = '<input class="contado-input" id="a"><input class="contado-input" id="b"><input class="contado-input" id="c">';
+    document.body.appendChild(tabla);
+    armar([retiro(1), retiro(2)]);
+    (comp as any).el = { nativeElement: tabla };
+    const a = tabla.querySelector<HTMLInputElement>('#a');
+    const ev = { target: a, preventDefault: jasmine.createSpy('preventDefault') } as any;
+    comp.siguienteContado(ev);
+    expect(document.activeElement.id).toBe('b');
+    expect(ev.preventDefault).toHaveBeenCalled();
+    // En el último no hace nada: Enter queda libre.
+    const ultimo = { target: tabla.querySelector('#c'), preventDefault: jasmine.createSpy('p') } as any;
+    comp.siguienteContado(ultimo);
+    expect(ultimo.preventDefault).not.toHaveBeenCalled();
+    tabla.remove();
+  });
+
   it('un bloque sin lo declarado frena todo antes de enviar', () => {
     armar([retiro(1), retiro(2)], [null, 'No se pudo leer lo declarado del retiro #2']);
     comp.onConfirmar();

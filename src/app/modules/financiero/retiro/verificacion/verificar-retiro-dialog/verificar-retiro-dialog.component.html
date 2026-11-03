@@ -6,8 +6,18 @@
   </div>
 
   <mat-dialog-content class="ver-content">
-    <app-verificar-retiro-bloque *ngFor="let r of retiros; trackBy: porId" [retiro]="r"
-                                 [conEncabezado]="retiros.length > 1"></app-verificar-retiro-bloque>
+    <!-- Una tabla para todos los retiros: cada bloque aporta sus filas (una por moneda). Enter pasa al
+         siguiente contado, también de un retiro al otro. -->
+    <div class="tabla" [class.con-retiro]="retiros.length > 1" (keydown.enter)="siguienteContado($event)">
+      <div class="th" *ngIf="retiros.length > 1">Retiro</div>
+      <div class="th">Moneda</div>
+      <div class="th num">Declarado</div>
+      <div class="th num">Contado</div>
+      <div class="th">Diferencia</div>
+      <div class="th"></div>
+      <app-verificar-retiro-bloque *ngFor="let r of retiros; trackBy: porId" [retiro]="r"
+                                   [conEncabezado]="retiros.length > 1"></app-verificar-retiro-bloque>
+    </div>
   </mat-dialog-content>
 
   <mat-dialog-actions class="ver-actions">

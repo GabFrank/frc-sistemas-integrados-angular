@@ -18,6 +18,31 @@
   overflow: auto;
 }
 
+// La tabla de todos los retiros. Las celdas las ponen los bloques (display: contents).
+.tabla {
+  display: grid;
+  grid-template-columns: 110px minmax(130px, 1.2fr) minmax(170px, 1.3fr) minmax(150px, 1.3fr) 128px;
+  align-items: stretch;
+
+  &.con-retiro {
+    grid-template-columns: 88px 110px minmax(130px, 1.2fr) minmax(170px, 1.3fr) minmax(150px, 1.3fr) 128px;
+  }
+
+  .th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--frc-encabezado-tabla-texto);
+    background: var(--frc-encabezado-tabla);
+
+    &.num { text-align: right; }
+  }
+}
+
 .ver-actions {
   display: flex;
   align-items: center;

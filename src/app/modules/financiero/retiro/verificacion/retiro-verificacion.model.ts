@@ -130,11 +130,25 @@ export interface ConteoRetiroMonedaInput {
 export interface BorradorVerificacion {
   /** Cantidades por valor de billete, por moneda: { monedaId: { valorBillete: cantidad } }. */
   cantidades: { [monedaId: string]: { [valor: string]: number } };
+  /**
+   * Monto contado tipeado a mano o tomado de lo declarado, por moneda. Si la moneda tiene billetes en
+   * `cantidades`, mandan los billetes. Sin ninguno de los dos, la moneda está sin contar (no en 0).
+   */
+  montos?: { [monedaId: string]: number };
   observacion?: string;
   actualizadoEn: string;
 }
 
 /** Clave del borrador. Por retiro, no por caja: dos retiros no comparten conteo. */
+/**
+ * v2 desde que el contado se puede tipear (lleva `montos`). Clave nueva a propósito: un desktop anterior
+ * no la lee, en vez de leerla sin los montos y restaurar ceros.
+ */
 export function claveBorrador(retiroId: number, sucursalId: number): string {
+  return `frc.verificacion-retiro.v2.${retiroId}.${sucursalId}`;
+}
+
+/** La clave anterior (solo billetes). Se sigue leyendo para no perder conteos a medias. */
+export function claveBorradorV1(retiroId: number, sucursalId: number): string {
   return `frc.verificacion-retiro.${retiroId}.${sucursalId}`;
 }

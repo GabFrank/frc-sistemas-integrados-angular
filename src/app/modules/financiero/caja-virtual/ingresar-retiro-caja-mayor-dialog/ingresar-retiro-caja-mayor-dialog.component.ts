@@ -276,8 +276,9 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
 
   private abrirVerificacion(retiros: Retiro[]) {
     const data: VerificarRetiroDialogData = { retiros, cajaVirtual: this.data.cajaVirtual };
+    // Más ancho que antes: la tabla de conteo pone todas las monedas de todos los retiros en filas.
     this.dialog.open(VerificarRetiroDialogComponent, {
-      width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data,
+      width: '80vw', height: '75vh', maxWidth: '96vw', disableClose: true, data,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: VerificarRetiroDialogResultado) => {
       const ingresados = res?.ingresados || [];
       const fuera = res?.fuera || [];

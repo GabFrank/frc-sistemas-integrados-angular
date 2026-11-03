@@ -1,4 +1,4 @@
-import { Component, Inject, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, Inject, QueryList, ViewChildren } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { from } from 'rxjs';
@@ -67,6 +67,7 @@ export class VerificarRetiroDialogComponent {
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
     private mainService: MainService,
+    private el?: ElementRef<HTMLElement>,
   ) {
     this.retiros = [...(data.retiros || [])];
     const r0 = this.retiros[0];
@@ -80,6 +81,18 @@ export class VerificarRetiroDialogComponent {
     this.titulo = this.retiros.length > 1
       ? `Verificar ${this.retiros.length} retiros de la caja ${r0?.cajaSalida?.id}`
       : `Verificar retiro #${r0?.id}`;
+  }
+
+  /** Enter en un contado pasa al siguiente de la tabla, en el orden en que se ven. */
+  siguienteContado(ev: Event) {
+    const destino = ev.target as HTMLInputElement;
+    if (!destino?.classList?.contains('contado-input')) return;
+    const inputs = Array.from(this.el?.nativeElement?.querySelectorAll<HTMLInputElement>('input.contado-input') || []);
+    const i = inputs.indexOf(destino);
+    if (i < 0 || i === inputs.length - 1) return;
+    ev.preventDefault();
+    inputs[i + 1].focus();
+    inputs[i + 1].select();
   }
 
   porId(_: number, r: Retiro): number {
