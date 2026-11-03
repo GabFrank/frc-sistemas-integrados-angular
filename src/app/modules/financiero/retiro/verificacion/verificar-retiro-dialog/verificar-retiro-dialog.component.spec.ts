@@ -52,6 +52,7 @@ describe('VerificarRetiroDialogComponent — retiros apilados', () => {
     expect(verificacion.onVerificar).toHaveBeenCalledTimes(2);
     expect(verificacion.borrarBorrador).toHaveBeenCalledWith(1, 24);
     expect(comp.retiros.map(r => r.id)).toEqual([2, 3]);
+    expect(comp.titulo).toBe('Verificar 2 retiros de la caja 662');
     expect(comp.guardando).toBeFalse();
     expect(dialogRef.close).not.toHaveBeenCalled();
   });

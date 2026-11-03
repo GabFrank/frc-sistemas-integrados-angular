@@ -70,10 +70,16 @@ export class VerificarRetiroDialogComponent {
   ) {
     this.retiros = [...(data.retiros || [])];
     const r0 = this.retiros[0];
+    this.subtitulo = `${r0?.sucursal?.nombre || 'Sucursal ' + r0?.sucursalId} · entra a ${data.cajaVirtual?.nombre}`;
+    this.actualizarTitulo();
+  }
+
+  /** El título sigue a los que faltan confirmar: tras un lote a medias puede quedar uno solo. */
+  private actualizarTitulo() {
+    const r0 = this.retiros[0];
     this.titulo = this.retiros.length > 1
       ? `Verificar ${this.retiros.length} retiros de la caja ${r0?.cajaSalida?.id}`
       : `Verificar retiro #${r0?.id}`;
-    this.subtitulo = `${r0?.sucursal?.nombre || 'Sucursal ' + r0?.sucursalId} · entra a ${data.cajaVirtual?.nombre}`;
   }
 
   porId(_: number, r: Retiro): number {
@@ -188,6 +194,7 @@ export class VerificarRetiroDialogComponent {
     this.service.borrarBorrador(r.id, r.sucursalId);
     destino.push(r);
     this.retiros = this.retiros.filter(x => x.id !== r.id);
+    if (this.retiros.length) this.actualizarTitulo();
   }
 
   private cerrar() {
