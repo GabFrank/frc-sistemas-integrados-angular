@@ -685,6 +685,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     const leida = this.monedaPdvLeida;
     const otra = leida != null && !this.monedaModulo.esMonedaEmpresa(leida);
     this.esOtraMoneda = otra;
+    this.precioMonedaService.monedaEmpresaConPdvEnOtraMoneda = otra ? this.monedaEmpresa() : null;
     if (!otra) {
       this.monedaPdv = empresa;
       this.monedaPdvSinCotizacion = false;
@@ -763,7 +764,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     const totalBase = venta.totalGs;
     venta.monedaId = Number(this.monedaPdv.id);
     venta.cotizacion = cot;
-    venta.totalMoneda = totalBase;
+    venta.totalMoneda = redondearEnMoneda(totalBase, this.monedaPdv);
     venta.totalGs = aEmpresa(totalBase);
     // totalRs / totalDs: la fórmula de siempre, sobre el total en la moneda de la empresa.
     venta.totalRs = this.cambioRs ? venta.totalGs / this.cambioRs : null;
@@ -778,8 +779,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       return item;
     });
-    cobro.totalMoneda = cobro.totalGs;
-    cobro.totalGs = aEmpresa(cobro.totalGs);
+    // El total del cobro sale de restar lineas: sin redondear quedaba 3.1500000000000004.
+    cobro.totalMoneda = redondearEnMoneda(cobro.totalGs, this.monedaPdv);
+    cobro.totalGs = aEmpresa(cobro.totalMoneda);
     (cobro.cobroDetalleList || []).forEach((cd) => {
       const c = cotizacionEmpresa(cd.moneda, empresa);
       if (c != null) cd.cotizacion = c;
@@ -1579,6 +1581,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             itemList: this.selectedItemList,
             descuento: descuento,
             delivery: this.selectedDelivery,
+            // Con otra moneda del PDV el pago trabaja en ella (valor ya esta en esa moneda).
+            monedaBase: this.esOtraMoneda ? this.monedaPdv : undefined,
           },
           width: "90vw",
           height: "80vh",
@@ -1917,6 +1921,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.selectedTipoPrecio = this.tiposPrecios[0];
     this.totalGs = 0;
+    this.calcularEquivalente();
   }
 
   onTicketClick(ticket?: boolean) {
@@ -2378,7 +2383,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  ngOnDestroy(): void { }
+  ngOnDestroy(): void {
+    // Las tarjetas de precio vuelven a la moneda de la empresa fuera del PDV.
+    this.precioMonedaService.monedaEmpresaConPdvEnOtraMoneda = null;
+  }
 
   get tieneSolicitudesProcesadas(): boolean {
     return this.solicitudesProcesadasTotal > 0;

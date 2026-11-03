@@ -47,7 +47,7 @@
       <span matTextPrefix>Descuento en {{ nombreMonedaBase }}</span>
     </mat-form-field>
   </div>
-  <div fxFlex>
+  <div fxFlex *ngIf="!ocultarRs">
     <mat-form-field style="width: 100%">
       <input
         matInput
@@ -63,7 +63,7 @@
       <mat-hint *ngIf="sinCotizacionRs">Sin cotización cargada</mat-hint>
     </mat-form-field>
   </div>
-  <div fxFlex>
+  <div fxFlex *ngIf="!ocultarDs">
     <mat-form-field style="width: 100%">
       <input
         matInput

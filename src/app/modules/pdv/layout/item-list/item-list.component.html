@@ -43,19 +43,19 @@
           {{ item.cantidad | number : "1.0-3" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.precio | number : "1.0-0" }}
+          {{ item.precio | number : formato }}
           <!-- Precio en otra moneda: el de lista, discreto (el cobrado es el de arriba) -->
           <div *ngIf="item?.precioListaTexto" style="font-size: 0.75em; opacity: 0.7" [title]="'Precio de lista: ' + item.precioListaTexto">
             {{ item.precioListaTexto }}
           </div>
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.valorDescuento | number : "1.0-0" }}
+          {{ item.valorDescuento | number : formato }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           {{
             item.cantidad * (item.precio - item.valorDescuento)
-              | number : "1.0-0"
+              | number : formato
           }}
         </td>
         <td

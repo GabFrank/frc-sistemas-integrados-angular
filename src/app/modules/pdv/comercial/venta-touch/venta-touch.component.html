@@ -30,6 +30,7 @@
     <div fxFlex="55%" [ngClass]="{'component-wrapper': modoConsulta}">
       <app-item-list
         [itemList]="selectedItemList"
+        [formato]="esOtraMoneda ? totalesFormato : '1.0-0'"
         (editEvent)="editItem($event)"
         (removeEvent)="removeItem($event)"
       ></app-item-list>

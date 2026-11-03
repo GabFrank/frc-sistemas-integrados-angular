@@ -674,9 +674,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           data: {
             moneda: this.selectedMoneda,
             isVuelto: this.formGroup.controls.valor.value > 0 ? false : true,
-            // Con otra moneda del PDV el saldo se pasa a la moneda elegida; si no, el valor de siempre.
+            // El dialogo espera el saldo en la moneda de la empresa (lo divide por moneda.cambio). Con otra
+            // moneda del PDV el saldo esta en esa moneda: se lleva a la de la empresa. Si no, el de siempre.
             valor: this.esOtraMoneda
-              ? (this.data.valor - this.valorParcialPagado) / (this.factorDe(this.selectedMoneda) || 1)
+              ? (this.data.valor - this.valorParcialPagado) * (cotizacionEmpresa(this.monedaBase, this.monedaEmpresa()) ?? 1)
               : this.data.valor - this.valorParcialPagado,
           },
           width: "60%",
@@ -798,7 +799,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       item.formaPago = this.selectedFormaPago;
       item.moneda = this.selectedMoneda ?? item.moneda;
       item.cambio = cambio;
-      item.valor = valor;
+      // Con otra moneda del PDV el saldo pasa por cotizaciones con decimales: una linea nueva (el vuelto
+      // sobre todo) se guarda redondeada a los decimales de su moneda, como se entrega. En la moneda de
+      // la empresa queda exactamente como siempre.
+      item.valor = this.esOtraMoneda && esLineaNueva ? redondearEnMoneda(valor, item.moneda) : valor;
       item.vuelto = this.isVuelto;
       item.descuento = this.isDescuento;
       item.aumento = this.isAumento;
@@ -1251,10 +1255,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.isDialogOpen = true;
     let valorCosto = 0;
+    // El costo esta en la moneda de la empresa; el total, en la base. Con otra moneda del PDV se lleva a la base.
+    const cotBase = this.esOtraMoneda ? cotizacionEmpresa(this.monedaBase, this.monedaEmpresa()) : null;
     this.data.itemList.forEach((i) => {
       let costoTotal = 0;
       if (i?.precioCosto > 0) {
         costoTotal = i.precioCosto * i.cantidad;
+        if (cotBase != null && cotBase > 0) costoTotal = costoTotal / cotBase;
       } else {
         costoTotal = i.precio * 0.85;
       }

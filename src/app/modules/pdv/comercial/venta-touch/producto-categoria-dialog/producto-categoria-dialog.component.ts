@@ -219,6 +219,8 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
 
   /** La moneda del precio si no es la de la empresa (Fase 3): la tarjeta muestra «US$ 5,85», no «5,85». */
   monedaDe(precio: PrecioPorSucursal | null | undefined): Moneda | null {
+    // Sin precio no hay simbolo que mostrar (la franja quedaba con «Gs» suelto).
+    if (precio?.precio == null) return null;
     return this.precioMonedaService.monedaPdvDe(precio?.id);
   }
 

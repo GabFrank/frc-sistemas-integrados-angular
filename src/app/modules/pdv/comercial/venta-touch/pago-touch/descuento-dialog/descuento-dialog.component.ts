@@ -75,6 +75,8 @@ export class DescuentoDialogComponent implements OnInit {
   };
 
   porcentaje = 15;
+  ocultarRs = false;
+  ocultarDs = false;
 
   /** Cómo se llama la moneda base en el primer campo y cuántos decimales tiene. Guaraní y 0 salvo Fase 4. */
   nombreMonedaBase = "Guaranies";
@@ -100,6 +102,10 @@ export class DescuentoDialogComponent implements OnInit {
       this.nombreMonedaBase = m.denominacion ? m.denominacion.charAt(0) + m.denominacion.slice(1).toLowerCase() : "la moneda del PDV";
       this.optionsBase = this.monedaService.currencyOptionsByMoneda(m);
       this.formatoBase = this.decimalesBase > 0 ? `1.${this.decimalesBase}-${this.decimalesBase}` : "1.0-0";
+      // La fila fija de la misma moneda que la base repetiria el campo de arriba.
+      const d = (m.denominacion || "").toUpperCase();
+      this.ocultarRs = d === "REAL";
+      this.ocultarDs = d === "DOLAR";
     }
     this.sinCotizacionRs = !this.data?.cambioRs;
     this.sinCotizacionDs = !this.data?.cambioDs;

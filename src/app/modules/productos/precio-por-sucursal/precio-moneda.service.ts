@@ -134,9 +134,19 @@ export class PrecioMonedaService {
   /** El último mapa leído de la filial para el PDV (vacío hasta abrirlo): lo usan los diálogos del PDV. */
   mapaPdv = new Map<string, Moneda>();
 
-  /** La moneda de un precio del PDV, o null si es de la moneda de la empresa. */
+  /**
+   * La moneda de la empresa mientras el PDV abierto opera en otra moneda (fase 4); null si el PDV usa la de la
+   * empresa. La fija la pantalla de venta.
+   */
+  monedaEmpresaConPdvEnOtraMoneda: Moneda | null = null;
+
+  /**
+   * La moneda de un precio del PDV, o null si es de la moneda de la empresa. Con el PDV en otra moneda, un precio
+   * de la empresa devuelve la moneda de la empresa: la tarjeta muestra «Gs. 7.000» y no un número sin moneda.
+   */
   monedaPdvDe(precioId: number | string | null | undefined): Moneda | null {
-    return precioId == null ? null : this.mapaPdv.get(String(precioId)) ?? null;
+    const propia = precioId == null ? null : this.mapaPdv.get(String(precioId)) ?? null;
+    return propia ?? this.monedaEmpresaConPdvEnOtraMoneda;
   }
 
   /** Lee `preciosEnOtraMoneda` del central o de la filial; emite null si falla. */
