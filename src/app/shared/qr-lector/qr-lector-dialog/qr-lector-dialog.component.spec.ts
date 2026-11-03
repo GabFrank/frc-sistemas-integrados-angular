@@ -51,6 +51,9 @@ describe('QrLectorDialogComponent — retiros por caja', () => {
     comp.onEnter(QR_RETIRO);
     expect(dialogos.confirm).toHaveBeenCalledTimes(1);
     expect(comp.items.map(i => i.id)).toEqual([1151, 1152, 1153]);
+    // El total suma cada moneda, no solo guaraníes.
+    expect(comp.totalMontos).toContain('R$');
+    expect(comp.totalMontos).toContain(`${(345600000).toLocaleString('es-PY')} Gs`);
   });
 
   it('con No suma solo el escaneado', () => {

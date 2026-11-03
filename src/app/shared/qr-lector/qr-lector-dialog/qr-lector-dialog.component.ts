@@ -74,6 +74,8 @@ export class QrLectorDialogComponent implements AfterViewInit {
 
   resolviendo = false;
   total = 0;
+  /** Total por moneda cuando el carrito es de retiros («3.000.000 Gs · 400 R$»); null para los de una sola moneda. */
+  totalMontos: string = null;
   monedaSimbolo = '';
 
   /**
@@ -285,7 +287,6 @@ export class QrLectorDialogComponent implements AfterViewInit {
       // Los retiros no tienen la restricción de "misma contraparte" del pago a
       // proveedor: se pueden ingresar juntos retiros de sucursales distintas.
       contraparteId: null,
-      // El total del carrito suma guaraníes; la fila muestra todas las monedas.
       monto: retiro.retiroGs || 0,
       monedaSimbolo: 'Gs.',
       montos: formatMontosRetiro(retiro),
@@ -343,6 +344,13 @@ export class QrLectorDialogComponent implements AfterViewInit {
 
   private recalcular() {
     this.total = this.items.reduce((acc, i) => acc + (i.monto || 0), 0);
+    // Un retiro trae tres monedas: sumar solo guaraníes escondía los reales y los dólares.
+    const retiros = this.items.filter(i => i.tipo === QrTipoSoportado.RETIRO).map(i => i.documento as Retiro);
+    this.totalMontos = retiros.length ? formatMontosRetiro({
+      retiroGs: retiros.reduce((a, r) => a + (r?.retiroGs || 0), 0),
+      retiroRs: retiros.reduce((a, r) => a + (r?.retiroRs || 0), 0),
+      retiroDs: retiros.reduce((a, r) => a + (r?.retiroDs || 0), 0),
+    } as Retiro) : null;
   }
 
   private limpiarInput() {

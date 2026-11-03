@@ -51,7 +51,8 @@
 
     <div class="resumen" *ngIf="items.length > 0">
       <span>{{ items.length }} documento{{ items.length === 1 ? '' : 's' }}</span>
-      <strong>{{ total | number:'1.0-2' }} {{ monedaSimbolo }}</strong>
+      <strong *ngIf="totalMontos; else soloTotal">{{ totalMontos }}</strong>
+      <ng-template #soloTotal><strong>{{ total | number:'1.0-2' }} {{ monedaSimbolo }}</strong></ng-template>
     </div>
   </mat-dialog-content>
 
