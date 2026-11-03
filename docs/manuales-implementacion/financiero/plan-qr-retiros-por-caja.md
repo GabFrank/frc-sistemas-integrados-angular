@@ -169,6 +169,105 @@ Sin tablas, columnas, enums de base, migraciones ni cambios de `.graphqls`. Nada
   pendiente: el 1.º sale con su borrador borrado y el 3.º no se envía. Además, un caso con falla por red
   en el que la re-consulta dice que el 2.º sí entró.
 
+### F6 · desktop — verificación en tabla compacta y conteo editable (devolución de la demo, 2026-11-03)
+
+Pedido de Franco y Gabriel después de la demo: con más de tres retiros, los bloques apilados obligan a
+scrollear, y abrir «Contar» para cada moneda es incómodo. Decisiones de Franco: **tabla compacta**, y
+la verificación es **rápida** solo si no se usó la grilla de billetes en ninguna moneda. «Rápida»
+significa «no se contó billete por billete»; ya no significa «aceptó lo declarado», porque un monto
+tipeado distinto de lo declarado también puede ser rápida.
+
+**Tabla**
+- Una sola tabla para todo el diálogo: una fila por retiro × moneda, con las columnas Retiro · Moneda
+  · Declarado · Contado · Diferencia · acciones. Entran 8 a 10 retiros sin scrollear. El scroll queda
+  dentro de la tabla.
+- La arma una grilla CSS en el diálogo. `VerificarRetiroBloqueComponent` conserva el estado y la
+  lógica de un retiro, y renderiza sus filas con `:host { display: contents }` (hay precedente en
+  `grafico-filtros-fecha`), filas en `ng-container`, y las filas expandidas con
+  `grid-column: 1 / -1`.
+- Con un solo retiro no hay columna Retiro: el diálogo cambia `grid-template-columns` según
+  `conEncabezado`.
+- El aviso «Se recuperó un conteo» va en una fila de ancho completo.
+- El ancho se cambia en el `width` del `dialog.open` (hoy 65vw, en `ingresar-retiro…component`):
+  es inline y le gana a un `panelClass`.
+
+**Contado: vacío ≠ 0** (auditoría F6, ejes A y B: el código de F4 arranca en 0)
+- `FilaMoneda.contado: number | null`. Vacío significa sin contar: no tiene diferencia ni motivo, y
+  «Confirmar» se bloquea con «Falta contar el retiro #N (moneda)». Un 0 tipeado vale (el sobre llegó
+  vacío).
+- El chequeo de la grilla que no cargó (`grillaNoCargo && !(contado > 0)`) se reemplaza por
+  `contado == null`. Así no bloquea un 0 explícito.
+- `conteos()` no usa `|| 0` y redondea a los decimales de la moneda. El central compara exacto y no
+  tiene la tolerancia de 0,005 del front.
+- El input usa `currencyMask` con opciones **por fila, precalculadas** (sin funciones en el HTML),
+  igual que `pagar-compras-dialog.currencyOpts`:
+  - `nullable: true` (si no, borrar deja 0);
+  - `allowNegative: false`;
+  - `precision` según `moneda.decimales` (0 en Gs);
+  - `thousands '.'` y `decimal ','`;
+  - modo `NATURAL` (el `FINANCIAL` del preset hace que «100» se lea 1,00).
+
+  No se usan los presets compartidos de `numbersUtils`. El input va con `[(ngModel)]` y
+  `(ngModelChange)`.
+
+**Grilla y «= declarado»** (auditoría F6: la grilla emite `totalChange` al abrirse)
+- El input lo escribe **solo `cantidadesChange` → `totalDe()`**, como hoy. Nunca `totalChange`: si no,
+  abrir ▦ sobre un monto tipeado lo pone en 0. La grilla no se toca y `conteo-caja-dialog` queda
+  intacto.
+- Si se tipea a mano o se usa «= declarado», se descartan los billetes de esa moneda y **se cierra la
+  grilla** (`monedaAbierta = null`). La grilla guarda sus filas y no se entera de que se vació.
+- «= declarado» guarda el monto en `montos`. Abrir ▦ sobre un monto tipeado no lo cambia hasta que se
+  edita una cantidad.
+
+**Borrador**
+- Se guarda en otra clave, `frc.verificacion-retiro.v2.{id}.{suc}`, con `montos?: {monedaId: number}`
+  además de `cantidades`. Se lee primero esa y, si no está, la vieja.
+- Así, un desktop anterior (rollback) no ve el borrador nuevo, en vez de verlo con ceros.
+- Al restaurar: si la moneda tiene billetes, manda el total de `cantidades`. Si no, el valor de
+  `montos`. Si tampoco, queda vacía.
+- Un borrador viejo con `cantidades: {}` restaura la moneda **vacía**, no en 0.
+- `hayBorrador` cuenta como empezado cualquier billete o cualquier `montos[id] != null`, incluido el 0.
+  Cambia el sentido del chip: «= declarado» y cancelar ahora dejan «En proceso».
+
+**Teclado**: Enter pasa al siguiente input de contado de la tabla, en el orden del DOM, incluso de un
+retiro al siguiente. Lo maneja el diálogo.
+
+**Acciones por fila**:
+- **▦** despliega la grilla debajo;
+- **=** usa lo declarado;
+- el motivo de la diferencia es un select chico en la celda;
+- la observación se abre con un ícono en la primera fila del retiro.
+
+**Pendiente fuera de F6**: el central no rechaza conteos negativos ni decimales en Gs. El front los
+impide con la máscara. Validarlo en el central queda como fix aparte.
+
+**Tests (Karma) — cada uno falla con el bug que cubre**
+- Bloque:
+  - tipear un monto → contado, diferencia y `esRapida() == true`;
+  - la grilla → `esRapida() == false`;
+  - tipear después de la grilla → se descartan los billetes y se cierra la grilla;
+  - borrar el input → `motivoParaNoConfirmar` no es null, nunca 0;
+  - un 0 explícito → manda 0 y no bloquea;
+  - un borrador viejo con `cantidades: {}` → la fila queda vacía y bloquea;
+  - «= declarado», cerrar y reabrir → restaura lo declarado;
+  - abrir la grilla después de tipear → el input no cambia (la grilla emite `totalChange` y se
+    ignora);
+  - «100» en US$ → `conteos()` manda 100;
+  - un total de R$ con centavos → redondeado a 2;
+  - `hayBorrador` con solo `montos`, incluido 0 → true.
+- Diálogo: Enter pasa al siguiente input.
+
+**Prueba por pantalla**:
+- los 3 retiros de una caja (por ejemplo, la 6213 de la sucursal 1);
+- tipear, usar la grilla, «= declarado»;
+- borrar un input y que bloquee;
+- un 0 explícito;
+- una diferencia con su motivo;
+- una observación;
+- cerrar y reabrir para ver el borrador;
+- Enter entre filas;
+- confirmar.
+
 ### F5 · documentación
 
 - Desktop: el formato del QR y el flujo, en `docs/IMPRESION.md` y en la nota de caja mayor que
@@ -282,3 +381,19 @@ Tres ejes fijos. No aplicó ningún condicional: el diff no toca release, migrac
 Con el rechazo del central, el orden «desktop primero» deja de proteger la plata y queda como cuestión de
 uso: un desktop viejo que escanea un QR de retiro recibe «No llegó el conteo…» en vez de abrir un caso falso.
 Se mantiene igual, porque con el desktop viejo el escaneo no sirve.
+
+## Auditoría del plan de F6 (2026-11-03)
+
+Dos auditores sin verse entre sí, los dos con veredicto REVISE. Se verificaron contra el código el
+`totalChange` de la grilla al cargar (`grilla-conteo.component.ts:96,122`) y el `nullable: false` de
+los presets de `currencyMask` (`numbersUtils.ts:14,29`). Todo quedó incorporado a F6:
+
+- vacío ≠ 0;
+- opciones de máscara propias;
+- el input solo desde `cantidadesChange`;
+- la grilla se cierra al tipear;
+- borrador v2 con lectura de respaldo de la clave vieja;
+- redondeo en `conteos()`;
+- tests que fallan con cada bug.
+
+Queda fuera la validación de negativos y decimales en el central.
