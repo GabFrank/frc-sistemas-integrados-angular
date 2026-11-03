@@ -38,6 +38,11 @@ export interface PagoData {
   descuento?: number;
   delivery?: Delivery;
   isCredito?: boolean;
+  /**
+   * Moneda del PDV (Fase 4), solo cuando NO es la de la empresa: `valor`, el saldo, el descuento y los totales
+   * están en ella. Sin definir, la moneda base es el guaraní y todo es como siempre.
+   */
+  monedaBase?: Moneda;
 }
 
 export interface TarjetaPago {
@@ -111,6 +116,8 @@ import {
   TIMEOUT_CONSULTA_MOSTRADOR_MS,
 } from "../../../../../generics/generic-crud.service";
 import { esRechazoDelServidor } from '../../../../../commons/core/utils/graphqlErrorUtils';
+import { elegirMonedaEmpresa, MonedaModuloService } from '../../../../../shared/services/moneda-modulo.service';
+import { cotizacionEmpresa, factorABase, redondearEnMoneda, saldoCerrado } from '../moneda-pdv.util';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -139,6 +146,18 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   monedas: Moneda[] = [];
   selectedMoneda: Moneda;
+  /** La moneda base del cobro (la del PDV; el guaraní salvo Fase 4). `data.valor` y el saldo están en ella. */
+  monedaBase: Moneda = null;
+  /** true solo si la moneda del PDV no es la de la empresa. */
+  esOtraMoneda = false;
+  /** Cuántas unidades de la moneda base vale 1 unidad de cada moneda fija (con base == empresa, su cambio). */
+  factorGs: number = 1;
+  factorRs: number = null;
+  factorDs: number = null;
+  /** Máscara del campo «valor» según los decimales de la moneda elegida. */
+  optionsValor: any;
+  /** El saldo está en cero (o por debajo de media unidad de la moneda base con decimales). */
+  saldoEnCero = false;
   selectedFormaPago: FormaPago;
   formGroup: FormGroup;
   cobroDetalle: CobroDetalle;
@@ -237,9 +256,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private ventaTarjetaService: VentaTarjetaService,
     private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
     private cajaService: CajaService,
-    private configuracionCobroService: ConfiguracionCobroService
+    private configuracionCobroService: ConfiguracionCobroService,
+    private monedaModulo: MonedaModuloService
   ) {
     this.formaPagoList = [];
+    this.optionsValor = this.currencyOptionsGuarani;
+    if (data?.monedaBase != null) this.factorGs = null;
     if (data.delivery != null) {
       // Un delivery legado sin tarifa rompía acá (precio null): se cobra sin ella y se avisa (#390)
       if (data.delivery.precio?.valor == null) {
@@ -302,10 +324,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         let aux = this.formGroup.controls.valor.value;
         if (this.selectedMoneda != null) {
           setTimeout(() => {
+            // El saldo está en la moneda base: se lo pasa a la moneda elegida con su factor.
             this.formGroup.controls.valor.setValue(
               (
                 (this.data.valor - this.valorParcialPagado) /
-                this.selectedMoneda?.cambio
+                this.factorDe(this.selectedMoneda)
               ).toFixed(2)
             );
           }, 0);
@@ -327,7 +350,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.data.descuento > 0) {
           let item = new CobroDetalle();
           item.formaPago = this.selectedFormaPago;
-          item.moneda = this.selectedMoneda;
+          // El descuento viene en la moneda base (la del PDV): la línea lleva esa moneda y su cambio.
+          item.moneda = this.monedaBase ?? this.selectedMoneda;
+          item.cambio = (this.monedaBase ?? this.selectedMoneda)?.cambio;
           item.valor = this.data.descuento;
           item.vuelto = false;
           item.descuento = true;
@@ -397,7 +422,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             break;
           case "Enter":
             if (!this.isDialogOpen) {
-              if (this.formGroup.controls.saldo.value == 0) {
+              if (this.saldoCero()) {
                 this.onFinalizar(null, null, false);
               } else {
                 this.addCobroDetalle();
@@ -406,7 +431,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             break;
           case "F8":
             if (
-              this.formGroup.controls.saldo.value != 0 &&
+              !this.saldoCero() &&
               this.formGroup.controls.saldo.value < 0
             ) {
               this.onAumento();
@@ -414,7 +439,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             break;
           case "F9":
             if (
-              this.formGroup.controls.saldo.value != 0 &&
+              !this.saldoCero() &&
               this.formGroup.controls.saldo.value > 0
             ) {
               this.onDescuento();
@@ -422,7 +447,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             break;
           case "F10":
             if (!this.isDialogOpen) {
-              if (this.formGroup.controls.saldo.value == 0) {
+              if (this.saldoCero()) {
                 this.onFinalizar(null, null, false);
               } else {
                 this.addCobroDetalle();
@@ -451,6 +476,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.formGroup.get("valorTotal").setValue(this.data.valor);
     this.formGroup.get("valor").setValue(this.data.valor);
     this.formGroup.get("saldo").setValue(this.data.valor);
+    this.saldoEnCero = this.saldoCero(this.data.valor);
+    // Para los botones del HTML (no se llama a funciones desde la plantilla).
+    this.formGroup
+      .get("saldo")
+      .valueChanges.pipe(untilDestroyed(this))
+      .subscribe((v) => (this.saldoEnCero = this.saldoCero(v)));
 
     this.formGroup
       .get("valor")
@@ -476,6 +507,45 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
+  /** La moneda de la empresa (principal). */
+  private monedaEmpresa(): Moneda | null {
+    return this.monedaModulo.empresa$.value ?? elegirMonedaEmpresa(this.monedas);
+  }
+
+  /** Decimales de la moneda base (0 = entera, como el guaraní). */
+  private decimalesBase(): number {
+    return this.monedaBase ? this.monedasService.decimalesDeMoneda(this.monedaBase) : 0;
+  }
+
+  /** ¿El saldo (o cualquier diferencia) está cerrado? Sin decimales, solo el 0 de siempre. */
+  private saldoCero(saldo: number = this.formGroup?.controls?.saldo?.value): boolean {
+    return saldoCerrado(saldo, this.decimalesBase());
+  }
+
+  /**
+   * Cuántas unidades de la moneda base vale 1 unidad de `moneda` (con `cambio` propio si la línea se guardó con
+   * otro). Con base == empresa es el cambio de la moneda, como siempre; 1 para la moneda base. null = sin cotización.
+   */
+  private factorDe(moneda: Moneda | null | undefined, cambio?: number | null): number | null {
+    if (moneda == null || this.monedaBase == null) return null;
+    const m = cambio != null ? { id: moneda.id, cambio } : moneda;
+    return factorABase(m, this.monedaBase, this.monedaEmpresa());
+  }
+
+  private factorDeLinea(item: CobroDetalle): number {
+    return this.factorDe(item.moneda, item.cambio) ?? item.moneda?.cambio ?? 1;
+  }
+
+  /** Máscara del campo «valor»: entera con 0 decimales; financiera con decimales. */
+  private actualizarOpciones(): void {
+    const decimales = this.selectedMoneda ? this.monedasService.decimalesDeMoneda(this.selectedMoneda) : 0;
+    this.optionsValor = decimales <= 0
+      ? this.currencyOptionsGuarani
+      : (decimales === this.currencyOptionsNoGuarani.precision
+        ? this.currencyOptionsNoGuarani
+        : { ...this.currencyOptionsNoGuarani, precision: decimales });
+  }
+
   setPrecios() {
     this.monedasService.onGetAll(false)
       .pipe(untilDestroyed(this))
@@ -496,9 +566,18 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cambioArg = this.monedas.find(
           (m) => m.denominacion == "PESO ARG"
         )?.cambio ?? null;
-        this.formGroup.controls.moneda.setValue(
-          this.monedas.find((m) => m.denominacion == "GUARANI")?.id
-        );
+        // La moneda base: la del PDV si es otra; si no, el guaraní de siempre.
+        const idBase = this.data?.monedaBase?.id;
+        this.monedaBase = idBase != null
+          ? (this.monedas.find((m) => String(m.id) === String(idBase)) ?? this.data.monedaBase)
+          : this.monedas.find((m) => m.denominacion == "GUARANI");
+        this.esOtraMoneda = idBase != null;
+        const fija = (d: string) => this.monedas.find((m) => m.denominacion == d);
+        this.factorGs = this.factorDe(fija("GUARANI"));
+        this.factorRs = this.factorDe(fija("REAL"));
+        this.factorDs = this.factorDe(fija("DOLAR"));
+        this.formGroup.controls.moneda.setValue(this.monedaBase?.id);
+        this.saldoEnCero = this.saldoCero();
       });
   }
 
@@ -531,6 +610,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   displayMoneda(value?: number) {
     let res = value ? this.monedas?.find((_) => _.id === value) : undefined;
     this.selectedMoneda = res;
+    this.actualizarOpciones();
     this.setFocusToValorInput();
     return res ? res.id + " - " + res.denominacion : undefined;
   }
@@ -573,6 +653,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   setMoneda(moneda, openDialog?) {
     this.selectedMoneda = this.monedas.find((m) => m.denominacion == moneda);
     this.formGroup.controls.moneda.setValue(this.selectedMoneda?.id);
+    this.actualizarOpciones();
     // El dialogo de billetes es una calculadora de CONTEO de efectivo: con TARJETA seleccionada
     // no tiene nada que contar y solo estorba. La moneda se sigue seleccionando siempre (arriba
     // de este guard) — lo unico que se condiciona es abrir el dialogo.
@@ -592,7 +673,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           data: {
             moneda: this.selectedMoneda,
             isVuelto: this.formGroup.controls.valor.value > 0 ? false : true,
-            valor: this.data.valor - this.valorParcialPagado,
+            // Con otra moneda del PDV el saldo se pasa a la moneda elegida; si no, el valor de siempre.
+            valor: this.esOtraMoneda
+              ? (this.data.valor - this.valorParcialPagado) / (this.factorDe(this.selectedMoneda) || 1)
+              : this.data.valor - this.valorParcialPagado,
           },
           width: "60%",
         })
@@ -633,7 +717,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     let ref = this.matDialog.open(TecladoNumericoComponent, {
       data: {
         numero: this.formGroup.get("valor").value,
-        financial: this.selectedMoneda.id != 1,
+        financial: this.monedasService.decimalesDeMoneda(this.selectedMoneda) > 0,
       },
     });
     ref
@@ -661,14 +745,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     let valor =
       selectedValor != null ? selectedValor : this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
-    if (saldo == 0) {
+    if (this.saldoCero(saldo)) {
       return this.onFinalizar();
     }
     if (this.isDescuento) {
       // valor = (this.data.valor - this.valorParcialPagado);
-      this.selectedMoneda = this.monedas.find(
+      // El descuento va siempre en la moneda base (la del PDV; el guaraní de siempre).
+      this.selectedMoneda = this.monedaBase ?? this.monedas.find(
         (m) => m.denominacion == "GUARANI"
       );
+      this.actualizarOpciones();
     }
     if (valor < 0 && !this.isAumento) this.isVuelto = true;
     if (
@@ -694,7 +780,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // la línea, así una línea ya cobrada no desaparece. Sin return: el reset de abajo corre igual.
     const cambio =
       this.selectedMoneda?.cambio || (!esLineaNueva ? selectedItem?.cambio : null);
-    const sinCotizacion = this.formGroup.valid && saldo != 0 && !cambio;
+    // Cuánto vale 1 unidad de la moneda de la línea en la moneda base (con el cambio de la línea guardada si es un replay).
+    const factor = this.factorDe(this.selectedMoneda ?? selectedItem?.moneda, cambio);
+    const sinCotizacion = this.formGroup.valid && !this.saldoCero(saldo) && (!cambio || factor == null);
     if (sinCotizacion) {
       this.notificacionSnackbar.openWarn(
         `No hay cotización cargada para ${this.selectedMoneda?.denominacion || "la moneda seleccionada"}: no se puede registrar el cobro en esa moneda.`
@@ -703,7 +791,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // Si esta línea abre el escaneo de la tarjeta, el foco es del diálogo: el campo «valor» lo
     // recupera `finEscaneoTarjeta` cuando el escaneo termina.
     let abrioEscaneo = false;
-    if (this.formGroup.valid && saldo != 0 && !sinCotizacion) {
+    if (this.formGroup.valid && !this.saldoCero(saldo) && !sinCotizacion) {
       let item = new CobroDetalle();
       if (selectedItem != null) Object.assign(item, selectedItem);
       item.formaPago = this.selectedFormaPago;
@@ -714,13 +802,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       item.descuento = this.isDescuento;
       item.aumento = this.isAumento;
       item.pago = !this.isVuelto && !this.isDescuento && !this.isAumento;
-      this.valorParcialPagado += item.valor * cambio;
+      this.valorParcialPagado += item.valor * factor;
 
       this.formGroup
         .get("valor")
         .setValue(
           (this.data.valor - this.valorParcialPagado) /
-          cambio
+          factor
         );
       this.formGroup.controls.saldo.setValue(
         this.data.valor - this.valorParcialPagado
@@ -728,7 +816,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.data?.delivery != null && item?.id == null) {
         item.cobro = this.data?.delivery?.venta?.cobro;
         // Lo pagado y el saldo ya se sumaron: si la línea no se registra se devuelven (#390)
-        const pagadoAntes = this.valorParcialPagado - item.valor * cambio;
+        const pagadoAntes = this.valorParcialPagado - item.valor * factor;
         this.cobroDeliveryEnVuelo = true;
         this.ventaService
           .onSaveCobroDetalle(item.toInput(), false)
@@ -743,12 +831,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 if (esLineaNueva) this.escanearSiEsTarjeta(item);
               } else {
                 // El filial responde vacío sin guardar nada (p. ej. ya hay un descuento en el cobro)
-                this.cobroDeliveryNoRegistrado(true, pagadoAntes, cambio, true);
+                this.cobroDeliveryNoRegistrado(true, pagadoAntes, factor, true);
               }
             },
             error: (err) => {
               this.cobroDeliveryEnVuelo = false;
-              this.cobroDeliveryNoRegistrado(esRechazoDelServidor(err), pagadoAntes, cambio);
+              this.cobroDeliveryNoRegistrado(esRechazoDelServidor(err), pagadoAntes, factor);
             }
           });
       } else {
@@ -1130,25 +1218,25 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .subscribe((res) => {
           if (res) {
             // borrado con exito
-            this.valorParcialPagado -= item.valor * item.moneda.cambio;
+            this.valorParcialPagado -= item.valor * this.factorDeLinea(item);
             this.formGroup.controls.saldo.setValue(
               this.data.valor - this.valorParcialPagado
             );
             this.formGroup.controls.valor.setValue(
               (this.data.valor - this.valorParcialPagado) /
-              this.selectedMoneda.cambio
+              this.factorDe(this.selectedMoneda)
             );
             this.cobroDetalleList.splice(i, 1);
             this.setFocusToValorInput();
           }
         });
     } else {
-      this.valorParcialPagado -= item.valor * item.moneda.cambio;
+      this.valorParcialPagado -= item.valor * this.factorDeLinea(item);
       this.formGroup.controls.saldo.setValue(
         this.data.valor - this.valorParcialPagado
       );
       this.formGroup.controls.valor.setValue(
-        (this.data.valor - this.valorParcialPagado) / this.selectedMoneda.cambio
+        (this.data.valor - this.valorParcialPagado) / this.factorDe(this.selectedMoneda)
       );
       this.cobroDetalleList.splice(i, 1);
       this.setFocusToValorInput();
@@ -1176,8 +1264,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
     let data: DescuentoDialogData = {
       valorTotal: total,
-      cambioDs: this.cambioDs,
-      cambioRs: this.cambioRs,
+      // Cuántas unidades de la moneda base vale 1 R$ / 1 US$ (con base == empresa, su cambio de siempre).
+      cambioDs: this.factorDs,
+      cambioRs: this.factorRs,
+      monedaBase: this.esOtraMoneda ? this.monedaBase : undefined,
       saldo: saldo,
       costo: valorCosto,
     };
@@ -1206,7 +1296,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onAumento() {
     let valor = this.formGroup.controls.valor.value;
     if (valor < 0) {
-      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroDetalleList);
+      // En la moneda base. Con base == empresa son los guaraníes de siempre.
+      const aumentoGs = this.esOtraMoneda
+        ? -valor * (this.factorDe(this.selectedMoneda) || 1) +
+          this.cobroDetalleList.filter((l) => l.aumento).reduce((suma, l) => suma + Math.abs((l.valor ?? 0) * this.factorDeLinea(l)), 0)
+        : -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroDetalleList);
       if (!aumentoPermitido(aumentoGs, this.data.valor, this.configCobro)) {
         this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
         return;
@@ -1274,7 +1368,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.hayTarjetaNueva() && this.bloqueaPorConfig("tarjeta")) return;
     if (
       this.finalizarConFacturaHabilitado &&
-      this.formGroup.controls.saldo.value != 0
+      !this.saldoCero()
     ) {
       this.notificacionSnackbar.openWarn(
         "Debe completar el pago antes de finalizar con factura"
@@ -1327,7 +1421,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // true acá arriba --incluso en los return tempranos-- y nunca volvía a false: después de un
     // CONVENIO los atajos del cobro (Enter, F10, F1-F6) quedaban muertos.
     this.setFormaPago("CONVENIO");
-    if (this.formGroup?.controls?.saldo?.value == 0) {
+    if (this.saldoCero()) {
       return this.notificacionSnackbar.openWarn("El valor no puede ser 0.");
     } else if (this.formGroup?.controls?.saldo?.value < 0) {
       this.efectivoInput.onGetFocus();
@@ -1340,7 +1434,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .open(AddVentaCreditoDialogComponent, {
           width: "100%",
           height: "80%",
-          data: { valor: this.formGroup?.controls?.saldo?.value },
+          data: { valor: this.saldoAMonedaDelCredito() },
         })
         .afterClosed()
         .subscribe((res) => {
@@ -1353,10 +1447,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             cobroDetalle.aumento = false;
             cobroDetalle.vuelto = false;
             cobroDetalle.formaPago = this.selectedFormaPago;
-            cobroDetalle.moneda = this.monedas.find(
-              (m) => m.denominacion == "GUARANI"
-            );
-            cobroDetalle.valor = this.formGroup?.controls?.saldo?.value;
+            this.completarLineaDeCredito(cobroDetalle);
             this.cobroDetalleList.push(cobroDetalle);
             this.facturado = !res?.factura;
             this.selectedCliente = ventaCredito.cliente;
@@ -1369,6 +1460,30 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * El crédito (convenio / firma) es siempre en la moneda de la empresa. Con la moneda del PDV igual a la de
+   * la empresa es el saldo tal cual, como siempre; con otra, el saldo llevado a la empresa y redondeado a sus
+   * decimales.
+   */
+  private saldoAMonedaDelCredito(): number {
+    const saldo = this.formGroup?.controls?.saldo?.value;
+    if (!this.esOtraMoneda) return saldo;
+    const empresa = this.monedaEmpresa();
+    const cot = cotizacionEmpresa(this.monedaBase, empresa);
+    return cot == null ? saldo : redondearEnMoneda(saldo * cot, empresa);
+  }
+
+  /** Completa la línea de crédito: moneda de la empresa, su cambio y el saldo en esa moneda. */
+  private completarLineaDeCredito(cobroDetalle: CobroDetalle): void {
+    const moneda = this.esOtraMoneda
+      ? (this.monedas.find((m) => String(m.id) === String(this.monedaEmpresa()?.id)) ?? this.monedaEmpresa())
+      : this.monedas.find((m) => m.denominacion == "GUARANI");
+    cobroDetalle.moneda = moneda;
+    // Antes estas líneas se guardaban sin cambio.
+    cobroDetalle.cambio = moneda?.cambio ?? 1;
+    cobroDetalle.valor = this.saldoAMonedaDelCredito();
+  }
+
   onFirmaClick() {
     this.isDialogOpen = true;
     this.setFormaPago("FIRMA");
@@ -1376,7 +1491,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .open(AddVentaCreditoDialogComponent, {
         width: "100%",
         height: "80%",
-        data: { valor: this.formGroup?.controls?.saldo?.value },
+        data: { valor: this.saldoAMonedaDelCredito() },
       })
       .afterClosed()
       .subscribe((res) => {
@@ -1390,10 +1505,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           cobroDetalle.aumento = false;
           cobroDetalle.vuelto = false;
           cobroDetalle.formaPago = this.selectedFormaPago;
-          cobroDetalle.moneda = this.monedas.find(
-            (m) => m.denominacion == "GUARANI"
-          );
-          cobroDetalle.valor = this.formGroup?.controls?.saldo?.value;
+          this.completarLineaDeCredito(cobroDetalle);
           this.cobroDetalleList.push(cobroDetalle);
           this.onFinalizar(ventaCredito, res["itens"]);
         }
@@ -1434,7 +1546,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onValorEnter() {
     if (!this.isDialogOpen) {
-      if (this.formGroup.controls.saldo.value == 0) {
+      if (this.saldoCero()) {
         this.onFinalizar(null, null, false);
       } else {
         this.addCobroDetalle();
