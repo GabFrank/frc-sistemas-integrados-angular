@@ -231,8 +231,8 @@ export class QrLectorDialogComponent implements AfterViewInit {
 
   /** El retiro escaneado, con su detalle, y los demás pendientes de su caja si el operador los quiere. */
   private conLosDeSuCaja(retiro: Retiro, qr: QrCrudo): Observable<QrItemCarrito[]> {
-    // El ticket trae la caja en la posición 6; un código sin ella cae a la del retiro.
-    const cajaId = Number(qr.campo6) || retiro.cajaSalida?.id;
+    // Manda la caja que dice el central; la del ticket (posición 6) es el respaldo.
+    const cajaId = retiro.cajaSalida?.id || Number(qr.campo6);
     if (!cajaId) {
       return throwError(() => new Error(`No se pudo saber de qué caja es el retiro #${retiro.id}.`));
     }

@@ -13,6 +13,13 @@ import { DialogosService } from '../../../../../shared/components/dialogos/dialo
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
 import { MainService } from '../../../../../main.service';
 
+/** Cómo terminó: los que entraron con respuesta del central y los que dejaron de estar pendientes sin ella. */
+export interface VerificarRetiroDialogResultado {
+  ingresados: Retiro[];
+  /** Ya no estaban pendientes al reconsultar: los ingresó otra PC, se cancelaron, o entraron sin respuesta. */
+  fuera: Retiro[];
+}
+
 export interface VerificarRetiroDialogData {
   /** Uno, o varios de la misma caja del PDV apilados: cada uno con su propio conteo. */
   retiros: Retiro[];
@@ -26,7 +33,10 @@ export interface VerificarRetiroDialogData {
  * <b>lo contado</b>: el retiro es inmutable y queda como la declaración del origen. Cada retiro
  * se verifica por separado, con su conteo y su caso si hay diferencia.
  *
- * Se cierra con los retiros que entraron (lista vacía = ninguno).
+ * Se cierra con un {@link VerificarRetiroDialogResultado}.
+ *
+ * Todos los retiros son de la misma sucursal y caja del PDV: la reconciliación compara por id contra
+ * los pendientes de esa caja.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -47,6 +57,7 @@ export class VerificarRetiroDialogComponent {
   subtitulo: string;
 
   private ingresados: Retiro[] = [];
+  private fuera: Retiro[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VerificarRetiroDialogData,
@@ -116,10 +127,10 @@ export class VerificarRetiroDialogComponent {
     ).subscribe({
       next: () => {
         this.guardando = false;
-        this.dialogRef.close(this.ingresados);
+        this.cerrar();
       },
       // El aviso del error lo da onSaveCustom; acá solo se reconcilia.
-      error: () => this.reconciliar(bloques.length),
+      error: () => this.reconciliar(),
     });
   }
 
@@ -128,7 +139,7 @@ export class VerificarRetiroDialogComponent {
    * «falló» (red caída después del commit), u otra PC pudo verificar uno del apilado: lo que ya no
    * está pendiente sale del diálogo, aunque no haya devuelto OK, para que un reintento no se trabe.
    */
-  private reconciliar(total: number) {
+  private reconciliar() {
     const r0 = this.retiros[0];
     const cajaId = r0?.cajaSalida?.id;
     if (cajaId == null) {
@@ -140,14 +151,16 @@ export class VerificarRetiroDialogComponent {
       next: pendientes => {
         this.guardando = false;
         const siguen = new Set(pendientes.map(p => p.id));
-        this.retiros.filter(r => !siguen.has(r.id)).forEach(r => this.marcarIngresado(r));
+        this.retiros.filter(r => !siguen.has(r.id)).forEach(r => this.sacar(r, this.fuera));
         if (!this.retiros.length) {
-          this.dialogRef.close(this.ingresados);
+          this.cerrar();
           return;
         }
-        if (this.ingresados.length) {
+        const resueltos = this.ingresados.length + this.fuera.length;
+        if (resueltos) {
           this.notificacion.notification$.next({
-            texto: `${this.ingresados.length} de ${total} retiros ingresados. Quedan ${this.retiros.length} por confirmar.`,
+            texto: `${resueltos} de ${this.data.retiros.length} retiros ya no están pendientes. `
+              + `Quedan ${this.retiros.length} por confirmar.`,
             color: NotificacionColor.warn, duracion: 8,
           });
         }
@@ -165,16 +178,26 @@ export class VerificarRetiroDialogComponent {
     });
   }
 
-  /** Entró: sale del diálogo y se borra su borrador (el conteo ya quedó en el backend). */
+  /** Entró con respuesta del central. */
   private marcarIngresado(r: Retiro) {
+    this.sacar(r, this.ingresados);
+  }
+
+  /** Sale del diálogo y se borra su borrador: ya no hay nada que contar de ese retiro. */
+  private sacar(r: Retiro, destino: Retiro[]) {
     this.service.borrarBorrador(r.id, r.sucursalId);
-    this.ingresados.push(r);
+    destino.push(r);
     this.retiros = this.retiros.filter(x => x.id !== r.id);
+  }
+
+  private cerrar() {
+    const res: VerificarRetiroDialogResultado = { ingresados: this.ingresados, fuera: this.fuera };
+    this.dialogRef.close(res);
   }
 
   onCancelar() {
     if (this.guardando) return;
     // No se borran los borradores: cerrar sin confirmar es justamente el caso que resuelven.
-    this.dialogRef.close(this.ingresados);
+    this.cerrar();
   }
 }

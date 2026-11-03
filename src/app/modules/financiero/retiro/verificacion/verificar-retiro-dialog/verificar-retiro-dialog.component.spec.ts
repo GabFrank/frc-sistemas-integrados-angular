@@ -39,7 +39,9 @@ describe('VerificarRetiroDialogComponent — retiros apilados', () => {
     comp.onConfirmar();
     expect(verificacion.onVerificar).toHaveBeenCalledTimes(3);
     expect(verificacion.borrarBorrador).toHaveBeenCalledTimes(3);
-    expect(dialogRef.close.calls.mostRecent().args[0].map(r => r.id)).toEqual([1, 2, 3]);
+    const res = dialogRef.close.calls.mostRecent().args[0];
+    expect(res.ingresados.map(r => r.id)).toEqual([1, 2, 3]);
+    expect(res.fuera).toEqual([]);
   });
 
   it('si falla el 2.º: el 1.º sale con su borrador borrado y el 3.º no se envía', () => {
@@ -61,6 +63,11 @@ describe('VerificarRetiroDialogComponent — retiros apilados', () => {
     comp.onConfirmar();
     expect(verificacion.borrarBorrador).toHaveBeenCalledWith(2, 24);
     expect(comp.retiros.map(r => r.id)).toEqual([3]);
+    // El 2 no se cuenta como ingresado con respuesta: se informa aparte al cerrar.
+    comp.onCancelar();
+    const res = dialogRef.close.calls.mostRecent().args[0];
+    expect(res.ingresados.map(r => r.id)).toEqual([1]);
+    expect(res.fuera.map(r => r.id)).toEqual([2]);
   });
 
   it('si tampoco se puede reconsultar, no deja reintentar', () => {

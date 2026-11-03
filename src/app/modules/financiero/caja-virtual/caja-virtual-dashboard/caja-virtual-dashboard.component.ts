@@ -677,8 +677,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
         cajaVirtual: this.cajaVirtual,
         preseleccion: res.items.map(i => i.documento),
       };
+      // disableClose: cerrar con Esc devuelve undefined y el saldo no se recargaría aunque haya ingresos.
       this.dialog.open(IngresarRetiroCajaMayorDialogComponent, {
-        width: '65vw', height: '70vh', maxWidth: '96vw', data: d,
+        width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data: d,
       }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
       return;
     }

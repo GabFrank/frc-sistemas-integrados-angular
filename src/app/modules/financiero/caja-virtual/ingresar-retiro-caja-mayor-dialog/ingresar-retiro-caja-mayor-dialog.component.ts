@@ -16,7 +16,7 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
-import { VerificarRetiroDialogComponent, VerificarRetiroDialogData } from '../../retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { VerificarRetiroDialogComponent, VerificarRetiroDialogData, VerificarRetiroDialogResultado } from '../../retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
@@ -278,11 +278,17 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     const data: VerificarRetiroDialogData = { retiros, cajaVirtual: this.data.cajaVirtual };
     this.dialog.open(VerificarRetiroDialogComponent, {
       width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe((ingresados: Retiro[]) => {
-      // Los que entraron dejan de estar seleccionados: «Ingresar» los mandaría de nuevo.
-      (ingresados || []).forEach(r => this.seleccionados.delete(`${r.id}_${r.sucursalId}`));
-      if (ingresados?.length) {
-        this.huboIngresos = true;
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: VerificarRetiroDialogResultado) => {
+      const ingresados = res?.ingresados || [];
+      const fuera = res?.fuera || [];
+      // Los que ya no están pendientes dejan de estar seleccionados: «Ingresar» los mandaría de nuevo.
+      [...ingresados, ...fuera].forEach(r => this.seleccionados.delete(`${r.id}_${r.sucursalId}`));
+      if (ingresados.length || fuera.length) this.huboIngresos = true;
+      if (fuera.length) {
+        this.notificacion.openWarn(`${fuera.length} retiro(s) ya no estaban pendientes: los ingresó otra PC, `
+          + 'se cancelaron o entraron sin que llegara la respuesta. Revisalos en la caja mayor.', 8);
+      }
+      if (ingresados.length) {
         this.notificacion.notification$.next({
           texto: ingresados.length === 1
             ? `Retiro #${ingresados[0].id} verificado e ingresado`
