@@ -69,7 +69,8 @@ Sin tablas, columnas, enums de base, migraciones ni cambios de `.graphqls`. Nada
   `caja(sucId, cajaId)`, que devuelven el código. Así el formato vive en un solo lugar por repo.
 - `printRetiro`: imprime el QR después del bloque «VALORES DE RETIRO» y antes de la firma, con
   `qrCode.setSize(6)` centrado, igual que `printSenaCupon`. La sucursal sale de `retiroDto.getSucursalId()`
-  y, si viene null, de `sucursalService.idSucursalActual()`.
+  (parte de la PK; `RetiroService` la completa en el alta). Si viniera null, el ticket sale sin QR:
+  se descartó el respaldo a `idSucursalActual()` porque esa llamada lanza si falta la propiedad.
 - `printBalance`: imprime el QR de la caja antes de la firma (`balanceDto.getIdCaja()` y
   `balanceDto.getSucursal().getId()`). Si falta la sucursal, va sin QR: un código sin sucursal
   traería la caja equivocada.
@@ -186,7 +187,9 @@ Ningún cambio toca tablas, esquema ni GraphQL, así que no hay orden forzado po
 2. Recién entonces filial F1 y central F2 en ese mismo canal.
 
 Un filial con QR delante de un desktop viejo hace que escanear un retiro abra la verificación vacía
-(ver «Formato del QR»). Para alpha alcanza con mergear el desktop antes que el filial. Para `release/beta`
+(ver «Formato del QR»). Desde la auditoría del diff, el central rechaza esa confirmación sin conteos, así
+que el riesgo ya no es la plata sino un escaneo que no sirve. El central con ese rechazo va antes que el
+filial. Para alpha alcanza con mergear el desktop antes que el filial. Para `release/beta`
 y `master`, la promoción del filial espera a que la del desktop esté instalada en la caja mayor. Las PCs
 de caja mayor son pocas y conocidas, pero el update del desktop es postergable, así que hay que verificar
 la versión instalada.
@@ -259,3 +262,23 @@ código antes de aplicarlo.
 | B | `seleccionados` conserva los ya verificados en modo escaneo | sí: `onProcesar` solo llama `cargar()` | F4 los poda al cerrar |
 | B | Los datos sembrados en el central pueden bajar a la filial local | no se pudo verificar (sin acceso a la base en la auditoría) | procedimiento de siembra en «Tests y pruebas»; se verifica antes de sembrar |
 | B | Riesgo de impresoras de 58 mm | parcial: la seña ya imprime QR ESC/POS en la térmica del PDV | ticket real en la prueba de runtime |
+
+## Auditoría del diff (paso 8, 2026-11-03)
+
+Tres ejes fijos. No aplicó ningún condicional: el diff no toca release, migraciones ni replicación.
+
+| Eje | Veredicto | Hallazgo | Qué se hizo |
+|---|---|---|---|
+| Fijo 1 (autorización) | riesgo bajo | El lector consulta `filterRetiros` antes que la lista de pendientes. Es lo mismo que ya hacía develop. | Sin cambio en este trabajo. Se anotó como pendiente aparte. |
+| Fijo 1 | — | La reconciliación compara por id. | Comentario en el diálogo: todos los retiros son de la misma sucursal y caja. |
+| Fijo 2 (esquema y datos) | ACCEPT | El plan decía que se usaba `idSucursalActual()` como respaldo y el código no lo hace. | Se corrigió el plan (F1). |
+| Fijo 3 (contrato) | MEDIUM | Un desktop viejo confirma sin conteos y el central acredita 0. | **Central:** `verificar` rechaza si no hay ningún conteo y el retiro tiene declarado (`RetiroVerificacionConteoVacioTest`, que falla sin el cambio). Así queda protegida cualquier versión del desktop. |
+| Fijo 3 | MEDIUM | El bloque usaba colores fijos. | Se pasó a tokens `--frc-*`. |
+| Fijo 3 | LOW | La reconciliación contaba como «ingresado» lo que se canceló en otra PC. | El resultado separa `ingresados` y `fuera`, cada uno con su aviso. |
+| Fijo 3 | LOW | El contador del reintento mezclaba totales. | Usa el total inicial del diálogo. |
+| Fijo 3 | LOW | La caja salía del QR antes que del dato del central. | Ahora manda `retiro.cajaSalida.id` y el QR queda de respaldo. |
+| Fijo 3 | LOW | Cerrar con Esc el diálogo abierto desde el escáner no recargaba el saldo. | Se agregó `disableClose`. |
+
+Con el rechazo del central, el orden «desktop primero» deja de proteger la plata y queda como cuestión de
+uso: un desktop viejo que escanea un QR de retiro recibe «No llegó el conteo…» en vez de abrir un caso falso.
+Se mantiene igual, porque con el desktop viejo el escaneo no sirve.
