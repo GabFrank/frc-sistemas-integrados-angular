@@ -586,6 +586,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.factorRs = this.factorDe(fija("REAL"));
         this.factorDs = this.factorDe(fija("DOLAR"));
         this.formGroup.controls.moneda.setValue(this.monedaBase?.id);
+        if (this.esOtraMoneda) {
+          // El campo «valor» se cargo antes de conocer la moneda base, con la mascara entera: 3,45 quedaba
+          // en 3. Con la mascara de la base ya puesta se vuelve a cargar el saldo.
+          this.selectedMoneda = this.monedaBase;
+          this.actualizarOpciones();
+          const saldoBase = redondearEnMoneda(this.data.valor - this.valorParcialPagado, this.monedaBase);
+          setTimeout(() => this.formGroup.controls.valor.setValue(saldoBase), 0);
+        }
         this.saldoEnCero = this.saldoCero();
       });
   }
