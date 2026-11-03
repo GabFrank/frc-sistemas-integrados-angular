@@ -11,6 +11,7 @@ import { MonedaService } from '../../moneda.service';
 import {
   ConfiguracionMonedaModuloInput,
   ModuloMoneda,
+  MODULOS_CON_SUCURSAL,
   MODULOS_MONEDA
 } from '../configuracion-moneda-modulo.model';
 import { ConfiguracionMonedaModuloService } from '../configuracion-moneda-modulo.service';
@@ -31,7 +32,7 @@ function leerHora(texto: string | null | undefined): [number, number] | null {
 
 /**
  * Nueva configuración de moneda por módulo. Siempre crea una fila: no hay edición.
- * La sucursal solo existe para PDV (el central rechaza otra combinación); sin fecha, rige desde ya.
+ * La sucursal solo existe para PDV y FACTURACION (el central rechaza otra combinación); sin fecha, rige desde ya.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -56,7 +57,7 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
     hora: this.horaControl,
   });
 
-  esPdv = false;
+  admiteSucursal = false;
   monedas: Moneda[] = [];
   sucursales: Sucursal[] = [];
   cargandoMonedas = true;
@@ -74,8 +75,8 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.moduloControl.valueChanges.pipe(untilDestroyed(this)).subscribe((modulo) => {
-      this.esPdv = modulo === ModuloMoneda.PDV;
-      if (!this.esPdv) this.sucursalControl.setValue(null);
+      this.admiteSucursal = MODULOS_CON_SUCURSAL.includes(modulo as ModuloMoneda);
+      if (!this.admiteSucursal) this.sucursalControl.setValue(null);
     });
     if (this.data?.modulo) this.moduloControl.setValue(this.data.modulo);
     this.cargarMonedas();
@@ -123,7 +124,7 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
     }
     const input = new ConfiguracionMonedaModuloInput();
     input.modulo = this.moduloControl.value;
-    input.sucursalId = this.esPdv ? this.sucursalControl.value : null;
+    input.sucursalId = this.admiteSucursal ? this.sucursalControl.value : null;
     input.monedaId = this.monedaControl.value;
     input.vigenteDesde = vigenteDesde;
 

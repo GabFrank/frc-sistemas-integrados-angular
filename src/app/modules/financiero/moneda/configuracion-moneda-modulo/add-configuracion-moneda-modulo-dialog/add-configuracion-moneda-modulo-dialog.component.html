@@ -10,13 +10,13 @@
       <mat-error *ngIf="moduloControl.hasError('required')">Requerido</mat-error>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" *ngIf="esPdv">
+    <mat-form-field appearance="outline" *ngIf="admiteSucursal">
       <mat-label>Sucursal</mat-label>
       <mat-select formControlName="sucursal">
         <mat-option [value]="null">TODAS</mat-option>
         <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
       </mat-select>
-      <mat-hint>Solo el PDV admite una moneda por sucursal</mat-hint>
+      <mat-hint>Solo el PDV y la facturación admiten una moneda por sucursal</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline">

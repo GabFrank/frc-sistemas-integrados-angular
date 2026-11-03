@@ -37,7 +37,7 @@ type EstadoCarga = 'cargando' | 'error' | 'vacio' | 'datos';
 const PATRON_VERSION_MINIMA = /^\d+\.\d+\.\d+$/;
 
 /**
- * Moneda por módulo: qué moneda usa cada módulo (compras, costos, precios, PDV) desde cuándo.
+ * Moneda por módulo: qué moneda usa cada módulo (compras, costos, precios, PDV, facturación) desde cuándo.
  *
  * Las filas no se editan: «Nueva configuración» crea otra, y desactivar la vigente vuelve el módulo
  * a la anterior activa. Sin filas, todos los módulos usan la moneda de la empresa.
