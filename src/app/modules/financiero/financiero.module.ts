@@ -85,6 +85,7 @@ import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transfer
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ConteoCajaDialogComponent } from './caja-virtual/conteo-caja-dialog/conteo-caja-dialog.component';
 import { VerificarRetiroDialogComponent } from './retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { VerificarRetiroBloqueComponent } from './retiro/verificacion/verificar-retiro-bloque/verificar-retiro-bloque.component';
 import { ListRetiroCasosComponent } from './retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { DetalleCasoDialogComponent } from './retiro/verificacion/detalle-caso-dialog/detalle-caso-dialog.component';
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
@@ -192,6 +193,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     CajaVirtualDashboardComponent,
     ConteoCajaDialogComponent,
     VerificarRetiroDialogComponent,
+    VerificarRetiroBloqueComponent,
     ListRetiroCasosComponent,
     DetalleCasoDialogComponent,
     ConfigurarCajaVirtualDialogComponent,

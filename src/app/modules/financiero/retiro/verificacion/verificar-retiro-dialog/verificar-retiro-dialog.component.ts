@@ -1,48 +1,32 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, QueryList, ViewChildren } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { from } from 'rxjs';
+import { concatMap, map, toArray } from 'rxjs/operators';
 import { Retiro } from '../../retiro.model';
-import { RetiroDetalle } from '../../retiro-detalle.model';
+import { RetiroService } from '../../retiro.service';
 import { CajaVirtual } from '../../../caja-virtual/caja-virtual.model';
-import { Moneda } from '../../../moneda/moneda.model';
+import { operaAcotadoCaja } from '../../../caja-virtual/rol-tesoreria-caja';
 import { RetiroVerificacionService } from '../retiro-verificacion.service';
-import {
-  BorradorVerificacion, CATEGORIA_LABEL, CategoriaDiferenciaRetiro,
-  ConteoRetiroMonedaInput, RetiroVerificacion,
-} from '../retiro-verificacion.model';
+import { VerificarRetiroBloqueComponent } from '../verificar-retiro-bloque/verificar-retiro-bloque.component';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
+import { MainService } from '../../../../../main.service';
 
 export interface VerificarRetiroDialogData {
-  retiro: Retiro;
+  /** Uno, o varios de la misma caja del PDV apilados: cada uno con su propio conteo. */
+  retiros: Retiro[];
   cajaVirtual: CajaVirtual;
 }
 
-/** Una moneda del retiro: lo declarado, lo que se va contando y la diferencia. */
-interface FilaMoneda {
-  moneda: Moneda;
-  declarado: number;
-  contado: number;
-  diferencia: number;
-  categoria: CategoriaDiferenciaRetiro;
-  /** digitsInfo del pipe number, según los decimales de la moneda. */
-  formato: string;
-  /** Etiqueta y color de la diferencia, precalculados (no se llaman funciones desde el HTML). */
-  etiqueta: string;
-  color: string;
-  /** La grilla de esta moneda no pudo cargar sus denominaciones: su 0 no es un conteo (#390). */
-  grillaNoCargo?: boolean;
-}
-
 /**
- * Verificación de un retiro al recibirlo en tesorería.
+ * Verificación de uno o varios retiros de una misma caja al recibirlos en tesorería.
  *
  * El que recibe cuenta la plata contra lo que declaró el PDV. A la caja mayor entra
- * <b>lo contado</b>: el retiro es inmutable y queda como la declaración del origen.
+ * <b>lo contado</b>: el retiro es inmutable y queda como la declaración del origen. Cada retiro
+ * se verifica por separado, con su conteo y su caso si hay diferencia.
  *
- * El conteo se guarda en un borrador local a cada cambio. Contar plata se interrumpe —entra
- * alguien, suena el teléfono, se cierra el diálogo— y volver a empezar de cero es la forma más
- * rápida de que nadie cuente en serio.
+ * Se cierra con los retiros que entraron (lista vacía = ninguno).
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -50,199 +34,147 @@ interface FilaMoneda {
   templateUrl: './verificar-retiro-dialog.component.html',
   styleUrls: ['./verificar-retiro-dialog.component.scss'],
 })
-export class VerificarRetiroDialogComponent implements OnInit {
+export class VerificarRetiroDialogComponent {
 
-  filas: FilaMoneda[] = [];
-  observacion = '';
+  @ViewChildren(VerificarRetiroBloqueComponent) bloques: QueryList<VerificarRetiroBloqueComponent>;
+
+  /** Los que faltan confirmar. Los que entran salen de la lista. */
+  retiros: Retiro[];
   guardando = false;
-  hayDiferencia = false;
-  huboBorrador = false;
+  /** Falló la confirmación y no se pudo saber qué entró: reintentar podría mentir sobre el resultado. */
+  sinConfirmar = false;
+  titulo: string;
+  subtitulo: string;
 
-  /** Moneda cuya grilla está abierta. Una sola a la vez: la grilla necesita ancho. */
-  monedaAbierta: Moneda = null;
-
-  /** Cantidades por moneda y valor de billete, para la grilla y para el borrador. */
-  cantidades: { [monedaId: string]: { [valor: string]: number } } = {};
-
-  categorias = Object.keys(CATEGORIA_LABEL).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
+  private ingresados: Retiro[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VerificarRetiroDialogData,
     private dialogRef: MatDialogRef<VerificarRetiroDialogComponent>,
     private service: RetiroVerificacionService,
+    private retiroService: RetiroService,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
-  ) {}
-
-  ngOnInit(): void {
-    const borrador = this.service.leerBorrador(this.data.retiro.id, this.data.retiro.sucursalId);
-    if (borrador) {
-      this.cantidades = borrador.cantidades || {};
-      this.observacion = borrador.observacion || '';
-      this.huboBorrador = true;
-    }
-    this.armarFilas();
+    private mainService: MainService,
+  ) {
+    this.retiros = [...(data.retiros || [])];
+    const r0 = this.retiros[0];
+    this.titulo = this.retiros.length > 1
+      ? `Verificar ${this.retiros.length} retiros de la caja ${r0?.cajaSalida?.id}`
+      : `Verificar retiro #${r0?.id}`;
+    this.subtitulo = `${r0?.sucursal?.nombre || 'Sucursal ' + r0?.sucursalId} · entra a ${data.cajaVirtual?.nombre}`;
   }
 
-  /** Lo declarado sale del retiro_detalle, agrupado por moneda. Es inmutable. */
-  private armarFilas() {
-    const porMoneda = new Map<number, FilaMoneda>();
-    const detalles: RetiroDetalle[] = this.data.retiro?.retiroDetalleList || [];
-    for (const d of detalles) {
-      if (!d?.moneda?.id) continue;
-      const dec = d.moneda.decimales != null
-        ? d.moneda.decimales
-        : ((d.moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
-      const fila = porMoneda.get(d.moneda.id) || {
-        moneda: d.moneda, declarado: 0, contado: 0, diferencia: 0,
-        categoria: null, formato: `1.0-${dec}`, etiqueta: '', color: '#b0bec5',
-      };
-      fila.declarado += d.cantidad || 0;
-      porMoneda.set(d.moneda.id, fila);
-    }
-    this.filas = Array.from(porMoneda.values());
-    // Sembrar lo que haya en el borrador y recalcular.
-    this.filas.forEach(f => f.contado = this.totalDe(f.moneda.id));
-    this.recalcular();
+  porId(_: number, r: Retiro): number {
+    return r.id;
   }
 
-  private totalDe(monedaId: number): number {
-    const porValor = this.cantidades[String(monedaId)] || {};
-    return Object.keys(porValor).reduce((acc, valor) => acc + (Number(valor) * porValor[valor]), 0);
-  }
-
-  abrirGrilla(fila: FilaMoneda) {
-    this.monedaAbierta = this.monedaAbierta?.id === fila.moneda.id ? null : fila.moneda;
-  }
-
-  cantidadesDe(monedaId: number): { [valor: string]: number } {
-    return this.cantidades[String(monedaId)] || {};
-  }
-
-  onCantidadesChange(fila: FilaMoneda, cantidades: { [valor: string]: number }) {
-    this.cantidades[String(fila.moneda.id)] = cantidades;
-    fila.contado = this.totalDe(fila.moneda.id);
-    this.recalcular();
-    this.guardarBorrador();
-  }
-
-  /** Confirma lo declarado sin contar. Queda marcado como verificación rápida. */
-  usarDeclarado(fila: FilaMoneda) {
-    this.cantidades[String(fila.moneda.id)] = {};
-    fila.contado = fila.declarado;
-    this.recalcular();
-    this.guardarBorrador();
-  }
-
-  private recalcular() {
-    this.hayDiferencia = false;
-    for (const f of this.filas) {
-      f.diferencia = (f.contado || 0) - (f.declarado || 0);
-      if (Math.abs(f.diferencia) > 0.005) {
-        this.hayDiferencia = true;
-        if (!f.categoria) {
-          f.categoria = f.diferencia < 0
-            ? CategoriaDiferenciaRetiro.FALTANTE
-            : CategoriaDiferenciaRetiro.SOBRANTE;
-        }
-        f.etiqueta = f.diferencia < 0 ? 'Faltante' : 'Sobrante';
-        f.color = f.diferencia < 0 ? '#ff8a80' : '#64b5f6';
-      } else {
-        f.categoria = null;
-        f.etiqueta = 'Coincide';
-        f.color = '#81c784';
-      }
-    }
-  }
-
-  private guardarBorrador() {
-    const borrador: BorradorVerificacion = {
-      cantidades: this.cantidades,
-      observacion: this.observacion,
-      actualizadoEn: new Date().toISOString(),
-    };
-    this.service.guardarBorrador(this.data.retiro.id, this.data.retiro.sucursalId, borrador);
-  }
-
-  onObservacionChange() {
-    this.guardarBorrador();
-  }
-
-  /**
-   * Confirma la verificación.
-   *
-   * `rapida` es true cuando no se contó ninguna denominación: el operador aceptó lo declarado.
-   * Se marca a propósito — si más adelante aparece una diferencia, hay que poder saber que ese
-   * retiro nunca se contó billete por billete.
-   */
   onConfirmar() {
-    if (this.guardando) return;
+    if (this.guardando || this.sinConfirmar) return;
+    const bloques = this.bloques.toArray();
 
-    // Una moneda cuya grilla no cargó y que quedó en 0 no fue contada: acreditar ese 0 abriría un caso por
-    // todo lo declarado. «Usar declarado» sigue valiendo, porque ahí el contado deja de ser 0.
-    const sinContar = this.filas.find(f => f.grillaNoCargo && !(f.contado > 0) && f.declarado > 0);
-    if (sinContar != null) {
-      this.notificacion.notification$.next({
-        texto: `No se pudieron cargar las denominaciones de ${sinContar.moneda?.denominacion || 'una moneda'}: `
-          + 'reintentá la carga o usá lo declarado antes de confirmar.',
-        color: NotificacionColor.warn, duracion: 6,
-      });
+    const motivo = bloques.map(b => b.motivoParaNoConfirmar()).find(m => m != null);
+    if (motivo != null) {
+      this.notificacion.notification$.next({ texto: motivo, color: NotificacionColor.warn, duracion: 6 });
       return;
     }
 
-    const conteos: ConteoRetiroMonedaInput[] = this.filas.map(f => ({
-      monedaId: f.moneda.id,
-      contado: f.contado || 0,
-      categoria: f.categoria || null,
-    }));
-    const rapida = Object.keys(this.cantidades).every(
-      k => Object.keys(this.cantidades[k] || {}).length === 0);
-
-    const seguir = () => this.enviar(conteos, rapida);
-
-    if (this.hayDiferencia) {
-      // Formateado: el confirm no pasa por pipes y un "-100000" pelado se lee mal justo
-      // cuando el operador tiene que decidir si está de acuerdo con la diferencia.
-      const resumen = this.filas
-        .filter(f => Math.abs(f.diferencia) > 0.005)
-        .map(f => {
-          const dec = f.formato.endsWith('-0') ? 0 : 2;
-          const monto = f.diferencia.toLocaleString('es-PY', { maximumFractionDigits: dec });
-          return `${f.moneda.denominacion}: ${f.diferencia > 0 ? '+' : ''}${monto} ${f.moneda.simbolo}`;
-        })
-        .join(' · ');
+    const diferencias = bloques
+      .filter(b => b.hayDiferencia)
+      .map(b => (bloques.length > 1 ? `Retiro #${b.retiro.id} — ` : '') + b.resumenDiferencias());
+    if (diferencias.length) {
       this.dialogosService.confirm(
         'Confirmar con diferencia',
         'Se va a acreditar lo contado y se abrirá un caso para investigar.',
-        resumen, null, true, 'Sí, confirmar', 'No',
-      ).pipe(untilDestroyed(this)).subscribe(res => { if (res === true) seguir(); });
+        diferencias.length === 1 ? diferencias[0] : null,
+        diferencias.length > 1 ? diferencias : null,
+        true, 'Sí, confirmar', 'No',
+      ).pipe(untilDestroyed(this)).subscribe(res => { if (res === true) this.enviar(bloques); });
       return;
     }
-    seguir();
+    this.enviar(bloques);
   }
 
-  private enviar(conteos: ConteoRetiroMonedaInput[], rapida: boolean) {
+  /**
+   * De a uno y en orden: cada retiro queda con su conteo y su caso. El central no acredita dos veces
+   * (toma el lock del retiro y rechaza lo ya verificado).
+   */
+  private enviar(bloques: VerificarRetiroBloqueComponent[]) {
     this.guardando = true;
-    this.service.onVerificar(
-      this.data.retiro.id, this.data.retiro.sucursalId, this.data.cajaVirtual.id,
-      conteos, rapida, this.observacion,
-    ).pipe(untilDestroyed(this)).subscribe({
-      next: (res: RetiroVerificacion) => {
+    const caja = this.data.cajaVirtual;
+    from(bloques).pipe(
+      concatMap(b => this.service.onVerificar(
+        b.retiro.id, b.retiro.sucursalId, caja.id, b.conteos(), b.esRapida(), b.observacion,
+      ).pipe(map(res => {
+        // null = el servidor no confirmó: se trata como falla y se reconcilia.
+        if (res == null) throw new Error('sin respuesta');
+        this.marcarIngresado(b.retiro);
+        return res;
+      }))),
+      toArray(),
+      untilDestroyed(this),
+    ).subscribe({
+      next: () => {
         this.guardando = false;
-        if (res == null) return;
-        // El conteo ya quedó en el backend; el borrador solo confundiría al reabrir.
-        this.service.borrarBorrador(this.data.retiro.id, this.data.retiro.sucursalId);
-        this.dialogRef.close(res);
+        this.dialogRef.close(this.ingresados);
       },
-      // El aviso de error lo da onSaveCustom.
-      error: () => {
-        this.guardando = false;
-      },
+      // El aviso del error lo da onSaveCustom; acá solo se reconcilia.
+      error: () => this.reconciliar(bloques.length),
     });
   }
 
+  /**
+   * Ante cualquier falla se pregunta qué sigue pendiente. El central pudo haber commiteado el que
+   * «falló» (red caída después del commit), u otra PC pudo verificar uno del apilado: lo que ya no
+   * está pendiente sale del diálogo, aunque no haya devuelto OK, para que un reintento no se trabe.
+   */
+  private reconciliar(total: number) {
+    const r0 = this.retiros[0];
+    const cajaId = r0?.cajaSalida?.id;
+    if (cajaId == null) {
+      this.noSeSupoQueEntro();
+      return;
+    }
+    const destinoId = operaAcotadoCaja(this.mainService) ? this.data.cajaVirtual?.id : undefined;
+    this.retiroService.onGetPendientesDeCaja(r0.sucursalId, cajaId, destinoId).pipe(untilDestroyed(this)).subscribe({
+      next: pendientes => {
+        this.guardando = false;
+        const siguen = new Set(pendientes.map(p => p.id));
+        this.retiros.filter(r => !siguen.has(r.id)).forEach(r => this.marcarIngresado(r));
+        if (!this.retiros.length) {
+          this.dialogRef.close(this.ingresados);
+          return;
+        }
+        if (this.ingresados.length) {
+          this.notificacion.notification$.next({
+            texto: `${this.ingresados.length} de ${total} retiros ingresados. Quedan ${this.retiros.length} por confirmar.`,
+            color: NotificacionColor.warn, duracion: 8,
+          });
+        }
+      },
+      error: () => this.noSeSupoQueEntro(),
+    });
+  }
+
+  private noSeSupoQueEntro() {
+    this.guardando = false;
+    this.sinConfirmar = true;
+    this.notificacion.notification$.next({
+      texto: 'No se pudo confirmar qué retiros entraron: cerrá y volvé a abrir antes de reintentar.',
+      color: NotificacionColor.warn, duracion: 10,
+    });
+  }
+
+  /** Entró: sale del diálogo y se borra su borrador (el conteo ya quedó en el backend). */
+  private marcarIngresado(r: Retiro) {
+    this.service.borrarBorrador(r.id, r.sucursalId);
+    this.ingresados.push(r);
+    this.retiros = this.retiros.filter(x => x.id !== r.id);
+  }
+
   onCancelar() {
-    // No se borra el borrador: cerrar sin confirmar es justamente el caso que resuelve.
-    this.dialogRef.close(null);
+    if (this.guardando) return;
+    // No se borran los borradores: cerrar sin confirmar es justamente el caso que resuelven.
+    this.dialogRef.close(this.ingresados);
   }
 }
