@@ -41,6 +41,13 @@ import { DeliveryPresupuestoDialogComponent } from "../delivery-presupuesto-dial
 import { DeliveryOpcionesDialogComponent } from "./delivery-opciones-dialog/delivery-opciones-dialog.component";
 import { EditDeliveryDialogComponent } from "./edit-delivery-dialog/edit-delivery-dialog.component";
 
+/** Un total del presupuesto en otra moneda: el total en la moneda del PDV dividido por `divisor`. */
+export interface FilaTotalPresupuesto {
+  rotulo: string;
+  divisor: number | null;
+  formato: string;
+}
+
 export interface ListDeliveryData {
   delivery?: Delivery;
   cambioRs?: number;
@@ -99,6 +106,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   cotizacionPdv: number = null;
   simboloBase = "";
   formatoBase = "1.0-0";
+  /** Los totales que muestra el presupuesto con otra moneda del PDV. */
+  filasPresupuesto: FilaTotalPresupuesto[] = [];
 
   timerList: any[] = [];
   duracionList: string[] = [];
@@ -135,7 +144,32 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.simboloBase = data.monedaPdv.simbolo || data.monedaPdv.denominacion || "";
       const dec = data.monedaPdv.decimales ?? 2;
       this.formatoBase = `1.${dec}-${dec}`;
+      this.armarFilasPresupuesto();
     }
+  }
+
+  /** La moneda del PDV, la de la empresa, el real y el dólar (sin repetir ninguna), cada una con cuánto vale de la del PDV. */
+  private armarFilasPresupuesto() {
+    const pdv = this.data.monedaPdv;
+    const decimales = (m: Moneda) => `1.${m?.decimales ?? 2}-${m?.decimales ?? 2}`;
+    const nombre = (m: Moneda) => m?.simbolo || m?.denominacion || "";
+    const filas: FilaTotalPresupuesto[] = [
+      { rotulo: `Total en ${nombre(pdv)}:`, divisor: 1, formato: decimales(pdv) },
+      {
+        rotulo: `Total en ${nombre(this.data.monedaEmpresa)}:`,
+        divisor: this.cotizacionPdv ? 1 / this.cotizacionPdv : null,
+        formato: decimales(this.data.monedaEmpresa),
+      },
+    ];
+    const real = this.data.monedaList?.find((m) => m.denominacion == "REAL");
+    const dolar = this.data.monedaList?.find((m) => m.denominacion == "DOLAR");
+    if (real && String(real.id) !== String(pdv.id)) {
+      filas.push({ rotulo: "Total en Rs:", divisor: this.cambioRs || null, formato: "1.2-2" });
+    }
+    if (dolar && String(dolar.id) !== String(pdv.id)) {
+      filas.push({ rotulo: "Total en Ds:", divisor: this.cambioDs || null, formato: "1.2-2" });
+    }
+    this.filasPresupuesto = filas;
   }
   /**
    * Sin respuesta del servidor (#390): aviso y lista como estaba, en vez de quedar muda. Un error

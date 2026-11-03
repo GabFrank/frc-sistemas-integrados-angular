@@ -127,6 +127,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   envioBase: number = null;
   /** Máscara del campo «valor» según la moneda elegida. */
   opcionesValor: any = this.currencyMask.currencyOptionsNoGuarani;
+  /** Unidades de la empresa por 1 unidad de la moneda del PDV, y cómo se muestra un monto en ella. */
+  cotizacionPdv: number = null;
+  formatoBase = '1.0-0';
+  /** Totales del delivery en cada moneda (con otra moneda del PDV): se muestran dividiendo el total por `divisor`. */
+  filasTotal: { bandera: string | null; simbolo: string; divisor: number | null; formato: string }[] = [];
   /** Cómo se muestra el valor de cada línea según su moneda (id), con otra moneda del PDV. */
   formatoPorMoneda: { [monedaId: string]: string } = {};
 
@@ -179,6 +184,9 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       this.esOtraMoneda = true;
       this.monedaPdv = data.monedaPdv;
       this.monedaEmpresa = data.monedaEmpresa;
+      this.cotizacionPdv = cotizacionEmpresa(this.monedaPdv, this.monedaEmpresa);
+      const dec = this.monedaPdv.decimales ?? 2;
+      this.formatoBase = `1.${dec}-${dec}`;
     }
 
     if (this.selectedDelivery?.venta?.valorTotal == null) {
@@ -239,6 +247,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
           acc[m.id] = `1.${dec}-${dec}`;
           return acc;
         }, {} as { [monedaId: string]: string });
+        this.armarFilasTotal();
       }
       this.onMonedaVueltoSelect(this.monedaPorDefecto())
       setTimeout(() => {
@@ -263,7 +272,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
     this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.monedaControl.dirty) {
-        if (res == "") this.selectedMoneda = null;
+        if (res == "") { this.selectedMoneda = null; this.actualizarOpcionesValor(); }
         if (this.monedaTimer != null) {
           clearTimeout(this.monedaTimer);
         }
@@ -365,6 +374,36 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   private monedaDelDescuento(): Moneda {
     if (!this.esOtraMoneda) return this.monedaList.find(m => m.denominacion == 'GUARANI');
     return this.monedaPorDefecto();
+  }
+
+  /** La moneda del PDV primero, después la de la empresa, el real y el dólar (sin repetir ninguna). */
+  private armarFilasTotal(): void {
+    const bandera = (m: Moneda): string | null => {
+      const d = (m?.denominacion || '').toUpperCase();
+      if (d.includes('GUARANI')) return 'assets/flags/py/py32.png';
+      if (d.includes('REAL')) return 'assets/flags/br/br32.png';
+      if (d.includes('DOLAR')) return 'assets/flags/usa/usa32.png';
+      return null;
+    };
+    const candidatas = [
+      this.monedaPdv,
+      this.monedaList.find(m => String(m.id) === String(this.monedaEmpresa?.id)) ?? this.monedaEmpresa,
+      this.monedaList.find(m => m.denominacion == 'REAL'),
+      this.monedaList.find(m => m.denominacion == 'DOLAR'),
+    ].filter(m => m != null);
+    const vistas = new Set<string>();
+    this.filasTotal = [];
+    candidatas.forEach(m => {
+      if (vistas.has(String(m.id))) return;
+      vistas.add(String(m.id));
+      const dec = this.monedasService.decimalesDeMoneda(m);
+      this.filasTotal.push({
+        bandera: bandera(m),
+        simbolo: m.simbolo || m.denominacion || '',
+        divisor: String(m.id) === String(this.monedaPdv.id) ? 1 : this.factorDe(m),
+        formato: `1.${dec}-${dec}`,
+      });
+    });
   }
 
   /** Lo que falta cobrar. Con otra moneda del PDV, redondeado a sus decimales (si no, el ruido del flotante nunca cierra en 0). */

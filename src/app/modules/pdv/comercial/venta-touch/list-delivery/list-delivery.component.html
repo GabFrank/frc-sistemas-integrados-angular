@@ -80,17 +80,30 @@
               *matHeaderCellDef
               style="width: 10%; text-align: center"
             >
-              Valor en Gs
+              <ng-container *ngIf="!esOtraMoneda">Valor en Gs</ng-container>
+              <ng-container *ngIf="esOtraMoneda">Valor en {{ simboloBase }}</ng-container>
             </th>
             <td
               mat-cell
               *matCellDef="let element"
               style="width: 10%; text-align: center"
             >
-              {{
-                element?.venta?.valorTotal + element?.precio?.valor
-                  | number : "1.0-0"
-              }}
+              <ng-container *ngIf="!esOtraMoneda">
+                {{
+                  element?.venta?.valorTotal + element?.precio?.valor
+                    | number : "1.0-0"
+                }}
+              </ng-container>
+              <!-- Otra moneda del PDV: el delivery ya leído está en esa moneda; el de la lista llega en la de la empresa -->
+              <ng-container *ngIf="esOtraMoneda">
+                {{
+                  element?.envioEnBase != null
+                    ? (element?.venta?.valorTotal + element?.envioEnBase
+                      | number : formatoBase)
+                    : ((element?.venta?.valorTotal + element?.precio?.valor) /
+                        cotizacionPdv | number : formatoBase)
+                }}
+              </ng-container>
             </td>
           </ng-container>
 
@@ -283,8 +296,13 @@
         [cambioRs]="cambioRs"
         [cambioDs]="cambioDs"
         [totalFinal]="
-          selectedDelivery?.venta?.valorTotal + selectedDelivery?.precio?.valor
+          esOtraMoneda
+            ? selectedDelivery?.venta?.valorTotal + selectedDelivery?.envioEnBase
+            : selectedDelivery?.venta?.valorTotal + selectedDelivery?.precio?.valor
         "
+        [monedaPdv]="monedaPdv"
+        [formatoMonto]="esOtraMoneda ? formatoBase : '1.0-0'"
+        [filasTotal]="filasPresupuesto"
         [calcularVueltoEvent]="calcularVueltoSub.asObservable()"
       ></app-delivery-presupuesto-dialog>
     </div>

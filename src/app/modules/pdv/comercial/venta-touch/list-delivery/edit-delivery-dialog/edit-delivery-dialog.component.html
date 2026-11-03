@@ -44,7 +44,11 @@
             [value]="precio"
           >
             {{ precio.id }} - {{ precio?.descripcion | uppercase }} -
-            {{ precio?.valor | number : "1.0-0" }}
+            {{
+              esOtraMoneda
+                ? (precio?.valor / cotizacionPdv | number : formatoBase)
+                : (precio?.valor | number : "1.0-0")
+            }}
           </mat-option>
         </mat-autocomplete>
       </mat-form-field>
@@ -336,16 +340,23 @@
               {{ item.formaPago?.descripcion }}
             </td>
             <td
-              *ngIf="item.moneda?.id == 1"
+              *ngIf="!esOtraMoneda && item.moneda?.id == 1"
               style="padding-bottom: 5px; padding-top: 5px; text-align: center"
             >
               {{ item.valor | number : "1.0-0" }}
             </td>
             <td
-              *ngIf="item.moneda?.id != 1"
+              *ngIf="!esOtraMoneda && item.moneda?.id != 1"
               style="padding-bottom: 5px; padding-top: 5px; text-align: center"
             >
               {{ item.valor | number : "1.2-2" }}
+            </td>
+            <!-- Con otra moneda del PDV: los decimales de la moneda de cada línea -->
+            <td
+              *ngIf="esOtraMoneda"
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            >
+              {{ item.valor | number : (formatoPorMoneda[item.moneda?.id] || "1.2-2") }}
             </td>
             <td
               *ngIf="item.vuelto && !item.aumento"
@@ -449,11 +460,7 @@
             [formControl]="vueltoControl"
             style="color: var(--frc-texto-fuerte)"
             currencyMask
-            [options]="
-              selectedMoneda?.id == 1
-                ? currencyMask.currencyOptionsGuarani
-                : currencyMask.currencyOptionsNoGuarani
-            "
+            [options]="opcionesValor"
             autocomplete="off"
             (keydown)="onVueltoKeyup($event.key)"
             (keyup.enter)="
@@ -523,6 +530,7 @@
       <div fxFlex="50%" style="width: 100%; text-align: center">Moneda</div>
       <div fxFlex="50%" style="width: 100%; text-align: center">Total</div>
     </div>
+    <ng-container *ngIf="!esOtraMoneda">
     <div fxFlex fxLayout="row" fxLayoutAlign="space-between start">
       <div fxFlex="50%" style="width: 100%; text-align: center">
         <img
@@ -586,6 +594,34 @@
         }}
       </div>
     </div>
+    </ng-container>
+    <!-- Con otra moneda del PDV: el total en cada moneda -->
+    <ng-container *ngIf="esOtraMoneda">
+      <div
+        *ngFor="let fila of filasTotal"
+        fxFlex
+        fxLayout="row"
+        fxLayoutAlign="space-between start"
+      >
+        <div fxFlex="50%" style="width: 100%; text-align: center">
+          <img
+            *ngIf="fila.bandera"
+            [src]="fila.bandera"
+            alt="moneda"
+            style="width: 25px; height: 25px"
+          />
+          <span *ngIf="!fila.bandera">{{ fila.simbolo }}</span>
+        </div>
+        <div fxFlex="50%" style="text-align: center; font-size: 1.2em">
+          {{
+            fila.divisor
+              ? ((selectedDelivery?.venta?.valorTotal + envioBase) / fila.divisor
+                | number : fila.formato)
+              : "—"
+          }}
+        </div>
+      </div>
+    </ng-container>
   </div>
   <app-boton
     #guardarBtn
