@@ -20,7 +20,7 @@
   <div class="c c-contado" [class.primera]="first">
     <input class="contado-input" currencyMask [options]="f.opts" autocomplete="off"
            placeholder="sin contar" [class.vacio]="f.contado == null"
-           [ngModel]="f.contado" (ngModelChange)="onContadoChange(f, $event)" />
+           [ngModel]="f.contado" (ngModelChange)="onContadoChange(f, $event)" (click)="ocultarAviso()" />
   </div>
 
   <div class="c c-dif" [class.primera]="first">

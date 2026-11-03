@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { CurrencyMaskInputMode } from 'ngx-currency';
 import { Retiro } from '../../retiro.model';
 import { RetiroDetalle } from '../../retiro-detalle.model';
@@ -18,7 +18,7 @@ interface FilaMoneda {
   diferencia: number | null;
   categoria: CategoriaDiferenciaRetiro;
   decimales: number;
-  /** digitsInfo del pipe number, según los decimales de la moneda. */
+  /** digitsInfo del pipe number: decimales fijos de la moneda (-10,00 R$; 3.000.000 Gs). */
   formato: string;
   /** Opciones de la máscara del input, precalculadas (no se llaman funciones desde el HTML). */
   opts: any;
@@ -42,12 +42,15 @@ interface FilaMoneda {
  * alguien, suena el teléfono, se cierra el diálogo— y volver a empezar de cero es la forma más
  * rápida de que nadie cuente en serio.
  */
+/** Cuánto queda a la vista el aviso de borrador recuperado si nadie toca el conteo. */
+export const AVISO_BORRADOR_MS = 15000;
+
 @Component({
   selector: 'app-verificar-retiro-bloque',
   templateUrl: './verificar-retiro-bloque.component.html',
   styleUrls: ['./verificar-retiro-bloque.component.scss'],
 })
-export class VerificarRetiroBloqueComponent implements OnInit {
+export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
 
   @Input() retiro: Retiro;
   /** Con varios retiros la tabla lleva la columna Retiro. */
@@ -69,6 +72,8 @@ export class VerificarRetiroBloqueComponent implements OnInit {
 
   categorias = Object.keys(CATEGORIA_LABEL).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
 
+  private timerAviso: any;
+
   constructor(private service: RetiroVerificacionService) {}
 
   ngOnInit(): void {
@@ -79,8 +84,21 @@ export class VerificarRetiroBloqueComponent implements OnInit {
       this.observacion = borrador.observacion || '';
       this.verObservacion = !!this.observacion;
       this.huboBorrador = this.service.hayBorrador(this.retiro.id, this.retiro.sucursalId);
+      // El aviso es para el que vuelve a abrir: no hace falta que quede ocupando una fila de la tabla.
+      if (this.huboBorrador) this.timerAviso = setTimeout(() => this.ocultarAviso(), AVISO_BORRADOR_MS);
     }
     this.armarFilas();
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.timerAviso);
+  }
+
+  /** El aviso de borrador recuperado se va solo o apenas se toca un contado de este retiro. */
+  ocultarAviso() {
+    if (!this.huboBorrador) return;
+    this.huboBorrador = false;
+    clearTimeout(this.timerAviso);
   }
 
   /** Lo declarado sale del retiro_detalle, agrupado por moneda. Es inmutable. */
@@ -94,7 +112,7 @@ export class VerificarRetiroBloqueComponent implements OnInit {
         : ((d.moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
       const fila = porMoneda.get(d.moneda.id) || {
         moneda: d.moneda, declarado: 0, contado: null, diferencia: null, categoria: null,
-        decimales: dec, formato: `1.0-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
+        decimales: dec, formato: `1.${dec}-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
       };
       fila.declarado += d.cantidad || 0;
       porMoneda.set(d.moneda.id, fila);
@@ -133,6 +151,7 @@ export class VerificarRetiroBloqueComponent implements OnInit {
    * al abrir la grilla, y pisaría un monto tipeado con el total de una grilla vacía.
    */
   onCantidadesChange(fila: FilaMoneda, cantidades: { [valor: string]: number }) {
+    this.ocultarAviso();
     const id = String(fila.moneda.id);
     this.cantidades[id] = cantidades;
     delete this.montos[id];
@@ -146,6 +165,7 @@ export class VerificarRetiroBloqueComponent implements OnInit {
    * y cierra su grilla: la grilla guarda sus filas y no se entera de que se vaciaron.
    */
   onContadoChange(fila: FilaMoneda, valor: number | null) {
+    this.ocultarAviso();
     const id = String(fila.moneda.id);
     fila.contado = valor != null && !isNaN(valor) ? valor : null;
     delete this.cantidades[id];
@@ -246,7 +266,7 @@ export class VerificarRetiroBloqueComponent implements OnInit {
     return this.filas
       .filter(f => f.diferencia != null && Math.abs(f.diferencia) > 0.005)
       .map(f => {
-        const monto = f.diferencia.toLocaleString('es-PY', { maximumFractionDigits: f.decimales });
+        const monto = f.diferencia.toLocaleString('es-PY', { minimumFractionDigits: f.decimales, maximumFractionDigits: f.decimales });
         return `${f.moneda.denominacion}: ${f.diferencia > 0 ? '+' : ''}${monto} ${f.moneda.simbolo}`;
       })
       .join(' · ');

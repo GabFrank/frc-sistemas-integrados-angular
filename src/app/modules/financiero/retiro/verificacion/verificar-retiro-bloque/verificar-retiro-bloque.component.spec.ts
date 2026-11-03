@@ -1,5 +1,5 @@
 import { CurrencyMaskInputMode } from 'ngx-currency';
-import { VerificarRetiroBloqueComponent } from './verificar-retiro-bloque.component';
+import { AVISO_BORRADOR_MS, VerificarRetiroBloqueComponent } from './verificar-retiro-bloque.component';
 import { RetiroVerificacionService } from '../retiro-verificacion.service';
 import { Retiro } from '../../retiro.model';
 import { claveBorrador, claveBorradorV1 } from '../retiro-verificacion.model';
@@ -117,6 +117,26 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
     expect(b.filas[0].contado).toBe(300000);
   });
 
+  it('el aviso de borrador recuperado se va solo, o al tocar un contado', () => {
+    localStorage.setItem(claveBorrador(543, 24), JSON.stringify({ cantidades: {}, montos: { '1': 100000 }, actualizadoEn: 'x' }));
+    jasmine.clock().install();
+    try {
+      const b = armar([{ cantidad: 500000, moneda: GS }]);
+      expect(b.huboBorrador).toBeTrue();
+      jasmine.clock().tick(AVISO_BORRADOR_MS - 1);
+      expect(b.huboBorrador).toBeTrue();
+      jasmine.clock().tick(1);
+      expect(b.huboBorrador).toBeFalse();
+
+      const otra = armar([{ cantidad: 500000, moneda: GS }]);
+      expect(otra.huboBorrador).toBeTrue();
+      otra.onContadoChange(otra.filas[0], 500000);
+      expect(otra.huboBorrador).toBeFalse();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
   it('hayBorrador cuenta un 0 tipeado como conteo empezado', () => {
     const b = armar([{ cantidad: 500000, moneda: GS }]);
     b.onContadoChange(b.filas[0], 0);
@@ -136,5 +156,13 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
   it('la máscara de guaraníes no tiene decimales', () => {
     const b = armar([{ cantidad: 500000, moneda: GS }]);
     expect(b.filas[0].opts.precision).toBe(0);
+  });
+
+  it('la diferencia se muestra con los decimales fijos de la moneda', () => {
+    const b = armar([{ cantidad: 100, moneda: RS }, { cantidad: 500000, moneda: GS }]);
+    expect(b.filas[0].formato).toBe('1.2-2');
+    expect(b.filas[1].formato).toBe('1.0-0');
+    b.onContadoChange(b.filas[0], 90);
+    expect(b.resumenDiferencias()).toContain('-10,00 R$');
   });
 });
