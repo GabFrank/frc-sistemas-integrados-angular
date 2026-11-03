@@ -30,6 +30,20 @@ tiene otros pendientes. Si la respuesta es Sí, `VerificarRetiroDialogComponent`
 apilados, un `VerificarRetiroBloqueComponent` por retiro. Cada bloque tiene su conteo, su borrador
 y su caso si hay diferencia.
 
+- La verificación es una tabla compacta: una fila por retiro y moneda, con Declarado, Contado,
+  Diferencia y acciones. Los montos llevan los decimales fijos de cada moneda (-10,00 R$; 3.000.000 Gs).
+- El **contado** se tipea (Enter pasa al siguiente), se copia con «= declarado» o sale de la grilla de
+  billetes (▦), que se despliega debajo de la fila.
+  - La grilla solo escribe el contado cuando se edita un billete, porque emite su total también al
+    abrirse.
+  - Tipear después de usar la grilla descarta los billetes y la cierra.
+- **Vacío no es 0.** Una moneda sin contar bloquea «Confirmar». Un 0 tipeado vale: el sobre llegó
+  vacío. La máscara del input tiene opciones propias (`nullable`, sin negativos, decimales de la
+  moneda, modo NATURAL), no los presets compartidos.
+- **Rápida** quiere decir que no se contó ningún billete en la grilla, aunque se haya tipeado el monto.
+- **Borrador** en `localStorage`, clave `frc.verificacion-retiro.v2.{id}.{suc}`, con billetes y montos.
+  - Se sigue leyendo la clave anterior.
+  - El aviso «se recuperó un conteo» se oculta a los 15 segundos, o al hacer clic o editar un contado.
 - La confirmación llama a `verificarRetiro` de a uno y en orden.
 - Ante cualquier falla se vuelven a consultar los pendientes de la caja. Lo que ya no está
   pendiente sale del diálogo y se informa aparte. Eso cubre que otra PC lo haya verificado o que
