@@ -238,6 +238,10 @@ retiro al siguiente. Lo maneja el diálogo.
 - el motivo de la diferencia es un select chico en la celda;
 - la observación se abre con un ícono en la primera fila del retiro.
 
+**Ajustes pedidos en la prueba de F6 (Franco, 2026-11-03)**:
+- la diferencia lleva la moneda y decimales fijos de la moneda (-10,00 R$), igual que lo declarado;
+- el aviso «se recuperó un conteo» se oculta a los 15 segundos, o al hacer clic o editar un contado.
+
 **Pendiente fuera de F6**: el central no rechaza conteos negativos ni decimales en Gs. El front los
 impide con la máscara. Validarlo en el central queda como fix aparte.
 
