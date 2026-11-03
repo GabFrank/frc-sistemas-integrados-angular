@@ -29,6 +29,11 @@ export class Delivery {
      * cobra ni se guarda hasta volver a leerlo desde la lista (#390).
      */
     cobroIncierto?: boolean;
+    /**
+     * Solo en memoria y solo con otra moneda del PDV (Fase 4): la tarifa de envío (que está en la moneda de la
+     * empresa) llevada a la moneda del PDV. Sin definir = la tarifa de siempre.
+     */
+    envioEnBase?: number;
 
     toInput(): DeliveryInput {
         let input = new DeliveryInput()

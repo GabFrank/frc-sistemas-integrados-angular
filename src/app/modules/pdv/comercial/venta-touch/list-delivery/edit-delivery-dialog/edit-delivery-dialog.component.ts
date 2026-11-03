@@ -29,6 +29,8 @@ import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/
 import { VentaService } from '../../../../../operaciones/venta/venta.service';
 import { Venta } from '../../../../../operaciones/venta/venta.model';
 import { esRechazoDelServidor } from '../../../../../../commons/core/utils/graphqlErrorUtils';
+import { cotizacionEmpresa } from '../../moneda-pdv.util';
+import { aplicarMonedaALaVenta } from '../../moneda-pdv-guardado';
 
 export interface EditDeliveryDialogData {
   delivery: Delivery;
@@ -36,6 +38,13 @@ export interface EditDeliveryDialogData {
   cambioRs?: number;
   cambioDs?: number;
   formaPagoList?: FormaPago[];
+  /**
+   * La moneda del PDV y la de la empresa, solo si el PDV opera en otra moneda que la de la empresa (Fase 4).
+   * Sin ellas el diálogo trabaja como siempre. Con ellas, `cambioRs` / `cambioDs` son unidades de la moneda del PDV
+   * por R$ / US$.
+   */
+  monedaPdv?: Moneda;
+  monedaEmpresa?: Moneda;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -110,6 +119,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   cambioRs = 1;
   cambioDs = 1;
 
+  /** true solo si el PDV opera en otra moneda que la de la empresa. Con false todo es exactamente lo de siempre. */
+  esOtraMoneda = false;
+  monedaPdv: Moneda = null;
+  monedaEmpresa: Moneda = null;
+
   //vueltos segun las monedas
   vueltoGs = 0
   vueltoRs = 0
@@ -154,6 +168,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
     this.cambioRs = data?.cambioRs;
     this.cambioDs = data?.cambioDs;
+    if (data?.monedaPdv != null && data?.monedaEmpresa != null) {
+      this.esOtraMoneda = true;
+      this.monedaPdv = data.monedaPdv;
+      this.monedaEmpresa = data.monedaEmpresa;
+    }
 
     if (this.selectedDelivery?.venta?.valorTotal == null) {
       this.selectedDelivery.venta.valorTotal = 0;
@@ -785,6 +804,23 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       if (delivery?.venta?.cobro == null) {
         cobro = new Cobro()
         cobro.cobroDetalleList = this.cobroItemList;
+      }
+
+      if (this.esOtraMoneda && venta.id == null) {
+        // Delivery nuevo armado con el carrito: sus ítems y su total están en la moneda del PDV. Se guarda el
+        // equivalente en la moneda de la empresa más la moneda del PDV aparte, como una venta común. Uno ya guardado
+        // conserva la moneda que tiene (el filial la respeta).
+        const cot = cotizacionEmpresa(this.monedaPdv, this.monedaEmpresa);
+        if (cot == null) {
+          this.notificacionSnackbar.openWarn(
+            `La moneda del PDV (${this.monedaPdv?.denominacion ?? ''}) no tiene cotización cargada: no se puede guardar el delivery.`, 6);
+          return;
+        }
+        aplicarMonedaALaVenta(venta, {
+          monedaPdv: this.monedaPdv, empresa: this.monedaEmpresa, cot,
+          cambioRs: this.monedaList?.find(m => m.denominacion == 'REAL')?.cambio ?? null,
+          cambioDs: this.monedaList?.find(m => m.denominacion == 'DOLAR')?.cambio ?? null,
+        });
       }
 
       this.guardando = true;

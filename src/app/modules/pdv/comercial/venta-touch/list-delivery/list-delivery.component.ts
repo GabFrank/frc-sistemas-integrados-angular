@@ -35,6 +35,8 @@ import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
 import { Delivery } from "../../../../operaciones/delivery/delivery.model";
 import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
 import { DeliveryService } from "../delivery-dialog/delivery.service";
+import { DeliveryMonedaService } from "../delivery-dialog/delivery-moneda.service";
+import { cotizacionEmpresa } from "../moneda-pdv.util";
 import { DeliveryPresupuestoDialogComponent } from "../delivery-presupuesto-dialog/delivery-presupuesto-dialog.component";
 import { DeliveryOpcionesDialogComponent } from "./delivery-opciones-dialog/delivery-opciones-dialog.component";
 import { EditDeliveryDialogComponent } from "./edit-delivery-dialog/edit-delivery-dialog.component";
@@ -47,6 +49,12 @@ export interface ListDeliveryData {
   formaPagoList?: FormaPago[];
   /** Se llama cuando se guarda un delivery nuevo armado con los ítems del carrito del PDV. */
   onCarritoGuardadoEnDelivery?: () => void;
+  /**
+   * La moneda del PDV y la de la empresa, solo cuando el PDV opera en otra moneda que la de la empresa (Fase 4).
+   * Sin ellas todo trabaja como siempre. En ese caso `cambioRs` / `cambioDs` son unidades de la moneda del PDV por R$ / US$.
+   */
+  monedaPdv?: Moneda;
+  monedaEmpresa?: Moneda;
 }
 
 /** Un listado: más margen que un escaneo; el aviso lo da el componente. */
@@ -84,6 +92,14 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   cambioDs = 1;
   isDialogOpen = false;
 
+  /** true solo si el PDV opera en otra moneda que la de la empresa. Con false todo es como siempre. */
+  esOtraMoneda = false;
+  monedaPdv: Moneda = null;
+  /** Unidades de la empresa por 1 unidad de la moneda del PDV (para mostrar la grilla). */
+  cotizacionPdv: number = null;
+  simboloBase = "";
+  formatoBase = "1.0-0";
+
   timerList: any[] = [];
   duracionList: string[] = [];
 
@@ -107,10 +123,19 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
     private matDialogRef: MatDialogRef<ListDeliveryComponent>,
     @Inject(MAT_DIALOG_DATA) private data: ListDeliveryData,
     private cajaService: CajaService,
-    private notificacionSnackbar: NotificacionSnackbarService
+    private notificacionSnackbar: NotificacionSnackbarService,
+    private deliveryMonedaService: DeliveryMonedaService
   ) {
     this.cambioRs = data.cambioRs;
     this.cambioDs = data.cambioDs;
+    if (data.monedaPdv != null && data.monedaEmpresa != null) {
+      this.esOtraMoneda = true;
+      this.monedaPdv = data.monedaPdv;
+      this.cotizacionPdv = cotizacionEmpresa(data.monedaPdv, data.monedaEmpresa);
+      this.simboloBase = data.monedaPdv.simbolo || data.monedaPdv.denominacion || "";
+      const dec = data.monedaPdv.decimales ?? 2;
+      this.formatoBase = `1.${dec}-${dec}`;
+    }
   }
   /**
    * Sin respuesta del servidor (#390): aviso y lista como estaba, en vez de quedar muda. Un error
@@ -280,18 +305,17 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
         if (res == null) {
           return; // Error GraphQL: el servicio ya avisó
         }
-        if (res != null) {
-          let aux = this.selectedDelivery?.id;
-          this.selectedDelivery = res;
-          this.dataSource.data = updateDataSource(
-            this.dataSource.data,
-            this.selectedDelivery,
-            index
-          );
-          if (row.id == aux) {
-            return this.onAbrirDeliveryOpciones(row, index);
-          }
+        if (!this.esOtraMoneda) {
+          return this.alTraerDelivery(res, row, index);
         }
+        // El filial guarda los precios en la moneda de la empresa: se llevan a la del PDV antes de usarlo.
+        this.deliveryMonedaService.convertirABase(res, this.monedaPdv).subscribe({
+          next: (delivery) => this.alTraerDelivery(delivery, row, index),
+          error: (err) => this.notificacionSnackbar.openWarn(
+            err?.name === "DeliveryMonedaError"
+              ? err.message
+              : "No se pudo leer la moneda del delivery. Intentá de nuevo.", 6),
+        });
       } });
     } else {
       if (row.id == this.selectedDelivery.id) {
@@ -299,6 +323,20 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
       } else {
         this.selectedDelivery = row;
       }
+    }
+  }
+
+  /** El delivery leído del filial (ya en la moneda del PDV si hace falta): queda seleccionado y, si era el mismo, se abren sus opciones. */
+  private alTraerDelivery(res: Delivery, row: Delivery, index) {
+    let aux = this.selectedDelivery?.id;
+    this.selectedDelivery = res;
+    this.dataSource.data = updateDataSource(
+      this.dataSource.data,
+      this.selectedDelivery,
+      index
+    );
+    if (row.id == aux) {
+      return this.onAbrirDeliveryOpciones(row, index);
     }
   }
 
@@ -386,6 +424,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
           cambioRs: this.cambioRs,
           cambioDs: this.cambioDs,
           formaPagoList: this.data.formaPagoList,
+          monedaPdv: this.data?.monedaPdv,
+          monedaEmpresa: this.data?.monedaEmpresa,
         },
       })
       .afterClosed()
@@ -430,6 +470,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
           monedaList: this.data?.monedaList,
           cambioRs: this.cambioRs,
           cambioDs: this.cambioDs,
+          monedaPdv: this.data?.monedaPdv,
+          monedaEmpresa: this.data?.monedaEmpresa,
         },
       })
       .afterClosed()

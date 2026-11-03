@@ -48,8 +48,11 @@ import { resolverPrecioDeItem } from "./precio-en-moneda";
 import {
   aplicarMonedaALaVenta,
   aplicarMonedaAlCobro,
+  completarCotizacionDeLineas,
   ContextoMonedaPdv,
+  itemAEmpresa,
 } from "./moneda-pdv-guardado";
+import { DeliveryMonedaService } from "./delivery-dialog/delivery-moneda.service";
 import {
   cotizacionEmpresa,
   equivalenteEmpresa,
@@ -261,6 +264,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
     private ventaService: VentaService, //ok
+    private deliveryMonedaService: DeliveryMonedaService,
     private configService: ConfiguracionService,
     private notificationHttpService: NotificationHttpService,
     private gastoService: GastoService,
@@ -1220,8 +1224,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.isDelivery == true) {
           item.venta = this.selectedDelivery.venta;
           item.activo = true;
+          // Con otra moneda del PDV el filial recibe el precio en la moneda de la empresa y el de la moneda del PDV aparte.
+          let itemAGuardar: VentaItem = item;
+          if (this.esOtraMoneda) {
+            const contexto = this.contextoDelivery();
+            if (contexto == null) return;
+            itemAGuardar = itemAEmpresa(item, contexto);
+          }
           this.ventaService
-            .onSaveVentaItem(item.toInput(), false)
+            .onSaveVentaItem(itemAGuardar.toInput(), false)
             // El aviso lo da el genérico; sin error: el error quedaba sin manejar (#390).
             .subscribe({ error: () => {}, next: (ventaItemRes) => {
               if (ventaItemRes != null) {
@@ -1229,13 +1240,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 item.sucursalId = ventaItemRes.sucursalId;
                 this.selectedItemList.push(item);
                 this.calcularTotales();
-                let venta = new Venta();
-                Object.assign(venta, this.selectedDelivery.venta);
-                venta.totalGs = this.totalGs;
-                venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
-                venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
-                venta.delivery = this.selectedDelivery;
-                this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
+                this.actualizarVentaDelivery();
               }
             } });
         } else {
@@ -1248,6 +1253,41 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (item.cantidad > 0) this.ultimoAdicionado.push(item);
     this.selectedTipoPrecio = this.tiposPrecios[0];
     this.cantidadControl.setValue(1);
+  }
+
+  /**
+   * Contexto para guardar en un delivery con otra moneda del PDV. Una venta tiene una sola cotización (la de cuando
+   * se armó): un delivery ya guardado la conserva; uno nuevo toma la de ahora. null = no se puede (sin cotización).
+   */
+  private contextoDelivery(): ContextoMonedaPdv | null {
+    const empresa = this.monedaEmpresa();
+    const guardada = this.selectedDelivery?.venta?.cotizacion;
+    const cot = guardada != null && guardada > 0 ? Number(guardada) : cotizacionEmpresa(this.monedaPdv, empresa);
+    if (cot == null) {
+      this.notificacionSnackbar.openWarn(
+        `La moneda del PDV (${this.monedaPdv?.denominacion ?? ""}) no tiene cotización cargada: no se puede guardar el delivery.`,
+        8
+      );
+      return null;
+    }
+    return { monedaPdv: this.monedaPdv, empresa, cot, cambioRs: this.cambioRs, cambioDs: this.cambioDs };
+  }
+
+  /** Guarda el total de la venta del delivery (saveVenta2) después de agregar o quitar ítems. */
+  private actualizarVentaDelivery(): void {
+    let venta = new Venta();
+    Object.assign(venta, this.selectedDelivery.venta);
+    venta.totalGs = this.totalGs;
+    venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+    venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
+    venta.delivery = this.selectedDelivery;
+    if (this.esOtraMoneda) {
+      // El total está en la moneda del PDV: se guarda su equivalente en la de la empresa y la moneda del PDV aparte.
+      const contexto = this.contextoDelivery();
+      if (contexto == null) return;
+      aplicarMonedaALaVenta(venta, contexto);
+    }
+    this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
   }
 
   removeItem(event: any) {
@@ -1272,15 +1312,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                       const i = this.selectedItemList.indexOf(itm);
                       if (i != -1) this.selectedItemList.splice(i, 1);
                       this.calcularTotales();
-                      let venta = new Venta();
-                      Object.assign(venta, this.selectedDelivery.venta);
-                      venta.totalGs = this.totalGs;
-                      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
-                      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
-                      venta.delivery = this.selectedDelivery;
-                      this.ventaService
-                        .onSaveVenta2(venta.toInput(), false)
-                        .subscribe();
+                      this.actualizarVentaDelivery();
                     }
                   });
               });
@@ -1601,11 +1633,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] =
               res["itens"];
             if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
-            // Otra moneda del PDV: lo que se guarda en la moneda de la empresa se calcula acá (delivery no aplica:
-            // onDeliveryClick no abre con otra moneda del PDV).
+            // Otra moneda del PDV: lo que se guarda en la moneda de la empresa se calcula acá. El delivery ya tiene
+            // su venta guardada en esa moneda (saveVentaDelivery solo toma el id): solo sus líneas de cobro llevan
+            // la cotización de su moneda.
             if (!this.isDelivery && !this.aplicarMonedaDelPdv(venta, cobro)) {
               this.buscadorFocusSub.next();
               return;
+            }
+            if (this.isDelivery && this.esOtraMoneda) {
+              completarCotizacionDeLineas(cobro, this.monedaEmpresa());
             }
             if (this.isDelivery) {
               venta.id = this.selectedDelivery.venta.id;
@@ -2273,10 +2309,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onDeliveryClick() {
     if (this.modoConsulta) return;
     if (this.pdvSinValidar()) return;
-    if (this.esOtraMoneda) {
-      // Los deliveries se arman y cobran en la moneda de la empresa; con otra moneda del PDV no se mezclan.
+    if (this.esOtraMoneda && this.monedaPdvSinCotizacion) {
       this.notificacionSnackbar.openWarn(
-        "El delivery todavía no está disponible con una moneda del PDV distinta de la moneda de la empresa.", 6);
+        `La moneda del PDV (${this.monedaPdv?.denominacion ?? ""}) no tiene cotización cargada: no se puede armar un delivery.`, 6);
       return;
     }
     this.isDialogOpen = true;
@@ -2296,11 +2331,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     let data: ListDeliveryData = {
       delivery: this.selectedDelivery,
-      cambioRs: this.cambioRs,
-      cambioDs: this.cambioDs,
+      // Con otra moneda del PDV, los factores son unidades de la moneda del PDV por R$ / US$.
+      cambioRs: this.esOtraMoneda ? this.factorRs : this.cambioRs,
+      cambioDs: this.esOtraMoneda ? this.factorDs : this.cambioDs,
       monedaList: this.monedas,
       formaPagoList: this.formaPagoList,
       onCarritoGuardadoEnDelivery: () => this.vaciarCarritoGuardadoEnDelivery(),
+      // Solo con otra moneda del PDV; sin ellas los diálogos del delivery trabajan como siempre.
+      monedaPdv: this.esOtraMoneda ? this.monedaPdv : undefined,
+      monedaEmpresa: this.esOtraMoneda ? this.monedaEmpresa() : undefined,
     };
     this.matDialog
       .open(ListDeliveryComponent, {
@@ -2336,6 +2375,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                       next: (ventaRes) => {
                         if (ventaRes != null) {
                           this.selectedDelivery.venta = ventaRes;
+                          if (this.esOtraMoneda) {
+                            // La venta llega en la moneda de la empresa: se lleva a la del PDV antes de mostrarla.
+                            this.deliveryMonedaService.convertirABase(this.selectedDelivery, this.monedaPdv).subscribe({
+                              next: () => {
+                                this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
+                                this.calcularTotales();
+                              },
+                              error: (err) => {
+                                this.volverAlCarritoActivo();
+                                this.notificacionSnackbar.openWarn(
+                                  err?.name === "DeliveryMonedaError"
+                                    ? err.message
+                                    : "No se pudo leer la moneda del delivery: volvé a abrirlo desde la lista.", 8);
+                              },
+                            });
+                            return;
+                          }
                           this.selectedItemList =
                             this.selectedDelivery.venta.ventaItemList;
                           this.calcularTotales();
