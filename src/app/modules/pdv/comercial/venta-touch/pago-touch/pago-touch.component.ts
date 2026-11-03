@@ -17,7 +17,8 @@ import {
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
 import { CurrencyMaskInputMode } from "ngx-currency";
-import { Subscription } from "rxjs";
+import { of, Subscription } from "rxjs";
+import { catchError, take } from "rxjs/operators";
 import { MainService } from "../../../../../main.service";
 import { MonedasGetAllGQL } from "../../../../../modules/financiero/moneda/graphql/monedasGetAll";
 import { Moneda } from "../../../../../modules/financiero/moneda/moneda.model";
@@ -1378,22 +1379,59 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isDialogOpen = true;
     let venta = new Venta();
     let descuento = 0;
+    const empresa = this.monedaEmpresa();
     this.cobroDetalleList?.forEach((c) => {
+      // Guaraníes de siempre; con otra moneda del PDV, en la moneda de la empresa (la factura va en ella).
+      const unidad = this.esOtraMoneda ? (cotizacionEmpresa(c.moneda, empresa) ?? 0) : c.moneda.cambio;
       if (c.descuento) {
-        descuento += c.valor * c.moneda.cambio;
+        descuento += c.valor * unidad;
       }
       if (c.aumento) {
-        descuento -= c.valor * c.moneda.cambio;
+        descuento -= c.valor * unidad;
       }
     });
     venta.totalGs = this.formGroup.get("valorTotal").value;
+    if (!this.esOtraMoneda) {
+      this.abrirDialogoFactura(venta, this.data.itemList, descuento, {});
+      return;
+    }
+    // Otra moneda del PDV: totales y precios llevados a la moneda de la empresa, y la factura en la moneda de
+    // facturación de la filial (si no hay, la del PDV).
+    const cotBase = cotizacionEmpresa(this.monedaBase, empresa);
+    if (cotBase == null) {
+      this.isDialogOpen = false;
+      this.notificacionSnackbar.openWarn("La moneda del PDV no tiene cotización cargada: no se puede facturar.", 6);
+      return;
+    }
+    venta.totalGs = redondearEnMoneda(venta.totalGs * cotBase, empresa);
+    const items = (this.data.itemList || []).map((original) => {
+      const copia = Object.assign(new VentaItem(), original);
+      copia.precio = redondearEnMoneda(+original.precio * cotBase, empresa);
+      return copia;
+    });
+    this.monedasService
+      .onGetMonedaDeFacturacion()
+      .pipe(take(1), catchError(() => of(null)), untilDestroyed(this))
+      .subscribe((monedaFactura) => {
+        const completa = (m: Moneda) => this.monedas.find((x) => String(x.id) === String(m?.id)) ?? m;
+        const moneda = completa(monedaFactura ?? this.monedaBase);
+        const tipoCambio = cotizacionEmpresa(moneda, empresa);
+        this.abrirDialogoFactura(
+          venta, items, descuento,
+          tipoCambio != null && tipoCambio !== 1 ? { monedaFacturacion: moneda, tipoCambioFacturacion: tipoCambio } : {}
+        );
+      });
+  }
+
+  private abrirDialogoFactura(venta: Venta, itemList: VentaItem[], descuento: number, extra: object): void {
     this.matDialog
       .open(AddFacturaLegalDialogComponent, {
         data: {
           venta,
-          ventaItemList: this.data.itemList,
+          ventaItemList: itemList,
           descuento,
           ligarAVenta: this.finalizarConFacturaHabilitado,
+          ...extra,
         },
         width: "100%",
         height: "80vh",

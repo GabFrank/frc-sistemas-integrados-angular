@@ -337,7 +337,7 @@
         <div class="total-card__value">
           {{ totalFinalControl.value | number : "1.0-0" }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ totalFinalControl.value / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
@@ -346,7 +346,7 @@
         <div class="total-card__value">
           {{ data?.descuento || 0 | number : "1.0-0" }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ (data?.descuento || 0) / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
@@ -357,7 +357,7 @@
             totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0"
           }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ totalFinalEnMoneda | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
