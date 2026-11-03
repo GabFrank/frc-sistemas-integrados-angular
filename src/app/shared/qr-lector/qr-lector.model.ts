@@ -77,6 +77,8 @@ export interface QrParseResultado {
 export enum QrTipoSoportado {
   SOLICITUD_PAGO = 'SOLPAG',
   RETIRO = 'RETIRO',
+  /** Ticket de cierre de una caja del PDV: trae todos sus retiros pendientes, como ítems RETIRO. */
+  PDV_CAJA = 'PDVCAJA',
 }
 
 /**
@@ -98,6 +100,8 @@ export interface QrItemCarrito {
   contraparteId: number | null;
   monto: number;
   monedaSimbolo: string;
+  /** Montos en todas las monedas («200.000 Gs · 10 R$»), cuando el documento tiene más de una. */
+  montos?: string;
   /** Clave de deduplicación dentro del carrito. */
   clave: string;
   /**

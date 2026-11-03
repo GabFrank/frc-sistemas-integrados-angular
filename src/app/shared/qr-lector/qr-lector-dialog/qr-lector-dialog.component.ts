@@ -2,14 +2,18 @@ import { AfterViewInit, Component, ElementRef, Inject, ViewChild } from '@angula
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { CajaVirtual } from '../../../modules/financiero/caja-virtual/caja-virtual.model';
 import { BeepService } from '../../beep/beep.service';
-import { Retiro, EstadoRetiro } from '../../../modules/financiero/retiro/retiro.model';
+import { Retiro, EstadoRetiro, formatMontosRetiro, PREGUNTA_RETIROS_DE_LA_CAJA } from '../../../modules/financiero/retiro/retiro.model';
 import { RetiroService } from '../../../modules/financiero/retiro/retiro.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../services/timeout-link';
 import { QrLectorService } from '../qr-lector.service';
+import { LectorTecladoDirective } from '../../lector-teclado/lector-teclado.directive';
+import { DialogosService } from '../../components/dialogos/dialogos.service';
+import { MainService } from '../../../main.service';
+import { operaAcotadoCaja } from '../../../modules/financiero/caja-virtual/rol-tesoreria-caja';
 import { QrCrudo, QrItemCarrito, QrTipoSoportado, claveItem } from '../qr-lector.model';
 
 export interface QrLectorDialogData {
@@ -58,6 +62,7 @@ interface Rechazo {
 export class QrLectorDialogComponent implements AfterViewInit {
 
   @ViewChild('lectorInput') lectorInput: ElementRef<HTMLInputElement>;
+  @ViewChild(LectorTecladoDirective) lectorTeclado: LectorTecladoDirective;
 
   items: QrItemCarrito[] = [];
   rechazos: Rechazo[] = [];
@@ -85,6 +90,8 @@ export class QrLectorDialogComponent implements AfterViewInit {
     private qrLector: QrLectorService,
     private beep: BeepService,
     private retiroService: RetiroService,
+    private dialogosService: DialogosService,
+    private mainService: MainService,
   ) {}
 
   ngAfterViewInit(): void {
@@ -93,11 +100,14 @@ export class QrLectorDialogComponent implements AfterViewInit {
 
   /** El input tiene que estar siempre listo: el operador no debería tener que clickear. */
   enfocar() {
-    setTimeout(() => this.lectorInput?.nativeElement?.focus(), 100);
+    // Mientras se resuelve puede estar abierta la pregunta de los retiros de la caja: no robarle el foco.
+    setTimeout(() => { if (!this.resolviendo) this.lectorInput?.nativeElement?.focus(); }, 100);
   }
 
   onEnter(valor: string) {
     const codigo = (valor || '').trim();
+    // Antes de limpiar: la directiva lee el valor del campo.
+    const alternativa = this.lectorTeclado?.alternativa();
     this.limpiarInput();
     if (!codigo) return;
 
@@ -107,7 +117,12 @@ export class QrLectorDialogComponent implements AfterViewInit {
     this.ultimoCodigo = codigo;
     this.ultimoEn = ahora;
 
-    const res = this.qrLector.parse(codigo);
+    let res = this.qrLector.parse(codigo);
+    // El lector manda teclas físicas en distribución EE.UU.: con Windows en español el «-» llega como «'».
+    if (!res.ok && alternativa) {
+      const alt = this.qrLector.parse(alternativa);
+      if (alt.ok) res = alt;
+    }
     if (!res.ok) {
       this.rechazar(codigo, res.error?.mensaje || 'No se pudo leer el código.');
       return;
@@ -126,13 +141,26 @@ export class QrLectorDialogComponent implements AfterViewInit {
   private resolver(qr: QrCrudo) {
     this.resolviendo = true;
     this.resolverDocumento(qr).pipe(untilDestroyed(this)).subscribe({
-      next: item => {
+      next: items => {
         this.resolviendo = false;
-        if (item == null) {
+        if (!items?.length) {
           this.rechazar(qr.raw, 'No se encontró el documento de ese código.');
           return;
         }
-        this.agregar(item, qr.raw);
+        // Los de la caja que ya están en la lista se saltean: el rechazo por duplicado queda para el
+        // reescaneo del mismo papel (lo resuelve cada handler).
+        const nuevos = items.filter(i => !this.items.some(x => x.clave === i.clave));
+        if (!nuevos.length) {
+          this.rechazar(qr.raw, 'Esos retiros ya están en la lista.');
+          return;
+        }
+        for (const item of nuevos) {
+          if (!this.agregar(item, qr.raw)) break;
+        }
+        this.beep.beep();
+        // Tras cada escaneo aceptado el foco tiene que volver solo: el operador encadena
+        // documentos sin tocar el mouse.
+        this.enfocar();
       },
       error: err => {
         this.resolviendo = false;
@@ -142,13 +170,18 @@ export class QrLectorDialogComponent implements AfterViewInit {
     });
   }
 
-  /** Punto de extensión por tipo. F4 agrega SOLPAG acá. */
-  private resolverDocumento(qr: QrCrudo): Observable<QrItemCarrito> {
+  /**
+   * Punto de extensión por tipo. Devuelve los ítems a sumar: un retiro trae con él a los demás
+   * pendientes de su caja si el operador acepta, y un ticket de cierre trae a todos.
+   */
+  private resolverDocumento(qr: QrCrudo): Observable<QrItemCarrito[]> {
     switch (qr.tipoEntidad) {
       case QrTipoSoportado.RETIRO:
         return this.resolverRetiro(qr);
+      case QrTipoSoportado.PDV_CAJA:
+        return this.resolverCaja(qr);
       default:
-        return of(null);
+        return of([]);
     }
   }
 
@@ -159,8 +192,11 @@ export class QrLectorDialogComponent implements AfterViewInit {
    * tres estados y no dos: disponible, ya enviado pero sin acreditar, y ya acreditado. Sin
    * distinguir el del medio, quien escanea un retiro recién enviado leería "ya ingresó" y
    * saldría a buscar un movimiento que todavía no existe.
+   *
+   * Lo que entra al carrito sale de los pendientes de su caja, no de `filterRetiros`: esa lista
+   * trae el detalle por moneda (sin él la verificación abre vacía) y aplica el control de acceso.
    */
-  private resolverRetiro(qr: QrCrudo): Observable<QrItemCarrito> {
+  private resolverRetiro(qr: QrCrudo): Observable<QrItemCarrito[]> {
     const sucursalId = this.qrLector.sucursalDe(qr);
     if (sucursalId == null) {
       return throwError(() => new Error('El código no indica de qué sucursal es el retiro.'));
@@ -170,55 +206,107 @@ export class QrLectorDialogComponent implements AfterViewInit {
       .pipe(
         catchError(() => throwError(() => new Error('No se pudo consultar el retiro: el servidor no responde.'))),
         map(page => {
-        // null = error del servidor: no es lo mismo que «no existe ese retiro» (#390).
-        if (page == null) { throw new Error('No se pudo consultar el retiro. Intentá de nuevo.'); }
-        const retiro: Retiro = (page?.getContent || [])[0];
-        if (retiro == null) return null;
+          // null = error del servidor: no es lo mismo que «no existe ese retiro» (#390).
+          if (page == null) { throw new Error('No se pudo consultar el retiro. Intentá de nuevo.'); }
+          const retiro: Retiro = (page?.getContent || [])[0];
+          if (retiro == null) return null;
 
-        if (retiro.movimientoCajaVirtualId != null) {
-          throw new Error(`El retiro #${retiro.id} ya ingresó a una caja mayor.`);
-        }
-        if (retiro.cajaVirtualId != null) {
-          throw new Error(`El retiro #${retiro.id} ya fue enviado a una caja mayor; se acredita en unos minutos.`);
-        }
-        if (retiro.estado === EstadoRetiro.CANCELADO) {
-          throw new Error(`El retiro #${retiro.id} está cancelado.`);
-        }
+          if (retiro.movimientoCajaVirtualId != null) {
+            throw new Error(`El retiro #${retiro.id} ya ingresó a una caja mayor.`);
+          }
+          if (retiro.cajaVirtualId != null) {
+            throw new Error(`El retiro #${retiro.id} ya fue enviado a una caja mayor; se acredita en unos minutos.`);
+          }
+          if (retiro.estado === EstadoRetiro.CANCELADO) {
+            throw new Error(`El retiro #${retiro.id} está cancelado.`);
+          }
+          if (this.items.some(i => i.clave === claveItem(QrTipoSoportado.RETIRO, retiro.id, retiro.sucursalId))) {
+            throw new Error(`Retiro #${retiro.id} ya está en la lista.`);
+          }
+          return retiro;
+        }),
+        switchMap((retiro: Retiro) => retiro == null ? of([]) : this.conLosDeSuCaja(retiro, qr)),
+      );
+  }
 
-        // El retiro se cuenta en tres monedas a la vez; el carrito muestra el guaraní, que
-        // es la que siempre tiene valor, y el destino trabaja con el retiro completo.
-        const item: QrItemCarrito = {
-          tipo: QrTipoSoportado.RETIRO,
-          id: retiro.id,
-          sucursalId: retiro.sucursalId,
-          etiqueta: `Retiro #${retiro.id}`,
-          contraparte: retiro.sucursal?.nombre || `Sucursal ${retiro.sucursalId}`,
-          // Los retiros no tienen la restricción de "misma contraparte" del pago a
-          // proveedor: se pueden ingresar juntos retiros de sucursales distintas.
-          contraparteId: null,
-          monto: retiro.retiroGs || 0,
-          monedaSimbolo: 'Gs.',
-          clave: claveItem(QrTipoSoportado.RETIRO, retiro.id, retiro.sucursalId),
-          documento: retiro,
-        };
-        return item;
+  /** El retiro escaneado, con su detalle, y los demás pendientes de su caja si el operador los quiere. */
+  private conLosDeSuCaja(retiro: Retiro, qr: QrCrudo): Observable<QrItemCarrito[]> {
+    // El ticket trae la caja en la posición 6; un código sin ella cae a la del retiro.
+    const cajaId = Number(qr.campo6) || retiro.cajaSalida?.id;
+    if (!cajaId) {
+      return throwError(() => new Error(`No se pudo saber de qué caja es el retiro #${retiro.id}.`));
+    }
+    return this.pendientesDeCaja(retiro.sucursalId, cajaId).pipe(
+      switchMap(pendientes => {
+        const escaneado = pendientes.find(r => r.id === retiro.id);
+        if (escaneado == null) {
+          throw new Error(retiro.estado === EstadoRetiro.EN_PROCESO
+            ? `El retiro #${retiro.id} sigue abierto en el PDV.`
+            : `El retiro #${retiro.id} no corresponde a esta caja mayor.`);
+        }
+        const items = [this.itemDeRetiro(escaneado)];
+        const otros = pendientes.filter(r => r.id !== retiro.id);
+        if (!otros.length) return of(items);
+        return this.dialogosService.confirm(
+          'Retiros de la misma caja',
+          PREGUNTA_RETIROS_DE_LA_CAJA,
+          `La caja ${cajaId} tiene ${otros.length} retiro${otros.length === 1 ? '' : 's'} más sin ingresar.`,
+          null, true, 'Sí, traerlos', 'No',
+        ).pipe(map(res => res === true ? [...items, ...otros.map(r => this.itemDeRetiro(r))] : items));
       }));
   }
 
-  /** Suma el documento al carrito si pasa las reglas de tipo, contraparte y duplicado. */
-  private agregar(item: QrItemCarrito, codigo: string) {
-    if (this.items.some(i => i.clave === item.clave)) {
-      this.rechazar(codigo, `${item.etiqueta} ya está en la lista.`);
-      return;
+  /** Ticket de cierre: todos los retiros pendientes de la caja, sin preguntar. */
+  private resolverCaja(qr: QrCrudo): Observable<QrItemCarrito[]> {
+    const sucursalId = this.qrLector.sucursalDe(qr);
+    if (sucursalId == null) {
+      return throwError(() => new Error('El código no indica de qué sucursal es la caja.'));
     }
+    return this.pendientesDeCaja(sucursalId, qr.idOrigen).pipe(map(pendientes => {
+      if (!pendientes.length) throw new Error(`La caja ${qr.idOrigen} no tiene retiros pendientes de ingresar.`);
+      return pendientes.map(r => this.itemDeRetiro(r));
+    }));
+  }
+
+  /** Pendientes de una caja del PDV. El rol acotado solo ve los de las sucursales que cubre su caja mayor. */
+  private pendientesDeCaja(sucursalId: number, cajaId: number): Observable<Retiro[]> {
+    const destinoId = operaAcotadoCaja(this.mainService) ? this.data?.cajaVirtual?.id : undefined;
+    return this.retiroService.onGetPendientesDeCaja(sucursalId, cajaId, destinoId).pipe(
+      catchError(() => throwError(() => new Error('No se pudieron consultar los retiros de la caja: volvé a escanear.'))));
+  }
+
+  private itemDeRetiro(retiro: Retiro): QrItemCarrito {
+    return {
+      tipo: QrTipoSoportado.RETIRO,
+      id: retiro.id,
+      sucursalId: retiro.sucursalId,
+      etiqueta: `Retiro #${retiro.id} · Caja ${retiro.cajaSalida?.id ?? '—'}`,
+      contraparte: retiro.sucursal?.nombre || `Sucursal ${retiro.sucursalId}`,
+      // Los retiros no tienen la restricción de "misma contraparte" del pago a
+      // proveedor: se pueden ingresar juntos retiros de sucursales distintas.
+      contraparteId: null,
+      // El total del carrito suma guaraníes; la fila muestra todas las monedas.
+      monto: retiro.retiroGs || 0,
+      monedaSimbolo: 'Gs.',
+      montos: formatMontosRetiro(retiro),
+      clave: claveItem(QrTipoSoportado.RETIRO, retiro.id, retiro.sucursalId),
+      documento: retiro,
+    };
+  }
+
+  /**
+   * Suma el documento al carrito si pasa las reglas de tipo y contraparte. Devuelve false si lo
+   * rechazó. El beep y el foco los maneja quien llama: un escaneo puede sumar varios.
+   */
+  private agregar(item: QrItemCarrito, codigo: string): boolean {
     if (this.tipoCarrito != null && this.tipoCarrito !== item.tipo) {
       this.rechazar(codigo, 'No se pueden pagar documentos de distinto tipo en la misma operación.');
-      return;
+      return false;
     }
     if (this.contraparteIdCarrito != null && item.contraparteId != null
         && this.contraparteIdCarrito !== item.contraparteId) {
       this.rechazar(codigo, `Todo el pago tiene que ser de ${this.contraparteCarrito}.`);
-      return;
+      return false;
     }
 
     this.items = [...this.items, item];
@@ -229,10 +317,7 @@ export class QrLectorDialogComponent implements AfterViewInit {
       this.monedaSimbolo = item.monedaSimbolo;
     }
     this.recalcular();
-    this.beep.beep();
-    // Tras cada escaneo aceptado el foco tiene que volver solo: el operador encadena
-    // documentos sin tocar el mouse.
-    this.enfocar();
+    return true;
   }
 
   quitar(item: QrItemCarrito) {
