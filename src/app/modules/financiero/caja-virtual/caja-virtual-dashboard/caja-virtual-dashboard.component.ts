@@ -141,6 +141,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   resumenBancario: CuentaBancariaResumen[] = [];
   bancoCards: BancoCard[] = [];
   config: CajaVirtualConfiguracion;
+  /** La configuración se leyó bien al menos una vez: `recargar()` ya no la pide (solo cambia por «Configurar»). */
+  private configCargada = false;
+  /** Número de la última carga del resumen bancario: una respuesta vieja no pisa a la nueva. */
+  private bancosCargaId = 0;
 
   // Movimientos (tabla)
   dataSource = new MatTableDataSource<MovimientoRow>([]);
@@ -300,7 +304,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
    */
   recargar(deFondo = false) {
     this.cargarSaldos(deFondo);
-    this.cargarConfigYBancos(deFondo);
+    // La configuración no la cambia ninguna operación de caja: solo se reintenta si la última lectura falló (#646).
+    if (!this.configCargada) this.cargarConfig(deFondo);
+    this.cargarBancos(deFondo);
     this.cargarMovimientos(!deFondo);
   }
 
@@ -380,36 +386,46 @@ export class CajaVirtualDashboardComponent implements OnInit {
     });
   }
 
-  cargarConfigYBancos(silenciosa = false) {
+  /** Tarjetas CPP/CPC. Se lee al abrir y tras «Configurar»; el resumen bancario no la necesita y va aparte. */
+  cargarConfig(silenciosa = false) {
+    if (!this.cajaVirtual?.id) return;
+    // El rol acotado no ve la configuración: el central la rechaza.
+    if (this.soloCaja) { this.config = null; return; }
+    this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
+      .pipe(untilDestroyed(this)).subscribe({
+        // Con un rechazo llega null igual que sin configuración: solo un error de red cuenta como no cargada.
+        next: cfg => { this.config = cfg; this.configCargada = true; },
+        error: () => {
+          this.config = null;
+          if (!silenciosa) this.notificacion.openWarn('No se pudo cargar la configuración de la caja.', 5);
+        }
+      });
+  }
+
+  cargarBancos(silenciosa = false) {
     if (!this.cajaVirtual?.id) return;
     if (this.soloCaja) {
-      // El rol acotado no ve la configuración ni los saldos bancarios: el central los rechaza. Queda
-      // solo la caja como fuente, sin aviso de error.
-      this.config = null;
+      // El rol acotado no ve los saldos bancarios: el central los rechaza. Queda solo la caja como fuente,
+      // sin aviso de error.
       this.resumenBancario = [];
       this.bancoCards = [];
       this.construirFuentes();
       return;
     }
-    this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
+    const id = ++this.bancosCargaId;
+    this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
       .pipe(untilDestroyed(this)).subscribe({
-        next: cfg => {
-          this.config = cfg;
-          this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
-            .pipe(untilDestroyed(this)).subscribe({
-              next: res => {
-                if (res == null) { this.bancosNoCargados(silenciosa); return; }
-                this.resumenBancario = res;
-                this.bancoCards = this.resumenBancario.map(r => ({
-                  resumen: r,
-                  formato: formatoDe(r.cuentaBancaria?.moneda),
-                }));
-                this.construirFuentes();
-              },
-              error: () => this.bancosNoCargados(silenciosa)
-            });
+        next: res => {
+          if (id !== this.bancosCargaId) return;
+          if (res == null) { this.bancosNoCargados(silenciosa); return; }
+          this.resumenBancario = res;
+          this.bancoCards = this.resumenBancario.map(r => ({
+            resumen: r,
+            formato: formatoDe(r.cuentaBancaria?.moneda),
+          }));
+          this.construirFuentes();
         },
-        error: () => { this.config = null; this.bancosNoCargados(silenciosa); }
+        error: () => { if (id === this.bancosCargaId) this.bancosNoCargados(silenciosa); }
       });
   }
 
@@ -709,7 +725,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   onConfigurar() {
     this.dialog.open(ConfigurarCajaVirtualDialogComponent, { width: '520px', maxHeight: '90vh', data: { cajaVirtual: this.cajaVirtual } })
-      .afterClosed().subscribe(res => { if (res) this.cargarConfigYBancos(); });
+      .afterClosed().subscribe(res => { if (res) { this.cargarConfig(); this.cargarBancos(); } });
   }
 
   /**

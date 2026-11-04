@@ -35,8 +35,10 @@ aviso de la suscripción) hace 4 pedidos, configuración → resumen en serie.
    no usa nada de la configuración (hoy solo la espera).
 2. La configuración se lee **al abrir** y **después de «Configurar»** (`onConfigurar` pasa a llamar `cargarConfig()`
    + `cargarBancos()`). `recargar()` deja de pedirla — solo decide si se ven las tarjetas CPP/CPC y no la cambia
-   ninguna operación de caja — **salvo que la última lectura haya fallado** (`config == null`): ahí la reintenta, como
-   hoy se curaba sola en cada recarga.
+   ninguna operación de caja — **salvo que la última lectura haya fallado por red** (`configCargada = false`): ahí la
+   reintenta, como hoy se curaba sola en cada recarga. Un `null` (caja sin configuración, o rechazo) cuenta como
+   leído: el central devuelve `null` sin configuración (`CajaVirtualConfiguracionGraphQL.java:34`) y repetirlo no
+   cambia nada.
 3. Si la configuración no carga: `config = null` (sin tarjetas CPP/CPC) y aviso «No se pudo cargar la configuración
    de la caja.» si no es de fondo. El aviso de cuentas bancarias queda solo para el resumen. **Cambio de
    comportamiento:** hoy una config que falla deja también sin cuentas bancarias; ahora las cuentas cargan igual.
