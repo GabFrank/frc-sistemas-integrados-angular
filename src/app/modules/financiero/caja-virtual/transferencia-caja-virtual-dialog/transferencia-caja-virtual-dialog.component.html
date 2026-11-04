@@ -46,7 +46,7 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;">
         <span class="saldo-origen">Saldo Origen</span>
         <strong class="saldo-origen-value">
-          {{ cajaOrigen?.saldoGs | number:'1.0-0' }} Gs.
+          {{ saldoGs != null ? (saldoGs | number:'1.0-0') + ' Gs.' : 'No disponible' }}
         </strong>
       </div>
     </div>
@@ -74,7 +74,7 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;">
         <span class="saldo-origen">Saldo Origen</span>
         <strong class="saldo-origen-value">
-          {{ cajaOrigen?.saldoRs | number:'1.2-2' }} R$
+          {{ saldoRs != null ? (saldoRs | number:'1.2-2') + ' R$' : 'No disponible' }}
         </strong>
       </div>
     </div>
@@ -100,7 +100,7 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;">
         <span class="saldo-origen">Saldo Origen</span>
         <strong class="saldo-origen-value">
-          {{ cajaOrigen?.saldoDs | number:'1.2-2' }} US$
+          {{ saldoDs != null ? (saldoDs | number:'1.2-2') + ' US$' : 'No disponible' }}
         </strong>
       </div>
     </div>

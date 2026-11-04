@@ -6,7 +6,7 @@ import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUti
 import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { MontoCajaVirtual, PedidoDeMovimientos } from '../pedido-en-lote';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
-import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
+import { CajaVirtual, CajaVirtualSaldoItem, CajaVirtualTipoMovimiento, saldoDeMoneda } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Moneda } from '../../moneda/moneda.model';
@@ -46,6 +46,12 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
   currencyOptionsGs: any;
   currencyOptionsRs: any;
   currencyOptionsDs: any;
+
+  /** Saldos de `cajaVirtualSaldos`, los mismos de las cards. null = no cargaron (se muestra «No disponible»). */
+  private saldos: CajaVirtualSaldoItem[] = null;
+  saldoGs: number = null;
+  saldoRs: number = null;
+  saldoDs: number = null;
 
   isSaving = false;
   titulo: string = 'Movimiento';
@@ -88,11 +94,27 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
         if (this.monedaGs) this.currencyOptionsGs = this.monedaService.currencyOptionsByMoneda(this.monedaGs);
         if (this.monedaRs) this.currencyOptionsRs = this.monedaService.currencyOptionsByMoneda(this.monedaRs);
         if (this.monedaDs) this.currencyOptionsDs = this.monedaService.currencyOptionsByMoneda(this.monedaDs);
+        this.asignarSaldos();
       }
     });
 
+    // El saldo se relee al abrir: el `cajaVirtual` que llega es el de cuando se abrió la pestaña (#656).
+    if (this.data?.cajaVirtual?.id != null) {
+      this.cajaVirtualService.onGetSaldos(this.data.cajaVirtual.id, true).pipe(untilDestroyed(this)).subscribe({
+        next: res => { this.saldos = res; this.asignarSaldos(); },
+        error: () => { this.saldos = null; this.asignarSaldos(); },
+      });
+    }
+
     this.titulo = this.tipoLabels[this.data?.tipoMovimiento] || 'Movimiento';
     this.esEgresoEfectivo = this.data?.tipoMovimiento === CajaVirtualTipoMovimiento.EGRESO;
+  }
+
+  /** Monedas y saldos llegan en cualquier orden: se recalcula con lo que haya. */
+  private asignarSaldos() {
+    this.saldoGs = saldoDeMoneda(this.saldos, this.monedaGs);
+    this.saldoRs = saldoDeMoneda(this.saldos, this.monedaRs);
+    this.saldoDs = saldoDeMoneda(this.saldos, this.monedaDs);
   }
 
   onSave() {
@@ -112,10 +134,11 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
     if (this.data.tipoMovimiento === CajaVirtualTipoMovimiento.INGRESO && 
         this.data.cajaVirtual.tipo === 'CAJA_CHICA') {
       
-      const nuevoSaldoGs = (this.data.cajaVirtual.saldoGs || 0) + (amtGs || 0);
+      const nuevoSaldoGs = (this.saldoGs || 0) + (amtGs || 0);
       const limite = this.data.cajaVirtual.limiteGs || 0;
 
-      if (limite > 0 && nuevoSaldoGs > limite) {
+      // Sin saldo cargado no se avisa: sería contra un número inventado. Es solo un aviso, no bloquea.
+      if (this.saldoGs != null && limite > 0 && nuevoSaldoGs > limite) {
         this.notificacion.openWarn(`¡Atención! La caja ha superado el límite de ${limite.toLocaleString('es-PY')} Gs.`, 6);
       }
     }
