@@ -74,6 +74,18 @@ export class RetiroInput {
   sucursalId: number;
 }
 
+/** Lo que se pregunta al escanear o procesar un retiro cuya caja tiene otros pendientes. */
+export const PREGUNTA_RETIROS_DE_LA_CAJA = '¿Quiere traer los demás retiros vinculados a esta caja?';
+
+/** «200.000 Gs · 10 R$ · 5 US$»: los montos del retiro por moneda, sin las que están en cero. */
+export function formatMontosRetiro(r: Retiro): string {
+  const partes: string[] = [];
+  if (r?.retiroGs) partes.push(`${Math.round(r.retiroGs).toLocaleString('es-PY')} Gs`);
+  if (r?.retiroRs) partes.push(`${r.retiroRs.toLocaleString('es-PY')} R$`);
+  if (r?.retiroDs) partes.push(`${r.retiroDs.toLocaleString('es-PY')} US$`);
+  return partes.length ? partes.join(' · ') : '—';
+}
+
 // Enum de strings: GraphQL devuelve el estado como texto ("CONCLUIDO"), asi que un
 // enum numerico nunca matcheaba al comparar. Mismo formato que VentaEstado.
 export enum EstadoRetiro {

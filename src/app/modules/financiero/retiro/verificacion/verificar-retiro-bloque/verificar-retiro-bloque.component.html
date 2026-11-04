@@ -1,0 +1,66 @@
+<!-- Este componente no tiene caja propia (display: contents): cada celda cae en la grilla del diálogo.
+     Columnas: [Retiro] · Moneda · Declarado · Contado · Diferencia · Acciones. -->
+<div class="fila-ancha aviso-borrador" *ngIf="huboBorrador">
+  <mat-icon>history</mat-icon>
+  <span>Retiro #{{ retiro?.id }}: se recuperó un conteo que habías dejado a medias.</span>
+</div>
+
+<ng-container *ngFor="let f of filas; let first = first">
+  <div class="c c-retiro" *ngIf="conEncabezado" [class.primera]="first">
+    <ng-container *ngIf="first">
+      <strong>#{{ retiro?.id }}</strong>
+      <span class="sub">{{ retiro?.creadoEn | date: 'dd/MM HH:mm' }}</span>
+    </ng-container>
+  </div>
+
+  <div class="c c-moneda" [class.primera]="first">{{ f.moneda?.denominacion }}</div>
+
+  <div class="c c-num" [class.primera]="first">{{ f.declarado | number:f.formato }} {{ f.moneda?.simbolo }}</div>
+
+  <div class="c c-contado" [class.primera]="first">
+    <input class="contado-input" currencyMask [options]="f.opts" autocomplete="off"
+           placeholder="sin contar" [class.vacio]="f.contado == null"
+           [ngModel]="f.contado" (ngModelChange)="onContadoChange(f, $event)" (click)="ocultarAviso()" />
+  </div>
+
+  <div class="c c-dif" [class.primera]="first">
+    <span class="dif-texto" [style.color]="f.color">
+      <ng-container *ngIf="f.diferencia != null && f.etiqueta !== 'Coincide'; else etiqueta">
+        {{ f.diferencia > 0 ? '+' : '' }}{{ f.diferencia | number:f.formato }} {{ f.moneda?.simbolo }}
+      </ng-container>
+      <ng-template #etiqueta>{{ f.etiqueta === 'Coincide' ? '✓ ' : '' }}{{ f.etiqueta }}</ng-template>
+    </span>
+    <mat-select *ngIf="f.categoria" class="motivo" [(ngModel)]="f.categoria" aria-label="Motivo de la diferencia">
+      <mat-option *ngFor="let c of categorias" [value]="c.value">{{ c.label }}</mat-option>
+    </mat-select>
+  </div>
+
+  <div class="c c-acc" [class.primera]="first">
+    <button mat-icon-button type="button" (click)="abrirGrilla(f)" matTooltip="Contar por billetes"
+            [class.activo]="monedaAbierta?.id === f.moneda?.id">
+      <mat-icon>grid_view</mat-icon>
+    </button>
+    <button mat-icon-button type="button" (click)="usarDeclarado(f)" matTooltip="Usar lo declarado">
+      <mat-icon>done_all</mat-icon>
+    </button>
+    <button mat-icon-button type="button" *ngIf="first" (click)="verObservacion = !verObservacion"
+            matTooltip="Observación" [class.activo]="verObservacion || observacion">
+      <mat-icon>chat_bubble_outline</mat-icon>
+    </button>
+  </div>
+
+  <!-- Una grilla abierta a la vez: necesita ancho. Su total escribe el contado solo cuando se edita
+       una cantidad (cantidadesChange). -->
+  <div class="fila-ancha grilla" *ngIf="monedaAbierta?.id === f.moneda?.id">
+    <app-grilla-conteo [moneda]="f.moneda" [cantidades]="cantidadesDe(f.moneda.id)"
+                       (cantidadesChange)="onCantidadesChange(f, $event)"
+                       (cargaFallidaChange)="f.grillaNoCargo = $event"></app-grilla-conteo>
+  </div>
+</ng-container>
+
+<div class="fila-ancha observacion" *ngIf="verObservacion">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Observación del retiro #{{ retiro?.id }}</mat-label>
+    <input matInput [(ngModel)]="observacion" (blur)="onObservacionChange()" />
+  </mat-form-field>
+</div>

@@ -11,7 +11,7 @@
          También sirve para tipear el código a mano cuando el QR está borroso. -->
     <div class="lector-box" [class.resolviendo]="resolviendo">
       <mat-icon>qr_code_scanner</mat-icon>
-      <input #lectorInput type="text" autocomplete="off" spellcheck="false"
+      <input #lectorInput frcLectorTeclado type="text" autocomplete="off" spellcheck="false"
              [placeholder]="resolviendo ? 'Buscando el documento...' : 'Pasá el documento por el lector'"
              [readonly]="resolviendo"
              (keydown.enter)="onEnter($any($event.target).value); $event.preventDefault(); $event.stopPropagation();"
@@ -39,7 +39,10 @@
           <div class="item-etiqueta">{{ i.etiqueta }}</div>
           <div class="item-contraparte">{{ i.contraparte }}</div>
         </div>
-        <div class="item-monto">{{ i.monto | number:'1.0-2' }} {{ i.monedaSimbolo }}</div>
+        <div class="item-monto" *ngIf="i.montos; else soloMonto">{{ i.montos }}</div>
+        <ng-template #soloMonto>
+          <div class="item-monto">{{ i.monto | number:'1.0-2' }} {{ i.monedaSimbolo }}</div>
+        </ng-template>
         <button mat-icon-button (click)="quitar(i)" matTooltip="Quitar de la lista">
           <mat-icon>close</mat-icon>
         </button>
@@ -48,7 +51,8 @@
 
     <div class="resumen" *ngIf="items.length > 0">
       <span>{{ items.length }} documento{{ items.length === 1 ? '' : 's' }}</span>
-      <strong>{{ total | number:'1.0-2' }} {{ monedaSimbolo }}</strong>
+      <strong *ngIf="totalMontos; else soloTotal">{{ totalMontos }}</strong>
+      <ng-template #soloTotal><strong>{{ total | number:'1.0-2' }} {{ monedaSimbolo }}</strong></ng-template>
     </div>
   </mat-dialog-content>
 
