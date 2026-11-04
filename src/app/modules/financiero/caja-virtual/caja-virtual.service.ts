@@ -206,8 +206,8 @@ export class CajaVirtualService {
     return this.genericService.onSaveCustom(this.anularMovimientoGQL, { id, motivo }, true, opciones);
   }
 
-  onGetSaldos(cajaVirtualId: number): Observable<CajaVirtualSaldoItem[]> {
-    return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, undefined,
+  onGetSaldos(cajaVirtualId: number, silentLoad?: boolean): Observable<CajaVirtualSaldoItem[]> {
+    return this.genericService.onCustomQuery(this.saldosGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED, silentLoad,
       CONSULTA_CAJA_MAYOR);
   }
 

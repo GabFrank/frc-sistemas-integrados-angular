@@ -12,9 +12,8 @@ import { TabService } from '../../../../layouts/tab/tab.service';
 import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
-         labelMovimiento } from '../caja-virtual.model';
+         labelMovimiento, formatoDe } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { Moneda } from '../../moneda/moneda.model';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
@@ -90,18 +89,6 @@ interface MovimientoBancarioRow extends MovimientoBancario {
 interface BancoCard {
   resumen: CuentaBancariaResumen;
   formato: string;
-}
-
-/**
- * digitsInfo para el pipe number, según la moneda. El fallback por denominación es el mismo
- * patrón que usa el resto del módulo (pagar-compras-dialog): el guaraní no lleva fracción,
- * las demás sí. Ver migración V207.5, que pobló `decimales` — estaba en 0 para todas.
- */
-function formatoDe(moneda: Moneda): string {
-  const d = moneda?.decimales != null
-    ? moneda.decimales
-    : ((moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
-  return `1.0-${d}`;
 }
 
 /** Fecha de hoy como "14-09-2026". Con guiones y no barras: termina en un nombre de archivo. */
