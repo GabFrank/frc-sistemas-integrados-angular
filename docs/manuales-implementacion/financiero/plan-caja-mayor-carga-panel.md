@@ -109,6 +109,36 @@ real en la tabla con `esPagoConsolidado = true`.
 | B | Mutation que devuelve un movimiento recién guardado: fórmula en `null` | Fallback del resolver (ya en el plan); no hay camino con `false` viejo cacheado |
 | B | Costo de la subconsulta en toda carga de la entidad | `EXPLAIN` local bloqueante; en bodega, sin verificar (ver abajo) |
 
+## Resultado (04/11, central de la rama en 8081 + `ng serve -c web` de la rama)
+
+**Central** — `./mvnw clean verify -B -DskipFlyway=true`: 3245 tests, 0 fallas. El test nuevo falla con el resolver
+viejo (`conElValorDeLaFormulaNoConsultaElRepositorio`). SQL generado: `exists(... where d.movimiento_caja_virtual_id
+= movimiento0_.id) as formula10_` (el `id` de la entidad). Caja 19 por GraphQL vs base, 20 filas: idénticas (1037
+`true`, resto `false`). `EXPLAIN` local: con 37 filas en `pago_solicitud_detalle` el planner elige seq scan (correcto
+para esa tabla); con seq scan apagado usa `ix_pago_solicitud_detalle_mov_caja` (Index Only Scan).
+
+| Consulta (caja 1) | SQL antes | SQL después |
+|---|---|---|
+| movimientos (15 filas) | 26 | **11** |
+| saldos / configuración / resumen | 7 / 11 / 12 | sin cambio |
+
+Los tiempos en ms de esta máquina no son comparables entre corridas (carga promedio ~6 con builds en paralelo); con
+la máquina más quieta, movimientos pasó de ~2× las otras consultas a lo mismo que ellas.
+
+**Desktop** (`npm run check` sin errores, antes y después del rebase sobre el merge de #676):
+
+| Caso | Pedidos `/graphql` |
+|---|---|
+| Abrir caja 19 | saldos, configuración, resumen, movimientos — los 4 en 2 ms (antes resumen esperaba a configuración) |
+| Ingreso de efectivo → recarga | saldos, resumen, movimientos (3, sin configuración); la recarga por la suscripción, igual |
+| Configurar (CPP on → guardar) | configuración + resumen en paralelo, aparece la tarjeta CPP; restaurado |
+| Pago consolidado (mov 1021, Gasto #126) | «Ver detalle del pago» abre el detalle; una entrada varia no lo ofrece |
+| Configuración que falla por red al abrir | aviso «No se pudo cargar la configuración de la caja.», cuentas bancarias cargan; el siguiente Refrescar la reintenta y carga; el otro ya no la pide |
+| Rol acotado (GERENTE12, TESORERIA CAJA) | abrir y recargar: solo saldos + movimientos, sin avisos, fuente solo «Caja Mayor» |
+
+Visto de paso (no se cambia acá): una operación propia recarga dos veces — la del `afterClosed` y la de la
+suscripción ~1 s después.
+
 ## Fuera de alcance
 
 - `cajaVirtualResumenBancario`: una suma por cuenta visible. Medido con 1 cuenta: 12 sentencias en 16 ms; las cajas
