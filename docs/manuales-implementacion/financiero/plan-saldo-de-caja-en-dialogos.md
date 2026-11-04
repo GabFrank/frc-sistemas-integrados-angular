@@ -81,6 +81,19 @@ N/A — no nace ningún campo, columna ni clave: se lee una query existente.
 | B | Con saldo «No disponible» se puede confirmar igual | Igual que hoy: el front nunca validó el egreso contra el saldo (`onSave` no lo lee). El negativo lo decide el central (CN2). No se agrega bloqueo |
 | B | No hay specs en `caja-virtual/`; revertir el commit alcanza (sin localStorage, `no-cache`, sin migración) | Sin cambio |
 
+## Resultado de las pruebas (04/11, central local 8081 de `develop` + `ng serve -c web`, usuario MR, caja 20)
+
+| Caso | Resultado |
+|---|---|
+| Ingreso con la pestaña abierta → Egreso de Efectivo | «Saldo Actual» 7.300.000 / 6.090,00 / 100,00 = cards (el objeto de la pestaña seguía en 7.290.000 / 1.090) |
+| Ajuste de Saldo | igual a las cards |
+| Transferir | igual a las cards. **El diálogo no tiene llamador en `develop`** (`onTransferencia()` del dashboard no se usa; las transferencias van por Operaciones Financieras): se abrió desde la consola de Angular |
+| Historial desde la lista | una card por moneda, mismos montos que el dashboard |
+| Error de red (XHR cortado) | diálogo: «No disponible», usable; historial: «No se pudieron cargar los saldos de la caja.» |
+| Rechazo GraphQL | snackbar «Ups! Algo salió mal: …» + lo mismo que el error de red |
+| Caja chica (tipo y límite puestos por SQL y restaurados) | 1.er ingreso bajo el límite sin aviso; 2.º ingreso avisa con el saldo real (el código viejo no avisaba: usaba el saldo de cuando se abrió la pestaña) |
+| `npm run check` | sin errores (`EXIT=0`) |
+
 ## Sin verificar
 
 - Si existe en producción alguna caja con el shim desfasado de `caja_virtual_saldo` (no hace falta para el
