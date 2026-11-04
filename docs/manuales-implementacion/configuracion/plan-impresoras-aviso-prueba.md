@@ -62,6 +62,19 @@ Al final: `lpadmin -x` de las colas `zz_` y `DELETE` de las filas de prueba en `
 | Desktop viejo con backend nuevo sigue con el texto viejo | B | Anotado en Compatibilidad |
 | Proponía probar el filial caído esperando el aviso de error de red | B | Corregido: el central devuelve `false` en ese caso (`proxyImprimir` ataja la excepción); se prueba que salga el texto nuevo |
 
+## Resultados (04/11)
+
+- Gates con las dependencias de `develop` (`npm ci --legacy-peer-deps`, Electron 43.8.3): `verificar:imports` OK,
+  `build:prod` sin errores, `electron:serve-tsc` OK, `verificar:arranque` «Arranque OK». Con el `node_modules` de otro
+  checkout (Electron 24) `electron:serve-tsc` fallaba en `app/main.ts:398`: era el entorno, no el cambio.
+- Runtime, desktop de la rama en `127.0.0.1:4200`, central de `develop` en el 8081, filial de filial#234 en el 8082:
+  1. cola que rechaza → «No se pudo imprimir en ZZ RECHAZA 213: revisá que la sucursal esté online y que la impresora
+     exista, esté encendida y acepte trabajos»;
+  2. cola que acepta → «Ticket de prueba enviado a ZZ ACEPTA 213»;
+  3. filial apagado → el mismo texto del caso 1 («No se pudo imprimir en ZZ ACEPTA 213: …»); el central registró
+     «Error reenviando impresion».
+- Colas `zz_` y filas de prueba borradas; procesos propios apagados.
+
 ## Sin verificar
 
 - Electron: «Probar» intenta primero imprimir desde la PC y cae al servidor si falla; el texto es el mismo. No se
