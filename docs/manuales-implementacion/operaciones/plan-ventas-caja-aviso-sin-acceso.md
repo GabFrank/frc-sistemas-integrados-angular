@@ -41,3 +41,14 @@ Sin datos nuevos. Nada más cambia: con acceso, el flujo es el de hoy.
 ## Sin verificar
 
 - Karma/e2e: N/A desktop.
+
+## Auditoría del diff y prueba (05/11)
+
+Fijo 2 y condicionales: N/A. Fijo 1 y Fijo 3: sin hallazgos bloqueantes; con acceso el comportamiento es el de
+antes; datos parciales no aplican (`ventasPorCajaId` es un único campo raíz). Build de producción sin errores.
+
+Probado por pantalla (desktop web, `isLocal:false`), Movimientos → Ir a VENTA de la caja 2662/7:
+- solo VER INVENTARIO contra el central de #562: un solo aviso «No tenés acceso a la caja 2662.», lista vacía;
+  al volver a buscar, sin avisos nuevos;
+- solo VER INVENTARIO contra el central de develop (#561 sin #562): el mismo aviso y la venta cargada;
+- ADMIN (Cajas → 2666 → Ir a Ventas): lista, balance y Verificar, sin avisos.
