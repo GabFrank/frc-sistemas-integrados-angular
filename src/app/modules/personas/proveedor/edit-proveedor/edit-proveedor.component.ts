@@ -608,7 +608,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.updateFieldComputedProperties("telefono");
     this.updateFieldComputedProperties("chequeDias");
     const email = this.proveedorFormGroup.get("email");
-    this.emailInvalidComputed = !!(email && email.invalid && email.touched);
+    // Se avisa apenas se escribe: el foco no recalcula y el error quedaba invisible con «Crear» bloqueado.
+    this.emailInvalidComputed = !!(email && email.invalid && (email.touched || email.dirty));
     this.cdr.markForCheck();
   }
 
