@@ -51,6 +51,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
   @ViewChild("apodoInput") apodoInput: ElementRef<HTMLInputElement>;
   @ViewChild("documentoInput") documentoInput: ElementRef<HTMLInputElement>;
   @ViewChild("telefonoInput") telefonoInput: ElementRef<HTMLInputElement>;
+  @ViewChild("direccionInput") direccionInput: ElementRef<HTMLInputElement>;
+  @ViewChild("emailInput") emailInput: ElementRef<HTMLInputElement>;
   @ViewChild("guardarButton") guardarButton: MatButton;
 
   proveedorFormGroup = new FormGroup({
@@ -58,6 +60,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     apodo: new FormControl(""),
     documento: new FormControl("", [Validators.required, Validators.minLength(6)]),
     telefono: new FormControl("", [Validators.minLength(9)]),
+    direccion: new FormControl(""),
+    email: new FormControl("", [Validators.email]),
     credito: new FormControl(false),
     chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)])
   });
@@ -97,6 +101,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
   telefonoValidComputed = false;
   telefonoInvalidComputed = false;
   telefonoErrorMessageComputed = "";
+
+  emailInvalidComputed = false;
 
   chequeDiasValidComputed = false;
   chequeDiasInvalidComputed = false;
@@ -200,6 +206,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       apodo: this.selectedPersona.apodo || "",
       documento: this.selectedPersona.documento,
       telefono: this.selectedPersona.telefono || "",
+      direccion: this.selectedPersona.direccion || "",
+      email: this.selectedPersona.email || "",
       credito: this.selectedProveedor.credito || false,
       chequeDias: this.selectedProveedor.chequeDias || 8
     });
@@ -222,7 +230,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       nombre: persona.nombre,
       apodo: persona.apodo || "",
       documento: persona.documento,
-      telefono: persona.telefono || ""
+      telefono: persona.telefono || "",
+      direccion: persona.direccion || "",
+      email: persona.email || ""
     });
     if (persona.isProveedor) {
       this.checkExistingProveedor(persona.id);
@@ -268,7 +278,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       nombre: "",
       apodo: "",
       documento: "",
-      telefono: ""
+      telefono: "",
+      direccion: "",
+      email: ""
     });
     this.clearDocumentVerification();
     this.updateComputedProperties();
@@ -378,6 +390,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.apodo = formValue.apodo?.trim().toUpperCase() || "";
     personaInput.documento = formValue.documento?.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
+    // Vacío va como null: el central no lo toca, así una persona que llegó sin estos datos no pierde los suyos.
+    personaInput.direccion = formValue.direccion?.trim().toUpperCase() || null;
+    personaInput.email = formValue.email?.trim().toLowerCase() || null;
 
     this.personaService
       // Paso intermedio: el verde es el del proveedor (#501)
@@ -408,6 +423,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.apodo = formValue.apodo?.trim().toUpperCase() || "";
     personaInput.documento = formValue.documento.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
+    // Vacío va como null: el central no lo toca, así una persona que llegó sin estos datos no pierde los suyos.
+    personaInput.direccion = formValue.direccion?.trim().toUpperCase() || null;
+    personaInput.email = formValue.email?.trim().toLowerCase() || null;
     this.personaService
       // Paso intermedio: el verde es el del proveedor (#501)
       .onSavePersona(personaInput, true, { avisarExito: false })
@@ -500,6 +518,12 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
   focusTelefono(): void {
     this.telefonoInput?.nativeElement?.focus();
   }
+  focusDireccion(): void {
+    this.direccionInput?.nativeElement?.focus();
+  }
+  focusEmail(): void {
+    this.emailInput?.nativeElement?.focus();
+  }
   focusGuardarButton(): void {
     this.guardarButton?._elementRef?.nativeElement?.focus();
   }
@@ -533,6 +557,18 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     }
   }
   onTelefonoEnter(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.focusDireccion();
+    }
+  }
+  onDireccionEnter(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.focusEmail();
+    }
+  }
+  onEmailEnter(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       event.preventDefault();
       if (this.canSaveComputed) {
@@ -571,6 +607,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.updateFieldComputedProperties("documento");
     this.updateFieldComputedProperties("telefono");
     this.updateFieldComputedProperties("chequeDias");
+    const email = this.proveedorFormGroup.get("email");
+    this.emailInvalidComputed = !!(email && email.invalid && email.touched);
     this.cdr.markForCheck();
   }
 
