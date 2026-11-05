@@ -36,7 +36,7 @@ import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-male
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
-import { PdvCaja, PdvCajaInput } from "../caja.model";
+import { PdvCaja, PdvCajaInput, PdvCajaReapertura } from "../caja.model";
 import { CajaService } from "../caja.service";
 
 export class AdicionarCajaData {
@@ -48,6 +48,8 @@ export interface AdicionarCajaResponse {
   caja?: PdvCaja;
   conteoApertura?: Conteo;
   conteoCierre?: Conteo;
+  /** La caja se reabrio desde el detalle: quien abrio el dialogo vuelve a leer la lista. */
+  reabierta?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -140,6 +142,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
   /** Habilita la correccion de montos en los conteos: solo ADMIN y sobre cajas no verificadas. */
   puedeEditarConteos = false;
 
+  /** «Reabrir caja» (#662): ADMIN, caja cerrada y sin verificar, fuera del PDV. */
+  puedeReabrir = false;
+
+  /** Reaperturas de la caja (#662), para el resumen. Vacío en el PDV y si la consulta falla. */
+  reaperturas: PdvCajaReapertura[] = [];
+
   /** Ignora un segundo «Conteo Cierre» mientras se verifica el primero. */
   private verificandoCierre = false;
 
@@ -218,6 +226,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
             this.puedeEditarConteos =
               (this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false) &&
               this.selectedCaja?.verificado !== true;
+            this.puedeReabrir = !this.isVentaTouch && this.cajaService.puedeReabrir(this.selectedCaja);
+            this.cargarReaperturas();
             this.cargarDatos();
 
             const targetSection = this.data?.tabData?.goToSection;
@@ -344,6 +354,36 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.usuarioControl.setValue(this.selectedCaja.usuario.persona.nombre);
     this.siguienteSubject.next(1);
     this.siguienteCierreSubject.next(1);
+  }
+
+  /** Las reaperturas viven en el central: en el PDV (contra el filial) no se piden. */
+  private cargarReaperturas(): void {
+    this.reaperturas = [];
+    const caja = this.selectedCaja;
+    if (this.isVentaTouch || caja?.id == null || caja.sucursalId == null) return;
+    this.cajaService
+      .onGetReaperturas(+caja.id, +caja.sucursalId)
+      .pipe(catchError(() => of([])), untilDestroyed(this))
+      .subscribe((res) => this.reaperturas = res ?? []);
+  }
+
+  /**
+   * Reabre la caja (#662). Al volver queda sin conteo de cierre, y el stepper y los conteos guardan el
+   * estado de la caja cerrada: se recarga la pestaña, o se cierra el diálogo para que la lista se refresque.
+   */
+  onReabrirCaja(): void {
+    this.cajaService
+      .reabrirConMotivo(this.selectedCaja)
+      .pipe(untilDestroyed(this))
+      .subscribe((ok) => {
+        if (!ok) return;
+        if (this.isTab) {
+          this.tabService.reiniciarTab();
+        } else {
+          const res: AdicionarCajaResponse = { caja: this.selectedCaja, reabierta: true };
+          this.matDialogRef.close(res);
+        }
+      });
   }
 
   onCancel() {

@@ -79,6 +79,7 @@ import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.c
 import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
 import { MontoMonedaPipe } from './pipes/monto-moneda.pipe';
 import { MotivoDialogComponent } from './components/motivo-dialog/motivo-dialog.component';
+import { LectorTecladoDirective } from './lector-teclado/lector-teclado.directive';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -158,7 +159,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     BootstrapModule,
     NgxSpinnerModule,
     NotificationBoardComponent,
-    NgxEchartsModule
+    NgxEchartsModule,
+    LectorTecladoDirective
   ],
   exports: [
     GrillaConteoComponent,

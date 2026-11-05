@@ -87,11 +87,13 @@ import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transfer
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ConteoCajaDialogComponent } from './caja-virtual/conteo-caja-dialog/conteo-caja-dialog.component';
 import { VerificarRetiroDialogComponent } from './retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { VerificarRetiroBloqueComponent } from './retiro/verificacion/verificar-retiro-bloque/verificar-retiro-bloque.component';
 import { ListRetiroCasosComponent } from './retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { DetalleCasoDialogComponent } from './retiro/verificacion/detalle-caso-dialog/detalle-caso-dialog.component';
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent } from './caja-virtual/ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
+import { VueltoEgresoDialogComponent } from './caja-virtual/vuelto-egreso-dialog/vuelto-egreso-dialog.component';
 import { MaletinTesoreriaDialogComponent } from './maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 import { PagarComprasDialogComponent } from './caja-virtual/pagar-compras-dialog/pagar-compras-dialog.component';
 import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
@@ -195,11 +197,13 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     CajaVirtualDashboardComponent,
     ConteoCajaDialogComponent,
     VerificarRetiroDialogComponent,
+    VerificarRetiroBloqueComponent,
     ListRetiroCasosComponent,
     DetalleCasoDialogComponent,
     ConfigurarCajaVirtualDialogComponent,
     RegistrarIngresoDialogComponent,
     IngresarRetiroCajaMayorDialogComponent,
+    VueltoEgresoDialogComponent,
     MaletinTesoreriaDialogComponent,
     PagarComprasDialogComponent,
     RegistrarEgresoDialogComponent,

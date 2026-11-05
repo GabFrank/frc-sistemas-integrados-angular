@@ -23,6 +23,8 @@ export interface PedidoDeEgresoMaletin {
   monto: number;
   descripcion: string | null;
   claveIdempotencia: string;
+  /** Funcionario que lleva el maletín. Opcional. */
+  responsableId?: number | null;
 }
 
 @Injectable({
@@ -69,7 +71,7 @@ export class MaletinService {
    * egresa dos veces. `opciones.sinClave` avisa si el central no conoce la clave.
    */
   onEgresar(pedido: PedidoDeEgresoMaletin, opciones?: { avisarExito?: boolean } & OpcionesDePedidoConClave): Observable<any> {
-    const { claveIdempotencia, ...variables } = pedido;
+    const { claveIdempotencia, responsableId, ...variables } = pedido;
     return conClaveSiElCentralLaConoce(conClave => conClave
       ? this.genericCrud.onSaveCustom(this.egresarMaletinGQL, pedido, true,
           { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceLaClave })

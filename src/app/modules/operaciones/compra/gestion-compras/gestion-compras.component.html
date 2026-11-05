@@ -1032,15 +1032,20 @@
                       class="vencimiento-inline"
                       (click)="$event.stopPropagation()"
                     >
+                      <!-- Se tipea (dd/mm/aaaa) y se guarda al salir; Enter pasa al vencimiento de la fila siguiente -->
                       <input
+                        #vencimientoItemInput
                         class="vencimiento-inline-input"
+                        frcMascaraFecha
+                        maxlength="10"
                         [matDatepicker]="vencimientoItemPicker"
                         [value]="item.vencimientoDateComputed"
                         [disabled]="item.guardandoVencimientoComputed"
-                        (dateChange)="onVencimientoItemChange(item, $event.value)"
-                        (click)="vencimientoItemPicker.open()"
+                        (dateChange)="onVencimientoItemTipeado(item, $event.value, vencimientoItemInput)"
+                        (keydown.enter)="onVencimientoItemEnter($event, vencimientoItemInput)"
+                        (focus)="vencimientoItemInput.select()"
                         placeholder="Sin venc."
-                        readonly
+                        matTooltip="Escribí solo los números (ej. 05062027) o elegila en el calendario"
                         aria-label="Vencimiento del ítem"
                       />
                       <mat-datepicker-toggle

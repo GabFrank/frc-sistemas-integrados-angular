@@ -5,26 +5,20 @@
     <h2>Historial de Movimientos — {{ cajaVirtual?.nombre }}</h2>
   </div>
 
-  <!-- Saldos actuales -->
-  <div fxLayout="row" fxLayoutGap="12px" style="margin-bottom: 12px;">
-    <mat-card class="currency-card gs">
-      <div class="label">Saldo Gs.</div>
+  <!-- Saldos actuales, por moneda: los mismos de las cards del dashboard -->
+  <div fxLayout="row" fxLayoutGap="12px" style="margin-bottom: 12px;" *ngIf="saldoCards.length > 0">
+    <mat-card class="currency-card" *ngFor="let c of saldoCards" [ngClass]="c.clase">
+      <div class="label">Saldo {{ c.denominacion }}</div>
       <div class="value">
-        {{ cajaVirtual?.saldoGs | number:'1.0-0' }}
+        {{ c.saldo | number:c.formato }} {{ c.simbolo }}
       </div>
     </mat-card>
-    <mat-card class="currency-card rs">
-      <div class="label">Saldo R$</div>
-      <div class="value">
-        {{ cajaVirtual?.saldoRs | number:'1.2-2' }}
-      </div>
-    </mat-card>
-    <mat-card class="currency-card ds">
-      <div class="label">Saldo U$D</div>
-      <div class="value">
-        {{ cajaVirtual?.saldoDs | number:'1.2-2' }}
-      </div>
-    </mat-card>
+  </div>
+  <div style="margin-bottom: 12px; color: #888;" *ngIf="saldosCargados && saldoCards.length === 0 && !saldosNoDisponibles">
+    Sin saldos en caja
+  </div>
+  <div style="margin-bottom: 12px; color: #888;" *ngIf="saldosNoDisponibles">
+    No se pudieron cargar los saldos de la caja.
   </div>
 
   <!-- Filtros por fecha -->

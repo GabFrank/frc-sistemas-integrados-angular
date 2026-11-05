@@ -573,9 +573,12 @@
                 <input
                   matInput
                   #vencimientoInput
+                  frcMascaraFecha
+                  maxlength="10"
                   [matDatepicker]="vencimientoPicker"
                   formControlName="vencimientoEsperado"
-                  matTooltip="Fecha esperada de vencimiento del producto"
+                  placeholder="dd/mm/aaaa"
+                  matTooltip="Escribí solo los números (ej. 05062027) o elegila en el calendario"
                   (keydown)="onVencimientoKeydown($event)"
                   (blur)="onVencimientoBlur()"
                 />
@@ -587,6 +590,9 @@
                   #vencimientoPicker
                   (closed)="onVencimientoBlur()"
                 ></mat-datepicker>
+                <mat-error *ngIf="itemForm.get('vencimientoEsperado')?.hasError('matDatepickerParse')">
+                  Fecha inválida: usá dd/mm/aaaa
+                </mat-error>
               </mat-form-field>
             </div>
 

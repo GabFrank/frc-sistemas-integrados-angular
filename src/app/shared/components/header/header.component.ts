@@ -32,6 +32,7 @@ import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/gr
 import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 import { CotizacionHeaderService } from "../../services/cotizacion-header.service";
 import { TemaService } from "../../services/tema.service";
+import { EmpresaHeaderService } from "../../services/empresa-header.service";
 
 /** Hora/fecha del reloj del header: siempre reloj local del SO (no servidor). */
 export interface HeaderClockNow {
@@ -67,6 +68,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   unreadCount$ = this.notificacionesTableroService.unreadCount$;
   tema$ = this.temaService.tema$;
   cotizaciones$ = this.cotizacionHeaderService.cotizaciones$;
+  nombreEmpresa$ = this.empresaHeaderService.nombreEmpresa$;
   /** Reloj local: útil para detectar si la zona horaria del equipo cambió. */
   now$ = timer(0, 1000).pipe(map(() => HeaderComponent.formatRelojLocal(new Date())));
   userMainRole = '';
@@ -86,7 +88,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private loginDialogService: LoginDialogService,
     private notificacionesTableroService: NotificacionesTableroService,
     private cotizacionHeaderService: CotizacionHeaderService,
-    private temaService: TemaService
+    private temaService: TemaService,
+    private empresaHeaderService: EmpresaHeaderService
   ) {
     setTimeout(() => {
       console.log(this.mainService.usuarioActual);

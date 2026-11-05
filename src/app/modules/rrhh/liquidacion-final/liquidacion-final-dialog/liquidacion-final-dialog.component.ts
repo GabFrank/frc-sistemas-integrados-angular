@@ -47,6 +47,8 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   puedeVolverBorrador = false;
   puedeAprobar = false;
   puedePagar = false;
+  // Eliminar un ítem programado anula el programado: es de RRHH LIQUIDAR (no del rol acotado).
+  puedeEliminarProgramado = false;
 
   itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
   items = new MatTableDataSource<LiquidacionFinalItem>([]);
@@ -97,6 +99,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR') || roles.includes('RRHH SUCURSAL');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
+    this.puedeEliminarProgramado = esAdmin || roles.includes('RRHH LIQUIDAR');
 
     this.recargar();
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))
@@ -197,7 +200,22 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   }
 
   onEliminarItem(it: LiquidacionFinalItem) {
-    this.liquidacionFinalService.onEliminarItem(it.id)
+    if (it.referenciaTipo !== 'ITEM_PROGRAMADO') {
+      this.eliminarItem(it.id);
+      return;
+    }
+    this.dialogosService.confirm(
+      'Eliminar ítem programado',
+      'Se quita «' + it.descripcion + '» (' + Number(it.monto || 0).toLocaleString('es-PY')
+        + ') del finiquito y se anula el ítem programado: no vuelve al regenerar ni se puede reactivar.',
+      null, null, true, 'Eliminar', 'Cancelar'
+    ).pipe(untilDestroyed(this)).subscribe(r => {
+      if (r === true) this.eliminarItem(it.id);
+    });
+  }
+
+  private eliminarItem(itemId: number) {
+    this.liquidacionFinalService.onEliminarItem(itemId)
       .pipe(untilDestroyed(this))
       .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
   }
