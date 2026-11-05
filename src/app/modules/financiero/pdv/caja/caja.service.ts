@@ -228,7 +228,7 @@ export class CajaService {
     );
   }
 
-  onGetByIdSimp(id, sucId?, silentLoad?, servidor: boolean = true): Observable<any> {
+  onGetByIdSimp(id, sucId?, silentLoad?, servidor: boolean = true, errorConf?: QueryError): Observable<any> {
     return this.genericService.onGetById(
       this.cajaSimplePorId,
       id,
@@ -236,7 +236,12 @@ export class CajaService {
       null,
       servidor,
       sucId,
-      null
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      errorConf
     );
   }
 

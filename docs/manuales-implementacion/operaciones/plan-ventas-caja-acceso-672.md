@@ -80,6 +80,29 @@ pide ocultarlo, y el central nuevo ya lo exige.
 | A3 Control de retiros (lista) manda la caja sin `sucursalId` | Fuera de alcance: camino previo, no lo toca #672 |
 | A6 otras lecturas (ventas, monedas, lotes) | Sin cambio: no las rechaza #561 |
 
+## Auditoría del diff (paso 8)
+
+Fijo 2 y condicionales: N/A, el diff no toca esquema, migraciones, release ni replicación.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| F1-H1 / F3 media: cualquier rechazo de la caja se marcaba «sin acceso» | Aplicado: solo si el motivo empieza con «No autorizado»; otro rechazo avisa el motivo y sigue con la caja de la pestaña |
+| F3: «se muestran sus ventas» sin sucursal | Aplicado: el texto depende de si hay sucursal |
+| F3: «Conteo … de undefined» | Aplicado: `?? ""` |
+| F1-H2: Conteo/Retiros/Gastos visibles para el dueño sin los roles de esas operaciones | No se toca: previo a #672 |
+| F1-H3: el motivo del servidor se muestra tal cual | Aceptado: igual que el aviso genérico de siempre |
+| F1: ventas por caja sin control en el central | Fuera del desktop: issue central #562 |
+
+## Prueba por pantalla (05/11, central local de develop, desktop web `isLocal:false`)
+
+- ADMIN (MR): Cajas → caja 2666 → Ventas: Verificar visible, balance completo; verificar y anular aplicaron en la base.
+- Solo `VER INVENTARIO` (+ `CANCELACION DE VENTA`): Movimientos → Ir a VENTA: sin Verificar ni accesos a conteo, retiros y gastos; un solo aviso; resumen «sin acceso a esta caja»; un solo rechazo en el log del central (no se pidió el balance). Cancelar y reactivar la venta: sin aviso de balance.
+- `TESORERIA GESTIONAR`: balance visible, accesos visibles, sin Verificar, sin avisos.
+- Caja cortada (red): el balance sale con `sucId` 7 de la pestaña y carga. Caja y balance cortados: un aviso «el servidor no responde».
+- Balance rechazado: aviso con el motivo del servidor. Caja rechazada por otro motivo: aviso con el motivo, balance y accesos visibles.
+
+Visto de paso, sin tocar: tras «Anular verif.» el resumen sigue diciendo «Verificado: Sí» (`onVerificado` guarda la respuesta `true` como estado).
+
 ## Sin verificar
 
 - Karma/e2e: no corren en CI (N/A desktop). Se verifica por pantalla.
