@@ -211,8 +211,8 @@ export class ListVentaComponent implements OnInit {
             this.sinAccesoCaja = true;
             this.balanceNoDisponible = true;
             this.textoBalanceNoDisponible = 'sin acceso a esta caja';
-            this.notificacionService.openWarn(`No tenés acceso a la caja ${this.selectedCaja?.id}: `
-              + (hayVentas ? 'se muestran sus ventas, sin el balance.' : 'no se pueden mostrar sus ventas.'), 6);
+            // Sin «se muestran sus ventas»: un central con #562 también rechaza la lista
+            this.notificacionService.openWarn(`No tenés acceso a la caja ${this.selectedCaja?.id}.`, 6);
           } else if (motivo != null && hayVentas) {
             // Otro rechazo (no de permiso): se avisa el motivo y se sigue con la caja de la pestaña
             this.notificacionService.openWarn(
@@ -367,15 +367,24 @@ export class ListVentaComponent implements OnInit {
         this.conDescuentoControl.value,
         this.conAumentoControl.value,
         true,
-        PROPAGAR_ERROR_DE_RED,
+        // Sin acceso a la caja, el rechazo de la lista no suma otro aviso: ya se avisó (#562)
+        this.sinAccesoCaja ? LECTURA_ESTRICTA : PROPAGAR_ERROR_DE_RED,
         undefined,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
       .pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
+      .subscribe({ error: (e) => {
         // Sin filas del filtro anterior a la vista como si fueran del nuevo (#390)
         this.selectedPageInfo = null;
         this.ventaDataSource.data = [];
+        if (erroresDeRechazo(rechazoDe(e)) != null) {
+          const motivo = motivoDelRechazo(rechazoDe(e)) ?? '';
+          if (!/^No autorizado/i.test(motivo)) {
+            this.notificacionService.openWarn(
+              `No se pudo cargar la lista de ventas: ${motivo.replace(/\.+$/, '') || 'sin detalle'}.`, 5);
+          }
+          return;
+        }
         this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
       }, next: (res) => {
         // this.cargandoService.closeDialog()
