@@ -416,6 +416,14 @@ export class EditTransferenciaComponent implements OnInit {
               this.tabService.changeCurrentTabName(
                 "Transferencia " + this.selectedTransferencia.id
               );
+              // El solicitante es obligatorio para avanzar: se pide enseguida para no tener que
+              // buscar el boton despues. Si se cancela, se elige luego como siempre.
+              if (
+                this.isPreTransferenciaCreacion &&
+                this.selectedTransferencia.solicitante == null
+              ) {
+                this.onSeleccionarSolicitante();
+              }
             } });
           // }
         } else {
