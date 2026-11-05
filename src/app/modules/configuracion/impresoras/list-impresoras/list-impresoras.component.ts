@@ -281,7 +281,7 @@ export class ListImpresorasComponent implements OnInit {
           if (ok) {
             this.notificarEnviado(impresora);
           } else {
-            this.notificarFallo(impresora, 'verificá que la sucursal esté online y la cola exista');
+            this.notificarFallo(impresora, 'revisá que la sucursal esté online y que la impresora exista, esté encendida y acepte trabajos');
           }
         },
         // En un rechazo el genérico ya mostró el motivo y el corte por tiempo lo avisó el link (#488)
