@@ -9,8 +9,8 @@ import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../roles/roles.enum';
-import { Observable, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { Observable, of, Subscription } from 'rxjs';
+import { catchError, defaultIfEmpty, map, switchMap, timeout } from 'rxjs/operators';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -53,6 +53,9 @@ export class FuncionarioWizardComponent implements OnInit {
   isFuncionarioPersona = new FormControl()
   passwordUsuario = new FormControl()
   nicknameUsuario = new FormControl(null, [Validators.required])
+  /** Nicknames libres armados con el nombre, cuando el escrito ya existe. */
+  sugerencias: string[] = [];
+  private sugerenciasSub: Subscription;
   sucursalFuncionario = new FormControl(null, [Validators.required])
   creditoFuncionario = new FormControl(null, [Validators.required])
   fechaIngresoFuncionario = new FormControl()
@@ -143,8 +146,10 @@ export class FuncionarioWizardComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {
+          this.cancelarSugerencias();
+          // Si no se puede verificar, se sigue: la base rechaza el duplicado y deshacerAlta limpia lo creado.
           this.usuarioService.onVerificarUsuario(this.nicknameUsuario.value)
-            .pipe(untilDestroyed(this))
+            .pipe(timeout(15000), catchError(() => of(false)), defaultIfEmpty(false), untilDestroyed(this))
             .subscribe(usuarioExiste => {
               if (usuarioExiste) {
                 this.notificacionService.notification$.next({
@@ -152,6 +157,7 @@ export class FuncionarioWizardComponent implements OnInit {
                   color: NotificacionColor.warn,
                   duracion: 2
                 })
+                this.pedirSugerencias(this.nicknameUsuario.value);
               } else {
                 const documento = this.documentoPersona.value?.toString().trim();
                 this.personaService.onGetPorDocumento(documento, true, LECTURA_ESTRICTA)
@@ -182,6 +188,22 @@ export class FuncionarioWizardComponent implements OnInit {
         }
       })
 
+  }
+
+  private pedirSugerencias(tomado: string) {
+    this.sugerenciasSub = this.usuarioService.onSugerirNicknames(this.nombrePersona.value, [tomado ?? ''])
+      .pipe(untilDestroyed(this))
+      .subscribe(sugerencias => this.sugerencias = sugerencias);
+  }
+
+  private cancelarSugerencias() {
+    this.sugerenciasSub?.unsubscribe();
+    this.sugerencias = [];
+  }
+
+  onElegirSugerencia(nickname: string) {
+    this.cancelarSugerencias();
+    this.nicknameUsuario.setValue(nickname);
   }
 
   private guardarFuncionario(): void {

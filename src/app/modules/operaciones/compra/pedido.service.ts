@@ -848,7 +848,8 @@ export class PedidoService {
       null,
       true,
       true,
-      '¿Está seguro que desea cancelar este pedido?',
+      // El central anula el stock que ya entró por la recepción, en cualquier etapa (#535)
+      '¿Está seguro que desea cancelar este pedido? Si ya se recibió mercadería, ese stock se va a descontar.',
       // No es un borrado: sin esto los avisos decían «eliminó» (#501). Repetir es seguro: el central rechaza «ya cancelado»
       { exito: 'Pedido cancelado correctamente', alHacer: 'al cancelar el pedido', queSeHizo: 'se canceló el pedido' }
     );

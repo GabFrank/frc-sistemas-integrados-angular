@@ -83,6 +83,8 @@ export class MovimientoCajaVirtual {
   esPagoConsolidado: boolean;
   descripcion: string;
   usuario: Usuario;
+  /** Funcionario que retira o rinde la plata del egreso; null = se muestra `usuario`. */
+  responsable?: Funcionario;
   cajaOrigen: CajaVirtual;
   cajaDestino: CajaVirtual;
   activo: boolean;
@@ -123,6 +125,28 @@ export class MovimientoCajaVirtualInput {
 export interface CajaVirtualSaldoItem {
   moneda: Moneda;
   saldo: number;
+}
+
+/**
+ * digitsInfo para el pipe number, según la moneda. El fallback por denominación es el mismo
+ * patrón que usa el resto del módulo (pagar-compras-dialog): el guaraní no lleva fracción,
+ * las demás sí. Ver migración V207.5, que pobló `decimales` — estaba en 0 para todas.
+ */
+export function formatoDe(moneda: Moneda): string {
+  const d = moneda?.decimales != null
+    ? moneda.decimales
+    : ((moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
+  return `1.0-${d}`;
+}
+
+/**
+ * Saldo de una moneda según `cajaVirtualSaldos` (lo mismo que muestran las cards del dashboard).
+ * null si los saldos o la moneda no cargaron; 0 si la caja no tiene fila de esa moneda.
+ */
+export function saldoDeMoneda(saldos: CajaVirtualSaldoItem[], moneda: Moneda): number | null {
+  if (saldos == null || moneda == null) return null;
+  // El ID de GraphQL llega como string.
+  return saldos.find(s => +s.moneda?.id === +moneda.id)?.saldo ?? 0;
 }
 
 /** Resumen de una cuenta bancaria visible en el sidebar. */
@@ -178,7 +202,15 @@ export const ORIGEN_MOVIMIENTO_LABELS: Record<string, string> = {
   CHEQUE: 'Cheque',
   ACREDITACION_POS: 'Acreditación POS',
   MALETIN: 'Maletín',
+  VUELTO: 'Vuelto',
 };
+
+/** Fila de la lista de egresos para vuelto: devuelto y pendiente en la moneda del egreso. */
+export interface EgresoParaVuelto {
+  movimiento: MovimientoCajaVirtual;
+  devuelto: number;
+  pendiente: number;
+}
 
 /**
  * Etiqueta a mostrar para un movimiento. `fallback` es el mapa de `tipoMovimiento` del

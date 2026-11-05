@@ -129,6 +129,8 @@ import {
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { DateAdapter } from "@angular/material/core";
+import { FechaPyDateAdapter } from "../../../../shared/utils/fecha-py-date-adapter";
 
 /** Panel de productos del proveedor: carga de fondo, 20 s sin el aviso del link (#390). */
 const CONSULTA_PRODUCTOS_PROVEEDOR: ContextoConsulta = {
@@ -261,6 +263,8 @@ function proveedorSeleccionadoValidator(
   selector: "app-gestion-compras",
   templateUrl: "./gestion-compras.component.html",
   styleUrls: ["./gestion-compras.component.scss"],
+  // El vencimiento de la tabla de ítems se puede tipear: se lee día/mes/año.
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class GestionComprasComponent
   implements OnInit, OnDestroy
@@ -3250,6 +3254,43 @@ export class GestionComprasComponent
   }
 
   /**
+   * Enter en el vencimiento de la tabla: pasa al de la fila siguiente para cargarlos de corrido.
+   * El guardado lo dispara el `change` del input al perder el foco; en la última fila solo sale.
+   */
+  onVencimientoItemEnter(event: Event, input: HTMLInputElement): void {
+    event.preventDefault();
+    let fila = input.closest("tr")?.nextElementSibling;
+    while (fila) {
+      const siguiente = fila.querySelector<HTMLInputElement>(".vencimiento-inline-input");
+      if (siguiente && !siguiente.disabled) {
+        siguiente.focus();
+        return;
+      }
+      fila = fila.nextElementSibling;
+    }
+    input.blur();
+  }
+
+  /**
+   * Vencimiento de la tabla, tipeado o elegido en el calendario. Un texto que no es fecha llega como
+   * `null`: no se toma como «quitar vencimiento», se avisa y se vuelve a mostrar el que tenía.
+   * Para quitarlo: borrar el texto o el botón de la X.
+   */
+  onVencimientoItemTipeado(item: MockPedidoItem, fecha: Date | null, input: HTMLInputElement): void {
+    if (!fecha && input.value.trim() !== "") {
+      this.notificacionService.openWarn("Fecha de vencimiento inválida: usá dd/mm/aaaa (ej. 05/06/2027).", 4);
+      if (!item.vencimientoDateComputed) {
+        input.value = ""; // sin fecha previa el binding no cambia y el texto inválido quedaría a la vista
+      }
+      this.reemplazarItemEnTabla(item.id, {
+        vencimientoDateComputed: item.vencimientoDateComputed ? new Date(item.vencimientoDateComputed) : null,
+      });
+      return;
+    }
+    this.onVencimientoItemChange(item, fecha);
+  }
+
+  /**
    * Guarda al momento el vencimiento elegido en la tabla (null = sin vencimiento) y actualiza solo esa fila.
    * Habilitado con el tab de ítems editable (etapa CREACIÓN), igual que agregar ítems.
    */
@@ -4113,7 +4154,9 @@ export class GestionComprasComponent
       pedidoItem: item,
       notaRecepcion: this.selectedNotaRecepcion || undefined,
       notasDisponibles: this.notasRecepcionDataSource.data,
-      pedidoId: this.pedidoId || 0
+      pedidoId: this.pedidoId || 0,
+      // La lista de pendientes trae solo `pedido { id }`: el alta de una nota nueva necesita moneda y proveedor
+      pedido: this.currentPedido ?? undefined,
     };
 
     const dialogRef = this.dialog.open(DividirItemDialogComponent, {
@@ -4134,6 +4177,10 @@ export class GestionComprasComponent
         this.notificacionService.openSucess(result.message || 'Ítem dividido exitosamente');
         
         // Recargar datos del tab 3
+        this.markTabAsUnloaded(2);
+        this.loadTabDataIfNeeded(2);
+      } else if (result?.notasCreadas) {
+        // No se dividió, pero las notas creadas desde el diálogo tienen que aparecer
         this.markTabAsUnloaded(2);
         this.loadTabDataIfNeeded(2);
       }

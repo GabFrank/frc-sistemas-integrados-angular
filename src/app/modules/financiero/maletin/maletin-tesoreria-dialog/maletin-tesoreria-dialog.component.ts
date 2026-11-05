@@ -12,6 +12,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 export interface MaletinTesoreriaDialogData {
   cajaVirtual: CajaVirtual;
@@ -35,6 +36,8 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
   monedaControl = new FormControl(null, Validators.required);
   montoControl = new FormControl(null, [Validators.required, Validators.min(0.01)]);
   descripcionControl = new FormControl('');
+  /** Funcionario que lleva el maletín. Opcional y solo en el egreso. */
+  responsableControl = new FormControl<Funcionario>(null);
 
   monedaList: Moneda[] = [];
 
@@ -156,6 +159,7 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
       this.enviarEgreso({
         cajaVirtualId: cajaId, maletinId, monedaId: moneda?.id, monto: this.montoControl.value,
         descripcion: desc || null, claveIdempotencia: nuevaClaveIdempotencia(),
+        responsableId: this.responsableControl.value?.id ?? null,
       }, false);
       return;
     } else {

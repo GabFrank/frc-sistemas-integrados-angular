@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ConfiguracionService } from './configuracion.service';
 import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
@@ -37,6 +37,17 @@ export class NotificationHttpService {
         return urlsDeServidor(centralIp, centralPort).http;
     }
 
+    /**
+     * El central exige token en /notification/** (issue #521 del central). Se usa el token del
+     * central y, si no hay, el de la filial: el mismo criterio que Apollo para el cliente "servidor".
+     * Sin token no se manda el header y el central responde 401; la notificacion se pierde pero la
+     * operacion (venta, gasto, retiro, caja) no se traba.
+     */
+    private get headers(): HttpHeaders {
+        const token = localStorage.getItem('token_central') || localStorage.getItem('token');
+        return token ? new HttpHeaders({ Authorization: `Token ${token}` }) : new HttpHeaders();
+    }
+
     sendCompraCreditoNotification(
         ventaId: number,
         sucursalId: number,
@@ -47,7 +58,7 @@ export class NotificationHttpService {
         const url = `${this.baseUrl}/notification/compra-credito/${ventaId}/${sucursalId}/${personaId}/${valorTotal}`;
         let params: any = {};
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
-        return this.http.post(url, {}, { params });
+        return this.http.post(url, {}, { params, headers: this.headers });
     }
 
     sendGastoNotification(
@@ -62,7 +73,7 @@ export class NotificationHttpService {
         let params: any = {};
         if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
-        return this.http.post(url, {}, { params });
+        return this.http.post(url, {}, { params, headers: this.headers });
     }
 
     sendRetiroNotification(
@@ -77,7 +88,7 @@ export class NotificationHttpService {
         let params: any = {};
         if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
-        return this.http.post(url, {}, { params });
+        return this.http.post(url, {}, { params, headers: this.headers });
     }
 
     sendVentaTransferenciaNotification(
@@ -91,7 +102,7 @@ export class NotificationHttpService {
         let params: any = {};
         if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
-        return this.http.post(url, {}, { params });
+        return this.http.post(url, {}, { params, headers: this.headers });
     }
 
     sendDiferenciaMaletinNotification(
@@ -111,11 +122,11 @@ export class NotificationHttpService {
         if (diferenciaDs != null) params.diferenciaDs = diferenciaDs;
         if (maletinDescripcion) params.maletinDescripcion = maletinDescripcion;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
-        return this.http.post(url, {}, { params });
+        return this.http.post(url, {}, { params, headers: this.headers });
     }
 
     sendVentaStockCriticoNotification(payload: VentaStockCriticoPayload): Observable<any> {
         const url = `${this.baseUrl}/notification/venta-stock-critico`;
-        return this.http.post(url, payload);
+        return this.http.post(url, payload, { headers: this.headers });
     }
 }

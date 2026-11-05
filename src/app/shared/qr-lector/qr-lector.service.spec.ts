@@ -15,6 +15,30 @@ describe('QrLectorService', () => {
     service = TestBed.inject(QrLectorService);
   });
 
+  describe('tickets del PDV (filial QrTicket)', () => {
+    it('parsea el QR del ticket de retiro: retiro, sucursal y caja', () => {
+      const res = service.parse('frc-24-RETIRO-1151-24-IngresarRetiroCajaMayor-662-null');
+      expect(res.ok).toBeTrue();
+      expect(res.qr.tipoEntidad).toBe('RETIRO');
+      expect(res.qr.idOrigen).toBe(1151);
+      expect(service.sucursalDe(res.qr)).toBe(24);
+      expect(res.qr.campo6).toBe('662');
+    });
+
+    it('parsea el QR del ticket de cierre: caja y sucursal', () => {
+      const res = service.parse('frc-24-PDVCAJA-662-24-IngresarRetiroCajaMayor-null-null');
+      expect(res.ok).toBeTrue();
+      expect(res.qr.tipoEntidad).toBe('PDVCAJA');
+      expect(res.qr.idOrigen).toBe(662);
+      expect(service.sucursalDe(res.qr)).toBe(24);
+    });
+
+    it('con teclado en español el código crudo no es del sistema (lo rescata la directiva)', () => {
+      const res = service.parse("frc'24'RETIRO'1151'24'IngresarRetiroCajaMayor'662'null");
+      expect(res.ok).toBeFalse();
+    });
+  });
+
   describe('códigos reales emitidos por central', () => {
     it('parsea el QR de solicitud de pago (ImpresionService:687)', () => {
       const res = service.parse('frc-0-SOLPAG-412-412-ListSolicitudPagoComponent-null-null');

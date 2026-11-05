@@ -5,7 +5,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { MontoCajaVirtual, PedidoDeTransferencias } from '../pedido-en-lote';
-import { CajaVirtual } from '../caja-virtual.model';
+import { CajaVirtual, CajaVirtualSaldoItem, saldoDeMoneda } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
@@ -36,6 +36,12 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
   currencyOptionsGs: any;
   currencyOptionsRs: any;
   currencyOptionsDs: any;
+
+  /** Saldos de `cajaVirtualSaldos`, los mismos de las cards. null = no cargaron (se muestra «No disponible»). */
+  private saldos: CajaVirtualSaldoItem[] = null;
+  saldoGs: number = null;
+  saldoRs: number = null;
+  saldoDs: number = null;
 
   cajasList: CajaVirtual[] = [];
   isSaving = false;
@@ -73,8 +79,17 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
         if (this.monedaGs) this.currencyOptionsGs = this.monedaService.currencyOptionsByMoneda(this.monedaGs);
         if (this.monedaRs) this.currencyOptionsRs = this.monedaService.currencyOptionsByMoneda(this.monedaRs);
         if (this.monedaDs) this.currencyOptionsDs = this.monedaService.currencyOptionsByMoneda(this.monedaDs);
+        this.asignarSaldos();
       }
     });
+
+    // El saldo se relee al abrir: la caja que llega es la de cuando se abrió la pestaña (#656).
+    if (this.cajaOrigen?.id != null) {
+      this.cajaVirtualService.onGetSaldos(this.cajaOrigen.id, true).pipe(untilDestroyed(this)).subscribe({
+        next: res => { this.saldos = res; this.asignarSaldos(); },
+        error: () => { this.saldos = null; this.asignarSaldos(); },
+      });
+    }
 
     const sinCajas = 'No se pudieron cargar las cajas de destino: cerrá y volvé a abrir para reintentar.';
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
@@ -85,6 +100,13 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
       },
       error: () => this.notificacion.openWarn(sinCajas, 5)
     });
+  }
+
+  /** Monedas y saldos llegan en cualquier orden: se recalcula con lo que haya. */
+  private asignarSaldos() {
+    this.saldoGs = saldoDeMoneda(this.saldos, this.monedaGs);
+    this.saldoRs = saldoDeMoneda(this.saldos, this.monedaRs);
+    this.saldoDs = saldoDeMoneda(this.saldos, this.monedaDs);
   }
 
   onSave() {

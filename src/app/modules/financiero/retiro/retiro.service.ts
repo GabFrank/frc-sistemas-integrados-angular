@@ -67,6 +67,18 @@ export class RetiroService {
       cajaVirtualDestinoId != null ? this.retirosFlotantesDeCajaGQL : this.retirosFlotantesGQL, variables, servidor, PROPAGAR_ERROR_DE_RED, undefined, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true });
   }
 
+  /**
+   * Retiros pendientes de ingresar de una caja del PDV, con su detalle por moneda. Caja y sucursal juntas:
+   * los ids de caja se repiten entre sucursales. Error si la consulta falla: «no hay» no es «no se pudo saber».
+   */
+  onGetPendientesDeCaja(sucId: number, cajaId: number, cajaVirtualDestinoId?: number): Observable<Retiro[]> {
+    // shortcut: una página de 100; una caja de PDV no junta tantos retiros sin ingresar.
+    return this.onGetFlotantes(sucId, cajaId, null, null, 0, 100, true, cajaVirtualDestinoId).pipe(map(page => {
+      if (page == null) throw new Error('No se pudieron consultar los retiros de la caja.');
+      return page.getContent || [];
+    }));
+  }
+
   // servidor = true: la mutation vive en el central, igual que la lista que se
   // consume con onFilterRetiro. El estado baja a la filial por replicacion.
   //

@@ -25,7 +25,8 @@ import { PdvSearchProductoDialogComponent } from "../../../../productos/producto
 import { Producto } from "../../../../productos/producto/producto.model";
 import { SearchMaletinGQL } from "../../../maletin/graphql/searchMaletin";
 import { Maletin } from "../../../maletin/maletin.model";
-import { AdicionarCajaDialogComponent } from "../adicionar-caja-dialog/adicionar-caja-dialog.component";
+import { AdicionarCajaDialogComponent, AdicionarCajaResponse } from "../adicionar-caja-dialog/adicionar-caja-dialog.component";
+import { ROLES } from "../../../../personas/roles/roles.enum";
 import { PdvCaja } from "../caja.model";
 import { CajaService } from "../caja.service";
 
@@ -139,7 +140,11 @@ export class ListCajaComponent implements OnInit {
     private genericCrudService: GenericCrudService
   ) {}
 
+  /** «Reabrir caja» en el menú de cada fila (#662): solo ADMIN. */
+  esAdmin = false;
+
   ngOnInit(): void {
+    this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
     let hoy = new Date();
     let aux = new Date();
     aux.setDate(hoy.getDate() - 5);
@@ -162,7 +167,7 @@ export class ListCajaComponent implements OnInit {
   }
 
   onAdd(caja?: PdvCaja, index?) {
-    this.matDialog.open(AdicionarCajaDialogComponent, {
+    const ref = this.matDialog.open(AdicionarCajaDialogComponent, {
       data: {
         caja,
       },
@@ -173,6 +178,19 @@ export class ListCajaComponent implements OnInit {
       autoFocus: true,
       restoreFocus: true,
     });
+    ref.afterClosed().pipe(untilDestroyed(this)).subscribe((res: AdicionarCajaResponse) => {
+      if (res?.reabierta) this.buscar();
+    });
+  }
+
+  /** Reabre una caja cerrada por equivocación (#662); las reglas las valida el backend. */
+  onReabrir(caja: PdvCaja) {
+    this.cajaService
+      .reabrirConMotivo(caja)
+      .pipe(untilDestroyed(this))
+      .subscribe((ok) => {
+        if (ok) this.buscar();
+      });
   }
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.

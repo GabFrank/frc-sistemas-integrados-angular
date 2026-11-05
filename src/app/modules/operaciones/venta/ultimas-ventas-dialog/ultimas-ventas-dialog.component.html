@@ -102,6 +102,10 @@
                                     matTooltip="Reimprimir venta" (click)="reimpresionVenta(venta.id)">
                                     <mat-icon>print</mat-icon>
                                 </button>
+                                <button *ngIf="data?.reimpresion == true && venta?.tieneSorteo" mat-mini-fab color="primary"
+                                    matTooltip="Reimprimir ticket de sorteo" (click)="reimpresionSorteo(venta.id)">
+                                    <mat-icon>confirmation_number</mat-icon>
+                                </button>
                             </div>
                         </td>
                     </ng-container>

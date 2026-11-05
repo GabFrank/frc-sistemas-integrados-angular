@@ -41,7 +41,8 @@ import { CajaService } from "../../pdv/caja/caja.service";
 import { Observable, forkJoin, timer } from "rxjs";
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { PdvCaja } from "../../pdv/caja/caja.model";
-import { TabService } from "../../../../layouts/tab/tab.service";
+import { TabData, TabService } from "../../../../layouts/tab/tab.service";
+import { ListVentaComponent } from "../../../operaciones/venta/list-venta/list-venta.component";
 import { VentaTouchComponent } from "../../../pdv/comercial/venta-touch/venta-touch.component";
 import {
   CobroDetalle,
@@ -134,6 +135,9 @@ export class ListVentaCreditoComponent implements OnInit {
 
   selectedPageInfo: PageInfo<VentaCredito>;
 
+  // El destino muestra el resumen de la caja: mismo rol que el menú «Cajas» (side-mini-variant, list-caja)
+  puedeVerVentas = false;
+
   constructor(
     private dialogRef: MatDialogRef<ListVentaCreditoComponent>,
     private ventaCreditoService: VentaCreditoService,
@@ -158,6 +162,7 @@ export class ListVentaCreditoComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeVerVentas = this.mainService.tieneAlgunRol([ROLES.ANALISIS_DE_CAJA]);
     this.filtrarPorControl.setValue(this.filtrarPorFechaList[0]);
 
     this.fechaFormGroup = new FormGroup({
@@ -326,6 +331,39 @@ export class ListVentaCreditoComponent implements OnInit {
     this.isAbiertos = false;
     this.isConcluidos = false;
     this.verificarEstados();
+  }
+
+  /**
+   * Abre las ventas de la caja donde se hizo esta venta, con la venta filtrada, como la lista de
+   * movimientos de stock. La lista de créditos no trae la caja: se lee la venta.
+   * El título lleva venta y sucursal porque addTab reusa la solapa del mismo título sin volver a
+   * filtrar: dos ventas de una misma caja mostrarían la primera.
+   */
+  onIrAVenta(ventaCredito: VentaCredito) {
+    const ventaId = ventaCredito?.venta?.id;
+    const sucursalId = ventaCredito?.venta?.sucursalId ?? ventaCredito?.sucursal?.id;
+    if (ventaId == null || sucursalId == null) return;
+    // Sin `loading`: es el spinner del detalle desplegado de la fila
+    this.ventaService
+      .onGetPorId(ventaId, sucursalId, true, true, PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })
+      .pipe(untilDestroyed(this))
+      .subscribe({ error: () => {
+        this.notificacionService.openWarn('No se pudo cargar la venta: el servidor no responde.', 5);
+      }, next: (venta) => {
+        if (venta?.caja == null) {
+          this.notificacionService.openWarn('La venta no tiene una caja asociada.', 5);
+          return;
+        }
+        const tabData = new TabData();
+        tabData.data = { caja: { ...venta.caja, sucursalId }, ventaId };
+        this.tabService.addTab(new Tab(
+          ListVentaComponent,
+          `Caja ${venta.caja.id} - venta ${ventaId} (${ventaCredito?.sucursal?.nombre ?? 'suc. ' + sucursalId})`,
+          tabData,
+          ListVentaCreditoComponent
+        ));
+      } });
   }
 
   onClickRow(ventaCredito: VentaCredito, i) {

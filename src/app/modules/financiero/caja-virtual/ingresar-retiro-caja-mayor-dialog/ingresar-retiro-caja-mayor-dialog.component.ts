@@ -6,18 +6,19 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { Retiro } from '../../retiro/retiro.model';
+import { Retiro, formatMontosRetiro, PREGUNTA_RETIROS_DE_LA_CAJA } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
-import { VerificarRetiroDialogComponent, VerificarRetiroDialogData } from '../../retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { VerificarRetiroDialogComponent, VerificarRetiroDialogData, VerificarRetiroDialogResultado } from '../../retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 export interface IngresarRetiroCajaMayorDialogData {
   cajaVirtual: CajaVirtual;
@@ -87,6 +88,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     private dialog: MatDialog,
     private mainService: MainService,
     private cajaVirtualService: CajaVirtualService,
+    private dialogosService: DialogosService,
   ) {}
 
   ngOnInit(): void {
@@ -112,7 +114,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       this.modoEscaneo = true;
       this.data.preseleccion.forEach(r => {
         const row = { ...r } as RetiroRow;
-        row._montos = this.formatMontos(r);
+        row._montos = formatMontosRetiro(r);
         row._sel = true;
         this.seleccionados.set(`${r.id}_${r.sucursalId}`, row);
       });
@@ -125,6 +127,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   /** Pinta en la tabla solo lo que vino del escáner, ya tildado. */
   private mostrarEscaneados() {
     this.dataSource.data = Array.from(this.seleccionados.values());
+    this.dataSource.data.forEach(r => this.marcarEstadoVerificacion(r));
     this.totalElements = this.dataSource.data.length;
     this.recomputarTotales();
   }
@@ -186,7 +189,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
           // Clonar cada fila (Apollo congela los resultados en dev) + campos de display.
           this.dataSource.data = content.map((r: Retiro) => {
             const row = { ...r } as RetiroRow;
-            row._montos = this.formatMontos(r);
+            row._montos = formatMontosRetiro(r);
             row._sel = this.seleccionados.has(`${r.id}_${r.sucursalId}`);
             this.marcarEstadoVerificacion(row);
             return row;
@@ -236,22 +239,70 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     row._chipBg = 'rgba(176, 190, 197, 0.14)';
   }
 
-  /** Abre la verificación de un retiro puntual. Es el único camino de ingreso. */
+  /** Evita abrir dos verificaciones con un doble clic mientras se consulta la caja. */
+  private abriendo = false;
+
+  /**
+   * Abre la verificación del retiro. Si su caja tiene otros pendientes, pregunta si se traen: con Sí
+   * se verifican apilados, cada uno con su conteo. Es el único camino de ingreso.
+   */
   onProcesar(row: RetiroRow) {
-    const data: VerificarRetiroDialogData = {
-      retiro: row,
-      cajaVirtual: this.data.cajaVirtual,
-    };
+    if (this.abriendo) return;
+    const cajaId = row.cajaSalida?.id;
+    if (cajaId == null) {
+      this.abrirVerificacion([row]);
+      return;
+    }
+    this.abriendo = true;
+    const destinoId = this.acotado ? this.data?.cajaVirtual?.id : undefined;
+    this.retiroService.onGetPendientesDeCaja(row.sucursalId, cajaId, destinoId).pipe(
+      // Sin la consulta se verifica el retiro solo, como antes: la pregunta es una ayuda, no un requisito.
+      catchError(() => of([] as Retiro[])),
+      switchMap(pendientes => {
+        const otros = pendientes.filter(r => r.id !== row.id);
+        if (!otros.length) return of([row] as Retiro[]);
+        return this.dialogosService.confirm(
+          'Retiros de la misma caja', PREGUNTA_RETIROS_DE_LA_CAJA,
+          `La caja ${cajaId} tiene ${otros.length} retiro${otros.length === 1 ? '' : 's'} más sin ingresar.`,
+          null, true, 'Sí, traerlos', 'No',
+        ).pipe(map(res => res === true ? [row, ...otros] : [row] as Retiro[]));
+      }),
+      untilDestroyed(this),
+    ).subscribe(retiros => {
+      this.abriendo = false;
+      this.abrirVerificacion(retiros);
+    });
+  }
+
+  private abrirVerificacion(retiros: Retiro[]) {
+    const data: VerificarRetiroDialogData = { retiros, cajaVirtual: this.data.cajaVirtual };
+    // Más ancho que antes: la tabla de conteo pone todas las monedas de todos los retiros en filas.
     this.dialog.open(VerificarRetiroDialogComponent, {
-      width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      // Se recarga siempre, no solo al confirmar: cerrar a medias cambia el chip a "En proceso".
-      this.cargar();
-      if (res) {
+      width: '80vw', height: '75vh', maxWidth: '96vw', disableClose: true, data,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: VerificarRetiroDialogResultado) => {
+      const ingresados = res?.ingresados || [];
+      const fuera = res?.fuera || [];
+      // Los que ya no están pendientes dejan de estar seleccionados: «Ingresar» los mandaría de nuevo.
+      [...ingresados, ...fuera].forEach(r => this.seleccionados.delete(`${r.id}_${r.sucursalId}`));
+      if (ingresados.length || fuera.length) this.huboIngresos = true;
+      if (fuera.length) {
+        this.notificacion.openWarn(`${fuera.length} retiro(s) ya no estaban pendientes: los ingresó otra PC, `
+          + 'se cancelaron o entraron sin que llegara la respuesta. Revisalos en la caja mayor.', 8);
+      }
+      if (ingresados.length) {
         this.notificacion.notification$.next({
-          texto: `Retiro #${row.id} verificado e ingresado`,
+          texto: ingresados.length === 1
+            ? `Retiro #${ingresados[0].id} verificado e ingresado`
+            : `${ingresados.length} retiros verificados e ingresados`,
           color: NotificacionColor.success, duracion: 3,
         });
+      }
+      // Se recarga siempre, no solo al confirmar: cerrar a medias cambia el chip a "En proceso".
+      if (this.modoEscaneo) {
+        this.mostrarEscaneados();
+      } else {
+        this.recomputarTotales();
+        this.cargar();
       }
     });
   }
@@ -274,15 +325,6 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     this.pageIndex = ev.pageIndex;
     this.pageSize = ev.pageSize;
     this.cargar();
-  }
-
-  private formatMontos(r: Retiro): string {
-    const partes: string[] = [];
-    const fmt = (n: number) => Math.round(n).toLocaleString('es-PY');
-    if (r.retiroGs) partes.push(`${fmt(r.retiroGs)} Gs`);
-    if (r.retiroRs) partes.push(`${r.retiroRs.toLocaleString('es-PY')} R$`);
-    if (r.retiroDs) partes.push(`${r.retiroDs.toLocaleString('es-PY')} US$`);
-    return partes.length ? partes.join(' · ') : '—';
   }
 
   cantidadSeleccionada = 0;

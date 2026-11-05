@@ -277,6 +277,21 @@ function loadZoomLevel() {
 }
 let printers = [];
 const { ipcMain } = require('electron');
+/**
+ * Ícono de la ventana y de las notificaciones según la empresa. Arranca con el de Bodega Franco y
+ * el Angular avisa por `set-window-icon` cuando sabe que la empresa es una farmacia (lee
+ * `configuracion_general.nombre_empresa`). Solo se aceptan las dos marcas conocidas: la pantalla
+ * nunca manda una ruta.
+ */
+const ICONOS_MARCA = {
+    bodega: 'icons/logo.png',
+    farmacia: 'icons/logo_farmacia.png',
+};
+let marcaActual = 'bodega';
+function rutaIconoMarca() {
+    var _a;
+    return path.join(__dirname, (_a = ICONOS_MARCA[marcaActual]) !== null && _a !== void 0 ? _a : ICONOS_MARCA.bodega);
+}
 let win;
 let windows = [];
 // Particion (sesion/localStorage propios) para la 2da ventana: permite tener un
@@ -399,7 +414,7 @@ function createWindow(partition) {
             // `src/assets` nunca hubo un `logo.ico`; y `icon` espera una ruta del
             // sistema de archivos, no una URL `file://`—. Electron no avisa: se queda
             // con su ícono por defecto.
-            icon: path.join(__dirname, 'icons/logo.png'),
+            icon: rutaIconoMarca(),
             x: 0,
             y: 0,
             width: size.width,
@@ -445,7 +460,7 @@ function createWindow(partition) {
                     body: body,
                     // Mismo caso que el ícono de la ventana: `dist/assets/logo.png` no
                     // existe y la notificación salía sin logo.
-                    icon: path.join(__dirname, 'icons/logo.png'),
+                    icon: rutaIconoMarca(),
                     silent: false,
                     urgency: 'normal'
                 });
@@ -702,6 +717,20 @@ ipcMain.on('check-for-update-manual', () => {
 ipcMain.on('open-update-dialog', () => {
     if (win)
         win.webContents.send('open-update-dialog');
+});
+ipcMain.on('set-window-icon', (event, marca) => {
+    if (!ICONOS_MARCA[marca] || marca === marcaActual)
+        return;
+    marcaActual = marca;
+    windows.forEach((w) => {
+        try {
+            if (!w.isDestroyed())
+                w.setIcon(rutaIconoMarca());
+        }
+        catch (e) {
+            log.warn('No se pudo cambiar el icono de la ventana', e);
+        }
+    });
 });
 ipcMain.on('reiniciar', (event, arg) => {
     relaunchElectron();

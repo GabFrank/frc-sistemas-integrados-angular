@@ -83,6 +83,7 @@ import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.co
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
 import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component';
+import { ListSorteoComponent } from '../../../modules/operaciones/sorteo/list-sorteo/list-sorteo.component';
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
@@ -730,6 +731,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'local_offer',
           action: 'list-precio-especial',
           visibilityRoles: [ROLES.ADMIN, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]
+        },
+        {
+          name: 'Sorteos',
+          icon: 'confirmation_number',
+          action: 'list-sorteo',
+          visibilityRoles: [ROLES.ADMIN, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]
         }
       ]
     },
@@ -943,7 +950,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       item.isVisible = this.checkItemVisibility(item, userRoles);
       if ('items' in item && item.items) {
         for (const childItem of item.items) {
-          childItem.isVisible = this.checkItemVisibility(childItem, userRoles);
+          childItem.isVisible = this.checkItemVisibility(childItem, userRoles)
+            && !(childItem.requiresServerMode && !isServer);
 
           if ('items' in childItem && childItem.items) {
             for (const grandChild of childItem.items) {
@@ -1403,6 +1411,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-precio-especial":
         this.openTabIfAuthorized([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], ListPrecioEspecialComponent, "Promociones");
+        break;
+      case "list-sorteo":
+        this.openTabIfAuthorized([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], ListSorteoComponent, "Sorteos");
         break;
       case "funcionario-dashboard":
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");
