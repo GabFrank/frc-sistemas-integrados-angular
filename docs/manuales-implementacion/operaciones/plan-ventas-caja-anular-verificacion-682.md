@@ -39,6 +39,16 @@ Sin datos nuevos. `onVerificarCaja` no tiene otros llamadores.
 | B: error de red sin `error:` en el `subscribe` (la mutation pudo aplicarse y la pantalla no cambia) | Fuera de alcance: previo; el genérico avisa «No se pudo consultar…» |
 | A2/B: `verificadoPor` null en pantalla y el usuario que anuló en la base | Aceptado: el bloque solo se muestra con `verificado` |
 
+## Auditoría del diff (paso 8) y prueba
+
+Fijo 2 y condicionales: N/A. Fijo 1 y Fijo 3: sin hallazgos nuevos (el estado solo cambia si el central
+confirma; la pestaña muestra una sola caja, así que no hay otra `selectedCaja` que pisar).
+
+Probado por pantalla el 05/11 contra un central local de develop, caja 2666 (sucursal 7):
+- ADMIN verifica → «Sí», «Verificado por» y botón «Anular verif.». Anula → «No», sin «Verificado por», botón
+  «Verificar»; la base queda `verificado = f`.
+- Sin `ANALISIS DE CAJA`: el central rechaza («No autorizado»), la pantalla y la base no cambian.
+
 ## Sin verificar
 
 - Karma/e2e: no corren en CI (N/A desktop).

@@ -676,9 +676,9 @@ export class ListVentaComponent implements OnInit {
             )
             .subscribe((resVerif) => {
               if (resVerif) {
-                this.selectedCaja.verificado = resVerif;
-                this.selectedCaja.verificadoPor =
-                  this.mainService?.usuarioActual;
+                // El central devuelve true al aplicar, tanto al verificar como al anular (#682)
+                this.selectedCaja.verificado = verificado;
+                this.selectedCaja.verificadoPor = verificado ? this.mainService?.usuarioActual : null;
               }
             });
         }
