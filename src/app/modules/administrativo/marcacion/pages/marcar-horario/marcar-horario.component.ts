@@ -436,7 +436,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       si: 'Sí, es almuerzo',
       no: 'No, salida definitiva',
       ancho: '400px',
-      cerrable: false
+      cerrable: false,
+      botonCerrar: true
     }).pipe(untilDestroyed(this)).subscribe(esAlmuerzo => {
       if (esAlmuerzo === null || esAlmuerzo === undefined) return;
       this.ejecutarRegistro(false, esAlmuerzo);

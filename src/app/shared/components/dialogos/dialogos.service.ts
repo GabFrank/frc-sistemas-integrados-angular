@@ -22,6 +22,8 @@ export interface ConfirmarOpciones {
   ancho?: string;
   /** Esc o click afuera cierran sin elegir (devuelve null). Default: true. */
   cerrable?: boolean;
+  /** X en la cabecera para cerrar sin elegir (devuelve null). Anda aunque `cerrable` sea false. Default: false. */
+  botonCerrar?: boolean;
 }
 
 @Injectable({
@@ -85,6 +87,7 @@ export class DialogosService {
         btn2Name: o.no,
         peligro: o.peligro,
         foco: o.foco ?? "no",
+        botonCerrar: o.botonCerrar ?? false,
       },
     }).afterClosed();
   }
