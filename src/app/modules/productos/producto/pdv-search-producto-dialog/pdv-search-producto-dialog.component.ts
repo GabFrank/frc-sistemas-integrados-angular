@@ -169,6 +169,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
    */
   ocultarStockOrigen = false;
   ocultarStockDestino = false;
+  /**
+   * Solo en transferencias (#673): orden por stock, de mayor a menor, en la sucursal de origen o de destino.
+   * Lo hace el central, así la paginación lo respeta. `null` = el orden de siempre.
+   */
+  ordenStock: "origen" | "destino" | null = null;
   existenciaOrigen: number = 0;
   existenciaDestino: number = 0;
   modoSeleccionMultiple = false;
@@ -318,13 +323,18 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           return of([]);
         };
 
-        // Siempre buscar por descripción
-        const busquedaDescripcion$ = this.productoService
-          .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor, false, errorConf, contexto)
-          .pipe(catchError(marcarFallo));
+        // Siempre buscar por descripción. En transferencias, con su consulta propia (orden por stock, #673)
+        const ordenStockSucursalId = this.ordenStockSucursalId();
+        const busquedaDescripcion$ = (this.isTransferencia
+          ? this.productoService.onSearchTransferencia(text, offset, sucursalIdParaFiltro, soloStock, true,
+              ordenStockSucursalId, this.data.servidor, false, errorConf, contexto)
+          : this.productoService.onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor,
+              false, errorConf, contexto)
+        ).pipe(catchError(marcarFallo));
 
-        // Si parece código de barras, buscar también por código en paralelo
-        const busquedaCodigo$ = esCodigo
+        // Si parece código de barras, buscar también por código en paralelo. Con orden por stock no: el
+        // resultado por código iría primero y rompería el orden (la búsqueda de arriba ya incluye los códigos).
+        const busquedaCodigo$ = esCodigo && ordenStockSucursalId == null
           ? this.productoService
               // Un error del servidor en la búsqueda por código (p. ej. código repetido) no descarta los
               // resultados por descripción: llega como null = «sin coincidencia por código»
@@ -391,6 +401,22 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           });
       }, 1000);
     }
+  }
+
+  /** Sucursal por cuyo stock ordenar, o `null` (orden de siempre). */
+  private ordenStockSucursalId(): number | null {
+    if (!this.isTransferencia) return null;
+    if (this.ordenStock === "origen") return this.data.transferencia?.sucursalOrigen?.id ?? null;
+    if (this.ordenStock === "destino") return this.data.transferencia?.sucursalDestino?.id ?? null;
+    return null;
+  }
+
+  /** Elegir el mismo orden de nuevo lo quita. Vuelve a buscar desde la primera página. */
+  cambiarOrdenStock(orden: "origen" | "destino"): void {
+    this.ordenStock = this.ordenStock === orden ? null : orden;
+    const texto = this.formGroup.get("buscarControl").value;
+    if (texto) this.onSearchProducto(texto);
+    setTimeout(() => this.buscarInput?.nativeElement?.focus(), 50);
   }
 
   private avisarSinRespuesta(): void {

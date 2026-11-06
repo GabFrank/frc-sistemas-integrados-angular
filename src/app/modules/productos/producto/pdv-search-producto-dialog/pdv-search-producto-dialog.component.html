@@ -84,6 +84,45 @@
             </mat-form-field>
           </div>
         </div>
+        <!-- Solo transferencias (#673): orden por stock de mayor a menor; otro clic en el mismo lo quita -->
+        <div
+          *ngIf="isTransferencia && data?.mostrarStock == true && (!ocultarStockOrigen || !ocultarStockDestino)"
+          class="orden-stock"
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          fxLayoutGap="8px"
+        >
+          <span class="orden-stock-label">Ordenar:</span>
+          <button
+            *ngIf="!ocultarStockOrigen"
+            type="button"
+            mat-stroked-button
+            [class.orden-activo]="ordenStock === 'origen'"
+            (click)="cambiarOrdenStock('origen')"
+          >
+            <mat-icon>arrow_downward</mat-icon>
+            Mayor stock origen
+          </button>
+          <button
+            *ngIf="!ocultarStockDestino"
+            type="button"
+            mat-stroked-button
+            [class.orden-activo]="ordenStock === 'destino'"
+            (click)="cambiarOrdenStock('destino')"
+          >
+            <mat-icon>arrow_downward</mat-icon>
+            Mayor stock destino
+          </button>
+          <span class="orden-stock-estado">
+            {{
+              ordenStock === "origen"
+                ? "Orden: mayor stock en " + (data?.transferencia?.sucursalOrigen?.nombre || "origen")
+                : ordenStock === "destino"
+                ? "Orden: mayor stock en " + (data?.transferencia?.sucursalDestino?.nombre || "destino")
+                : "Orden: por descripción"
+            }}
+          </span>
+        </div>
         <div class="table-container" fxLayout="row">
           <div fxFlex>
             <table
