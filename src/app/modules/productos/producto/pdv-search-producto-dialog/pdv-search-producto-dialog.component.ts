@@ -107,8 +107,8 @@ import { environment } from "../../../../../environments/environment";
 import { Transferencia } from "../../../operaciones/transferencia/transferencia.model";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
-/** Filtro por stock del buscador de transferencias (#673). */
-type FiltroStock = "todos" | "positivo" | "negativo";
+/** Orden por stock del buscador de transferencias (#673). */
+type OrdenStock = "todos" | "mayor" | "menor";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -174,11 +174,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   ocultarStockOrigen = false;
   ocultarStockDestino = false;
   /**
-   * Solo en transferencias (#673): filtro por stock en la sucursal de origen y en la de destino. Lo aplica el
-   * central, así la paginación lo respeta. «todos» = sin filtro (la búsqueda de siempre).
+   * Solo en transferencias (#673): orden por stock (mayor o menor primero) en la sucursal de origen o en la de
+   * destino, una a la vez. Lo hace el central, así la paginación lo respeta. «todos» = la búsqueda de siempre.
    */
-  filtroStockOrigen: FiltroStock = "todos";
-  filtroStockDestino: FiltroStock = "todos";
+  ordenStockOrigen: OrdenStock = "todos";
+  ordenStockDestino: OrdenStock = "todos";
   existenciaOrigen: number = 0;
   existenciaDestino: number = 0;
   modoSeleccionMultiple = false;
@@ -328,19 +328,18 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           return of([]);
         };
 
-        // Siempre buscar por descripción. En transferencias, con su consulta propia (filtro por stock, #673)
-        const filtro = this.filtroStockSucursales();
-        const filtraStock = filtro.positivo.length > 0 || filtro.negativo.length > 0;
+        // Siempre buscar por descripción. En transferencias, con su consulta propia (orden por stock, #673)
+        const orden = this.ordenStockElegido();
         const busquedaDescripcion$ = (this.isTransferencia
           ? this.productoService.onSearchTransferencia(text, offset, sucursalIdParaFiltro, soloStock, true,
-              filtro.positivo, filtro.negativo, this.data.servidor, false, errorConf, contexto)
+              orden?.sucursalId, orden?.mayor, this.data.servidor, false, errorConf, contexto)
           : this.productoService.onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor,
               false, errorConf, contexto)
         ).pipe(catchError(marcarFallo));
 
-        // Si parece código de barras, buscar también por código en paralelo. Con filtro de stock no: el
-        // resultado por código no pasa por el filtro (la búsqueda de arriba ya incluye los códigos).
-        const busquedaCodigo$ = esCodigo && !filtraStock
+        // Si parece código de barras, buscar también por código en paralelo. Con orden por stock no: el
+        // resultado por código iría primero y rompería el orden (la búsqueda de arriba ya incluye los códigos).
+        const busquedaCodigo$ = esCodigo && orden == null
           ? this.productoService
               // Un error del servidor en la búsqueda por código (p. ej. código repetido) no descarta los
               // resultados por descripción: llega como null = «sin coincidencia por código»
@@ -409,21 +408,21 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /** Sucursales donde exigir stock positivo / negativo según los filtros elegidos. */
-  private filtroStockSucursales(): { positivo: number[]; negativo: number[] } {
-    const filtro = { positivo: [], negativo: [] };
-    if (!this.isTransferencia) return filtro;
-    const agregar = (f: FiltroStock, sucursalId: number) => {
-      if (f === "todos" || sucursalId == null) return;
-      (f === "positivo" ? filtro.positivo : filtro.negativo).push(sucursalId);
-    };
-    if (!this.ocultarStockOrigen) agregar(this.filtroStockOrigen, this.data.transferencia?.sucursalOrigen?.id);
-    if (!this.ocultarStockDestino) agregar(this.filtroStockDestino, this.data.transferencia?.sucursalDestino?.id);
-    return filtro;
+  /** Sucursal y sentido del orden por stock elegido, o `null` (la búsqueda de siempre). */
+  private ordenStockElegido(): { sucursalId: number; mayor: boolean } | null {
+    if (!this.isTransferencia) return null;
+    const elegir = (o: OrdenStock, sucursalId: number) =>
+      o !== "todos" && sucursalId != null ? { sucursalId, mayor: o === "mayor" } : null;
+    return (
+      (!this.ocultarStockOrigen ? elegir(this.ordenStockOrigen, this.data.transferencia?.sucursalOrigen?.id) : null) ??
+      (!this.ocultarStockDestino ? elegir(this.ordenStockDestino, this.data.transferencia?.sucursalDestino?.id) : null)
+    );
   }
 
-  /** Vuelve a buscar desde la primera página con el filtro nuevo. */
-  onFiltroStockChange(): void {
+  /** Se ordena por una sucursal a la vez: elegir orden en una pone la otra en «Todos». Vuelve a buscar desde la primera página. */
+  onOrdenStockChange(lado: "origen" | "destino"): void {
+    if (lado === "origen" && this.ordenStockOrigen !== "todos") this.ordenStockDestino = "todos";
+    if (lado === "destino" && this.ordenStockDestino !== "todos") this.ordenStockOrigen = "todos";
     const texto = this.formGroup.get("buscarControl").value;
     if (texto) this.onSearchProducto(texto);
     setTimeout(() => this.buscarInput?.nativeElement?.focus(), 50);

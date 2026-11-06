@@ -140,12 +140,12 @@ export const productoSearchPdv = gql`
 `;
 
 /**
- * Solo el buscador de transferencias (#673): como `productoSearchPdv` más el filtro por stock positivo/negativo
- * en sucursales.
+ * Solo el buscador de transferencias (#673): como `productoSearchPdv` más el orden por stock (mayor o menor) de
+ * una sucursal.
  * Va aparte para que el POS (que puede consultar a la filial, sin este argumento) no cambie.
  */
 export const productoSearchTransferencia = gql`
-  query ($texto: String, $offset: Int, $sucursalId: ID, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean, $stockPositivoSucursalIds: [ID], $stockNegativoSucursalIds: [ID]) {
+  query ($texto: String, $offset: Int, $sucursalId: ID, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean, $ordenStockSucursalId: ID, $ordenStockMayor: Boolean) {
     data: productoSearch(
       texto: $texto
       offset: $offset
@@ -153,8 +153,8 @@ export const productoSearchTransferencia = gql`
       conStock: $conStock
       isEnvase: $isEnvase
       activo: $activo
-      stockPositivoSucursalIds: $stockPositivoSucursalIds
-      stockNegativoSucursalIds: $stockNegativoSucursalIds
+      ordenStockSucursalId: $ordenStockSucursalId
+      ordenStockMayor: $ordenStockMayor
     ) {
       id
       balanza

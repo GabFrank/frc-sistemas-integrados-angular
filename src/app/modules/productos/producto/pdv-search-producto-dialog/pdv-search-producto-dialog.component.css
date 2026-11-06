@@ -201,7 +201,7 @@ input {
     margin: 0 8px;
   }
 }
-/* Filtro por stock en transferencias (#673) */
+/* Orden por stock en transferencias (#673) */
 .filtro-stock {
   margin-bottom: 8px;
   flex-wrap: wrap;

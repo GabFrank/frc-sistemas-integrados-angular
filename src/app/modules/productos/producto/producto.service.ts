@@ -215,12 +215,12 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, errorConf, silentLoad, contexto);
   }
 
-  /** Buscador de transferencias (#673): el central deja solo los productos con stock > 0 / < 0 en esas sucursales. */
-  onSearchTransferencia(texto, offset?, sucursalId?, conStock?, activo?, stockPositivoSucursalIds?: number[],
-           stockNegativoSucursalIds?: number[], servidor = true, silentLoad: boolean = false, errorConf?: QueryError,
+  /** Buscador de transferencias (#673): con `ordenStockSucursalId` el central ordena por el stock de esa sucursal (mayor o menor primero). */
+  onSearchTransferencia(texto, offset?, sucursalId?, conStock?, activo?, ordenStockSucursalId?: number,
+           ordenStockMayor?: boolean, servidor = true, silentLoad: boolean = false, errorConf?: QueryError,
            contexto?: ContextoConsulta): Observable<Producto[]> {
     return this.genericService.onCustomQuery(this.productoSearchTransferencia,
-      {texto, offset, sucursalId, conStock, isEnvase: false, activo, stockPositivoSucursalIds, stockNegativoSucursalIds},
+      {texto, offset, sucursalId, conStock, isEnvase: false, activo, ordenStockSucursalId, ordenStockMayor},
       servidor, errorConf, silentLoad, contexto);
   }
 
