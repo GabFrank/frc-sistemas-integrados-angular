@@ -84,6 +84,39 @@
             </mat-form-field>
           </div>
         </div>
+        <!-- Solo transferencias (#673): orden por stock en origen o destino; por defecto, la búsqueda de siempre -->
+        <div
+          *ngIf="isTransferencia && data?.mostrarStock == true && (!ocultarStockOrigen || !ocultarStockDestino)"
+          class="filtro-stock"
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          fxLayoutGap="16px"
+        >
+          <div *ngIf="!ocultarStockOrigen" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+            <span class="filtro-stock-label">Stock origen:</span>
+            <mat-button-toggle-group
+              [(ngModel)]="ordenStockOrigen"
+              (change)="onOrdenStockChange('origen')"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              <mat-button-toggle value="todos">Todos</mat-button-toggle>
+              <mat-button-toggle value="mayor">Mayor stock</mat-button-toggle>
+              <mat-button-toggle value="menor">Menor stock</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+          <div *ngIf="!ocultarStockDestino" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+            <span class="filtro-stock-label">Stock destino:</span>
+            <mat-button-toggle-group
+              [(ngModel)]="ordenStockDestino"
+              (change)="onOrdenStockChange('destino')"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              <mat-button-toggle value="todos">Todos</mat-button-toggle>
+              <mat-button-toggle value="mayor">Mayor stock</mat-button-toggle>
+              <mat-button-toggle value="menor">Menor stock</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        </div>
         <div class="table-container" fxLayout="row">
           <div fxFlex>
             <table
