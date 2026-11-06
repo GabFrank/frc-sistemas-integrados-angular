@@ -201,22 +201,17 @@ input {
     margin: 0 8px;
   }
 }
-/* Orden por stock en transferencias (#673) */
-.orden-stock {
+/* Filtro por stock en transferencias (#673) */
+.filtro-stock {
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
-.orden-stock-label {
+.filtro-stock-label {
   opacity: 0.8;
 }
 
-.orden-stock .orden-activo {
+.filtro-stock .mat-button-toggle-checked {
   background-color: #43a047;
   color: #fff;
-}
-
-.orden-stock-estado {
-  margin-left: 8px;
-  font-weight: 500;
 }
