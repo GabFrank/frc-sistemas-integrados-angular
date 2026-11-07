@@ -35,6 +35,18 @@ y la query de movimientos ya trae `origenId` (`caja-virtual/graphql/graphql-quer
 
 Tras anular, `terminar()` relee movimientos y saldos (comportamiento existente de todas las ramas).
 
+## 2b. Fase 2 — etiqueta de la salida varia (pedido de Franco, 07/11, en la prueba)
+
+Una salida varia figura «Entrada varia» (en rojo) en *Movimientos de caja mayor* y en *Historial de movimientos*: la
+etiqueta sale de `ORIGEN_MOVIMIENTO_LABELS[origenTipo]` y entradas y salidas comparten `ENTRADA_VARIA`
+(`labelMovimiento`, `caja-virtual.model.ts`, desde `6ac0d392`). El color ya es correcto (sale del `tipoMovimiento`).
+
+- `labelMovimiento`: con origen `ENTRADA_VARIA` y `tipoMovimiento` `EGRESO`, «Salida varia». Un solo lugar, cubre las
+  dos pantallas. La anulación conserva «Anulación» (su origen es `ANULACION`).
+- Fuera de este PR: el PDF del central (`ReporteMovimientosCajaService.ORIGEN_LABELS`) tiene el mismo mapa y sigue
+  diciendo «Entrada varia» en las salidas; va en un PR del central si se pide.
+- Prueba: una salida y una entrada varia en el dashboard y en el historial de la caja 19.
+
 ## 3. Lo que no cambia
 - El central (todo lo que pide la aceptación ya está ahí).
 - `list-entradas-varias-dialog` (sigue anulando con su motivo «ANULADO DESDE ESCRITORIO»).
