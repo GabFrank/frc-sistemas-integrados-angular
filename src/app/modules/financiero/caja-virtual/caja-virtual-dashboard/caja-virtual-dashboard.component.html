@@ -223,9 +223,12 @@
                   <button mat-menu-item *ngIf="row._verOrigen" (click)="irAlOrigen(row)">
                     <mat-icon>{{ row._origenIcon }}</mat-icon><span>{{ row._origenLabel }}</span>
                   </button>
-                  <button mat-menu-item (click)="onAnular(row)" [disabled]="!row._anulable">
-                    <mat-icon>block</mat-icon><span>Anular</span>
-                  </button>
+                  <!-- El tooltip va en el contenedor: un mat-menu-item deshabilitado no recibe el hover. -->
+                  <div [matTooltip]="row._motivoNoAnulable" [matTooltipDisabled]="!row._motivoNoAnulable" matTooltipPosition="left">
+                    <button mat-menu-item (click)="onAnular(row)" [disabled]="!row._anulable">
+                      <mat-icon>block</mat-icon><span>Anular</span>
+                    </button>
+                  </div>
                 </mat-menu>
               </td>
             </ng-container>

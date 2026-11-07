@@ -37,7 +37,8 @@ Lo pagado por el hub de tesorería (pago consolidado) ya se anula entero desde l
 - El motivo depende solo de los datos de la fila (origen, ids, `activo !== false`, no AJUSTE), no de permisos ni de
   anulaciones en curso: sin permiso o con la anulación en vuelo se sigue viendo «Anular» gris. Se calcula una vez al
   armar la fila.
-- HTML: el ítem del menú muestra el motivo en lugar de «Anular» cuando hay motivo (sigue deshabilitado).
+- HTML: «Anular» deshabilitado con el motivo en un `matTooltip` al pasar el mouse (pedido de Franco el 07/11, en lugar
+  de reemplazar el texto). Va en un contenedor, como en la tabla de banco: un ítem deshabilitado no recibe el hover.
 
 Decidido por Franco (07/11): deshabilitar y explicar según el caso; no abrir vías nuevas de anulación (en RRHH rompería
 la separación liquida/paga).
