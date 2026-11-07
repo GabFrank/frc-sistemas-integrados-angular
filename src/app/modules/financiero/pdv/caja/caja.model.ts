@@ -84,8 +84,18 @@ export  enum PdvCajaEstado {
  * números: el filial devuelve un CajaBalance con todo en null si la caja no existe (#390).
  */
 export function esBalanceVerificable(b: CajaBalance): boolean {
-  return b != null && typeof b.diferenciaGs === 'number' && typeof b.diferenciaRs === 'number'
-    && typeof b.diferenciaDs === 'number';
+  // isFinite y no typeof: un NaN es 'number' y con él ninguna comparación bloquea.
+  return b != null && Number.isFinite(b.diferenciaGs) && Number.isFinite(b.diferenciaRs)
+    && Number.isFinite(b.diferenciaDs);
+}
+
+/**
+ * Si sacar `monto` deja la caja en negativo, con la misma regla que el filial (PdvCajaService.superaSaldo, issue
+ * filial #80): `−diferencia` de una caja abierta es el efectivo esperado; 0,005 de tolerancia por el redondeo de
+ * double en R$/US$ (un saldo de 4,199999… tiene que aceptar 4,20). Un monto 0 o nulo nunca supera.
+ */
+export function superaDisponible(monto: number, diferencia: number): boolean {
+  return monto > 0 && monto > -diferencia + 0.005;
 }
 
 export class CajaBalance {

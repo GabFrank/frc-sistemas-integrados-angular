@@ -27,7 +27,7 @@ import { CargandoDialogService } from "../../../../../shared/components/cargando
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { MonedaService } from "../../../moneda/moneda.service";
-import { CajaBalance, esBalanceVerificable, PdvCaja } from "../../../pdv/caja/caja.model";
+import { CajaBalance, esBalanceVerificable, PdvCaja, superaDisponible } from "../../../pdv/caja/caja.model";
 import { GastoService } from "../../service/gasto.service";
 import { Gasto } from "../../models/gastos.model";
 
@@ -450,7 +450,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 // respuesta, el gasto pudo haberse guardado (y el ticket impreso): un alta no se puede repetir
                 // hasta ver si ya figura; una edición se puede repetir, alcanza con releer (#390).
                 error: (err) => {
-                  if (erroresDeRechazo(err) != null) return;
+                  if (erroresDeRechazo(err) != null) {
+                    // El filial rechaza, p. ej., porque el saldo cambió desde que se abrió el diálogo.
+                    this.cargarBalance();
+                    return;
+                  }
                   if (esAlta) this.verificarGastoEnDuda(gasto, idsAntes);
                   else this.cargarGastosDeCaja();
                 } });
@@ -712,22 +716,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   verficarValores(): boolean {
     if (!this.saldoVerificado()) return false;
-    if (
-      this.guaraniControl.value >
-      this.balanceCaja.diferenciaGs * -1
-    ) {
+    if (superaDisponible(this.guaraniControl.value, this.balanceCaja.diferenciaGs)) {
       this.notificacionService.openWarn(
         "El monto en guaraníes es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.realControl.value > this.balanceCaja.diferenciaRs * -1) {
+    if (superaDisponible(this.realControl.value, this.balanceCaja.diferenciaRs)) {
       this.notificacionService.openWarn(
         "El monto en reales es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.dolarControl.value > this.balanceCaja.diferenciaDs * -1) {
+    if (superaDisponible(this.dolarControl.value, this.balanceCaja.diferenciaDs)) {
       this.notificacionService.openWarn(
         "El monto en dolares es mayor a lo que tiene en caja"
       );
