@@ -81,3 +81,14 @@ Filial de la rama de #243 en el 8082 (sucursal 24) + desktop de esta rama web es
 
 - Contra un filial anterior a #243 la pantalla se relaja en 0,005 y en los montos 0, y sigue siendo la
   única barrera real (ese filial no descontaba retiros). Aceptable: 0,005 es redondeo de `double`.
+
+## Resultado de las pruebas (2026-11-07)
+
+- `caja.model.spec.ts`: 4/4 en Karma (acotado, `DISPLAY=:0`). `npm run check`: sin errores.
+- Por pantalla, filial de la rama de #243 en el 8082 y este desktop web:
+  1. R$ con centavos: con R$ 0,0999… disponible por `double`, un gasto de R$ 0,10 pasa la pantalla y el
+     filial lo guarda (gasto 718).
+  2. Disponible negativo en guaraníes: un gasto solo en reales se guarda (gasto 720).
+  3. Rechazo del filial con el diálogo abierto (retiro hecho desde otra pestaña): el diálogo recarga el
+     disponible (nueva `balancePorCajaId` en la red) y el intento siguiente lo bloquea la pantalla. Igual en
+     gasto y en retiro.
