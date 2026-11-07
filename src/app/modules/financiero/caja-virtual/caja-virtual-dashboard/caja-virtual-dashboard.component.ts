@@ -39,6 +39,7 @@ import { AccionAnularMovimientoBancario, PermisosAnulacionBancaria,
          accionAnularMovimientoBancario } from '../../operacion-financiera/movimiento-bancario-anulacion';
 import { MovimientoBancarioAnulacionService } from '../../operacion-financiera/movimiento-bancario-anulacion.service';
 import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
+import { EntradaVariaService } from '../../entrada-varia/entrada-varia.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -270,6 +271,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private impresionService: ImpresionService,
     private movimientoBancarioAnulacionService: MovimientoBancarioAnulacionService,
+    private entradaVariaService: EntradaVariaService,
     public mainService: MainService
   ) {}
 
@@ -797,7 +799,14 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (m.origenTipo === 'RETIRO_CAJA' && m.origenId && m.origenSucursalId) return `RETIRO:${m.origenId}:${m.origenSucursalId}`;
     if (m.esPagoConsolidado && m.referenciaId) return `PAGO:${m.referenciaId}`;
     if (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) return `OPERACION:${m.referenciaId}`;
+    const entradaVariaId = this.entradaVariaIdDe(m);
+    if (entradaVariaId) return `ENTRADA_VARIA:${entradaVariaId}`;
     return `MOVIMIENTO:${m.id}`;
+  }
+
+  /** Id de la entrada/salida varia de la fila: el central pone el mismo en origenId y referenciaId. */
+  private entradaVariaIdDe(m: MovimientoCajaVirtual): number | null {
+    return m.origenTipo === 'ENTRADA_VARIA' ? (m.origenId ?? m.referenciaId ?? null) : null;
   }
 
   /** Vuelve a calcular «Anular» en las filas en pantalla (el bloqueo cambió sin que se releyera la tabla). */
@@ -827,6 +836,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // verificación entera (movimiento + estado del retiro + caso abierto), y para ubicarla
     // hacen falta las dos mitades de la PK del retiro.
     const esRetiro = mov.origenTipo === 'RETIRO_CAJA' && !!mov.origenId && !!mov.origenSucursalId;
+    // El central no anula una entrada varia como movimiento suelto: va por su módulo, que además la marca anulada.
+    const entradaVariaId = this.entradaVariaIdDe(mov);
     // Una transferencia entre cajas hecha a mano se anula entera: el central revierte también la pata de
     // la otra caja. Las de una operación financiera llevan su origen y entran por esOpFinanciera.
     const esTransferencia = (mov.tipoMovimiento === CajaVirtualTipoMovimiento.TRANSFERENCIA_ENTRADA
@@ -846,6 +857,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo = 'Anular operación financiera';
       mensaje = '¿Anular la operación financiera completa? Se revertirán TODOS sus movimientos vinculados (origen y destino).';
       exito = 'Operación financiera anulada';
+    } else if (entradaVariaId) {
+      titulo = 'Anular entrada/salida varia';
+      mensaje = `¿Anular la entrada/salida varia #${entradaVariaId}? Se generará un contra-movimiento de ajuste y la entrada quedará anulada también en Entradas/salidas varias.`;
+      exito = 'Entrada/salida varia anulada';
     } else if (esTransferencia) {
       titulo = 'Anular transferencia';
       mensaje = '¿Anular la transferencia completa? Se revierte en las DOS cajas: la plata vuelve a la caja de origen y sale de la de destino. Hace falta permiso sobre las dos.';
@@ -869,7 +884,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
         this.anulacionesPendientes.set(clave, this.movimientosCargaId);
         this.recargar();
       };
-      // Tres ramas pasan por onSaveCustom: van sin su «Guardado con éxito» (el éxito lo avisa este
+      // Cuatro ramas pasan por onSaveCustom: van sin su «Guardado con éxito» (el éxito lo avisa este
       // componente) y su error ya lo avisó onSaveCustom, así que se marca para no repetirlo. Todo
       // otro error —el pago a proveedor (Apollo directo, sin aviso genérico), la verificación que
       // no aparece, o uno que nadie previó— se avisa acá: por defecto se avisa, no se calla.
@@ -886,7 +901,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
           ? this.pagarComprasService.onAnularPago(mov.referenciaId)
           : esOpFinanciera
             ? yaAvisado(this.operacionFinancieraService.onAnular(mov.referenciaId, undefined, sinExitoGenerico))
-            : yaAvisado(this.cajaVirtualService.onAnularMovimiento(mov.id, undefined, sinExitoGenerico));
+            : entradaVariaId
+              ? yaAvisado(this.entradaVariaService.onAnular(entradaVariaId, undefined, sinExitoGenerico))
+              : yaAvisado(this.cajaVirtualService.onAnularMovimiento(mov.id, undefined, sinExitoGenerico));
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {
