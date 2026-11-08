@@ -52,9 +52,27 @@
       </div>
       <div fxFlex="50%">
         <mat-label>Cajas con observaciones</mat-label>
+        <!-- Igual que Verificado: Todos → Sí → No. -->
         <mat-checkbox
-          [formControl]="conObsControl"
+          [checked]="conObsControl.value == true"
+          [indeterminate]="conObsControl.value == null"
+          (click)="
+            conObsControl.setValue(
+              conObsControl.value === null
+                ? true
+                : conObsControl.value === true
+                ? false
+                : null
+            )
+          "
         >
+          {{
+            conObsControl.value == null
+              ? "Todos"
+              : conObsControl.value == true
+              ? "Si"
+              : "No"
+          }}
         </mat-checkbox>
       </div>
       </div>
