@@ -114,7 +114,15 @@ export class ListCajaComponent implements OnInit {
   codigoMaletinControl = new FormControl();
   sucursalControl = new FormControl();
   sucursalCodigoControl = new FormControl();
-  conObsControl = new FormControl(false);
+  /** null = todas, true = solo con observaciones, false = solo sin observaciones. */
+  conObsControl = new FormControl(null);
+  turnoControl = new FormControl(null);
+  /** Por hora de apertura, igual en bodega y farmacia (cortes en el central: CajaTurnos). */
+  turnoList = [
+    { turno: 'DIA', nombre: 'Día' },
+    { turno: 'NOCHE', nombre: 'Noche' },
+    { turno: 'MADRUGADA', nombre: 'Madrugada' },
+  ];
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
@@ -237,6 +245,7 @@ export class ListCajaComponent implements OnInit {
         sucursalId,
         this.verificadoControl.value,
         this.activoControl.value,
+        this.turnoControl.value,
         this.pageIndex,
         this.pageSize
       )
@@ -269,9 +278,10 @@ export class ListCajaComponent implements OnInit {
     aux.setDate(hoy.getDate() - 5);
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
-    this.conObsControl.setValue(false);
+    this.conObsControl.setValue(null);
     this.verificadoControl.setValue(null);
     this.activoControl.setValue(null);
+    this.turnoControl.setValue(null);
     this.lastValue = null;
     this.onFilter();
   }
@@ -291,11 +301,11 @@ export class ListCajaComponent implements OnInit {
 
   onObservado(cajas: PdvCaja[]): PdvCaja[] {
     cajas.forEach((caja) => {
-      caja['hasObservation'] = caja.cajaObservacionList && caja.cajaObservacionList.length > 0;
+      caja['hasObservation'] = !!(caja.cajaObservacionList && caja.cajaObservacionList.length > 0);
     });
   
-    if (this.conObsControl.value) {
-      cajas = cajas.filter((box) => box['hasObservation']);
+    if (this.conObsControl.value != null) {
+      cajas = cajas.filter((box) => box['hasObservation'] === this.conObsControl.value);
     }
     return cajas;
   }

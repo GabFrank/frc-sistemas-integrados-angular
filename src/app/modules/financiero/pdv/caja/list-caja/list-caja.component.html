@@ -24,7 +24,9 @@
           />
         </mat-form-field>
       </div>
-      <div fxFlex="30%">
+      <!-- Misma grilla que Maletín/Cajero/Sucursal: 10% | 30% | 8% | bloque de Sucursal | 8%. -->
+      <div fxFlex="30%" fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="50%">
         <mat-label>Verificado</mat-label>
         <mat-checkbox
           [checked]="verificadoControl.value == true"
@@ -48,15 +50,36 @@
           }}
         </mat-checkbox>
       </div>
-      <div fxFlex="30%">
-        <mat-label>Cajas con observaciones</mat-label>
+      <div fxFlex="50%">
+        <mat-label>Observaciones</mat-label>
+        <!-- Igual que Verificado: Todos → Sí → No. -->
         <mat-checkbox
-          [formControl]="conObsControl"
+          [checked]="conObsControl.value == true"
+          [indeterminate]="conObsControl.value == null"
+          (click)="
+            conObsControl.setValue(
+              conObsControl.value === null
+                ? true
+                : conObsControl.value === true
+                ? false
+                : null
+            )
+          "
         >
+          {{
+            conObsControl.value == null
+              ? "Todos"
+              : conObsControl.value == true
+              ? "Si"
+              : "No"
+          }}
         </mat-checkbox>
       </div>
+      </div>
       <div fxFlex="8%"></div>
-      <div fxFlex="25%">
+      <!-- Mismo ancho que Sucursal (código 10% + nombre 30% + su separación), alineado arriba de ella. -->
+      <div fxFlex="0 0 calc(40% + 10px)" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <div fxFlex>
         <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
           <mat-label>Rango de fecha</mat-label>
           <mat-date-range-input
@@ -95,7 +118,18 @@
           >
         </mat-form-field>
       </div>
-      <div fxFlex="30%" fxAlignItem="center">
+      <div fxFlex="0 0 150px">
+        <!-- Etiqueta siempre arriba y «Todos» en la línea del valor: queda a la altura del rango de fecha. -->
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field" floatLabel="always">
+          <mat-label>Turno</mat-label>
+          <mat-select [formControl]="turnoControl" (selectionChange)="onFilter()" placeholder="Todos">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of turnoList" [value]="t.turno">{{ t.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      </div>
+      <div fxFlex="8%" fxAlignItem="center">
         <mat-checkbox
           [indeterminate]="activoControl.value == null"
           [formControl]="activoControl"
