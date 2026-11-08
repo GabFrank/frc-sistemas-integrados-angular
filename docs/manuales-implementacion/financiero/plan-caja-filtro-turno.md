@@ -11,7 +11,7 @@ DIA 08–17, NOCHE 17–01, MADRUGADA 01–08, con tolerancia porque hay cajeros
 
 ## Datos de producción (último año, consulta de solo lectura, 2026-11-08)
 
-**Bodega** (central `5552/bodega`, 18.085 cajas), aperturas por franja de 10 min:
+**Bodega** (central de bodega, 18.085 cajas), aperturas por franja de 10 min:
 
 | Turno nominal | Empiezan a abrir | Pico | Abren antes de la hora |
 |---|---|---|---|
@@ -23,10 +23,10 @@ Franjas casi vacías: 02:00–07:20 (16 cajas en el año), 15:00–15:40 (15), 2
 chicos fuera de pico: ~300 cerca del mediodía y ~180 a las 18:30–19:10, repartidos por sucursal
 (reemplazos/refuerzos). 9 sucursales no tienen madrugada (4, 6, 7, 8, 10, 20, 21, 23, 24).
 
-**Farmacia** (central `5551/farmacia`, 6.229 cajas): picos a las 06:50–07:10 y 14:50–15:10, sin
+**Farmacia** (central de farmacia, 6.229 cajas): picos a las 06:50–07:10 y 14:50–15:10, sin
 madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
 
-**La sesión de Postgres de producción está en America/Argentina/Buenos_Aires**, no en Asunción.
+**La sesión de Postgres de producción no está en America/Asuncion.**
 
 ## Decisiones
 
@@ -54,7 +54,7 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
 - **Hora usada: `pdv_caja.creado_en`**, la del filtro de fechas: no es nula y difiere de
   `fecha_apertura` en más de 30 min en 78 de 51.196 cajas (base local).
 - **La hora se convierte a `app.timezone` dentro de la query** (`function('timezone', :zona,
-  c.creadoEn)`): producción tiene la sesión en Buenos_Aires, y nada asegura que `TimeZoneConfig`
+  c.creadoEn)`): producción tiene la sesión en otra zona, y nada asegura que `TimeZoneConfig`
   corra antes de que Hikari abra conexiones. Verificado por SQL: con `set timezone='UTC'` y la
   conversión explícita el reparto no cambia.
 - **El día se rota para que el primer corte sea el minuto 0**: `r = mod(minutos + offset, 1440)`
@@ -135,7 +135,7 @@ Central de la rama en 8081 (perfil dev), desktop `ng serve -c web`, usuario MR.
 
 ## Orden de despliegue
 
-1. `CAJA_TURNOS=DIA=04:00,NOCHE=12:30` en `/opt/frc-backend-central/<farmacia>/.env` **antes** de
+1. `CAJA_TURNOS=DIA=04:00,NOCHE=12:30` en el `.env` de la instancia de farmacia **antes** de
    que el central de la rama llegue a farmacia (canal beta). Lo hace Franco (sudo). Sin la variable,
    farmacia usaría los cortes de bodega: no rompe, pero clasifica mal la mañana.
 2. Central antes que desktop en cada canal. Un desktop nuevo contra un central viejo no muestra el
@@ -146,7 +146,7 @@ Central de la rama en 8081 (perfil dev), desktop `ng serve -c web`, usuario MR.
 - La tzdata del Postgres de producción (gotchas.md: hubo JVM con tzdb vieja; Paraguay es −03 fijo
   desde oct-2024). Con tzdata vieja el filtro correría 1 h en invierno. Se verificaría con
   `select now() at time zone 'America/Asuncion'` en el central.
-- El nombre exacto del directorio de farmacia en `/opt/frc-backend-central/` (leer su `.env` no se
+- El `.env` de la instancia de farmacia (leerlo no se
   permitió desde esta sesión): lo confirma Franco al cargar la variable.
 
 ## Auditoría del plan (paso 5)
@@ -157,9 +157,44 @@ Central de la rama en 8081 (perfil dev), desktop `ng serve -c web`, usuario MR.
 | A | `Turno` como argumento desde otro `.graphqls` ya funciona (`jornada.graphqls:80`) | Se reusa |
 | A/B | `Integer` nulo comparado entre parámetros puede bindearse sin tipo: rompe la lista con «Todos» | Día rotado y rango siempre no nulo |
 | A | La condición `servidor` tiene que conservar `servidor == null \|\|` | Se conserva |
-| B | `extract(hour)` usa la zona de la sesión JDBC; producción está en Buenos_Aires | Conversión explícita con `timezone(:zona, …)`; IT con `-Duser.timezone=UTC` |
+| B | `extract(hour)` usa la zona de la sesión JDBC; producción no está en Asunción | Conversión explícita con `timezone(:zona, …)`; IT con `-Duser.timezone=UTC` |
 | B | Sumar `$turno` a la query de `activo` rompe Abiertas/Cerradas contra un central viejo | Query aparte; además el selector solo aparece si el central responde `cajaTurnos` |
 | B | El IT no corre en CI y no prueba bordes exactos | Unitario de `CajaTurnos` con los bordes, que sí corre en CI |
 | B | Sin índice sobre la expresión | Se acepta: sucursal + fechas acotan antes |
 | B | Un `creado_en` nulo quedaría fuera de los tres turnos (hoy hay 0) | Se acepta |
 | — | Farmacia tiene otros horarios (pedido de Franco) | Cortes por instancia en `CAJA_TURNOS`; variable nueva en el `.env` de farmacia antes del deploy (eje A, pregunta 4) |
+
+## Auditoría del diff (paso 8)
+
+Fijos 1, 2 y 3; los condicionales no aplican (no toca release ni lo que replica).
+
+| Eje | Hallazgo | Qué se hizo |
+|---|---|---|
+| 1 | `cajasWithFilters` y `cajaTurnos` abren con `requireAnyRole(ANALISIS_DE_CAJA)`; filtro por sucursal intacto; sin inyección (parámetros enlazados, `turno` es enum) | Nada que cambiar |
+| 2 | Sin turno la expresión igual se evaluaba: una caja con `creado_en` nulo desaparecía de la lista | `(:desde = 0 and :hasta = 1440) or (…)` |
+| 2 | Con un solo turno configurado el texto sale «07:00 a 07:00» | Se acepta: ninguna instancia lo configura así |
+| 2 | Default de `app.caja.turnos` repetido en `@Value` y en `application.properties` | Se acepta: el `@Value` lo necesita para los unitarios sin contexto |
+| 3 | Contra un central viejo, con error de red `cajaTurnos` no emite: el selector no aparece hasta reabrir la pestaña | Se acepta: es el mismo resultado que sin el filtro |
+| 3 | El repo del desktop es público y el plan nombraba puertos/bases y rutas de producción | Quitados del plan |
+
+## Resultado de las pruebas (2026-11-08)
+
+- Unitarios `CajaTurnosTest` (bordes, partición de los 1440 minutos en bodega y farmacia, valores
+  inválidos) y `ControlRolMatrizTest` en verde. `mvn clean verify` completo en verde (3.314 tests) antes
+  del arreglo de `creado_en` nulo; después del arreglo, unitarios e IT en verde y la batería completa
+  quedó pendiente (se cortó por falta de memoria).
+- `CajasWithFiltersTurnoIT` en verde con la JVM normal y con `-Duser.timezone=UTC`; falla con el
+  `offset` anulado en el JPQL.
+- Por pantalla (central de la rama en 8081, desktop `ng serve -c web`, MR, sucursal 3, 03/01 a
+  31/03/2026), contra un `count` por SQL con la hora de Asunción:
+
+  | Caso | Esperado | Pantalla |
+  |---|---|---|
+  | Todos | 263 | 263 (query sin `turno`) |
+  | Día / Noche / Madrugada | 90 / 86 / 87 | 90 / 86 / 87; página 2 de Madrugada respeta el filtro |
+  | Noche + Abiertas / Cerradas | 0 / 86 | 0 / 86 |
+  | Limpiar filtro | vuelve a Todos | query sin `turno` |
+  | `CAJA_TURNOS=DIA=04:00,NOCHE=12:30`: Noche | 173 | 173; el selector muestra solo Día y Noche con esas horas |
+  | `CAJA_TURNOS=TARDE=12:00` (inválido) | arranca, sin selector | `ERROR` en el log, sin selector, lista 263 |
+  | Central de develop (sin la rama) | sin selector, lista anda | sin selector ni aviso; Cerradas 263 |
+  | Últimas cajas del PDV contra filial develop en 8082 | query de siempre | sin `turno`, lista la caja 1189 de MR |
