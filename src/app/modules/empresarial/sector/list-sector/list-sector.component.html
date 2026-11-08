@@ -100,10 +100,12 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(sector, i)">
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
             <button mat-menu-item color="primary" (click)="onDeleteSector(sector, i)">
-              Eliminar
+              <mat-icon>delete</mat-icon>
+              <span>Eliminar</span>
             </button>
             
           </mat-menu>

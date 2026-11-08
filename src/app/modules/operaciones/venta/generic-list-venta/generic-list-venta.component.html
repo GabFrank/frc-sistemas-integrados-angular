@@ -371,10 +371,12 @@
               </button>
               <mat-menu #menu="matMenu">
                 <button mat-menu-item *ngIf="puedeCancelarVenta" (click)="onCancelarVenta(venta, i)">
-                  {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar"}}
+                  <mat-icon>{{ venta?.estado == 'CANCELADA' ? 'check_circle' : 'block' }}</mat-icon>
+                  <span>{{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar"}}</span>
                 </button>
                 <button mat-menu-item (click)="onListObservaciones(venta)">
-                  Adicionar observación
+                  <mat-icon>add_comment</mat-icon>
+                  <span>Adicionar observación</span>
                 </button>
               </mat-menu>
             </td>

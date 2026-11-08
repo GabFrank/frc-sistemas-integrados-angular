@@ -298,12 +298,14 @@
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu">
-              <button mat-menu-item (click)="onVer(retiro)">Ver</button>
+              <button mat-menu-item (click)="onVer(retiro)"><mat-icon>visibility</mat-icon><span>Ver</span></button>
               <button mat-menu-item (click)="onReimprimir(retiro)">
-                Reimprimir
+                <mat-icon>print</mat-icon>
+                <span>Reimprimir</span>
               </button>
               <!-- <button *ngIf="retiro?.finalizado == true" mat-menu-item (click)="onImprimir(retiro)">
-                Imprimir
+                <mat-icon>print</mat-icon>
+                <span>Imprimir</span>
               </button> -->
             </mat-menu>
           </td>

@@ -321,7 +321,8 @@
               (click)="onVerMovimiento(producto, i)"
               
             >
-              Ver movimientos
+              <mat-icon>receipt_long</mat-icon>
+              <span>Ver movimientos</span>
             </button> -->
             <button mat-menu-item (click)="onAjustarStock(producto)" *ngIf="
                 mainService.usuarioActual?.roles.includes(

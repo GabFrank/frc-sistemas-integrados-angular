@@ -117,19 +117,24 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onAddPersona(persona, i)">
-              Editar datos
+              <mat-icon>edit</mat-icon>
+              <span>Editar datos</span>
             </button>
             <button mat-menu-item (click)="irA('usuario', persona)" *ngIf="persona?.isUsuario ? puedeVerUsuarios : puedeEditarUsuarios">
-              {{persona?.isUsuario ? 'Ir a usuario' : 'Crear usuario'}}
+              <mat-icon>account_circle</mat-icon>
+              <span>{{persona?.isUsuario ? 'Ir a usuario' : 'Crear usuario'}}</span>
             </button>
             <button mat-menu-item (click)="irA('cliente', persona)">
-              {{persona?.isCliente ? 'Ir a cliente' : 'Crear cliente'}}
+              <mat-icon>person</mat-icon>
+              <span>{{persona?.isCliente ? 'Ir a cliente' : 'Crear cliente'}}</span>
             </button>
             <button mat-menu-item (click)="irA('funcionario', persona)">
-              {{persona?.isFuncionario ? 'Ir a funcionario' : 'Crear funcionario'}}
+              <mat-icon>badge</mat-icon>
+              <span>{{persona?.isFuncionario ? 'Ir a funcionario' : 'Crear funcionario'}}</span>
             </button>
             <button mat-menu-item (click)="irA('proveedor', persona)">
-              {{persona?.isProveedor ? 'Ir a proveedor' : 'Crear proveedor'}}
+              <mat-icon>local_shipping</mat-icon>
+              <span>{{persona?.isProveedor ? 'Ir a proveedor' : 'Crear proveedor'}}</span>
             </button>
           </mat-menu>
         </td>

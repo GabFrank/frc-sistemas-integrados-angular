@@ -186,9 +186,10 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onEditItem(item)">Editar</button>
+            <button mat-menu-item (click)="onEditItem(item)"><mat-icon>edit</mat-icon><span>Editar</span></button>
             <button mat-menu-item (click)="onDeleteItem(item)" style="color: red">
-              Eliminar
+              <mat-icon style="color: red">delete</mat-icon>
+              <span>Eliminar</span>
             </button>
           </mat-menu>
         </td>
