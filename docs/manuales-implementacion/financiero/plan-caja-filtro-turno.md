@@ -49,7 +49,7 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
 - **Valor mal escrito: no tumba el central.** Se loguea `ERROR` al arrancar y el filtro queda sin
   turnos (el desktop no muestra el selector). Un central caído por una variable sería peor.
 - **El desktop pide los turnos al central** (query nueva `cajaTurnos`) para listar solo los que
-  existen y mostrar sus horas reales en el tooltip. Si la query falla (central viejo), el selector no
+  existen y mostrar sus horas reales en cada opción. Si la query falla (central viejo), el selector no
   aparece y la pantalla queda como hoy.
 - **Hora usada: `pdv_caja.creado_en`**, la del filtro de fechas: no es nula y difiere de
   `fecha_apertura` en más de 30 min en 78 de 51.196 cajas (base local).
@@ -65,7 +65,7 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
   fechas).
 - **Se reusa el enum `Turno`** (`domain/administrativo/enums/Turno.java`, ya en GraphQL por
   `horario.graphqls`). Sin migración. Para farmacia «DIA/NOCHE» se leen como mañana/tarde; el
-  tooltip muestra las horas.
+  selector muestra las horas.
 - **Descartado: el turno del horario del cajero** (`horario.turno`): pocos funcionarios tienen
   horario y un reemplazo saldría en el turno de su horario.
 
@@ -74,7 +74,7 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
 | Dato | Escribe | Lee |
 |---|---|---|
 | propiedad `app.caja.turnos` / env `CAJA_TURNOS` | default en `application.properties`; `.env` de farmacia (a mano, antes del deploy) | `CajaTurnos` (componente nuevo, parsea al arrancar) |
-| query `cajaTurnos: [CajaTurno]` (`turno`, `desde`, `hasta` como `HH:mm`) | `PdvCajaGraphQL.cajaTurnos` desde `CajaTurnos` | `list-caja` (`turnoList` y tooltip) vía `CajaService.onGetCajaTurnos` |
+| query `cajaTurnos: [CajaTurno]` (`turno`, `desde`, `hasta` como `HH:mm`) | `PdvCajaGraphQL.cajaTurnos` desde `CajaTurnos` | `list-caja` (`turnoList`, horas en cada opción) vía `CajaService.onGetCajaTurnos` |
 | argumento `turno: Turno` de `cajasWithFilters` | `list-caja` (`turnoControl`) → `CajaService.onGetCajasWithFilters` → `CajasWithFiltersTurnoGQL` | `PdvCajaGraphQL.cajasWithFilters` → `PdvCajaService.findAllWithFilters` (rango con `CajaTurnos`) → `PdvCajaRepository.findAllWithFilters` |
 
 ## Fases
@@ -99,8 +99,9 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
   22:59/23:00, 00:00; config de farmacia (MADRUGADA inexistente → vacío; NOCHE cruza medianoche);
   valor inválido → sin turnos. `CajasWithFiltersTurnoIT` (estilo `CajasWithFiltersActivoIT`,
   `-Dit.caja=true`, solo lectura, sucursal 3): cada turno no vacío con todas sus cajas dentro de la
-  ventana (hora de `creadoEn` en Java), y la suma de los tres = total sin turno; correrlo también con
-  `-Duser.timezone=UTC`. Ajustar `CajasWithFiltersActivoIT` a la firma nueva. Revertir el JPQL y ver
+  ventana, comparando contra un SQL con la hora de Asunción explícita (no contra la hora leída en Java:
+  con la JVM en UTC el `LocalDateTime` sale corrido 3 h, problema previo y ajeno al filtro), y la suma
+  de los tres = total sin turno; correrlo también con `-Duser.timezone=UTC`. Ajustar `CajasWithFiltersActivoIT` a la firma nueva. Revertir el JPQL y ver
   que el IT falla. Batería `./mvnw clean verify -B -DskipFlyway=true` (copia fuera de `dev-frc` si
   jdtls molesta).
 
@@ -112,8 +113,8 @@ madrugada. Primeras aperturas 04:20; valle más bajo 12:20–12:50.
 - `CajaService`: `onGetCajaTurnos()`; `onGetCajasWithFilters` con `turno` después de `activo`. Con
   `servidor == null || servidor` y turno, la query con turno; si no, como hoy.
 - `list-caja`: en `ngOnInit` pide `cajaTurnos`; con respuesta arma `turnoList` (Todos + los turnos
-  con su texto «Día · 07:00 a 15:29») y muestra el `mat-select` en la segunda fila de filtros; sin
-  respuesta no lo muestra. Elegir un turno llama `onFilter()`; `onResetFilter` lo vuelve a null.
+  con sus horas en el texto de la opción, «Día · 07:00 a 15:30», el fin excluido) y muestra el
+  `mat-select` en la fila del maletín; sin respuesta no lo muestra. Elegir un turno llama `onFilter()`; `onResetFilter` lo vuelve a null.
 - `ultimas-cajas-dialog`: pasa `null` en la posición nueva.
 - **Tests**: N/A batería (el CI del desktop no corre tests). Gate `npm run check`.
 
