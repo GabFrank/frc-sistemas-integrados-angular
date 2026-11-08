@@ -50,6 +50,8 @@ import { GenericCrudService } from "../../../../../generics/generic-crud.service
 import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
+const NOMBRE_TURNO: Record<string, string> = { DIA: 'Día', NOCHE: 'Noche', MADRUGADA: 'Madrugada' };
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-caja",
@@ -115,6 +117,9 @@ export class ListCajaComponent implements OnInit {
   sucursalControl = new FormControl();
   sucursalCodigoControl = new FormControl();
   conObsControl = new FormControl(false);
+  turnoControl = new FormControl(null);
+  /** Turnos del central con sus horas; vacío si el central no tiene el filtro (el selector no se muestra). */
+  turnoList: { turno: string; nombre: string }[] = [];
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
@@ -145,6 +150,12 @@ export class ListCajaComponent implements OnInit {
 
   ngOnInit(): void {
     this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
+    this.cajaService.onGetCajaTurnos().pipe(untilDestroyed(this)).subscribe((turnos) => {
+      this.turnoList = (turnos ?? []).map((t) => ({
+        turno: t.turno,
+        nombre: `${NOMBRE_TURNO[t.turno] ?? t.turno} · ${t.desde} a ${t.hasta}`,
+      }));
+    });
     // La verificación se hace en «Ventas de la caja»: se pinta acá sin volver a buscar. Number(): Apollo da los ID como string.
     this.cajaService.cajaVerificada$.pipe(untilDestroyed(this)).subscribe((e) => {
       const fila = this.dataSource.data.find(
@@ -237,6 +248,7 @@ export class ListCajaComponent implements OnInit {
         sucursalId,
         this.verificadoControl.value,
         this.activoControl.value,
+        this.turnoControl.value,
         this.pageIndex,
         this.pageSize
       )
@@ -272,6 +284,7 @@ export class ListCajaComponent implements OnInit {
     this.conObsControl.setValue(false);
     this.verificadoControl.setValue(null);
     this.activoControl.setValue(null);
+    this.turnoControl.setValue(null);
     this.lastValue = null;
     this.onFilter();
   }

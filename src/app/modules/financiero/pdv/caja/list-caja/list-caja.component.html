@@ -159,6 +159,15 @@
         >
         <!-- </button> -->
       </div>
+      <div fxFlex="30%" *ngIf="turnoList.length > 0">
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
+          <mat-label>Turno (hora de apertura)</mat-label>
+          <mat-select [formControl]="turnoControl" (selectionChange)="onFilter()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of turnoList" [value]="t.turno">{{ t.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
       <!-- <div fxFlex="30%">
         <button mat-raised-button (click)="getBalance()">
           Generar balance
