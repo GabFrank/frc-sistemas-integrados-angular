@@ -62,6 +62,7 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   _color?: string;          // color saturado del chip (fondo)
   _colorTexto?: string;     // color claro del monto (texto sobre fondo oscuro)
   _anulable?: boolean;
+  _motivoNoAnulable?: string | null;  // por qué no se anula desde la caja (tooltip de «Anular»)
   _verOrigen?: boolean;     // el origenTipo tiene una pantalla destino navegable
   _origenLabel?: string;    // etiqueta del ítem "Ir al origen"
   _origenIcon?: string;     // ícono del ítem
@@ -107,6 +108,16 @@ const SIN_CONFIRMAR_ANULACION = 'No se pudo confirmar la anulación: se vuelve a
  * operación financiera (trae cuentas bancarias) y la lista de vales de RRHH.
  */
 const ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO = ['OPERACION_FINANCIERA', 'RRHH_VALE'];
+
+/** Espejo de TesoreriaService.anular (central): los únicos orígenes que anula como movimiento suelto. Cambiar juntos. */
+const ORIGENES_ANULABLES_EN_CAJA = ['MANUAL', 'MALETIN', 'VUELTO'];
+
+/** Orígenes que se anulan en la pantalla de su módulo (que devuelve también la caja), con el rol que hace falta. */
+const ANULACION_EN_SU_MODULO: Record<string, string> = {
+  RRHH_VALE: 'Se anula en R.R.H.H. → Anticipos → Vales (rol RRHH GESTIONAR)',
+  RRHH_LIQUIDACION_SUELDO: 'Se anula en R.R.H.H. → Liquidaciones (rol RRHH PAGAR)',
+  RRHH_LIQUIDACION_FINAL: 'Se anula en R.R.H.H. → Liquidaciones → Finiquito (rol RRHH PAGAR)',
+};
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -593,6 +604,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       row._origenLabel = nav?.label;
       row._origenIcon = nav?.icon;
     }
+    row._motivoNoAnulable = this.motivoNoAnulable(m);
     row._anulable = this.esAnulable(m);
     row._opGrupo = (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) ? m.referenciaId : null;
     return row;
@@ -788,7 +800,20 @@ export class CajaVirtualDashboardComponent implements OnInit {
     return this.puedeOperar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false
+      && !this.motivoNoAnulable(m)
       && !this.anulacionesPendientes.has(this.claveAnulacion(m));
+  }
+
+  /**
+   * Por qué esta fila no se anula desde la caja, o null si se puede. Solo mira los datos de la fila (no permisos ni
+   * anulaciones en curso: ahí se sigue viendo «Anular» gris). Las filas sin rama propia en onAnular van a
+   * anularMovimientoCajaVirtual, que solo acepta los orígenes de ORIGENES_ANULABLES_EN_CAJA.
+   */
+  private motivoNoAnulable(m: MovimientoCajaVirtual): string | null {
+    if (m.tipoMovimiento === CajaVirtualTipoMovimiento.AJUSTE || m.activo === false) return null;
+    if (!this.claveAnulacion(m).startsWith('MOVIMIENTO:')) return null;
+    if (ORIGENES_ANULABLES_EN_CAJA.includes(m.origenTipo || 'MANUAL')) return null;
+    return ANULACION_EN_SU_MODULO[m.origenTipo] ?? 'Este movimiento no se puede anular';
   }
 
   /**
