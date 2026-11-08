@@ -701,17 +701,6 @@ export const cajasWithFiltersTurno = gql`
   }
 `;
 
-// Turnos de apertura de esta instancia del central (los cortes difieren entre bodega y farmacia).
-export const cajaTurnos = gql`
-  query {
-    data: cajaTurnos {
-      turno
-      desde
-      hasta
-    }
-  }
-`;
-
 export const cajasAnalisisDiferencias = gql`
   query (
     $cajaId: ID

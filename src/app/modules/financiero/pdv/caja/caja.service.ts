@@ -29,7 +29,6 @@ import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
 import { CajasWithFiltersActivoGQL } from "./graphql/cajaWithFiltersActivo";
 import { CajasWithFiltersTurnoGQL } from "./graphql/cajaWithFiltersTurno";
-import { CajaTurno, CajaTurnosGQL } from "./graphql/cajaTurnos";
 import { CajasAnalisisDiferenciasGQL } from "../../analisis-diferencia/graphql/cajasAnalisisDiferencias";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
@@ -65,7 +64,6 @@ export class CajaService {
     private cajasWithFilters: CajasWithFiltersGQL,
     private cajasWithFiltersActivo: CajasWithFiltersActivoGQL,
     private cajasWithFiltersTurno: CajasWithFiltersTurnoGQL,
-    private cajaTurnos: CajaTurnosGQL,
     private cajasAnalisisDiferencias: CajasAnalisisDiferenciasGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
@@ -143,11 +141,6 @@ export class CajaService {
 
     // errorConf/contexto: solo Últimas cajas del POS (#390); list-caja no los pasa y queda como antes.
     return this.genericService.onCustomQuery(query, queryParams, servidor, errorConf, undefined, contexto);
-  }
-
-  /** Turnos del central para el filtro de Cajas. Un central que no los tiene no responde y no avisa: el filtro no aparece. */
-  onGetCajaTurnos(): Observable<CajaTurno[]> {
-    return this.genericService.onCustomQuery(this.cajaTurnos, {}, true, SIN_AVISO_DEL_GENERICO, true);
   }
 
   onGetCajasAnalisisDiferencias(

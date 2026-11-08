@@ -50,8 +50,6 @@ import { GenericCrudService } from "../../../../../generics/generic-crud.service
 import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 
-const NOMBRE_TURNO: Record<string, string> = { DIA: 'Día', NOCHE: 'Noche', MADRUGADA: 'Madrugada' };
-
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-caja",
@@ -118,8 +116,12 @@ export class ListCajaComponent implements OnInit {
   sucursalCodigoControl = new FormControl();
   conObsControl = new FormControl(false);
   turnoControl = new FormControl(null);
-  /** Turnos del central con sus horas; vacío si el central no tiene el filtro (el selector no se muestra). */
-  turnoList: { turno: string; nombre: string }[] = [];
+  /** Por hora de apertura, igual en bodega y farmacia (cortes en el central: CajaTurnos). */
+  turnoList = [
+    { turno: 'DIA', nombre: 'Día' },
+    { turno: 'NOCHE', nombre: 'Noche' },
+    { turno: 'MADRUGADA', nombre: 'Madrugada' },
+  ];
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
@@ -150,12 +152,6 @@ export class ListCajaComponent implements OnInit {
 
   ngOnInit(): void {
     this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
-    this.cajaService.onGetCajaTurnos().pipe(untilDestroyed(this)).subscribe((turnos) => {
-      this.turnoList = (turnos ?? []).map((t) => ({
-        turno: t.turno,
-        nombre: `${NOMBRE_TURNO[t.turno] ?? t.turno} · ${t.desde} a ${t.hasta}`,
-      }));
-    });
     // La verificación se hace en «Ventas de la caja»: se pinta acá sin volver a buscar. Number(): Apollo da los ID como string.
     this.cajaService.cajaVerificada$.pipe(untilDestroyed(this)).subscribe((e) => {
       const fila = this.dataSource.data.find(
