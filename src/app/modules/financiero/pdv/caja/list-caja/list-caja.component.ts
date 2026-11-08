@@ -145,6 +145,12 @@ export class ListCajaComponent implements OnInit {
 
   ngOnInit(): void {
     this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
+    // La verificación se hace en «Ventas de la caja»: se pinta acá sin volver a buscar. Number(): Apollo da los ID como string.
+    this.cajaService.cajaVerificada$.pipe(untilDestroyed(this)).subscribe((e) => {
+      const fila = this.dataSource.data.find(
+        (c) => Number(c.id) === Number(e.cajaId) && Number(c.sucursalId) === Number(e.sucursalId));
+      if (fila) fila.verificado = e.verificado;
+    });
     let hoy = new Date();
     let aux = new Date();
     aux.setDate(hoy.getDate() - 5);

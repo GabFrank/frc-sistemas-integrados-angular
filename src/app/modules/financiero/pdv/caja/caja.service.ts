@@ -1,7 +1,7 @@
 import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
-import { Observable, of } from "rxjs";
-import { catchError, defaultIfEmpty, map, switchMap, take } from "rxjs/operators";
+import { Observable, of, Subject } from "rxjs";
+import { catchError, defaultIfEmpty, map, switchMap, take, tap } from "rxjs/operators";
 import { MatDialog } from "@angular/material/dialog";
 import { MotivoDialogComponent, MotivoDialogData } from "../../../../shared/components/motivo-dialog/motivo-dialog.component";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -289,8 +289,15 @@ export class CajaService {
       .pipe(this.impresionPos.avisarSinRespuesta("la impresión del balance"));
   }
 
+  /** Avisa a la lista de cajas cuando el central aplica una verificación hecha en otra pestaña. */
+  cajaVerificada$ = new Subject<{ cajaId: number; sucursalId: number; verificado: boolean }>();
+
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {
     return this.genericService.onCustomQuery(this.verificarCaja, { cajaId, sucursalId, usuarioId, verificado }, servidor)
+      .pipe(tap((res) => {
+        // Con error GraphQL llega null, no false: solo true es una verificación aplicada
+        if (res === true) this.cajaVerificada$.next({ cajaId, sucursalId, verificado });
+      }));
   }
 
   /**
