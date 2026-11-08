@@ -215,23 +215,26 @@
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="onVer(gasto)">Ver</button>
+                <button mat-menu-item (click)="onVer(gasto)"><mat-icon>visibility</mat-icon><span>Ver</span></button>
                 <button
                   *ngIf="gasto?.finalizado != true"
                   mat-menu-item
                   (click)="onVuelto(gasto)"
                 >
-                  Vuelto
+                  <mat-icon>payments</mat-icon>
+                  <span>Vuelto</span>
                 </button>
                 <button
                   *ngIf="gasto?.finalizado != true"
                   mat-menu-item
                   (click)="onFinalizar(gasto)"
                 >
-                  Finalizar
+                  <mat-icon>task_alt</mat-icon>
+                  <span>Finalizar</span>
                 </button>
                 <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
-                        Imprimir
+                        <mat-icon>print</mat-icon>
+                        <span>Imprimir</span>
                       </button> -->
               </mat-menu>
             </td>

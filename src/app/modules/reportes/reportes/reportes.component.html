@@ -25,9 +25,10 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onClose(i)">Cerrar</button>
+            <button mat-menu-item (click)="onClose(i)"><mat-icon>close</mat-icon><span>Cerrar</span></button>
             <button mat-menu-item (click)="openInBrowser(reporte)">
-              Abrir en navegador
+              <mat-icon>open_in_browser</mat-icon>
+              <span>Abrir en navegador</span>
             </button>
           </mat-menu>
         </div>

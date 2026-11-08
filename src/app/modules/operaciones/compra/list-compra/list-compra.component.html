@@ -311,13 +311,16 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onView(pedido, i)">
-              Ver
+              <mat-icon>visibility</mat-icon>
+              <span>Ver</span>
             </button>
             <button mat-menu-item (click)="onEdit(pedido, i)">
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
             <button mat-menu-item (click)="onImprimir(pedido)">
-              Imprimir
+              <mat-icon>print</mat-icon>
+              <span>Imprimir</span>
             </button>
             <button
               mat-menu-item
@@ -325,7 +328,8 @@
               style="color: red"
               *ngIf="pedido.etapaActualComputed !== 'CANCELADA'"
             >
-              Cancelar
+              <mat-icon style="color: red">block</mat-icon>
+              <span>Cancelar</span>
             </button>
           </mat-menu>
         </td>

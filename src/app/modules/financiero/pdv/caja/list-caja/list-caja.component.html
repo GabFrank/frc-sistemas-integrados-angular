@@ -438,9 +438,9 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAdd(caja, i)">Ir a Caja</button>
-            <button mat-menu-item (click)="irVentas(caja)">Ir a Ventas</button>
-            <button mat-menu-item (click)="irObservacion(caja)">Adicionar observación</button>
+            <button mat-menu-item (click)="onAdd(caja, i)"><mat-icon>point_of_sale</mat-icon><span>Ir a Caja</span></button>
+            <button mat-menu-item (click)="irVentas(caja)"><mat-icon>shopping_cart</mat-icon><span>Ir a Ventas</span></button>
+            <button mat-menu-item (click)="irObservacion(caja)"><mat-icon>add_comment</mat-icon><span>Adicionar observación</span></button>
             <button mat-menu-item *ngIf="esAdmin && caja?.activo === false && caja?.verificado !== true"
               (click)="onReabrir(caja)">
               <mat-icon color="warn">lock_open</mat-icon>
