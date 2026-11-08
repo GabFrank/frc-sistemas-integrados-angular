@@ -198,3 +198,32 @@ Fijos 1, 2 y 3; los condicionales no aplican (no toca release ni lo que replica)
   | `CAJA_TURNOS=TARDE=12:00` (inválido) | arranca, sin selector | `ERROR` en el log, sin selector, lista 263 |
   | Central de develop (sin la rama) | sin selector, lista anda | sin selector ni aviso; Cerradas 263 |
   | Últimas cajas del PDV contra filial develop en 8082 | query de siempre | sin `turno`, lista la caja 1189 de MR |
+
+## Cambio de decisión (2026-11-08, pedido de Franco)
+
+Reemplaza a «Decisiones», «Tabla de datos nuevos» y a los cortes por instancia de más arriba.
+
+- **Cortes únicos para bodega y farmacia, fijos en el código** (`CajaTurnos`): MADRUGADA desde las
+  23:00, DIA desde las 04:00, NOCHE desde las 12:30. Sin propiedad ni variable `CAJA_TURNOS`: no hay
+  nada que cargar en ningún `.env`.
+- Por qué: se miró **a qué hora cierran** las cajas según la media hora de apertura (último año, en las
+  dos redes). Quien abre desde las 12:30 cierra de noche en bodega (166 de 187 entre 12:30 y 15:30) y
+  en farmacia (~85 %); quien abre desde las 23:00 cierra a la mañana; entre las 03:00 y las 04:00 no
+  abre nadie en ninguna. El corte anterior de bodega en 15:30 dejaba en DIA a cajas que cierran de
+  noche. Farmacia: su mañana (~06:50) cae en DIA y su tarde (~14:50) en NOCHE; MADRUGADA le sale casi
+  vacía (1 caja en el año).
+- Queda mezclado: en bodega las ~150 cajas que abren entre 11:30 y 12:30 (mitad cierra a la tarde,
+  mitad de noche) y en farmacia ~70 que abren a las 10:00 y cierran de noche. Ningún corte por
+  apertura las separa.
+- **Sin query `cajaTurnos`**: el selector lista fijo Todos / Día / Noche / Madrugada, sin horas.
+- **Ubicación**: la primera fila de filtros pasa a la misma grilla que Maletín/Cajero/Sucursal
+  (10 % | 30 % | 8 % | bloque de Sucursal | 8 %). Rango de fecha empieza alineado con Sucursal, Turno
+  (150 px) termina alineado con el nombre de la sucursal, y TODAS/Abiertas/Cerradas queda en la columna
+  de las lupas. Verificado y Cajas con observaciones comparten el 30 %. Antes la fila sumaba 133 % y el
+  navegador encogía todo. Verificado por pantalla con las posiciones de cada campo; Noche sigue en 87.
+- Contra un central sin la rama, elegir un turno da error de validación (igual que Abiertas/Cerradas
+  en #599); con Todos la lista anda. Central antes que desktop.
+
+| Dato | Escribe | Lee |
+|---|---|---|
+| argumento `turno: Turno` de `cajasWithFilters` | `list-caja` (`turnoControl`) → `CajaService.onGetCajasWithFilters` → `CajasWithFiltersTurnoGQL` | `PdvCajaGraphQL.cajasWithFilters` → `PdvCajaService.findAllWithFilters` (`CajaTurnos.rango`, zona `app.timezone`) → `PdvCajaRepository.findAllWithFilters` |
