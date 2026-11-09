@@ -23,7 +23,7 @@ import { AjustarCajaVirtualPorConteoGQL } from './graphql/ajustarCajaVirtualPorC
 import { MovimientosCajaVirtualGQL, MovimientosCajaVirtualPorFechaGQL } from './graphql/movimientosCajaVirtual';
 import { RealizarTransferenciasCajaVirtualGQL, RegistrarMovimientosCajaVirtualGQL } from './graphql/movimientosEnLote';
 import { PedidoDeMovimientos, PedidoDeTransferencias, PedidoDeVuelto } from './pedido-en-lote';
-import { EgresosParaVueltoGQL, RegistrarVueltoEgresoGQL } from './graphql/vueltoEgreso';
+import { EgresosParaVueltoGQL, RegistrarVueltoEgresoGQL, RendidoTotalEgresoPreGastoGQL } from './graphql/vueltoEgreso';
 import { AnularMovimientoCajaVirtualGQL } from './graphql/anularMovimientoCajaVirtual';
 import { CajaVirtualSaldosGQL } from './graphql/cajaVirtualSaldos';
 import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBancario';
@@ -54,6 +54,7 @@ export class CajaVirtualService {
     private genericService: GenericCrudService,
     private egresosParaVueltoGQL: EgresosParaVueltoGQL,
     private registrarVueltoEgresoGQL: RegistrarVueltoEgresoGQL,
+    private rendidoTotalEgresoPreGastoGQL: RendidoTotalEgresoPreGastoGQL,
     private cajaVirtualesGQL: CajaVirtualesGQL,
     private cajaVirtualesFilterGQL: CajaVirtualesFilterGQL,
     private cajaVirtualesPorTipoGQL: CajaVirtualesPorTipoGQL,
@@ -324,5 +325,10 @@ export class CajaVirtualService {
   /** Registra el vuelto de un egreso; con la misma clave el central no lo registra dos veces. */
   onRegistrarVuelto(pedido: PedidoDeVuelto, opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom(this.registrarVueltoEgresoGQL, pedido, true, opciones);
+  }
+
+  /** «Rindió totalmente»: la solicitud pagada con el egreso queda rendida completa, sin registrar vuelto. */
+  onRendidoTotal(egresoId: number): Observable<any> {
+    return this.genericService.onCustomMutation(this.rendidoTotalEgresoPreGastoGQL, { egresoId });
   }
 }

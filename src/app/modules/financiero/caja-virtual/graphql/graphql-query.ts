@@ -497,7 +497,25 @@ export const egresosParaVueltoQuery = gql`
         movimiento {
           ${movimientoFields}
         }
+        preGasto {
+          id
+          sucursalId
+          montoRetirado
+          montoGastado
+          montoVuelto
+          estadoRendicion
+        }
       }
+    }
+  }
+`;
+
+/** La solicitud pagada con el egreso queda rendida completa (gastó todo lo que no devolvió). */
+export const rendidoTotalEgresoPreGastoMutation = gql`
+  mutation ($egresoId: ID!) {
+    data: rendidoTotalEgresoPreGasto(egresoId: $egresoId) {
+      id
+      estadoRendicion
     }
   }
 `;

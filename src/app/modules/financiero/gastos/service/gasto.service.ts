@@ -40,7 +40,8 @@ import { EjecutarRetiroPreGastoGQL } from '../graphql/ejecutarRetiroPreGasto';
 import { LineasRetiroSugeridasGQL } from '../graphql/lineasRetiroSugeridas';
 import { MontosRetiroDesdeLineasGQL } from '../graphql/montosRetiroDesdeLineas';
 import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado';
-import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
+import { PreGastoPorGastoCajaGQL } from '../graphql/preGastoPorGastoCaja';
+import { RegistrarVueltoPreGastoCajaGQL } from '../graphql/registrarVueltoPreGastoCaja';
 import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
 import { CancelarGastoGQL } from '../graphql/cancelarGasto';
 
@@ -89,7 +90,8 @@ export class GastoService {
     private lineasRetiroSugeridasGQL: LineasRetiroSugeridasGQL,
     private montosRetiroDesdeLineasGQL: MontosRetiroDesdeLineasGQL,
     private preGastoRetiroConfirmadoGQL: PreGastoRetiroConfirmadoGQL,
-    private registrarDevolucionSaldoGQL: RegistrarDevolucionSaldoGQL,
+    private preGastoPorGastoCajaGQL: PreGastoPorGastoCajaGQL,
+    private registrarVueltoPreGastoCajaGQL: RegistrarVueltoPreGastoCajaGQL,
     private saveGastoRendicionGQL: SaveGastoRendicionGQL,
     private cancelarGastoGQL: CancelarGastoGQL,
     private saveGastoCliente: SaveGastoClienteGQL,
@@ -357,65 +359,21 @@ export class GastoService {
     );
   }
 
-  registrarDevolucionSaldo(input: {
-    preGastoId: number;
-    sucursalId: number;
-    cajaId: number;
-    vueltoGs?: number;
-    vueltoRs?: number;
-    vueltoDs?: number;
-    usuarioId?: number;
-  }): Observable<PreGasto> {
-    return this.genericService.onCustomMutation(this.registrarDevolucionSaldoGQL, { input });
+  /** La solicitud retirada con un gasto de la caja de la sucursal; null si es un gasto común. */
+  preGastoPorGastoCaja(gastoId: number, sucursalId: number): Observable<PreGasto | null> {
+    return this.genericService.onCustomQuery(this.preGastoPorGastoCajaGQL, { gastoId, sucursalId }, true,
+      PROPAGAR_ERROR_DE_RED);
   }
 
-  registrarDevolucionSaldoHibrido(
-    preGasto: PreGasto,
-    vueltoGs: number,
-    vueltoRs: number,
-    vueltoDs: number,
-    sucursalCajaId: number,
-    usuarioId?: number
-  ): Observable<PreGasto> {
-    if (!preGasto?.gastoCajaRegistroId || !preGasto?.cajaId) {
-      return throwError(() => new Error('La solicitud no tiene un gasto de caja local asociado.'));
-    }
-    return this.onFilterGasto(
-      preGasto.gastoCajaRegistroId,
-      preGasto.cajaId,
-      sucursalCajaId,
-      undefined,
-      undefined,
-      0,
-      1,
-      false
-    ).pipe(
-      switchMap((page) => {
-        const gastoLocal = page?.getContent?.[0];
-        if (!gastoLocal?.id) {
-          return throwError(() => new Error('No se encontró el gasto en la caja local.'));
-        }
-        const gasto = new Gasto();
-        Object.assign(gasto, gastoLocal);
-        gasto.sucursalId = gasto.sucursalId ?? gastoLocal.sucursal?.id ?? sucursalCajaId;
-        gasto.preGastoId = preGasto.id;
-        gasto.preGastoSucursalId = preGasto.sucursalId;
-        gasto.vueltoGs = Number(gasto.vueltoGs ?? 0) + vueltoGs;
-        gasto.vueltoRs = Number(gasto.vueltoRs ?? 0) + vueltoRs;
-        gasto.vueltoDs = Number(gasto.vueltoDs ?? 0) + vueltoDs;
-        return this.onSave(gasto, false).pipe(
-          switchMap(() => this.registrarDevolucionSaldo({
-            preGastoId: preGasto.id,
-            sucursalId: preGasto.sucursalId,
-            cajaId: preGasto.cajaId,
-            vueltoGs,
-            vueltoRs,
-            vueltoDs,
-            usuarioId,
-          }))
-        );
-      })
-    );
+  /** El vuelto que cargó el cajero pisa la rendición del teléfono de la solicitud (null si no hay solicitud). */
+  registrarVueltoPreGastoCaja(input: {
+    gastoId: number;
+    sucursalId: number;
+    vueltoGs: number;
+    vueltoRs: number;
+    vueltoDs: number;
+  }): Observable<PreGasto | null> {
+    return this.genericService.onCustomMutation(this.registrarVueltoPreGastoCajaGQL, input);
   }
 
   calcularMontosRetiro(preGasto: PreGasto): { gs: number; rs: number; ds: number } {

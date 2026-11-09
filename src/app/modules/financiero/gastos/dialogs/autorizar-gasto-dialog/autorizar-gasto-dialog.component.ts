@@ -35,15 +35,10 @@ export class AutorizarGastoDialogComponent implements OnInit {
   montoRendidoGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
-  registrandoDevolucion = false;
-  /** Una devolución o un finalizar quedó sin respuesta: repetirlos puede duplicar en el central (#501). */
-  devolucionSinConfirmar = false;
+  /** Un finalizar quedó sin respuesta: repetirlo puede duplicar en el central (#501). */
   finalizarSinConfirmar = false;
-  /** La lista tiene una copia vieja del pre-gasto (devolución registrada o escritura sin respuesta): recarga al cerrar. */
+  /** La lista tiene una copia vieja del pre-gasto (escritura sin respuesta): recarga al cerrar. */
   private recargarListaAlCerrar = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
@@ -73,52 +68,6 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   tieneSaldoDevolver(): boolean {
     return Number(this.preGasto?.saldoDevolver ?? 0) > 0;
-  }
-
-  registrarDevolucion(): void {
-    if (!this.esTramite() || !this.tieneSaldoDevolver()) {
-      return;
-    }
-    const vueltoGs = this.parseMontoMoneda(this.devolucionGsControl.value, 'GS');
-    const vueltoRs = this.parseMontoMoneda(this.devolucionRsControl.value, 'RS');
-    const vueltoDs = this.parseMontoMoneda(this.devolucionDsControl.value, 'DS');
-    if (vueltoGs + vueltoRs + vueltoDs <= 0) {
-      return;
-    }
-    this.registrandoDevolucion = true;
-    this.gastoService.registrarDevolucionSaldo({
-      preGastoId: this.preGasto.id,
-      sucursalId: this.preGasto.sucursalId,
-      cajaId: this.preGasto.cajaId,
-      vueltoGs,
-      vueltoRs,
-      vueltoDs,
-      usuarioId: this.mainService.usuarioActual?.id,
-    }).pipe(untilDestroyed(this)).subscribe({
-      next: (res) => {
-        this.registrandoDevolucion = false;
-        if (res) {
-          this.recargarListaAlCerrar = true;
-          this.preGasto = { ...this.preGasto, ...res };
-          this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
-          this.devolucionGsControl.setValue(0, { emitEvent: false });
-          this.devolucionRsControl.setValue(0, { emitEvent: false });
-          this.devolucionDsControl.setValue(0, { emitEvent: false });
-          this.cdr.markForCheck();
-        }
-      },
-      error: (err) => {
-        this.registrandoDevolucion = false;
-        // Sin respuesta pudo registrarse, y repetirla resta otra vez el saldo: no se deja repetir con estos datos (#501)
-        if (this.avisarSinConfirmar(err, 'se registró la devolución del saldo')) {
-          this.devolucionSinConfirmar = true;
-          this.devolucionGsControl.setValue(0, { emitEvent: false });
-          this.devolucionRsControl.setValue(0, { emitEvent: false });
-          this.devolucionDsControl.setValue(0, { emitEvent: false });
-        }
-        this.cdr.markForCheck();
-      },
-    });
   }
 
   autorizar(): void {
