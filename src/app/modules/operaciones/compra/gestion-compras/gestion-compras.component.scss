@@ -1509,7 +1509,7 @@
     gap: 0;
 
     .vencimiento-inline-input {
-      width: 84px;
+      width: 92px;
       padding: 2px 4px;
       border: 1px solid var(--frc-borde);
       border-radius: 4px;
@@ -1517,7 +1517,12 @@
       color: var(--frc-texto-fuerte);
       font: inherit;
       text-align: center;
-      cursor: pointer;
+      cursor: text;
+
+      &:focus {
+        outline: none;
+        border-color: var(--frc-primario, #2196f3);
+      }
 
       &::placeholder {
         color: var(--frc-texto-tenue);

@@ -1,0 +1,64 @@
+<h2 mat-dialog-title>Participaciones · {{ data.sorteo.nombre }}</h2>
+<mat-dialog-content>
+  <div class="sp-resumen" *ngIf="resumen.length">
+    <div class="sp-tarjeta" *ngFor="let r of resumen">
+      <span>{{ r.sucursalNombre | titlecase }}</span>
+      <strong>{{ r.tickets | number: '1.0-0' }} tickets</strong>
+      <small>{{ r.participaciones | number: '1.0-0' }} participaciones</small>
+    </div>
+  </div>
+  <p *ngIf="resumenFallo">
+    No se pudo cargar el resumen por sucursal.
+    <a href="#" (click)="cargarResumen(); $event.preventDefault()">Reintentar</a>
+  </p>
+  <small *ngIf="resumen.length">El resumen no cuenta las participaciones anuladas.</small>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px">
+    <mat-form-field appearance="outline" style="width: 240px">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [formControl]="sucursalControl" (selectionChange)="onFiltrar()">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let r of resumen" [value]="r.sucursalId">{{ r.sucursalNombre | titlecase }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" style="width: 300px">
+      <mat-label>Validar código</mat-label>
+      <input matInput [formControl]="codigoControl" (keyup.enter)="onValidar()" placeholder="S3-2-1501-2/3" autocomplete="off" />
+    </mat-form-field>
+    <button mat-flat-button color="primary" type="button" (click)="onValidar()"><mat-icon>search</mat-icon> Validar</button>
+    <button mat-button type="button" *ngIf="codigoBuscado" (click)="onLimpiarCodigo()">Ver todas</button>
+  </div>
+  <p class="sp-mensaje" *ngIf="mensajeCodigo">{{ mensajeCodigo }}</p>
+
+  <div *ngIf="listaFallo" style="display: flex; align-items: center; gap: 10px; padding: 8px 0">
+    <mat-icon>error_outline</mat-icon>
+    <span>No se pudieron cargar las participaciones.</span>
+    <button mat-stroked-button type="button" (click)="cargar()">Reintentar</button>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" style="width: 100%">
+    <ng-container matColumnDef="codigo"><th mat-header-cell *matHeaderCellDef>Código</th><td mat-cell *matCellDef="let p">{{ p.codigo }}</td></ng-container>
+    <ng-container matColumnDef="sucursal"><th mat-header-cell *matHeaderCellDef>Sucursal</th><td mat-cell *matCellDef="let p">{{ p.sucursalNombre | titlecase }}</td></ng-container>
+    <ng-container matColumnDef="venta"><th mat-header-cell *matHeaderCellDef class="centro">Venta</th><td mat-cell *matCellDef="let p" class="centro">{{ p.ventaId }}</td></ng-container>
+    <ng-container matColumnDef="cliente"><th mat-header-cell *matHeaderCellDef>Cliente</th><td mat-cell *matCellDef="let p">{{ p.clienteNombre }}<span *ngIf="p.documento"> · {{ p.documento }}</span></td></ng-container>
+    <ng-container matColumnDef="tickets"><th mat-header-cell *matHeaderCellDef class="centro">Tickets</th><td mat-cell *matCellDef="let p" class="centro">{{ p.cantidad }}</td></ng-container>
+    <ng-container matColumnDef="fecha"><th mat-header-cell *matHeaderCellDef class="centro">Fecha</th><td mat-cell *matCellDef="let p" class="centro">{{ p.fecha }}</td></ng-container>
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef class="centro">Estado</th>
+      <td mat-cell *matCellDef="let p" class="centro sp-estado">
+        <span *ngIf="p.anulada" class="sp-anulada"
+          matTooltip="La venta está cancelada o todavía no llegó al central">Anulada</span>
+        <span *ngIf="!p.anulada">Activa</span>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns" [class.sp-fila-anulada]="row.anulada"
+      [class.sp-fila-resaltada]="codigoBuscado && row.anulada"></tr>
+  </table>
+  <p *ngIf="!dataSource.data.length && !listaFallo && !cargando" style="padding: 12px 0">No hay participaciones para mostrar.</p>
+  <mat-paginator [pageSizeOptions]="[20, 50, 100]" [pageIndex]="pageIndex" [pageSize]="pageSize"
+    [length]="total" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-stroked-button mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

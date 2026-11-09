@@ -1,0 +1,46 @@
+.sp-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sp-tarjeta {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-tarjeta strong {
+  font-size: 1.2em;
+}
+
+.sp-fila-anulada td {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.sp-fila-anulada td.sp-estado {
+  text-decoration: none;
+  opacity: 1;
+}
+
+.sp-fila-resaltada {
+  background: rgba(244, 67, 54, 0.18);
+}
+
+.sp-anulada {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.sp-mensaje {
+  margin: 4px 0 12px;
+  font-weight: 600;
+}
+
+.centro {
+  text-align: center;
+}

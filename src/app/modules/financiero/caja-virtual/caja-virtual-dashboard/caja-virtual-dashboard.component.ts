@@ -12,9 +12,8 @@ import { TabService } from '../../../../layouts/tab/tab.service';
 import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
-         labelMovimiento } from '../caja-virtual.model';
+         labelMovimiento, formatoDe } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { Moneda } from '../../moneda/moneda.model';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
@@ -92,18 +91,6 @@ interface BancoCard {
   formato: string;
 }
 
-/**
- * digitsInfo para el pipe number, según la moneda. El fallback por denominación es el mismo
- * patrón que usa el resto del módulo (pagar-compras-dialog): el guaraní no lleva fracción,
- * las demás sí. Ver migración V207.5, que pobló `decimales` — estaba en 0 para todas.
- */
-function formatoDe(moneda: Moneda): string {
-  const d = moneda?.decimales != null
-    ? moneda.decimales
-    : ((moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
-  return `1.0-${d}`;
-}
-
 /** Fecha de hoy como "14-09-2026". Con guiones y no barras: termina en un nombre de archivo. */
 function fechaHoyArchivo(): string {
   const hoy = new Date();
@@ -154,6 +141,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
   resumenBancario: CuentaBancariaResumen[] = [];
   bancoCards: BancoCard[] = [];
   config: CajaVirtualConfiguracion;
+  /** La configuración se leyó bien al menos una vez: `recargar()` ya no la pide (solo cambia por «Configurar»). */
+  private configCargada = false;
+  /** Número de la última carga del resumen bancario: una respuesta vieja no pisa a la nueva. */
+  private bancosCargaId = 0;
 
   // Movimientos (tabla)
   dataSource = new MatTableDataSource<MovimientoRow>([]);
@@ -173,7 +164,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
-  displayedColumns = ['creadoEn', 'responsable', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
+  displayedColumns = ['creadoEn', 'usuario', 'entregadoA', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
 
   // Fuente de la tabla: caja mayor o una cuenta bancaria (los movimientos de banco no
   // ocurren en la caja mayor; el selector permite verlos sin salir del dashboard).
@@ -183,7 +174,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   fuenteEsBanco = false;
 
   dataSourceBanco = new MatTableDataSource<MovimientoBancarioRow>([]);
-  displayedColumnsBanco = ['creadoEn', 'responsableBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco', 'accionesBanco'];
+  displayedColumnsBanco = ['creadoEn', 'usuarioBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco', 'accionesBanco'];
   private permisosAnulacionBanco: PermisosAnulacionBancaria = { gestionar: false, pagarCpp: false };
 
   bancoTipoLabels: Record<string, string> = {
@@ -313,7 +304,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
    */
   recargar(deFondo = false) {
     this.cargarSaldos(deFondo);
-    this.cargarConfigYBancos(deFondo);
+    // La configuración no la cambia ninguna operación de caja: solo se reintenta si la última lectura falló (#646).
+    if (!this.configCargada) this.cargarConfig(deFondo);
+    this.cargarBancos(deFondo);
     this.cargarMovimientos(!deFondo);
   }
 
@@ -393,36 +386,46 @@ export class CajaVirtualDashboardComponent implements OnInit {
     });
   }
 
-  cargarConfigYBancos(silenciosa = false) {
+  /** Tarjetas CPP/CPC. Se lee al abrir y tras «Configurar»; el resumen bancario no la necesita y va aparte. */
+  cargarConfig(silenciosa = false) {
+    if (!this.cajaVirtual?.id) return;
+    // El rol acotado no ve la configuración: el central la rechaza.
+    if (this.soloCaja) { this.config = null; return; }
+    this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
+      .pipe(untilDestroyed(this)).subscribe({
+        // Con un rechazo llega null igual que sin configuración: solo un error de red cuenta como no cargada.
+        next: cfg => { this.config = cfg; this.configCargada = true; },
+        error: () => {
+          this.config = null;
+          if (!silenciosa) this.notificacion.openWarn('No se pudo cargar la configuración de la caja.', 5);
+        }
+      });
+  }
+
+  cargarBancos(silenciosa = false) {
     if (!this.cajaVirtual?.id) return;
     if (this.soloCaja) {
-      // El rol acotado no ve la configuración ni los saldos bancarios: el central los rechaza. Queda
-      // solo la caja como fuente, sin aviso de error.
-      this.config = null;
+      // El rol acotado no ve los saldos bancarios: el central los rechaza. Queda solo la caja como fuente,
+      // sin aviso de error.
       this.resumenBancario = [];
       this.bancoCards = [];
       this.construirFuentes();
       return;
     }
-    this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
+    const id = ++this.bancosCargaId;
+    this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
       .pipe(untilDestroyed(this)).subscribe({
-        next: cfg => {
-          this.config = cfg;
-          this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
-            .pipe(untilDestroyed(this)).subscribe({
-              next: res => {
-                if (res == null) { this.bancosNoCargados(silenciosa); return; }
-                this.resumenBancario = res;
-                this.bancoCards = this.resumenBancario.map(r => ({
-                  resumen: r,
-                  formato: formatoDe(r.cuentaBancaria?.moneda),
-                }));
-                this.construirFuentes();
-              },
-              error: () => this.bancosNoCargados(silenciosa)
-            });
+        next: res => {
+          if (id !== this.bancosCargaId) return;
+          if (res == null) { this.bancosNoCargados(silenciosa); return; }
+          this.resumenBancario = res;
+          this.bancoCards = this.resumenBancario.map(r => ({
+            resumen: r,
+            formato: formatoDe(r.cuentaBancaria?.moneda),
+          }));
+          this.construirFuentes();
         },
-        error: () => { this.config = null; this.bancosNoCargados(silenciosa); }
+        error: () => { if (id === this.bancosCargaId) this.bancosNoCargados(silenciosa); }
       });
   }
 
@@ -677,8 +680,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
         cajaVirtual: this.cajaVirtual,
         preseleccion: res.items.map(i => i.documento),
       };
+      // disableClose: cerrar con Esc devuelve undefined y el saldo no se recargaría aunque haya ingresos.
       this.dialog.open(IngresarRetiroCajaMayorDialogComponent, {
-        width: '65vw', height: '70vh', maxWidth: '96vw', data: d,
+        width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data: d,
       }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
       return;
     }
@@ -721,7 +725,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   onConfigurar() {
     this.dialog.open(ConfigurarCajaVirtualDialogComponent, { width: '520px', maxHeight: '90vh', data: { cajaVirtual: this.cajaVirtual } })
-      .afterClosed().subscribe(res => { if (res) this.cargarConfigYBancos(); });
+      .afterClosed().subscribe(res => { if (res) { this.cargarConfig(); this.cargarBancos(); } });
   }
 
   /**

@@ -49,6 +49,8 @@ export interface AddEditNotaRecepcionDialogData {
   selectedItemsToAssign?: any[]; // MockPedidoItem[] from parent component
   autoAssignItems?: boolean; // Flag para indicar si debe asignar ítems automáticamente
   assignAllItems?: boolean; // Flag para indicar que se deben asignar TODOS los items pendientes (independiente de la paginación)
+  /** Alta desde otro diálogo (dividir ítem): al crear la nota se cierra y la devuelve en `nota`. */
+  cerrarAlCrear?: boolean;
 }
 
 export interface AddEditNotaRecepcionDialogResult {
@@ -56,6 +58,8 @@ export interface AddEditNotaRecepcionDialogResult {
   message?: string;
   changesMade: boolean;
   operation?: 'created' | 'updated' | 'deleted_item' | 'deleted' | 'no_changes';
+  /** La nota con la que se cerró (la creada o editada); falta si se canceló la creación. */
+  nota?: NotaRecepcion;
 }
 
 @Component({
@@ -1246,6 +1250,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       success: true,
       changesMade: this.changesMade,
       operation: this.changesMade ? 'updated' : 'no_changes',
+      nota: this.data.nota,
       message: this.changesMade ?
         (this.autoAssignItems && this.selectedItemsToAssign.length > 0 ?
           `Nota creada y ${this.selectedItemsToAssign.length} ítems asignados exitosamente` :
@@ -1581,6 +1586,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               this.focusSalirButton();
               
               this.notificacionService.openSucess('Nota de recepción creada exitosamente');
+              if (this.data.cerrarAlCrear) {
+                this.dialogRef.close({ success: true, changesMade: true, operation: 'created', nota: notaCreada });
+              }
             },
             error: (error) => {
               console.error('Error al crear nota de recepción:', error);

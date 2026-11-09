@@ -24,6 +24,7 @@ import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-ret
 import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
+import { ListSorteoComponent } from '../../../modules/operaciones/sorteo/list-sorteo/list-sorteo.component';
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { NavegacionMenuService } from '../../components/side-mini-variant/navegacion-menu.service';
 
@@ -73,7 +74,8 @@ export const componenteList: SearchData[] =
     { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, menuAction: 'lucro-por-funcionario', visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lucro por producto', component: LucroPorProductoComponent, menuAction: 'lucro-por-producto', visibilityRoles: [ROLES.ADMIN] },
-    { title: 'Promociones', component: ListPrecioEspecialComponent, menuAction: 'list-precio-especial', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
+    { title: 'Promociones', component: ListPrecioEspecialComponent, menuAction: 'list-precio-especial', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] },
+    { title: 'Sorteos', component: ListSorteoComponent, menuAction: 'list-sorteo', visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
   ]
 
 @UntilDestroy()

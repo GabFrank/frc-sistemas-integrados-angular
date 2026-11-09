@@ -92,8 +92,16 @@ import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devol
 import { CancelarDevolucionDialogComponent } from './devolucion/cancelar-devolucion-dialog/cancelar-devolucion-dialog.component';
 import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-dialog/acreditar-retiro-dialog.component';
 
+import { ListSorteoComponent } from './sorteo/list-sorteo/list-sorteo.component';
+import { SorteoDialogComponent } from './sorteo/sorteo-dialog/sorteo-dialog.component';
+import { SorteoParticipacionesDialogComponent } from './sorteo/sorteo-participaciones-dialog/sorteo-participaciones-dialog.component';
+import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.directive";
+
 @NgModule({
   declarations: [
+    ListSorteoComponent,
+    SorteoDialogComponent,
+    SorteoParticipacionesDialogComponent,
     ListCompraComponent,
     ListNecesidadComponent,
     EditNecesidadComponent,
@@ -177,6 +185,7 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     ReingresoCanjeDialogComponent
   ],
   imports: [
+    MascaraFechaDirective,
     CommonModule,
     FlexLayoutModule,
     ReactiveFormsModule,

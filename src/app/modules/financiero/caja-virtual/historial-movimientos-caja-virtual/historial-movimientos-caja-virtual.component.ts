@@ -3,11 +3,20 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { CajaVirtual, MovimientoCajaVirtual, labelMovimiento } from '../caja-virtual.model';
+import { CajaVirtual, MovimientoCajaVirtual, formatoDe, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { FormControl, FormGroup } from '@angular/forms';
+
+/** Card de saldo por moneda, ya formateada (no se calcula en el template). */
+interface SaldoCard {
+  denominacion: string;
+  simbolo: string;
+  saldo: number;
+  formato: string;
+  clase: string;
+}
 
 /** Fila con el concepto ya resuelto (no se calcula en el template). */
 interface MovimientoRow extends MovimientoCajaVirtual {
@@ -42,6 +51,11 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
     'usuario',
   ];
 
+  /** Saldos de `cajaVirtualSaldos`, los mismos de las cards del dashboard (#656). */
+  saldoCards: SaldoCard[] = [];
+  saldosCargados = false;
+  saldosNoDisponibles = false;
+
   formGroup: FormGroup;
   inicioControl = new FormControl();
   finControl = new FormControl();
@@ -75,7 +89,27 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
       inicioControl: this.inicioControl,
       finControl: this.finControl,
     });
+    this.cargarSaldos();
     this.buscar();
+  }
+
+  private cargarSaldos() {
+    const clases = ['gs', 'rs', 'ds'];
+    const noDisponibles = () => { this.saldosNoDisponibles = true; this.saldosCargados = true; };
+    this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id, true).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res == null) { noDisponibles(); return; }
+        this.saldoCards = res.map((s, i) => ({
+          denominacion: s.moneda?.denominacion,
+          simbolo: s.moneda?.simbolo,
+          saldo: s.saldo,
+          formato: formatoDe(s.moneda),
+          clase: clases[i % clases.length],
+        }));
+        this.saldosCargados = true;
+      },
+      error: noDisponibles,
+    });
   }
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.

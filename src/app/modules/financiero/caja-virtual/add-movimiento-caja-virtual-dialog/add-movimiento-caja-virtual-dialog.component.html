@@ -34,7 +34,7 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
         <span class="saldo-actual">Saldo Actual</span>
         <strong class="saldo-actual-value">
-          {{ data?.cajaVirtual?.saldoGs | number:'1.0-0' }} Gs.
+          {{ saldoGs != null ? (saldoGs | number:'1.0-0') + ' Gs.' : 'No disponible' }}
         </strong>
       </div>
     </div>
@@ -62,7 +62,7 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
         <span class="saldo-actual">Saldo Actual</span>
         <strong class="saldo-actual-value">
-          {{ data?.cajaVirtual?.saldoRs | number:'1.2-2' }} R$
+          {{ saldoRs != null ? (saldoRs | number:'1.2-2') + ' R$' : 'No disponible' }}
         </strong>
       </div>
     </div>
@@ -90,10 +90,14 @@
       <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
         <span class="saldo-actual">Saldo Actual</span>
         <strong class="saldo-actual-value">
-          {{ data?.cajaVirtual?.saldoDs | number:'1.2-2' }} US$
+          {{ saldoDs != null ? (saldoDs | number:'1.2-2') + ' US$' : 'No disponible' }}
         </strong>
       </div>
     </div>
+
+    <!-- Entregado a: quien retira la plata (opcional, solo egreso) -->
+    <app-buscador-field *ngIf="esEgresoEfectivo" appearance="outline" tipo="funcionario"
+      titulo="Entregado a (opcional)" [rapido]="true" [formControl]="responsableControl"></app-buscador-field>
 
     <!-- Descripción -->
     <mat-form-field 

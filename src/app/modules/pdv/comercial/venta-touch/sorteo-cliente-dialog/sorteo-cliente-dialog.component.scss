@@ -1,0 +1,28 @@
+.sorteo-dialog {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.titulo {
+  text-align: center;
+  margin: 0;
+}
+
+.lineas {
+  text-align: center;
+  font-size: 16px;
+}
+
+.estado {
+  min-height: 36px;
+  text-align: center;
+
+  mat-spinner {
+    margin: auto;
+  }
+}
+
+.mensaje {
+  color: var(--frc-texto-suave);
+}

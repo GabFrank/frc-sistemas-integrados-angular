@@ -280,7 +280,9 @@
         <td mat-cell *matCellDef="let ventaCredito" style="text-align: center">
           <!-- <div fxLayout="row" fxLayoutAlign="start center"> -->
           <span>{{ ventaCredito?.venta?.id }}</span>
-          <button mat-icon-button matTooltip="Ir a venta">
+          <button mat-icon-button matTooltip="Ir a venta"
+            *ngIf="puedeVerVentas && ventaCredito?.venta?.id != null"
+            (click)="$event.stopPropagation(); onIrAVenta(ventaCredito)">
             <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
               >launch</mat-icon
             >
