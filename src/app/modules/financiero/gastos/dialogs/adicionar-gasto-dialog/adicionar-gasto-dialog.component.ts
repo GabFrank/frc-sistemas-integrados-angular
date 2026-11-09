@@ -644,13 +644,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Gastó todo lo retirado: vuelto cero, y la solicitud queda rendida completa al guardar. */
-  rindioTotalmente(): void {
-    this.guaraniVueltoControl.setValue(0);
-    this.realVueltoControl.setValue(0);
-    this.dolarVueltoControl.setValue(0);
-  }
-
   /** El vuelto de la caja pisa la rendición del teléfono de la solicitud (en el central). */
   private actualizarRendicionSolicitud(gastoId: number, vueltoGs: number, vueltoRs: number, vueltoDs: number): void {
     const pg = this.solicitudVuelto;

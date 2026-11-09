@@ -511,6 +511,7 @@ export const filterPreGastosQuery = gql`
         motivoRechazo
         montoRetirado
         montoGastado
+        montoVuelto
         saldoDevolver
         montoPendienteRetiro
         montoNoRendido
@@ -651,6 +652,7 @@ export const preGastoPorIdQuery = gql`
       montoSolicitado
       montoRetirado
       montoGastado
+      montoVuelto
       saldoDevolver
       estadoEtiqueta
       estadoRendicion

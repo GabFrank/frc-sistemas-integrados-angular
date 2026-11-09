@@ -134,9 +134,6 @@
 
   <mat-dialog-actions align="end" *ngIf="seleccionado && !hayPendiente">
     <button mat-stroked-button (click)="volver()" [disabled]="isSaving"><mat-icon>arrow_back</mat-icon> Volver</button>
-    <button mat-stroked-button *ngIf="seleccionado.preGasto" (click)="rindioTotalmente()" [disabled]="isSaving">
-      <mat-icon>task_alt</mat-icon> Rindió totalmente
-    </button>
     <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="isSaving || !montoControl.value">
       <mat-icon>save</mat-icon> {{ isSaving ? 'Guardando…' : 'Registrar vuelto' }}
     </button>

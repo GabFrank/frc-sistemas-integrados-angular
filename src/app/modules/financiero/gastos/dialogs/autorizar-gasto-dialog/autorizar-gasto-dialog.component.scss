@@ -107,3 +107,11 @@
   background-color: #00897b !important;
   color: white !important;
 }
+
+.rendicion-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}

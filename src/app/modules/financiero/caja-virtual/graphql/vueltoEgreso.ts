@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Mutation, Query } from 'apollo-angular';
-import { egresosParaVueltoQuery, registrarVueltoEgresoMutation, rendidoTotalEgresoPreGastoMutation } from './graphql-query';
+import { egresosParaVueltoQuery, registrarVueltoEgresoMutation } from './graphql-query';
 
 export interface Response { data: any; }
 
@@ -12,9 +12,4 @@ export class EgresosParaVueltoGQL extends Query<Response> {
 @Injectable({ providedIn: 'root' })
 export class RegistrarVueltoEgresoGQL extends Mutation<Response> {
   document = registrarVueltoEgresoMutation;
-}
-
-@Injectable({ providedIn: 'root' })
-export class RendidoTotalEgresoPreGastoGQL extends Mutation<Response> {
-  document = rendidoTotalEgresoPreGastoMutation;
 }

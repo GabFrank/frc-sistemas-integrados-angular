@@ -108,10 +108,6 @@
             <div style="text-align: center">Vuelto</div>
             <div *ngIf="isVuelto && solicitudVuelto" fxLayout="column" fxLayoutGap="6px" style="margin: 6px 0 10px">
               <span style="font-size: 0.85em; color: var(--frc-texto-suave); text-align: center">{{ textoSolicitudVuelto }}</span>
-              <button mat-stroked-button type="button" (click)="rindioTotalmente()">
-                <mat-icon>task_alt</mat-icon>
-                Rindió totalmente
-              </button>
             </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">

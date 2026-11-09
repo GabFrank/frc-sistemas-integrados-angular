@@ -88,7 +88,13 @@
         </mat-error>
       </mat-form-field>
     </div>
-    <small>Ingrese lo rendido real por moneda; el backend recalcula vuelto, estado y porcentajes.</small>
+    <div class="rendicion-pie">
+      <small>Ingrese lo rendido real por moneda; el backend recalcula vuelto, estado y porcentajes.</small>
+      <button mat-stroked-button type="button" (click)="rindioTotalmente()">
+        <mat-icon>task_alt</mat-icon>
+        Rindió totalmente
+      </button>
+    </div>
   </div>
 
   <div class="dialogo-acciones" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center; padding: 16px;">

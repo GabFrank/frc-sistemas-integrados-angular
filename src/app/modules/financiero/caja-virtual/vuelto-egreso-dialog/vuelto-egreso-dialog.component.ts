@@ -152,24 +152,6 @@ export class VueltoEgresoDialogComponent implements OnInit {
     }
   }
 
-  /**
-   * Gastó todo lo que no devolvió: la solicitud queda rendida completa sin registrar vuelto en la caja.
-   * El egreso sigue en la lista mientras tenga pendiente, por si después devuelve algo.
-   */
-  rindioTotalmente(): void {
-    if (!this.seleccionado?.preGasto || this.isSaving) return;
-    this.isSaving = true;
-    this.cajaVirtualService.onRendidoTotal(this.seleccionado.movimiento.id).pipe(untilDestroyed(this)).subscribe({
-      next: res => {
-        this.isSaving = false;
-        if (res == null) return;
-        this.notificacion.openSucess(`Solicitud #${this.seleccionado.preGasto.id} rendida completa`);
-        this.dialogRef.close(true);
-      },
-      error: () => { this.isSaving = false; },
-    });
-  }
-
   volver(): void {
     if (this.isSaving || this.hayPendiente) return;
     this.seleccionado = null;

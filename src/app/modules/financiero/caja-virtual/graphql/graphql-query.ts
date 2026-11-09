@@ -510,16 +510,6 @@ export const egresosParaVueltoQuery = gql`
   }
 `;
 
-/** La solicitud pagada con el egreso queda rendida completa (gastó todo lo que no devolvió). */
-export const rendidoTotalEgresoPreGastoMutation = gql`
-  mutation ($egresoId: ID!) {
-    data: rendidoTotalEgresoPreGasto(egresoId: $egresoId) {
-      id
-      estadoRendicion
-    }
-  }
-`;
-
 export const registrarVueltoEgresoMutation = gql`
   mutation ($egresoId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String, $claveIdempotencia: String) {
     data: registrarVueltoEgreso(egresoId: $egresoId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion, claveIdempotencia: $claveIdempotencia) {

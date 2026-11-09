@@ -247,22 +247,46 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Arranca con lo ya rendido para no tener que tipearlo: si la caja registró vuelto, manda ese
+   * (rendido = retirado − vuelto); si no, lo que rindió el funcionario desde el teléfono.
+   */
   private inicializarMontosRendidos(): void {
+    const retirado = Number(this.preGasto?.montoRetirado ?? 0);
+    const vuelto = this.preGasto?.montoVuelto;
+    const rendido = vuelto != null
+      ? Math.max(retirado - Number(vuelto), 0)
+      : Number(this.preGasto?.montoGastado ?? 0);
+    this.ponerMontosRendidos(this.porMonedaDeLaSolicitud(rendido));
+  }
+
+  /** Gastó todo lo retirado: lo rendido es lo retirado en cada moneda. */
+  rindioTotalmente(): void {
     const gasto = this.preGasto?.gasto;
-    const retiroGs = Number(gasto?.retiroGs ?? 0);
-    const retiroRs = Number(gasto?.retiroRs ?? 0);
-    const retiroDs = Number(gasto?.retiroDs ?? 0);
-    const vueltoGs = Number(gasto?.vueltoGs ?? 0);
-    const vueltoRs = Number(gasto?.vueltoRs ?? 0);
-    const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+    const retiros = { gs: Number(gasto?.retiroGs ?? 0), rs: Number(gasto?.retiroRs ?? 0), ds: Number(gasto?.retiroDs ?? 0) };
+    const hayRetiroPorMoneda = retiros.gs + retiros.rs + retiros.ds > 0;
+    this.ponerMontosRendidos(hayRetiroPorMoneda
+      ? retiros
+      : this.porMonedaDeLaSolicitud(Number(this.preGasto?.montoRetirado ?? 0)));
+  }
 
-    this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
-    this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
-    this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+  private porMonedaDeLaSolicitud(monto: number): { gs: number; rs: number; ds: number } {
+    const simbolo = (this.preGasto?.moneda?.simbolo ?? '').trim().toUpperCase();
+    const denominacion = (this.preGasto?.moneda?.denominacion ?? '').trim().toUpperCase();
+    if (simbolo.includes('R$') || simbolo.includes('RS') || denominacion.includes('REAL')) {
+      return { gs: 0, rs: monto, ds: 0 };
+    }
+    if (simbolo.includes('USD') || simbolo.includes('US$') || simbolo === '$' || denominacion.includes('DOLAR')) {
+      return { gs: 0, rs: 0, ds: monto };
+    }
+    return { gs: monto, rs: 0, ds: 0 };
+  }
 
-    this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
-    this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
-    this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
+  private ponerMontosRendidos(montos: { gs: number; rs: number; ds: number }): void {
+    this.montoRendidoGsControl.setValue(Math.max(montos.gs, 0));
+    this.montoRendidoRsControl.setValue(Math.max(montos.rs, 0));
+    this.montoRendidoDsControl.setValue(Math.max(montos.ds, 0));
+    this.cdr.markForCheck();
   }
 
   private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {
