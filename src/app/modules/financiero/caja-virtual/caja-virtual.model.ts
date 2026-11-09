@@ -210,6 +210,15 @@ export interface EgresoParaVuelto {
   movimiento: MovimientoCajaVirtual;
   devuelto: number;
   pendiente: number;
+  /** La solicitud de gasto pagada con este egreso (si fue el pago de una sola). */
+  preGasto?: {
+    id: number;
+    sucursalId: number;
+    montoRetirado?: number;
+    montoGastado?: number;
+    montoVuelto?: number;
+    estadoRendicion?: string;
+  } | null;
 }
 
 /**

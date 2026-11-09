@@ -74,6 +74,8 @@ export class PreGasto {
   montoRetirado: number;
   montoGastado: number;
   saldoDevolver: number;
+  /** Vuelto cargado en la caja; null = la rendición sale del teléfono. */
+  montoVuelto?: number;
   montoPendienteRetiro: number;
   montoNoRendido: number;
   porcentajeRendicion: number;

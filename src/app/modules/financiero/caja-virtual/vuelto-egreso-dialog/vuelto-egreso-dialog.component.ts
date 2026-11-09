@@ -24,6 +24,10 @@ const TAMANO_FORMULARIO = { width: '560px', height: 'auto' };
 
 /** Fila de la tabla, con lo que muestra ya resuelto (sin llamadas desde el template). */
 interface FilaVuelto extends EgresoParaVuelto {
+  /** «Solicitud #N · rindió …» si el egreso pagó una solicitud de gasto. */
+  _solicitud: string;
+  /** Lo que el teléfono no rindió, para autocompletar el vuelto (null si no es de una solicitud). */
+  _vueltoSugerido: number | null;
   _tipo: string;
   _entregadoA: string;
   _simbolo: string;
@@ -118,8 +122,15 @@ export class VueltoEgresoDialogComponent implements OnInit {
 
   private aFila(e: EgresoParaVuelto): FilaVuelto {
     const m = e.movimiento;
+    const pg = e.preGasto;
+    const retirado = Number(pg?.montoRetirado ?? 0);
+    const rendido = Number(pg?.montoGastado ?? 0);
+    // Lo ya devuelto se descuenta: el pendiente del egreso es el tope.
+    const sugerido = pg ? Math.min(Math.max(retirado - rendido - Number(e.devuelto ?? 0), 0), Number(e.pendiente ?? 0)) : null;
     return {
       ...e,
+      _solicitud: pg ? `Solicitud de gasto #${pg.id} · rindió ${rendido.toLocaleString('es-PY')} de ${retirado.toLocaleString('es-PY')}` : '',
+      _vueltoSugerido: sugerido,
       _tipo: labelMovimiento(m?.origenTipo, m?.tipoMovimiento, { EGRESO: 'Egreso', PAGO_PROVEEDOR: 'Pago' }),
       _entregadoA: m?.responsable?.persona?.nombre || '—',
       _simbolo: m?.moneda?.simbolo || '',
@@ -135,6 +146,10 @@ export class VueltoEgresoDialogComponent implements OnInit {
     this.monedaControl.setValue(moneda);
     this.onMonedaChange();
     this.descripcionControl.setValue('');
+    // De una solicitud: arranca con lo que el teléfono no rindió (en la moneda del egreso).
+    if (fila._vueltoSugerido != null && fila.preGasto?.montoVuelto == null) {
+      this.montoControl.setValue(fila._vueltoSugerido);
+    }
   }
 
   volver(): void {

@@ -80,6 +80,7 @@
         <span>{{ seleccionado.movimiento?.creadoEn | date: 'dd/MM/yy HH:mm' }}</span></div>
       <div class="egreso-desc">{{ seleccionado.movimiento?.descripcion || '—' }}</div>
       <div class="egreso-linea"><span class="etq">Entregado a</span> {{ seleccionado._entregadoA }}</div>
+      <div class="egreso-linea" *ngIf="seleccionado.preGasto"><span class="etq">{{ seleccionado._solicitud }}</span></div>
       <div class="egreso-montos">
         <div><span class="etq">Egreso</span> {{ seleccionado.movimiento?.cantidad | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
         <div><span class="etq">Ya devuelto</span> {{ seleccionado.devuelto | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>

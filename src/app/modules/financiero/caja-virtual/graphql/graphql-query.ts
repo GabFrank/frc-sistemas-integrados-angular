@@ -497,6 +497,14 @@ export const egresosParaVueltoQuery = gql`
         movimiento {
           ${movimientoFields}
         }
+        preGasto {
+          id
+          sucursalId
+          montoRetirado
+          montoGastado
+          montoVuelto
+          estadoRendicion
+        }
       }
     }
   }
