@@ -28,7 +28,7 @@ import { operaAcotadoCaja } from '../../caja-virtual/rol-tesoreria-caja';
 export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  tipoOperacionControl = new FormControl(TipoOperacionFinanciera.CAMBIO_DIVISA, Validators.required);
+  tipoOperacionControl = new FormControl(TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, Validators.required);
   categoriaControl = new FormControl(null);
   descripcionControl = new FormControl('');
   numeroComprobanteControl = new FormControl('');
@@ -52,11 +52,11 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   diferenciaObservacionControl = new FormControl('');
 
   tipoOperacionList = [
-    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA, icono: 'currency_exchange', desc: 'Entre monedas en caja' },
+    { label: 'Transf. entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, icono: 'swap_horiz', desc: 'Caja → caja' },
     { label: 'Depósito Bancario', value: TipoOperacionFinanciera.DEPOSITO_BANCARIO, icono: 'account_balance', desc: 'Caja → cuenta bancaria' },
     { label: 'Retiro Bancario', value: TipoOperacionFinanciera.RETIRO_BANCARIO, icono: 'savings', desc: 'Cuenta bancaria → caja' },
-    { label: 'Transf. entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, icono: 'swap_horiz', desc: 'Caja → caja' },
     { label: 'Transf. Bancaria', value: TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA, icono: 'sync_alt', desc: 'Cuenta → cuenta' },
+    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA, icono: 'currency_exchange', desc: 'Entre monedas en caja' },
   ];
 
   diferenciaDestinoList = [
@@ -231,7 +231,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.recalcular();
     });
 
-    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.CAMBIO_DIVISA);
+    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS);
   }
 
   private ajustandoMontos = false;
