@@ -457,10 +457,15 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   private getRendidoPorMoneda(preGasto: PreGasto): Record<string, number> {
-    if (preGasto?.estado !== 'COMPLETADO') {
-      return { GS: 0, RS: 0, DS: 0 };
-    }
     const gasto = preGasto?.gasto;
+    // Mientras no se completa (o si el gasto no está atado a la solicitud, como el que crea
+    // el pago de tesorería), lo rendido es montoGastado, en la moneda de la solicitud.
+    if (preGasto?.estado !== 'COMPLETADO' || !gasto) {
+      const rendido: Record<string, number> = { GS: 0, RS: 0, DS: 0 };
+      const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';
+      rendido[key] = Number(preGasto?.montoGastado ?? 0);
+      return rendido;
+    }
     return {
       GS: Math.max(Number(gasto?.retiroGs ?? 0) - Number(gasto?.vueltoGs ?? 0), 0),
       RS: Math.max(Number(gasto?.retiroRs ?? 0) - Number(gasto?.vueltoRs ?? 0), 0),
@@ -469,7 +474,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
   
   tuvoVuelto(preGasto: PreGasto): boolean {
-    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+    if ((preGasto?.estado === 'TRAMITE' || preGasto?.estado === 'PAGADO') && preGasto?.rindioGasto) {
       return Number(preGasto?.saldoDevolver ?? 0) > 0;
     }
     const gasto = preGasto?.gasto;
@@ -478,7 +483,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   montoVueltoPorMoneda(preGasto: PreGasto): string {
-    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+    if ((preGasto?.estado === 'TRAMITE' || preGasto?.estado === 'PAGADO') && preGasto?.rindioGasto) {
        const saldo = Number(preGasto?.saldoDevolver ?? 0);
        if (saldo > 0) {
           const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';

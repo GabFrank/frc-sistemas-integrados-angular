@@ -288,6 +288,7 @@ export class GastoService {
     usuarioId?: number;
     gastoRegistroId: number;
     lineas?: RetiroPreGastoLineaInput[];
+    sinQr?: boolean;
   }): Observable<PreGasto> {
     return this.genericService.onCustomMutation(this.ejecutarRetiroPreGastoGQL, { input });
   }
@@ -302,7 +303,8 @@ export class GastoService {
     responsable: Funcionario,
     autorizadoPor: Funcionario | null,
     lineas: RetiroPreGastoLineaInput[],
-    usuarioId?: number
+    usuarioId?: number,
+    sinQr = false
   ): Observable<PreGasto> {
     const sucursalCajaId = caja?.sucursal?.id ?? caja?.sucursalId;
     return this.montosRetiroDesdeLineas(lineas).pipe(
@@ -318,7 +320,9 @@ export class GastoService {
         gasto.responsable = responsable;
         gasto.tipoGasto = preGasto.tipoGasto;
         gasto.autorizadoPor = autorizadoPor ?? undefined;
-        gasto.observacion = preGasto.descripcion;
+        // La filial rechaza un gasto sin observación, y la descripción de la solicitud es opcional.
+        gasto.observacion = preGasto.descripcion?.trim()
+          || [`Solicitud de gasto #${preGasto.id}`, preGasto.tipoGasto?.descripcion].filter(Boolean).join(' - ');
         gasto.retiroGs = Number(montos?.retiroGs ?? 0);
         gasto.retiroRs = Number(montos?.retiroRs ?? 0);
         gasto.retiroDs = Number(montos?.retiroDs ?? 0);
@@ -345,6 +349,7 @@ export class GastoService {
               usuarioId,
               gastoRegistroId: gastoGuardado.id,
               lineas,
+              sinQr,
             }).pipe(catchError((causa) => throwError(() => ({ etapa: 'RETIRO', causa } as ErrorRetiroPreGasto))));
           })
         );
