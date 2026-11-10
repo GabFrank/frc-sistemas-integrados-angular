@@ -7,8 +7,25 @@ export const configuracionCobroQuery = gql`
       id
       aumentoConTope
       aumentoTopePorcentaje
+      descuentoConTope
+      descuentoTopePorcentaje
       usuarioNickname
       modificadoEn
+    }
+  }
+`;
+
+/**
+ * La del cobro, contra el filial, con el tope del descuento. Un filial sin V112.3 no conoce esos campos y
+ * rechaza la consulta entera: el servicio cae a `configuracionCobroPdvQuery` para no perder el tope del aumento.
+ */
+export const configuracionCobroPdvCompletaQuery = gql`
+  {
+    data: configuracionCobro {
+      aumentoConTope
+      aumentoTopePorcentaje
+      descuentoConTope
+      descuentoTopePorcentaje
     }
   }
 `;
@@ -32,6 +49,8 @@ export const saveConfiguracionCobro = gql`
       id
       aumentoConTope
       aumentoTopePorcentaje
+      descuentoConTope
+      descuentoTopePorcentaje
       usuarioNickname
       modificadoEn
     }

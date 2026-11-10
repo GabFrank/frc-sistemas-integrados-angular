@@ -7,7 +7,7 @@ import { finalize } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED, LECTURA_ESTRICTA } from '../../../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { ConfiguracionCobroService } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.service';
-import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, descuentosRegistradosGs, mensajeTopeAumento, mensajeTopeDescuento, topeDescuento } from '../../../../../financiero/configuracion-cobro/configuracion-cobro.model';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../../shared/services/timeout-link';
 import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { comparatorLike } from '../../../../../../commons/core/utils/string-utils';
@@ -212,7 +212,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.cargarPrecios();
-    // Tope del aumento (#546), del filial. Si no responde, `configCobro` queda en null: tope del 20%.
+    // Topes del aumento (#546) y del descuento, del filial. Si no responde, `configCobro` queda en null:
+    // aumento con tope del 20% y descuento sin tope.
     this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
       next: (config) => (this.configCobro = config),
       error: () => (this.configCobro = null),
@@ -1087,6 +1088,18 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
     let total = this.selectedDelivery.venta.valorTotal + this.envio();
     let saldo = this.saldoControl.value;
+    // Tope de Configuración › Cobro en PDV. Cuentan los descuentos por producto (ya restados en valorTotal,
+    // por eso el porcentaje se mide sobre el total sin ellos) y los descuentos que el cobro ya tiene.
+    const descuentoItems = (this.selectedDelivery?.venta?.ventaItemList ?? [])
+      .reduce((suma, vi) => suma + (+vi.cantidad || 0) * (+vi.valorDescuento || 0), 0);
+    const topeTotal = topeDescuento(total + descuentoItems, this.configCobro);
+    const yaDescontado = descuentoItems + (this.esOtraMoneda
+      ? descuentosRegistradosGs(this.cobroItemList, (l) => this.factorDeLinea(l))
+      : descuentosRegistradosGs(this.cobroItemList));
+    if (topeTotal != null && topeTotal - yaDescontado <= 0) {
+      this.notificacionSnackbar.openWarn(mensajeTopeDescuento(this.configCobro), 5);
+      return;
+    }
 
     let data: DescuentoDialogData = {
       valorTotal: total,
@@ -1095,19 +1108,20 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       saldo: saldo,
       // Con otra moneda del PDV, total y saldo están en ella y el diálogo devuelve el descuento en ella.
       monedaBase: this.esOtraMoneda ? this.monedaPdv : undefined,
+      tope: topeTotal != null ? topeTotal - yaDescontado : null,
+      mensajeTope: mensajeTopeDescuento(this.configCobro),
     }
     this.matDialog.open(DescuentoDialogComponent, {
       data: data
     }).afterClosed().subscribe(res => {
+      // El límite fijo del 25% (que descartaba el descuento en silencio) lo reemplaza el tope configurable,
+      // que el diálogo ya hace respetar.
       if (res > 0) {
-        let valor = res;
-        if (valor < (total * 0.25)) {
-          this.isAumento = false;
-          this.isVuelto = false;
-          this.isDescuento = true;
-          this.vueltoControl.setValue(valor)
-          this.addCobroDetalle();
-        }
+        this.isAumento = false;
+        this.isVuelto = false;
+        this.isDescuento = true;
+        this.vueltoControl.setValue(res)
+        this.addCobroDetalle();
       }
     })
   }

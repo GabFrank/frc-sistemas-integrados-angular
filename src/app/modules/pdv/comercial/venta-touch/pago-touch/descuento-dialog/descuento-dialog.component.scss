@@ -1,3 +1,12 @@
 :host:ng-deep.mat-mdc-form-field-text-prefix {
     width: 100% !important;
 }
+.descuento-tope {
+  font-size: 13px;
+  color: var(--frc-texto-suave);
+
+  &--excede {
+    color: #f44336;
+    font-weight: 500;
+  }
+}

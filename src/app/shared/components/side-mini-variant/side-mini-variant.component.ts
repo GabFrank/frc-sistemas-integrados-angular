@@ -87,7 +87,7 @@ import { ListSorteoComponent } from '../../../modules/operaciones/sorteo/list-so
 import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
-import { ConfiguracionCobroDialogComponent } from '../../../modules/financiero/configuracion-cobro/configuracion-cobro-dialog/configuracion-cobro-dialog.component';
+import { ConfiguracionCobroComponent } from '../../../modules/financiero/configuracion-cobro/configuracion-cobro.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ResumenFiscalVentasComponent } from '../../../modules/financiero/factura-legal/resumen-fiscal-ventas/resumen-fiscal-ventas.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
@@ -1129,13 +1129,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
         break;
-      // Diálogo y no pestaña, como la configuración de tarjeta: es una perilla, no una pantalla.
+      // Pestaña con los dos topes del cobro (aumento y descuento).
       case "configuracion-cobro":
         if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
-          this.matDialog.open(ConfiguracionCobroDialogComponent, {
-            width: '560px',
-            panelClass: 'custom-dialog-container'
-          });
+          this.tabService.addTab(new Tab(ConfiguracionCobroComponent, "Cobro en PDV", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

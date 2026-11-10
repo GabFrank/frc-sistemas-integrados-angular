@@ -79,7 +79,7 @@ import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/config
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
 import { ConfiguracionFacturacionDialogComponent } from "./factura-legal/configuracion-facturacion-dialog/configuracion-facturacion-dialog.component";
-import { ConfiguracionCobroDialogComponent } from "./configuracion-cobro/configuracion-cobro-dialog/configuracion-cobro-dialog.component";
+import { ConfiguracionCobroComponent } from "./configuracion-cobro/configuracion-cobro.component";
 import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
 import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-dialog/add-caja-virtual-dialog.component';
 import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
@@ -189,7 +189,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
     ConfiguracionFacturacionDialogComponent,
-    ConfiguracionCobroDialogComponent,
+    ConfiguracionCobroComponent,
     FacturaLegalDashboard,
     AddCajaVirtualDialogComponent,
     AddMovimientoCajaVirtualDialogComponent,
