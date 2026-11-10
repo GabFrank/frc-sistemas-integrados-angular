@@ -260,7 +260,8 @@
           Precio venta
         </th>
         <td mat-cell *matCellDef="let producto" style="text-align: center">
-          {{ producto?.precioPrincipal | number : "1.0-0" }}
+          <ng-container *ngIf="monedaPrecioPrincipal(producto) as m; else precioEmpresa">{{ m.simbolo }} {{ producto?.precioPrincipal | number : digitosDe(m) }}</ng-container>
+          <ng-template #precioEmpresa>{{ producto?.precioPrincipal | number : "1.0-0" }}</ng-template>
         </td>
       </ng-container>
 

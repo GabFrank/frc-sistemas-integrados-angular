@@ -10,6 +10,7 @@ import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUti
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { esRechazoPorSaldo } from '../../rechazo-por-saldo';
+import { MonedaService } from '../../moneda/moneda.service';
 
 export interface AjustarSaldoCuentaData {
   cuentaBancaria: CuentaBancaria;
@@ -58,6 +59,7 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
     private cuentaBancariaService: CuentaBancariaService,
     private dialogos: DialogosService,
     private notificacion: NotificacionSnackbarService,
+    private monedaService: MonedaService,
   ) {}
 
   ngOnInit(): void {
@@ -82,13 +84,8 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
   }
 
   private buildCurrencyOptions(moneda: any): any {
-    const decimales = moneda?.decimales != null
-      ? moneda.decimales
-      : ((moneda?.denominacion || '').toUpperCase().includes('GUARANI') ? 0 : 2);
-    return {
-      align: 'right', allowNegative: false, decimal: ',', precision: decimales, thousands: '.',
-      prefix: moneda?.simbolo ? moneda.simbolo + ' ' : '', suffix: '', nullable: true, min: 0, max: null,
-    };
+    // Esta pantalla nunca fijó allowZero y dejaba la coma de decimal aun sin decimales.
+    return this.monedaService.currencyOptionsMontoPositivo(moneda, { decimalSinDecimales: ',' });
   }
 
   onGuardar(): void {

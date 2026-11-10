@@ -28,6 +28,7 @@ import { dateToString } from "../commons/core/utils/dateUtils";
 import {
   limpiarErroresGraphQL,
   limpiarMensajeGraphQL,
+  motivoVersionMinima,
   mensajeErrorTransporte,
   MENSAJE_RESPUESTA_VACIA,
 } from "../commons/core/utils/graphqlErrorUtils";
@@ -806,6 +807,12 @@ export class GenericCrudService {
   private ultimoAvisoError = new WeakMap<Mutation, { texto: string; en: number }>();
 
   private avisarErrorSinRepetir(gql: Mutation, texto: string, duracion: number): void {
+    // «VERSION_MINIMA: …» es una instrucción para el administrador, no «algo salió mal»: se dice tal cual y con tiempo para leerla.
+    const versionMinima = motivoVersionMinima(texto);
+    if (versionMinima != null) {
+      texto = versionMinima;
+      duracion = Math.max(duracion, 12);
+    }
     // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
     // resta negativa y silenciaría avisos mucho más de la ventana.
     const ahora = performance.now();

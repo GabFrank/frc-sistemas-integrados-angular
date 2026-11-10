@@ -6,7 +6,7 @@ import { Moneda } from './moneda.model';
 import { MonedaService } from './moneda.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../shared/components/dialogos/dialogos.service';
-import { AddMonedaDialogComponent } from './add-moneda-dialog/add-moneda-dialog.component';
+import { AddMonedaDialogComponent, AddMonedaDialogData } from './add-moneda-dialog/add-moneda-dialog.component';
 import { MainService } from '../../../main.service';
 import { ROLES } from '../../personas/roles/roles.enum';
 
@@ -20,8 +20,14 @@ export class MonedaComponent implements OnInit {
 
   dataSource = new MatTableDataSource<Moneda>([]);
   isSearching = false;
-  displayedColumns = ['id', 'denominacion', 'simbolo', 'decimales', 'principal', 'activo', 'acciones'];
+  private readonly columnasBase = ['id', 'denominacion', 'simbolo', 'decimales', 'principal', 'activo', 'acciones'];
+  displayedColumns = this.columnasBase;
   puedeGestionar = false;
+  /**
+   * El central conoce `codigoIso`. Se sabe al cargar: si la consulta del ABM (que lo pide) falla, se
+   * vuelve a la de siempre y el código ISO no se muestra ni se envía.
+   */
+  soportaCodigoIso = false;
 
   constructor(
     private monedaService: MonedaService,
@@ -38,19 +44,43 @@ export class MonedaComponent implements OnInit {
 
   cargar() {
     this.isSearching = true;
+    this.monedaService.onGetAllAbm().pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.isSearching = false;
+        this.setSoportaCodigoIso(true);
+        if (res != null) this.dataSource.data = res;
+      },
+      // Central anterior al código ISO (o sin red): la consulta de siempre, sin el campo.
+      error: () => this.cargarSinCodigoIso(),
+    });
+  }
+
+  private cargarSinCodigoIso() {
+    this.setSoportaCodigoIso(false);
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       this.isSearching = false;
       if (res != null) this.dataSource.data = res;
     });
   }
 
+  private setSoportaCodigoIso(soporta: boolean) {
+    this.soportaCodigoIso = soporta;
+    this.displayedColumns = soporta
+      ? ['id', 'denominacion', 'simbolo', 'codigoIso', 'decimales', 'principal', 'activo', 'acciones']
+      : this.columnasBase;
+  }
+
   onAdd() {
-    this.dialog.open(AddMonedaDialogComponent, { width: '480px', data: null })
-      .afterClosed().subscribe(res => { if (res) this.cargar(); });
+    this.abrirDialogo(null);
   }
 
   onEdit(item: Moneda) {
-    this.dialog.open(AddMonedaDialogComponent, { width: '480px', data: item })
+    this.abrirDialogo(item);
+  }
+
+  private abrirDialogo(moneda: Moneda | null) {
+    const data: AddMonedaDialogData = { moneda, soportaCodigoIso: this.soportaCodigoIso };
+    this.dialog.open(AddMonedaDialogComponent, { width: '480px', data })
       .afterClosed().subscribe(res => { if (res) this.cargar(); });
   }
 

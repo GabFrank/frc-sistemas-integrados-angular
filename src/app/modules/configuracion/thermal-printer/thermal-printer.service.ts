@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, of, catchError, map } from 'rxjs';
+import { textoPrecioEtiqueta } from '../../productos/precio-por-sucursal/etiqueta-precio.util';
 import { ElectronService, PrinterInfo, PrintResult } from '../../../commons/core/electron/electron.service';
 
 @Injectable({
@@ -36,8 +37,10 @@ export class ThermalPrinterService {
    * @param printerName Printer name to use
    * @param product Product to print label for
    * @param showSnackbar Whether to show a snackbar with the result
+   * @param moneda Moneda del precio si NO es la de la empresa (se imprime «US$ 4,39»); sin ella, «Gs. 26.252» como siempre
    */
-  printPriceLabel(printerName: string, product: any, showSnackbar: boolean = true): Observable<PrintResult> {
+  printPriceLabel(printerName: string, product: any, showSnackbar: boolean = true,
+                  moneda: { simbolo?: string; decimales?: number } | null = null): Observable<PrintResult> {
     console.log('[ThermalPrinterService] Printing price label for', product.descripcion);
     
     // Make sure we have a product name and price
@@ -49,11 +52,8 @@ export class ThermalPrinterService {
       ? product.precioPrincipal 
       : parseFloat(product.precioPrincipal) || 0;
     
-    // Format price with proper locale settings
-    const formattedPrice = price.toLocaleString('es-PY', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
+    // Format price with proper locale settings (con el símbolo y los decimales de su moneda)
+    const priceText = textoPrecioEtiqueta(price, moneda);
 
     // Create data structure for pos-printer
     const data = [
@@ -71,7 +71,7 @@ export class ThermalPrinterService {
       // Price
       {
         type: 'text',
-        value: `Gs. ${formattedPrice}`,
+        value: priceText,
         style: {
           fontWeight: 'bold',
           textAlign: 'center',

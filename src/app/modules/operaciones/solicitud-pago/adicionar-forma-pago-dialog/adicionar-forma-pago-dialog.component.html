@@ -29,7 +29,7 @@
           <mat-hint *ngIf="cotizacionOrigen === 'mercado'">Cotización mercado (nortecambios)</mat-hint>
           <mat-hint *ngIf="cotizacionOrigen === 'manual'">Modificada manualmente</mat-hint>
           <mat-error *ngIf="form.get('cotizacion')?.hasError('required')">Ingresá la cotización</mat-error>
-          <mat-error *ngIf="form.get('cotizacion')?.hasError('cotizacionInvalida')">La cotización tiene que ser mayor a 1</mat-error>
+          <mat-error *ngIf="form.get('cotizacion')?.hasError('cotizacionInvalida')">La cotización tiene que ser mayor a 0</mat-error>
         </mat-form-field>
         <div class="valor-with-menu">
           <mat-form-field appearance="outline" class="valor-field">
@@ -115,11 +115,11 @@
       <div class="balance-strip">
         <div class="bstat">
           <span class="b-label">A pagar</span>
-          <strong class="b-value">Gs {{ (data?.montoSugerido ?? 0) | number:'1.0-0' }}</strong>
+          <strong class="b-value">{{ simboloEmpresa }} {{ (data?.montoSugerido ?? 0) | number:formatoEmpresa }}</strong>
         </div>
         <div class="bstat">
-          <span class="b-label">Equivalente Gs</span>
-          <strong class="b-value">Gs {{ valorEnGuaraniesDisplay | number:'1.0-0' }}</strong>
+          <span class="b-label">Equivalente {{ simboloEmpresa }}</span>
+          <strong class="b-value">{{ simboloEmpresa }} {{ valorEnGuaraniesDisplay | number:formatoEmpresa }}</strong>
         </div>
         <div class="bstat b-dif" [ngClass]="'estado-' + diferenciaEstado">
           <span class="b-label">Diferencia</span>
@@ -127,7 +127,7 @@
             <mat-icon *ngIf="diferenciaEstado === 'cubre'">check_circle</mat-icon>
             <mat-icon *ngIf="diferenciaEstado === 'exceso'">north</mat-icon>
             <mat-icon *ngIf="diferenciaEstado === 'falta'">south</mat-icon>
-            Gs {{ diferenciaGsDisplay | number:'1.0-0' }}
+            {{ simboloEmpresa }} {{ diferenciaGsDisplay | number:formatoEmpresa }}
           </strong>
           <small class="b-hint">
             <ng-container *ngIf="diferenciaEstado === 'cubre'">Cubre exacto</ng-container>

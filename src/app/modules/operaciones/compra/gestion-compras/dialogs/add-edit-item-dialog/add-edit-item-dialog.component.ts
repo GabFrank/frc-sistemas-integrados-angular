@@ -40,6 +40,7 @@ import {
 import { CurrencyMask } from "../../../../../../commons/core/utils/numbersUtils";
 import { Pedido } from "../../pedido.model";
 import { MonedaService } from "../../../../../financiero/moneda/moneda.service";
+import { MonedaModuloService } from "../../../../../../shared/services/moneda-modulo.service";
 import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
@@ -146,6 +147,7 @@ export class AddEditItemDialogComponent implements OnInit {
   private dialogRef = inject<MatDialogRef<AddEditItemDialogComponent, AddEditItemDialogResult>>(MatDialogRef);
   private dialog = inject(MatDialog);
   private monedaService = inject(MonedaService);
+  private monedaModuloService = inject(MonedaModuloService);
   private pedidoService = inject(PedidoService);
   private notificacionService = inject(NotificacionSnackbarService);
   private dialogosService = inject(DialogosService);
@@ -680,7 +682,10 @@ export class AddEditItemDialogComponent implements OnInit {
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
-      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+      const decimales = monedaCompleta.decimales != null
+        ? monedaCompleta.decimales
+        : (this.monedaModuloService.esMonedaEmpresa(monedaCompleta) ? 0 : 2);
+      this.selectedCurrencyDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
@@ -1023,12 +1028,17 @@ export class AddEditItemDialogComponent implements OnInit {
 
     // Pedido en moneda extranjera: se prioriza pedido.cotizacion (fijada al guardar el pedido)
     // y se cae a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
-    // cotizacion > 1 identifica a la moneda extranjera (el guaraní cotiza 1), misma convención
-    // que CostoMedioCalculator.aGuaranies y <app-costo-display>.
+    // Moneda distinta de la de la empresa = extranjera (cotiza contra la de la empresa); si el pedido
+    // no trae moneda, cotizacion > 1, misma convención que CostoMedioCalculator.aGuaranies.
     const pedidoCotizacion =
       this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
-    if (precioInicial > 0 && pedidoCotizacion > 1) {
-      precioInicial = Math.round((precioInicial / pedidoCotizacion) * 100) / 100;
+    const pedidoMoneda = this.data.pedido?.moneda;
+    const monedaDistinta = pedidoMoneda
+      ? !this.monedaModuloService.esMonedaEmpresa(pedidoMoneda)
+      : pedidoCotizacion > 1;
+    if (precioInicial > 0 && monedaDistinta && pedidoCotizacion > 0) {
+      const factor = Math.pow(10, pedidoMoneda?.decimales ?? 2);
+      precioInicial = Math.round((precioInicial / pedidoCotizacion) * factor) / factor;
     }
 
     this.itemForm.patchValue(

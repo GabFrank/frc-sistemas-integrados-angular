@@ -75,6 +75,8 @@ import {
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
+import { PrecioMonedaService } from "../../precio-por-sucursal/precio-moneda.service";
+import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import {
   PrecioEspecialDialogComponent,
   PrecioEspecialDialogData,
@@ -282,7 +284,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
     private notificacionService: NotificacionSnackbarService,
     private thermalPrinterService: ThermalPrinterService,
-    private configuracionService: ConfiguracionService
+    private configuracionService: ConfiguracionService,
+    private precioMonedaService: PrecioMonedaService,
+    private monedaModulo: MonedaModuloService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1123,8 +1127,29 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
+        this.cargarSimbolosDePrecios();
       } });
   }
+
+  /**
+   * Símbolo de la moneda de cada precio que NO está en la de la empresa, por id de precio. Se lee con una
+   * operación aparte que puede fallar (servidor viejo): sin símbolo, el precio se ve como siempre.
+   */
+  simbolosPrecio: Record<string, string> = {};
+
+  private cargarSimbolosDePrecios(): void {
+    if (this.simbolosSub) return;
+    this.precioMonedaService.asegurarMapaCentral();
+    // Del mapa en caché de precios en otra moneda: vacío en bodega, y si no se pudo leer, sin símbolos
+    this.simbolosSub = this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((e) => {
+      const nuevos: Record<string, string> = {};
+      e.mapa.forEach((moneda, precioId) => {
+        if (!this.monedaModulo.esMonedaEmpresa(moneda)) nuevos[precioId] = moneda.simbolo || '';
+      });
+      this.simbolosPrecio = nuevos;
+    });
+  }
+  private simbolosSub: Subscription;
 
   /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
   private marcarPresentacionesSinCargar(): void {
@@ -1376,6 +1401,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.promocion = promocion;
     // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
+    data.productoId = this.selectedProducto?.id;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,

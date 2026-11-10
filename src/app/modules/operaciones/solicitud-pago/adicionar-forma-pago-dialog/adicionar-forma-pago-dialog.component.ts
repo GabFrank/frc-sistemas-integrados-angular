@@ -1,4 +1,5 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
@@ -6,6 +7,7 @@ import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { SolicitudPagoDetalleInput } from '../../compra/gestion-compras/solicitud-pago.model';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
 import { CambioService } from '../../../financiero/cambio/cambio.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -22,13 +24,13 @@ const CONSULTA_COTIZACION: ContextoConsulta = {
   silenciarAvisoTimeout: true,
 };
 
-/** Una moneda extranjera nunca cotiza 1 o menos contra el guaraní. */
-function cotizacionMayorAUno(control: AbstractControl): ValidationErrors | null {
+/** Una moneda distinta de la de la empresa necesita una cotización mayor a 0. */
+function cotizacionPositiva(control: AbstractControl): ValidationErrors | null {
   const v = control.value;
   if (v == null || v === '') {
     return null; // lo cubre required
   }
-  return Number(v) > 1 ? null : { cotizacionInvalida: true };
+  return Number(v) > 0 ? null : { cotizacionInvalida: true };
 }
 
 export interface AdicionarFormaPagoDialogData {
@@ -49,7 +51,7 @@ export interface AdicionarFormaPagoDialogData {
   templateUrl: './adicionar-forma-pago-dialog.component.html',
   styleUrls: ['./adicionar-forma-pago-dialog.component.scss']
 })
-export class AdicionarFormaPagoDialogComponent {
+export class AdicionarFormaPagoDialogComponent implements OnDestroy {
   form: FormGroup;
   monedaList: Moneda[] = [];
   formaPagoList: FormaPago[] = [];
@@ -84,6 +86,11 @@ export class AdicionarFormaPagoDialogComponent {
   /** Opciones ngx-currency para Cotización (siempre con decimales). */
   cotizacionCurrencyOptions: any;
 
+  /** Símbolo y formato de los montos en la moneda de la empresa («Gs» y sin decimales en guaraníes). */
+  simboloEmpresa = 'Gs';
+  formatoEmpresa = '1.0-0';
+  private empresaSub: Subscription;
+
   /** Cuotas de cheque: genera una forma de pago por cheque, encadenadas por intervalo de días. */
   intervalos = [7, 15, 30, 45];
   cuotasOpciones = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -98,8 +105,13 @@ export class AdicionarFormaPagoDialogComponent {
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private monedaService: MonedaService,
-    private cambioService: CambioService
+    private cambioService: CambioService,
+    private monedaModuloService: MonedaModuloService
   ) {
+    this.empresaSub = this.monedaModuloService.empresa$.subscribe((m) => {
+      this.simboloEmpresa = m && !(m.denominacion || '').toUpperCase().includes('GUARANI') ? (m.simbolo || 'Gs') : 'Gs';
+      this.formatoEmpresa = m?.decimales > 0 ? `1.0-${m.decimales}` : '1.0-0';
+    });
     this.monedaList = data?.monedaList || [];
     this.formaPagoList = data?.formaPagoList || [];
     this.proveedorNombreDisplay = (data?.proveedorNombre || '').toString().toUpperCase();
@@ -149,8 +161,7 @@ export class AdicionarFormaPagoDialogComponent {
     this.form.get('monedaId').valueChanges.subscribe((id) => {
       const m = this.monedaList.find((mo) => mo.id === id);
       this.valorCurrencyOptions = m ? this.monedaService.currencyOptionsByMoneda(m) : this.monedaService.currencyOptionsGuarani;
-      const denom = (m?.denominacion || '').toUpperCase();
-      this.mostrarCotizacion = denom !== 'GUARANI' && denom !== 'GS' && denom !== '';
+      this.mostrarCotizacion = !!m && !this.monedaModuloService.esMonedaEmpresa(m);
       this.actualizarValidadoresCotizacion();
       if (!this.mostrarCotizacion || !m) {
         this.cotizacionConsulta++; // una consulta en vuelo de la moneda anterior ya no aplica
@@ -178,7 +189,7 @@ export class AdicionarFormaPagoDialogComponent {
       this.textoConfirmacion = '¿Desea guardar los cambios?';
       const moneda = this.monedaList.find((m) => m.id === existente.monedaId);
       const formaPago = this.formaPagoList.find((f) => f.id === existente.formaPagoId);
-      this.mostrarCotizacion = moneda && (moneda.denominacion || '').toUpperCase() !== 'GUARANI' && (moneda.denominacion || '').toUpperCase() !== 'GS';
+      this.mostrarCotizacion = !!moneda && !this.monedaModuloService.esMonedaEmpresa(moneda);
       this.mostrarCamposCheque = formaPago?.descripcion != null && (formaPago.descripcion + '').toUpperCase().includes('CHEQUE');
       const fechaPago = existente.fechaPago ? new Date(existente.fechaPago) : null;
       const fechaEmisionCheque = existente.fechaEmisionCheque ? new Date(existente.fechaEmisionCheque) : this.form.get('fechaEmisionCheque').value;
@@ -223,7 +234,7 @@ export class AdicionarFormaPagoDialogComponent {
       if (tasa > 0 && montoGs != null && montoGs > 0 && !this.isModoEdicion) {
         const valorEnMoneda = montoGs / tasa;
         this.form.patchValue(
-          { valor: Math.round(valorEnMoneda * 100) / 100 },
+          { valor: this.redondearA(valorEnMoneda, moneda) },
           { emitEvent: false }
         );
       }
@@ -274,7 +285,7 @@ export class AdicionarFormaPagoDialogComponent {
   private actualizarValidadoresCotizacion(): void {
     const control = this.form.get('cotizacion');
     if (this.mostrarCotizacion && !this.isModoEdicion) {
-      control.setValidators([Validators.required, cotizacionMayorAUno]);
+      control.setValidators([Validators.required, cotizacionPositiva]);
     } else {
       control.clearValidators();
     }
@@ -294,7 +305,8 @@ export class AdicionarFormaPagoDialogComponent {
     }
     const tasa = Number(this.form.get('cotizacion').value);
     const montoGs = this.data?.montoSugerido;
-    const valor = tasa > 1 && montoGs != null && montoGs > 0 ? Math.round((montoGs / tasa) * 100) / 100 : null;
+    const monedaSel = this.monedaList.find((m) => String(m.id) === String(this.form.get('monedaId').value));
+    const valor = tasa > 0 && montoGs != null && montoGs > 0 ? this.redondearA(montoGs / tasa, monedaSel) : null;
     this.form.patchValue({ valor }, { emitEvent: false });
   }
 
@@ -302,14 +314,12 @@ export class AdicionarFormaPagoDialogComponent {
     const monedaId = this.form.get('monedaId').value;
     const valor = Number(this.form.get('valor').value);
     const moneda = this.monedaList.find((m) => m.id === monedaId);
-    const denom = (moneda?.denominacion || '').toUpperCase();
-    const esGuarani = denom === 'GUARANI' || denom === 'GS' || denom === '';
-    if (esGuarani || isNaN(valor)) {
+    if (!moneda || this.monedaModuloService.esMonedaEmpresa(moneda) || isNaN(valor)) {
       this.valorEnGuaraniesDisplay = isNaN(valor) ? 0 : valor;
     } else {
       const cotizacion = Number(this.form.get('cotizacion').value);
       const tasa = cotizacion != null && !isNaN(cotizacion) && cotizacion > 0 ? cotizacion : moneda?.cambio ?? 0;
-      this.valorEnGuaraniesDisplay = tasa > 0 ? Math.round((valor * tasa)) : 0;
+      this.valorEnGuaraniesDisplay = tasa > 0 ? this.redondearA(valor * tasa, this.monedaModuloService.empresa$.value) : 0;
     }
     const sugerido = this.data?.montoSugerido ?? 0;
     this.diferenciaGsDisplay = this.valorEnGuaraniesDisplay - sugerido;
@@ -322,11 +332,22 @@ export class AdicionarFormaPagoDialogComponent {
     }
   }
 
+  ngOnDestroy(): void {
+    this.empresaSub?.unsubscribe();
+  }
+
+  /** Un solo redondeo final a los decimales de la moneda (2 si no los trae; el guaraní, 0). */
+  private redondearA(valor: number, moneda: Moneda | null | undefined): number {
+    const decimales = moneda?.decimales != null ? moneda.decimales : (this.monedaModuloService.esMonedaEmpresa(moneda) ? 0 : 2);
+    const factor = Math.pow(10, decimales);
+    return Math.round(valor * factor) / factor;
+  }
+
   /** Unidad mínima de redondeo según moneda: Guarani 500, USD 1, Real 0.5, resto 1. */
   private getUnidadMinima(moneda: Moneda | undefined): number {
     if (!moneda?.denominacion) return 1;
     const d = (moneda.denominacion + '').toUpperCase();
-    if (d === 'GUARANI' || d === 'GS') return 500;
+    if (moneda.decimales === 0 || d === 'GUARANI' || d === 'GS') return 500;
     if (d === 'USD' || d === 'DOLAR' || d === 'DÓLAR') return 1;
     if (d === 'REAL' || d === 'BRL' || d === 'REALES') return 0.5;
     return 1;
@@ -340,7 +361,7 @@ export class AdicionarFormaPagoDialogComponent {
     let valor = Number(this.form.get('valor').value);
     if (isNaN(valor) || valor < 0) valor = 0;
     const redondeado = Math.ceil(valor / unidad) * unidad;
-    this.form.patchValue({ valor: Math.round(redondeado * 100) / 100 });
+    this.form.patchValue({ valor: this.redondearA(redondeado, moneda) });
     this.updateValorEnGuaraniesDisplay();
   }
 
@@ -352,7 +373,7 @@ export class AdicionarFormaPagoDialogComponent {
     let valor = Number(this.form.get('valor').value);
     if (isNaN(valor) || valor < 0) valor = 0;
     const redondeado = Math.floor(valor / unidad) * unidad;
-    this.form.patchValue({ valor: Math.round(redondeado * 100) / 100 });
+    this.form.patchValue({ valor: this.redondearA(redondeado, moneda) });
     this.updateValorEnGuaraniesDisplay();
   }
 
@@ -362,16 +383,14 @@ export class AdicionarFormaPagoDialogComponent {
     if (montoGs == null || montoGs <= 0) return;
     const monedaId = this.form.get('monedaId').value;
     const moneda = this.monedaList.find((m) => m.id === monedaId);
-    const denom = (moneda?.denominacion || '').toUpperCase();
-    const esGuarani = denom === 'GUARANI' || denom === 'GS' || denom === '';
-    if (esGuarani) {
+    if (!moneda || this.monedaModuloService.esMonedaEmpresa(moneda)) {
       this.form.patchValue({ valor: montoGs });
     } else {
       const cotizacion = Number(this.form.get('cotizacion').value);
       const tasa = cotizacion != null && !isNaN(cotizacion) && cotizacion > 0 ? cotizacion : moneda?.cambio ?? 0;
       if (tasa <= 0) return;
       const valorEnMoneda = montoGs / tasa;
-      this.form.patchValue({ valor: Math.round(valorEnMoneda * 100) / 100 });
+      this.form.patchValue({ valor: this.redondearA(valorEnMoneda, moneda) });
     }
     this.updateValorEnGuaraniesDisplay();
   }
