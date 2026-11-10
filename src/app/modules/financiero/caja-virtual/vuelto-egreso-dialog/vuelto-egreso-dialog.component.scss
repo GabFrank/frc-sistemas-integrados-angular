@@ -37,6 +37,7 @@
   .filtros {
     flex: 0 0 auto;
     .filtro-texto { width: 380px; }
+    .filtro-fecha { width: 240px; }
     .spacer { flex: 1 1 auto; }
     .hint { color: var(--frc-texto-suave); font-size: 12px; white-space: nowrap; }
   }
