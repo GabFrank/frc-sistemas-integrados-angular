@@ -129,11 +129,8 @@ export class DescuentoDialogComponent implements OnInit {
     }
     this.porcentajeDescuento.setValidators(Validators.max(this.porcentaje));
     this.porcentajeDescuento.updateValueAndValidity();
-    if (this.tope == null || this.data.saldo <= this.tope) {
-      this.onKeyUp(1, this.data.saldo);
-    } else {
-      this.onKeyUp(1, 0);
-    }
+    // Siempre arranca en 0%: precargar el saldo (100% sin tope) hacía que un Enter de más regalara la venta.
+    this.onKeyUp(1, 0);
     setTimeout(() => {
       this.porcentajeInput.nativeElement.select();
     }, 500);
