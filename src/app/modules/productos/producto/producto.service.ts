@@ -14,6 +14,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
+import { ProductoSearchTransferenciaGQL } from "./graphql/productoSearchTransferencia";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
@@ -77,6 +78,7 @@ export class ProductoService {
     private notificacionSnack: NotificacionSnackbarService,
     private printProductoPorId: PrintProductoPorIdGQL,
     private searchForPdv: ProductoForPdvGQL,
+    private productoSearchTransferencia: ProductoSearchTransferenciaGQL,
     private getAllProductos: AllProductosGQL,
     private genericService: GenericCrudService,
     private getProductoParaPedido: ProductoParaPedidoGQL,
@@ -211,6 +213,15 @@ export class ProductoService {
   onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false,
            errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto[]> {
     return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, errorConf, silentLoad, contexto);
+  }
+
+  /** Buscador de transferencias (#673): con `ordenStockSucursalId` el central ordena por el stock de esa sucursal (mayor o menor primero). */
+  onSearchTransferencia(texto, offset?, sucursalId?, conStock?, activo?, ordenStockSucursalId?: number,
+           ordenStockMayor?: boolean, servidor = true, silentLoad: boolean = false, errorConf?: QueryError,
+           contexto?: ContextoConsulta): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearchTransferencia,
+      {texto, offset, sucursalId, conStock, isEnvase: false, activo, ordenStockSucursalId, ordenStockMayor},
+      servidor, errorConf, silentLoad, contexto);
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {

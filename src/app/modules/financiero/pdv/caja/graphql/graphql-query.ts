@@ -668,6 +668,39 @@ export const cajasWithFiltersActivo = gql`
   }
 `;
 
+// Solo para el central y solo con un turno elegido: un central sin `turno` rechaza la query entera.
+export const cajasWithFiltersTurno = gql`
+  query (
+    $cajaId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $activo: Boolean
+    $turno: Turno
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasWithFilters(
+      cajaId: $cajaId
+      estado: $estado
+      maletinId: $maletinId
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      activo: $activo
+      turno: $turno
+      page: $page
+      size: $size
+    ) ${cajasWithFiltersCampos}
+  }
+`;
+
 export const cajasAnalisisDiferencias = gql`
   query (
     $cajaId: ID

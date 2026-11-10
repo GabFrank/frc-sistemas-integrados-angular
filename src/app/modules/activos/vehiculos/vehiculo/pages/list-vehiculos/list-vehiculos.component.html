@@ -104,10 +104,12 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEditar(vehiculo)">
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
             <button mat-menu-item (click)="onEliminar(vehiculo)">
-              Eliminar
+              <mat-icon>delete</mat-icon>
+              <span>Eliminar</span>
             </button>
           </mat-menu>
         </td>

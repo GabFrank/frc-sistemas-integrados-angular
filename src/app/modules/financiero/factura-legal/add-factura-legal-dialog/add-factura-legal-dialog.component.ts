@@ -917,7 +917,9 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     factura.ruc = this.rucControl.value;
     factura.caja = this.cajaService?.selectedCaja;
     factura.descuento = this.data?.descuento || 0;
-    
+    // Solo la venta de un delivery trae id: el filial liga la factura y rechaza otra si ya tiene una (#221)
+    factura.venta = this.data?.venta;
+
     // Calcular totales antes de guardar
     this.calcularTotal();
     

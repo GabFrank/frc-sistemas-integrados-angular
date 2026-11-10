@@ -139,6 +139,55 @@ export const productoSearchPdv = gql`
   }
 `;
 
+/**
+ * Solo el buscador de transferencias (#673): como `productoSearchPdv` más el orden por stock (mayor o menor) de
+ * una sucursal.
+ * Va aparte para que el POS (que puede consultar a la filial, sin este argumento) no cambie.
+ */
+export const productoSearchTransferencia = gql`
+  query ($texto: String, $offset: Int, $sucursalId: ID, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean, $ordenStockSucursalId: ID, $ordenStockMayor: Boolean) {
+    data: productoSearch(
+      texto: $texto
+      offset: $offset
+      sucursalId: $sucursalId
+      conStock: $conStock
+      isEnvase: $isEnvase
+      activo: $activo
+      ordenStockSucursalId: $ordenStockSucursalId
+      ordenStockMayor: $ordenStockMayor
+    ) {
+      id
+      balanza
+      descripcion
+      descripcionFactura
+      iva
+      garantia
+      vencimiento
+      diasVencimiento
+      lote
+      observacion
+      codigoPrincipal
+      precioPrincipal
+      activo
+      costo {
+        costoMedio
+        ultimoPrecioCompra
+        cotizacion
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
+      }
+      envase {
+        id
+        descripcion
+      }
+    }
+  }
+`;
+
 export const envaseSearchPdv = gql`
   query ($texto: String, $offset: Int, $isEnvase: Boolean) {
     data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {

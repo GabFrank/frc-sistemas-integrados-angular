@@ -210,6 +210,15 @@ export interface EgresoParaVuelto {
   movimiento: MovimientoCajaVirtual;
   devuelto: number;
   pendiente: number;
+  /** La solicitud de gasto pagada con este egreso (si fue el pago de una sola). */
+  preGasto?: {
+    id: number;
+    sucursalId: number;
+    montoRetirado?: number;
+    montoGastado?: number;
+    montoVuelto?: number;
+    estadoRendicion?: string;
+  } | null;
 }
 
 /**
@@ -225,6 +234,8 @@ export function labelMovimiento(
   tipoMovimiento: string | null | undefined,
   fallback: Record<string, string>
 ): string {
+  // Entradas y salidas varias comparten origen: la dirección la da el tipo.
+  if (origenTipo === 'ENTRADA_VARIA' && tipoMovimiento === CajaVirtualTipoMovimiento.EGRESO) return 'Salida varia';
   const porOrigen = origenTipo ? ORIGEN_MOVIMIENTO_LABELS[origenTipo] : null;
   if (porOrigen) return porOrigen;
   return (tipoMovimiento && fallback[tipoMovimiento]) || tipoMovimiento || '';

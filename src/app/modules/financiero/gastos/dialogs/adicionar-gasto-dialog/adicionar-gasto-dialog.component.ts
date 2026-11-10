@@ -27,7 +27,7 @@ import { CargandoDialogService } from "../../../../../shared/components/cargando
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { MonedaService } from "../../../moneda/moneda.service";
-import { CajaBalance, esBalanceVerificable, PdvCaja } from "../../../pdv/caja/caja.model";
+import { CajaBalance, esBalanceVerificable, PdvCaja, superaDisponible } from "../../../pdv/caja/caja.model";
 import { GastoService } from "../../service/gasto.service";
 import { Gasto } from "../../models/gastos.model";
 
@@ -88,6 +88,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
 
   isVuelto = false;
+  /** La solicitud de gasto retirada con el gasto al que se le carga el vuelto (null si es un gasto común). */
+  solicitudVuelto: PreGasto | null = null;
+  /** «Solicitud #N · rindió por teléfono …», resuelto acá para no calcular desde el template. */
+  textoSolicitudVuelto = '';
 
   displayedColumns = [
     "id",
@@ -450,7 +454,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 // respuesta, el gasto pudo haberse guardado (y el ticket impreso): un alta no se puede repetir
                 // hasta ver si ya figura; una edición se puede repetir, alcanza con releer (#390).
                 error: (err) => {
-                  if (erroresDeRechazo(err) != null) return;
+                  if (erroresDeRechazo(err) != null) {
+                    // El filial rechaza, p. ej., porque el saldo cambió desde que se abrió el diálogo.
+                    this.cargarBalance();
+                    return;
+                  }
                   if (esAlta) this.verificarGastoEnDuda(gasto, idsAntes);
                   else this.cargarGastosDeCaja();
                 } });
@@ -500,17 +508,22 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
+            const gastoId = this.selectedGasto.id;
+            const vueltoGs = this.guaraniVueltoControl.value;
+            const vueltoRs = this.realVueltoControl.value;
+            const vueltoDs = this.dolarVueltoControl.value;
             this.gastoService
               .onSaveVuelto({
-                id: this.selectedGasto.id,
-                valorGs: this.guaraniVueltoControl.value,
-                valorRs: this.realVueltoControl.value,
-                valorDs: this.dolarVueltoControl.value,
+                id: gastoId,
+                valorGs: vueltoGs,
+                valorRs: vueltoRs,
+                valorDs: vueltoDs,
               }, false)
               .pipe(untilDestroyed(this))
               .subscribe({
                 next: (res) => {
                   if (res != null) {
+                    this.actualizarRendicionSolicitud(gastoId, vueltoGs, vueltoRs, vueltoDs);
                     this.ngOnInit();
                   }
                 },
@@ -526,6 +539,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onCancelar() {
     this.isVuelto = false;
+    this.solicitudVuelto = null;
+    this.textoSolicitudVuelto = '';
     this.selectedGasto = null;
     this.selectedTipoGasto = null;
     this.selectedAutorizadoPor = null;
@@ -590,6 +605,57 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.guaraniVueltoControl.enable();
     this.realVueltoControl.enable();
     this.dolarVueltoControl.enable();
+    this.cargarSolicitudDelVuelto(gasto);
+  }
+
+  /**
+   * Si el gasto salió de una solicitud, autocompleta el vuelto con lo que el teléfono no rindió
+   * (retirado − rendido). Si ya tenía vuelto cargado, se deja el del gasto.
+   */
+  private cargarSolicitudDelVuelto(gasto: Gasto): void {
+    this.solicitudVuelto = null;
+    this.textoSolicitudVuelto = '';
+    const sucursalId = gasto?.sucursalId ?? this.mainService.sucursalActual?.id;
+    if (gasto?.id == null || sucursalId == null) return;
+    this.gastoService.preGastoPorGastoCaja(gasto.id, sucursalId)
+      .pipe(catchError(() => of(null)), untilDestroyed(this))
+      .subscribe((pg) => {
+        if (pg == null || this.selectedGasto?.id !== gasto.id) return;
+        this.solicitudVuelto = pg;
+        const simbolo = pg.moneda?.simbolo ?? '';
+        const retirado = Number(pg.montoRetirado ?? 0);
+        const rendido = Number(pg.montoGastado ?? 0);
+        this.textoSolicitudVuelto =
+          `Solicitud #${pg.id} · retiró ${retirado.toLocaleString('es-PY')} ${simbolo}` +
+          ` · rindió ${rendido.toLocaleString('es-PY')} ${simbolo}`;
+        if (pg.montoVuelto != null) return;
+        const vuelto = Math.max(retirado - rendido, 0);
+        const moneda = `${pg.moneda?.simbolo ?? ''} ${pg.moneda?.denominacion ?? ''}`.toUpperCase();
+        this.guaraniVueltoControl.setValue(0);
+        this.realVueltoControl.setValue(0);
+        this.dolarVueltoControl.setValue(0);
+        if (moneda.includes('REAL') || moneda.includes('R$')) {
+          this.realVueltoControl.setValue(vuelto);
+        } else if (moneda.includes('DOLAR') || moneda.includes('US')) {
+          this.dolarVueltoControl.setValue(vuelto);
+        } else {
+          this.guaraniVueltoControl.setValue(vuelto);
+        }
+      });
+  }
+
+  /** El vuelto de la caja pisa la rendición del teléfono de la solicitud (en el central). */
+  private actualizarRendicionSolicitud(gastoId: number, vueltoGs: number, vueltoRs: number, vueltoDs: number): void {
+    const pg = this.solicitudVuelto;
+    const sucursalId = this.selectedGasto?.sucursalId ?? this.mainService.sucursalActual?.id;
+    if (pg == null || sucursalId == null) return;
+    this.gastoService.registrarVueltoPreGastoCaja({
+      gastoId, sucursalId,
+      vueltoGs: Number(vueltoGs ?? 0), vueltoRs: Number(vueltoRs ?? 0), vueltoDs: Number(vueltoDs ?? 0),
+    }).pipe(untilDestroyed(this)).subscribe({
+      error: () => this.notificacionService.openWarn(
+        `El vuelto quedó en la caja, pero no se actualizó la rendición de la solicitud #${pg.id}: volvé a guardar el vuelto.`, 10),
+    });
   }
 
   onGastoClick(gasto: Gasto) { }
@@ -712,22 +778,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   verficarValores(): boolean {
     if (!this.saldoVerificado()) return false;
-    if (
-      this.guaraniControl.value >
-      this.balanceCaja.diferenciaGs * -1
-    ) {
+    if (superaDisponible(this.guaraniControl.value, this.balanceCaja.diferenciaGs)) {
       this.notificacionService.openWarn(
         "El monto en guaraníes es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.realControl.value > this.balanceCaja.diferenciaRs * -1) {
+    if (superaDisponible(this.realControl.value, this.balanceCaja.diferenciaRs)) {
       this.notificacionService.openWarn(
         "El monto en reales es mayor a lo que tiene en caja"
       );
       return false;
     }
-    if (this.dolarControl.value > this.balanceCaja.diferenciaDs * -1) {
+    if (superaDisponible(this.dolarControl.value, this.balanceCaja.diferenciaDs)) {
       this.notificacionService.openWarn(
         "El monto en dolares es mayor a lo que tiene en caja"
       );

@@ -254,14 +254,16 @@
                     mat-menu-item
                     (click)="onEditEntrada(entrada, entradaId)"
                   >
-                    Ir a Entrada
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>Ir a Entrada</span>
                   </button>
                   <button
                     *ngIf="entrada?.activo != true"
                     mat-menu-item
                     (click)="deleteEntrada(entrada, entradaId)"
                   >
-                    Eliminar entrada
+                    <mat-icon>delete</mat-icon>
+                    <span>Eliminar entrada</span>
                   </button>
                   <button
                     *ngIf="
@@ -516,14 +518,16 @@
                 </button>
                 <mat-menu #menu="matMenu">
                   <button mat-menu-item (click)="onEditSalida(salida)">
-                    Ir a Salida
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>Ir a Salida</span>
                   </button>
                   <button
                     *ngIf="salida?.activo != true"
                     mat-menu-item
                     (click)="deleteSalida(salida, entradaId)"
                   >
-                    Eliminar Salida
+                    <mat-icon>delete</mat-icon>
+                    <span>Eliminar Salida</span>
                   </button>
                 </mat-menu>
               </td>

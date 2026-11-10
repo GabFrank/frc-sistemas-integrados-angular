@@ -1419,6 +1419,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
     venta.totalGs = this.formGroup.get("valorTotal").value;
+    // Con el id de la venta del delivery el filial no emite otra si PARA ENTREGA ya la facturó (#221)
+    venta.id = this.data?.delivery?.venta?.id;
     if (!this.esOtraMoneda) {
       this.abrirDialogoFactura(venta, this.data.itemList, descuento, {});
       return;

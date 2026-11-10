@@ -1,7 +1,7 @@
 import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
-import { Observable, of } from "rxjs";
-import { catchError, defaultIfEmpty, map, switchMap, take } from "rxjs/operators";
+import { Observable, of, Subject } from "rxjs";
+import { catchError, defaultIfEmpty, map, switchMap, take, tap } from "rxjs/operators";
 import { MatDialog } from "@angular/material/dialog";
 import { MotivoDialogComponent, MotivoDialogData } from "../../../../shared/components/motivo-dialog/motivo-dialog.component";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -28,6 +28,7 @@ import { environment } from "../../../../../environments/environment";
 import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
 import { CajasWithFiltersActivoGQL } from "./graphql/cajaWithFiltersActivo";
+import { CajasWithFiltersTurnoGQL } from "./graphql/cajaWithFiltersTurno";
 import { CajasAnalisisDiferenciasGQL } from "../../analisis-diferencia/graphql/cajasAnalisisDiferencias";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
@@ -62,6 +63,7 @@ export class CajaService {
     private balancePorCajaId: BalancePorCajaIdGQL,
     private cajasWithFilters: CajasWithFiltersGQL,
     private cajasWithFiltersActivo: CajasWithFiltersActivoGQL,
+    private cajasWithFiltersTurno: CajasWithFiltersTurnoGQL,
     private cajasAnalisisDiferencias: CajasAnalisisDiferenciasGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
@@ -102,6 +104,7 @@ export class CajaService {
     sucId: number,
     verificado: boolean,
     activo: boolean,
+    turno: string,
     page: number,
     size: number,
     servidor: boolean = true,
@@ -124,10 +127,16 @@ export class CajaService {
     
     // Abiertas/Cerradas (#599) va solo al central: el filial no conoce `activo`. Con TODAS se manda la
     // query de siempre, que también anda contra un central que todavía no lo tiene.
-    let query: CajasWithFiltersGQL | CajasWithFiltersActivoGQL = this.cajasWithFilters;
+    let query: CajasWithFiltersGQL | CajasWithFiltersActivoGQL | CajasWithFiltersTurnoGQL = this.cajasWithFilters;
     if (activo != null && (servidor == null || servidor)) {
       queryParams.activo = activo;
       query = this.cajasWithFiltersActivo;
+    }
+    // El turno, igual: solo al central y solo si se eligió, para no romper Abiertas/Cerradas contra un central viejo.
+    if (turno != null && (servidor == null || servidor)) {
+      queryParams.activo = activo ?? null;
+      queryParams.turno = turno;
+      query = this.cajasWithFiltersTurno;
     }
 
     // errorConf/contexto: solo Últimas cajas del POS (#390); list-caja no los pasa y queda como antes.
@@ -289,8 +298,15 @@ export class CajaService {
       .pipe(this.impresionPos.avisarSinRespuesta("la impresión del balance"));
   }
 
+  /** Avisa a la lista de cajas cuando el central aplica una verificación hecha en otra pestaña. */
+  cajaVerificada$ = new Subject<{ cajaId: number; sucursalId: number; verificado: boolean }>();
+
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {
     return this.genericService.onCustomQuery(this.verificarCaja, { cajaId, sucursalId, usuarioId, verificado }, servidor)
+      .pipe(tap((res) => {
+        // Con error GraphQL llega null, no false: solo true es una verificación aplicada
+        if (res === true) this.cajaVerificada$.next({ cajaId, sucursalId, verificado });
+      }));
   }
 
   /**

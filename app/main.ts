@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "electron";
+import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen, session } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
@@ -320,7 +320,11 @@ app.on('second-instance', () => {
     }
     return;
   }
-  createWindow(SECOND_INSTANCE_PARTITION).catch((e) => log.error('No se pudo crear la 2da ventana:', e));
+  // La partición que quedó libre: si se cerró la 1ra, la nueva va a la por defecto. Antes iba siempre a la
+  // de la 2da, y dos ventanas con el mismo localStorage se pisaban el token del cajero (#142 del filial).
+  const defaultEnUso = windows.some((w) => !w.isDestroyed() && w.webContents.session === session.defaultSession);
+  createWindow(defaultEnUso ? SECOND_INSTANCE_PARTITION : undefined)
+    .catch((e) => log.error('No se pudo crear la 2da ventana:', e));
 });
 
 /**

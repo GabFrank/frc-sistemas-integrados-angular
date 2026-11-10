@@ -511,6 +511,7 @@ export const filterPreGastosQuery = gql`
         motivoRechazo
         montoRetirado
         montoGastado
+        montoVuelto
         saldoDevolver
         montoPendienteRetiro
         montoNoRendido
@@ -651,6 +652,7 @@ export const preGastoPorIdQuery = gql`
       montoSolicitado
       montoRetirado
       montoGastado
+      montoVuelto
       saldoDevolver
       estadoEtiqueta
       estadoRendicion
@@ -727,17 +729,6 @@ export const ejecutarRetiroPreGastoMutation = gql`
   }
 `;
 
-export const registrarDevolucionSaldoMutation = gql`
-  mutation ($input: DevolucionSaldoPreGastoInput!) {
-    data: registrarDevolucionSaldoPreGasto(input: $input) {
-      id
-      sucursalId
-      saldoDevolver
-      estado
-    }
-  }
-`;
-
 export const saveGastoRendicionMutation = gql`
   mutation ($input: GastoRendicionInput!) {
     data: saveGastoRendicion(input: $input) {
@@ -771,5 +762,33 @@ export const gastoRendicionesByPreGastoQuery = gql`
 export const cancelarGasto = gql`
   mutation cancelarGasto($id: ID!, $sucId: ID, $cancelar: Boolean) {
     data: cancelarGasto(id: $id, sucId: $sucId, cancelar: $cancelar)
+  }
+`;
+
+/** La solicitud retirada con un gasto de la caja de la sucursal (null si es un gasto común). */
+export const preGastoPorGastoCajaQuery = gql`
+  query ($gastoId: ID!, $sucursalId: ID!) {
+    data: preGastoPorGastoCaja(gastoId: $gastoId, sucursalId: $sucursalId) {
+      id
+      sucursalId
+      estado
+      montoRetirado
+      montoGastado
+      montoVuelto
+      moneda { id simbolo denominacion }
+    }
+  }
+`;
+
+/** El vuelto que cargó el cajero pisa la rendición del teléfono de la solicitud. */
+export const registrarVueltoPreGastoCajaMutation = gql`
+  mutation ($gastoId: ID!, $sucursalId: ID!, $vueltoGs: Float, $vueltoRs: Float, $vueltoDs: Float) {
+    data: registrarVueltoPreGastoCaja(gastoId: $gastoId, sucursalId: $sucursalId, vueltoGs: $vueltoGs, vueltoRs: $vueltoRs, vueltoDs: $vueltoDs) {
+      id
+      sucursalId
+      estadoRendicion
+      montoGastado
+      montoVuelto
+    }
   }
 `;

@@ -446,18 +446,21 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEditItem(item)" [disabled]="isPreparacionMercaderia && puedeEditar">
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
             <button
               mat-menu-item
               *ngIf="item.esProductoConLote"
               (click)="onElegirLotes(item)"
             >
-              Elegir lotes
+              <mat-icon>inventory_2</mat-icon>
+              <span>Elegir lotes</span>
             </button>
             <button mat-menu-item (click)="onDeleteItem(item, itemIndex)" style="color: red"
               [disabled]="isPreparacionMercaderia">
-              Eliminar
+              <mat-icon style="color: red">delete</mat-icon>
+              <span>Eliminar</span>
             </button>
           </mat-menu>
         </td>
@@ -623,30 +626,36 @@
                 item.vencimientoPreparacion == null &&
                 item.motivoRechazoPreparacion == null
               " color="accent" (click)="onConfirm(item)">
-              Confirmar
+              <mat-icon>check_circle</mat-icon>
+              <span>Confirmar</span>
             </button>
             <button mat-menu-item *ngIf="
                 item.cantidadPreparacion != null ||
                 item.vencimientoPreparacion != null ||
                 item.motivoRechazoPreparacion != null
               " color="primary" (click)="onDesconfirm(item)">
-              Desconfirmar
+              <mat-icon>undo</mat-icon>
+              <span>Desconfirmar</span>
             </button>
             <button mat-menu-item (click)="onModificarCantidad(item)">
-              Modificar cantidad
+              <mat-icon>exposure</mat-icon>
+              <span>Modificar cantidad</span>
             </button>
             <button mat-menu-item (click)="onModificarVencimiento(item)">
-              Modificar vencimiento
+              <mat-icon>event</mat-icon>
+              <span>Modificar vencimiento</span>
             </button>
             <button
               mat-menu-item
               *ngIf="item.esProductoConLote"
               (click)="onElegirLotes(item)"
             >
-              Elegir lotes
+              <mat-icon>inventory_2</mat-icon>
+              <span>Elegir lotes</span>
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
-              Rechazar item
+              <mat-icon>cancel</mat-icon>
+              <span>Rechazar item</span>
             </button>
           </mat-menu>
         </td>
@@ -807,20 +816,24 @@
                 item.vencimientoTransporte == null &&
                 item.motivoRechazoTransporte == null
               " color="accent" (click)="onConfirm(item)">
-              Confirmar
+              <mat-icon>check_circle</mat-icon>
+              <span>Confirmar</span>
             </button>
             <button mat-menu-item *ngIf="
                 item.cantidadTransporte != null ||
                 item.vencimientoTransporte != null ||
                 item.motivoRechazoTransporte != null
               " color="primary" (click)="onDesconfirm(item)">
-              Desconfirmar
+              <mat-icon>undo</mat-icon>
+              <span>Desconfirmar</span>
             </button>
             <button mat-menu-item (click)="onSolicitarModificarItem(item)" [disabled]="true">
-              Solicitar modificación
+              <mat-icon>rate_review</mat-icon>
+              <span>Solicitar modificación</span>
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
-              Rechazar item
+              <mat-icon>cancel</mat-icon>
+              <span>Rechazar item</span>
             </button>
           </mat-menu>
         </td>
@@ -979,20 +992,24 @@
                 item.vencimientoRecepcion == null &&
                 item.motivoRechazoRecepcion == null
               " color="accent" (click)="onConfirm(item)">
-              Confirmar
+              <mat-icon>check_circle</mat-icon>
+              <span>Confirmar</span>
             </button>
             <button mat-menu-item *ngIf="
                 item.cantidadRecepcion != null ||
                 item.vencimientoRecepcion != null ||
                 item.motivoRechazoRecepcion != null
               " color="primary" (click)="onDesconfirm(item)">
-              Desconfirmar
+              <mat-icon>undo</mat-icon>
+              <span>Desconfirmar</span>
             </button>
             <button mat-menu-item (click)="onSolicitarModificarItem(item)" [disabled]="true">
-              Solicitar modificación
+              <mat-icon>rate_review</mat-icon>
+              <span>Solicitar modificación</span>
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
-              Rechazar item
+              <mat-icon>cancel</mat-icon>
+              <span>Rechazar item</span>
             </button>
           </mat-menu>
         </td>
