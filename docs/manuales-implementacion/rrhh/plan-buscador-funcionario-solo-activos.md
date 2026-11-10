@@ -82,3 +82,19 @@ de componente: lo escriben los 5 diálogos, lo lee `cargarPreseleccionado`).
 | Imprecisión sobre la ruta `rapido` con `soloACargo` | A | corregido en «Fuera del plan» |
 | Supervisor egresado ya guardado | B | sin `descartarInactivo` en el legajo |
 | Filial viejo sin la variable | B | no es nuevo (bono ya la manda) |
+
+## Prueba por pantalla (2026-11-10)
+
+Desktop web (`ng build -c web-production`) contra un central de `develop` local en el 8081 (Flyway y
+réplica apagados), sesión de MR. Funcionario 123 pasado a `activo=false` en la `bodega` local y restaurado.
+
+| Caso | Resultado |
+|---|---|
+| Filtro de la lista de vales: total y búsqueda del egresado | 479 funcionarios; el 123 aparece ✔ |
+| Buscador del alta de vale | 478 (sin el 123); «VALDEZ» → sin resultados; un activo se elige ✔ |
+| «Adicionar» con el egresado en el filtro: vale, préstamo, hora extra, penalización, justificativo, bono | campo vacío ✔ |
+| Buscar al egresado en esos 6 diálogos | sin resultados ✔ |
+| Editar un justificativo existente del egresado | muestra el nombre y guarda con el mismo funcionario ✔ |
+| Editar un bono del egresado (bono 11 reasignado al 123 y devuelto al 415) | muestra el nombre ✔ |
+| Legajo con supervisor egresado (611 → 123, restaurado) | lo sigue mostrando; buscarlo → sin resultados ✔ |
+| Finiquito: elegir funcionario | N/A: no está en el diff y su botón solo aparece con el rol acotado |
