@@ -69,10 +69,7 @@ de componente: lo escriben los 5 diálogos, lo lee `cargarPreseleccionado`).
 
 ## Qué queda sin verificar
 
-- **`activo` NULL en producción**: la query del backend es `f.activo = true`, así que un NULL queda
-  afuera con `soloActivos`. En la copia local de bodega son 479, todos `true`; en prod no se pudo
-  consultar desde esta sesión. Consulta: `select count(*) from personas.funcionario where activo is null;`
-  (bono ya usa este filtro desde `32529e95` sin reportes).
+- ~~`activo` NULL en producción~~: verificado el 2026-11-10 en bodega (solo lectura): 150 `true`, 416 `false`, 0 NULL.
 - Filial anterior a `v5.0.0-alpha.48` sin `funcionariosSearchPage`: falla igual hoy (no es riesgo nuevo).
 
 ## Auditoría del plan (paso 5)
@@ -81,7 +78,7 @@ de componente: lo escriben los 5 diálogos, lo lee `cargarPreseleccionado`).
 |---|---|---|
 | «Nueva» desde un filtro de egresado lo preselecciona | A | 1b, verificado en `list-vale.component.ts:117` y 4 listas más |
 | Liquidación mensual del mes de egreso es legítima | A | generar liquidación fuera del plan (verificado en el calculador) |
-| `activo` NULL queda fuera con `soloActivos` | B | sin verificar en prod; anotado arriba |
+| `activo` NULL queda fuera con `soloActivos` | B | verificado en prod: 0 NULL |
 | Imprecisión sobre la ruta `rapido` con `soloACargo` | A | corregido en «Fuera del plan» |
 | Supervisor egresado ya guardado | B | sin `descartarInactivo` en el legajo |
 | Filial viejo sin la variable | B | no es nuevo (bono ya la manda) |

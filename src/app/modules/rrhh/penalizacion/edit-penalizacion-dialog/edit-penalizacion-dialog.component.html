@@ -4,6 +4,8 @@
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
       [funcionarioId]="funcionarioControl.value"
+      [soloActivos]="true"
+      [descartarInactivo]="true"
       (idSelected)="funcionarioControl.setValue($event)">
     </app-select-funcionario>
     <span class="error-funcionario" *ngIf="funcionarioControl.touched && funcionarioControl.hasError('required')">

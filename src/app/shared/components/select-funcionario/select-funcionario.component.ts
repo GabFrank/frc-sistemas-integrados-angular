@@ -44,6 +44,11 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
    * central es quien acota; el buscador general le mostraría nombres que después no puede usar.
    */
   @Input() soloACargo = false;
+  /**
+   * En un alta: si el id recibido es de un egresado (p. ej. «Nueva» desde el filtro de una lista),
+   * deja el campo vacío en vez de cargarlo. No usar donde el funcionario ya es dato guardado.
+   */
+  @Input() descartarInactivo = false;
 
   @Output() idSelected = new EventEmitter<number>();
   @Output() funcionarioSelected = new EventEmitter<Funcionario>();
@@ -75,7 +80,13 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
     if (this.seleccionado != null && this.seleccionado.id === this.funcionarioId) return;
     this.funcionarioService.onGetFuncionarioById(this.funcionarioId)
       .pipe(terminarSiFalla(), untilDestroyed(this))
-      .subscribe((res: Funcionario) => this.aplicar(res, false));
+      .subscribe((res: Funcionario) => {
+        if (this.descartarInactivo && res?.activo === false) {
+          this.aplicar(null, true);
+          return;
+        }
+        this.aplicar(res, false);
+      });
   }
 
   onBuscar(): void {
