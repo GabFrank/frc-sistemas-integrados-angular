@@ -103,6 +103,7 @@
         <app-select-funcionario
           titulo="Supervisado por"
           [funcionarioId]="supervisadoPorIdControl.value"
+          [soloActivos]="true"
           (idSelected)="supervisadoPorIdControl.setValue($event)">
         </app-select-funcionario>
       </div>
