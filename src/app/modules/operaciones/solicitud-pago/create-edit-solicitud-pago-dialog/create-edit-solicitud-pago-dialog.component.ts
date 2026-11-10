@@ -10,6 +10,7 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
 import { FormaPagoService } from '../../../financiero/forma-pago/forma-pago.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
@@ -146,11 +147,43 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     private formaPagoService: FormaPagoService,
     private dialog: MatDialog,
     private proveedorService: ProveedorService,
-    private mainService: MainService
+    private mainService: MainService,
+    private monedaModuloService: MonedaModuloService
   ) {
     this.form = this.fb.group({
       observaciones: ['']
     });
+  }
+
+  /** Símbolo de la moneda de la empresa para los totales («Gs» en guaraníes). */
+  get simboloEmpresa(): string {
+    const m = this.monedaModuloService.empresa$.value;
+    return m && !(m.denominacion || '').toUpperCase().includes('GUARANI') ? (m.simbolo || 'Gs') : 'Gs';
+  }
+
+  /** Formato de los montos de la empresa: sus decimales («1.0-0» en guaraníes). */
+  get formatoEmpresa(): string {
+    const d = this.monedaModuloService.empresa$.value?.decimales;
+    return d > 0 ? `1.${d}-${d}` : '1.0-0';
+  }
+
+  /** Redondeo final a los decimales de la moneda de la empresa (0 en guaraníes). */
+  private redondearEmpresa(valor: number): number {
+    const factor = Math.pow(10, this.monedaModuloService.empresa$.value?.decimales ?? 0);
+    return Math.round(valor * factor) / factor;
+  }
+
+  /**
+   * ¿Es la moneda de la empresa? Con la moneda completa compara ids; si solo se conoce la denominación
+   * de un detalle, la busca en la lista. Sin ninguna de las dos, `porDefecto`.
+   */
+  private esMonedaEmpresa(moneda: any, denominacion?: string, porDefecto = false): boolean {
+    const m = moneda ?? (denominacion
+      ? this.monedaList.find((x) => (x.denominacion || '').toString().toUpperCase().trim() === denominacion)
+      : null);
+    if (m) return this.monedaModuloService.esMonedaEmpresa(m);
+    if (denominacion) return this.monedaModuloService.esMonedaEmpresa({ denominacion } as Moneda);
+    return porDefecto;
   }
 
   ngOnDestroy(): void {
@@ -771,8 +804,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       const denom = (d.monedaDenominacion || '').toString().toUpperCase().trim();
       const key = denom || 'SIN_MONEDA';
       mapByMoneda[key] = (mapByMoneda[key] || 0) + (d.valor ?? 0);
-      const esGuarani = denom === 'GUARANI' || denom === 'GS' || (denom.length > 0 && denom.includes('GUARANI'));
       const moneda = this.monedaList.find((m) => m.id === d.monedaId);
+      const esGuarani = this.esMonedaEmpresa(moneda, denom);
       const cotizacion = d.cotizacion != null ? Number(d.cotizacion) : moneda?.cambio;
       if (esGuarani) {
         totalGs += d.valor ?? 0;
@@ -785,16 +818,15 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       monedaDenominacion: k === 'SIN_MONEDA' ? '-' : k,
       total: mapByMoneda[k]
     }));
-    this.totalEnGuaraniesComputed = Math.round(totalGs);
+    this.totalEnGuaraniesComputed = this.redondearEmpresa(totalGs);
     this.updateDiferencia();
   }
 
   /** Valor de un detalle convertido a Guaraníes (para calcular monto sugerido en edición). */
   private getValorDetalleEnGuaranies(d: SolicitudPagoDetalleInput & { monedaDenominacion?: string }): number {
     const denom = (d.monedaDenominacion || '').toString().toUpperCase().trim();
-    const esGuarani = denom === 'GUARANI' || denom === 'GS' || (denom.length > 0 && denom.includes('GUARANI'));
-    if (esGuarani) return d.valor ?? 0;
     const moneda = this.monedaList.find((m) => m.id === d.monedaId);
+    if (this.esMonedaEmpresa(moneda, denom)) return d.valor ?? 0;
     const cotizacion = d.cotizacion != null ? Number(d.cotizacion) : moneda?.cambio;
     const tasa = cotizacion != null && !isNaN(cotizacion) ? cotizacion : 0;
     return (d.valor ?? 0) * tasa;
@@ -839,15 +871,15 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       const valor = n.valorTotal ?? (n as any).valor ?? 0;
       const moneda: any = (n as any).moneda;
       const denom = (moneda?.denominacion || 'GUARANI').toString().toUpperCase().trim();
-      const esGs = denom === 'GUARANI' || denom === 'GS' || denom.includes('GUARANI');
+      const esGs = this.esMonedaEmpresa(moneda, undefined, true);
       const cot = (n as any).cotizacion ?? moneda?.cambio ?? 1;
       const valorEnGs = esGs ? valor : valor * (cot || 0);
       if (!mapByMoneda[denom]) {
         mapByMoneda[denom] = {
-          simbolo: moneda?.simbolo || (esGs ? 'Gs.' : ''),
+          simbolo: moneda?.simbolo || (esGs ? this.simboloEmpresa + '.' : ''),
           total: 0,
           totalEnGs: 0,
-          format: esGs ? '1.0-0' : '1.2-2'
+          format: esGs ? this.formatoEmpresa : '1.2-2'
         };
       }
       mapByMoneda[denom].total += valor;
@@ -858,10 +890,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       monedaDenominacion: den,
       simbolo: info.simbolo,
       total: info.total,
-      totalEnGs: Math.round(info.totalEnGs),
+      totalEnGs: this.redondearEmpresa(info.totalEnGs),
       format: info.format
     }));
-    this.totalNotasGsEquivalenteComputed = Math.round(totalGs);
+    this.totalNotasGsEquivalenteComputed = this.redondearEmpresa(totalGs);
     // montoTotalComputed se mantiene en Gs equivalente para que el cálculo del monto sugerido
     // de forma de pago (totalEnGuaraniesComputed ya viene en Gs) sea coherente.
     this.montoTotalComputed = this.totalNotasGsEquivalenteComputed;
@@ -906,10 +938,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       const notaMonedaDenom = (nota as any)?.moneda?.denominacion;
       const notaMonedaSim = (nota as any)?.moneda?.simbolo;
       const denomUpper = (notaMonedaDenom || '').toString().toUpperCase().trim();
-      const esGs = denomUpper === 'GUARANI' || denomUpper === 'GS' || denomUpper.includes('GUARANI');
+      const esGs = this.esMonedaEmpresa((nota as any)?.moneda, denomUpper, true);
       n.notaMonedaDisplay = (notaMonedaDenom ?? '-').toString().toUpperCase();
-      n.notaSimboloDisplay = notaMonedaSim || (esGs ? 'Gs.' : '');
-      n.notaDecimalFormatDisplay = esGs ? '1.0-0' : '1.0-2';
+      n.notaSimboloDisplay = notaMonedaSim || (esGs ? this.simboloEmpresa + '.' : '');
+      n.notaDecimalFormatDisplay = esGs ? this.formatoEmpresa : '1.0-2';
       map[nota.id] = !!(n.pedidoObservacionDisplay && n.pedidoObservacionDisplay.length > 0);
     });
     this.notaTieneObservacionMap = map;
@@ -941,10 +973,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       );
       return { monedaId, montoTotal: Math.round(sumaEnEsaMoneda * 100) / 100 };
     }
-    const guarani = this.monedaList.find((m) =>
+    // Mezcla de monedas: la cabecera va en la moneda de la empresa
+    const empresa = this.monedaModuloService.empresa$.value ?? this.monedaList.find((m) =>
       (m.denominacion || '').toString().toUpperCase().includes('GUARANI')
     );
-    return { monedaId: guarani?.id, montoTotal: this.totalNotasGsEquivalenteComputed };
+    return { monedaId: empresa?.id, montoTotal: this.totalNotasGsEquivalenteComputed };
   }
 
   private buildInputForSave(): SolicitudPagoInput {

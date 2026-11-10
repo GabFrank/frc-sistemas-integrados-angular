@@ -1,8 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
+import { CONTEXTO_SONDEO, LECTURA_ESTRICTA } from '../../../generics/generic-crud.constantes';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
+import { MonedasAbmGQL } from './graphql/monedasAbm';
 import { SaveMonedaGQL } from './graphql/saveMoneda';
+import { MonedaDelPdvGQL } from './graphql/monedaDelPdv';
+import { MonedaDeFacturacionGQL } from './graphql/monedaDeFacturacion';
 import { DeleteMonedaGQL } from './graphql/deleteMoneda';
 import { Moneda } from './moneda.model';
 
@@ -51,6 +55,9 @@ export class MonedaService {
     private getAllMonedas: MonedasGetAllGQL,
     private saveMonedaGQL: SaveMonedaGQL,
     private deleteMonedaGQL: DeleteMonedaGQL,
+    private monedasAbmGQL: MonedasAbmGQL,
+    private monedaDelPdvGQL: MonedaDelPdvGQL,
+    private monedaDeFacturacionGQL: MonedaDeFacturacionGQL,
     private genericService: GenericCrudService,
     private mainService: MainService
   ) {
@@ -84,6 +91,27 @@ export class MonedaService {
     );
   }
 
+  /**
+   * Las monedas del ABM, con `codigoIso`. Falla (sin aviso) contra un central que no conoce el
+   * campo: quien llama vuelve a {@link onGetAll} y oculta el código ISO.
+   */
+  onGetAllAbm(): Observable<Moneda[]> {
+    return this.genericService.onCustomQuery(this.monedasAbmGQL, {}, true, LECTURA_ESTRICTA);
+  }
+
+  /**
+   * La moneda del PDV de esta sucursal (`monedaDelPdv` de la FILIAL; Fase 4). Falla si la filial no conoce
+   * la operación: quien llama usa la moneda de la empresa, como siempre.
+   */
+  onGetMonedaDelPdv(): Observable<Moneda> {
+    return this.genericService.onCustomQuery(this.monedaDelPdvGQL, {}, false, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO);
+  }
+
+  /** La moneda configurada para las facturas (`monedaDeFacturacion` de la FILIAL); null = la de la venta. */
+  onGetMonedaDeFacturacion(): Observable<Moneda> {
+    return this.genericService.onCustomQuery(this.monedaDeFacturacionGQL, {}, false, LECTURA_ESTRICTA, true, CONTEXTO_SONDEO);
+  }
+
   onSave(moneda: Moneda, opciones?: { avisarExito?: boolean }): Observable<Moneda> {
     let aux = moneda;
     if (!(moneda instanceof Moneda)) {
@@ -97,7 +125,59 @@ export class MonedaService {
     return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id }, true, opciones);
   }
 
+  /**
+   * Máscara de los montos con el formato de siempre del sistema: sin decimales con miles «.»
+   * (guaraní), o con decimales en formato financiero, miles «,» y decimal «.».
+   *
+   * Decide por `decimales` de la moneda; si la moneda no lo trae (una consulta que no lo pide), por
+   * la regla de antes: la denominación `GUARANI`. Con 0 y 2 decimales devuelve los mismos objetos de
+   * siempre, así PYG/USD/BRL quedan idénticos.
+   */
   currencyOptionsByMoneda(moneda: Moneda): any {
-    return moneda.denominacion  === 'GUARANI' ? this.currencyOptionsGuarani : this.currencyOptionsNoGuarani;
+    const decimales = moneda?.decimales != null
+      ? moneda.decimales
+      : (moneda?.denominacion === 'GUARANI' ? 0 : 2);
+    if (decimales <= 0) return this.currencyOptionsGuarani;
+    if (decimales === this.currencyOptionsNoGuarani.precision) return this.currencyOptionsNoGuarani;
+    return { ...this.currencyOptionsNoGuarani, precision: decimales };
+  }
+
+  /**
+   * Decimales de una moneda para los montos de tesorería: `decimales` si viene, si no 0 para una
+   * denominación que contiene «GUARANI» y 2 para el resto (la regla de las copias locales que
+   * reemplaza; distinta de la de {@link currencyOptionsByMoneda}, que compara la denominación exacta).
+   */
+  decimalesDeMoneda(moneda: Partial<Moneda> | null): number {
+    return moneda?.decimales != null
+      ? moneda.decimales
+      : ((moneda?.denominacion || '').toUpperCase().includes('GUARANI') ? 0 : 2);
+  }
+
+  /**
+   * Máscara de un monto positivo en formato PY: miles «.», decimal «,», el símbolo como prefijo y
+   * sin negativos. Es la de los diálogos de tesorería (ajuste de saldo, operación financiera, pago de
+   * compras, maletín), que antes tenía cada uno su copia.
+   *
+   * `allowZero` solo se incluye si se pasa (el ajuste de saldo nunca lo fijó). `decimalSinDecimales`
+   * es el separador decimal de una moneda sin decimales: `''` por defecto, `','` para el ajuste de
+   * saldo, que lo dejaba fijo.
+   */
+  currencyOptionsMontoPositivo(moneda: Partial<Moneda> | null,
+                               opciones: { allowZero?: boolean; decimalSinDecimales?: string } = {}): any {
+    const decimales = this.decimalesDeMoneda(moneda);
+    const mascara: any = {
+      align: 'right',
+      allowNegative: false,
+      precision: decimales,
+      thousands: '.',
+      decimal: decimales > 0 ? ',' : (opciones.decimalSinDecimales ?? ''),
+      prefix: moneda?.simbolo ? moneda.simbolo + ' ' : '',
+      suffix: '',
+      nullable: true,
+      min: 0,
+      max: null,
+    };
+    if (opciones.allowZero !== undefined) mascara.allowZero = opciones.allowZero;
+    return mascara;
   }
 }

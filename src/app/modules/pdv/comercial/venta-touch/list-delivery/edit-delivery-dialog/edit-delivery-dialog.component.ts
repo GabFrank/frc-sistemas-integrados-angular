@@ -29,6 +29,8 @@ import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/
 import { VentaService } from '../../../../../operaciones/venta/venta.service';
 import { Venta } from '../../../../../operaciones/venta/venta.model';
 import { esRechazoDelServidor } from '../../../../../../commons/core/utils/graphqlErrorUtils';
+import { cotizacionEmpresa, factorABase, redondearEnMoneda, saldoCerrado } from '../../moneda-pdv.util';
+import { aplicarMonedaALaVenta } from '../../moneda-pdv-guardado';
 
 export interface EditDeliveryDialogData {
   delivery: Delivery;
@@ -36,6 +38,13 @@ export interface EditDeliveryDialogData {
   cambioRs?: number;
   cambioDs?: number;
   formaPagoList?: FormaPago[];
+  /**
+   * La moneda del PDV y la de la empresa, solo si el PDV opera en otra moneda que la de la empresa (Fase 4).
+   * Sin ellas el diálogo trabaja como siempre. Con ellas, `cambioRs` / `cambioDs` son unidades de la moneda del PDV
+   * por R$ / US$.
+   */
+  monedaPdv?: Moneda;
+  monedaEmpresa?: Moneda;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -115,6 +124,22 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   cambioRs = 1;
   cambioDs = 1;
 
+  /** true solo si el PDV opera en otra moneda que la de la empresa. Con false todo es exactamente lo de siempre. */
+  esOtraMoneda = false;
+  monedaPdv: Moneda = null;
+  monedaEmpresa: Moneda = null;
+  /** La tarifa de envío (que está en la moneda de la empresa) en la moneda del PDV. Solo con otra moneda del PDV. */
+  envioBase: number = null;
+  /** Máscara del campo «valor» según la moneda elegida. */
+  opcionesValor: any = this.currencyMask.currencyOptionsNoGuarani;
+  /** Unidades de la empresa por 1 unidad de la moneda del PDV, y cómo se muestra un monto en ella. */
+  cotizacionPdv: number = null;
+  formatoBase = '1.0-0';
+  /** Totales del delivery en cada moneda (con otra moneda del PDV): se muestran dividiendo el total por `divisor`. */
+  filasTotal: { bandera: string | null; simbolo: string; divisor: number | null; formato: string }[] = [];
+  /** Cómo se muestra el valor de cada línea según su moneda (id), con otra moneda del PDV. */
+  formatoPorMoneda: { [monedaId: string]: string } = {};
+
   //vueltos segun las monedas
   vueltoGs = 0
   vueltoRs = 0
@@ -154,12 +179,21 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     private ventaService: VentaService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private configuracionCobroService: ConfiguracionCobroService,
+    private monedasService: MonedaService,
   ) {
     
     this.selectedDelivery = data?.delivery;
 
     this.cambioRs = data?.cambioRs;
     this.cambioDs = data?.cambioDs;
+    if (data?.monedaPdv != null && data?.monedaEmpresa != null) {
+      this.esOtraMoneda = true;
+      this.monedaPdv = data.monedaPdv;
+      this.monedaEmpresa = data.monedaEmpresa;
+      this.cotizacionPdv = cotizacionEmpresa(this.monedaPdv, this.monedaEmpresa);
+      const dec = this.monedaPdv.decimales ?? 2;
+      this.formatoBase = `1.${dec}-${dec}`;
+    }
 
     if (this.selectedDelivery?.venta?.valorTotal == null) {
       this.selectedDelivery.venta.valorTotal = 0;
@@ -239,9 +273,17 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       if (this.monedaList.length === 0 || !(this.data?.formaPagoList?.length > 0)) {
         this.notificacionSnackbar.openWarn('No se cargaron las monedas o formas de pago del POS: no se puede cobrar ni guardar el delivery.', 6);
       }
-      this.onMonedaVueltoSelect(this.monedaList[0])
+      if (this.esOtraMoneda) {
+        this.formatoPorMoneda = this.monedaList.reduce((acc, m) => {
+          const dec = this.monedasService.decimalesDeMoneda(m);
+          acc[m.id] = `1.${dec}-${dec}`;
+          return acc;
+        }, {} as { [monedaId: string]: string });
+        this.armarFilasTotal();
+      }
+      this.onMonedaVueltoSelect(this.monedaPorDefecto())
       setTimeout(() => {
-        this.onMonedaSelect(this.monedaList[0])
+        this.onMonedaSelect(this.monedaPorDefecto())
         if (this.selectedDelivery?.id != null) {
           this.data.delivery.venta.cobro.cobroDetalleList.forEach(c => {
             this.isDescuento = c.descuento;
@@ -262,7 +304,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
     this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.monedaControl.dirty) {
-        if (res == "") this.selectedMoneda = null;
+        if (res == "") { this.selectedMoneda = null; this.actualizarOpcionesValor(); }
         if (this.monedaTimer != null) {
           clearTimeout(this.monedaTimer);
         }
@@ -331,6 +373,87 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   }
 
+  // ---- Fase 4: cuentas en la moneda del PDV. Con la moneda de la empresa todos devuelven lo de siempre. ----
+
+  /** La tarifa de envío en la moneda en que se cobra: la de la tarifa tal cual, o llevada a la moneda del PDV. */
+  private envio(): number {
+    return this.esOtraMoneda ? this.envioBase : this.selectedPrecio?.valor;
+  }
+
+  /** Unidades de la moneda del PDV por 1 unidad de `moneda` (con `cambio` propio si es una línea ya guardada). */
+  private factorDe(moneda: Moneda | null | undefined, cambio?: number | null): number | null {
+    if (moneda == null) return null;
+    const m = cambio != null ? { id: moneda.id, cambio } : moneda;
+    return factorABase(m, this.monedaPdv, this.monedaEmpresa);
+  }
+
+  /** El cambio de siempre (guaraníes por unidad), o el factor a la moneda del PDV. */
+  private cambioDe(moneda: Moneda | null | undefined): number {
+    return this.esOtraMoneda ? this.factorDe(moneda) : moneda?.cambio;
+  }
+
+  private factorDeLinea(item: CobroDetalle): number {
+    return this.factorDe(item.moneda, item.cambio) ?? item.cambio;
+  }
+
+  /** La moneda que se propone para cobrar: la primera de siempre, o la del PDV. */
+  private monedaPorDefecto(): Moneda {
+    if (!this.esOtraMoneda) return this.monedaList[0];
+    return this.monedaList.find(m => String(m.id) === String(this.monedaPdv.id)) ?? this.monedaPdv;
+  }
+
+  /** La moneda del descuento: siempre la base (el guaraní de siempre, o la del PDV). */
+  private monedaDelDescuento(): Moneda {
+    if (!this.esOtraMoneda) return this.monedaList.find(m => m.denominacion == 'GUARANI');
+    return this.monedaPorDefecto();
+  }
+
+  /** La moneda del PDV primero, después la de la empresa, el real y el dólar (sin repetir ninguna). */
+  private armarFilasTotal(): void {
+    const bandera = (m: Moneda): string | null => {
+      const d = (m?.denominacion || '').toUpperCase();
+      if (d.includes('GUARANI')) return 'assets/flags/py/py32.png';
+      if (d.includes('REAL')) return 'assets/flags/br/br32.png';
+      if (d.includes('DOLAR')) return 'assets/flags/usa/usa32.png';
+      return null;
+    };
+    const candidatas = [
+      this.monedaPdv,
+      this.monedaList.find(m => String(m.id) === String(this.monedaEmpresa?.id)) ?? this.monedaEmpresa,
+      this.monedaList.find(m => m.denominacion == 'REAL'),
+      this.monedaList.find(m => m.denominacion == 'DOLAR'),
+    ].filter(m => m != null);
+    const vistas = new Set<string>();
+    this.filasTotal = [];
+    candidatas.forEach(m => {
+      if (vistas.has(String(m.id))) return;
+      vistas.add(String(m.id));
+      const dec = this.monedasService.decimalesDeMoneda(m);
+      this.filasTotal.push({
+        bandera: bandera(m),
+        simbolo: m.simbolo || m.denominacion || '',
+        divisor: String(m.id) === String(this.monedaPdv.id) ? 1 : this.factorDe(m),
+        formato: `1.${dec}-${dec}`,
+      });
+    });
+  }
+
+  /** Lo que falta cobrar. Con otra moneda del PDV, redondeado a sus decimales (si no, el ruido del flotante nunca cierra en 0). */
+  private saldoActual(): number {
+    const saldo = (this.selectedDelivery.venta.valorTotal + this.envio()) - this.valorParcialPagado;
+    return this.esOtraMoneda ? redondearEnMoneda(saldo, this.monedaPdv) : saldo;
+  }
+
+  private esCero(valor: number): boolean {
+    return this.esOtraMoneda ? saldoCerrado(valor, this.monedaPdv.decimales ?? 2) : valor == 0;
+  }
+
+  private actualizarOpcionesValor(): void {
+    this.opcionesValor = this.esOtraMoneda
+      ? this.monedasService.currencyOptionsByMoneda(this.selectedMoneda)
+      : (this.selectedMoneda?.id == 1 ? this.currencyMask.currencyOptionsGuarani : this.currencyMask.currencyOptionsNoGuarani);
+  }
+
   cargarDatos() {
     this.barrioControl = null
     this.direccionControl = null
@@ -364,8 +487,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         this.precioList = res;
         if (this.precioList.length > 0) {
           if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
-          this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
-          this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
+          this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.envio())
+          this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.envio())
           this.calcularVueltoPara()
           // this.calcularVuelto()
         } else if (this.selectedPrecio == null) {
@@ -422,8 +545,13 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   onPrecioSelect(e) {
     if (e?.id != null) {
       this.selectedPrecio = e;
+      if (this.esOtraMoneda) {
+        // La tarifa está en la moneda de la empresa: se muestra y se suma en la del PDV.
+        const cot = cotizacionEmpresa(this.monedaPdv, this.monedaEmpresa);
+        this.envioBase = cot ? redondearEnMoneda(+this.selectedPrecio.valor / cot, this.monedaPdv) : null;
+      }
       this.precioControl.setValue(
-        this.selectedPrecio?.id + " - " + this.selectedPrecio?.descripcion + " - " + this.selectedPrecio?.valor
+        this.selectedPrecio?.id + " - " + this.selectedPrecio?.descripcion + " - " + (this.esOtraMoneda ? this.envioBase : this.selectedPrecio?.valor)
       );
     }
     this.calcularVueltoPara()
@@ -452,14 +580,15 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onMonedaSelect(e) {
-    let valorEnGs = this.vueltoControl.value * this.selectedMoneda?.cambio;
+    let valorEnGs = this.vueltoControl.value * this.cambioDe(this.selectedMoneda);
     if (e?.id != null) {
       this.selectedMoneda = e;
       this.monedaControl.setValue(
         this.selectedMoneda?.id + " - " + this.selectedMoneda?.denominacion
       );
-      this.vueltoControl.setValue(valorEnGs / this.selectedMoneda?.cambio)
+      this.vueltoControl.setValue(valorEnGs / this.cambioDe(this.selectedMoneda))
     }
+    this.actualizarOpcionesValor();
     this.calcularVueltoPara()
     // this.calcularVuelto()
   }
@@ -606,23 +735,25 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     };
     let valor = selectedValor != null ? selectedValor : this.vueltoControl.value;
     let saldo = this.saldoControl.value;
-    if (saldo == 0) {
+    if (this.esCero(saldo)) {
       return this.telefonoInput.nativeElement.select()
     }
     if (this.isDescuento) {
-      valor = ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado);
-      this.selectedMoneda = this.monedaList.find(m => m.denominacion == 'GUARANI');
+      valor = this.saldoActual();
+      this.selectedMoneda = this.monedaDelDescuento();
     }
     if (valor < 0) this.isVuelto = true;
     if (this.selectedFormaPago.descripcion == 'TARJETA' && (this.isVuelto || this.isDescuento || this.isAumento)) {
       this.selectedFormaPago = this.formaPagoList.find(f => f.descripcion == 'EFECTIVO');
     }
-    if (this.vueltoControl.valid && saldo != 0) {
+    if (this.vueltoControl.valid && !this.esCero(saldo)) {
       let item = new CobroDetalle;
       if (selectedItem != null) Object.assign(item, selectedItem);
       item.formaPago = this.selectedFormaPago
       item.moneda = this.selectedMoneda
-      item.valor = valor
+      // Con otra moneda del PDV el saldo pasa por cotizaciones con decimales: una línea nueva se guarda redondeada a
+      // los decimales de su moneda. Con la moneda de la empresa queda exactamente como siempre.
+      item.valor = this.esOtraMoneda && esLineaNueva ? redondearEnMoneda(valor, item.moneda) : valor
       item.vuelto = this.isVuelto
       item.descuento = this.isDescuento
       item.aumento = this.isAumento
@@ -630,7 +761,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       // Una línea ya guardada (replay al reabrir) usa la cotización con la que se cobró si su
       // moneda hoy no tiene cotización: con la actual en null la línea sumaba 0 al saldo.
       const cambio = this.selectedMoneda?.cambio || (selectedItem?.id != null ? selectedItem?.cambio : null)
-      if (!cambio && esLineaNueva) {
+      // Cuánto vale 1 unidad de la moneda de la línea en la moneda con que se cuenta (el cambio de siempre, o el factor
+      // a la moneda del PDV).
+      const factor = this.esOtraMoneda ? this.factorDe(this.selectedMoneda ?? selectedItem?.moneda, cambio) : cambio
+      if ((!cambio || factor == null) && esLineaNueva) {
         // Igual que pago-touch: una línea nueva en una moneda sin cotización sumaba valor * null (#390)
         this.notificacionSnackbar.openWarn(`No hay cotización cargada para ${this.selectedMoneda?.denominacion || 'la moneda seleccionada'}: no se puede registrar el cobro en esa moneda.`, 5);
         this.isVuelto = previo.isVuelto;
@@ -638,14 +772,20 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         this.isAumento = previo.isAumento;
         this.selectedMoneda = previo.moneda;
         this.selectedFormaPago = previo.formaPago;
+        this.actualizarOpcionesValor();
         return;
       }
       item.cambio = cambio
-      this.valorParcialPagado += item.valor * cambio;
+      // La cotización de la moneda de la línea solo viaja con otra moneda del PDV (una línea ya guardada no la vuelve a mandar).
+      if (this.esOtraMoneda && esLineaNueva) {
+        const cotizacion = cotizacionEmpresa(item.moneda, this.monedaEmpresa);
+        if (cotizacion != null) item.cotizacion = cotizacion;
+      }
+      this.valorParcialPagado += item.valor * (factor ?? cambio);
       this.vueltoControl
-        .setValue((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado) / cambio);
+        .setValue(this.saldoActual() / (factor ?? cambio));
       this.saldoControl.setValue(
-        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
+        this.saldoActual()
       );
       if (this.selectedDelivery?.id != null && item?.id == null) {
         item.cobro = this.selectedDelivery?.venta?.cobro
@@ -667,20 +807,20 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
             this.formaPagoControl.reset()
             this.monedaControl.reset()
             this.onFormaPagoSelect(this.formaPagoList[0])
-            this.onMonedaSelect(this.monedaList[0])
-            if (this.vueltoControl.value == 0) {
+            this.onMonedaSelect(this.monedaPorDefecto())
+            if (this.esCero(this.vueltoControl.value)) {
               this.telefonoInput.nativeElement.focus()
               this.isVueltoControl.setValue(false)
             } else if (this.vueltoControl.value < 0) {
               this.isVueltoControl.setValue(true)
               this.formaPagoInput.nativeElement.focus()
-              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.envio()) * 0.2)) {
                 this.isAumento = true
               }
             } else {
               this.isVueltoControl.setValue(false)
               this.formaPagoInput.nativeElement.focus()
-              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.envio()) * 0.2)) {
                 this.isDescuento = true
               }
             }
@@ -697,20 +837,20 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         this.formaPagoControl.reset()
         this.monedaControl.reset()
         this.onFormaPagoSelect(this.formaPagoList[0])
-        this.onMonedaSelect(this.monedaList[0])
-        if (this.vueltoControl.value == 0) {
+        this.onMonedaSelect(this.monedaPorDefecto())
+        if (this.esCero(this.vueltoControl.value)) {
           this.telefonoInput.nativeElement.focus()
           this.isVueltoControl.setValue(false)
         } else if (this.vueltoControl.value < 0) {
           this.isVueltoControl.setValue(true)
           this.formaPagoInput.nativeElement.focus()
-          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.envio()) * 0.2)) {
             this.isAumento = true
           }
         } else {
           this.isVueltoControl.setValue(false)
           this.formaPagoInput.nativeElement.focus()
-          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.envio()) * 0.2)) {
             this.isDescuento = true
           }
         }
@@ -739,6 +879,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     this.isAumento = previo.isAumento;
     this.selectedMoneda = previo.moneda;
     this.selectedFormaPago = previo.formaPago;
+    this.actualizarOpcionesValor();
     if (rechazado) {
       this.notificacionSnackbar.openWarn(sinMotivo
         ? 'El servidor no registró la línea (¿ya hay un descuento en este cobro?)'
@@ -758,21 +899,23 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       return;
     }
     // Vuelto en la moneda elegida; si no tiene cotización, la de la línea (antes dividía por null)
-    const cambioVuelto = this.selectedMoneda?.cambio || item.cambio || 1;
+    const cambioVuelto = this.esOtraMoneda
+      ? (this.cambioDe(this.selectedMoneda) || this.factorDeLinea(item) || 1)
+      : (this.selectedMoneda?.cambio || item.cambio || 1);
     if (item?.id != null) {
       this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId, false).subscribe(res => {
         if (res) {
-          this.valorParcialPagado -= item.valor * item.cambio;
+          this.valorParcialPagado -= item.valor * (this.esOtraMoneda ? this.factorDeLinea(item) : item.cambio);
 
           this.saldoControl.setValue(
-            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
+            this.saldoActual()
           );
           this.vueltoControl.setValue(
-            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / cambioVuelto
+            this.saldoActual() / cambioVuelto
           );
           this.cobroItemList.splice(i, 1);
           this.formaPagoInput.nativeElement.select()
-          if (this.vueltoControl.value == 0) {
+          if (this.esCero(this.vueltoControl.value)) {
             this.telefonoInput.nativeElement.focus()
             this.isVueltoControl.setValue(false)
           } else if (this.vueltoControl.value < 0) {
@@ -786,17 +929,17 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         }
       })
     } else {
-      this.valorParcialPagado -= item.valor * item.cambio;
+      this.valorParcialPagado -= item.valor * (this.esOtraMoneda ? this.factorDeLinea(item) : item.cambio);
 
       this.saldoControl.setValue(
-        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
+        this.saldoActual()
       );
       this.vueltoControl.setValue(
-        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / cambioVuelto
+        this.saldoActual() / cambioVuelto
       );
       this.cobroItemList.splice(i, 1);
       this.formaPagoInput.nativeElement.select()
-      if (this.vueltoControl.value == 0) {
+      if (this.esCero(this.vueltoControl.value)) {
         this.telefonoInput.nativeElement.focus()
         this.isVueltoControl.setValue(false)
       } else if (this.vueltoControl.value < 0) {
@@ -834,6 +977,23 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         cobro.cobroDetalleList = this.cobroItemList;
       }
 
+      if (this.esOtraMoneda && venta.id == null) {
+        // Delivery nuevo armado con el carrito: sus ítems y su total están en la moneda del PDV. Se guarda el
+        // equivalente en la moneda de la empresa más la moneda del PDV aparte, como una venta común. Uno ya guardado
+        // conserva la moneda que tiene (el filial la respeta).
+        const cot = cotizacionEmpresa(this.monedaPdv, this.monedaEmpresa);
+        if (cot == null) {
+          this.notificacionSnackbar.openWarn(
+            `La moneda del PDV (${this.monedaPdv?.denominacion ?? ''}) no tiene cotización cargada: no se puede guardar el delivery.`, 6);
+          return;
+        }
+        aplicarMonedaALaVenta(venta, {
+          monedaPdv: this.monedaPdv, empresa: this.monedaEmpresa, cot,
+          cambioRs: this.monedaList?.find(m => m.denominacion == 'REAL')?.cambio ?? null,
+          cambioDs: this.monedaList?.find(m => m.denominacion == 'DOLAR')?.cambio ?? null,
+        });
+      }
+
       this.guardando = true;
       // 60 s y no menos: un guardado lento que termina después del corte es justo el que se duplica.
       this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false,
@@ -863,8 +1023,31 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   calcularVueltoPara() {
     if (this.selectedPrecio == null) return; // sin tarifa no hay total (antes TypeError)
-    let total = this.selectedDelivery?.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado;
+    let total = this.selectedDelivery?.venta.valorTotal + this.envio() - this.valorParcialPagado;
     let valor = this.vueltoParaControl.value;
+    if (this.esOtraMoneda && this.cobroItemList?.length == 0) {
+      // Con otra moneda del PDV el total está en ella: cada moneda se propone redondeada hacia arriba en su propia
+      // unidad (guaraníes de a 100.000; reales y dólares de a 100), como siempre.
+      this.selectedVuelto = 0;
+      const enMoneda = (m: Moneda, paso: number): number | null => {
+        const f = this.factorDe(m);
+        return f ? (Math.floor((total / f) / paso) + 1) * paso : null;
+      };
+      this.vueltoGs = enMoneda(this.monedaList?.find(m => m.denominacion == 'GUARANI'), 100000);
+      this.vueltoRs = this.cambioRs ? (Math.floor((total / this.cambioRs) / 100) + 1) * 100 : null;
+      this.vueltoDs = this.cambioDs ? (Math.floor((total / this.cambioDs) / 100) + 1) * 100 : null;
+      if (this.selectedMoneda?.denominacion == 'GUARANI') {
+        this.vueltoControl.setValue(this.vueltoGs)
+      } else if (this.selectedMoneda?.denominacion == 'REAL') {
+        this.vueltoControl.setValue(this.vueltoRs)
+      } else if (this.selectedMoneda?.denominacion == 'DOLAR') {
+        this.vueltoControl.setValue(this.vueltoDs)
+      } else if (this.selectedMoneda != null && String(this.selectedMoneda.id) === String(this.monedaPdv.id)) {
+        // Otra moneda base: el saldo exacto.
+        this.vueltoControl.setValue(redondearEnMoneda(total, this.monedaPdv))
+      }
+      return;
+    }
     if (this.cobroItemList?.length == 0) {
       let factorGs = Math.floor(total / 100000) + 1;
       this.selectedVuelto = 0;
@@ -883,11 +1066,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   calcularVuelto() {
-    this.vueltoControl.setValue(((this.vueltoParaControl.value * this.selectedMoneda?.cambio) - (this.selectedDelivery?.venta?.valorTotal + this.selectedPrecio?.valor)) / this.selectedMonedaVuelto?.cambio);
-    if (this.vueltoControl.value == 0) {
+    this.vueltoControl.setValue(((this.vueltoParaControl.value * this.cambioDe(this.selectedMoneda)) - (this.selectedDelivery?.venta?.valorTotal + this.envio())) / this.cambioDe(this.selectedMonedaVuelto));
+    if (this.esCero(this.vueltoControl.value)) {
       this.telefonoInput.nativeElement.select()
     } else if (this.vueltoControl.value < 0) {
-      this.vueltoParaControl.setValue(((this.vueltoControl.value * -1) * this.selectedMonedaVuelto.cambio) / this.selectedMoneda.cambio)
+      this.vueltoParaControl.setValue(((this.vueltoControl.value * -1) * this.cambioDe(this.selectedMonedaVuelto)) / this.cambioDe(this.selectedMoneda))
       this.formaPagoInput.nativeElement.select()
     }
   }
@@ -902,14 +1085,16 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     //   this.addCobroDetalle();
     // }
     if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
-    let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
+    let total = this.selectedDelivery.venta.valorTotal + this.envio();
     let saldo = this.saldoControl.value;
 
     let data: DescuentoDialogData = {
       valorTotal: total,
       cambioDs: this.cambioDs,
       cambioRs: this.cambioRs,
-      saldo: saldo
+      saldo: saldo,
+      // Con otra moneda del PDV, total y saldo están en ella y el diálogo devuelve el descuento en ella.
+      monedaBase: this.esOtraMoneda ? this.monedaPdv : undefined,
     }
     this.matDialog.open(DescuentoDialogComponent, {
       data: data
@@ -929,12 +1114,15 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   onAumento() {
     if (this.guardandoCobro || this.bloqueaCobroYGuardado()) return;
-    let total = this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor;
+    let total = this.selectedDelivery.venta.valorTotal + this.envio();
     let valor =
       this.vueltoControl.value;
     if (valor < 0) {
       // Lo que se va a registrar (`vueltoControl`, en la moneda elegida) en guaraníes, más los aumentos ya cargados.
-      const aumentoGs = -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroItemList);
+      const aumentoGs = this.esOtraMoneda
+        ? -valor * (this.cambioDe(this.selectedMoneda) || 1) +
+          this.cobroItemList.filter((l) => l.aumento).reduce((suma, l) => suma + Math.abs((l.valor ?? 0) * this.factorDeLinea(l)), 0)
+        : -valor * (this.selectedMoneda?.cambio || 1) + aumentosRegistradosGs(this.cobroItemList);
       if (!aumentoPermitido(aumentoGs, total, this.configCobro)) {
         this.notificacionSnackbar.openWarn(mensajeTopeAumento(this.configCobro), 5);
         return;

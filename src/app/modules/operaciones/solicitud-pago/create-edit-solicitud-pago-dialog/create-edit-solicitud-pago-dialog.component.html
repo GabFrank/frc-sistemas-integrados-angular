@@ -26,11 +26,11 @@
   <div class="balance-strip" *ngIf="notasAgregadas?.length > 0 || detallesAgregados?.length > 0">
     <div class="bstat">
       <span class="b-label">A pagar</span>
-      <strong class="b-value">Gs {{ totalNotasGsEquivalenteComputed | number:'1.0-0' }}</strong>
+      <strong class="b-value">{{ simboloEmpresa }} {{ totalNotasGsEquivalenteComputed | number:formatoEmpresa }}</strong>
     </div>
     <div class="bstat">
       <span class="b-label">Cubierto</span>
-      <strong class="b-value">Gs {{ totalEnGuaraniesComputed | number:'1.0-0' }}</strong>
+      <strong class="b-value">{{ simboloEmpresa }} {{ totalEnGuaraniesComputed | number:formatoEmpresa }}</strong>
       <small class="b-hint" *ngIf="detallesAgregados.length > 0">{{ detallesAgregados.length }} forma(s)</small>
     </div>
     <div class="bstat b-dif" [ngClass]="'estado-' + diferenciaEstadoComputed">
@@ -39,7 +39,7 @@
         <mat-icon *ngIf="diferenciaEstadoComputed === 'cubre'">check_circle</mat-icon>
         <mat-icon *ngIf="diferenciaEstadoComputed === 'exceso'">north</mat-icon>
         <mat-icon *ngIf="diferenciaEstadoComputed === 'falta'">south</mat-icon>
-        Gs {{ diferenciaGsComputed | number:'1.0-0' }}
+        {{ simboloEmpresa }} {{ diferenciaGsComputed | number:formatoEmpresa }}
       </strong>
       <small class="b-hint">
         <ng-container *ngIf="diferenciaEstadoComputed === 'cubre'">Cubre exacto</ng-container>

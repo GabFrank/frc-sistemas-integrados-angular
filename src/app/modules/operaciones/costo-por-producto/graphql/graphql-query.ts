@@ -106,3 +106,26 @@ export const saveCostoPorProductoMutation = gql`
     }
   }
 `;
+
+/**
+ * Costo del producto en la moneda de costeo. Va aparte de las consultas de costo de siempre: contra
+ * un central sin estos campos falla esta sola y la pantalla sigue mostrando el costo de la empresa.
+ */
+export const costoCosteoDeProductoQuery = gql`
+  query ($id: ID!) {
+    data: producto(id: $id) {
+      id
+      costo {
+        id
+        monedaCosteo {
+          id
+          denominacion
+          simbolo
+          decimales
+        }
+        costoMedioCosteo
+        ultimoPrecioCompraCosteo
+      }
+    }
+  }
+`;

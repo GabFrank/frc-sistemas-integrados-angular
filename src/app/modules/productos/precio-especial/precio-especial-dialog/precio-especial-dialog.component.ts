@@ -2,7 +2,8 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { Observable } from 'rxjs';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, filter, take } from 'rxjs/operators';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -10,7 +11,12 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Presentacion } from '../../presentacion/presentacion.model';
-import { evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from '../../precio-por-sucursal/margen-precio.util';
+import { costoEnMonedaDelPrecio, evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from '../../precio-por-sucursal/margen-precio.util';
+import { PrecioMonedaService } from '../../precio-por-sucursal/precio-moneda.service';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
+import { CostoPorProductoService } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
 import { PrecioPorSucursal } from '../../precio-por-sucursal/precio-por-sucursal.model';
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
@@ -22,6 +28,7 @@ import {
 export class PrecioEspecialDialogData {
   precio: PrecioPorSucursal;
   presentacion: Presentacion;
+  /** Costo medio en la moneda de la empresa. */
   costoMedio?: number;
   /** Nombre del producto, para el encabezado. */
   productoDescripcion?: string;
@@ -50,6 +57,18 @@ type NivelMargen = 'ok' | 'bajo' | 'negativo' | 'sin-costo';
 export class PrecioEspecialDialogComponent implements OnInit {
   sucursalControl = new FormControl<(Sucursal | null)[]>([], Validators.required);
   precioControl = new FormControl<number>(null, [Validators.required, Validators.min(1)]);
+  /**
+   * El precio especial hereda la moneda de su precio base (no tiene selector). Los valores de abajo son los de
+   * siempre (guaraníes, sin decimales) hasta que se lee que el base está en otra moneda.
+   */
+  simboloMoneda = 'Gs.';
+  formatoMonto = '1.0-0';
+  pasoPrecio = 1;
+  minimoPrecio = 1;
+  /** Moneda del precio base si NO es la de la empresa; null = la de la empresa (o no se pudo leer). */
+  private monedaBase: Moneda | null = null;
+  /** Costo medio llevado a la moneda del precio; null = no se puede comparar (se espera la lectura). */
+  private costoMedioDelPrecio: number | null = null;
   desdeControl = new FormControl<Date>(null);
   hastaControl = new FormControl<Date>(null);
   sucursalList: Sucursal[] = [];
@@ -96,7 +115,11 @@ export class PrecioEspecialDialogComponent implements OnInit {
     private service: PrecioEspecialService,
     private sucursalService: SucursalService,
     private dialogosService: DialogosService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private monedaModulo: MonedaModuloService,
+    private monedaService: MonedaService,
+    private precioMonedaService: PrecioMonedaService,
+    private costoService: CostoPorProductoService
   ) {}
 
   ngOnInit(): void {
@@ -114,6 +137,9 @@ export class PrecioEspecialDialogComponent implements OnInit {
       this.tooltipCortar = 'Cortar: el precio vuelve a quedar inactivo en la sucursal';
     }
 
+    this.costoMedioDelPrecio = this.data.costoMedio ?? null;
+    this.leerMonedaBase();
+
     this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarComparador());
     this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarResumenSucursales());
     // Después de suscribir: el reset emite y el comparador arranca con el valor precargado
@@ -122,6 +148,50 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
     this.cargarSucursales();
     this.cargar();
+  }
+
+  /**
+   * La moneda del precio base, con una operación aparte que puede fallar: si falla se queda todo como
+   * siempre (moneda de la empresa). Si está en otra, el formulario muestra su símbolo y decimales y el
+   * margen se compara en esa moneda.
+   */
+  private leerMonedaBase(): void {
+    if (this.data.precio?.id == null) return;
+    this.precioMonedaService.asegurarMapaCentral();
+    // El mapa de precios en otra moneda (en caché); si falló, queda la moneda de la empresa
+    this.precioMonedaService.mapaCentral$
+      .pipe(filter((e) => e.estado === 'ok'), take(1), untilDestroyed(this))
+      .subscribe((e) => {
+        const m = e.mapa.get(String(this.data.precio.id)) ?? null;
+        if (m == null || this.monedaModulo.esMonedaEmpresa(m)) return;
+        this.monedaBase = m;
+        const decimales = m.decimales > 0 ? m.decimales : 0;
+        this.simboloMoneda = m.simbolo || '';
+        this.formatoMonto = `1.${decimales}-${decimales}`;
+        this.pasoPrecio = decimales > 0 ? Math.pow(10, -decimales) : 1;
+        this.minimoPrecio = this.pasoPrecio;
+        this.precioControl.setValidators([Validators.required, Validators.min(this.minimoPrecio)]);
+        this.precioControl.updateValueAndValidity();
+        // El costo de la empresa no sirve contra este precio: se espera el convertido.
+        this.costoMedioDelPrecio = null;
+        this.actualizarComparador();
+        this.leerCostoEnMonedaBase(m);
+      });
+  }
+
+  private leerCostoEnMonedaBase(m: Moneda): void {
+    const productoId = this.data.presentacion?.producto?.id;
+    forkJoin({
+      costeo: productoId != null ? this.costoService.getCostoEnCosteo(productoId) : of(null),
+      monedas: this.monedaService.onGetAllEnSegundoPlano(true, { graphError: { show: false }, networkError: { show: false, propagate: true } })
+        .pipe(take(1), catchError(() => of([] as Moneda[]))),
+    }).pipe(untilDestroyed(this)).subscribe(({ costeo, monedas }) => {
+      const conCambio = (x: Moneda) => (monedas || []).find((y) => String(y.id) === String(x?.id)) ?? x;
+      const empresa = this.monedaModulo.empresa$.value;
+      this.costoMedioDelPrecio = costoEnMonedaDelPrecio(
+        this.data.costoMedio, conCambio(m), empresa ? conCambio(empresa) : null, costeo);
+      this.actualizarComparador();
+    });
   }
 
   cargarSucursales(): void {
@@ -214,7 +284,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
   onGuardar(): void {
     if (this.precioControl.invalid || (!this.editando && this.ids().length === 0)) return;
-    const evaluacion = evaluarMargenPrecio(Number(this.precioControl.value), this.data.costoMedio, this.data.presentacion?.cantidad);
+    const evaluacion = evaluarMargenPrecio(Number(this.precioControl.value), this.costoMedioDelPrecio, this.data.presentacion?.cantidad);
     if (evaluacion?.debeAvisar) {
       this.dialogosService
         .confirm('Margen por debajo del mínimo',
@@ -265,7 +335,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
       ? ((this.precioEspecial - this.precioGlobal) / this.precioGlobal) * 100
       : null;
     const evaluacion = this.precioEspecial != null
-      ? evaluarMargenPrecio(this.precioEspecial, this.data.costoMedio, this.data.presentacion?.cantidad)
+      ? evaluarMargenPrecio(this.precioEspecial, this.costoMedioDelPrecio, this.data.presentacion?.cantidad)
       : null;
     this.margenPorcentaje = evaluacion?.margenPorcentaje ?? null;
     this.nivelMargen = evaluacion == null ? 'sin-costo'

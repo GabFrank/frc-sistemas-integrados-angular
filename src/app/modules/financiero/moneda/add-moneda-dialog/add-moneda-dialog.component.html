@@ -17,6 +17,14 @@
       </mat-form-field>
     </div>
 
+    <mat-form-field appearance="outline" *ngIf="soportaCodigoIso">
+      <mat-label>Código ISO</mat-label>
+      <input matInput [formControl]="codigoIsoControl" maxlength="3" placeholder="PYG"
+             style="text-transform: uppercase;" />
+      <mat-hint>Opcional. Tres letras: PYG, USD, BRL</mat-hint>
+      <mat-error *ngIf="codigoIsoControl.hasError('pattern')">Tienen que ser tres letras</mat-error>
+    </mat-form-field>
+
     <mat-form-field appearance="outline">
       <mat-label>Decimales</mat-label>
       <input matInput type="number" [formControl]="decimalesControl" />
@@ -38,10 +46,12 @@
 
     <div fxLayout="row" fxLayoutGap="20px" style="margin-top: 4px;">
       <mat-slide-toggle [formControl]="activoControl">Activa</mat-slide-toggle>
-      <mat-slide-toggle [formControl]="principalControl"
-                        matTooltip="Moneda base del sistema (a lo sumo una)">
+      <mat-slide-toggle [formControl]="principalControl">
         Moneda principal
       </mat-slide-toggle>
+    </div>
+    <div class="moneda-principal-hint">
+      La moneda principal (de la empresa) no se cambia desde acá: solo con el procedimiento de corte.
     </div>
 
   </div>

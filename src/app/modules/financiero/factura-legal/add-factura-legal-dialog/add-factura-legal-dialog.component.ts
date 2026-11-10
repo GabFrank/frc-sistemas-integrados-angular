@@ -51,6 +51,7 @@ import { SucursalService } from "../../../empresarial/sucursal/sucursal.service"
 import { TimbradoService } from "../../timbrado/timbrado.service";
 import { Moneda } from "../../moneda/moneda.model";
 import { MonedaService } from "../../moneda/moneda.service";
+import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import { CambioService } from "../../cambio/cambio.service";
 import { Cambio } from "../../cambio/cambio.model";
 
@@ -60,6 +61,14 @@ export interface FacturaLegalData {
   descuento: number;
   isServidor?: boolean;
   ligarAVenta?: boolean;
+  /**
+   * Moneda en que se factura cuando la moneda del PDV no es la de la empresa (Fase 4): `venta.totalGs`,
+   * `descuento` y los precios de `ventaItemList` ya vienen en la moneda de la empresa; la factura queda marcada con
+   * esta moneda y su `tipoCambio`. Sin definir, todo es como siempre.
+   */
+  monedaFacturacion?: Moneda;
+  /** Unidades de la moneda de la empresa por 1 unidad de `monedaFacturacion`. */
+  tipoCambioFacturacion?: number;
 }
 
 @UntilDestroy()
@@ -142,7 +151,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private timbradoService: TimbradoService,
     private monedaService: MonedaService,
     private cambioService: CambioService,
-    private mainService: MainService
+    private mainService: MainService,
+    private monedaModulo: MonedaModuloService
   ) {}
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -202,6 +212,13 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   cargarDatos() {
     if (this.data.venta != null) {
       this.totalFinalControl.setValue(this.data?.venta?.totalGs);
+    }
+    if (this.data.monedaFacturacion != null && this.data.tipoCambioFacturacion > 0
+      && !this.monedaModulo.esMonedaEmpresa(this.data.monedaFacturacion)) {
+      // Moneda de facturación elegida por el PDV (no se puede cambiar en este flujo).
+      this.selectedMoneda = this.data.monedaFacturacion;
+      this.tipoCambioControl.setValue(this.data.tipoCambioFacturacion);
+      this.calcularTotalEnMoneda();
     }
     if (this.data.ventaItemList != null) {
       let facturaItemList: FacturaLegalItem[] = [];
@@ -285,7 +302,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     
     // Suscribirse a cambios de moneda para cargar último cambio
     this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((moneda: Moneda) => {
-      if (moneda && moneda.denominacion !== 'GUARANI') {
+      if (moneda && !this.monedaModulo.esMonedaEmpresa(moneda)) {
         this.selectedMoneda = moneda;
         this.tipoCambioControl.enable();
         this.cargarUltimoCambio(moneda.id);
@@ -913,11 +930,15 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     // Si es modo filial, agregar campos adicionales
     if (this.isServidor) {
       factura.sucursalId = this.selectedSucursal?.id;
-      factura.monedaExtranjera = this.selectedMoneda && this.selectedMoneda.denominacion !== 'GUARANI' 
+      factura.monedaExtranjera = this.selectedMoneda && !this.monedaModulo.esMonedaEmpresa(this.selectedMoneda)
         ? this.selectedMoneda.denominacion 
         : null;
       factura.tipoCambio = this.tipoCambioControl.value;
       factura.timbradoDetalle = this.selectedTimbradoDetalle;
+    } else if (this.data.monedaFacturacion != null && this.selectedMoneda != null) {
+      // Desde el PDV con otra moneda: la factura va en la moneda de la empresa, marcada con la de facturación.
+      factura.monedaExtranjera = this.selectedMoneda.denominacion;
+      factura.tipoCambio = this.tipoCambioControl.value;
     }
     
     // Preparar datos del cliente para enviar al backend (el backend manejará creación/actualización)

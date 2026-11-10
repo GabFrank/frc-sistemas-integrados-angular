@@ -132,6 +132,12 @@
             <input matInput type="number" min="1" formControlName="cotizacionDolar" readonly>
           </mat-form-field>
         </div>
+        <!-- Hay precios en otra moneda y no se pudo confirmar la del principal: no se imprime -->
+        <div *ngIf="monedaPrecioEstado === 'sinConfirmar'"
+             style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #ffb74d;">
+          <span>No se pudo confirmar la moneda del precio; reintentá.</span>
+          <button mat-stroked-button type="button" (click)="loadMonedaPrecio()">Reintentar</button>
+        </div>
         <!-- Sin cotización leída no se imprime en esa moneda (#390) -->
         <div *ngIf="textoCotizaciones"
              style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #ffb74d;">

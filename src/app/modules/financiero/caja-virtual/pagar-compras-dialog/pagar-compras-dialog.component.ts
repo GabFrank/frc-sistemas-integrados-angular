@@ -367,7 +367,7 @@ export class PagarComprasDialogComponent implements OnInit {
         this.monedaList = res;
         this.monedaPrincipal = res.find((m: any) => m.principal) || null;
         if ((this.esGasto || this.esVale) && !this.ngMonedaControl.value) {
-          const gs = res.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || res[0];
+          const gs = this.monedaPorDefecto(res);
           this.ngMonedaControl.setValue(gs);
           this.onNuevoGastoMonedaChange();
         }
@@ -554,16 +554,11 @@ export class PagarComprasDialogComponent implements OnInit {
   }
 
   private decimales(moneda: any): number {
-    return moneda?.decimales != null ? moneda.decimales : ((moneda?.denominacion || '').toUpperCase().includes('GUARANI') ? 0 : 2);
+    return this.monedaService.decimalesDeMoneda(moneda);
   }
 
   private currencyOpts(moneda: any): any {
-    const dec = this.decimales(moneda);
-    return {
-      allowNegative: false, allowZero: false, precision: dec,
-      thousands: '.', decimal: dec > 0 ? ',' : '', align: 'right',
-      prefix: (moneda?.simbolo ? moneda.simbolo + ' ' : ''), suffix: '', nullable: true, min: 0, max: null,
-    };
+    return this.monedaService.currencyOptionsMontoPositivo(moneda, { allowZero: false });
   }
 
   /** Cambio de un filtro: la página actual puede quedar fuera del resultado. La carga y las recargas usan aplicarFiltro() y conservan la página. */
@@ -610,10 +605,17 @@ export class PagarComprasDialogComponent implements OnInit {
     this.dataSource.data = t ? this.todas.filter(r => r.proveedorNombre.toUpperCase().includes(t)) : this.todas;
   }
 
+  /** Moneda de un gasto o vale nuevo: la de la empresa (la principal); sin ella, el guaraní o la primera. */
+  private monedaPorDefecto(lista: any[]): any {
+    return lista.find((m: any) => m.principal)
+      || lista.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI'))
+      || lista[0];
+  }
+
   // ── Alta de gasto (vista de form; oculta el stepper) ──
   abrirNuevoGasto() {
     if (!this.ngMonedaControl.value && this.monedaList.length) {
-      const gs = this.monedaList.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || this.monedaList[0];
+      const gs = this.monedaPorDefecto(this.monedaList);
       this.ngMonedaControl.setValue(gs);
       this.onNuevoGastoMonedaChange();
     }
@@ -661,7 +663,7 @@ export class PagarComprasDialogComponent implements OnInit {
   // ── Alta de vale (misma vista que el alta de gasto; oculta el stepper) ──
   abrirNuevoVale() {
     if (!this.ngMonedaControl.value && this.monedaList.length) {
-      const gs = this.monedaList.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || this.monedaList[0];
+      const gs = this.monedaPorDefecto(this.monedaList);
       this.ngMonedaControl.setValue(gs);
       this.onNuevoGastoMonedaChange();
     }

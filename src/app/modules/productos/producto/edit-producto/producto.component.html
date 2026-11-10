@@ -1536,7 +1536,7 @@
                           <ng-container matColumnDef="precio">
                             <th mat-header-cell *matHeaderCellDef>Precio</th>
                             <td mat-cell *matCellDef="let element">
-                              {{ element.precio }}
+                              <ng-container *ngIf="simbolosPrecio[element.id]">{{ simbolosPrecio[element.id] }} </ng-container>{{ element.precio }}
                             </td>
                           </ng-container>
 
