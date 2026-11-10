@@ -5,9 +5,9 @@
   <div fxFlex>
     <section>
       <mat-radio-group fxLayout="column">
-        <mat-radio-button *ngIf="porcentaje >= 5" value="5" (change)="onKeyUp(1, descuento5)">5% con redondeo: {{descuento5 | number: formatoBase}}</mat-radio-button>
-        <mat-radio-button *ngIf="porcentaje >= 10" value="5" (change)="onKeyUp(1, descuento10)">10% con redondeo: {{descuento10 | number: formatoBase}}</mat-radio-button>
-        <mat-radio-button *ngIf="porcentaje >= 15" value="5" (change)="onKeyUp(1, descuento15)">15% con redondeo: {{descuento15 | number: formatoBase}}</mat-radio-button>
+        <mat-radio-button *ngIf="!excede(descuento5)" value="5" (change)="onKeyUp(1, descuento5)">5% con redondeo: {{descuento5 | number: formatoBase}}</mat-radio-button>
+        <mat-radio-button *ngIf="!excede(descuento10)" value="5" (change)="onKeyUp(1, descuento10)">10% con redondeo: {{descuento10 | number: formatoBase}}</mat-radio-button>
+        <mat-radio-button *ngIf="!excede(descuento15)" value="5" (change)="onKeyUp(1, descuento15)">15% con redondeo: {{descuento15 | number: formatoBase}}</mat-radio-button>
       </mat-radio-group>
     </section>
   </div>
@@ -27,10 +27,13 @@
       />
       <span matTextPrefix>Porcentaje de descuento</span>
       <span matTextSuffix>%</span>
-      <mat-error *ngIf="porcentajeDescuento.invalid">
-        Valor no permitido
-      </mat-error>
     </mat-form-field>
+  </div>
+  <div fxFlex *ngIf="tope != null" class="descuento-tope" [class.descuento-tope--excede]="excede(valorDescuentoGsControl.value)">
+    <ng-container *ngIf="!excede(valorDescuentoGsControl.value); else excedeTope">
+      Máximo permitido: {{ tope | number: formatoBase }}
+    </ng-container>
+    <ng-template #excedeTope>{{ mensajeTope || ('El descuento supera el máximo permitido: ' + (tope | number: formatoBase)) }}</ng-template>
   </div>
   <div fxFlex>
     <mat-form-field style="width: 100%">

@@ -19,7 +19,13 @@ export class DescuentoDialogData {
   cambioRs: number;
   /** Idem para 1 US$. */
   cambioDs: number;
-  costo?: number;
+  /**
+   * Lo máximo que puede llevar ESTE descuento, en la moneda base: el tope configurado en Cobro en PDV menos
+   * los descuentos que el cobro ya tiene (los de producto incluidos). `null`/sin definir = sin tope.
+   */
+  tope?: number | null;
+  /** El mensaje que se muestra si el cajero pasa el tope. */
+  mensajeTope?: string;
   /**
    * La moneda base del cobro (la del PDV), solo cuando NO es la de la empresa (Fase 4): `valorTotal`, `saldo` y el
    * valor que devuelve el diálogo están en ella. Sin definir, son guaraníes como siempre.
@@ -74,7 +80,10 @@ export class DescuentoDialogComponent implements OnInit {
     min: null,
   };
 
-  porcentaje = 15;
+  /** El máximo porcentaje del total que admite este descuento (100 sin tope). */
+  porcentaje = 100;
+  tope: number | null = null;
+  mensajeTope = '';
   ocultarRs = false;
   ocultarDs = false;
 
@@ -111,14 +120,16 @@ export class DescuentoDialogComponent implements OnInit {
     this.sinCotizacionDs = !this.data?.cambioDs;
     if (this.sinCotizacionRs) this.valorDescuentoRsControl.disable();
     if (this.sinCotizacionDs) this.valorDescuentoDsControl.disable();
-    if (this.data?.costo > 0) {
-      let margen = this.data.valorTotal - this.data.costo;
-      this.porcentaje = (margen * 100) / this.data.valorTotal;
-      this.porcentaje = this.porcentaje + this.porcentaje * 0.05;
+    // Solo el tope de Configuración › Cobro en PDV. El límite por margen de antes (margen + 5%) se quitó:
+    // avisaba «Valor no permitido» pero dejaba guardar igual.
+    if (this.data?.tope != null) {
+      this.tope = Math.max(0, this.data.tope);
+      this.mensajeTope = this.data.mensajeTope ?? '';
+      this.porcentaje = this.data.valorTotal > 0 ? (this.tope * 100) / this.data.valorTotal : 0;
     }
     this.porcentajeDescuento.setValidators(Validators.max(this.porcentaje));
     this.porcentajeDescuento.updateValueAndValidity();
-    if (this.data.saldo <= this.data.valorTotal * (this.porcentaje / 100)) {
+    if (this.tope == null || this.data.saldo <= this.tope) {
       this.onKeyUp(1, this.data.saldo);
     } else {
       this.onKeyUp(1, 0);
@@ -166,7 +177,14 @@ export class DescuentoDialogComponent implements OnInit {
     this.matDialogRef.close(0);
   }
 
+  /** Si el monto pasa el tope (comparado en centésimos, por los decimales de otra moneda). */
+  excede(valor: number): boolean {
+    return this.tope != null && Math.round((+valor || 0) * 100) > Math.round(this.tope * 100);
+  }
+
   onGuardar() {
+    // Pasado el tope no se cierra: el cajero corrige el monto o cancela.
+    if (this.excede(this.valorDescuentoGsControl.value)) return;
     this.matDialogRef.close(this.valorDescuentoGsControl.value);
   }
 

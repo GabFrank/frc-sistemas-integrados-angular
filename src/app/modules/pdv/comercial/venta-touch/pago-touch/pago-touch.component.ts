@@ -110,7 +110,7 @@ import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../..
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
 import { ConfiguracionCobroService } from "../../../../financiero/configuracion-cobro/configuracion-cobro.service";
-import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, mensajeTopeAumento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
+import { aumentoPermitido, aumentosRegistradosGs, ConfiguracionCobro, descuentosRegistradosGs, mensajeTopeAumento, mensajeTopeDescuento, topeDescuento } from "../../../../financiero/configuracion-cobro/configuracion-cobro.model";
 import {
   ContextoConsulta,
   TIMEOUT_CONSULTA_DE_FONDO_MS,
@@ -319,7 +319,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
     // Sin barrera ni aviso: si no responde (filial viejo o sin red), rige el 20%.
     this.configuracionCobroService.onGetConfiguracionPdv().pipe(untilDestroyed(this)).subscribe({
-      next: (config) => (this.configCobro = config),
+      next: (config) => {
+        this.configCobro = config;
+        this.avisarDescuentoPrecargadoSobreTope();
+      },
       error: () => (this.configCobro = null),
     });
     setTimeout(() => {
@@ -375,6 +378,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.data.valor - this.valorParcialPagado
           );
           this.cobroDetalleList.push(item);
+          this.avisarDescuentoPrecargadoSobreTope();
         }
         if (this.data.delivery != null) {
           this.data.delivery?.venta?.cobro?.cobroDetalleList.forEach((c) => {
@@ -1269,26 +1273,40 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  private avisoDescuentoPrecargado = false;
+
+  /**
+   * Los descuentos por producto que trae la venta cuentan para el tope del descuento, pero ya están en el
+   * precio: no se bloquea el cobro, se avisa una vez. La configuración y la línea precargada llegan en
+   * cualquier orden, por eso se llama desde los dos lados.
+   */
+  private avisarDescuentoPrecargadoSobreTope(): void {
+    if (this.avisoDescuentoPrecargado || !(this.data?.descuento > 0)) return;
+    const tope = topeDescuento(this.data.valor, this.configCobro);
+    const precargado = this.cobroDetalleList.some((l) => l.descuento) ? this.data.descuento : 0;
+    if (tope != null && precargado > tope) {
+      this.avisoDescuentoPrecargado = true;
+      this.notificacionSnackbar.openWarn(
+        `Los descuentos por producto de esta venta ya superan el tope del descuento. ${mensajeTopeDescuento(this.configCobro)}`, 8);
+    }
+  }
+
   onDescuento() {
     if (this.cobroDetalleList.some(item => item.descuento)) {
       this.notificacionSnackbar.openWarn("Ya se aplicó un descuento a esta venta.");
       return;
     }
-    this.isDialogOpen = true;
-    let valorCosto = 0;
-    // El costo esta en la moneda de la empresa; el total, en la base. Con otra moneda del PDV se lleva a la base.
-    const cotBase = this.esOtraMoneda ? cotizacionEmpresa(this.monedaBase, this.monedaEmpresa()) : null;
-    this.data.itemList.forEach((i) => {
-      let costoTotal = 0;
-      if (i?.precioCosto > 0) {
-        costoTotal = i.precioCosto * i.cantidad;
-        if (cotBase != null && cotBase > 0) costoTotal = costoTotal / cotBase;
-      } else {
-        costoTotal = i.precio * 0.85;
-      }
-      valorCosto += costoTotal;
-    });
     let total = this.data.valor;
+    // Tope de Configuración › Cobro en PDV, menos los descuentos que el cobro ya tiene (en la moneda base).
+    const topeTotal = topeDescuento(total, this.configCobro);
+    const yaDescontado = this.esOtraMoneda
+      ? descuentosRegistradosGs(this.cobroDetalleList, (l) => this.factorDeLinea(l))
+      : descuentosRegistradosGs(this.cobroDetalleList);
+    if (topeTotal != null && topeTotal - yaDescontado <= 0) {
+      this.notificacionSnackbar.openWarn(mensajeTopeDescuento(this.configCobro), 5);
+      return;
+    }
+    this.isDialogOpen = true;
     let saldo = this.formGroup?.controls?.saldo?.value;
 
     let data: DescuentoDialogData = {
@@ -1298,7 +1316,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       cambioRs: this.factorRs,
       monedaBase: this.esOtraMoneda ? this.monedaBase : undefined,
       saldo: saldo,
-      costo: valorCosto,
+      tope: topeTotal != null ? topeTotal - yaDescontado : null,
+      mensajeTope: mensajeTopeDescuento(this.configCobro),
     };
     this.matDialog
       .open(DescuentoDialogComponent, {
