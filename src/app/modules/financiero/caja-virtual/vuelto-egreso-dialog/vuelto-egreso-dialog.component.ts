@@ -13,6 +13,10 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+
+/** Días que muestra la lista al abrir (hoy incluido). */
+const DIAS_POR_DEFECTO = 3;
 
 export interface VueltoEgresoDialogData {
   cajaVirtual: CajaVirtual;
@@ -55,6 +59,12 @@ export class VueltoEgresoDialogComponent implements OnInit {
   isLoading = false;
 
   textoControl = new FormControl<string>('');
+  /**
+   * Rango de la fecha del egreso: arranca en los últimos DIAS_POR_DEFECTO días. Nunca se pide sin «desde»,
+   * para no traer todo el historial de una vez; un rango más amplio lo elige el usuario.
+   */
+  desdeControl = new FormControl<Date>(null);
+  hastaControl = new FormControl<Date>(null);
 
   /** El egreso elegido: con él se pasa del listado al formulario del vuelto. */
   seleccionado: FilaVuelto | null = null;
@@ -83,7 +93,37 @@ export class VueltoEgresoDialogComponent implements OnInit {
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
+    this.rangoPorDefecto();
     this.cargar();
+  }
+
+  private rangoPorDefecto(): void {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const desde = new Date(hoy);
+    desde.setDate(hoy.getDate() - (DIAS_POR_DEFECTO - 1));
+    this.desdeControl.setValue(desde);
+    this.hastaControl.setValue(hoy);
+  }
+
+  /** Al cerrar el rango en el calendario (o al tipear el fin) se vuelve a buscar. */
+  onRangoChange(): void {
+    this.buscar();
+  }
+
+  /** Vuelve a los últimos DIAS_POR_DEFECTO días. */
+  limpiarRango(): void {
+    this.rangoPorDefecto();
+    this.buscar();
+  }
+
+  /** El rango es distinto del de por defecto: recién ahí tiene sentido el botón para volver a él. */
+  get rangoModificado(): boolean {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const desde = new Date(hoy);
+    desde.setDate(hoy.getDate() - (DIAS_POR_DEFECTO - 1));
+    return this.desdeControl.value?.getTime() !== desde.getTime() || this.hastaControl.value?.getTime() !== hoy.getTime();
   }
 
   buscar(): void {
@@ -105,7 +145,12 @@ export class VueltoEgresoDialogComponent implements OnInit {
   private cargar(): void {
     this.isLoading = true;
     const texto = this.textoControl.value?.trim() || null;
-    this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, this.pageIndex, this.pageSize)
+    // Sin «desde» (borrado a mano o inválido) se vuelve al rango por defecto en vez de traer todo.
+    if (!this.desdeControl.value) this.rangoPorDefecto();
+    const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
+    // El central lleva el fin al último minuto de ese día.
+    const fin = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
+    this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, desde, fin, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
