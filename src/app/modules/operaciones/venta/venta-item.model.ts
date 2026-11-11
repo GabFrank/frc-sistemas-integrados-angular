@@ -42,6 +42,12 @@ export class VentaItem {
     precioEnMoneda?: number;
     /** Solo pantalla (no viaja): el precio de lista con su símbolo, p. ej. "US$ 4,39". */
     precioListaTexto?: string;
+    /**
+     * Solo PDV (no viaja): la moneda que el mapa de precios en otra moneda daba para el precio de este ítem al
+     * agregarlo (id en texto; null = la de la empresa). Antes de cobrar se compara con el mapa vigente (#709).
+     * Sin definir = no se sabe (p. ej. un ítem traído de un delivery guardado).
+     */
+    monedaPrecioVista?: string | null;
     /** Solo pantalla (no viaja al servidor): "Lote X · Vto dd/mm/aa" bajo el ítem antes de cobrar (#429). */
     lotesEtiqueta?: string;
 

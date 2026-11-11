@@ -1,5 +1,5 @@
 import { Moneda } from "../../../financiero/moneda/moneda.model";
-import { resolverPrecioDeItem } from "./precio-en-moneda";
+import { claveMonedaDePrecio, itemsConMonedaDesactualizada, resolverPrecioDeItem } from "./precio-en-moneda";
 
 const PYG = Object.assign(new Moneda(), { id: 1, denominacion: "GUARANI", simbolo: "Gs.", decimales: 0, cambio: 1 });
 const USD = Object.assign(new Moneda(), { id: 3, denominacion: "DOLAR", simbolo: "US$", decimales: 2, cambio: 5980 });
@@ -62,5 +62,38 @@ describe("resolverPrecioDeItem", () => {
     it("con el PDV en la moneda de la empresa pasar la empresa no cambia nada", () => {
       expect(resolverPrecioDeItem(5, 10000, new Map(), [PYG, USD], PYG, PYG)).toEqual({ tipo: "empresa" });
     });
+  });
+});
+
+describe("itemsConMonedaDesactualizada (#709)", () => {
+  const usd = { id: "3", denominacion: "DOLAR", simbolo: "US$", decimales: 2 } as any;
+  const item = (precioId: any, vista: string | null | undefined) => ({ precioVenta: precioId == null ? null : { id: precioId }, monedaPrecioVista: vista });
+
+  it("precio que pasó a USD después de agregarlo (se agregó en la moneda de la empresa)", () => {
+    const vigente = new Map<string, Moneda>([["10", usd]]);
+    const a = item(10, null);
+    expect(itemsConMonedaDesactualizada([a], vigente)).toEqual([a]);
+  });
+
+  it("precio que volvió a la moneda de la empresa (se agregó en USD)", () => {
+    const a = item(10, "3");
+    expect(itemsConMonedaDesactualizada([a], new Map())).toEqual([a]);
+  });
+
+  it("misma moneda que al agregarlo: no se marca", () => {
+    const vigente = new Map<string, Moneda>([["10", usd]]);
+    expect(itemsConMonedaDesactualizada([item(10, "3"), item(11, null)], vigente)).toEqual([]);
+  });
+
+  it("sin precio identificado o sin moneda vista: no se marca", () => {
+    const vigente = new Map<string, Moneda>([["10", usd]]);
+    expect(itemsConMonedaDesactualizada([item(null, null), item(10, undefined)], vigente)).toEqual([]);
+  });
+
+  it("claveMonedaDePrecio: id en texto o null", () => {
+    const vigente = new Map<string, Moneda>([["10", usd]]);
+    expect(claveMonedaDePrecio(10, vigente)).toBe("3");
+    expect(claveMonedaDePrecio("11", vigente)).toBeNull();
+    expect(claveMonedaDePrecio(null, vigente)).toBeNull();
   });
 });
