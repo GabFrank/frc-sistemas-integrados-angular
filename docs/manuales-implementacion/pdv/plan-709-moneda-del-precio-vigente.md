@@ -133,8 +133,38 @@ Al terminar: precios y configuración de alpha restaurados.
 | B6 | Descuentos/balanza/cajas al recalcular | No aplica: no se recalcula |
 | B7 | Tests solo de la función pura | Se agregaron specs de componente con `fakeAsync` |
 
+## Resultado de las pruebas de runtime (alpha, 11/11/2026)
+
+PDV servido por http (build web-production) contra el filial alpha :8080, sucursal 2, PDV 3, usuario MR. Precio 10 de
+BANES FORTE cambiado por `savePrecioPorSucursal` en el central alpha con el PDV abierto.
+
+| # | Prueba | Resultado |
+|---|---|---|
+| 1 | Build de `develop`, precio a 5,85 USD con el PDV abierto | Reproducido: el ítem entra a **6 Gs** |
+| 2 | Con el fix: F8, F11 y Pago | Bloquean con «Cambió la moneda del precio de: BANES FORTE…»; ninguna venta creada. Sacar y re-cargar → 37.733 Gs / US$ 5,85; venta 80131 con `precio_moneda_id` 3, `precio_lista` 5,85, cotización 6450 |
+| 3 | Inverso USD → Gs | Bloquea; re-cargar → 20.735 Gs |
+| 4 | Delivery nuevo (F10) con el ítem desactualizado | Bloquea. Con la moneda vigente se crea (delivery 10) y «Finalizar» abre el pago y cobra (venta 80132) |
+| 5 | Doble F8 + Pago + escáner durante una lectura demorada 4 s | Una lectura, una venta (80134); el escaneo avisa «Verificando precios…» y no agrega. Lectura fallida con mapa no vacío → «No se pudo verificar…» + log `[#709]`, no cobra. Lectura fallida con mapa vacío → cobra |
+| 6 | Refresco de 60 s | Tras cambiar a USD y esperar, el producto entra a US$ 5,85 sin recargar el PDV |
+| 7 | Regresión | PDV en Gs: ventas 80133–80137 correctas. Segunda lista (F2): la lista sin el precio cambiado cobra (80137), la otra bloquea. PDV en USD: bloquea y re-cargar → 5,85 US$ (venta 80138, `precio_en_moneda` 5,85, 37.733 Gs) |
+
+El ítem de un delivery abierto no se puede agregar por pantalla («Modif. itens» está deshabilitado a propósito), así que
+la rama `isDelivery` de `addItem` no tiene camino de UI para probarse.
+
+Alpha quedó restaurado: precio 10 en 20.735 Gs, configuración PDV de la sucursal 2 inactiva.
+
+## Auditoría del diff (paso 8)
+
+- Fijo 1 (autorización) y Fijo 2 (esquema): N/A, el diff es solo del desktop, sin resolver, menú, migración ni campo GraphQL.
+- Condicionales A y B: no los dispara ningún archivo.
+- Fijo 3 (contrato, auditor sonnet): sin bugs. `onCustomQuery` con `LECTURA_ESTRICTA` emite una vez o falla (no queda
+  colgado como `onGetById`); `take(1)` + `catchError` + `finalize` liberan las banderas en todos los caminos. Notas:
+  - Filial lenta: la verificación espera hasta 20 s (`CONTEXTO_SONDEO`) antes de «No se pudo verificar». Se deja así:
+    el cobro usa la misma filial.
+  - **Límite conocido:** los ítems de un delivery guardado no tienen `monedaPrecioVista` y no se verifican al
+    «Finalizar». No reabre el #709: al crear el delivery (F10) los ítems ya se verificaron, y el valor guardado es el
+    pactado con el cliente.
+
 ## Sin verificar
 
 - Tamaño del mapa en una empresa con muchos precios en USD (no hay datos así).
-- Que el botón de quitar ítem de un delivery abierto borre el ítem en la filial con moneda vieja (se prueba en el paso 4
-  de runtime).
