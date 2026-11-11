@@ -427,6 +427,7 @@
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
         [class.example-expanded-row]="expandedPedido === row"
+        [class.fila-compra-cancelada]="row.etapaActualComputed === 'CANCELADA'"
         (click)="
           onRowClick(row, i);
           expandedPedido = expandedPedido === row ? null : row
