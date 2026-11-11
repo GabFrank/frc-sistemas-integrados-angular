@@ -151,6 +151,9 @@ import { SorteoPosService } from './sorteo-pos.service';
 import { textoTicketsImpresos } from '../../../operaciones/sorteo/sorteo.util';
 import type { SorteoClienteInput } from '../../../operaciones/sorteo/sorteo.model';
 
+/** Cada cuánto el PDV relee la moneda de los precios (#709). */
+export const REFRESCO_MONEDA_PRECIOS_MS = 60_000;
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-venta-touch",
@@ -294,6 +297,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.iniciarRefrescoMonedaDePrecios();
     // Monedas y formas de pago se piden recién con el PDV validado (validarPdvSucursal): con el filial
     // sin responder su spinner de 60 s tapaba el aviso de la validación (#387).
     this.formaPagoList = [];
@@ -693,6 +697,25 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((ok) => {
         this.verificandoPrecios = false;
         if (ok) seguir();
+      });
+  }
+
+  /**
+   * Cada minuto relee la moneda de los precios (#709) para que lo que se agregue entre con la vigente. Solo reemplaza
+   * el mapa, nunca el carrito (eso lo verifica la guardia al cobrar), y no lo toca si la lectura falla ni mientras se
+   * cobra o se verifica.
+   */
+  private iniciarRefrescoMonedaDePrecios(): void {
+    interval(REFRESCO_MONEDA_PRECIOS_MS)
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        if (this.isDialogOpen || this.guardandoVenta || this.verificandoPrecios) return;
+        this.precioMonedaService
+          .preciosEnOtraMonedaVigente()
+          .pipe(take(1), untilDestroyed(this))
+          .subscribe(({ leido, mapa }) => {
+            if (leido && !this.verificandoPrecios) this.preciosEnOtraMoneda = mapa;
+          });
       });
   }
 
@@ -2376,6 +2399,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeliveryClick() {
+    if (this.modoConsulta || this.verificandoPrecios) return;
+    // Un delivery nuevo se arma con el carrito y lo guarda: antes, la moneda de esos precios tiene que estar vigente
+    // (#709). Abrir la lista o un delivery ya guardado no fija precios: esos se verifican al cobrarlo (onPagoClick).
+    if (this.selectedDelivery == null && this.selectedItemList?.length > 0) {
+      this.conPreciosVerificados(() => this.abrirDelivery());
+      return;
+    }
+    this.abrirDelivery();
+  }
+
+  /** El F10 de siempre: arma el delivery nuevo con el carrito o abre la lista de deliverys. */
+  private abrirDelivery() {
     if (this.modoConsulta) return;
     if (this.pdvSinValidar()) return;
     if (this.esOtraMoneda && this.monedaPdvSinCotizacion) {

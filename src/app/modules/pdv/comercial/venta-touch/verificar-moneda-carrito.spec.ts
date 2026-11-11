@@ -1,7 +1,8 @@
+import { discardPeriodicTasks, fakeAsync, tick } from "@angular/core/testing";
 import { Subject, of } from "rxjs";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
-import { VentaTouchComponent } from "./venta-touch.component";
+import { REFRESCO_MONEDA_PRECIOS_MS, VentaTouchComponent } from "./venta-touch.component";
 
 /**
  * #709: antes de cobrar, el PDV relee la moneda de los precios y no cobra si alguno del carrito cambió desde que se
@@ -136,4 +137,120 @@ describe("VentaTouchComponent: verificar la moneda de los precios antes de cobra
     expect(c.abrirPago).toHaveBeenCalled();
     expect(c.verificandoPrecios).toBeFalse();
   });
+});
+
+describe("VentaTouchComponent: delivery nuevo con la moneda vigente (#709, fase 2)", () => {
+  const usd = { id: "3", denominacion: "DOLAR", simbolo: "US$", decimales: 2 } as any as Moneda;
+  let c: any;
+  let lectura$: Subject<{ leido: boolean; mapa: Map<string, Moneda> | null }>;
+  let avisos: string[];
+
+  beforeEach(() => {
+    lectura$ = new Subject();
+    avisos = [];
+    c = Object.create(VentaTouchComponent.prototype);
+    c.precioMonedaService = { preciosEnOtraMonedaVigente: jasmine.createSpy().and.callFake(() => lectura$) };
+    c.notificacionSnackbar = { openWarn: (m: string) => avisos.push(m) };
+    c.preciosEnOtraMoneda = new Map<string, Moneda>();
+    c.verificandoPrecios = false;
+    c.modoConsulta = false;
+    c.selectedDelivery = null;
+    spyOn(c, "abrirDelivery");
+  });
+
+  function itemDesactualizado(): VentaItem {
+    const i = new VentaItem();
+    i.precioVenta = { id: 10, precio: 5.85 } as any;
+    i.producto = { descripcion: "BANES FORTE" } as any;
+    i.monedaPrecioVista = null;
+    return i;
+  }
+
+  it("F10 con un ítem cuyo precio pasó a USD: no arma el delivery", () => {
+    c.selectedItemList = [itemDesactualizado()];
+    c.onDeliveryClick();
+    lectura$.next({ leido: true, mapa: new Map([["10", usd]]) });
+    expect(c.abrirDelivery).not.toHaveBeenCalled();
+    expect(avisos[0]).toContain("BANES FORTE");
+  });
+
+  it("F10 con la moneda vigente: arma el delivery", () => {
+    c.selectedItemList = [itemDesactualizado()];
+    c.onDeliveryClick();
+    lectura$.next({ leido: true, mapa: new Map() });
+    expect(c.abrirDelivery).toHaveBeenCalled();
+  });
+
+  it("F10 con el carrito vacío o con un delivery ya abierto: abre sin verificar", () => {
+    c.selectedItemList = [];
+    c.onDeliveryClick();
+    c.selectedItemList = [itemDesactualizado()];
+    c.selectedDelivery = {};
+    c.onDeliveryClick();
+    expect(c.precioMonedaService.preciosEnOtraMonedaVigente).not.toHaveBeenCalled();
+    expect(c.abrirDelivery).toHaveBeenCalledTimes(2);
+  });
+
+  it("cobrar un delivery con un ítem desactualizado (Pago): no abre el pago", () => {
+    spyOn(c, "abrirPago");
+    c.guardandoVenta = false;
+    c.selectedDelivery = {};
+    c.selectedItemList = [itemDesactualizado()];
+    c.onPagoClick();
+    lectura$.next({ leido: true, mapa: new Map([["10", usd]]) });
+    expect(c.abrirPago).not.toHaveBeenCalled();
+  });
+});
+
+describe("VentaTouchComponent: refresco de la moneda de los precios (#709, fase 3)", () => {
+  const usd = { id: "3", denominacion: "DOLAR", simbolo: "US$", decimales: 2 } as any as Moneda;
+  let c: any;
+  let respuesta: { leido: boolean; mapa: Map<string, Moneda> | null };
+
+  beforeEach(() => {
+    respuesta = { leido: true, mapa: new Map([["10", usd]]) };
+    c = Object.create(VentaTouchComponent.prototype);
+    c.precioMonedaService = { preciosEnOtraMonedaVigente: jasmine.createSpy().and.callFake(() => of(respuesta)) };
+    c.preciosEnOtraMoneda = new Map<string, Moneda>();
+    c.isDialogOpen = false;
+    c.guardandoVenta = false;
+    c.verificandoPrecios = false;
+    c.selectedItemList = [];
+  });
+
+  it("cada minuto reemplaza el mapa (no el carrito)", fakeAsync(() => {
+    const carrito = [new VentaItem()];
+    c.selectedItemList = carrito;
+    c.iniciarRefrescoMonedaDePrecios();
+    tick(REFRESCO_MONEDA_PRECIOS_MS - 1);
+    expect(c.precioMonedaService.preciosEnOtraMonedaVigente).not.toHaveBeenCalled();
+    tick(1);
+    expect(c.preciosEnOtraMoneda.get("10")).toBe(usd);
+    expect(c.selectedItemList).toBe(carrito);
+    discardPeriodicTasks();
+  }));
+
+  it("con el pago abierto, guardando o verificando no lee", fakeAsync(() => {
+    c.iniciarRefrescoMonedaDePrecios();
+    c.isDialogOpen = true;
+    tick(REFRESCO_MONEDA_PRECIOS_MS);
+    c.isDialogOpen = false;
+    c.guardandoVenta = true;
+    tick(REFRESCO_MONEDA_PRECIOS_MS);
+    c.guardandoVenta = false;
+    c.verificandoPrecios = true;
+    tick(REFRESCO_MONEDA_PRECIOS_MS);
+    expect(c.precioMonedaService.preciosEnOtraMonedaVigente).not.toHaveBeenCalled();
+    discardPeriodicTasks();
+  }));
+
+  it("si la lectura falla, conserva el mapa que tenía", fakeAsync(() => {
+    const previo = new Map([["10", usd]]);
+    c.preciosEnOtraMoneda = previo;
+    respuesta = { leido: false, mapa: null };
+    c.iniciarRefrescoMonedaDePrecios();
+    tick(REFRESCO_MONEDA_PRECIOS_MS);
+    expect(c.preciosEnOtraMoneda).toBe(previo);
+    discardPeriodicTasks();
+  }));
 });
