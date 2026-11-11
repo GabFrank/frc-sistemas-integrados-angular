@@ -303,11 +303,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.tipoGastoControl.setValue(null);
       return;
     }
-    if (!res.proveedorId) {
-      this.notificacionService.openWarn("Debe indicar un beneficiario (proveedor).");
-      return;
-    }
-
     const montos = res.montos?.filter(m => m.monedaId != null && m.monto != null) ?? [];
     if (montos.length === 0) {
       this.notificacionService.openWarn("Debe indicar al menos un monto.");
@@ -329,7 +324,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     input.funcionarioId = personaId;
     input.sucursalCajaId = sucursalCajaId;
     input.cajaId = this.selectedCaja?.id;
-    input.beneficiarioProveedorId = res.proveedorId;
+    input.beneficiarioProveedorId = res.proveedorId ?? null;
     input.beneficiarioPersonaId = null;
     input.nivelUrgencia = "NORMAL";
     input.observaciones = "";
