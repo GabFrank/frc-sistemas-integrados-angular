@@ -44,7 +44,7 @@ import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.mod
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { itemConPrecioEnCero, tienePrecioVendible } from "./precio-vendible";
-import { resolverPrecioDeItem } from "./precio-en-moneda";
+import { claveMonedaDePrecio, itemsConMonedaDesactualizada, resolverPrecioDeItem } from "./precio-en-moneda";
 import {
   aplicarMonedaALaVenta,
   aplicarMonedaAlCobro,
@@ -151,6 +151,9 @@ import { SorteoPosService } from './sorteo-pos.service';
 import { textoTicketsImpresos } from '../../../operaciones/sorteo/sorteo.util';
 import type { SorteoClienteInput } from '../../../operaciones/sorteo/sorteo.model';
 
+/** Cada cuánto el PDV relee la moneda de los precios (#709). */
+export const REFRESCO_MONEDA_PRECIOS_MS = 60_000;
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-venta-touch",
@@ -214,6 +217,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   // de forma síncrona: isCargando llega ~140 ms tarde y en esa ventana F12 abría el pago de una venta
   // que F8 ya estaba cobrando (#316).
   guardandoVenta = false;
+  /** Releyendo la moneda de los precios antes de cobrar (#709): mientras dura no se cobra ni se agrega. */
+  verificandoPrecios = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
   buscadorOpenSearch: Subject<void> = new Subject<void>();
   clearBuscadorSub: Subject<void> = new Subject<void>();
@@ -292,6 +297,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.iniciarRefrescoMonedaDePrecios();
     // Monedas y formas de pago se piden recién con el PDV validado (validarPdvSucursal): con el filial
     // sin responder su spinner de 60 s tapaba el aviso de la validación (#387).
     this.formaPagoList = [];
@@ -526,7 +532,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.container.nativeElement.addEventListener("keydown", (e) => {
-      if (!this.isDialogOpen && !this.isCargando && !this.guardandoVenta) {
+      if (!this.isDialogOpen && !this.isCargando && !this.guardandoVenta && !this.verificandoPrecios) {
         switch (e.key) {
           // Los guards miran el carrito activo (PDV 1, PDV 2 o delivery), igual que los botones.
           case "F12":
@@ -650,6 +656,67 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .preciosEnOtraMoneda()
       .pipe(take(1), untilDestroyed(this))
       .subscribe((mapa) => (this.preciosEnOtraMoneda = mapa));
+  }
+
+  /**
+   * Antes de cobrar (#709): relee la moneda de los precios en la filial y, si alguno del carrito cambió desde que se
+   * agregó, no deja seguir. No recalcula el ítem: su valor de lista también puede haber cambiado (20.735 Gs → 5,85
+   * USD); el cajero lo saca y lo vuelve a cargar, y el buscador trae valor y moneda vigentes. Si no se puede leer,
+   * sigue como siempre cuando no hay precios en otra moneda conocidos, y bloquea cuando los hay.
+   */
+  private verificarMonedaDelCarrito(): Observable<boolean> {
+    const items = [...(this.selectedItemList || [])];
+    return this.precioMonedaService.preciosEnOtraMonedaVigente().pipe(
+      take(1),
+      map(({ leido, mapa }) => {
+        if (!leido) {
+          if (this.preciosEnOtraMoneda.size === 0) return true;
+          console.warn("[#709] No se pudo releer la moneda de los precios antes de cobrar",
+            items.map((i) => i.precioVenta?.id));
+          this.notificacionSnackbar.openWarn("No se pudo verificar la moneda de los precios. Probá de nuevo.", 6);
+          return false;
+        }
+        this.preciosEnOtraMoneda = mapa;
+        const cambiados = itemsConMonedaDesactualizada(items, mapa);
+        if (cambiados.length === 0) return true;
+        const nombres = [...new Set(cambiados.map((i) => i.producto?.descripcion ?? "un producto"))].join(", ");
+        this.notificacionSnackbar.openWarn(
+          `Cambió la moneda del precio de: ${nombres}. Sacalos y volvé a cargarlos para cobrar el precio vigente.`, 10);
+        return false;
+      }),
+      catchError(() => of(this.preciosEnOtraMoneda.size === 0)),
+    );
+  }
+
+  /** Corre `seguir` solo si la moneda de los precios del carrito está vigente. Mientras verifica no se cobra ni se agrega. */
+  private conPreciosVerificados(seguir: () => void): void {
+    if (this.verificandoPrecios) return;
+    this.verificandoPrecios = true;
+    this.verificarMonedaDelCarrito()
+      .pipe(finalize(() => (this.verificandoPrecios = false)), untilDestroyed(this))
+      .subscribe((ok) => {
+        this.verificandoPrecios = false;
+        if (ok) seguir();
+      });
+  }
+
+  /**
+   * Cada minuto relee la moneda de los precios (#709) para que lo que se agregue entre con la vigente. Solo reemplaza
+   * el mapa, nunca el carrito (eso lo verifica la guardia al cobrar), y no lo toca si la lectura falla ni mientras se
+   * cobra o se verifica.
+   */
+  private iniciarRefrescoMonedaDePrecios(): void {
+    interval(REFRESCO_MONEDA_PRECIOS_MS)
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        if (this.isDialogOpen || this.guardandoVenta || this.verificandoPrecios) return;
+        this.precioMonedaService
+          .preciosEnOtraMonedaVigente()
+          .pipe(take(1), untilDestroyed(this))
+          .subscribe(({ leido, mapa }) => {
+            if (leido && !this.verificandoPrecios) this.preciosEnOtraMoneda = mapa;
+          });
+      });
   }
 
   /** La moneda de la empresa (principal). */
@@ -787,6 +854,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     delete item.precioLista;
     delete item.precioCotizacion;
     delete item.precioListaTexto;
+    // La moneda que el mapa da hoy para este precio: antes de cobrar se compara con el mapa vigente (#709).
+    item.monedaPrecioVista = claveMonedaDePrecio(item.precioVenta?.id, this.preciosEnOtraMoneda);
     if (this.monedaPdvSinCotizacion) {
       this.notificacionSnackbar.openWarn(
         `La moneda del PDV (${this.monedaPdv?.denominacion ?? ""}) no tiene cotización cargada: no se puede vender.`, 6);
@@ -1082,6 +1151,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addItem(item: VentaItem, index?) {
+    if (this.verificandoPrecios) {
+      // Se está verificando el carrito para cobrar (#709): un ítem que entre ahora no quedaría verificado.
+      this.notificacionSnackbar.openWarn("Verificando precios: volvé a cargar el producto en un momento.", 4);
+      return;
+    }
     if (this.pidiendoClienteParaFacturar) {
       // El escáner sigue leyendo aunque haya un diálogo: lo que entre ahora no estaría en la venta
       // que se va a reenviar y se perdería al limpiar el carrito (#473).
@@ -1569,6 +1643,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPagoClick() {
+    if (this.modoConsulta || this.guardandoVenta || this.verificandoPrecios) return;
+    if (!(this.selectedItemList?.length > 0)) return;
+    this.conPreciosVerificados(() => this.abrirPago());
+  }
+
+  /** El cobro de siempre (Pago F12), una vez verificada la moneda de los precios del carrito (#709). */
+  private abrirPago() {
     if (this.modoConsulta || this.guardandoVenta) return;
     if (this.pdvSinValidar()) return;
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
@@ -1944,6 +2025,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTicketClick(ticket?: boolean) {
+    if (this.modoConsulta || this.guardandoVenta || this.verificandoPrecios || this.disableCobroRapido) return;
+    // Sin ítems o en delivery no hay nada que verificar: el cuerpo de siempre decide (devuelve el foco).
+    if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
+      this.cobrarTicket(ticket);
+      return;
+    }
+    this.conPreciosVerificados(() => this.cobrarTicket(ticket));
+  }
+
+  /** El cobro rápido de siempre (F8 / F11), una vez verificada la moneda de los precios del carrito (#709). */
+  private cobrarTicket(ticket?: boolean) {
     if (this.modoConsulta || this.guardandoVenta) return;
     if (this.pdvSinValidar()) return;
     // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
@@ -2307,6 +2399,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeliveryClick() {
+    if (this.modoConsulta || this.verificandoPrecios) return;
+    // Un delivery nuevo se arma con el carrito y lo guarda: antes, la moneda de esos precios tiene que estar vigente
+    // (#709). Abrir la lista o un delivery ya guardado no fija precios: esos se verifican al cobrarlo (onPagoClick).
+    if (this.selectedDelivery == null && this.selectedItemList?.length > 0) {
+      this.conPreciosVerificados(() => this.abrirDelivery());
+      return;
+    }
+    this.abrirDelivery();
+  }
+
+  /** El F10 de siempre: arma el delivery nuevo con el carrito o abre la lista de deliverys. */
+  private abrirDelivery() {
     if (this.modoConsulta) return;
     if (this.pdvSinValidar()) return;
     if (this.esOtraMoneda && this.monedaPdvSinCotizacion) {
