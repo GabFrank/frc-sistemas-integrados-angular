@@ -67,3 +67,28 @@ export function resolverPrecioDeItem(
   if (rastro == null) return { tipo: "sinCotizacion", moneda: delPrecio ?? monedaPrecio };
   return { tipo: "convertido", rastro, textoLista: formatearLista(precioLista, delPrecio ?? monedaPrecio) };
 }
+
+/** Clave de la moneda de un precio según el mapa: el id en texto, o null si está en la moneda de la empresa. */
+export function claveMonedaDePrecio(
+  precioId: number | string | null | undefined,
+  preciosOtraMoneda: Map<string, Moneda>,
+): string | null {
+  if (precioId == null) return null;
+  const moneda = preciosOtraMoneda?.get(String(precioId));
+  return moneda?.id != null ? String(moneda.id) : null;
+}
+
+/**
+ * Función pura (#709): los ítems cuyo precio cambió de moneda desde que se agregaron. Compara la moneda que vio cada
+ * ítem al agregarse (`monedaPrecioVista`) con la del mapa vigente. Un ítem sin precio identificado o sin
+ * `monedaPrecioVista` (no se sabe cuál vio) no se marca.
+ */
+export function itemsConMonedaDesactualizada<
+  T extends { precioVenta?: { id?: number | string } | null; monedaPrecioVista?: string | null },
+>(items: T[], preciosOtraMoneda: Map<string, Moneda>): T[] {
+  return (items || []).filter((item) => {
+    const precioId = item?.precioVenta?.id;
+    if (precioId == null || item.monedaPrecioVista === undefined) return false;
+    return claveMonedaDePrecio(precioId, preciosOtraMoneda) !== item.monedaPrecioVista;
+  });
+}

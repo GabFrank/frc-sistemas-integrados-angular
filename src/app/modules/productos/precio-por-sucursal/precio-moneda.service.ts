@@ -110,6 +110,17 @@ export class PrecioMonedaService {
   }
 
   /**
+   * FILIAL (PDV). Como `preciosEnOtraMoneda`, pero dice si se pudo leer: `leido: false` si la consulta falló o
+   * venció el tope (filial vieja, red) y entonces el mapa es null. Para verificar el carrito antes de cobrar (#709).
+   */
+  preciosEnOtraMonedaVigente(): Observable<{ leido: boolean; mapa: Map<string, Moneda> | null }> {
+    return this.leerPreciosEnOtraMoneda(false).pipe(
+      tap((m) => { if (m != null) this.mapaPdv = m; }),
+      map((m) => ({ leido: m != null, mapa: m })),
+    );
+  }
+
+  /**
    * CENTRAL: productoId → moneda del precio principal, para una página del listado. En silencio: si falla
    * (central viejo) emite un mapa vacío y la columna se muestra como siempre.
    */
