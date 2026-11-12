@@ -1535,8 +1535,9 @@ export class AddEditItemDialogComponent implements OnInit {
       if (cambioAbsoluto > 50) {
         const direccion = cambioPorcentual > 0 ? "aumentó" : "disminuyó";
         const porcentajeFormateado = Math.abs(Math.round(cambioPorcentual * 10) / 10);
-        const precioOriginalFormateado = this.precioOriginal.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        const precioNuevoFormateado = precio.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const decimales = this.selectedCurrencyOptions?.precision ?? 0;
+        const precioOriginalFormateado = this.precioOriginal.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: decimales });
+        const precioNuevoFormateado = precio.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: decimales });
         mensaje = `El precio ${direccion} ${porcentajeFormateado}% respecto al valor original (${precioOriginalFormateado} → ${precioNuevoFormateado}). ¿Está seguro de que es correcto?`;
       }
     }

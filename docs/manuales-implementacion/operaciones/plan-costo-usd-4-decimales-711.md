@@ -70,6 +70,17 @@ Desktop web local contra central local con un pedido y una nota en USD:
 | B | Un desktop viejo, al editar y guardar un ítem de 0,8125, lo redondea a 0,81 sin avisar | Se acepta: los desktops se actualizan solos en ≤5 min |
 | B | Objetos de máscara compartidos | La función nueva siempre hace copia (`{...}`), nunca muta `currencyOptionsNoGuarani` |
 
+## Encontrado en la prueba por pantalla (12/11/2026)
+
+- El aviso de variación del precio unitario (`onPrecioUnitarioBlur`) formateaba con 0 decimales:
+  «(0 → 1)» para 0,4823 → 0,8125. Ahora usa la precisión de la máscara.
+- La tabla de ítems de la nota (`add-edit-nota-recepcion-dialog`, «Precio Unit.») mostraba US$ 0,81.
+  Ahora tiene formato de costo aparte (`notaCostoDecimalFormat`), como la lista del pedido.
+
+Resultado (central local de develop, pedido 42 y nota 28 en USD, pedido 43 en Gs): sugerido 0,4823;
+«8125» → 0,8125 y presentación 9,7500; base `pedido_item` y `nota_recepcion_item` = 0.8125; editar sin
+cambios no lo altera; lista, distribución, precio anterior y aviso con 4 decimales; Gs sin decimales.
+
 ## Sin verificar / fuera de alcance
 
 - Impresiones y reportes del pedido/nota: no revisados.
