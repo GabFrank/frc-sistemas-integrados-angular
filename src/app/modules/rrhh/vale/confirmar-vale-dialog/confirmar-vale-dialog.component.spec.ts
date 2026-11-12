@@ -59,7 +59,7 @@ describe('ConfirmarValeDialogComponent', () => {
   });
 
   it('avisa cuando no hay cajas mayores activas y bloquea el boton', () => {
-    montar(of([caja(1, 'CAJA CHICA', 'CAJA_CHICA')])); // ninguna CAJA_MAYOR
+    montar(of([])); // ninguna caja activa
     fixture.detectChanges();
     expect(component.cargandoCajas).toBeFalse();
     expect(component.cajas.length).toBe(0);
@@ -77,10 +77,12 @@ describe('ConfirmarValeDialogComponent', () => {
     expect(botonConfirmar()?.disabled).toBeTrue();
   });
 
-  it('con cajas mayores activas no muestra el cartel', () => {
-    montar(of([caja(1, 'CAJA MAYOR HQ', 'CAJA_MAYOR'), caja(2, 'CAJA CHICA', 'CAJA_CHICA')]));
+  // CAJA_CHICA se retiró (central #220): el diálogo ya no filtra por tipo. Si un central viejo
+  // todavía devuelve una caja chica, se ofrece igual.
+  it('con cajas activas no muestra el cartel y no filtra por tipo', () => {
+    montar(of([caja(1, 'CAJA MAYOR HQ', 'CAJA_MAYOR'), caja(2, 'CAJA ADMIN', 'CAJA_CHICA')]));
     fixture.detectChanges();
-    expect(component.cajas.length).toBe(1);
+    expect(component.cajas.length).toBe(2);
     expect(texto()).toBeUndefined();
   });
 

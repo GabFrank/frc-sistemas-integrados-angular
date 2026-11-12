@@ -21,19 +21,12 @@ export class AddCajaVirtualDialogComponent implements OnInit {
 
   formGroup: FormGroup;
   nombreControl = new FormControl('', Validators.required);
-  tipoControl = new FormControl(CajaVirtualTipo.CAJA_MAYOR, Validators.required);
   sucursalControl = new FormControl(null);
   descripcionControl = new FormControl();
-  limiteGsControl = new FormControl();
   activoControl = new FormControl(true);
 
   isEditing = false;
   isSaving = false;
-
-  tipoList = [
-    { label: 'Caja Mayor', value: CajaVirtualTipo.CAJA_MAYOR },
-    { label: 'Caja Chica', value: CajaVirtualTipo.CAJA_CHICA }
-  ];
 
   constructor(
     private dialogRef: MatDialogRef<AddCajaVirtualDialogComponent>,
@@ -47,20 +40,16 @@ export class AddCajaVirtualDialogComponent implements OnInit {
   ngOnInit(): void {
     this.formGroup = new FormGroup({
       nombreControl: this.nombreControl,
-      tipoControl: this.tipoControl,
       sucursalControl: this.sucursalControl,
       descripcionControl: this.descripcionControl,
-      limiteGsControl: this.limiteGsControl,
       activoControl: this.activoControl
     });
 
     if (this.data != null) {
       this.isEditing = true;
       this.nombreControl.setValue(this.data.nombre);
-      this.tipoControl.setValue(this.data.tipo);
       this.sucursalControl.setValue(this.data.sucursal?.id);
       this.descripcionControl.setValue(this.data.descripcion);
-      this.limiteGsControl.setValue(this.data.limiteGs);
       this.activoControl.setValue(this.data.activo);
     }
 
@@ -84,7 +73,9 @@ export class AddCajaVirtualDialogComponent implements OnInit {
     const cajaVirtual = new CajaVirtual();
     if (this.isEditing) cajaVirtual.id = this.data.id;
     cajaVirtual.nombre = this.nombreControl.value?.toUpperCase();
-    cajaVirtual.tipo = this.tipoControl.value;
+    // CAJA_CHICA se retiró (central #220): toda caja es CAJA_MAYOR. El límite tampoco se envía:
+    // el central no lo pisa si no llega.
+    cajaVirtual.tipo = CajaVirtualTipo.CAJA_MAYOR;
     // Sucursal es opcional: una caja puede estar en una oficina administrativa
     // que no es una sucursal. Solo se envia si el usuario eligio una.
     if (this.sucursalControl.value != null) {
@@ -93,7 +84,6 @@ export class AddCajaVirtualDialogComponent implements OnInit {
       cajaVirtual.sucursal = sucursal;
     }
     cajaVirtual.descripcion = this.descripcionControl.value;
-    cajaVirtual.limiteGs = this.limiteGsControl.value;
     cajaVirtual.activo = this.activoControl.value;
     cajaVirtual.usuario = this.mainService.usuarioActual;
 

@@ -12,14 +12,6 @@
       <input matInput [formControl]="nombreControl" (keyup.enter)="onFiltrar()" />
     </mat-form-field>
 
-    <mat-form-field appearance="outline" fxFlex="180px">
-      <mat-label>Tipo</mat-label>
-      <mat-select [formControl]="tipoControl">
-        <mat-option [value]="null">Todos</mat-option>
-        <mat-option *ngFor="let t of tipoList" [value]="t.value">{{ t.label }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
     <mat-form-field appearance="outline" fxFlex="200px">
       <mat-label>Sucursal</mat-label>
       <mat-select [formControl]="sucursalControl">
@@ -50,15 +42,6 @@
       <ng-container matColumnDef="nombre">
         <th mat-header-cell *matHeaderCellDef style="text-align: center;">Nombre</th>
         <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.nombre }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="tipo">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Tipo</th>
-        <td mat-cell *matCellDef="let row" style="text-align: center;">
-          <mat-chip [color]="row.tipo === 'CAJA_MAYOR' ? 'primary' : 'accent'" selected>
-            {{ tipoLabels[row.tipo] }}
-          </mat-chip>
-        </td>
       </ng-container>
 
       <ng-container matColumnDef="sucursal">

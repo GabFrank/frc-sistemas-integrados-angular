@@ -83,7 +83,7 @@ export class EditPrestamoDialogComponent implements OnInit {
       if (guarani) this.monedaControl.setValue(guarani.id);
     });
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this)).subscribe((res: CajaVirtual[]) => {
-      this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR');
+      this.cajas = (res || []);
     });
   }
 

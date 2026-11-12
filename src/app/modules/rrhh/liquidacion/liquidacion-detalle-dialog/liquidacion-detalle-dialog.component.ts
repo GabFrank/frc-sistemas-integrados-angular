@@ -175,7 +175,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     }
     this.cajaVirtualService.onGetActivas()
       .pipe(untilDestroyed(this))
-      .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR'); });
+      .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []); });
   }
 
   /** Trae cabecera + items desde el backend por id. */

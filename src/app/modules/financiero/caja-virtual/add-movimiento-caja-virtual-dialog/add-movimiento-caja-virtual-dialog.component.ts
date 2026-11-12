@@ -130,19 +130,6 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
       return;
     }
 
-    // Verificar límite de Caja Chica si es un ingreso
-    if (this.data.tipoMovimiento === CajaVirtualTipoMovimiento.INGRESO && 
-        this.data.cajaVirtual.tipo === 'CAJA_CHICA') {
-      
-      const nuevoSaldoGs = (this.saldoGs || 0) + (amtGs || 0);
-      const limite = this.data.cajaVirtual.limiteGs || 0;
-
-      // Sin saldo cargado no se avisa: sería contra un número inventado. Es solo un aviso, no bloquea.
-      if (this.saldoGs != null && limite > 0 && nuevoSaldoGs > limite) {
-        this.notificacion.openWarn(`¡Atención! La caja ha superado el límite de ${limite.toLocaleString('es-PY')} Gs.`, 6);
-      }
-    }
-
     // AJUSTE respeta el signo: un ajuste de egreso resta (monto negativo).
     const esAjusteEgreso = this.data.tipoMovimiento === CajaVirtualTipoMovimiento.AJUSTE && this.data.esEgreso;
     const montos: MontoCajaVirtual[] = [];
