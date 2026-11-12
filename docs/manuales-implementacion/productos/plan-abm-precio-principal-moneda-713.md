@@ -76,7 +76,9 @@ Producto 8538 NIKO PIÑA 3 L; precio 12865 (presentación principal 11137) pasad
 - `marcarPresentacionesSinCargar`: la tabla se vacía y el resumen cae al número de `selectedProducto` («5,85», el
   del momento en que se abrió la pestaña, sin moneda), como antes del fix. «Reintentar» lo recupera («8.000»).
 - **El hallazgo A1 no se confirmó**: `precioPrincipal.id` llegó con el id del precio (12865/12866), no el de la
-  presentación. Igual se usa `precios`, que no depende de cómo resuelva Hibernate el `select *`. No hace falta issue.
+  presentación. Motivo: en `develop` el central ya usa `select c.*` (central #605 → PR #606, mergeado 11/11); el
+  `select *` que leyó el auditor era el de un checkout local más viejo. Se usa `precios` igual: protege frente a un
+  central anterior a #606. No hace falta issue.
 - Base restaurada: 12865 = 8000 y 12866 = 32000, sin moneda; versión mínima vacía.
 
 ## Auditoría del plan (paso 5)
@@ -106,7 +108,7 @@ Fijo 1 y Fijo 2: N/A para desktop porque el diff no toca resolvers, esquema ni m
 ## Sin verificar / fuera de alcance
 
 - La grilla de precios muestra el número crudo («US$ 5.85», con punto): el issue la da por buena; no se toca.
-- El `select *` de `findPrincipalByPresentacionId` en el central: en la prueba devolvió el id correcto; no se abre issue.
+- El `select *` de `findPrincipalByPresentacionId`: ya corregido en el central por #606; no se abre issue.
 - Con las presentaciones sin cargar, el resumen muestra el número de la carga del producto, sin moneda (como antes).
 - El mapa de monedas es una caché de sesión (`PrecioMonedaService`): un precio pasado a otra moneda desde otro lado
   (otra PC, SQL) se ve sin símbolo hasta volver a entrar o guardar un precio. Ya era así en la grilla y el listado.
