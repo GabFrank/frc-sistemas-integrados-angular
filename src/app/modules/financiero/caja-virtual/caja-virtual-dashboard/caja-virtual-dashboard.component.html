@@ -234,7 +234,7 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" (dblclick)="onDobleClicCaja(row)"
                 class="mov-row"
                 [class.op-grupo]="row._esGrupoMulti"
                 [class.op-grupo-fin]="row._grupoFin"
@@ -290,13 +290,16 @@
             <ng-container matColumnDef="accionesBanco">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;"></th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">
-                <ng-container *ngIf="row._accion.visible">
+                <ng-container *ngIf="row._conMenu">
                   <button mat-icon-button [matMenuTriggerFor]="menuBanco">
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #menuBanco="matMenu">
+                    <button mat-menu-item *ngIf="row._detalle" (click)="onVerDetalleBanco(row)">
+                      <mat-icon>info</mat-icon><span>Ver detalle</span>
+                    </button>
                     <!-- El tooltip va en el contenedor: un mat-menu-item deshabilitado no recibe el hover. -->
-                    <div [matTooltip]="row._accion.tooltip" [matTooltipDisabled]="row._accion.habilitada" matTooltipPosition="left">
+                    <div *ngIf="row._accion.visible" [matTooltip]="row._accion.tooltip" [matTooltipDisabled]="row._accion.habilitada" matTooltipPosition="left">
                       <button mat-menu-item (click)="onAnularBanco(row)" [disabled]="!row._accion.habilitada">
                         <mat-icon>block</mat-icon><span>Anular</span>
                       </button>
@@ -307,7 +310,7 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumnsBanco; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumnsBanco;"
+            <tr mat-row *matRowDef="let row; columns: displayedColumnsBanco;" (dblclick)="onVerDetalleBanco(row)"
                 [style.opacity]="row.anulado ? 0.6 : 1"></tr>
           </table>
         </div>

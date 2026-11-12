@@ -27,6 +27,9 @@ import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../en
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../detalle-pago-dialog/detalle-pago-dialog.component';
+import { DetalleRetiroDialogComponent, DetalleRetiroDialogData } from '../detalle-retiro-dialog/detalle-retiro-dialog.component';
+import { DatoDetalle, DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '../detalle-movimiento-dialog/detalle-movimiento-dialog.component';
+import { ChequesDashboardComponent } from '../../cheque/cheques-dashboard/cheques-dashboard.component';
 import { ConteoCajaDialogComponent, ConteoCajaDialogData } from '../conteo-caja-dialog/conteo-caja-dialog.component';
 import { QrLectorDialogComponent, QrLectorDialogData, QrLectorResultado } from '../../../../shared/qr-lector/qr-lector-dialog/qr-lector-dialog.component';
 import { QrTipoSoportado } from '../../../../shared/qr-lector/qr-lector.model';
@@ -85,12 +88,25 @@ interface SaldoCard {
 /** Movimiento bancario con lo que ofrece su menú, precalculado al cargar la página. */
 interface MovimientoBancarioRow extends MovimientoBancario {
   _accion: AccionAnularMovimientoBancario;
+  /** «Ver detalle» según el origen (desk #721), precalculado al cargar; null = sin detalle. */
+  _detalle: ((row: MovimientoBancarioRow) => void) | null;
+  /** El menú se muestra si hay algo que hacer: anular o ver el detalle (también en una fila anulada). */
+  _conMenu: boolean;
 }
 
 /** Card de cuenta bancaria del sidebar, con el formato de su moneda precalculado. */
 interface BancoCard {
   resumen: CuentaBancariaResumen;
   formato: string;
+}
+
+/** «12/11/2026 15:50» para los detalles; vacío si no hay fecha. */
+function fechaHora(f: Date | string): string {
+  if (!f) return '—';
+  const d = new Date(f);
+  if (isNaN(d.getTime())) return String(f);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /** Fecha de hoy como "14-09-2026". Con guiones y no barras: termina en un nombre de archivo. */
@@ -567,8 +583,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
           this.movimientosNoCargados = res == null;
           if (res == null) return;
           // Clonar: Apollo congela los resultados (mismo motivo que toRow).
-          this.dataSourceBanco.data = (res.getContent || []).map(m => (
-            { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) }));
+          this.dataSourceBanco.data = (res.getContent || []).map(m => {
+            const row = { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) } as MovimientoBancarioRow;
+            row._detalle = this.detalleBancoDe(row);
+            row._conMenu = !!row._accion.visible || !!row._detalle;
+            return row;
+          });
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         },
         error: () => {
@@ -614,7 +634,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // Un pago del motor ofrece su desglose; si no, se cae al registro por origen.
     if (m.esPagoConsolidado && m.referenciaId) {
       row._verOrigen = true;
-      row._origenLabel = 'Ver detalle del pago';
+      row._origenLabel = 'Ver detalle';
       row._origenIcon = 'receipt_long';
     } else {
       row._verOrigen = !!nav && !(this.soloCaja && ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO.includes(m.origenTipo as any));
@@ -782,16 +802,87 @@ export class CajaVirtualDashboardComponent implements OnInit {
       open: () => this.tabService.addTab(new Tab(ListValeComponent, 'Vales', null, null)),
     },
     OPERACION_FINANCIERA: {
-      label: 'Ver operación financiera', icon: 'swap_horiz',
-      open: (row) => {
-        if (!row.referenciaId) return;
-        this.dialog.open(OperacionFinancieraDetalleDialogComponent, {
-          width: '640px', maxWidth: '95vw', maxHeight: '90vh',
-          data: { operacionId: row.referenciaId, puedeGestionar: this.puedeGestionar },
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
-      },
+      label: 'Ver detalle', icon: 'swap_horiz',
+      open: (row) => this.abrirDetalleOperacion(row.referenciaId),
+    },
+    // El ingreso más común de la caja (desk #721): el retiro del PDV con lo declarado y lo verificado.
+    RETIRO_CAJA: {
+      label: 'Ver detalle', icon: 'point_of_sale',
+      open: (row) => this.abrirDetalleRetiro(row),
+    },
+    ANULACION: {
+      label: 'Ver detalle', icon: 'info',
+      open: (row) => this.abrirDetalleMovimiento('Anulación', row.descripcion, this.datosMovimientoCaja(row)),
+    },
+    MANUAL: {
+      label: 'Ver detalle', icon: 'info',
+      open: (row) => this.abrirDetalleMovimiento('Movimiento manual', row.descripcion, this.datosMovimientoCaja(row)),
     },
   };
+
+  private abrirDetalleOperacion(operacionId: number) {
+    if (!operacionId) return;
+    this.dialog.open(OperacionFinancieraDetalleDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: { operacionId, puedeGestionar: this.puedeGestionar },
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
+  }
+
+  /** El id del retiro no es global (cada filial numera desde 1): sin la sucursal no se encuentra. */
+  private abrirDetalleRetiro(row: MovimientoRow) {
+    const retiroId = row.origenId || row.referenciaId;
+    if (!retiroId || row.origenSucursalId == null) {
+      this.notificacion.openWarn('Este ingreso no registra de qué sucursal vino el retiro: no se puede abrir su detalle.', 5);
+      return;
+    }
+    const data: DetalleRetiroDialogData = {
+      retiroId, sucursalId: row.origenSucursalId, descripcion: row.descripcion,
+      conVerificacion: !this.soloCaja && !this.operaAcotado,
+    };
+    this.dialog.open(DetalleRetiroDialogComponent, { width: '65vw', maxWidth: '95vw', maxHeight: '70vh', data });
+  }
+
+  private abrirDetalleMovimiento(titulo: string, subtitulo: string, datos: DatoDetalle[]) {
+    const data: DetalleMovimientoDialogData = { titulo, subtitulo, datos };
+    this.dialog.open(DetalleMovimientoDialogComponent, { width: '520px', maxWidth: '95vw', maxHeight: '70vh', data });
+  }
+
+  private datosMovimientoCaja(row: MovimientoRow): DatoDetalle[] {
+    return [
+      { etiqueta: 'Tipo', valor: row._label || String(row.tipoMovimiento || '') },
+      { etiqueta: 'Monto', valor: `${row.moneda?.simbolo || ''} ${(row.cantidad ?? 0).toLocaleString('es-PY')}` },
+      { etiqueta: 'Usuario', valor: row.usuario?.persona?.nombre || '—' },
+      { etiqueta: 'Fecha', valor: fechaHora(row.creadoEn) },
+      { etiqueta: 'Estado', valor: row.activo === false ? 'Anulado' : 'Activo' },
+    ];
+  }
+
+  /**
+   * «Ver detalle» de una fila de banco, por origen (desk #721). Lo mismo que la tabla de caja: operación financiera,
+   * evento de pago, cheque suelto; el resto (manual, anulación, acreditación) abre un detalle simple.
+   */
+  private detalleBancoDe(m: MovimientoBancarioRow): ((row: MovimientoBancarioRow) => void) | null {
+    if (m.origenTipo === 'OPERACION_FINANCIERA' && m.origenId) return r => this.abrirDetalleOperacion(r.origenId);
+    if (m.pagoId) {
+      return r => {
+        const data: DetallePagoDialogData = { pagoId: r.pagoId, descripcion: r.descripcion };
+        this.dialog.open(DetallePagoDialogComponent, { width: '65vw', maxWidth: '95vw', height: '70vh', data });
+      };
+    }
+    if (m.origenTipo === 'CHEQUE') return () => this.tabService.addTab(new Tab(ChequesDashboardComponent, 'Cheques', null, null));
+    const titulo = m.origenTipo === 'ANULACION' ? 'Anulación' : 'Movimiento bancario';
+    return r => this.abrirDetalleMovimiento(titulo, r.descripcion, [
+      { etiqueta: 'Tipo', valor: String(r.tipoMovimiento || '') },
+      { etiqueta: 'Monto', valor: (r.monto ?? 0).toLocaleString('es-PY') },
+      { etiqueta: 'Usuario', valor: r.usuario?.persona?.nombre || '—' },
+      { etiqueta: 'Fecha', valor: fechaHora(r.creadoEn) },
+      { etiqueta: 'Estado', valor: r.anulado ? 'Anulado' : 'Activo' },
+    ]);
+  }
+
+  onVerDetalleBanco(row: MovimientoBancarioRow) {
+    row._detalle?.(row);
+  }
 
 
   /**
@@ -807,6 +898,11 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.dialog.open(DetallePagoDialogComponent, {
       width: '65vw', maxWidth: '95vw', height: '70vh', data,
     });
+  }
+
+  /** Doble clic en una fila de caja: abre su detalle, si tiene. */
+  onDobleClicCaja(row: MovimientoRow) {
+    if (row._verOrigen) this.irAlOrigen(row);
   }
 
   irAlOrigen(row: MovimientoRow) {

@@ -5,6 +5,7 @@ import { OperacionFinanciera } from '../operacion-financiera.model';
 import { OperacionFinancieraService } from '../operacion-financiera.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { cotizacionLegible } from '../cotizacion-formato';
 
 export interface OperacionFinancieraDetalleData {
   operacionId: number;
@@ -33,6 +34,9 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
   destinoLabel = '';
   mostrarDestino = false;
   mostrarCotizacion = false;
+  /** Cotización en formato de casa de cambio, precalculada (no se llaman funciones desde el HTML). */
+  cotizacionTexto = '';
+  cotizacionInversa = '';
 
   private tipoLabels: Record<string, string> = {
     CAMBIO_DIVISA: 'Cambio de divisa',
@@ -81,6 +85,11 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
         this.destinoLabel = this.fuenteLabel(op.cajaMayorDestino, op.cuentaBancariaDestino);
         this.mostrarDestino = !!(op.cajaMayorDestino || op.cuentaBancariaDestino || op.montoDestino);
         this.mostrarCotizacion = !!(op.cotizacion && op.cotizacion !== 1);
+        if (this.mostrarCotizacion) {
+          const c = cotizacionLegible(op.montoOrigen, op.monedaOrigen, op.montoDestino, op.monedaDestino, op.cotizacion);
+          this.cotizacionTexto = c ? c.texto : String(op.cotizacion);
+          this.cotizacionInversa = c ? c.inversa : '';
+        }
       }
     });
   }

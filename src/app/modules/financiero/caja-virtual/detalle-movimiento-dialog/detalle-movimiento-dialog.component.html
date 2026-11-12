@@ -1,0 +1,15 @@
+<div class="detalle-movimiento">
+  <h2 class="titulo-dialog">{{ data.titulo }}</h2>
+  <div class="subtitulo-dialog" *ngIf="data.subtitulo">{{ data.subtitulo }}</div>
+
+  <mat-dialog-content>
+    <div class="dato" *ngFor="let d of data.datos">
+      <span class="etiqueta">{{ d.etiqueta }}</span>
+      <strong class="valor">{{ d.valor }}</strong>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close>Cerrar</button>
+  </mat-dialog-actions>
+</div>
