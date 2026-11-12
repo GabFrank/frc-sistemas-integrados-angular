@@ -12,6 +12,9 @@ import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUti
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { ModuloMoneda } from '../../../financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model';
+import { redondearMonto } from '../../precio-por-sucursal/precio-moneda.util';
+import { combineLatest } from 'rxjs';
 
 export interface AjustarCostoDialogData {
   producto: Producto;
@@ -65,6 +68,11 @@ export class AjustarCostoDialogComponent implements OnInit {
       if (m) {
         this.simboloEmpresa = (m.denominacion || '').toUpperCase().includes('GUARANI') ? 'Gs.' : (m.simbolo || 'Gs.');
         this.stepCosto = m.decimales > 0 ? (1 / Math.pow(10, m.decimales)).toFixed(m.decimales) : '1';
+        // A los decimales de la empresa, como se muestra: el input arrancaba con 5161.1111111111 (#712)
+        if (this.costoControl.pristine) {
+          this.costoActual = redondearMonto(this.costoActual, m.decimales) ?? 0;
+          this.costoControl.setValue(this.costoActual);
+        }
       }
     });
     this.cargarCostoCosteo();
@@ -72,10 +80,16 @@ export class AjustarCostoDialogComponent implements OnInit {
 
   private cargarCostoCosteo(): void {
     if (!this.data.producto?.id) return;
-    this.costoPorProductoService.getCostoEnCosteo(this.data.producto.id)
+    // El costeo guardado queda aunque COSTOS se desactive o cambie de moneda: solo se muestra si es la vigente (#712)
+    combineLatest([
+      this.costoPorProductoService.getCostoEnCosteo(this.data.producto.id),
+      this.monedaModuloService.monedaDe(ModuloMoneda.COSTOS),
+    ])
       .pipe(untilDestroyed(this))
-      .subscribe((costo) => {
-        this.costoCosteo = costo && !this.monedaModuloService.esMonedaEmpresa(costo.moneda) ? costo : null;
+      .subscribe(([costo, monedaCostos]) => {
+        this.costoCosteo = costo
+          && String(costo.moneda?.id) === String(monedaCostos.id)
+          && !this.monedaModuloService.esMonedaEmpresa(costo.moneda) ? costo : null;
       });
   }
 
