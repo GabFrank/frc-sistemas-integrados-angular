@@ -10,6 +10,9 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { VersionClienteService } from '../../../configuracion/version-cliente/version-cliente.service';
 import {
+  LARGO_MAXIMO_VERSION_MINIMA, normalizarVersionMinima, PATRON_VERSION_MINIMA
+} from '../../../../commons/core/utils/versionUtils';
+import {
   ConfiguracionMonedaModulo,
   ModuloMoneda,
   MODULOS_MONEDA
@@ -32,9 +35,6 @@ interface FilaConfiguracion {
 }
 
 type EstadoCarga = 'cargando' | 'error' | 'vacio' | 'datos';
-
-/** Formato de la versión mínima: `4.12.0`. Vacío apaga el control. */
-const PATRON_VERSION_MINIMA = /^\d+\.\d+\.\d+$/;
 
 /**
  * Moneda por módulo: qué moneda usa cada módulo (compras, costos, precios, PDV, facturación) desde cuándo.
@@ -63,7 +63,10 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
   puedeConfigurar = false;
   esAdmin = false;
 
-  versionMinimaControl = new FormControl('', [Validators.pattern(PATRON_VERSION_MINIMA)]);
+  /** `4.12.0` o `4.12.0-alpha.345` (#710). Vacío apaga el control. */
+  versionMinimaControl = new FormControl('', [
+    Validators.pattern(PATRON_VERSION_MINIMA), Validators.maxLength(LARGO_MAXIMO_VERSION_MINIMA),
+  ]);
   /** null = sin control; undefined = no se pudo leer. */
   versionMinimaActual: string | null | undefined = undefined;
   guardandoVersion = false;
@@ -175,7 +178,7 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
 
   onGuardarVersionMinima(): void {
     if (!this.esAdmin || this.guardandoVersion || this.versionMinimaControl.invalid) return;
-    const valor = (this.versionMinimaControl.value || '').trim();
+    const valor = normalizarVersionMinima(this.versionMinimaControl.value);
     this.guardandoVersion = true;
     this.versionClienteService.onSetVersionMinima(valor || null).pipe(untilDestroyed(this)).subscribe({
       next: (version) => {

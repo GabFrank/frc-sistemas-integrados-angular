@@ -91,6 +91,39 @@ Central de la rama contra la bodega local (perfil `dev`, Flyway, réplica y jobs
 4. El campo se ve en minúsculas (`getComputedStyle` del input: `text-transform: none`) y el aviso de prerelease.
 5. Recuperación: guardar vacío apaga el control (y por SQL, `valor = ''` en `cliente.desktop.version_minima`).
 
+## Resultado de las pruebas (11-12/11/2026)
+
+**Tests:**
+- Central: `VersionClienteGraphQLTest` 5/5 y `ControlVersionMonedaTest` 2/2 (más `ConfiguracionMonedaModuloServiceTest`
+  y `PrecioMonedaTest`). Con el código viejo fallan los de prerelease (4 y 1).
+- Desktop: `versionUtils.spec` 12/12 en Karma (Electron, `DISPLAY=:0`, tsconfig acotado; el «full page reload» del
+  final es del entorno). Contra el código viejo el spec no compila (usa el patrón y la normalización nuevos).
+- `npm run build:prod` (misma configuración que `npm run check`) y `npm run verificar:imports` en verde.
+
+**Runtime** (central de la rama contra la bodega local, perfil `dev`, Flyway, réplica y jobs apagados; desktop web de la
+rama contra él, usuario MR; la bodega local no tenía la clave `cliente.desktop.version_minima`: se creó al guardar y
+se borró al final):
+
+| # | Prueba | Resultado |
+|---|---|---|
+| 1 | Guardar `4.2.0-ALPHA.345` | «Versión mínima: 4.2.0-alpha.345»; el campo y la base en minúsculas |
+| 1 | `4.2`, `4.2.0+1`, `v4.2.0`, `4.2.0-alpha..1` | Guardar deshabilitado, «Formato 4.12.0 o 4.12.0-alpha.345» |
+| 1 | `4.12.0`, `3.0.10-alpha.1` | Se aceptan |
+| 2 | Contra el central de `develop` (jar viejo) | «La version tiene que tener la forma 4.12.0.» (central primero) |
+| 3 | **Electron** de la rama (`build:prod` + `electron .`, versión 3.0.9, datos aislados con `XDG_CONFIG_HOME` para no tocar `~/.config/FRC`), login de Franco | Mínima `3.0.10-alpha.1` → **diálogo de versión no habilitada**; mínima `3.0.9-alpha.1` → entra sin diálogo |
+| 4 | Campo y aviso | `getComputedStyle(input).textTransform` = `none`; el aviso de prerelease se ve debajo |
+| 5 | Guardar vacío | Apaga el control (valor vacío en la base) |
+
+La lista de moneda por módulo de esa pantalla falla en la bodega local («could not extract ResultSet»): le falta la
+tabla de V258.5. No tiene que ver con este cambio.
+
+## Auditoría del diff (paso 8)
+
+Fijo 1 (permisos): `setVersionMinimaDesktop` sigue con `exigirAdmin()` primero; la sección de la pantalla sigue solo para
+ADMIN. Fijo 2 (migraciones): N/A. Fijo 3 (operaciones/contrato): mismo GraphQL; el central acepta más valores y los
+guarda en minúsculas; `ControlVersionMoneda.menor` compara solo la base. Condicionales: desktop sin cambios de
+Electron main ni de auto-update; la lectura de la mínima no cambia.
+
 ## Auditoría (paso 5, 11/11/2026)
 
 | # | Hallazgo | Qué se hizo |
