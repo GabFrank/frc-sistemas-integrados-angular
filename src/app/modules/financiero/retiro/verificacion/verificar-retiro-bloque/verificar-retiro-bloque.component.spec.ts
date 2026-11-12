@@ -1,3 +1,4 @@
+import { of } from 'rxjs';
 import { CurrencyMaskInputMode } from 'ngx-currency';
 import { AVISO_BORRADOR_MS, VerificarRetiroBloqueComponent } from './verificar-retiro-bloque.component';
 import { RetiroVerificacionService } from '../retiro-verificacion.service';
@@ -16,6 +17,8 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
   const retiro = (detalle: any[]) => ({ id: 543, sucursalId: 24, retiroDetalleList: detalle }) as any as Retiro;
 
   let service: RetiroVerificacionService;
+  // Las monedas para agregar: activas, más una inactiva que no tiene que ofrecerse.
+  const monedaService = { onGetAll: () => of([GS, RS, US, { id: 4, denominacion: 'PESO', simbolo: '$', decimales: 2, activo: false }]) };
 
   beforeEach(() => {
     localStorage.removeItem(claveBorrador(543, 24));
@@ -30,7 +33,7 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
   });
 
   function armar(detalle: any[]) {
-    const b = new VerificarRetiroBloqueComponent(service);
+    const b = new VerificarRetiroBloqueComponent(service, monedaService as any);
     b.retiro = retiro(detalle);
     b.ngOnInit();
     return b;
@@ -164,5 +167,49 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
     expect(b.filas[1].formato).toBe('1.0-0');
     b.onContadoChange(b.filas[0], 90);
     expect(b.resumenDiferencias()).toContain('-10,00 R$');
+  });
+
+  describe('moneda no declarada (desk #670)', () => {
+    it('solo ofrece monedas activas que no tienen fila', () => {
+      const b = armar([{ cantidad: 500000, moneda: GS }]);
+      b.prepararMonedasParaAgregar();
+      expect(b.monedasParaAgregar.map(m => m.id)).toEqual([2, 3]);
+    });
+
+    it('agregada entra con declarado 0, cuenta como sobrante y se manda en los conteos', () => {
+      const b = armar([{ cantidad: 500000, moneda: GS }]);
+      b.onContadoChange(b.filas[0], 500000);
+      b.agregarMonedaNoDeclarada(RS as any);
+      const real = b.filas[1];
+      expect(real.noDeclarada).toBeTrue();
+      expect(real.declarado).toBe(0);
+      expect(b.motivoParaNoConfirmar()).toContain('REAL');
+      b.onContadoChange(real, 500);
+      expect(real.categoria).toBe('SOBRANTE' as any);
+      expect(b.conteos().map(c => c.monedaId)).toEqual([1, 2]);
+      expect(b.resumenDiferencias()).toContain('REAL: +500');
+    });
+
+    it('al reabrir, la fila y lo contado se recuperan del borrador', () => {
+      const b = armar([{ cantidad: 500000, moneda: GS }]);
+      b.agregarMonedaNoDeclarada(RS as any);
+      b.onContadoChange(b.filas[1], 500);
+      const otra = armar([{ cantidad: 500000, moneda: GS }]);
+      expect(otra.filas.length).toBe(2);
+      expect(otra.filas[1].noDeclarada).toBeTrue();
+      expect(otra.filas[1].contado).toBe(500);
+    });
+
+    it('se puede quitar mientras no tenga conteo, no después', () => {
+      const b = armar([{ cantidad: 500000, moneda: GS }]);
+      b.agregarMonedaNoDeclarada(RS as any);
+      b.onContadoChange(b.filas[1], 500);
+      b.quitarMonedaNoDeclarada(b.filas[1]);
+      expect(b.filas.length).toBe(2);
+      b.onContadoChange(b.filas[1], null);
+      b.quitarMonedaNoDeclarada(b.filas[1]);
+      expect(b.filas.length).toBe(1);
+      expect(armar([{ cantidad: 500000, moneda: GS }]).filas.length).toBe(1);
+    });
   });
 });
