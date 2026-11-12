@@ -969,7 +969,7 @@
                     [matTooltip]="item.variacionCostoTextoComputed"
                     [matTooltipDisabled]="!item.variacionCostoTextoComputed"
                   >
-                    {{ pedidoMonedaSimbolo }} {{ item.precioUnitarioSolicitado | number : pedidoMonedaDecimalFormat }}
+                    {{ pedidoMonedaSimbolo }} {{ item.precioUnitarioSolicitado | number : pedidoCostoDecimalFormat }}
                     <mat-icon
                       *ngIf="item.variacionCostoIconoComputed"
                       class="variacion-costo-icono"
