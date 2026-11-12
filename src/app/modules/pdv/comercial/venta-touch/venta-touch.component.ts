@@ -998,11 +998,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   calcularTotales() {
     this.totalGs = 0;
-    if (this.selectedItemList.length == 0) this.descuentoGs = 0;
+    this.descuentoGs = 0;
     this.selectedItemList.forEach((item) => {
       // Redondeo por los decimales de la moneda del PDV; con 0 decimales es el Math.round de siempre.
       this.totalGs += redondearEnMoneda(+item.cantidad * +item?.precio, this.monedaDeCobro());
-      this.descuentoGs += item.valorDescuento;
+      // valorDescuento es unitario (descuento_unitario en el filial), como lo cuenta el pago.
+      this.descuentoGs += +item.cantidad * item.valorDescuento;
     });
     this.calcularEquivalente();
   }
