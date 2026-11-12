@@ -768,7 +768,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
     const moneda = this.data.moneda ?? this.originalItem?.notaRecepcion?.moneda ?? this.monedaModuloService.empresa$.value;
     if (!moneda) return;
     this.monedaNota = moneda;
-    this.precioOptions = this.monedaService.currencyOptionsByMoneda(moneda);
+    this.precioOptions = this.monedaService.currencyOptionsCostoByMoneda(moneda);
     // El guaraní conserva su «₲» de siempre
     this.simboloMoneda = (moneda.denominacion || '').toUpperCase().includes('GUARANI') ? '₲' : (moneda.simbolo || '');
   }
@@ -792,7 +792,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit {
     // Sin la moneda de la nota (no llegó), cotizacion > 1 identifica a la extranjera, como siempre.
     const distinta = this.monedaNota ? !this.monedaModuloService.esMonedaEmpresa(this.monedaNota) : cotizacion > 1;
     if (costoEnGs > 0 && distinta && cotizacion > 0) {
-      const factor = Math.pow(10, this.monedaNota?.decimales ?? 2);
+      const factor = Math.pow(10, this.monedaService.decimalesCosto(this.monedaNota));
       return Math.round((costoEnGs / cotizacion) * factor) / factor;
     }
     return costoEnGs;

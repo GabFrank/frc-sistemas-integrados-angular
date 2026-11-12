@@ -156,6 +156,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Moneda y estado de acciones — precalculados, no usar getters en template
   notaSimbolo = '';
   notaDecimalFormat = '1.0-0';
+  /** Formato del precio unitario de los ítems: hasta 4 decimales en moneda extranjera (subtotal, el de la moneda). */
+  notaCostoDecimalFormat = '1.0-0';
   mostrarHintCotizacionMercado = false;
   hayCambiosPendientes = false;
   tieneItemsPendientesConciliacion = false;
@@ -767,6 +769,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.notaSimbolo = moneda?.simbolo || '';
     const decimales = moneda?.decimales != null ? moneda.decimales : (this.esMonedaEmpresa(moneda) ? 0 : 2);
     this.notaDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
+    this.notaCostoDecimalFormat = decimales > 0 ? `1.0-${Math.max(decimales, 4)}` : '1.0-0';
 
     const cotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
     this.mostrarHintCotizacionMercado = !this.esMonedaEmpresa(moneda) && cotizacion > 0 && cotizacion !== 1;
