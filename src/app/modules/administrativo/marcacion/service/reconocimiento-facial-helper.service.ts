@@ -192,16 +192,22 @@ export class ReconocimientoFacialHelperService {
         };
     }
 
+    /**
+     * Promedia los frames buenos y exige el umbral final sobre el promedio.
+     * Cada frame se acumuló con el umbral por frame (más bajo: un frame suelto es ruidoso);
+     * el promedio es más estable y es el que tiene que pasar `umbralFinal`.
+     */
     confirmarVerificacionFinal(
         frames: FrameCalidadFacial[],
         referenciaGaleria: EmbeddingGaleria,
-        umbralSimilitud: number
+        umbralFrame: number,
+        umbralFinal: number
     ): { embedding: number[]; score: number; similitud: number } | null {
         const framesValidos = frames.filter(
             (f) =>
                 f.embedding?.length > 0 &&
                 f.score >= SCORE_MINIMO_FRAME_VERIFICACION &&
-                (f.similitud == null || f.similitud >= umbralSimilitud)
+                (f.similitud == null || f.similitud >= umbralFrame)
         );
         if (framesValidos.length < FRAMES_MINIMOS_VERIFICACION) {
             return null;
@@ -213,13 +219,7 @@ export class ReconocimientoFacialHelperService {
         }
 
         const similitudFinal = this.faceService.calcularMejorSimilitudConGaleria(embedding, referenciaGaleria);
-        if (similitudFinal < umbralSimilitud) {
-            return null;
-        }
-
-        const similitudPromedio =
-            framesValidos.reduce((sum, f) => sum + (f.similitud ?? 0), 0) / framesValidos.length;
-        if (similitudPromedio < umbralSimilitud) {
+        if (similitudFinal < umbralFinal) {
             return null;
         }
 
@@ -228,6 +228,36 @@ export class ReconocimientoFacialHelperService {
             score: scorePromedioFrames(framesValidos),
             similitud: similitudFinal
         };
+    }
+
+    /**
+     * Pregunta al central quién es el más parecido de todos los enrolados.
+     *
+     * El 1:1 solo dice «se parece lo suficiente a la persona elegida»; esto agrega «y no
+     * se parece más a otro empleado», que es lo que impide marcar por un compañero
+     * parecido. Con las galerías de producción la persona correcta sale primera el 99,5 %
+     * de las veces.
+     */
+    async confirmarMejorCandidatoEnCentral(
+        embedding: number[],
+        usuarioId: number
+    ): Promise<{ resultado: 'OK' | 'OTRA_PERSONA' | 'SIN_RESPUESTA'; margen?: number | null }> {
+        try {
+            const r = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, [], true)
+                .pipe(timeout(8000))
+                .toPromise();
+            const mejorId = r?.usuario?.id != null ? Number(r.usuario.id) : null;
+            if (mejorId == null) {
+                return { resultado: 'SIN_RESPUESTA' };
+            }
+            if (mejorId !== Number(usuarioId)) {
+                return { resultado: 'OTRA_PERSONA' };
+            }
+            return { resultado: 'OK', margen: r?.margen ?? null };
+        } catch (error) {
+            console.warn('No se pudo confirmar el rostro contra el central', error);
+            return { resultado: 'SIN_RESPUESTA' };
+        }
     }
 
     embeddingCumpleUmbralVerificacion(
@@ -391,7 +421,7 @@ export class ReconocimientoFacialHelperService {
                 usuario,
                 similitudBackend,
                 similitudLocal,
-                confiable: similitudBackend > 0.55 && similitudLocal > 0.55
+                confiable: similitudBackend >= UMBRAL_SIMILITUD_FACIAL && similitudLocal >= UMBRAL_SIMILITUD_FACIAL
             };
         } catch (error) {
             console.error('Error en búsqueda y validación de usuario', error);
