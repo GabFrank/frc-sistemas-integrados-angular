@@ -68,3 +68,20 @@ export function esVersionMenorQueMinima(actual: string | null | undefined,
   if (minima == null || String(minima).trim() === "") return false;
   return compararVersiones(actual, minima) === -1;
 }
+
+/**
+ * Formato de la versión mínima que se guarda en el central: `4.12.0` o con prerelease
+ * `4.12.0-alpha.345` (#710), sin `v` ni build. Es un subconjunto de lo que lee `leerVersion`: una
+ * mínima guardada nunca apaga el control por ilegible. El central valida lo mismo.
+ */
+export const PATRON_VERSION_MINIMA = /^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
+export const LARGO_MAXIMO_VERSION_MINIMA = 64;
+
+/**
+ * En minúsculas, como las versiones de Electron (`4.2.0-alpha.345`): semver distingue mayúsculas, y
+ * una mínima `4.2.0-ALPHA.345` quedaría por debajo de toda alpha y no bloquearía a nadie. Excepción
+ * a la regla de guardar en MAYÚSCULAS.
+ */
+export function normalizarVersionMinima(texto: string | null | undefined): string {
+  return (texto ?? "").trim().toLowerCase();
+}

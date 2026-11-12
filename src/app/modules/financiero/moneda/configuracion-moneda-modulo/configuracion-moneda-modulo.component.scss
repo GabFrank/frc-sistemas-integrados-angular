@@ -81,3 +81,9 @@
 .cmm-version__campo {
   width: 220px;
 }
+
+// La versión se ve como se guarda: en minúsculas (#710). Le gana a `input { text-transform: uppercase
+// !important }` de styles.scss por especificidad.
+.cmm-version__campo input.cmm-version__input {
+  text-transform: none !important;
+}

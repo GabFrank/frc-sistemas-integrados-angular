@@ -91,14 +91,18 @@
       <div class="cmm-version__fila">
         <mat-form-field appearance="outline" class="cmm-version__campo">
           <mat-label>Versión mínima</mat-label>
-          <input matInput [formControl]="versionMinimaControl" placeholder="4.12.0" />
-          <mat-error *ngIf="versionMinimaControl.hasError('pattern')">Formato 4.12.0</mat-error>
+          <input matInput class="cmm-version__input" [formControl]="versionMinimaControl" placeholder="4.12.0" />
+          <mat-error *ngIf="versionMinimaControl.invalid">Formato 4.12.0 o 4.12.0-alpha.345</mat-error>
         </mat-form-field>
         <button mat-raised-button color="primary"
                 [disabled]="versionMinimaControl.invalid || guardandoVersion"
                 (click)="onGuardarVersionMinima()">
           <mat-icon>save</mat-icon> Guardar
         </button>
+      </div>
+      <div class="cmm-version__ayuda">
+        Con prerelease (4.2.0-alpha.345) solo en alpha/beta: en producción bloquea a los escritorios estables hasta
+        que lleguen a esa versión.
       </div>
     </div>
   </div>

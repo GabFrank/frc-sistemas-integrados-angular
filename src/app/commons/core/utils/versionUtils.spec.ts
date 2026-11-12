@@ -1,4 +1,6 @@
-import { compararVersiones, esVersionMenorQueMinima, leerVersion } from "./versionUtils";
+import {
+  compararVersiones, esVersionMenorQueMinima, leerVersion, normalizarVersionMinima, PATRON_VERSION_MINIMA,
+} from "./versionUtils";
 
 describe("versionUtils", () => {
   it("lee major.minor.patch, la prerelease y la v inicial", () => {
@@ -54,6 +56,36 @@ describe("versionUtils", () => {
       expect(esVersionMenorQueMinima("web", "4.12.0")).toBeFalse();
       expect(esVersionMenorQueMinima(null, "4.12.0")).toBeFalse();
       expect(esVersionMenorQueMinima("4.0.0", "x.y")).toBeFalse();
+    });
+  });
+
+  describe("versión mínima con prerelease (#710)", () => {
+    it("acepta X.Y.Z y X.Y.Z con prerelease", () => {
+      ["4.12.0", "4.2.0-alpha.345", "4.2.0-beta.2", "4.2.0-rc-1.x-y", "4.2.0-ALPHA.345"].forEach((v) =>
+        expect(PATRON_VERSION_MINIMA.test(v)).withContext(v).toBeTrue());
+    });
+
+    it("rechaza lo que el central no guarda", () => {
+      ["4.2", "4.2.0-", "4.2.0+build", "4.2.0-alpha+1", "4.2.0-alpha..1", "v4.2.0", "4.2.0.1", " 4.2.0", ""]
+        .forEach((v) => expect(PATRON_VERSION_MINIMA.test(v)).withContext(v).toBeFalse());
+    });
+
+    it("todo lo que acepta lo puede leer el control", () => {
+      ["4.12.0", "4.2.0-alpha.345", "4.2.0-rc-1.x-y"].forEach((v) =>
+        expect(leerVersion(v)).withContext(v).not.toBeNull());
+    });
+
+    it("se guarda en minúsculas y sin espacios", () => {
+      expect(normalizarVersionMinima("  4.2.0-ALPHA.345 ")).toBe("4.2.0-alpha.345");
+      expect(normalizarVersionMinima(null)).toBe("");
+    });
+
+    it("una alpha bloquea a las anteriores y no a la release", () => {
+      expect(esVersionMenorQueMinima("4.2.0-alpha.9", "4.2.0-alpha.345")).toBeTrue();
+      expect(esVersionMenorQueMinima("4.2.0-alpha.345", "4.2.0-alpha.345")).toBeFalse();
+      expect(esVersionMenorQueMinima("4.2.0-beta.1", "4.2.0-alpha.345")).toBeFalse();
+      expect(esVersionMenorQueMinima("4.2.0", "4.2.0-alpha.345")).toBeFalse();
+      expect(esVersionMenorQueMinima("4.2.0-alpha.345", "4.2.0")).toBeTrue();
     });
   });
 });
