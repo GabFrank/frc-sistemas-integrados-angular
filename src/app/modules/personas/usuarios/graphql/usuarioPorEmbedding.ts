@@ -27,6 +27,7 @@ export class UsuarioPorEmbeddingGQL extends Query<{ data: UsuarioSimilitud }> {
           }
         }
         similitud
+        margen
       }
     }
   `;

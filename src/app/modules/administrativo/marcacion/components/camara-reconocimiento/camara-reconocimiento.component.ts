@@ -14,7 +14,14 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
-import { EmbeddingGaleria, FrameCalidadFacial, FRAMES_MINIMOS_VERIFICACION, HITS_CONSECUTIVOS_VERIFICACION, UMBRAL_SIMILITUD_VERIFICACION } from '../../models/embedding-galeria.model';
+import {
+    EmbeddingGaleria,
+    FrameCalidadFacial,
+    FRAMES_MINIMOS_VERIFICACION,
+    HITS_CONSECUTIVOS_VERIFICACION,
+    UMBRAL_SIMILITUD_FRAME_VERIFICACION,
+    UMBRAL_SIMILITUD_VERIFICACION
+} from '../../models/embedding-galeria.model';
 
 export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captura-multiple';
 
@@ -291,7 +298,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             this.procesandoFrame = true;
 
             try {
-                const umbralSimilitud = UMBRAL_SIMILITUD_VERIFICACION;
+                const umbralSimilitud = UMBRAL_SIMILITUD_FRAME_VERIFICACION;
                 const evaluacion = await this.faceHelper.evaluarFrameVerificacion(
                     video,
                     this.referenciaGaleria,
@@ -333,11 +340,25 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                         const verificado = this.faceHelper.confirmarVerificacionFinal(
                             this.framesVerificacion,
                             this.referenciaGaleria,
-                            umbralSimilitud
+                            umbralSimilitud,
+                            UMBRAL_SIMILITUD_VERIFICACION
                         );
+                        const central = verificado && this.usuarioSeleccionado?.id != null
+                            ? await this.faceHelper.confirmarMejorCandidatoEnCentral(verificado.embedding, this.usuarioSeleccionado.id)
+                            : null;
+                        if (!this.deteccionLoopActivo) {
+                            return;
+                        }
                         if (!verificado) {
                             this.reiniciarAcumulacionVerificacion();
                             this.mensajeReconocimiento = 'Mantenga el rostro estable frente a la cámara';
+                        } else if (central?.resultado === 'OTRA_PERSONA') {
+                            this.reiniciarAcumulacionVerificacion();
+                            this.similitudInsuficiente.emit(true);
+                            this.mensajeReconocimiento = 'El rostro se parece más a otra persona registrada. Debe ser la persona indicada en pantalla.';
+                        } else if (central?.resultado === 'SIN_RESPUESTA') {
+                            this.reiniciarAcumulacionVerificacion();
+                            this.mensajeReconocimiento = 'No se pudo confirmar con el servidor. Reintentando...';
                         } else {
                             const pct = Math.round(verificado.similitud * 100);
                             this.mensajeReconocimiento = `✓ Rostro verificado (${pct}%)`;

@@ -11,9 +11,22 @@ export interface EmbeddingGaleria {
 
 const POSES_CAPTURA = ['left', 'right', 'front'];
 
-export const UMBRAL_SIMILITUD_FACIAL = 0.55;
-/** Umbral 1:1 en pantalla de marcación (usuario ya seleccionado), sin importar cómo se llegó. */
-export const UMBRAL_SIMILITUD_VERIFICACION = 0.60;
+/*
+ * Umbrales en coseno, la misma medida del central. Calibrados el 2026-11-12 con las
+ * galerías de producción (58 personas, 650 capturas de marcación):
+ *   - dos personas distintas: mediana 0,53, el 99,9 % por debajo de 0,75;
+ *   - la misma persona, promedio de frames: mediana 0,89, el 95 % por encima de 0,80;
+ *   - la misma persona, un frame suelto: mediana 0,84 (un frame es más ruidoso).
+ */
+/** Búsqueda 1:N: un frame suelto que el central dio como mejor candidato. Lo confirma después la verificación. */
+export const UMBRAL_SIMILITUD_FACIAL = 0.70;
+/** Cada frame de la verificación 1:1, para ir acumulando. */
+export const UMBRAL_SIMILITUD_FRAME_VERIFICACION = 0.70;
+/**
+ * Verificación 1:1 final, sobre el promedio de los frames (usuario ya seleccionado).
+ * Con 0,75 un impostor pasa el 0,13 % de las veces y la persona correcta queda afuera el 1,4 %.
+ */
+export const UMBRAL_SIMILITUD_VERIFICACION = 0.75;
 export const SCORE_MINIMO_DETECCION = 0.45;
 export const SCORE_MINIMO_FRAME = 0.55;
 export const SCORE_MINIMO_FRAME_VERIFICACION = 0.6;
