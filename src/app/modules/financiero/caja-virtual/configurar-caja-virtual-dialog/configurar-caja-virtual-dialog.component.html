@@ -24,7 +24,7 @@
 
       <div cdkDropList (cdkDropListDropped)="drop($event)">
         <div *ngFor="let c of cuentas" cdkDrag
-             style="display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+             style="display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--frc-borde-suave);">
           <mat-icon cdkDragHandle style="cursor: move; opacity: 0.5;">drag_indicator</mat-icon>
           <mat-checkbox [(ngModel)]="c.visible">
             {{ c.cuenta.banco?.nombre }} · {{ c.cuenta.numero }}
@@ -38,6 +38,58 @@
     </section>
 
     <mat-divider></mat-divider>
+
+    <ng-container *ngIf="!ordenesNoDisponibles">
+      <!-- Orden de las monedas (cards de saldo) -->
+      <section style="margin: 16px 0;">
+        <h3 style="margin: 0;">Orden de las monedas</h3>
+        <p class="ayuda">Así se muestran las cards de saldo de la caja. Arrastrá para reordenar.</p>
+        <div *ngIf="monedasNoCargaron" class="vacio">No se pudieron cargar las monedas de la caja.</div>
+        <div cdkDropList (cdkDropListDropped)="dropMoneda($event)" *ngIf="!monedasNoCargaron">
+          <div *ngFor="let m of monedas" cdkDrag class="fila">
+            <mat-icon cdkDragHandle class="handle">drag_indicator</mat-icon>
+            <span>{{ m.nombre }} <span class="tenue">({{ m.simbolo }})</span></span>
+          </div>
+          <div *ngIf="monedas.length === 0" class="vacio">La caja todavía no tiene saldo en ninguna moneda.</div>
+        </div>
+      </section>
+
+      <mat-divider></mat-divider>
+
+      <!-- Orden de las operaciones financieras -->
+      <section style="margin: 16px 0;">
+        <h3 style="margin: 0;">Operaciones financieras</h3>
+        <p class="ayuda">
+          Orden y visibilidad en el diálogo de operación abierto desde esta caja; se selecciona la primera visible.
+          Ocultar no quita permisos: lo que el rol no permite no aparece igual.
+        </p>
+        <div cdkDropList (cdkDropListDropped)="dropOperacion($event)">
+          <div *ngFor="let o of operaciones" cdkDrag class="fila">
+            <mat-icon cdkDragHandle class="handle">drag_indicator</mat-icon>
+            <mat-checkbox [(ngModel)]="o.visible">
+              <mat-icon class="icono-op">{{ o.icono }}</mat-icon> {{ o.label }}
+            </mat-checkbox>
+          </div>
+        </div>
+      </section>
+
+      <mat-divider></mat-divider>
+
+      <!-- Orden de las sucursales -->
+      <section style="margin: 16px 0;">
+        <h3 style="margin: 0;">Orden de las sucursales</h3>
+        <p class="ayuda">Así aparecen en los diálogos de la caja (por ejemplo, Ingresar retiro de PDV).</p>
+        <div *ngIf="sucursalesNoCargaron" class="vacio">No se pudieron cargar las sucursales.</div>
+        <div cdkDropList (cdkDropListDropped)="dropSucursal($event)" *ngIf="!sucursalesNoCargaron" class="lista-larga">
+          <div *ngFor="let s of sucursales" cdkDrag class="fila">
+            <mat-icon cdkDragHandle class="handle">drag_indicator</mat-icon>
+            <span>{{ s.id }} - {{ s.nombre }}</span>
+          </div>
+        </div>
+      </section>
+
+      <mat-divider></mat-divider>
+    </ng-container>
 
     <!-- Resúmenes adicionales -->
     <section style="margin-top: 16px;">

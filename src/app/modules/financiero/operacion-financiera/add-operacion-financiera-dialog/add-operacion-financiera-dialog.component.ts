@@ -2,10 +2,11 @@ import { Component, Inject, OnInit, Optional } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo } from '../operacion-financiera.model';
+import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo,
+         TIPOS_OPERACION_FINANCIERA } from '../operacion-financiera.model';
 import { OperacionFinancieraService, PedidoDeOperacionFinanciera } from '../operacion-financiera.service';
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
-import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
+import { CajaVirtual, CajaVirtualOrdenes, ordenarSegun, parseListaJson } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
@@ -51,13 +52,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   diferenciaDestinoTipoControl = new FormControl(DiferenciaDestinoTipo.IGNORAR);
   diferenciaObservacionControl = new FormControl('');
 
-  tipoOperacionList = [
-    { label: 'Transf. entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, icono: 'swap_horiz', desc: 'Caja → caja' },
-    { label: 'Depósito Bancario', value: TipoOperacionFinanciera.DEPOSITO_BANCARIO, icono: 'account_balance', desc: 'Caja → cuenta bancaria' },
-    { label: 'Retiro Bancario', value: TipoOperacionFinanciera.RETIRO_BANCARIO, icono: 'savings', desc: 'Cuenta bancaria → caja' },
-    { label: 'Transf. Bancaria', value: TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA, icono: 'sync_alt', desc: 'Cuenta → cuenta' },
-    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA, icono: 'currency_exchange', desc: 'Entre monedas en caja' },
-  ];
+  /** Orden por defecto; abierto desde una caja mayor, se reordena y filtra con su configuración (#720). */
+  tipoOperacionList = [...TIPOS_OPERACION_FINANCIERA];
+  /** La caja mayor desde la que se abrió el diálogo (null desde el listado de operaciones). */
+  private cajaDeOrigen: CajaVirtual | null = null;
 
   diferenciaDestinoList = [
     { label: 'Ignorar', value: DiferenciaDestinoTipo.IGNORAR },
@@ -184,7 +182,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     });
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); } else { noCargo('las cajas'); } },
+      next: res => {
+        if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); this.precargarCajaDeOrigen(); }
+        else { noCargo('las cajas'); }
+      },
       error: () => noCargo('las cajas')
     });
     // Cajas que reciben envíos. Si no cargan (o el central todavía no las conoce), quedan solo las propias.
@@ -231,7 +232,45 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.recalcular();
     });
 
-    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS);
+    this.cajaDeOrigen = this.data?.cajaVirtual || null;
+    if (this.cajaDeOrigen?.id) {
+      // Desde una caja: orden y visibilidad de su configuración. onGetOrdenes nunca falla (sin datos, el de siempre).
+      this.cajaVirtualService.onGetOrdenes(this.cajaDeOrigen.id).pipe(untilDestroyed(this))
+        .subscribe(o => { this.aplicarOrdenDeLaCaja(o); this.seleccionarPrimerTipo(); });
+    } else {
+      this.seleccionarPrimerTipo();
+    }
+  }
+
+  /**
+   * Ordena y oculta los tipos según la caja. Solo sobre lo que el rol ya deja ver: ocultar nunca habilita nada. Si
+   * la configuración ocultara todos, se ignora: un diálogo sin operaciones no sirve.
+   */
+  private aplicarOrdenDeLaCaja(o: CajaVirtualOrdenes) {
+    const base = TIPOS_OPERACION_FINANCIERA.map(t => t.value);
+    const ordenados = ordenarSegun(this.tipoOperacionList, t => t.value,
+      parseListaJson<TipoOperacionFinanciera>(o.operacionesFinancierasOrden), (a, b) => base.indexOf(a.value) - base.indexOf(b.value));
+    const ocultas = new Set(parseListaJson<string>(o.operacionesFinancierasOcultas));
+    const visibles = ordenados.filter(t => !ocultas.has(t.value));
+    this.tipoOperacionList = visibles.length ? visibles : ordenados;
+  }
+
+  /** Primer tipo de la lista (ya ordenada y filtrada por rol y por caja). */
+  private seleccionarPrimerTipo() {
+    const primero = this.tipoOperacionList[0]?.value;
+    if (primero) this.seleccionarTipo(primero);
+  }
+
+  /**
+   * Abierto desde una caja, esa caja queda como origen cuando el tipo sale de una caja. Se llama al cambiar de tipo
+   * y cuando llegan las cajas (que pueden tardar más que el tipo). No pisa una caja ya elegida.
+   */
+  private precargarCajaDeOrigen() {
+    if (!this.cajaDeOrigen?.id || !this.mostrarCajaOrigen || this.cajaMayorOrigenControl.value) return;
+    const caja = (this.cajaVirtualList || []).find(c => String(c.id) === String(this.cajaDeOrigen.id));
+    if (!caja) return;
+    this.cajaMayorOrigenControl.setValue(caja);
+    this.onCajaChange();
   }
 
   private ajustandoMontos = false;
@@ -394,6 +433,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
     this.aplicarEstadoMoneda();
     this.actualizarCurrencyOpts();
+    this.precargarCajaDeOrigen();
   }
 
   /**

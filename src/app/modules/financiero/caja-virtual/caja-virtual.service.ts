@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { EMPTY, Observable, merge } from 'rxjs';
+import { EMPTY, Observable, merge, of } from 'rxjs';
 import { catchError, distinctUntilChanged, filter, map, pairwise } from 'rxjs/operators';
 import { cloudConnectionStatusSub } from '../../../shared/services/graphql-connection.service';
 import { TesoreriaCambio, TesoreriaCambioSubGQL } from './graphql/tesoreriaCambioSub';
@@ -7,7 +7,7 @@ import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { PageInfo } from '../../../app.component';
 import { CajaVirtual, CajaVirtualTipo, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
-         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion, CajaVirtualConfiguracionInput, EgresoParaVuelto } from './caja-virtual.model';
+         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion, CajaVirtualConfiguracionInput, CajaVirtualOrdenes, EgresoParaVuelto } from './caja-virtual.model';
 import { CajaVirtualesGQL } from './graphql/cajaVirtuales';
 import { CajaVirtualesFilterGQL } from './graphql/cajaVirtualesFilter';
 import { CajaVirtualesPorTipoGQL } from './graphql/cajaVirtualesPorTipo';
@@ -35,6 +35,7 @@ import { CajaVirtualSucursales, CajaVirtualSucursalesGQL, GuardarSucursalesDeCaj
 import { CuentaBancaria } from '../cuenta-bancaria/cuenta-bancaria.model';
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
+import { CajaVirtualConfiguracionOrdenesGQL } from './graphql/cajaVirtualConfiguracionOrdenes';
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
 import { ImprimirReporteMovimientosCajaVirtualGQL } from './graphql/imprimirReporteMovimientosCajaVirtual';
 import { ImprimirReporteMovimientosBancariosGQL } from './graphql/imprimirReporteMovimientosBancarios';
@@ -77,6 +78,7 @@ export class CajaVirtualService {
     private guardarSucursalesDeCajaGQL: GuardarSucursalesDeCajaGQL,
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
+    private configuracionOrdenesGQL: CajaVirtualConfiguracionOrdenesGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
     private accesosGQL: CajaVirtualAccesosGQL,
     private otorgarAccesoGQL: OtorgarAccesoCajaGQL,
@@ -296,6 +298,21 @@ export class CajaVirtualService {
     // null = caja sin configuración (legítimo). El error de red se propaga: sus dos suscriptores lo manejan.
     return this.genericService.onCustomQuery(this.configuracionGQL, { cajaVirtualId }, true, PROPAGAR_ERROR_DE_RED,
       undefined, CONSULTA_CAJA_MAYOR);
+  }
+
+  /**
+   * Órdenes configurables de la caja. Nunca falla ni avisa: sin configuración, con error o con un central que todavía
+   * no conoce los campos, devuelve todo null y cada pantalla usa su orden por defecto.
+   */
+  onGetOrdenes(cajaVirtualId: number): Observable<CajaVirtualOrdenes> {
+    const vacio: CajaVirtualOrdenes = {};
+    if (cajaVirtualId == null) return of(vacio);
+    return this.configuracionOrdenesGQL.fetch({ cajaVirtualId }, {
+      fetchPolicy: 'no-cache', errorPolicy: 'all', context: { clientName: 'servidor' }
+    }).pipe(
+      map(res => res?.errors?.length ? { noDisponible: true } : (res?.data?.data || vacio)),
+      catchError(() => of({ noDisponible: true }))
+    );
   }
 
   onSaveConfiguracion(input: CajaVirtualConfiguracionInput, opciones?: { avisarExito?: boolean }): Observable<CajaVirtualConfiguracion> {

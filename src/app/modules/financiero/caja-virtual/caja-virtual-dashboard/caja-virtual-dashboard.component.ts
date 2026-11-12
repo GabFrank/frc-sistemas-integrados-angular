@@ -12,7 +12,7 @@ import { TabService } from '../../../../layouts/tab/tab.service';
 import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
-         labelMovimiento, formatoDe } from '../caja-virtual.model';
+         labelMovimiento, formatoDe, ordenarSegun, parseListaJson } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
@@ -155,6 +155,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
   config: CajaVirtualConfiguracion;
   /** La configuración se leyó bien al menos una vez: `recargar()` ya no la pide (solo cambia por «Configurar»). */
   private configCargada = false;
+  /** Orden configurado de las cards de moneda (ids). Vacío = por id de moneda. */
+  private monedasOrden: number[] = [];
   /** Número de la última carga del resumen bancario: una respuesta vieja no pisa a la nueva. */
   private bancosCargaId = 0;
 
@@ -296,6 +298,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       gestionar: this.puedeGestionar,
       pagarCpp: this.mainService.tieneAlgunRol([ROLES.TESORERIA_CPP_PAGAR]),
     };
+    this.cargarOrdenes();
     this.recargar();
     // Lo que mueve esta caja desde otro lado (otro usuario, otra pantalla) se ve sin recargar. A lo sumo una
     // relectura por segundo: un pago genera varios cambios seguidos.
@@ -350,9 +353,23 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar los saldos de la caja: no se puede ajustar hasta recargar.', 5);
   }
 
+  /**
+   * Orden de las cards de moneda (#540). El central nuevo ya devuelve los saldos ordenados; acá se aplica la misma
+   * regla para que con un central viejo (que los manda sin orden) las cards tampoco salten.
+   */
+  private cargarOrdenes() {
+    if (!this.cajaVirtual?.id) return;
+    this.cajaVirtualService.onGetOrdenes(this.cajaVirtual.id).pipe(untilDestroyed(this)).subscribe(o => {
+      this.monedasOrden = parseListaJson<any>(o.monedasOrden).map(x => Number(x));
+      if (this.saldos?.length) this.construirCards();
+    });
+  }
+
   /** Arma las cards de saldo por moneda con su color estable y el estado de selección. */
   private construirCards() {
-    this.saldoCards = this.saldos.map(s => ({
+    const porId = (a: CajaVirtualSaldoItem, b: CajaVirtualSaldoItem) => Number(a.moneda?.id || 0) - Number(b.moneda?.id || 0);
+    const ordenados = ordenarSegun(this.saldos || [], s => Number(s.moneda?.id), this.monedasOrden, porId);
+    this.saldoCards = ordenados.map(s => ({
       saldo: s,
       color: this.monedaPaleta[(s.moneda?.id || 0) % this.monedaPaleta.length],
       seleccionada: this.monedaSelId != null && this.monedaSelId === s.moneda?.id,
@@ -721,7 +738,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   onOperacionFinanciera() {
-    this.dialog.open(AddOperacionFinancieraDialogComponent, { width: '880px', maxWidth: '95vw', maxHeight: '92vh', data: null })
+    // Con la caja: el diálogo ordena y oculta las operaciones según su configuración y la precarga como origen (#720).
+    this.dialog.open(AddOperacionFinancieraDialogComponent, { width: '880px', maxWidth: '95vw', maxHeight: '92vh',
+      data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
@@ -739,7 +758,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   onConfigurar() {
     this.dialog.open(ConfigurarCajaVirtualDialogComponent, { width: '520px', maxHeight: '90vh', data: { cajaVirtual: this.cajaVirtual } })
-      .afterClosed().subscribe(res => { if (res) { this.cargarConfig(); this.cargarBancos(); } });
+      // La configuración cambia también el orden de las cards de moneda: se releen órdenes y saldos (#540).
+      .afterClosed().subscribe(res => { if (res) { this.cargarConfig(); this.cargarBancos(); this.cargarOrdenes(); this.cargarSaldos(); } });
   }
 
   /**
