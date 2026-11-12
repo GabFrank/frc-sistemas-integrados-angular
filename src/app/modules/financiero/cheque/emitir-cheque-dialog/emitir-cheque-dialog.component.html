@@ -34,26 +34,97 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Monto</mat-label>
-        <input matInput type="number" [formControl]="totalControl" placeholder="0" />
+        <input matInput type="number" [formControl]="totalControl" placeholder="0" (change)="armarPrevia()" />
         <span matSuffix class="moneda-suffix">{{ chequeraSel?.cuentaBancaria?.moneda?.simbolo || 'Gs.' }}</span>
         <mat-error *ngIf="totalControl.hasError('required') || totalControl.hasError('min')">
           Ingrese un monto mayor a 0
         </mat-error>
       </mat-form-field>
 
-      <mat-checkbox [formControl]="diferidoControl" color="primary">Cheque diferido</mat-checkbox>
+      <!-- A quién: un proveedor (su nombre queda de beneficiario, editable) o un beneficiario libre. -->
+      <div class="fila-beneficiario">
+        <mat-form-field appearance="outline" class="uppercase campo-beneficiario">
+          <mat-label>Beneficiario</mat-label>
+          <input matInput [formControl]="beneficiarioControl" maxlength="200"
+                 placeholder="Nombre de quien recibe el cheque" />
+          <mat-hint *ngIf="proveedor">Proveedor: {{ proveedor.persona?.nombre }}</mat-hint>
+        </mat-form-field>
+        <button mat-stroked-button type="button" (click)="buscarProveedor()">
+          <mat-icon>search</mat-icon> Proveedor
+        </button>
+        <button mat-icon-button type="button" *ngIf="proveedor" (click)="quitarProveedor()" matTooltip="Quitar el proveedor">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
 
-      <mat-form-field appearance="outline" *ngIf="diferidoControl.value">
-        <mat-label>Fecha de pago (vencimiento)</mat-label>
-        <input matInput [matDatepicker]="dp" [formControl]="fechaPagoControl" />
-        <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
-        <mat-datepicker #dp></mat-datepicker>
-      </mat-form-field>
+      <div class="fila-dos">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de emisión</mat-label>
+          <input matInput [matDatepicker]="dpEmision" [formControl]="fechaEmisionControl" (dateChange)="armarPrevia()" />
+          <mat-datepicker-toggle matSuffix [for]="dpEmision"></mat-datepicker-toggle>
+          <mat-datepicker #dpEmision></mat-datepicker>
+        </mat-form-field>
+        <mat-slide-toggle [formControl]="nominalControl" color="primary">
+          {{ nominalControl.value ? 'Nominal' : 'Al portador' }}
+        </mat-slide-toggle>
+      </div>
+
+      <mat-checkbox [formControl]="diferidoControl" color="primary" (change)="armarPrevia()">Cheque diferido</mat-checkbox>
+
+      <div class="fila-dos" *ngIf="diferidoControl.value">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de pago (primer cheque)</mat-label>
+          <input matInput [matDatepicker]="dp" [formControl]="fechaPagoControl" (dateChange)="armarPrevia()" />
+          <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+          <mat-datepicker #dp></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="campo-corto">
+          <mat-label>Cheques</mat-label>
+          <mat-select [formControl]="cuotasControl" (selectionChange)="armarPrevia()">
+            <mat-option *ngFor="let n of cuotasOpciones" [value]="n">{{ n }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="campo-corto" *ngIf="cuotasControl.value > 1">
+          <mat-label>Cada</mat-label>
+          <mat-select [formControl]="intervaloControl" (selectionChange)="armarPrevia()">
+            <mat-option *ngFor="let d of intervalos" [value]="d">{{ d }} días</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Vista previa: número proyectado, fecha de pago y monto de cada cheque, editables. -->
+      <div class="previa" *ngIf="previa.length > 1 || (previa.length === 1 && diferidoControl.value)">
+        <div class="previa-fila previa-encabezado">
+          <span>Nº</span><span>Fecha de pago</span><span>Monto</span>
+        </div>
+        <div class="previa-fila" *ngFor="let c of previa">
+          <span class="previa-num">{{ c.numero ?? '—' }}</span>
+          <span>
+            <input class="previa-input" [matDatepicker]="dpc" [ngModel]="c.fechaPago" [ngModelOptions]="{ standalone: true }"
+                   (dateChange)="onFechaPreviaChange(c, $event.value)" [disabled]="!diferidoControl.value" />
+            <mat-datepicker-toggle [for]="dpc" *ngIf="diferidoControl.value"></mat-datepicker-toggle>
+            <mat-datepicker #dpc></mat-datepicker>
+          </span>
+          <span>
+            <input class="previa-input previa-monto" type="number" [ngModel]="c.monto" [ngModelOptions]="{ standalone: true }"
+                   (change)="onMontoPrevioChange(c, $any($event.target).value)" />
+          </span>
+        </div>
+        <div class="previa-total" [class.previa-error]="diferenciaPrevia !== 0">
+          Suma {{ sumaPrevia | number:'1.0-2' }}
+          <span *ngIf="diferenciaPrevia !== 0"> · faltan {{ diferenciaPrevia | number:'1.0-2' }} para el total</span>
+        </div>
+      </div>
+      <div class="aviso-hojas" *ngIf="faltanHojas">
+        <mat-icon>warning</mat-icon> La chequera tiene {{ chequeraSel?.hojasDisponibles }} hojas: no alcanzan para {{ previa.length }} cheques.
+      </div>
 
       <div class="nota-hint">
         <mat-icon>info</mat-icon>
-        <span *ngIf="!diferidoControl.value">Un cheque <b>al día</b> debita el saldo de la cuenta inmediatamente.</span>
-        <span *ngIf="diferidoControl.value">El diferido <b>reserva</b> el saldo hasta la fecha de pago; no debita al emitir.</span>
+        <span *ngIf="!diferidoControl.value">Un cheque <b>al día</b> debita la cuenta al emitirse, o queda <b>pendiente de cobro</b>
+          (reservado) si tesorería lo tiene habilitado.</span>
+        <span *ngIf="diferidoControl.value">El diferido <b>reserva</b> el saldo hasta la fecha de pago; no debita al emitir.
+          Varios cheques se emiten juntos: salen todos o ninguno.</span>
       </div>
 
       <mat-form-field appearance="outline" class="uppercase">
@@ -67,7 +138,7 @@
   <mat-dialog-actions align="end" *ngIf="!hayPendiente">
     <button mat-stroked-button (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
     <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
-      <mat-icon>send</mat-icon> Emitir
+      <mat-icon>send</mat-icon> {{ previa.length > 1 ? 'Emitir ' + previa.length + ' cheques' : 'Emitir' }}
     </button>
   </mat-dialog-actions>
 

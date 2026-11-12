@@ -31,6 +31,7 @@ import { MatStepper } from '@angular/material/stepper';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { armarCuotas } from '../../cheque/cheque-cuotas';
 
 /**
  * Un pago de compras o de gastos tal como se envió, con la clave de idempotencia de ese intento. Reenviar
@@ -953,13 +954,11 @@ export class PagarComprasDialogComponent implements OnInit {
   /** Genera N líneas CHEQUE (cuotas) encadenadas por intervalo de días desde la fecha de pago. */
   private agregarCheques() {
     if (!this.chequeraSel || !this.draft.monto || this.draft.monto <= 0) return;
-    const cuotas = Math.max(1, Math.min(12, this.chequeCuotas || 1));
-    const total = this.draft.monto;                       // en la moneda de la cuenta
-    const cuota = this.round(total / cuotas, this.draft.moneda);
     const sig = Number(this.chequeraSel.siguienteNumero) || 0;
-    for (let i = 0; i < cuotas; i++) {
-      const monto = (i === cuotas - 1) ? this.round(total - cuota * (cuotas - 1), this.draft.moneda) : cuota;
-      const fecha = this.addDias(this.chequeFechaPago, cuotas > 1 ? i * this.chequeIntervalo : 0);
+    // La regla de las cuotas es la misma que la de Emitir cheque (desk #708): vive en cheque-cuotas.
+    const plan = armarCuotas(this.draft.monto, this.chequeCuotas, this.chequeFechaPago, this.chequeIntervalo,
+      this.decimales(this.draft.moneda));
+    for (const { indice: i, monto, fechaPago: fecha } of plan) {
       this.lineas.push({
         fuente: 'CHEQUE', cuenta: this.draft.cuenta, moneda: this.draft.moneda,
         monto, cotizacion: this.draft.cotizacion, necesitaCotizacion: this.draft.necesitaCotizacion, convertido: 0,
