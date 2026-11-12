@@ -130,9 +130,10 @@
           Precio venta:
         </div>
         <div fxFlex style="text-align: start">
-          {{
+          <ng-container *ngIf="precioPrincipalResumen as p; else precioSinPresentaciones"><ng-container *ngIf="p.simbolo">{{ p.simbolo }} </ng-container>{{ p.precio | number : p.formato }}</ng-container>
+          <ng-template #precioSinPresentaciones>{{
             (selectedProducto?.precioPrincipal | number : "1.0-2") || "No posee"
-          }}
+          }}</ng-template>
         </div>
       </div>
 
@@ -1247,7 +1248,7 @@
                   *matCellDef="let element"
                   style="text-align: center"
                 >
-                  {{ element?.precioPrincipal?.precio | number : "1.0-0" }}
+                  <ng-container *ngIf="precioPrincipalFila[element?.id] as p"><ng-container *ngIf="p.simbolo">{{ p.simbolo }} </ng-container>{{ p.precio | number : p.formato }}</ng-container>
                 </td>
               </ng-container>
 

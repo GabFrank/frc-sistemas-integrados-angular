@@ -75,7 +75,14 @@ import {
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
-import { PrecioMonedaService } from "../../precio-por-sucursal/precio-moneda.service";
+import { PrecioMonedaService, precioPrincipalDePresentacion } from "../../precio-por-sucursal/precio-moneda.service";
+
+/** Precio principal listo para mostrar: `simbolo` null = moneda de la empresa. */
+interface PrecioPrincipalVista {
+  precio: number;
+  simbolo: string | null;
+  formato: string;
+}
 import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import {
   PrecioEspecialDialogComponent,
@@ -1127,6 +1134,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
+        this.calcularPreciosPrincipales();
         this.cargarSimbolosDePrecios();
       } });
   }
@@ -1143,13 +1151,45 @@ export class ProductoComponent implements OnInit, OnDestroy {
     // Del mapa en caché de precios en otra moneda: vacío en bodega, y si no se pudo leer, sin símbolos
     this.simbolosSub = this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((e) => {
       const nuevos: Record<string, string> = {};
+      const formatos: Record<string, string> = {};
       e.mapa.forEach((moneda, precioId) => {
-        if (!this.monedaModulo.esMonedaEmpresa(moneda)) nuevos[precioId] = moneda.simbolo || '';
+        if (this.monedaModulo.esMonedaEmpresa(moneda)) return;
+        nuevos[precioId] = moneda.simbolo || '';
+        const d = moneda?.decimales != null && moneda.decimales >= 0 ? moneda.decimales : 2;
+        formatos[precioId] = `1.${d}-${d}`;
       });
       this.simbolosPrecio = nuevos;
+      this.formatosPrecio = formatos;
+      this.calcularPreciosPrincipales();
     });
   }
   private simbolosSub: Subscription;
+  /** Formato de número por id de precio, solo para precios que no están en la moneda de la empresa. */
+  private formatosPrecio: Record<string, string> = {};
+
+  /** Precio principal de cada presentación (por id) y del resumen, con su moneda si no es la de la empresa (#713). */
+  precioPrincipalFila: Record<string, PrecioPrincipalVista> = {};
+  precioPrincipalResumen: PrecioPrincipalVista | null = null;
+
+  /** Se llama al llegar el mapa y al llegar las presentaciones: cualquiera puede llegar primero. */
+  private calcularPreciosPrincipales(): void {
+    const filas: Record<string, PrecioPrincipalVista> = {};
+    let resumen: PrecioPrincipalVista | null = null;
+    (this.presentacionesList || []).forEach((presentacion) => {
+      const precio = precioPrincipalDePresentacion(presentacion);
+      if (precio?.precio == null) return;
+      const id = String(precio.id);
+      const vista: PrecioPrincipalVista = {
+        precio: precio.precio,
+        simbolo: this.simbolosPrecio[id] ?? null,
+        formato: this.formatosPrecio[id] ?? '1.0-2',
+      };
+      filas[String(presentacion.id)] = vista;
+      if (presentacion.principal === true && resumen == null) resumen = vista; // la primera, como monedaDelPrecioPrincipalDe
+    });
+    this.precioPrincipalFila = filas;
+    this.precioPrincipalResumen = resumen;
+  }
 
   /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
   private marcarPresentacionesSinCargar(): void {
@@ -1157,6 +1197,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.presentacionesFallo = true;
     this.presentacionesList = [];
     this.presentacionesDataSource.data = [];
+    this.calcularPreciosPrincipales();
     this.expandedPresentacion = null;
     this.selectedPresentacion = null;
   }
