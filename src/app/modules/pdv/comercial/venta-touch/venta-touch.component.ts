@@ -2022,6 +2022,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.selectedTipoPrecio = this.tiposPrecios[0];
     this.totalGs = 0;
+    this.descuentoGs = 0;
     this.calcularEquivalente();
   }
 
@@ -2085,8 +2086,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
       venta.ventaItemList = this.selectedItemList;
       venta.caja = this.cajaService?.selectedCaja;
+      // valorDescuento es unitario (descuento_unitario en el filial), como lo cuentan el pago y calcularTotales.
+      this.selectedItemList.forEach((vi) => {
+        // || 0: un descuento indefinido no puede dejar el pago en NaN.
+        descuento += +vi.cantidad * (+vi.valorDescuento || 0);
+      });
+      // Como el Pago (F12): el cobro y la línea de efectivo van netos del descuento; la venta queda en el bruto.
       let cobro = new Cobro();
-      cobro.totalGs = this.totalGs;
+      cobro.totalGs = this.totalGs - descuento;
       let cobroDetalle = new CobroDetalle();
       cobroDetalle.moneda = monedaGuarani;
       cobroDetalle.cambio = cambioGuarani;
@@ -2097,11 +2104,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       cobroDetalle.aumento = false;
       cobroDetalle.vuelto = false;
       cobroDetalle.pago = true;
-      cobroDetalle.valor = this.totalGs;
+      cobroDetalle.valor = this.totalGs - descuento;
       cobro.cobroDetalleList = [cobroDetalle];
-      this.selectedItemList.forEach((vi) => {
-        descuento += vi.valorDescuento;
-      });
       if (descuento > 0) {
         let cobroDetalleDesc = new CobroDetalle();
         cobroDetalleDesc.moneda = monedaGuarani;
