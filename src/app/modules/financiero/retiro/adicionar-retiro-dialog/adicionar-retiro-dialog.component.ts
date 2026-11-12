@@ -134,7 +134,8 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onGuardar() {
-    if (this.responsableControl.value != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
+    // Un retiro abierto con Ver ya existe: no se vuelve a guardar (#734).
+    if (this.selectedRetiro == null && this.responsableControl.value != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
@@ -288,6 +289,20 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     this.guaraniControl.disable()
     this.realControl.disable()
     this.dolarControl.disable()
+    this.stepper.selectedIndex = 0;
+  }
+
+  /** Sale del modo Ver: deja el formulario como recién abierto. */
+  onNuevo() {
+    this.selectedRetiro = null;
+    this.responsableControl.reset(null);
+    this.observacionControl.reset(null);
+    this.guaraniControl.reset(0);
+    this.realControl.reset(0);
+    this.dolarControl.reset(0);
+    [this.responsableControl, this.observacionControl, this.guaraniControl, this.realControl, this.dolarControl]
+      .forEach(c => c.enable());
+    this.responsableField?.select();
   }
 
   onReimprimir(retiro: Retiro) {
