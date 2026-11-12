@@ -14,6 +14,7 @@ import { PedidoEmisionCheques } from '../cheque.model';
 import { armarCuotas, CUOTAS_OPCIONES, INTERVALOS_DIAS, redondearMonto } from '../cheque-cuotas';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
+import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
 
 /** Una emisión tal como se envió, con su clave de idempotencia, y cómo nombrarla en un aviso. */
 interface PedidoDeCheque {
@@ -74,6 +75,7 @@ export class EmitirChequeDialogComponent implements OnInit {
     private chequeService: ChequeService,
     private notificacion: NotificacionSnackbarService,
     private proveedorService: ProveedorService,
+    private numeracion: NumeracionChequeraService,
   ) {}
 
   ngOnInit(): void {
@@ -135,6 +137,13 @@ export class EmitirChequeDialogComponent implements OnInit {
     const sig = this.chequeraSel.siguienteNumero != null ? Number(this.chequeraSel.siguienteNumero) : null;
     this.previa = plan.map(c => ({ numero: sig != null ? sig + c.indice : null, fechaPago: c.fechaPago, monto: c.monto }));
     this.recalcularPrevia();
+    // Los números reales los decide el central, que saltea los inutilizados (central #603). Sin respuesta queda la
+    // proyección de arriba, que es solo informativa.
+    const previa = this.previa;
+    this.numeracion.onGetProximos(this.chequeraSel.id, previa.length).pipe(untilDestroyed(this)).subscribe(nums => {
+      if (!nums || previa !== this.previa) return;
+      previa.forEach((c, i) => c.numero = nums[i] ?? null);
+    });
   }
 
   /** Edición puntual de un cheque de la vista previa: se controla que la suma siga dando el total. */

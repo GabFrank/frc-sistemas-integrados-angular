@@ -1,0 +1,56 @@
+.ni-dialog { padding: 8px 4px; }
+
+.titulo-dialog {
+  text-align: center;
+  margin: 4px 0 2px;
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--frc-texto-fuerte);
+}
+
+.subtitulo-dialog {
+  text-align: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #ff9800;
+}
+
+.ni-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .ni-numero { flex: 0 0 130px; }
+  .ni-motivo, .ni-accion { flex: 1; }
+}
+
+.ni-vacio {
+  padding: 16px;
+  text-align: center;
+  color: var(--frc-texto-tenue);
+}
+
+.ni-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+
+  th {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px;
+    color: var(--frc-encabezado-tabla-texto);
+    background: var(--frc-encabezado-tabla);
+    text-align: center;
+  }
+
+  td {
+    padding: 6px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--frc-borde-suave);
+  }
+
+  tr.revertido td { opacity: 0.55; }
+}
+
+.tenue { color: var(--frc-texto-tenue); font-size: 12px; }

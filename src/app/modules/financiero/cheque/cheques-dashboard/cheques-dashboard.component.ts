@@ -14,6 +14,7 @@ import { GestionarChequerasDialogComponent } from '../../chequera/gestionar-cheq
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { CrearExcelService } from '../../../../shared/crear-excel/crear-excel.service';
+import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
 import { DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '../../caja-virtual/detalle-movimiento-dialog/detalle-movimiento-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { ChequeService } from '../cheque.service';
@@ -34,15 +35,18 @@ interface ChequeRow extends Cheque {
   _usuario?: string;
   _fechaEmision?: Date;        // fecha de emisión, o creación si no la tiene
   _motivoNoAnulable?: string | null;
+  /** Fila de un número inutilizado, no de un cheque: sin acciones. */
+  _inutilizado?: boolean;
 }
 
 /** Estados del filtro (desk #708): «Pendientes» son los que todavía no se debitaron. */
-type FiltroEstado = 'TODOS' | 'PENDIENTES' | 'COBRADOS' | 'ANULADOS';
+type FiltroEstado = 'TODOS' | 'PENDIENTES' | 'COBRADOS' | 'ANULADOS' | 'INUTILIZADOS';
 const ESTADOS_DE_FILTRO: Record<FiltroEstado, EstadoCheque[]> = {
   TODOS: [],
   PENDIENTES: [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO],
   COBRADOS: [EstadoCheque.COBRADO],
   ANULADOS: [EstadoCheque.ANULADO],
+  INUTILIZADOS: [],
 };
 
 interface ChequeraOpcion { id: number; label: string; }
@@ -74,6 +78,9 @@ export class ChequesDashboardComponent implements OnInit {
     { label: 'Pendientes (diferidos y al día sin cobrar)', value: 'PENDIENTES' },
     { label: 'Cobrados', value: 'COBRADOS' },
     { label: 'Anulados', value: 'ANULADOS' },
+    // Los números inutilizados vigentes de todas las chequeras (central #603): para que el control de la chequera
+    // no tenga huecos sin explicar.
+    { label: 'Números inutilizados', value: 'INUTILIZADOS' },
   ];
   tiposFecha = [
     { label: 'Emisión', value: 'EMISION' },
@@ -116,7 +123,7 @@ export class ChequesDashboardComponent implements OnInit {
   puedeGestionar = false;
 
   estadoLabels: Record<string, string> = {
-    DIFERIDO: 'Diferido', EMITIDO: 'Al día, sin cobrar', COBRADO: 'Cobrado', ANULADO: 'Anulado',
+    DIFERIDO: 'Diferido', EMITIDO: 'Al día, sin cobrar', COBRADO: 'Cobrado', ANULADO: 'Anulado', INUTILIZADO: 'Inutilizado',
   };
 
   constructor(
@@ -126,6 +133,7 @@ export class ChequesDashboardComponent implements OnInit {
     private dialog: MatDialog,
     public mainService: MainService,
     private crearExcel: CrearExcelService,
+    private numeracion: NumeracionChequeraService,
   ) {}
 
   ngOnInit(): void {
@@ -251,6 +259,7 @@ export class ChequesDashboardComponent implements OnInit {
   cargarLista() {
     this.isLoading = true;
     const n = ++this.seq.lista;
+    if (this.estadoSel === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
     this.chequeService.onGetChequesDashboard(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.lista) return;
@@ -269,6 +278,8 @@ export class ChequesDashboardComponent implements OnInit {
 
   cargarResumen() {
     const n = ++this.seq.resumen;
+    // Un número inutilizado no tiene monto: el KPI no suma nada.
+    if (this.estadoSel === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
     this.chequeService.onGetResumenPorDia(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.resumen) return;
@@ -277,6 +288,24 @@ export class ChequesDashboardComponent implements OnInit {
         this.recalcularKpi();
       },
       error: () => { if (n === this.seq.resumen) this.marcarLectura('resumen', true); },
+    });
+  }
+
+  /** Los inutilizados vigentes, como filas del tablero (estado «Inutilizado»), filtrados por chequera. */
+  private cargarInutilizados(n: number) {
+    this.numeracion.onGetInutilizados(null).pipe(untilDestroyed(this)).subscribe(lista => {
+      if (n !== this.seq.lista) return;
+      this.isLoading = false;
+      this.marcarLectura('lista', false);
+      this.chequesFull = lista
+        .filter(i => !this.chequeraSel || i.chequera?.id === this.chequeraSel)
+        .map(i => ({
+          id: -i.id, numero: i.numero, estado: 'INUTILIZADO', concepto: i.motivo, total: null,
+          _chequeraNombre: i.chequera?.nombre || ('Chequera #' + i.chequera?.id), _cuentaLabel: '',
+          _beneficiario: '', _origenLabel: 'Inutilizado', _usuario: i.usuario?.persona?.nombre || '',
+          _fechaEmision: i.creadoEn, _inutilizado: true, _cobrable: false, _anulable: false, _monedaSimbolo: '',
+        } as any as ChequeRow));
+      this.aplicarFocoALista();
     });
   }
 

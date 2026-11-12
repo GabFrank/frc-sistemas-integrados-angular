@@ -13,6 +13,7 @@ import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { take } from 'rxjs/operators';
+import { NumerosInutilizadosDialogComponent } from '../numeros-inutilizados-dialog/numeros-inutilizados-dialog.component';
 
 interface ChequeraRow extends Chequera {
   _cuentaLabel?: string;
@@ -133,6 +134,12 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
       .afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
         if (res) { this.cambios = true; this.cargar(); }
       });
+  }
+
+  /** Inutilizar números de la chequera y ver los inutilizados (central #603). Al volver, relee hojas y próximo Nº. */
+  numerosInutilizados(ch: Chequera) {
+    this.dialog.open(NumerosInutilizadosDialogComponent, { width: '65vw', maxWidth: '95vw', maxHeight: '80vh', data: { chequera: ch } })
+      .afterClosed().subscribe(cambio => { if (cambio) { this.cambios = true; this.cargar(); } });
   }
 
   vincularFormato(_ch: Chequera) {

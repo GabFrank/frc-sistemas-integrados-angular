@@ -32,6 +32,7 @@ import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUti
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { armarCuotas } from '../../cheque/cheque-cuotas';
+import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
 
 /**
  * Un pago de compras o de gastos tal como se envió, con la clave de idempotencia de ese intento. Reenviar
@@ -312,6 +313,7 @@ export class PagarComprasDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<PagarComprasDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PagarComprasDialogData,
     private pagarComprasService: PagarComprasService,
+    private numeracionChequera: NumeracionChequeraService,
     private monedaService: MonedaService,
     private cuentaBancariaService: CuentaBancariaService,
     private cambioService: CambioService,
@@ -972,8 +974,22 @@ export class PagarComprasDialogComponent implements OnInit {
       });
     }
     this.recalcularPago();
+    this.renumerarChequesProyectados(this.chequeraSel.id);
     this.chequeActivo = false; this.chequeCuotas = 1;
     this.nuevoDraft();
+  }
+
+  /**
+   * El Nº que se muestra de cada cheque del plan sale del central, que saltea los números inutilizados (central #603):
+   * antes se proyectaba siguiente, siguiente+1… Es solo informativo; el número lo asigna el central al emitir.
+   */
+  private renumerarChequesProyectados(chequeraId: number) {
+    const lineas = this.lineas.filter(l => l.esCheque && l.chequeraId === chequeraId);
+    if (!lineas.length) return;
+    this.numeracionChequera.onGetProximos(chequeraId, lineas.length).pipe(untilDestroyed(this)).subscribe(nums => {
+      if (!nums) return;
+      lineas.forEach((l, i) => { if (nums[i] != null) l._numeroCheque = nums[i]; });
+    });
   }
 
   private addDias(base: Date, dias: number): Date {

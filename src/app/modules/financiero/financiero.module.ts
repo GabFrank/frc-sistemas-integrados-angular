@@ -113,6 +113,7 @@ import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-da
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
 import { GestionarChequerasDialogComponent } from './chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
+import { NumerosInutilizadosDialogComponent } from './chequera/numeros-inutilizados-dialog/numeros-inutilizados-dialog.component';
 import { ListOperacionFinancieraComponent } from './operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
 import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
@@ -225,6 +226,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     EmitirChequeDialogComponent,
     EditChequeraDialogComponent,
     GestionarChequerasDialogComponent,
+    NumerosInutilizadosDialogComponent,
     ListOperacionFinancieraComponent,
     ListMovimientosBancariosDialogComponent,
     AddBancoDialogComponent,
