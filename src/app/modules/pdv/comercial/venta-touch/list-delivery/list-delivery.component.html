@@ -94,14 +94,14 @@
                     | number : "1.0-0"
                 }}
               </ng-container>
-              <!-- Otra moneda del PDV: el delivery ya leído está en esa moneda; el de la lista llega en la de la empresa -->
+              <!-- Otra moneda del PDV: el de la lista llega en la de la empresa y sin la cotización de su venta;
+                   convertirlo con la del día mostraría otro total que el que se cobra (#719). Se muestra al leerlo. -->
               <ng-container *ngIf="esOtraMoneda">
                 {{
                   element?.envioEnBase != null
                     ? (element?.venta?.valorTotal + element?.envioEnBase
                       | number : formatoBase)
-                    : ((element?.venta?.valorTotal + element?.precio?.valor) /
-                        cotizacionPdv | number : formatoBase)
+                    : "—"
                 }}
               </ng-container>
             </td>
