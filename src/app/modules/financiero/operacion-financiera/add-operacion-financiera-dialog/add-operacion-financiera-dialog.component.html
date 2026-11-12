@@ -141,8 +141,18 @@
           <div class="cotizacion-fila" *ngIf="mostrarCotizacion">
             <mat-form-field appearance="outline" class="f-cotizacion">
               <mat-label>{{ cotizacionLabel }}</mat-label>
-              <input matInput type="number" min="0" [formControl]="cotizacionControl" placeholder="0" />
-              <mat-hint *ngIf="cotizacionOrigenLabel">{{ cotizacionOrigenLabel }}</mat-hint>
+              <!-- Formato de casa de cambio (desk #720): miles con punto y decimales con coma. -->
+              <input matInput currencyMask [options]="currencyOptsCotizacion" [formControl]="cotizacionControl"
+                     placeholder="0" autocomplete="off" />
+              <button mat-icon-button matSuffix type="button" (click)="alternarCandado()"
+                      [matTooltip]="cotizacionCandadoTooltip" [class.candado-fijo]="cotizacionFija">
+                <mat-icon>{{ cotizacionCandado }}</mat-icon>
+              </button>
+              <mat-hint>
+                <span *ngIf="cotizacionInversa">{{ cotizacionInversa }}</span>
+                <span *ngIf="cotizacionInversa && cotizacionOrigenLabel"> · </span>
+                <span *ngIf="cotizacionOrigenLabel">{{ cotizacionOrigenLabel }}</span>
+              </mat-hint>
             </mat-form-field>
             <mat-checkbox [formControl]="cotizacionAutomaticaControl"
                           (change)="onCotizacionAutomaticaChange()"

@@ -52,6 +52,8 @@ export class OperacionFinanciera {
   monedaDestino: Moneda;
   montoDestino: number;
   cotizacion: number;
+  /** La moneda que vale 1 en la cotización (central #603). Solo se manda, no se lee. */
+  cotizacionMonedaId?: number;
   numeroComprobante: string;
   diferencia: number;
   diferenciaDestinoTipo: DiferenciaDestinoTipo;
@@ -77,6 +79,7 @@ export class OperacionFinanciera {
     input.monedaDestinoId = this.monedaDestino?.id;
     input.montoDestino = this.montoDestino;
     input.cotizacion = this.cotizacion;
+    if (this.cotizacionMonedaId != null) input.cotizacionMonedaId = this.cotizacionMonedaId;
     input.numeroComprobante = this.numeroComprobante?.toUpperCase();
     input.diferencia = this.diferencia;
     input.diferenciaDestinoTipo = this.diferenciaDestinoTipo;
@@ -98,6 +101,7 @@ export class OperacionFinancieraInput {
   monedaDestinoId?: number;
   montoDestino?: number;
   cotizacion?: number;
+  cotizacionMonedaId?: number;
   numeroComprobante?: string;
   diferencia?: number;
   diferenciaDestinoTipo?: DiferenciaDestinoTipo;
