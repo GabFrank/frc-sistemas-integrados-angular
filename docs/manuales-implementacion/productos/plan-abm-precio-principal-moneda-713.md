@@ -64,6 +64,21 @@ Desktop web local contra central local (8081):
 - Comprobar en la respuesta de GraphQL si `precioPrincipal.id` es el de la presentación (confirma el hallazgo A1).
 - Restaurar el precio de prueba en la base al final.
 
+## Resultado de la prueba por pantalla (12/11/2026)
+
+Central local de `develop` (58ebaaa9, perfil dev, Flyway apagado) y desktop web en `127.0.0.1:4200`, usuario MR.
+Producto 8538 NIKO PIÑA 3 L; precio 12865 (presentación principal 11137) pasado a 5,85 USD por SQL.
+
+- Resumen «Precio venta: US$ 5,85»; tabla 11137 «US$ 5,85», 11138 «32.000» (Gs, sin símbolo).
+- Desde la grilla, 12866 (CAJA X 4) a 22,40 USD: la fila pasa a «US$ 22,40» sin recargar; el resumen sigue en la principal.
+  Para guardar en USD el central exige `cliente.desktop.version_minima`: se puso `0.0.1` y se volvió a vaciar.
+- Desde la grilla, 12865 a 8.000 Gs: resumen y tabla pasan juntos a «8.000».
+- `marcarPresentacionesSinCargar`: la tabla se vacía y el resumen cae al número de `selectedProducto` («5,85», el
+  del momento en que se abrió la pestaña, sin moneda), como antes del fix. «Reintentar» lo recupera («8.000»).
+- **El hallazgo A1 no se confirmó**: `precioPrincipal.id` llegó con el id del precio (12865/12866), no el de la
+  presentación. Igual se usa `precios`, que no depende de cómo resuelva Hibernate el `select *`. No hace falta issue.
+- Base restaurada: 12865 = 8000 y 12866 = 32000, sin moneda; versión mínima vacía.
+
 ## Auditoría del plan (paso 5)
 
 | Eje | Hallazgo | Qué se hizo |
@@ -76,8 +91,24 @@ Desktop web local contra central local (8081):
 | B | Moneda vieja al recargar o al fallar la carga | Se limpia al iniciar la carga y en `marcarPresentacionesSinCargar` |
 | B | Reversibilidad | Cambio visual, sin datos: un revert alcanza |
 
+## Auditoría del diff (paso 8)
+
+Fijo 1 y Fijo 2: N/A para desktop porque el diff no toca resolvers, esquema ni migraciones. Condicionales: N/A
+(no toca release ni replicación). Fijo 3 sin bloqueantes. Hallazgos menores:
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| Con dos presentaciones principales el resumen tomaba la última | Toma la primera, como `monedaDelPrecioPrincipalDe` |
+| Sin presentación principal el resumen cae a «No posee» | Se deja: el central también da `precioPrincipal` nulo |
+| Precio 0 mostraría «0» en vez de «No posee» | Falso: antes `0 \| number` ya daba «0» (texto, truthy) |
+| La tabla pasa de `1.0-0` a `1.0-2` en Gs | Se acepta: los precios en Gs son enteros; es el formato del resumen |
+
 ## Sin verificar / fuera de alcance
 
 - La grilla de precios muestra el número crudo («US$ 5.85», con punto): el issue la da por buena; no se toca.
-- El `select *` de `findPrincipalByPresentacionId` en el central: issue aparte si se confirma en la prueba.
+- El `select *` de `findPrincipalByPresentacionId` en el central: en la prueba devolvió el id correcto; no se abre issue.
+- Con las presentaciones sin cargar, el resumen muestra el número de la carga del producto, sin moneda (como antes).
+- El mapa de monedas es una caché de sesión (`PrecioMonedaService`): un precio pasado a otra moneda desde otro lado
+  (otra PC, SQL) se ve sin símbolo hasta volver a entrar o guardar un precio. Ya era así en la grilla y el listado.
+- No se limpia la moneda al *empezar* una recarga (es el mismo producto: evita el parpadeo); sí al fallar.
 - Otras pantallas con «Precio venta» (transferencias, búsqueda de envase): fuera del #713.
