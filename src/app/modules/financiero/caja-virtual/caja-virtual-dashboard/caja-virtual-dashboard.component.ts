@@ -121,9 +121,10 @@ const SIN_CONFIRMAR_ANULACION = 'No se pudo confirmar la anulación: se vuelve a
 
 /**
  * Orígenes cuyo «ir al origen» abre una pantalla que el rol acotado no puede leer: el detalle de una
- * operación financiera (trae cuentas bancarias) y la lista de vales de RRHH.
+ * operación financiera (trae cuentas bancarias), la lista de vales de RRHH y el retiro del PDV (la query `retiro`
+ * no admite TESORERIA CAJA: el diálogo quedaba vacío).
  */
-const ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO = ['OPERACION_FINANCIERA', 'RRHH_VALE'];
+const ORIGENES_SIN_DETALLE_EN_MODO_ACOTADO = ['OPERACION_FINANCIERA', 'RRHH_VALE', 'RETIRO_CAJA'];
 
 /** Espejo de TesoreriaService.anular (central): los únicos orígenes que anula como movimiento suelto. Cambiar juntos. */
 const ORIGENES_ANULABLES_EN_CAJA = ['MANUAL', 'MALETIN', 'VUELTO'];

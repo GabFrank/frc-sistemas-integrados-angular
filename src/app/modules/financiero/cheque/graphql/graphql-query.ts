@@ -204,7 +204,6 @@ const chequeDashboardFields = `
   usuario { id persona { nombre } }
   proveedor { id persona { id nombre } }
   pagoId
-  origen
 `;
 
 export const chequesDashboardQuery = gql`
