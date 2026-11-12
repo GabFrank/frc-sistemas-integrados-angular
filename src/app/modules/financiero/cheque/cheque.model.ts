@@ -84,7 +84,7 @@ export interface ChequeResumenDia {
     cantidad: number;
 }
 
-/** Saldo/compromiso de una chequera activa (card del sidebar). */
+/** Saldo/compromiso de una chequera activa, o no activa con cheques pendientes (card del sidebar). */
 export interface ChequeSaldoChequera {
     chequera: Chequera;
     cuentaBancaria: CuentaBancaria;

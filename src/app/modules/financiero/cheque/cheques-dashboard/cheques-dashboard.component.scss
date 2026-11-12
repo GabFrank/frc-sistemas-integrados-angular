@@ -44,7 +44,8 @@
   gap: 10px;
   margin-bottom: 16px;
 
-  .f-rango { width: 230px; }
+  // Ancho para las dos fechas completas («12/11/2026 – 12/11/2026») sin cortarlas.
+  .f-rango { width: 270px; }
   .f-sel { width: 190px; }
 
   .presets {
@@ -309,4 +310,15 @@
     background: rgba(92, 107, 192, 0.18);
     color: #9fa8da;
   }
+}
+
+// Chequera agotada/anulada que sigue en el panel por sus cheques pendientes.
+.chip-estado-chequera {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #ff9800;
+  border: 1px solid #ff9800;
 }

@@ -13,6 +13,20 @@ export const saldoConsolidadoTesoreriaQuery = gql`
   }
 `;
 
+/**
+ * El disponible (saldo − reservado por cheques) va aparte del consolidado: un central anterior a #601 no tiene
+ * estos campos y pedirlos en la misma consulta dejaría sin saldos al dashboard.
+ */
+export const saldoDisponibleTesoreriaQuery = gql`
+  query {
+    data: saldoConsolidadoTesoreria {
+      monedaId
+      bancoDisponible
+      totalDisponible
+    }
+  }
+`;
+
 export const proximosVencimientosTesoreriaQuery = gql`
   query ($dias: Int) {
     data: proximosVencimientosTesoreria(dias: $dias) {

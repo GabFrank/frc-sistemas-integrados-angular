@@ -119,6 +119,7 @@ import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/
 import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
 import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-bancaria-dialog/add-cuenta-bancaria-dialog.component';
 import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-teclado.directive';
+import { MascaraFechaDirective } from '../../shared/directives/mascara-fecha.directive';
 
 @NgModule({
   declarations: [
@@ -244,6 +245,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     MaterialModule,
     SharedModule,
     LectorTecladoDirective,
+    MascaraFechaDirective,
     NgxQRCodeModule,
     FinancieroRoutingModule,
     BootstrapModule,

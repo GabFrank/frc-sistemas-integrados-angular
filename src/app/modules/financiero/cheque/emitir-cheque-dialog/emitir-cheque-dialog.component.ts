@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { DateAdapter } from '@angular/material/core';
+import { FechaPyDateAdapter } from '../../../../shared/utils/fecha-py-date-adapter';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Chequera, EstadoChequera } from '../../chequera/chequera.model';
 import { ChequeraService } from '../../chequera/chequera.service';
@@ -34,6 +36,8 @@ interface ChequePrevio {
   selector: 'app-emitir-cheque-dialog',
   templateUrl: './emitir-cheque-dialog.component.html',
   styleUrls: ['./emitir-cheque-dialog.component.scss'],
+  // dd/mm/aaaa tipeado: el NativeDateAdapter lo leería como mes/día.
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class EmitirChequeDialogComponent implements OnInit {
 
@@ -62,6 +66,8 @@ export class EmitirChequeDialogComponent implements OnInit {
 
   chequeras: Chequera[] = [];
   chequeraSel: Chequera | null = null;   // para mostrar cuenta/moneda/hojas
+  /** Primer número libre según el central (saltea los inutilizados); mientras no responde, el de la chequera. */
+  proximoNumero: number | null = null;
   isSaving = false;
   /** La emisión que quedó sin respuesta. Mientras exista solo se puede reenviarla o cerrar. */
   private pedidoPendiente: PedidoDeCheque | null = null;
@@ -106,7 +112,14 @@ export class EmitirChequeDialogComponent implements OnInit {
 
   onChequeraChange(ch: Chequera) {
     this.chequeraSel = ch;
+    this.proximoNumero = ch?.siguienteNumero != null ? Number(ch.siguienteNumero) : null;
     this.armarPrevia();
+    // Sin monto no hay vista previa, pero el encabezado igual muestra el próximo libre real.
+    if (ch && !this.previa.length) {
+      this.numeracion.onGetProximos(ch.id, 1).pipe(untilDestroyed(this)).subscribe(nums => {
+        if (this.chequeraSel === ch && nums?.[0] != null) this.proximoNumero = nums[0];
+      });
+    }
   }
 
   /** Busca el proveedor; su nombre queda como beneficiario (editable). */
@@ -135,6 +148,7 @@ export class EmitirChequeDialogComponent implements OnInit {
     const cuotas = diferido ? Number(this.cuotasControl.value) || 1 : 1;
     const plan = armarCuotas(total, cuotas, primera, Number(this.intervaloControl.value) || 30, this.decimales());
     const sig = this.chequeraSel.siguienteNumero != null ? Number(this.chequeraSel.siguienteNumero) : null;
+    this.proximoNumero = sig;
     this.previa = plan.map(c => ({ numero: sig != null ? sig + c.indice : null, fechaPago: c.fechaPago, monto: c.monto }));
     this.recalcularPrevia();
     // Los números reales los decide el central, que saltea los inutilizados (central #603). Sin respuesta queda la
@@ -143,6 +157,7 @@ export class EmitirChequeDialogComponent implements OnInit {
     this.numeracion.onGetProximos(this.chequeraSel.id, previa.length).pipe(untilDestroyed(this)).subscribe(nums => {
       if (!nums || previa !== this.previa) return;
       previa.forEach((c, i) => c.numero = nums[i] ?? null);
+      if (nums[0] != null) this.proximoNumero = nums[0];
     });
   }
 
@@ -208,7 +223,7 @@ export class EmitirChequeDialogComponent implements OnInit {
         concepto: this.conceptoControl.value ? String(this.conceptoControl.value).toUpperCase() : null,
         claveIdempotencia: nuevaClaveIdempotencia(),
       },
-      descripcion: this.describir(ch, Number(this.totalControl.value) || 0, this.previa.length),
+      descripcion: this.describir(ch, Number(this.totalControl.value) || 0),
     };
     this.enviar(pedido, false);
   }
@@ -291,9 +306,10 @@ export class EmitirChequeDialogComponent implements OnInit {
   }
 
   /** «Nº 123 (chequera X, Gs. 500.000)», con los datos del momento de emitir. */
-  private describir(ch: Chequera, total: number, cantidad = 1): string {
-    const numero = ch?.siguienteNumero != null
-      ? (cantidad > 1 ? `Nº ${ch.siguienteNumero} a ${Number(ch.siguienteNumero) + cantidad - 1} ` : `Nº ${ch.siguienteNumero} `) : '';
+  private describir(ch: Chequera, total: number): string {
+    // Los números de la vista previa (los libres del central): con inutilizados en el medio no son consecutivos.
+    const nums = this.previa.map(c => c.numero).filter(n => n != null);
+    const numero = !nums.length ? '' : (nums.length > 1 ? `Nº ${nums[0]} a ${nums[nums.length - 1]} ` : `Nº ${nums[0]} `);
     const monto = `${ch?.cuentaBancaria?.moneda?.simbolo || ''} ${(total || 0).toLocaleString('es-PY')}`.trim();
     const chequera = ch?.nombre || ('chequera #' + ch?.id);
     return `${numero}(${chequera}, ${monto})`;

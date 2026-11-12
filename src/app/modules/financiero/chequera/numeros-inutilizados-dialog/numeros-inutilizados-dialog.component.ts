@@ -43,6 +43,8 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
   guardando = false;
   /** Hubo algún cambio: al cerrar, quien abrió relee la chequera (próximo número y hojas). */
   huboCambios = false;
+  /** Primer número libre según el central: el contador de la chequera no saltea los inutilizados. */
+  proximoNumero: number | null = null;
 
   acciones: { value: AccionChequeInutilizado; label: string }[] = [
     { value: 'NINGUNA', label: 'El número no tiene cheque' },
@@ -57,6 +59,7 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
     private dialogos: DialogosService,
   ) {
     this.chequera = data?.chequera;
+    this.proximoNumero = this.chequera?.siguienteNumero != null ? Number(this.chequera.siguienteNumero) : null;
   }
 
   ngOnInit(): void {
@@ -65,6 +68,10 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
 
   cargar() {
     this.cargando = true;
+    this.numeracion.onGetProximos(this.chequera.id, 1).pipe(untilDestroyed(this)).subscribe(nums => {
+      // Sin números libres la chequera queda agotada: no hay próximo.
+      if (nums) this.proximoNumero = nums[0] ?? null;
+    });
     this.numeracion.onGetInutilizados(this.chequera.id).pipe(untilDestroyed(this)).subscribe(lista => {
       this.cargando = false;
       this.filas = lista.map(i => ({
@@ -85,7 +92,7 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
     }
     this.guardando = true;
     this.numeracion.onInutilizar({
-      chequeraId: this.chequera.id, numero: this.numero, motivo: this.motivo.trim(),
+      chequeraId: this.chequera.id, numero: this.numero, motivo: this.motivo.trim().toUpperCase(),
       accionCheque: this.accion, numeroNuevo: this.accion === 'RENUMERADO' ? this.numeroNuevo : null,
     }).pipe(untilDestroyed(this)).subscribe({
       next: () => {
@@ -103,8 +110,15 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
   }
 
   revertir(fila: FilaInutilizado) {
-    this.dialogos.confirm('Revertir inutilización',
-      `El número ${fila.numero} vuelve a estar libre para un cheque nuevo.`,
+    // La numeración no vuelve atrás del correlativo (las hojas anteriores pudieron usarse fuera del sistema): un
+    // número que ya quedó atrás pierde la marca pero no se reusa. Dentro del diálogo no se emite, así que el
+    // correlativo con el que se abrió sigue siendo el de la chequera.
+    const correlativo = this.chequera?.siguienteNumero != null ? Number(this.chequera.siguienteNumero) : null;
+    const quedoAtras = correlativo != null && Number(fila.numero) < correlativo;
+    const mensaje = quedoAtras
+      ? `El número ${fila.numero} quedó atrás de la numeración (va por el ${correlativo}): se quita la marca, pero no se vuelve a usar para un cheque nuevo.`
+      : `El número ${fila.numero} vuelve a estar libre para un cheque nuevo.`;
+    this.dialogos.confirm('Revertir inutilización', mensaje,
       fila.accionCheque === 'ANULADO' ? 'El cheque que se anuló sigue anulado.' : null,
       null, true, 'Revertir', 'Cancelar').pipe(untilDestroyed(this)).subscribe(ok => {
       if (ok !== true) return;

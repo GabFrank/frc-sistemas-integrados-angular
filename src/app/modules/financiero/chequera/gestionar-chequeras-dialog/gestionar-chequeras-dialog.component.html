@@ -48,7 +48,7 @@
 
         <ng-container matColumnDef="siguiente">
           <th mat-header-cell *matHeaderCellDef style="text-align: center;">Siguiente</th>
-          <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.siguienteNumero }}</td>
+          <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row._proximo ?? '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="hojas">

@@ -14,9 +14,12 @@ import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUti
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { take } from 'rxjs/operators';
 import { NumerosInutilizadosDialogComponent } from '../numeros-inutilizados-dialog/numeros-inutilizados-dialog.component';
+import { NumeracionChequeraService } from '../numeracion-chequera.service';
 
 interface ChequeraRow extends Chequera {
   _cuentaLabel?: string;
+  /** Con el que sale el próximo cheque (saltea los inutilizados); mientras no responde el central, el correlativo. */
+  _proximo?: number | null;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -52,6 +55,7 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
     private dialog: MatDialog,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
+    private numeracion: NumeracionChequeraService,
   ) {}
 
   ngOnInit(): void {
@@ -89,8 +93,22 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
         this.isLoading = false;
         this.dataSource.data = res.map(ch => this.toRow(ch));
         this.aplicarFiltro();
+        this.cargarProximos(carga);
       },
       error: noSePudo,
+    });
+  }
+
+  /**
+   * `siguienteNumero` es el correlativo guardado y no saltea los inutilizados (central #603): el próximo real se pide
+   * aparte, solo para las activas. Un central sin la consulta deja el correlativo.
+   */
+  private cargarProximos(carga: number) {
+    this.dataSource.data.filter(r => r.estado === EstadoChequera.ACTIVA).forEach(row => {
+      this.numeracion.onGetProximos(row.id, 1).pipe(untilDestroyed(this)).subscribe(nums => {
+        if (carga !== this.cargaSeq || !nums) return;
+        row._proximo = nums[0] ?? null;
+      });
     });
   }
 
@@ -116,6 +134,8 @@ export class GestionarChequerasDialogComponent implements OnInit, AfterViewInit 
     const row = { ...ch } as ChequeraRow;
     const banco = ch.cuentaBancaria?.banco?.nombre || '';
     row._cuentaLabel = banco ? (banco + ' · ' + (ch.cuentaBancaria?.numero || '')) : '-';
+    // Una agotada o anulada no tiene próximo (el correlativo quedó fuera del rango).
+    row._proximo = ch.estado === EstadoChequera.ACTIVA && ch.siguienteNumero != null ? Number(ch.siguienteNumero) : null;
     return row;
   }
 

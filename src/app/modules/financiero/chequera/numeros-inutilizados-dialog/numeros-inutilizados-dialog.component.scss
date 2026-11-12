@@ -15,6 +15,9 @@
   color: #ff9800;
 }
 
+// Aire arriba para la etiqueta flotante del primer campo outline.
+mat-dialog-content { padding-top: 10px; }
+
 .ni-form {
   display: flex;
   align-items: center;
@@ -23,6 +26,8 @@
   .ni-numero { flex: 0 0 130px; }
   .ni-motivo, .ni-accion { flex: 1; }
 }
+
+.ni-form + .ni-form { margin-top: 14px; }
 
 .ni-vacio {
   padding: 16px;

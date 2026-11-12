@@ -116,12 +116,14 @@
         </div>
       </div>
 
-      <!-- Un card por chequera activa -->
-      <div class="sidebar-title">Chequeras activas</div>
+      <!-- Un card por chequera activa o con cheques pendientes -->
+      <div class="sidebar-title">Chequeras</div>
       <div class="mini-card" *ngFor="let s of saldos">
         <div class="mini-card-header">
           <mat-icon>menu_book</mat-icon>
           {{ s.chequera?.nombre || ('Chequera #' + s.chequera?.id) }}
+          <!-- Una no activa figura solo por sus cheques pendientes. -->
+          <span class="chip-estado-chequera" *ngIf="s.chequera?.estado && s.chequera.estado !== 'ACTIVA'">{{ s.chequera.estado }}</span>
         </div>
         <div class="mini-sub" *ngIf="s.cuentaBancaria">
           {{ s.cuentaBancaria?.banco?.nombre }} · {{ s.cuentaBancaria?.numero }}
@@ -144,7 +146,7 @@
         </div>
       </div>
       <div class="mini-card" *ngIf="saldos.length === 0">
-        <div class="mini-row"><span style="opacity: 0.6;">Sin chequeras activas</span></div>
+        <div class="mini-row"><span style="opacity: 0.6;">Sin chequeras activas ni cheques pendientes</span></div>
       </div>
     </aside>
 

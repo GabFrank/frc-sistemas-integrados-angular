@@ -280,7 +280,12 @@ export class ChequesDashboardComponent implements OnInit {
     const n = ++this.seq.resumen;
     // Un número inutilizado no tiene monto: el KPI no suma nada.
     if (this.estadoSel === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
-    this.chequeService.onGetResumenPorDia(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
+    // El KPI suma plata comprometida: con «Todos» no cuenta los anulados (sí se ven en la lista, atenuados).
+    const filtro = this.filtroActual();
+    if (this.estadoSel === 'TODOS') {
+      filtro.estados = [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO, EstadoCheque.COBRADO];
+    }
+    this.chequeService.onGetResumenPorDia(filtro).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.resumen) return;
         this.marcarLectura('resumen', false);
@@ -332,8 +337,15 @@ export class ChequesDashboardComponent implements OnInit {
 
   private consolidar() {
     this.consolidadoPendiente = this.saldos.reduce((a, s) => a + (s.pendienteHastaFecha || 0), 0);
-    this.consolidadoSaldo = this.saldos.reduce((a, s) => a + (s.saldoCuenta || 0), 0);
-    this.consolidadoReservado = this.saldos.reduce((a, s) => a + (s.saldoReservado || 0), 0);
+    // El saldo y lo reservado son de la cuenta: dos chequeras de la misma cuenta la contaban dos veces.
+    const porCuenta = new Map<string, ChequeSaldoChequera>();
+    this.saldos.forEach(s => {
+      const clave = s.cuentaBancaria?.id != null ? 'c' + s.cuentaBancaria.id : 'q' + s.chequera?.id;
+      if (!porCuenta.has(clave)) porCuenta.set(clave, s);
+    });
+    const cuentas = [...porCuenta.values()];
+    this.consolidadoSaldo = cuentas.reduce((a, s) => a + (s.saldoCuenta || 0), 0);
+    this.consolidadoReservado = cuentas.reduce((a, s) => a + (s.saldoReservado || 0), 0);
     this.consolidadoDisponible = this.consolidadoSaldo - this.consolidadoPendiente;
   }
 

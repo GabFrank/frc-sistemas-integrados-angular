@@ -235,7 +235,7 @@ export const chequesSaldosPorChequeraQuery = gql`
       saldoCuenta
       saldoReservado
       hojasDisponibles
-      chequera { id nombre siguienteNumero rangoHasta }
+      chequera { id nombre siguienteNumero rangoHasta estado }
       cuentaBancaria { id numero banco { id nombre } moneda { id simbolo } }
     }
   }

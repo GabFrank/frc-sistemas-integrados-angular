@@ -1,6 +1,6 @@
 <div class="ni-dialog">
   <h2 class="titulo-dialog">Números inutilizados</h2>
-  <div class="subtitulo-dialog">{{ chequera?.nombre || ('Chequera #' + chequera?.id) }} · próximo Nº {{ chequera?.siguienteNumero }}</div>
+  <div class="subtitulo-dialog">{{ chequera?.nombre || ('Chequera #' + chequera?.id) }} · próximo Nº {{ proximoNumero ?? '— (sin hojas libres)' }}</div>
 
   <mat-dialog-content>
     <!-- Inutilizar un número (pasado o futuro, dentro del rango) -->

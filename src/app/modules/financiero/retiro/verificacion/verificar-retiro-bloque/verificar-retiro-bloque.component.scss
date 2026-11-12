@@ -28,7 +28,7 @@
   gap: 6px;
 
   // Naranja de estado (igual en los dos modos): avisa que esa moneda no estaba en el ticket del cajero.
-  .no-declarada { font-size: 11px; color: #ffb74d; }
+  .no-declarada { font-size: 11px; color: #ffb74d; white-space: nowrap; }
 }
 
 .c-num {

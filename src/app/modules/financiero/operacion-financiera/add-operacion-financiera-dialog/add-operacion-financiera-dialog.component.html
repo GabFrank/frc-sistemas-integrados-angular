@@ -139,7 +139,8 @@
           <!-- Cotización: manual por defecto. La del sistema se pide, no se impone: antes se
                precargaba sola al elegir la moneda y pisaba lo que el usuario había escrito. -->
           <div class="cotizacion-fila" *ngIf="mostrarCotizacion">
-            <mat-form-field appearance="outline" class="f-cotizacion">
+            <!-- subscriptSizing dynamic: la ayuda (inversa + origen) ocupa dos líneas y no pisa los montos de abajo. -->
+            <mat-form-field appearance="outline" class="f-cotizacion" subscriptSizing="dynamic">
               <mat-label>{{ cotizacionLabel }}</mat-label>
               <!-- Formato de casa de cambio (desk #720): miles con punto y decimales con coma. -->
               <input matInput currencyMask [options]="currencyOptsCotizacion" [formControl]="cotizacionControl"

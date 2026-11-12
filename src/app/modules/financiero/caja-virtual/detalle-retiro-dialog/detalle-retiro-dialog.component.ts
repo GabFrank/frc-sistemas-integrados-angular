@@ -29,6 +29,22 @@ interface FilaMonedaRetiro {
  * y, si se verificó, lo contado y la diferencia. Es el que explica un ingreso RETIRO_CAJA, el movimiento más común de
  * la caja. La verificación la lee solo tesorería: con el rol acotado se muestra el retiro sin ella.
  */
+/** Estado del retiro como se lee en pantalla (el central manda el nombre del enum). */
+const ESTADO_RETIRO_LABEL: Record<string, string> = {
+  EN_PROCESO: 'En proceso',
+  CONCLUIDO: 'Concluido',
+  NECESITA_VERIFICACION: 'Necesita verificación',
+  EN_VERIFICACION: 'En verificación',
+  VERIFICADO_CONCLUIDO_SIN_PROBLEMA: 'Verificado sin problema',
+  VERIFICADO_CONCLUIDO_CON_PROBLEMA: 'Verificado con problema',
+  CANCELADO: 'Cancelado',
+};
+
+const RESULTADO_VERIFICACION_LABEL: Record<string, string> = {
+  SIN_DIFERENCIA: 'sin diferencia',
+  CON_DIFERENCIA: 'con diferencia',
+};
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-detalle-retiro-dialog',
@@ -80,7 +96,7 @@ export class DetalleRetiroDialogComponent implements OnInit {
     this.fecha = retiro.creadoEn;
     this.responsable = retiro.responsable?.persona?.nombre || '—';
     this.cajero = retiro.usuario?.persona?.nombre || '—';
-    this.estado = retiro.estado || '';
+    this.estado = ESTADO_RETIRO_LABEL[retiro.estado] || retiro.estado || '';
     this.observacion = retiro.observacion || '';
 
     const declarado = new Map<string, { moneda: any; total: number }>();
@@ -93,7 +109,7 @@ export class DetalleRetiroDialogComponent implements OnInit {
     }
     const contado = new Map<string, { moneda: any; contado: number; diferencia: number }>();
     if (verificacion) {
-      this.resultado = verificacion.resultado || '';
+      this.resultado = RESULTADO_VERIFICACION_LABEL[verificacion.resultado] || verificacion.resultado || '';
       this.verificadoPor = verificacion.usuario?.persona?.nombre || '';
       this.verificadoEn = verificacion.creadoEn;
       for (const d of (verificacion.detalles || [])) {

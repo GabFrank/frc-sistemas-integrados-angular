@@ -28,7 +28,7 @@
       <!-- Info de la chequera seleccionada -->
       <div class="info-chequera" *ngIf="chequeraSel">
         <span><mat-icon>paid</mat-icon> {{ chequeraSel.cuentaBancaria?.moneda?.simbolo || 'Gs.' }}</span>
-        <span><mat-icon>tag</mat-icon> Próximo Nº <strong>{{ chequeraSel.siguienteNumero }}</strong></span>
+        <span><mat-icon>tag</mat-icon> Próximo Nº <strong>{{ proximoNumero ?? '—' }}</strong></span>
         <span><mat-icon>description</mat-icon> {{ chequeraSel.hojasDisponibles }} hojas</span>
       </div>
 
@@ -60,7 +60,7 @@
       <div class="fila-dos">
         <mat-form-field appearance="outline">
           <mat-label>Fecha de emisión</mat-label>
-          <input matInput [matDatepicker]="dpEmision" [formControl]="fechaEmisionControl" (dateChange)="armarPrevia()" />
+          <input matInput frcMascaraFecha [matDatepicker]="dpEmision" [formControl]="fechaEmisionControl" (dateChange)="armarPrevia()" />
           <mat-datepicker-toggle matSuffix [for]="dpEmision"></mat-datepicker-toggle>
           <mat-datepicker #dpEmision></mat-datepicker>
         </mat-form-field>
@@ -74,7 +74,7 @@
       <div class="fila-dos" *ngIf="diferidoControl.value">
         <mat-form-field appearance="outline">
           <mat-label>Fecha de pago (primer cheque)</mat-label>
-          <input matInput [matDatepicker]="dp" [formControl]="fechaPagoControl" (dateChange)="armarPrevia()" />
+          <input matInput frcMascaraFecha [matDatepicker]="dp" [formControl]="fechaPagoControl" (dateChange)="armarPrevia()" />
           <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
           <mat-datepicker #dp></mat-datepicker>
         </mat-form-field>
@@ -100,7 +100,7 @@
         <div class="previa-fila" *ngFor="let c of previa">
           <span class="previa-num">{{ c.numero ?? '—' }}</span>
           <span>
-            <input class="previa-input" [matDatepicker]="dpc" [ngModel]="c.fechaPago" [ngModelOptions]="{ standalone: true }"
+            <input class="previa-input" frcMascaraFecha [matDatepicker]="dpc" [ngModel]="c.fechaPago" [ngModelOptions]="{ standalone: true }"
                    (dateChange)="onFechaPreviaChange(c, $event.value)" [disabled]="!diferidoControl.value" />
             <mat-datepicker-toggle [for]="dpc" *ngIf="diferidoControl.value"></mat-datepicker-toggle>
             <mat-datepicker #dpc></mat-datepicker>
@@ -112,7 +112,8 @@
         </div>
         <div class="previa-total" [class.previa-error]="diferenciaPrevia !== 0">
           Suma {{ sumaPrevia | number:'1.0-2' }}
-          <span *ngIf="diferenciaPrevia !== 0"> · faltan {{ diferenciaPrevia | number:'1.0-2' }} para el total</span>
+          <span *ngIf="diferenciaPrevia > 0"> · faltan {{ diferenciaPrevia | number:'1.0-2' }} para el total</span>
+          <span *ngIf="diferenciaPrevia < 0"> · sobran {{ -diferenciaPrevia | number:'1.0-2' }} sobre el total</span>
         </div>
       </div>
       <div class="aviso-hojas" *ngIf="faltanHojas">
