@@ -142,6 +142,19 @@ export class MonedaService {
     return { ...this.currencyOptionsNoGuarani, precision: decimales };
   }
 
+  /** Decimales de un costo unitario de compra: los de la moneda, y al menos 4 si tiene decimales (el costeo guarda 4). */
+  decimalesCosto(moneda: Moneda): number {
+    const decimales = this.currencyOptionsByMoneda(moneda).precision;
+    return decimales > 0 ? Math.max(decimales, 4) : 0;
+  }
+
+  /** Máscara de un costo unitario de compra: la de {@link currencyOptionsByMoneda} con {@link decimalesCosto} decimales. */
+  currencyOptionsCostoByMoneda(moneda: Moneda): any {
+    const options = this.currencyOptionsByMoneda(moneda);
+    const decimales = this.decimalesCosto(moneda);
+    return decimales === options.precision ? options : { ...options, precision: decimales };
+  }
+
   /**
    * Decimales de una moneda para los montos de tesorería: `decimales` si viene, si no 0 para una
    * denominación que contiene «GUARANI» y 2 para el resto (la regla de las copias locales que

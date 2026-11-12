@@ -290,6 +290,8 @@ export class AddEditItemDialogComponent implements OnInit {
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
   selectedCurrencyDecimalFormat = '1.0-0';
+  /** Formato de los costos unitarios (precio anterior y su variación): hasta 4 decimales en moneda extranjera. */
+  selectedCostoDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -680,7 +682,8 @@ export class AddEditItemDialogComponent implements OnInit {
     const monedaCompleta = this.completarMoneda(this.data.pedido.moneda);
     
     if (monedaCompleta) {
-      this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
+      this.selectedCurrencyOptions = this.monedaService.currencyOptionsCostoByMoneda(monedaCompleta);
+      this.selectedCostoDecimalFormat = `1.0-${this.selectedCurrencyOptions.precision}`;
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
       const decimales = monedaCompleta.decimales != null
         ? monedaCompleta.decimales
@@ -692,6 +695,7 @@ export class AddEditItemDialogComponent implements OnInit {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
       this.selectedCurrencyDecimalFormat = '1.0-0';
+      this.selectedCostoDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -1037,7 +1041,7 @@ export class AddEditItemDialogComponent implements OnInit {
       ? !this.monedaModuloService.esMonedaEmpresa(pedidoMoneda)
       : pedidoCotizacion > 1;
     if (precioInicial > 0 && monedaDistinta && pedidoCotizacion > 0) {
-      const factor = Math.pow(10, pedidoMoneda?.decimales ?? 2);
+      const factor = Math.pow(10, this.monedaService.decimalesCosto(pedidoMoneda));
       precioInicial = Math.round((precioInicial / pedidoCotizacion) * factor) / factor;
     }
 

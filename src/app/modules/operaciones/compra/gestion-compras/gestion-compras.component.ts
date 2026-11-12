@@ -349,6 +349,8 @@ export class GestionComprasComponent
   // Moneda display properties
   pedidoMonedaSimbolo = '';
   pedidoMonedaDecimalFormat = '1.0-0';
+  /** Formato del precio unitario de los ítems: hasta 4 decimales en moneda extranjera (subtotal y total, el de la moneda). */
+  pedidoCostoDecimalFormat = '1.0-0';
 
   // Cotización del pedido — fuente del prefill (mercado / manual / pedido guardado)
   cotizacionFromMercado = false;
@@ -1508,6 +1510,7 @@ export class GestionComprasComponent
     this.pedidoMonedaSimbolo = moneda?.simbolo || '';
     const decimales = moneda?.decimales != null ? moneda.decimales : (this.esMonedaEmpresa(moneda) ? 0 : 2);
     this.pedidoMonedaDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
+    this.pedidoCostoDecimalFormat = decimales > 0 ? `1.0-${Math.max(decimales, 4)}` : '1.0-0';
 
     // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties
     // ahora se llaman de forma selectiva solo cuando los datos de items cambian
