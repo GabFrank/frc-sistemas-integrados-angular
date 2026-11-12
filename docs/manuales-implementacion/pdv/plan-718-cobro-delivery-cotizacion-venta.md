@@ -69,6 +69,25 @@ Sin migración, sin GraphQL, sin roles.
 - Un cobro en una tercera moneda (R$) guarda el cambio del día del R$; su equivalente en Gs
   convierte por la cotización de la venta del US$. Es aritméticamente consistente.
 
+## Resultado de las pruebas (12/11)
+
+- Karma acotado a `cotizacion-delivery.spec.ts`: 5/5. Con el fix revertido fallan 3 (los otros 2 son
+  los casos «sin cambio»).
+- `npm run check` y `web:build` (AOT) sobre el SHA rebasado: sin errores.
+- Por pantalla, web estática contra un filial propio en el 8082 (jar del filial alpha, sucursal 24,
+  base local, SIFEN apagado), PDV 25 en USD (config y decimales puestos por SQL y restaurados):
+  - delivery 8059 armado con 6.250 (venta 79336, `cotizacion = 6250`); cambio del dólar a 6.400;
+  - el pago abre con total 11.000 Gs = 1,76 US$ × 6.250 (con el código viejo, 11.264);
+  - 1 US$ + 5.000 Gs − 250 de vuelto: `cobro_detalle` del US$ con `cambio = 6250`,
+    `cotizacion = 6250`; neto 11.000 Gs = venta 6.000 + envío 5.000;
+  - venta común en el mismo PDV: 0,94 US$ = 6.016 Gs (cambio del día 6.400), sin cambio.
+
+## Auditoría del diff (paso 8)
+
+Diff: `pago-touch.component.ts`, el spec y este plan. Fijo 1 N/A para desktop porque no hay
+resolver, menú ni botón nuevo; Fijo 2 N/A porque no hay migración ni esquema; Fijo 3 N/A porque no
+se pide ni cambia ninguna operación GraphQL. Sin condicionales (ni release ni replicación).
+
 ## Auditoría del plan (paso 5)
 
 | # | Eje | Hallazgo | Qué se hizo |
