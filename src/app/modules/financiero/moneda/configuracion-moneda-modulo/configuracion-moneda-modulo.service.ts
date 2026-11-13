@@ -31,6 +31,22 @@ export function mensajeSinCotizacion(mensaje: string | null | undefined): string
   return 'Sin cotización: ' + (detalle || 'la moneda no tiene cotización cargada.');
 }
 
+/** Prefijo del rechazo del central cuando la cotización del comercio tiene más de 30 días. */
+const PREFIJO_COTIZACION_VIEJA = 'COTIZACION_VIEJA';
+
+/**
+ * Detalle de un rechazo `COTIZACION_VIEJA: ...` («La ultima cotizacion de DOLAR es del 23/03/2026…»),
+ * o null si el rechazo es otro. No es un error: el diálogo lo muestra y pide confirmar. Exportada para el spec.
+ */
+export function mensajeCotizacionVieja(mensaje: string | null | undefined): string | null {
+  if (typeof mensaje !== 'string') return null;
+  const limpio = String(limpiarMensajeGraphQL(mensaje) || '').trim();
+  const desde = limpio.indexOf(PREFIJO_COTIZACION_VIEJA);
+  if (desde === -1) return null;
+  const detalle = limpio.substring(desde + PREFIJO_COTIZACION_VIEJA.length).replace(/^[:\s]+/, '');
+  return detalle || 'La cotización de la moneda es de hace más de 30 días.';
+}
+
 /**
  * El central rechazó la consulta por el schema: no conoce `ModuloMoneda` ni la query (anterior a
  * V258.5). No es una falla sino un central sin actualizar. Exportada para el spec.
@@ -67,6 +83,8 @@ export class ConfiguracionMonedaModuloService {
     return this.genericService.onSaveCustom<ConfiguracionMonedaModulo>(this.saveGQL, { input }, true, {
       avisarExito: false,
       silenciarRechazo: (errores) => {
+        // La cotización vieja la confirma el diálogo: no es un error que avisar.
+        if (mensajeCotizacionVieja(errores?.[0]?.message) != null) return true;
         const texto = mensajeSinCotizacion(errores?.[0]?.message);
         if (texto == null) return false;
         this.notificacion.openWarn(texto, 5);
