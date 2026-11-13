@@ -321,7 +321,24 @@ export class GenericListVentaComponent implements OnInit {
     return textoLotesDeItem(this.lotesPorItem[String(ventaItemId)]);
   }
 
+  /**
+   * Quién canceló la venta (consulta aparte al central). Solo con la fila abierta y la venta cancelada; se relee al
+   * abrirla y después de cancelar o habilitar. Si no se pudo leer, no se muestra nada.
+   */
+  private cargarCancelacion(venta: Venta): void {
+    venta.canceladoPor = undefined;
+    venta.canceladoEn = undefined;
+    if (venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
+    this.ventaService.onGetCancelacion(venta.id, venta.sucursalId).pipe(untilDestroyed(this)).subscribe((c) => {
+      // La respuesta puede llegar con la fila ya cerrada o la venta habilitada
+      if (c === undefined || venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
+      venta.canceladoPor = c?.usuario?.nickname ?? "sin registro";
+      venta.canceladoEn = c?.creadoEn;
+    });
+  }
+
   onClickRow(venta: Venta, index) {
+    this.cargarCancelacion(venta);
     this.cargarLotesDeVenta(venta);
     if (venta.ventaItemList == null) {
       this.isLoading = true;
@@ -562,6 +579,7 @@ export class GenericListVentaComponent implements OnInit {
                 // Otro usuario (o un intento anterior) ya la cambió: no se mandó nada
                 venta.estado = resultado.estadoActual;
                 this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+                this.cargarCancelacion(venta);
                 this.notificacionService.openWarn(
                   `La venta ya estaba ${resultado.estadoActual} en el servidor: no se envió nada. Revisá antes de volver a intentar.`, 8);
                 this.onGetBalance();
@@ -587,6 +605,7 @@ export class GenericListVentaComponent implements OnInit {
                 });
               }
               this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+              this.cargarCancelacion(venta);
               this.onGetBalance();
             },
             error: (e: ErrorCancelacionVenta) => {
@@ -626,6 +645,7 @@ export class GenericListVentaComponent implements OnInit {
           });
         }
         this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+        this.cargarCancelacion(venta);
         this.notificacionService.openWarn(`La venta ${venta.id} está ${estado} en el servidor.`, 6);
         this.onGetBalance();
       },

@@ -12,6 +12,7 @@ import { CancelarVentaGQL } from "./graphql/cancelarVenta";
 import { ReimprimirVentaGQL } from "./graphql/reimprimirVenta";
 import { ReimprimirSorteoGQL } from "./graphql/reimprimirSorteo";
 import { VentaTieneSorteoGQL } from "./graphql/ventaTieneSorteo";
+import { VentaCancelacionGQL } from "./graphql/ventaCancelacion";
 import { SaveVentaGQL } from "./graphql/saveVenta";
 import { SaveVentaClienteGQL } from "./graphql/saveVentaCliente";
 import { SaveVentaClienteSorteoGQL, SaveVentaSorteoGQL } from "./graphql/saveVentaSorteo";
@@ -61,6 +62,11 @@ const RELECTURA_SILENCIOSA: QueryError = {
   networkError: { propagate: true, show: false },
   graphError: { show: false },
 };
+/** Lectura que falla al llamador por red o por GraphQL, sin aviso: un error parcial no se toma como «sin dato». */
+const LECTURA_SIN_AVISO: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
 const CONSULTA_RELECTURA: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Listas de ventas: 60 s sin el aviso genérico del link; el error de red llega al llamador, que avisa. */
 const PROPAGAR_RED_VENTAS: QueryError = { networkError: { propagate: true, show: false } };
@@ -97,6 +103,7 @@ export class VentaService {
     private reimprimirVenta: ReimprimirVentaGQL,
     private reimprimirSorteo: ReimprimirSorteoGQL,
     private ventaTieneSorteo: VentaTieneSorteoGQL,
+    private ventaCancelacion: VentaCancelacionGQL,
     private ventasPorCajaId: VentaPorCajaIdGQL,
     private ventaPorId: VentaPorIdGQL,
     private ventaPorPeriodo: VentaPorPeriodoGQL,
@@ -299,6 +306,19 @@ export class VentaService {
       .pipe(
         map((v) => v?.tieneSorteo === true),
         catchError(() => of(false))
+      );
+  }
+
+  /**
+   * Quién canceló la venta, según el central. `null`: no quedó registro. `undefined`: no se pudo leer (corte, rechazo
+   * o un central anterior que no conoce el campo); en ese caso no se afirma nada.
+   */
+  onGetCancelacion(id, sucId): Observable<{ creadoEn: Date; usuario: { nickname: string } } | null | undefined> {
+    return this.genericService
+      .onCustomQuery(this.ventaCancelacion, { id, sucId }, true, LECTURA_SIN_AVISO, true, CONSULTA_RELECTURA)
+      .pipe(
+        map((v) => (v == null ? undefined : v.cancelacion ?? null)),
+        catchError(() => of(undefined))
       );
   }
 

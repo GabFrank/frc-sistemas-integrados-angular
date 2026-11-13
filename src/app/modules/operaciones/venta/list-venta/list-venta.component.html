@@ -1001,20 +1001,16 @@
                       <mat-divider></mat-divider>
                     </div>
                     <div fxFlex fxLayout="row" style="padding-top: 5px">
-                      <ng-container *ngIf="venta?.delivery?.fechaConcluido; else noDelivery">
-                        <div fxFlex="15%">Delivery concluido:</div>
-                        <div fxFlex="15%">
-                          {{
-                            venta?.delivery?.fechaConcluido
-                              | date : "dd/MM/yyyy HH:mm"
-                          }}
-                        </div>
-                      </ng-container>
-                      <ng-template #noDelivery>
-                        <div fxFlex="30%"></div>
-                      </ng-template>
-
-                      <div fxFlex="40%"></div>
+                      <div fxFlex="70%" fxLayout="row" fxLayoutAlign="space-evenly center">
+                        <span *ngIf="venta?.delivery?.fechaConcluido" class="par-detalle">
+                          Delivery concluido:
+                          <span class="valor-detalle">{{ venta?.delivery?.fechaConcluido | date : "dd/MM/yyyy HH:mm" }}</span>
+                        </span>
+                        <span *ngIf="venta?.canceladoPor" class="par-detalle">
+                          <span class="titulo-cancelado">Cancelado por:</span>
+                          <span class="valor-detalle">{{ venta.canceladoPor }}<ng-container *ngIf="venta.canceladoEn"> — {{ venta.canceladoEn | date : "dd/MM/yyyy HH:mm" }}</ng-container></span>
+                        </span>
+                      </div>
 
                       <div fxFlex="15%">Total final:</div>
                       <div fxFlex="15%">
