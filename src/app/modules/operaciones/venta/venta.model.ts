@@ -12,6 +12,9 @@ export class Venta {
     id: number;
     /** Solo la trae la consulta aparte de las últimas ventas (filial); no viene en el resto de las lecturas. */
     tieneSorteo?: boolean;
+    /** Detalle de una venta cancelada (consulta aparte al central): nickname de quien la canceló, o «sin registro». */
+    canceladoPor?: string;
+    canceladoEn?: Date;
     caja: PdvCaja
     cliente: Cliente;
     formaPago: FormaPago;

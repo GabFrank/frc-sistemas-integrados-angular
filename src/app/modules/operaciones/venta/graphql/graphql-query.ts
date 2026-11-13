@@ -373,6 +373,24 @@ export const ventaTieneSorteoQuery = gql`
   }
 `;
 
+// Quien cancelo la venta (central, V274.1). Consulta aparte por la misma razon que ventaTieneSorteoQuery: las
+// listas tambien se piden a filiales, que no tienen el campo. Solo se manda al central.
+export const ventaCancelacionQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: venta(id: $id, sucId: $sucId) {
+      id
+      cancelacion {
+        id
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;
+
 //ventasPorCajaId
 
 export const ventasPorCajaIdQuery = gql`
