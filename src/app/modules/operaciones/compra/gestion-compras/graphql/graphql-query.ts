@@ -1995,8 +1995,8 @@ export const imprimirSolicitudPagoTicketMutation = gql`
 `;
 
 export const solicitudesPagoPaginatedQuery = gql`
-  query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado, $numero: String, $fechaDesde: String, $fechaHasta: String) {
-    data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado, numero: $numero, fechaDesde: $fechaDesde, fechaHasta: $fechaHasta) {
+  query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado, $numero: String, $fechaDesde: String, $fechaHasta: String, $monedaIds: [ID]) {
+    data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado, numero: $numero, fechaDesde: $fechaDesde, fechaHasta: $fechaHasta, monedaIds: $monedaIds) {
       getTotalPages
       getTotalElements
       getNumberOfElements

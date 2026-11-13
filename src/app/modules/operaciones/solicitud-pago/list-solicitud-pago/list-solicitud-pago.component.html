@@ -7,7 +7,7 @@
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
-      <mat-form-field fxFlex="15">
+      <mat-form-field fxFlex="10">
         <mat-label>Número</mat-label>
         <input matInput [formControl]="numeroControl" placeholder="Buscar por número..." (keyup.enter)="onFilter()" />
       </mat-form-field>
@@ -42,11 +42,20 @@
         </button>
       </mat-form-field>
 
-      <mat-form-field fxFlex="25">
+      <mat-form-field fxFlex="15">
         <mat-label>Estado</mat-label>
         <mat-select [formControl]="estadoControl">
           <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">
             {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="15">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaControl" multiple placeholder="Todas">
+          <mat-option *ngFor="let moneda of monedaList" [value]="moneda.id">
+            {{ moneda.denominacion }}
           </mat-option>
         </mat-select>
       </mat-form-field>

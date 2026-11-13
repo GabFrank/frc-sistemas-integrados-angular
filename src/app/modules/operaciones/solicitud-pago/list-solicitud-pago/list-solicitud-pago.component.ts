@@ -34,6 +34,8 @@ import { GestionPagoDialogComponent } from '../gestion-pago-dialog/gestion-pago-
 import {
   AsignarCajaSolicitudDialogComponent, AsignarCajaSolicitudDialogData
 } from '../asignar-caja-solicitud-dialog/asignar-caja-solicitud-dialog.component';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 
 @UntilDestroy()
@@ -60,6 +62,8 @@ export class ListSolicitudPagoComponent implements OnInit {
   proveedorControl = new FormControl();
   estadoControl = new FormControl();
   numeroControl = new FormControl();
+  monedaControl = new FormControl<number[]>([]);
+  monedaList: Moneda[] = [];
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
   fechaFormGroup: FormGroup;
@@ -110,7 +114,8 @@ export class ListSolicitudPagoComponent implements OnInit {
     private reporteService: ReporteService,
     private dialog: MatDialog,
     private proveedorService: ProveedorService,
-    private pedidoService: PedidoService
+    private pedidoService: PedidoService,
+    private monedaService: MonedaService
   ) {}
 
   ngOnInit(): void {
@@ -123,6 +128,10 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl
+    });
+    // Aparte de la lista: si las monedas no cargan, la lista funciona igual sin ese filtro.
+    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res != null) this.monedaList = res;
     });
     this.loadPage();
   }
@@ -146,7 +155,8 @@ export class ListSolicitudPagoComponent implements OnInit {
         estado,
         numero,
         fechaDesde,
-        fechaHasta
+        fechaHasta,
+        this.monedaControl.value?.length ? this.monedaControl.value : undefined
       )
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -154,11 +164,12 @@ export class ListSolicitudPagoComponent implements OnInit {
           this.dataSource.data = pageResult?.getContent ?? [];
           this.length = pageResult?.getTotalElements ?? 0;
         },
-        error: () => {
+        error: (err) => {
           // No quedan a la vista las filas del filtro anterior como si fueran del nuevo (#390)
           this.dataSource.data = [];
           this.length = 0;
-          this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
+          // Un rechazo del servidor ya lo avisó el genérico; este aviso es solo para la falta de respuesta.
+          if (!err?.errors) this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
         }
       });
   }
@@ -174,6 +185,7 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.proveedorControl.setValue(null);
     this.proveedorControl.enable();
     this.estadoControl.setValue(null);
+    this.monedaControl.setValue([]);
     this.numeroControl.setValue(null);
     const hoy = new Date();
     const hace7Dias = new Date(hoy);

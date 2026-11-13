@@ -123,13 +123,15 @@ export class SolicitudPagoService {
     estado?: string,
     numero?: string,
     fechaDesde?: string,
-    fechaHasta?: string
+    fechaHasta?: string,
+    monedaIds?: number[]
   ): Observable<SolicitudPagoPageResult> {
     return this.genericCrudService.onCustomQuery(
       this.getSolicitudesPagoPaginatedGQL,
-      { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta },
+      { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds },
       true,
-      PROPAGAR_ERROR_DE_RED,
+      // El rechazo también llega al error: (con su aviso del genérico): un central sin monedaIds no deja la lista vacía como si no hubiera solicitudes.
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true } },
       true,
       CONSULTA_SOLICITUD
     ).pipe(
