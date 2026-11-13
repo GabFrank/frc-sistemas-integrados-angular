@@ -36,10 +36,11 @@
     <div class="acmm__fila">
       <mat-form-field appearance="outline" class="acmm__fecha">
         <mat-label>Vigente desde</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="fecha" placeholder="Ahora" />
+        <input matInput frcMascaraFecha maxlength="10" [matDatepicker]="picker" formControlName="fecha" placeholder="dd/mm/aaaa" />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
         <mat-hint>Vacío = desde ahora</mat-hint>
+        <mat-error *ngIf="fechaControl.hasError('matDatepickerParse')">Fecha inválida: dd/mm/aaaa</mat-error>
       </mat-form-field>
       <mat-form-field appearance="outline" class="acmm__hora">
         <mat-label>Hora</mat-label>

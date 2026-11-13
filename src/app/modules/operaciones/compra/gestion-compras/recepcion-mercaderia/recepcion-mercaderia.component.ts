@@ -465,6 +465,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   private calculateNotaComputedProperties(nota: NotaRecepcion): void {
     // Agregar propiedades computadas a la nota
     (nota as any).montoComputed = this.calculateNotaMonto(nota);
+    // El monto va en la moneda de la nota: sin el símbolo, «21,23» de una nota en dólares parecía en guaraníes.
+    const moneda: any = (nota as any).moneda;
+    (nota as any).simboloComputed = moneda?.simbolo || '';
+    const decimales = moneda?.decimales;
+    (nota as any).formatoMontoComputed = decimales != null ? `1.0-${decimales}` : '1.0-2';
     (nota as any).estadoDisplayNameComputed = this.getNotaEstadoDisplayName(nota.estado);
   }
 

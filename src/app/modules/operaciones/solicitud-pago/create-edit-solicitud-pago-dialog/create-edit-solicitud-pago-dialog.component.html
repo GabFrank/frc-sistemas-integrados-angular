@@ -27,6 +27,7 @@
     <div class="bstat">
       <span class="b-label">A pagar</span>
       <strong class="b-value">{{ simboloEmpresa }} {{ totalNotasGsEquivalenteComputed | number:formatoEmpresa }}</strong>
+      <small class="b-hint" *ngFor="let n of notasEnOtraMonedaComputed">{{ n.simbolo }} {{ n.total | number:n.format }} en notas</small>
     </div>
     <div class="bstat">
       <span class="b-label">Cubierto</span>

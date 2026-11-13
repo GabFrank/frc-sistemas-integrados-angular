@@ -1,9 +1,13 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { DateAdapter } from '@angular/material/core';
+import { take } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
+import { FechaPyDateAdapter } from '../../../../../shared/utils/fecha-py-date-adapter';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Moneda } from '../../moneda.model';
@@ -14,7 +18,7 @@ import {
   MODULOS_CON_SUCURSAL,
   MODULOS_MONEDA
 } from '../configuracion-moneda-modulo.model';
-import { ConfiguracionMonedaModuloService } from '../configuracion-moneda-modulo.service';
+import { ConfiguracionMonedaModuloService, mensajeCotizacionVieja } from '../configuracion-moneda-modulo.service';
 
 export interface AddConfiguracionMonedaModuloData {
   /** Módulo con el que arranca el diálogo (el del filtro de la lista). */
@@ -38,7 +42,9 @@ function leerHora(texto: string | null | undefined): [number, number] | null {
 @Component({
   selector: 'app-add-configuracion-moneda-modulo-dialog',
   templateUrl: './add-configuracion-moneda-modulo-dialog.component.html',
-  styleUrls: ['./add-configuracion-moneda-modulo-dialog.component.scss']
+  styleUrls: ['./add-configuracion-moneda-modulo-dialog.component.scss'],
+  // La fecha se tipea dd/mm/aaaa: el adaptador nativo la leía como mes/día y dejaba el formulario inválido.
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
 })
 export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
 
@@ -71,6 +77,7 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private sucursalService: SucursalService,
     private notificacion: NotificacionSnackbarService,
+    private dialogos: DialogosService,
   ) {}
 
   ngOnInit(): void {
@@ -127,7 +134,10 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
     input.sucursalId = this.admiteSucursal ? this.sucursalControl.value : null;
     input.monedaId = this.monedaControl.value;
     input.vigenteDesde = vigenteDesde;
+    this.guardar(input);
+  }
 
+  private guardar(input: ConfiguracionMonedaModuloInput): void {
     this.guardando = true;
     this.service.onSave(input).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
@@ -137,8 +147,18 @@ export class AddConfiguracionMonedaModuloDialogComponent implements OnInit {
           this.dialogRef.close(res);
         }
       },
-      // El rechazo (sin cotización, sucursal fuera de PDV, sin permiso) ya se avisó.
-      error: () => (this.guardando = false),
+      // El rechazo (sin cotización, sucursal fuera de PDV, sin permiso) ya se avisó. La cotización
+      // vieja no: se muestra su fecha y, si el usuario confirma, se guarda igual.
+      error: (err) => {
+        this.guardando = false;
+        const detalle = mensajeCotizacionVieja(err?.message);
+        if (detalle == null || input.confirmarCotizacionVieja) return;
+        this.dialogos.confirm('Cotización vieja', detalle, '¿Asignar la moneda igual?', null, true, 'Sí', 'No')
+          .pipe(take(1), untilDestroyed(this))
+          .subscribe((ok) => {
+            if (ok === true) this.guardar({ ...input, confirmarCotizacionVieja: true });
+          });
+      },
     });
   }
 

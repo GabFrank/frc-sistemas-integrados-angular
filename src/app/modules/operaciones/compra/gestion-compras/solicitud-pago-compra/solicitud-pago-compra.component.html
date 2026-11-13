@@ -23,7 +23,7 @@
             <mat-icon>payments</mat-icon>
           </div>
           <div class="card-info">
-            <div class="card-value" *ngIf="totalMontoSolicitudesComputed !== null">{{ totalMonedaSimbolo }} {{ totalMontoSolicitudesComputed | number:'1.0-0' }}</div>
+            <div class="card-value" *ngIf="totalMontoSolicitudesComputed !== null">{{ totalMonedaSimbolo }} {{ totalMontoSolicitudesComputed | number:totalMonedaFormato }}</div>
             <div class="card-value" *ngIf="totalMontoSolicitudesComputed === null">{{ totalMonedaSimbolo }}</div>
             <div class="card-label">Total Solicitado</div>
           </div>
@@ -91,7 +91,7 @@
             <ng-container matColumnDef="monto">
               <th mat-header-cell *matHeaderCellDef>Monto</th>
               <td mat-cell *matCellDef="let solicitud">
-                <strong>{{ solicitud.montoTotalFormattedComputed }}</strong>
+                <strong>{{ solicitud.montoSimboloComputed }} {{ solicitud.montoTotal | number:solicitud.montoFormatoComputed }}</strong>
               </td>
             </ng-container>
             

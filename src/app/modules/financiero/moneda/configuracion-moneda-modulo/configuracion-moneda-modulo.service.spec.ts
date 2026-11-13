@@ -1,4 +1,4 @@
-import { esCentralSinMonedaPorModulo, mensajeSinCotizacion } from './configuracion-moneda-modulo.service';
+import { esCentralSinMonedaPorModulo, mensajeCotizacionVieja, mensajeSinCotizacion } from './configuracion-moneda-modulo.service';
 
 describe('mensajeSinCotizacion', () => {
   it('traduce el rechazo SIN_COTIZACION, también con el prefijo de graphql-java', () => {
@@ -26,5 +26,19 @@ describe('esCentralSinMonedaPorModulo', () => {
     expect(esCentralSinMonedaPorModulo({ message: 'Http failure response for http://localhost:8081/graphql: 0 Unknown Error' })).toBeFalse();
     expect(esCentralSinMonedaPorModulo({ message: 'No autorizado: hace falta el rol CONFIGURAR MONEDA' })).toBeFalse();
     expect(esCentralSinMonedaPorModulo(null)).toBeFalse();
+  });
+});
+
+describe('mensajeCotizacionVieja', () => {
+  it('saca el detalle del rechazo COTIZACION_VIEJA, también con el prefijo de graphql-java', () => {
+    expect(mensajeCotizacionVieja('COTIZACION_VIEJA: La ultima cotizacion de DOLAR es del 23/03/2026.'))
+      .toBe('La ultima cotizacion de DOLAR es del 23/03/2026.');
+    expect(mensajeCotizacionVieja('Exception while fetching data (/saveConfiguracionMonedaModulo) : COTIZACION_VIEJA: La ultima cotizacion de REAL es del 01/01/2026.'))
+      .toBe('La ultima cotizacion de REAL es del 01/01/2026.');
+  });
+
+  it('otro rechazo no es suyo', () => {
+    expect(mensajeCotizacionVieja('SIN_COTIZACION: DOLAR no tiene cotizacion cargada.')).toBeNull();
+    expect(mensajeCotizacionVieja(null)).toBeNull();
   });
 });

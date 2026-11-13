@@ -22,7 +22,7 @@
       <input matInput [formControl]="codigoIsoControl" maxlength="3" placeholder="PYG"
              style="text-transform: uppercase;" />
       <mat-hint>Opcional. Tres letras: PYG, USD, BRL</mat-hint>
-      <mat-error *ngIf="codigoIsoControl.hasError('pattern')">Tienen que ser tres letras</mat-error>
+      <mat-error *ngIf="codigoIsoControl.hasError('pattern')">Tiene que ser de tres letras</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
