@@ -12,6 +12,7 @@ import { CancelarVentaGQL } from "./graphql/cancelarVenta";
 import { ReimprimirVentaGQL } from "./graphql/reimprimirVenta";
 import { ReimprimirSorteoGQL } from "./graphql/reimprimirSorteo";
 import { VentaTieneSorteoGQL } from "./graphql/ventaTieneSorteo";
+import { VentaCancelacionGQL } from "./graphql/ventaCancelacion";
 import { SaveVentaGQL } from "./graphql/saveVenta";
 import { SaveVentaClienteGQL } from "./graphql/saveVentaCliente";
 import { SaveVentaClienteSorteoGQL, SaveVentaSorteoGQL } from "./graphql/saveVentaSorteo";
@@ -97,6 +98,7 @@ export class VentaService {
     private reimprimirVenta: ReimprimirVentaGQL,
     private reimprimirSorteo: ReimprimirSorteoGQL,
     private ventaTieneSorteo: VentaTieneSorteoGQL,
+    private ventaCancelacion: VentaCancelacionGQL,
     private ventasPorCajaId: VentaPorCajaIdGQL,
     private ventaPorId: VentaPorIdGQL,
     private ventaPorPeriodo: VentaPorPeriodoGQL,
@@ -299,6 +301,19 @@ export class VentaService {
       .pipe(
         map((v) => v?.tieneSorteo === true),
         catchError(() => of(false))
+      );
+  }
+
+  /**
+   * Quién canceló la venta, según el central. `null`: no quedó registro. `undefined`: no se pudo leer (corte, rechazo
+   * o un central anterior que no conoce el campo); en ese caso no se afirma nada.
+   */
+  onGetCancelacion(id, sucId): Observable<{ creadoEn: Date; usuario: { nickname: string } } | null | undefined> {
+    return this.genericService
+      .onCustomQuery(this.ventaCancelacion, { id, sucId }, true, RELECTURA_SILENCIOSA, true, CONSULTA_RELECTURA)
+      .pipe(
+        map((v) => (v == null ? undefined : v.cancelacion ?? null)),
+        catchError(() => of(undefined))
       );
   }
 

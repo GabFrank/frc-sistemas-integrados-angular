@@ -776,6 +776,9 @@
                     background-color: var(--frc-superficie-baja);
                   "
                 >
+                  <div *ngIf="venta?.canceladoPor" class="cancelado-por">
+                    Cancelado por: {{ venta.canceladoPor }}<span *ngIf="venta.canceladoEn"> — {{ venta.canceladoEn | date: "dd/MM/yyyy HH:mm" }}</span>
+                  </div>
                   <div
                     fxLayout="row"
                     fxLayoutAlign="center center"
