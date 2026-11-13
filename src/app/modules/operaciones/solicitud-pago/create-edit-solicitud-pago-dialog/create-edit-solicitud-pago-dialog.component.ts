@@ -112,6 +112,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }[] = [];
   /** Total de notas convertido a Gs usando `nota.cotizacion` (fallback `moneda.cambio`). */
   totalNotasGsEquivalenteComputed = 0;
+  /**
+   * Lo que suman las notas en otra moneda que la de la empresa, en su moneda (US$ 21,23). Los totales
+   * se comparan en la de la empresa; esto es solo para que se vea el monto que factura el proveedor.
+   */
+  notasEnOtraMonedaComputed: { simbolo: string; total: number; format: string }[] = [];
   /** True si las notas agregadas mezclan más de una moneda. */
   tieneMonedasMixtasNotas = false;
 
@@ -865,7 +870,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   private updateMontoTotal(): void {
-    const mapByMoneda: Record<string, { simbolo: string; total: number; totalEnGs: number; format: string }> = {};
+    const mapByMoneda: Record<string, { simbolo: string; total: number; totalEnGs: number; format: string; esEmpresa: boolean }> = {};
     let totalGs = 0;
     for (const n of this.notasAgregadas) {
       const valor = n.valorTotal ?? (n as any).valor ?? 0;
@@ -879,7 +884,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           simbolo: moneda?.simbolo || (esGs ? this.simboloEmpresa + '.' : ''),
           total: 0,
           totalEnGs: 0,
-          format: esGs ? this.formatoEmpresa : '1.2-2'
+          format: esGs ? this.formatoEmpresa : '1.2-2',
+          esEmpresa: esGs
         };
       }
       mapByMoneda[denom].total += valor;
@@ -893,6 +899,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       totalEnGs: this.redondearEmpresa(info.totalEnGs),
       format: info.format
     }));
+    this.notasEnOtraMonedaComputed = Object.values(mapByMoneda)
+      .filter((info) => !info.esEmpresa)
+      .map((info) => ({ simbolo: info.simbolo, total: info.total, format: info.format }));
     this.totalNotasGsEquivalenteComputed = this.redondearEmpresa(totalGs);
     // montoTotalComputed se mantiene en Gs equivalente para que el cálculo del monto sugerido
     // de forma de pago (totalEnGuaraniesComputed ya viene en Gs) sea coherente.

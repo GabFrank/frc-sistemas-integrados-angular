@@ -44,4 +44,6 @@ export class ConfiguracionMonedaModuloInput {
   sucursalId: number;
   monedaId: number;
   vigenteDesde: string;
+  /** true = guardar aunque la cotización del comercio tenga más de 30 días (el usuario ya confirmó). */
+  confirmarCotizacionVieja?: boolean;
 }
