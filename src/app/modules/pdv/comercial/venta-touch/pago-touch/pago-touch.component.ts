@@ -565,7 +565,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((res) => {
         // null = no se pudieron leer (#390): quedan las monedas y los cambios que ya había.
         if (res == null) return;
-        this.monedas = res;
+        this.monedas = this.conCotizacionDelDelivery(res);
         this.decimalesPorMoneda = (res || []).reduce((acc, m) => {
           if (m?.id != null) acc[m.id] = m.decimales ?? 0;
           return acc;
@@ -600,6 +600,26 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         }
         this.saldoEnCero = this.saldoCero();
       });
+  }
+
+  /**
+   * Un delivery ya armado en la moneda del PDV se cobra con la cotización de su venta, no con la del día (#718): si
+   * no, `cobro_detalle.cambio` y la caja descuadran contra la venta y la factura. La moneda del PDV de la lista se
+   * reemplaza por una copia con ese cambio (inverso de `cotizacionEmpresa`); de ella salen el cambio y la cotización
+   * de cada línea, los factores de las otras monedas, la factura y el crédito. Sin cotización en la venta (no se
+   * convirtió), la lista queda tal cual: el cambio del día, como `contextoDelivery` en venta-touch.
+   */
+  private conCotizacionDelDelivery(monedas: Moneda[]): Moneda[] {
+    const venta = this.data?.delivery?.venta;
+    const idBase = this.data?.monedaBase?.id;
+    const cotizacion = Number(venta?.cotizacion);
+    if (idBase == null || venta?.monedaId == null || String(venta.monedaId) !== String(idBase)
+      || !isFinite(cotizacion) || !(cotizacion > 0)) {
+      return monedas;
+    }
+    const empresa = this.monedaModulo.empresa$.value ?? elegirMonedaEmpresa(monedas);
+    const cambio = cotizacion * (empresa?.cambio > 0 ? +empresa.cambio : 1);
+    return monedas.map((m) => (String(m?.id) === String(idBase) ? Object.assign(new Moneda(), m, { cambio }) : m));
   }
 
   // @HostListener("document:keyup", ["$event"]) onKeydownHandler(

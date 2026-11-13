@@ -187,8 +187,16 @@ export function mapaDePreciosEnOtraMoneda(filas: PrecioEnOtraMoneda[]): Map<stri
 export function monedaDelPrecioPrincipalDe(producto: any): Moneda | null {
   const presentaciones: any[] = producto?.presentaciones || [];
   const presentacion = presentaciones.find((p) => p?.principal === true) ?? presentaciones[0];
+  return precioPrincipalDePresentacion(presentacion)?.moneda ?? null;
+}
+
+/**
+ * Función pura: el precio principal de una presentación (principal y activo; si no hay, el principal), de su lista
+ * `precios`. No usar `presentacion.precioPrincipal.id`: un central anterior a #606 lo resolvía con un `select *` que
+ * trae dos `id` y podía devolver el de la presentación.
+ */
+export function precioPrincipalDePresentacion(presentacion: any): any | null {
   const precios: any[] = presentacion?.precios || [];
-  const precio = precios.find((p) => p?.principal === true && p?.activo !== false)
-    ?? precios.find((p) => p?.principal === true);
-  return precio?.moneda ?? null;
+  return precios.find((p) => p?.principal === true && p?.activo !== false)
+    ?? precios.find((p) => p?.principal === true) ?? null;
 }
