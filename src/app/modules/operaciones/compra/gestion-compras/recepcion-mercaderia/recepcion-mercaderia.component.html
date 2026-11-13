@@ -502,7 +502,7 @@
                 <ng-container matColumnDef="monto">
                   <th mat-header-cell *matHeaderCellDef>Monto</th>
                   <td mat-cell *matCellDef="let nota">
-                    {{ nota.montoComputed | number : "1.0-2" }}
+                    {{ nota.simboloComputed }} {{ nota.montoComputed | number : nota.formatoMontoComputed }}
                   </td>
                 </ng-container>
 

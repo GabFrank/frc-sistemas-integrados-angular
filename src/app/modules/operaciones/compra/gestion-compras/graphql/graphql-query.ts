@@ -851,6 +851,12 @@ export const notaRecepcionPorPedidoIdQuery = gql`
       estado
       esNotaRechazo
       valorTotal
+      moneda {
+        id
+        denominacion
+        simbolo
+        decimales
+      }
       pedido {
         id
       }
@@ -1370,6 +1376,8 @@ export const finalizarRecepcionNotasMutation = gql`
       moneda {
         id
         denominacion
+        simbolo
+        cambio
       }
       formaPago {
         id
