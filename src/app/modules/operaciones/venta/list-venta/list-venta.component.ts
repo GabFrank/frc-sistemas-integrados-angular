@@ -410,7 +410,8 @@ export class ListVentaComponent implements OnInit {
     venta.canceladoEn = undefined;
     if (venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
     this.ventaService.onGetCancelacion(venta.id, venta.sucursalId).pipe(untilDestroyed(this)).subscribe((c) => {
-      if (c === undefined) return;
+      // La respuesta puede llegar con la fila ya cerrada o la venta habilitada
+      if (c === undefined || venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
       venta.canceladoPor = c?.usuario?.nickname ?? "sin registro";
       venta.canceladoEn = c?.creadoEn;
     });

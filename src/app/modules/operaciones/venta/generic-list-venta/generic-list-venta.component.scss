@@ -99,9 +99,12 @@ td {
 mat-paginator {
   box-shadow: 10px 0 5px rgba(0, 0, 0, 0.2);
 }
-.cancelado-por {
+.titulo-cancelado {
   color: #f44336;
-  font-weight: 500;
-  padding-bottom: 10px;
-  text-align: center;
+}
+.par-detalle {
+  white-space: nowrap;
+}
+.valor-detalle {
+  margin-left: 4px;
 }

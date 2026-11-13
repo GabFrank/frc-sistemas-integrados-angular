@@ -62,6 +62,11 @@ const RELECTURA_SILENCIOSA: QueryError = {
   networkError: { propagate: true, show: false },
   graphError: { show: false },
 };
+/** Lectura que falla al llamador por red o por GraphQL, sin aviso: un error parcial no se toma como «sin dato». */
+const LECTURA_SIN_AVISO: QueryError = {
+  networkError: { propagate: true, show: false },
+  graphError: { propagate: true, show: false },
+};
 const CONSULTA_RELECTURA: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** Listas de ventas: 60 s sin el aviso genérico del link; el error de red llega al llamador, que avisa. */
 const PROPAGAR_RED_VENTAS: QueryError = { networkError: { propagate: true, show: false } };
@@ -310,7 +315,7 @@ export class VentaService {
    */
   onGetCancelacion(id, sucId): Observable<{ creadoEn: Date; usuario: { nickname: string } } | null | undefined> {
     return this.genericService
-      .onCustomQuery(this.ventaCancelacion, { id, sucId }, true, RELECTURA_SILENCIOSA, true, CONSULTA_RELECTURA)
+      .onCustomQuery(this.ventaCancelacion, { id, sucId }, true, LECTURA_SIN_AVISO, true, CONSULTA_RELECTURA)
       .pipe(
         map((v) => (v == null ? undefined : v.cancelacion ?? null)),
         catchError(() => of(undefined))
