@@ -80,12 +80,13 @@ export class SolicitudPagoDashboardComponent implements OnInit {
           this.dataSource.data = this.listComputed;
           this.currentPageIndex = pageIndex;
         },
-        error: () => {
+        error: (err) => {
           // Sin datos viejos bajo el filtro nuevo (#390)
           this.page = null;
           this.listComputed = [];
           this.dataSource.data = [];
-          this.notificacionService.openWarn('No se pudieron cargar las solicitudes: el servidor no responde. Intentá de nuevo.', 6);
+          // Un rechazo del servidor ya lo avisó el genérico; este aviso es solo para la falta de respuesta.
+          if (!err?.errors) this.notificacionService.openWarn('No se pudieron cargar las solicitudes: el servidor no responde. Intentá de nuevo.', 6);
         }
       })
       .add(() => (this.loading = false));
