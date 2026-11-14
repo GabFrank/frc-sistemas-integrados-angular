@@ -1,4 +1,4 @@
-import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta } from './etiqueta-precio.util';
+import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta, textoQrEtiqueta } from './etiqueta-precio.util';
 
 describe('textoPrecioEtiqueta', () => {
   it('moneda de la empresa: el texto de siempre, igual byte a byte', () => {
@@ -16,6 +16,22 @@ describe('textoPrecioEtiqueta', () => {
 
   it('nunca lleva «Gs.» en otra moneda', () => {
     expect(textoPrecioEtiqueta(4.39, { simbolo: 'US$', decimales: 2 })).not.toContain('Gs.');
+  });
+});
+
+describe('textoQrEtiqueta', () => {
+  it('moneda de la empresa: «Gs.» sin decimales', () => {
+    expect(textoQrEtiqueta('7842283000031', 'AGUA SALTO 2 LITROS', 6000, null)).toBe('7842283000031\nAGUA SALTO 2 LITROS\nPrecio: Gs. 6.000');
+  });
+
+  it('otra moneda: su símbolo, nunca «Gs.» (#750)', () => {
+    const texto = textoQrEtiqueta('7840058000675', 'COCA COLA 1.5 L', 5.85, { simbolo: 'US$', decimales: 2 });
+    expect(texto).toBe('7840058000675\nCOCA COLA 1.5 L\nPrecio: US$ 5,85');
+    expect(texto).not.toContain('Gs.');
+  });
+
+  it('sin código: la primera línea vacía, como antes', () => {
+    expect(textoQrEtiqueta(null, 'X', 0, null)).toBe('\nX\nPrecio: Gs. 0');
   });
 });
 
