@@ -37,6 +37,8 @@ import {
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { GetSolicitudesPagoPaginatedVariables } from '../../compra/gestion-compras/graphql/getSolicitudesPagoPaginated';
 
 @UntilDestroy()
 @Component({
@@ -106,6 +108,11 @@ export class ListSolicitudPagoComponent implements OnInit {
   /** Asignar una solicitud a una caja es decidir quién la paga: lo hace tesorería. */
   puedeAsignarCaja = false;
 
+  /** Filtros con los que se cargó la tabla: el PDF imprime lo que se ve, no lo tocado sin aplicar. */
+  filtrosAplicados: GetSolicitudesPagoPaginatedVariables = null;
+  /** Sin filas no hay nada que imprimir; flag y no función en el HTML. */
+  sinFilasParaReporte = true;
+
   constructor(
     private solicitudPagoService: SolicitudPagoService,
     private tabService: TabService,
@@ -115,7 +122,8 @@ export class ListSolicitudPagoComponent implements OnInit {
     private dialog: MatDialog,
     private proveedorService: ProveedorService,
     private pedidoService: PedidoService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private impresionService: ImpresionService
   ) {}
 
   ngOnInit(): void {
@@ -147,27 +155,39 @@ export class ListSolicitudPagoComponent implements OnInit {
       ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
       : undefined;
 
+    const filtros: GetSolicitudesPagoPaginatedVariables = {
+      proveedorId,
+      estado,
+      numero,
+      fechaDesde,
+      fechaHasta,
+      monedaIds: this.monedaControl.value?.length ? this.monedaControl.value : undefined
+    };
     this.solicitudPagoService
       .onGetSolicitudesPagoPaginated(
         this.pageIndex,
         this.pageSize,
-        proveedorId,
-        estado,
-        numero,
-        fechaDesde,
-        fechaHasta,
-        this.monedaControl.value?.length ? this.monedaControl.value : undefined
+        filtros.proveedorId,
+        filtros.estado,
+        filtros.numero,
+        filtros.fechaDesde,
+        filtros.fechaHasta,
+        filtros.monedaIds
       )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (pageResult) => {
           this.dataSource.data = pageResult?.getContent ?? [];
           this.length = pageResult?.getTotalElements ?? 0;
+          this.filtrosAplicados = filtros;
+          this.sinFilasParaReporte = this.length === 0;
         },
         error: (err) => {
           // No quedan a la vista las filas del filtro anterior como si fueran del nuevo (#390)
           this.dataSource.data = [];
           this.length = 0;
+          this.filtrosAplicados = null;
+          this.sinFilasParaReporte = true;
           // Un rechazo del servidor ya lo avisó el genérico; este aviso es solo para la falta de respuesta.
           if (!err?.errors) this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
         }
@@ -178,6 +198,15 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.pageIndex = 0;
     if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();
+  }
+
+  /** PDF de la lista entera (sin paginar) con los filtros con los que se cargó la tabla. */
+  onGenerarReporte(): void {
+    const filtros = this.filtrosAplicados;
+    if (!filtros) return;
+    // El nombre es también el del archivo al descargar: lleva la fecha para distinguir un PDF de otro.
+    const nombre = `Solicitudes de pago - ${dateToString(new Date(), 'dd-MM-yyyy')}`;
+    this.impresionService.imprimir(nombre, () => this.solicitudPagoService.onImprimirReporteSolicitudesPago(filtros), true);
   }
 
   onResetFiltro(): void {
