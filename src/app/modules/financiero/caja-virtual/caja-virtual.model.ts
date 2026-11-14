@@ -174,6 +174,58 @@ export interface CajaVirtualConfiguracionInput {
   operacionesFinancierasHabilitado?: boolean;
   cuentasBancariasVisiblesIds?: number[];
   cuentasBancariasOrden?: string;
+  /** JSON arrays; semántica PATCH en el central (undefined/null no pisa lo guardado). */
+  monedasOrden?: string;
+  sucursalesOrden?: string;
+  operacionesFinancierasOrden?: string;
+  operacionesFinancierasOcultas?: string;
+}
+
+/** Órdenes configurables de una caja. Todo null = orden por defecto (o central que todavía no los tiene). */
+export interface CajaVirtualOrdenes {
+  monedasOrden?: string;
+  sucursalesOrden?: string;
+  operacionesFinancierasOrden?: string;
+  operacionesFinancierasOcultas?: string;
+  /** El central no respondió los órdenes (error o versión que no los conoce): no mandarlos al guardar. */
+  noDisponible?: boolean;
+}
+
+/** JSON array a lista; tolerante a null y basura. */
+export function parseListaJson<T = any>(json?: string | null): T[] {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Orden configurado de sucursales (desk #653). Sin orden guardado la lista queda como llega (hoy, por id): así una
+ * caja sin configurar no cambia. Con orden, las que no figuran van al final por nombre.
+ */
+export function ordenarSucursales<T extends { id?: any; nombre?: string }>(sucursales: T[], orden: number[]): T[] {
+  if (!orden?.length) return [...(sucursales || [])];
+  return ordenarSegun(sucursales, s => Number(s.id), orden, (a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+}
+
+/**
+ * Ordena según una lista de claves configurada (ids o nombres): primero las que figuran, en ese orden; después el
+ * resto con el comparador de respaldo. Misma regla que OrdenConfigurable del central.
+ */
+export function ordenarSegun<T, K>(items: T[], clave: (t: T) => K, orden: K[], respaldo: (a: T, b: T) => number): T[] {
+  const pos = new Map<K, number>();
+  (orden || []).forEach((k, i) => { if (!pos.has(k)) pos.set(k, i); });
+  return [...(items || [])].sort((a, b) => {
+    const ia = pos.has(clave(a)) ? pos.get(clave(a)) : -1;
+    const ib = pos.has(clave(b)) ? pos.get(clave(b)) : -1;
+    if (ia < 0 && ib < 0) return respaldo(a, b);
+    if (ia < 0) return 1;
+    if (ib < 0) return -1;
+    return ia - ib;
+  });
 }
 
 /**

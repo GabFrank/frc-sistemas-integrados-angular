@@ -1,0 +1,59 @@
+<div class="ni-dialog">
+  <h2 class="titulo-dialog">Números inutilizados</h2>
+  <div class="subtitulo-dialog">{{ chequera?.nombre || ('Chequera #' + chequera?.id) }} · próximo Nº {{ proximoNumero ?? '— (sin hojas libres)' }}</div>
+
+  <mat-dialog-content>
+    <!-- Inutilizar un número (pasado o futuro, dentro del rango) -->
+    <div class="ni-form">
+      <mat-form-field appearance="outline" class="ni-numero">
+        <mat-label>Número</mat-label>
+        <input matInput type="number" [(ngModel)]="numero" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="ni-motivo uppercase">
+        <mat-label>Motivo (obligatorio)</mat-label>
+        <input matInput [(ngModel)]="motivo" maxlength="200" placeholder="Hoja dañada, perdida, mal llenada…" />
+      </mat-form-field>
+    </div>
+    <div class="ni-form">
+      <mat-form-field appearance="outline" class="ni-accion">
+        <mat-label>Si el número ya tiene un cheque</mat-label>
+        <mat-select [(ngModel)]="accion">
+          <mat-option *ngFor="let a of acciones" [value]="a.value">{{ a.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="ni-numero" *ngIf="accion === 'RENUMERADO'">
+        <mat-label>Número nuevo</mat-label>
+        <input matInput type="number" [(ngModel)]="numeroNuevo" />
+      </mat-form-field>
+      <button mat-raised-button color="warn" (click)="inutilizar()" [disabled]="guardando">
+        <mat-icon>block</mat-icon> Inutilizar
+      </button>
+    </div>
+
+    <div class="ni-vacio" *ngIf="cargando">Cargando…</div>
+    <div class="ni-vacio" *ngIf="!cargando && filas.length === 0">Esta chequera no tiene números inutilizados.</div>
+
+    <table class="ni-tabla" *ngIf="!cargando && filas.length">
+      <thead>
+        <tr><th>Nº</th><th>Motivo</th><th>Cheque</th><th>Usuario</th><th>Fecha</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of filas" [class.revertido]="!f._vigente">
+          <td>{{ f.numero }}</td>
+          <td>{{ f.motivo }}</td>
+          <td>{{ f._accionLabel }}</td>
+          <td>{{ f._usuario || '—' }}</td>
+          <td>{{ f.creadoEn | date: 'dd/MM/yy HH:mm' }}</td>
+          <td>
+            <button mat-stroked-button *ngIf="f._vigente" (click)="revertir(f)">Revertir</button>
+            <span class="tenue" *ngIf="!f._vigente">Revertido {{ f.revertidoEn | date: 'dd/MM/yy' }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button [mat-dialog-close]="huboCambios">Cerrar</button>
+  </mat-dialog-actions>
+</div>

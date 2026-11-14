@@ -103,7 +103,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
     this.recargar();
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))
-      .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR'); });
+      .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []); });
   }
 
   private recargarItems() {

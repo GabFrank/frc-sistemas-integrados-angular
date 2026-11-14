@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 
 /** Un solo suscriptor (dashboard financiero), que maneja el error por fuente (#390). */
 const CONSULTA_REPORTE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
-import { SaldoTesoreria, VencimientoTesoreria, AgingTesoreria } from './tesoreria-reporte.model';
+import { SaldoTesoreria, VencimientoTesoreria, AgingTesoreria, DisponibleTesoreria } from './tesoreria-reporte.model';
+import { SaldoDisponibleTesoreriaGQL } from './graphql/saldoDisponibleTesoreria';
 import { SaldoConsolidadoTesoreriaGQL } from './graphql/saldoConsolidadoTesoreria';
 import { ProximosVencimientosTesoreriaGQL } from './graphql/proximosVencimientosTesoreria';
 import { AgingCppTesoreriaGQL } from './graphql/agingCppTesoreria';
@@ -20,7 +22,15 @@ export class TesoreriaReporteService {
     private saldoConsolidadoGQL: SaldoConsolidadoTesoreriaGQL,
     private proximosVencimientosGQL: ProximosVencimientosTesoreriaGQL,
     private agingCppGQL: AgingCppTesoreriaGQL,
+    private saldoDisponibleGQL: SaldoDisponibleTesoreriaGQL,
   ) { }
+
+  /** null si el central no lo tiene (anterior a #601) o falla: el dashboard sigue con los saldos. */
+  onGetDisponible(): Observable<DisponibleTesoreria[] | null> {
+    return this.saldoDisponibleGQL.fetch({}, { fetchPolicy: 'no-cache', errorPolicy: 'all', context: { clientName: 'servidor' } }).pipe(
+      map(r => r?.errors?.length ? null : ((r?.data?.data || []) as DisponibleTesoreria[])),
+      catchError(() => of(null)));
+  }
 
   onGetSaldoConsolidado(): Observable<SaldoTesoreria[]> {
     return this.genericService.onCustomQuery(this.saldoConsolidadoGQL, {}, true, PROPAGAR_ERROR_DE_RED, undefined,

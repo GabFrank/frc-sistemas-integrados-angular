@@ -1,0 +1,40 @@
+.detalle-movimiento {
+  padding: 8px 4px;
+}
+
+.dato {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--frc-borde-suave);
+}
+
+.etiqueta {
+  color: var(--frc-texto-tenue);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.valor {
+  text-align: right;
+  font-weight: 500;
+  color: var(--frc-texto-fuerte);
+  word-break: break-word;
+}
+
+// Convención de diálogos: título claro (token, para que funcione en modo claro) y subtítulo naranja.
+.titulo-dialog {
+  text-align: center;
+  margin: 4px 0 2px;
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--frc-texto-fuerte);
+}
+
+.subtitulo-dialog {
+  text-align: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #ff9800;
+}

@@ -3,6 +3,7 @@ import { CurrencyMaskInputMode } from 'ngx-currency';
 import { Retiro } from '../../retiro.model';
 import { RetiroDetalle } from '../../retiro-detalle.model';
 import { Moneda } from '../../../moneda/moneda.model';
+import { MonedaService } from '../../../moneda/moneda.service';
 import { RetiroVerificacionService } from '../retiro-verificacion.service';
 import {
   BorradorVerificacion, CATEGORIA_LABEL, CategoriaDiferenciaRetiro, ConteoRetiroMonedaInput,
@@ -27,6 +28,10 @@ interface FilaMoneda {
   color: string;
   /** La grilla de esta moneda no pudo cargar sus denominaciones. */
   grillaNoCargo?: boolean;
+  /** El cajero no la declaró: la agregó quien verifica porque vino en el sobre (desk #670). Declarado = 0. */
+  noDeclarada?: boolean;
+  /** Se puede quitar: no declarada y todavía sin contar. Precalculado (no se llaman funciones desde el HTML). */
+  quitable?: boolean;
 }
 
 /**
@@ -72,9 +77,17 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
 
   categorias = Object.keys(CATEGORIA_LABEL).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
 
+  /** Monedas activas que se pueden agregar como no declaradas (las que no tienen fila). */
+  monedasParaAgregar: Moneda[] = [];
+  cargandoMonedas = false;
+  monedasNoCargaron = false;
+  private todasLasMonedas: Moneda[] | null = null;
+  /** Las no declaradas, para el borrador. */
+  private noDeclaradas: Moneda[] = [];
+
   private timerAviso: any;
 
-  constructor(private service: RetiroVerificacionService) {}
+  constructor(private service: RetiroVerificacionService, private monedaService: MonedaService) {}
 
   ngOnInit(): void {
     const borrador = this.service.leerBorrador(this.retiro.id, this.retiro.sucursalId);
@@ -82,6 +95,7 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
       this.cantidades = borrador.cantidades || {};
       this.montos = borrador.montos || {};
       this.observacion = borrador.observacion || '';
+      this.noDeclaradas = (borrador.monedasNoDeclaradas || []) as Moneda[];
       this.verObservacion = !!this.observacion;
       this.huboBorrador = this.service.hayBorrador(this.retiro.id, this.retiro.sucursalId);
       // El aviso es para el que vuelve a abrir: no hace falta que quede ocupando una fila de la tabla.
@@ -107,20 +121,71 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
     const detalles: RetiroDetalle[] = this.retiro?.retiroDetalleList || [];
     for (const d of detalles) {
       if (!d?.moneda?.id) continue;
-      const dec = d.moneda.decimales != null
-        ? d.moneda.decimales
-        : ((d.moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
-      const fila = porMoneda.get(d.moneda.id) || {
-        moneda: d.moneda, declarado: 0, contado: null, diferencia: null, categoria: null,
-        decimales: dec, formato: `1.${dec}-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
-      };
+      const fila = porMoneda.get(d.moneda.id) || filaVacia(d.moneda);
       fila.declarado += d.cantidad || 0;
       porMoneda.set(d.moneda.id, fila);
     }
-    this.filas = Array.from(porMoneda.values());
+    // Las no declaradas que había agregado quien verifica (borrador), si el retiro no las declara después de todo.
+    this.noDeclaradas = this.noDeclaradas.filter(m => m?.id != null && !porMoneda.has(m.id));
+    const extra = this.noDeclaradas.map(m => ({ ...filaVacia(m), noDeclarada: true }));
+    this.filas = [...Array.from(porMoneda.values()), ...extra];
     // Del borrador: si hay billetes mandan los billetes, si no el monto, y si no queda sin contar.
     this.filas.forEach(f => f.contado = this.contadoGuardado(f.moneda.id));
     this.recalcular();
+  }
+
+  /**
+   * Abre la lista de monedas para agregar. Se piden recién acá (no al abrir el diálogo): con varios retiros
+   * en la tabla serían varias consultas iguales para algo que casi nunca se usa.
+   */
+  prepararMonedasParaAgregar() {
+    if (this.todasLasMonedas != null) { this.actualizarMonedasParaAgregar(); return; }
+    this.cargandoMonedas = true;
+    this.monedasNoCargaron = false;
+    this.monedaService.onGetAll().subscribe({
+      next: res => {
+        this.cargandoMonedas = false;
+        if (res == null) { this.monedasNoCargaron = true; return; }
+        this.todasLasMonedas = res;
+        this.actualizarMonedasParaAgregar();
+      },
+      error: () => { this.cargandoMonedas = false; this.monedasNoCargaron = true; }
+    });
+  }
+
+  private actualizarMonedasParaAgregar() {
+    const conFila = new Set(this.filas.map(f => String(f.moneda.id)));
+    this.monedasParaAgregar = (this.todasLasMonedas || []).filter(m => m.activo !== false && !conFila.has(String(m.id)));
+  }
+
+  /**
+   * El sobre trajo una moneda que el cajero no declaró: se agrega con declarado 0 y se abre su grilla. El central
+   * ya compara la unión de lo declarado y lo contado, así que queda como sobrante y abre el caso.
+   */
+  agregarMonedaNoDeclarada(moneda: Moneda) {
+    if (!moneda?.id || this.filas.some(f => String(f.moneda.id) === String(moneda.id))) return;
+    this.ocultarAviso();
+    this.noDeclaradas.push({ id: moneda.id, denominacion: moneda.denominacion, simbolo: moneda.simbolo,
+      decimales: moneda.decimales } as Moneda);
+    this.filas = [...this.filas, { ...filaVacia(moneda), noDeclarada: true }];
+    this.monedaAbierta = moneda;
+    this.actualizarMonedasParaAgregar();
+    this.recalcular();
+    this.guardarBorrador();
+  }
+
+  /** Quita una moneda no declarada agregada por error. Solo mientras no tenga nada contado. */
+  quitarMonedaNoDeclarada(fila: FilaMoneda) {
+    if (!fila.noDeclarada || fila.contado != null) return;
+    const id = String(fila.moneda.id);
+    this.filas = this.filas.filter(f => f !== fila);
+    this.noDeclaradas = this.noDeclaradas.filter(m => String(m.id) !== id);
+    delete this.cantidades[id];
+    delete this.montos[id];
+    if (this.monedaAbierta?.id === fila.moneda.id) this.monedaAbierta = null;
+    this.actualizarMonedasParaAgregar();
+    this.recalcular();
+    this.guardarBorrador();
   }
 
   private contadoGuardado(monedaId: number): number | null {
@@ -184,6 +249,7 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
   private recalcular() {
     this.hayDiferencia = false;
     for (const f of this.filas) {
+      f.quitable = !!f.noDeclarada && f.contado == null;
       if (f.contado == null) {
         f.diferencia = null;
         f.categoria = null;
@@ -214,6 +280,8 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
       cantidades: this.cantidades,
       montos: this.montos,
       observacion: this.observacion,
+      monedasNoDeclaradas: this.noDeclaradas.map(m => ({ id: m.id, denominacion: m.denominacion, simbolo: m.simbolo,
+        decimales: m.decimales })),
       actualizadoEn: new Date().toISOString(),
     };
     this.service.guardarBorrador(this.retiro.id, this.retiro.sucursalId, borrador);
@@ -271,6 +339,17 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
       })
       .join(' · ');
   }
+}
+
+/** Fila de una moneda sin nada declarado ni contado todavía. */
+function filaVacia(moneda: Moneda): FilaMoneda {
+  const dec = moneda.decimales != null
+    ? moneda.decimales
+    : ((moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
+  return {
+    moneda, declarado: 0, contado: null, diferencia: null, categoria: null,
+    decimales: dec, formato: `1.${dec}-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
+  };
 }
 
 function redondear(valor: number, decimales: number): number {

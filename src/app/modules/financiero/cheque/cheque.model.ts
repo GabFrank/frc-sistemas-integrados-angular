@@ -33,6 +33,14 @@ export class Cheque {
     firmante: Persona;
     creadoEn: Date;
     usuario: Usuario;
+    /** A quién se le emitió (central #601). */
+    proveedor?: { id: number; persona?: { id?: number; nombre?: string } };
+    /** Evento de pago del que salió, o null si se emitió suelto. */
+    pagoId?: number;
+    /** «PAGO» o «MANUAL». */
+    origen?: string;
+    /** Aviso de la emisión (fondos insuficientes en un EMITIDO). Solo en la respuesta de emitir. */
+    avisoFondos?: string;
 
     toInput(): ChequeInput {
         let input = new ChequeInput();
@@ -76,7 +84,7 @@ export interface ChequeResumenDia {
     cantidad: number;
 }
 
-/** Saldo/compromiso de una chequera activa (card del sidebar). */
+/** Saldo/compromiso de una chequera activa, o no activa con cheques pendientes (card del sidebar). */
 export interface ChequeSaldoChequera {
     chequera: Chequera;
     cuentaBancaria: CuentaBancaria;
@@ -93,4 +101,24 @@ export interface ChequeDashboardFiltro {
     cuentaBancariaId?: number;
     chequeraId?: number;
     estado?: EstadoCheque | null;
+    /** Qué fecha filtra (central #601). Sin indicar, PAGO. */
+    tipoFecha?: 'EMISION' | 'PAGO' | 'COBRO';
+    /** Gana sobre `estado`. Vacío o null = todos. */
+    estados?: EstadoCheque[] | null;
+    /** Número, beneficiario o concepto. */
+    texto?: string | null;
+    proveedorId?: number | null;
+}
+
+/** Una emisión de cheques (uno o varios en cuotas) para `emitirCheques`. */
+export interface PedidoEmisionCheques {
+    chequeraId: number;
+    cheques: { total: number; fechaPago?: string | null }[];
+    diferido: boolean;
+    nominal?: boolean;
+    beneficiario?: string | null;
+    proveedorId?: number | null;
+    fechaEmision?: string | null;
+    concepto?: string | null;
+    claveIdempotencia: string;
 }

@@ -48,7 +48,7 @@
 
         <ng-container matColumnDef="siguiente">
           <th mat-header-cell *matHeaderCellDef style="text-align: center;">Siguiente</th>
-          <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.siguienteNumero }}</td>
+          <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row._proximo ?? '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="hojas">
@@ -71,6 +71,9 @@
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="editar(row)">
                 <mat-icon>edit</mat-icon><span>Editar</span>
+              </button>
+              <button mat-menu-item (click)="numerosInutilizados(row)">
+                <mat-icon>do_not_disturb_on</mat-icon><span>Números inutilizados</span>
               </button>
               <button mat-menu-item (click)="vincularFormato(row)">
                 <mat-icon>link</mat-icon>

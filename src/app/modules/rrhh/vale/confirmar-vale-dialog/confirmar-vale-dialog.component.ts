@@ -53,7 +53,7 @@ export class ConfirmarValeDialogComponent implements OnInit {
         untilDestroyed(this)
       )
       .subscribe((res: CajaVirtual[]) => {
-        this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR');
+        this.cajas = (res || []);
         this.cajasNoCargadas = res == null;
         this.cargandoCajas = false;
       });

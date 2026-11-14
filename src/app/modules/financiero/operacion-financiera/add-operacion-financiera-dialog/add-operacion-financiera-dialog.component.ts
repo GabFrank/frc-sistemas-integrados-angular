@@ -1,11 +1,13 @@
 import { Component, Inject, OnInit, Optional } from '@angular/core';
+import { CurrencyMaskInputMode } from 'ngx-currency';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo } from '../operacion-financiera.model';
+import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo,
+         TIPOS_OPERACION_FINANCIERA } from '../operacion-financiera.model';
 import { OperacionFinancieraService, PedidoDeOperacionFinanciera } from '../operacion-financiera.service';
 import { centralNoConoceLaClave, nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
-import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
+import { CajaVirtual, CajaVirtualOrdenes, ordenarSegun, parseListaJson } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
@@ -18,6 +20,8 @@ import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/serv
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { MainService } from '../../../../main.service';
 import { operaAcotadoCaja } from '../../caja-virtual/rol-tesoreria-caja';
+import { cotizacionCruzada, MonedaMotor, origenEsMayor, recalcular as recalcularMotor } from '../cotizacion-motor';
+import { formatear } from '../cotizacion-formato';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -51,13 +55,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   diferenciaDestinoTipoControl = new FormControl(DiferenciaDestinoTipo.IGNORAR);
   diferenciaObservacionControl = new FormControl('');
 
-  tipoOperacionList = [
-    { label: 'Transf. entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, icono: 'swap_horiz', desc: 'Caja → caja' },
-    { label: 'Depósito Bancario', value: TipoOperacionFinanciera.DEPOSITO_BANCARIO, icono: 'account_balance', desc: 'Caja → cuenta bancaria' },
-    { label: 'Retiro Bancario', value: TipoOperacionFinanciera.RETIRO_BANCARIO, icono: 'savings', desc: 'Cuenta bancaria → caja' },
-    { label: 'Transf. Bancaria', value: TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA, icono: 'sync_alt', desc: 'Cuenta → cuenta' },
-    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA, icono: 'currency_exchange', desc: 'Entre monedas en caja' },
-  ];
+  /** Orden por defecto; abierto desde una caja mayor, se reordena y filtra con su configuración (#720). */
+  tipoOperacionList = [...TIPOS_OPERACION_FINANCIERA];
+  /** La caja mayor desde la que se abrió el diálogo (null desde el listado de operaciones). */
+  private cajaDeOrigen: CajaVirtual | null = null;
 
   diferenciaDestinoList = [
     { label: 'Ignorar', value: DiferenciaDestinoTipo.IGNORAR },
@@ -107,6 +108,23 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   // Cotización: de dónde salió la que está cargada, para que no sea un número sin origen.
   cotizacionOrigenLabel = '';
   cotizacionLabel = 'Cotización (Gs por 1 de divisa)';
+  /** La inversa, como ayuda debajo del campo: «= 0,1786 US$ por 1 R$». Precalculada. */
+  cotizacionInversa = '';
+  /**
+   * La cotización es el ancla (desk #720 §3): escrita por el usuario o traída del sistema queda fija y los montos se
+   * calculan con ella; vacía, se calcula de los dos montos. El candado del campo la muestra y la cambia.
+   */
+  cotizacionFija = false;
+  cotizacionCandado = 'lock_open';
+  cotizacionCandadoTooltip = '';
+  /** Máscara de la cotización con miles («6.400», «5,60»): se ajusta a las monedas del par. */
+  currencyOptsCotizacion: any = this.opcionesCotizacion(2);
+  /** El campo que el usuario editó último: con la cotización fija, define qué monto se calcula. */
+  private ultimoEditado: 'origen' | 'destino' | 'cotizacion' = 'origen';
+  /** Cotización del sistema de cada moneda (Gs por 1), para decidir cuál vale más sin hardcodear. */
+  private valorEnGs = new Map<number, number | null>();
+  /** La moneda que vale 1 en la cotización, o null si todavía no se puede decidir. */
+  private mayorEsOrigen: boolean | null = null;
   buscandoCotizacion = false;
 
   // Monto único (misma moneda a ambos lados) vs. montos separados (cambio divisa / transf. bancaria).
@@ -184,7 +202,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     });
     this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }).pipe(untilDestroyed(this)).subscribe({
-      next: res => { if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); } else { noCargo('las cajas'); } },
+      next: res => {
+        if (res != null) { this.cajaVirtualList = res; this.armarDestinosDeTransferencia(); this.precargarCajaDeOrigen(); }
+        else { noCargo('las cajas'); }
+      },
       error: () => noCargo('las cajas')
     });
     // Cajas que reciben envíos. Si no cargan (o el central todavía no las conoce), quedan solo las propias.
@@ -214,24 +235,64 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     // valor sin propagar) con un guard de reentrada para no entrar en bucle.
     this.montoOrigenControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       if (this.ajustandoMontos) return;
-      this.registrarToque('origen');
+      this.ultimoEditado = 'origen';
       this.recalcular();
     });
     this.montoDestinoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       if (this.ajustandoMontos) return;
-      this.registrarToque('destino');
+      this.ultimoEditado = 'destino';
       this.recalcular();
     });
     // La cotización escuchaba (input) del DOM, que no pasaba por el guard: como tercer
     // participante del motor tiene que entrar por el mismo camino que los montos.
     this.cotizacionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       if (this.ajustandoMontos) return;
-      this.registrarToque('cotizacion');
+      this.ultimoEditado = 'cotizacion';
+      // Escribirla la vuelve fija; borrarla vuelve al modo calculado.
+      this.fijarCotizacion(this.cotizacionControl.value > 0);
       this.cotizacionOrigenLabel = this.cotizacionAutomaticaControl.value ? this.cotizacionOrigenLabel : '';
       this.recalcular();
     });
 
-    this.seleccionarTipo(this.soloCaja ? TipoOperacionFinanciera.DEPOSITO_BANCARIO : TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS);
+    this.cajaDeOrigen = this.data?.cajaVirtual || null;
+    if (this.cajaDeOrigen?.id) {
+      // Desde una caja: orden y visibilidad de su configuración. onGetOrdenes nunca falla (sin datos, el de siempre).
+      this.cajaVirtualService.onGetOrdenes(this.cajaDeOrigen.id).pipe(untilDestroyed(this))
+        .subscribe(o => { this.aplicarOrdenDeLaCaja(o); this.seleccionarPrimerTipo(); });
+    } else {
+      this.seleccionarPrimerTipo();
+    }
+  }
+
+  /**
+   * Ordena y oculta los tipos según la caja. Solo sobre lo que el rol ya deja ver: ocultar nunca habilita nada. Si
+   * la configuración ocultara todos, se ignora: un diálogo sin operaciones no sirve.
+   */
+  private aplicarOrdenDeLaCaja(o: CajaVirtualOrdenes) {
+    const base = TIPOS_OPERACION_FINANCIERA.map(t => t.value);
+    const ordenados = ordenarSegun(this.tipoOperacionList, t => t.value,
+      parseListaJson<TipoOperacionFinanciera>(o.operacionesFinancierasOrden), (a, b) => base.indexOf(a.value) - base.indexOf(b.value));
+    const ocultas = new Set(parseListaJson<string>(o.operacionesFinancierasOcultas));
+    const visibles = ordenados.filter(t => !ocultas.has(t.value));
+    this.tipoOperacionList = visibles.length ? visibles : ordenados;
+  }
+
+  /** Primer tipo de la lista (ya ordenada y filtrada por rol y por caja). */
+  private seleccionarPrimerTipo() {
+    const primero = this.tipoOperacionList[0]?.value;
+    if (primero) this.seleccionarTipo(primero);
+  }
+
+  /**
+   * Abierto desde una caja, esa caja queda como origen cuando el tipo sale de una caja. Se llama al cambiar de tipo
+   * y cuando llegan las cajas (que pueden tardar más que el tipo). No pisa una caja ya elegida.
+   */
+  private precargarCajaDeOrigen() {
+    if (!this.cajaDeOrigen?.id || !this.mostrarCajaOrigen || this.cajaMayorOrigenControl.value) return;
+    const caja = (this.cajaVirtualList || []).find(c => String(c.id) === String(this.cajaDeOrigen.id));
+    if (!caja) return;
+    this.cajaMayorOrigenControl.setValue(caja);
+    this.onCajaChange();
   }
 
   private ajustandoMontos = false;
@@ -241,31 +302,20 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.ajustandoMontos = false;
   }
 
-  /**
-   * Motor de los tres campos: monto origen, monto destino y cotización.
-   *
-   * Cualquier par determina el tercero, y el operador no siempre tiene los mismos dos: a veces
-   * conoce la tasa y el monto que entrega, y a veces solo el ticket de la casa de cambio, que
-   * dice cuánto entregó y cuánto recibió. Antes solo se podía calcular hacia adelante desde la
-   * cotización, así que en ese segundo caso había que sacar la división a mano.
-   *
-   * Manda el par de los dos últimos campos tocados; el tercero se deriva. Alcanza con recordar
-   * cuál es el actual y cuál el anterior — mientras se sigue tipeando en el MISMO campo no se
-   * rota nada, si no cada tecla desplazaría el par y se perdería la referencia.
-   */
-  private campoActual: 'origen' | 'destino' | 'cotizacion' = 'cotizacion';
-  private campoAnterior: 'origen' | 'destino' | 'cotizacion' = 'destino';
-
-  private registrarToque(campo: 'origen' | 'destino' | 'cotizacion') {
-    if (this.campoActual === campo) return;
-    this.campoAnterior = this.campoActual;
-    this.campoActual = campo;
+  private fijarCotizacion(fija: boolean) {
+    this.cotizacionFija = fija;
+    this.cotizacionCandado = fija ? 'lock' : 'lock_open';
+    this.cotizacionCandadoTooltip = fija
+      ? 'Cotización fija: al escribir un monto se calcula el otro. Clic para calcularla de los montos.'
+      : 'Cotización calculada de los montos. Clic para dejarla fija.';
   }
 
-  /** El campo que no está en el par de los dos últimos tocados: ese es el que se calcula. */
-  private campoDerivado(): 'origen' | 'destino' | 'cotizacion' {
-    const todos: ('origen' | 'destino' | 'cotizacion')[] = ['origen', 'destino', 'cotizacion'];
-    return todos.find(c => c !== this.campoActual && c !== this.campoAnterior);
+  /** El candado del campo: pasa la cotización de fija a calculada y al revés. */
+  alternarCandado() {
+    const cot = this.cotizacionControl.value;
+    this.fijarCotizacion(!this.cotizacionFija && cot > 0);
+    if (!this.cotizacionFija) { this.cotizacionAutomaticaControl.setValue(false, { emitEvent: false }); }
+    this.recalcular();
   }
 
   /**
@@ -284,32 +334,23 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     const md: Moneda = this.monedaDestinoControl.value;
     if (!mo || !md) return;
 
-    const origen = this.montoOrigenControl.value;
-    const destino = this.montoDestinoControl.value;
-    const cot = this.cotizacionControl.value;
-    const origenEsBase = !!(mo as any).principal;
-    const destinoEsBase = !!(md as any).principal;
-
-    switch (this.campoDerivado()) {
-      case 'destino':
-        if (origen == null || !cot || cot <= 0) return;
-        this.setSilencioso(this.montoDestinoControl,
-          this.round(origenEsBase ? origen / cot : origen * cot, md));
-        return;
-      case 'origen':
-        if (destino == null || !cot || cot <= 0) return;
-        this.setSilencioso(this.montoOrigenControl,
-          this.round(origenEsBase ? destino * cot : destino / cot, mo));
-        return;
-      case 'cotizacion':
-        // No se pisa la cotización del sistema con una calculada de los montos.
-        if (this.cotizacionAutomaticaControl.value) return;
-        if (!origen || !destino || origen <= 0 || destino <= 0) return;
-        this.setSilencioso(this.cotizacionControl,
-          this.redondearCotizacion(origenEsBase || !destinoEsBase ? origen / destino : destino / origen));
-        this.cotizacionOrigenLabel = 'calculada de los montos';
-        return;
+    // Motor de casa de cambio (desk #720 §2-3): la cotización es «menor por 1 mayor» y es el ancla.
+    this.mayorEsOrigen = origenEsMayor(this.motor(mo), this.motor(md), this.montoOrigenControl.value, this.montoDestinoControl.value);
+    const r = recalcularMotor(this.ultimoEditado, this.cotizacionFija, {
+      origen: this.montoOrigenControl.value, destino: this.montoDestinoControl.value, cotizacion: this.cotizacionControl.value,
+    }, this.mayorEsOrigen);
+    if (r.montoDestino != null) this.setSilencioso(this.montoDestinoControl, this.round(r.montoDestino, md));
+    if (r.montoOrigen != null) this.setSilencioso(this.montoOrigenControl, this.round(r.montoOrigen, mo));
+    if (r.cotizacion != null && !this.cotizacionFija) {
+      this.setSilencioso(this.cotizacionControl, this.redondearCotizacion(r.cotizacion));
+      this.cotizacionOrigenLabel = 'calculada de los montos';
     }
+    this.actualizarInversa();
+  }
+
+  /** Lo que el motor necesita de una moneda: si es la principal y su cotización contra ella. */
+  private motor(m: Moneda): MonedaMotor {
+    return m ? { id: m.id, principal: !!(m as any).principal, valorEnGs: this.valorEnGs.get(m.id) ?? null } : null;
   }
 
   /** Fuera del cambio de divisa el destino espeja al origen (o lo convierte, en transf. bancaria). */
@@ -394,6 +435,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
     this.aplicarEstadoMoneda();
     this.actualizarCurrencyOpts();
+    this.precargarCajaDeOrigen();
   }
 
   /**
@@ -418,8 +460,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.ajustandoMontos = false;
     this.cotizacionAutomaticaControl.setValue(false, { emitEvent: false });
     this.cotizacionOrigenLabel = '';
-    this.campoActual = 'cotizacion';
-    this.campoAnterior = 'destino';
+    this.ultimoEditado = 'origen';
+    this.fijarCotizacion(false);
+    this.cotizacionInversa = '';
     if (this.soloCaja) {
       this.cuentasCargaId++;
       this.cuentaBancariaList = [];
@@ -500,10 +543,49 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   private actualizarEtiquetaCotizacion() {
     const mo: Moneda = this.monedaOrigenControl.value;
     const md: Moneda = this.monedaDestinoControl.value;
-    const hayBase = !!(mo as any)?.principal || !!(md as any)?.principal;
-    this.cotizacionLabel = hayBase || !mo || !md
-      ? 'Cotización (Gs por 1 de divisa)'
-      : `Cotización (${md?.simbolo || md?.denominacion} por 1 ${mo?.simbolo || mo?.denominacion})`;
+    this.pedirValoresEnGs([mo, md]);
+    this.mayorEsOrigen = origenEsMayor(this.motor(mo), this.motor(md), this.montoOrigenControl.value, this.montoDestinoControl.value);
+    const mayor = this.mayorEsOrigen == null ? null : (this.mayorEsOrigen ? mo : md);
+    const menor = this.mayorEsOrigen == null ? null : (this.mayorEsOrigen ? md : mo);
+    // Sin poder decidir todavía (dos divisas sin cotización y sin montos) queda la etiqueta genérica.
+    this.cotizacionLabel = mayor && menor
+      ? `Cotización (${menor.simbolo || menor.denominacion} por 1 ${mayor.simbolo || mayor.denominacion})`
+      : 'Cotización (moneda menor por 1 de la mayor)';
+    // Gs por divisa va sin decimales de más («6.400»); entre divisas, con 4 («5,6000» se escribe «5,60»).
+    const conPrincipal = !!(mo as any)?.principal || !!(md as any)?.principal;
+    this.currencyOptsCotizacion = this.opcionesCotizacion(conPrincipal ? 2 : 4);
+    this.actualizarInversa();
+  }
+
+  /** «= 0,1786 US$ por 1 R$» debajo del campo. */
+  private actualizarInversa() {
+    const cot = this.cotizacionControl.value;
+    const mo: Moneda = this.monedaOrigenControl.value;
+    const md: Moneda = this.monedaDestinoControl.value;
+    if (!(cot > 0) || this.mayorEsOrigen == null || !mo || !md) { this.cotizacionInversa = ''; return; }
+    const mayor = this.mayorEsOrigen ? mo : md;
+    const menor = this.mayorEsOrigen ? md : mo;
+    this.cotizacionInversa = `= ${formatear(1 / cot, 4)} ${mayor.simbolo || ''} por 1 ${menor.simbolo || ''}`;
+  }
+
+  /** Trae (una vez por moneda) su cotización contra la principal, para decidir cuál vale más. */
+  private pedirValoresEnGs(monedas: Moneda[]) {
+    for (const m of monedas) {
+      if (!m?.id || (m as any).principal || this.valorEnGs.has(m.id)) continue;
+      this.valorEnGs.set(m.id, null);
+      this.cambioService.getUltimoCambioPorMonedaId(m.id).pipe(untilDestroyed(this)).subscribe(c => {
+        const v = (c as any)?.valorEnGs ?? (c as any)?.valorEnGsCambio ?? null;
+        this.valorEnGs.set(m.id, v > 0 ? v : null);
+        this.actualizarEtiquetaCotizacion();
+      });
+    }
+  }
+
+  private opcionesCotizacion(decimales: number) {
+    return {
+      align: 'right', allowNegative: false, allowZero: false, decimal: ',', precision: decimales, prefix: '', suffix: '',
+      thousands: '.', nullable: true, min: 0, max: null, inputMode: CurrencyMaskInputMode.NATURAL,
+    };
   }
 
   /**
@@ -530,9 +612,22 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     const origenEsBase = !!(mo as any).principal;
     const destinoEsBase = !!(md as any).principal;
     if (!origenEsBase && !destinoEsBase) {
-      this.cotizacionAutomaticaControl.setValue(false, { emitEvent: false });
-      return this.notificacion.openAlgoSalioMal(
-        'Entre dos divisas extranjeras no hay una cotización del sistema: cargala a mano');
+      // Entre dos divisas: la cruzada, con las dos contra la principal (US$ 6.400 / R$ 1.200 = 5,33).
+      this.mayorEsOrigen = origenEsMayor(this.motor(mo), this.motor(md));
+      const cruzada = this.mayorEsOrigen == null ? null
+        : cotizacionCruzada(this.motor(this.mayorEsOrigen ? mo : md), this.motor(this.mayorEsOrigen ? md : mo));
+      if (!cruzada) {
+        this.cotizacionAutomaticaControl.setValue(false, { emitEvent: false });
+        return this.notificacion.openAlgoSalioMal(
+          'Falta la cotización de alguna de las dos divisas contra el guaraní: cargala a mano');
+      }
+      this.cotizacionOrigenLabel = 'cruzada del sistema';
+      this.ultimoEditado = 'cotizacion';
+      this.fijarCotizacion(true);
+      this.setSilencioso(this.cotizacionControl, this.redondearCotizacion(cruzada));
+      this.actualizarEtiquetaCotizacion();
+      this.recalcular();
+      return;
     }
 
     const extranjera = origenEsBase ? md : mo;
@@ -553,8 +648,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
             `No hay cotización cargada para ${extranjera.denominacion}: cargala a mano`);
         }
         this.cotizacionOrigenLabel = compramos ? 'compra de mercado' : 'venta de mercado';
-        // Entra como un toque de cotización: los montos se recalculan a partir de ella.
-        this.registrarToque('cotizacion');
+        // La del sistema queda fija: los montos se calculan a partir de ella.
+        this.ultimoEditado = 'cotizacion';
+        this.fijarCotizacion(true);
         this.setSilencioso(this.cotizacionControl, tasa);
         this.recalcular();
       });
@@ -687,6 +783,10 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     operacion.monedaDestino = this.monedaDestinoControl.value;
     operacion.montoDestino = this.montoDestinoControl.value;
     operacion.cotizacion = this.cotizacionControl.value;
+    // Qué moneda vale 1 en la cotización: con esto el central valida que cierre con los montos (central #603).
+    if (tipo === TipoOperacionFinanciera.CAMBIO_DIVISA && this.mayorEsOrigen != null) {
+      operacion.cotizacionMonedaId = (this.mayorEsOrigen ? this.monedaOrigenControl.value : this.monedaDestinoControl.value)?.id;
+    }
     if (this.mostrarDiferencia && this.diferenciaControl.value) {
       operacion.diferencia = this.diferenciaControl.value;
       operacion.diferenciaDestinoTipo = this.diferenciaDestinoTipoControl.value;
