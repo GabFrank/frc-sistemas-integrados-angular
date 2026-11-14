@@ -396,7 +396,7 @@
                                     ({{ precio?.tipoPrecio?.id }})
                                   </div>
                                   <div style="text-align: center; font-size: 1em">
-                                    {{ precio?.precio | number : "1.0-0" }}
+                                    <ng-container *ngIf="monedaDe(precio) as m; else sinMoneda">{{ m.simbolo }} {{ precio?.precio | number : digitosDe(m) }}</ng-container><ng-template #sinMoneda>{{ precio?.precio | number : "1.0-0" }}</ng-template>
                                   </div>
                                 </div>
                               </mat-card>
