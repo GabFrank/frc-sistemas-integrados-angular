@@ -219,3 +219,46 @@ export const ingresarMaletinCierreMutation = gql`
     }
   }
 `;
+
+// Lista paginada de la pantalla de maletines: filtra y pagina el central.
+export const maletinesConFiltrosQuery = gql`
+  query ($sucursalId: ID, $texto: String, $abierto: Boolean, $page: Int, $size: Int) {
+    data: maletinesConFiltros(sucursalId: $sucursalId, texto: $texto, abierto: $abierto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+        activo
+        abierto
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        cajaActual {
+          id
+          sucursalId
+          fechaApertura
+          fechaCierre
+          usuario {
+            persona {
+              nombre
+            }
+          }
+        }
+        sucursal {
+          id
+          nombre
+        }
+      }
+    }
+  }
+`;
