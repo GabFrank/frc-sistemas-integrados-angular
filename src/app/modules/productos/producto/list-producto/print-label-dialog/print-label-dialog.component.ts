@@ -13,7 +13,7 @@ import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
 import { MonedaModuloService } from '../../../../../shared/services/moneda-modulo.service';
 import { PrecioMonedaService } from '../../../precio-por-sucursal/precio-moneda.service';
-import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta } from '../../../precio-por-sucursal/etiqueta-precio.util';
+import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta, textoQrEtiqueta } from '../../../precio-por-sucursal/etiqueta-precio.util';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @Component({
@@ -100,12 +100,7 @@ export class PrintLabelDialogComponent implements OnInit {
         this.printForm.get('barcodeData').setValue(product.codigoPrincipal);
       }
 
-      // Set default QR code data
-      const qrData = `${product.codigoPrincipal || ''}\n${product.descripcion}\nPrecio: ${product.precioPrincipal.toLocaleString('es-PY', {
-        style: 'currency',
-        currency: 'PYG'
-      })}`;
-      this.printForm.get('qrCodeData').setValue(qrData);
+      this.aplicarQrPorDefecto();
       this.printForm.get('qrCodeTitle').setValue(product.descripcion);
     }
 
@@ -193,9 +188,26 @@ export class PrintLabelDialogComponent implements OnInit {
           }
           this.monedaPrecio = moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda) ? moneda : null;
           this.monedaPrecioEstado = 'ok';
+          this.aplicarQrPorDefecto();
           this.updatePreviewComputedProperties();
         });
     });
+  }
+
+  /** Último texto por defecto escrito en el QR; si el campo ya no es igual, lo editó el usuario. */
+  private qrPorDefecto = '';
+
+  /** Pone el texto por defecto del QR con la moneda actual del precio, sin pisar lo que el usuario escribió (#750). */
+  private aplicarQrPorDefecto(): void {
+    const producto = this.data?.producto;
+    const control = this.printForm.get('qrCodeData');
+    if (!producto || (control.value || '') !== this.qrPorDefecto) return;
+    const precio: number = typeof producto.precioPrincipal === 'number'
+      ? producto.precioPrincipal
+      : parseFloat(producto.precioPrincipal) || 0;
+    this.qrPorDefecto = textoQrEtiqueta(producto.codigoPrincipal, producto.descripcion, precio, this.monedaPrecio);
+    // Sin evento: el que llama repinta con updatePreviewComputedProperties (una sola generación del QR)
+    control.setValue(this.qrPorDefecto, { emitEvent: false });
   }
 
   /** El precio llevado a la moneda de la empresa, base de las conversiones a reales y dólares; null si no se conoce el cambio. */

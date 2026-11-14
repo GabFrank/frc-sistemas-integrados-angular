@@ -17,6 +17,16 @@ export function textoPrecioEtiqueta(
   return `${moneda.simbolo ? moneda.simbolo + ' ' : ''}${monto}`;
 }
 
+/** Texto por defecto del QR de la etiqueta: código, descripción y el precio en su moneda (#750). */
+export function textoQrEtiqueta(
+  codigo: string | null | undefined,
+  descripcion: string | null | undefined,
+  precio: number,
+  moneda: { simbolo?: string | null; decimales?: number | null } | null | undefined,
+): string {
+  return `${codigo || ''}\n${descripcion || ''}\nPrecio: ${textoPrecioEtiqueta(precio, moneda)}`;
+}
+
 /**
  * Qué hacer con la moneda de una etiqueta según el mapa en caché de precios en otra moneda.
  *  - `empresa`: el mapa está vacío (bodega) o falló, o sigue cargando pasado el tope de espera: moneda de la empresa.
