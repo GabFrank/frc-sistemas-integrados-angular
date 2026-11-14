@@ -34,7 +34,7 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Monto</mat-label>
-        <input matInput type="number" [formControl]="totalControl" placeholder="0" />
+        <input matInput type="text" currencyMask [options]="currencyOpts" [formControl]="totalControl" placeholder="0" />
         <span matSuffix class="moneda-suffix">{{ chequeraSel?.cuentaBancaria?.moneda?.simbolo || 'Gs.' }}</span>
         <mat-error *ngIf="totalControl.hasError('required') || totalControl.hasError('min')">
           Ingrese un monto mayor a 0
