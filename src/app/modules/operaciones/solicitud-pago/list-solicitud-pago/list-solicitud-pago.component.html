@@ -4,6 +4,10 @@
   (filtrar)="onFilter()"
   (resetFiltro)="onResetFiltro()"
   [isAdicionar]="mainService?.usuarioActual?.roles?.includes('ADMIN') || true"
+  [isCustom]="true"
+  customName="Generar reporte"
+  (customFunction)="onGenerarReporte()"
+  [disableCustom]="sinFilasParaReporte"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
