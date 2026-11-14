@@ -56,6 +56,44 @@ export function esCentralSinMonedaPorModulo(err: any): boolean {
   return /FieldUndefined|UnknownType|Cannot query field/.test(texto);
 }
 
+const UN_DIA_MS = 24 * 60 * 60 * 1000;
+
+function claveDe(c: ConfiguracionMonedaModulo): string {
+  return `${c.modulo}|${c.sucursal?.id ?? ''}`;
+}
+
+/**
+ * La vista sin historial, en el orden del central (la más reciente primero). Por clave
+ * (módulo + sucursal): las activas que rigen desde después de `ahora − 1 día` y la primera activa
+ * anterior a ese corte; sin ninguna activa, la más reciente. El margen es por el reloj de la PC: uno
+ * corrido menos de un día solo puede sumar filas, nunca esconder la que rige en el central.
+ * Exportada para el spec.
+ */
+export function configuracionesVisibles(configs: ConfiguracionMonedaModulo[], ahora: Date): ConfiguracionMonedaModulo[] {
+  const corte = ahora.getTime() - UN_DIA_MS;
+  const conActiva = new Set((configs || []).filter((c) => c.activo !== false).map(claveDe));
+  const cerradas = new Set<string>();
+  return (configs || []).filter((c) => {
+    const clave = claveDe(c);
+    if (cerradas.has(clave)) return false;
+    if (!conActiva.has(clave)) {
+      cerradas.add(clave);
+      return true;
+    }
+    if (c.activo === false) return false;
+    if (new Date(c.vigenteDesde).getTime() > corte) return true;
+    cerradas.add(clave);
+    return true;
+  });
+}
+
+/** Cuántas otras filas activas de la misma clave tienen la misma moneda que `fila`. Exportada para el spec. */
+export function otrasActivasConLaMismaMoneda(configs: ConfiguracionMonedaModulo[], fila: ConfiguracionMonedaModulo): number {
+  const clave = claveDe(fila);
+  return (configs || []).filter((c) => c.id !== fila.id && c.activo !== false && claveDe(c) === clave
+    && c.moneda?.id != null && c.moneda.id === fila.moneda?.id).length;
+}
+
 @Injectable({
   providedIn: 'root'
 })
