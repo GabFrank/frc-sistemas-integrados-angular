@@ -73,7 +73,6 @@ import { FinalizarRecepcionNotasGQL } from './gestion-compras/graphql/finalizarR
 
 // RecepcionMercaderia imports
 import { GetSucursalesDisponiblesRecepcionFisicaGQL } from './gestion-compras/graphql/getSucursalesDisponiblesRecepcionFisica';
-import { GetNotasRecepcionDisponiblesGQL } from './gestion-compras/recepcion-mercaderia/graphql/get-notas-recepcion-disponibles';
 import { SaveRecepcionMercaderiaGQL } from './gestion-compras/recepcion-mercaderia/graphql/save-recepcion-mercaderia';
 import { SaveRecepcionMercaderiaItemGQL } from './gestion-compras/recepcion-mercaderia/graphql/save-recepcion-mercaderia-item';
 import { RechazarItemGQL, RechazarItemInput } from './gestion-compras/recepcion-mercaderia/graphql/rechazarItemGQL';
@@ -148,7 +147,6 @@ export class PedidoService {
     private deleteNotaRecepcionItemGQL: DeleteNotaRecepcionItemGQL,
     // RecepcionMercaderia services
     private getSucursalesDisponiblesRecepcionFisicaGQL: GetSucursalesDisponiblesRecepcionFisicaGQL,
-    private getNotasRecepcionDisponiblesGQL: GetNotasRecepcionDisponiblesGQL,
     private saveRecepcionMercaderiaGQL: SaveRecepcionMercaderiaGQL,
     private saveRecepcionMercaderiaItemGQL: SaveRecepcionMercaderiaItemGQL,
     private rechazarItemGQL: RechazarItemGQL,

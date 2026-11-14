@@ -95,65 +95,6 @@ export const RECEPCION_MERCADERIA_ITEMS_POR_RECEPCION_QUERY = gql`
   }
 `;
 
-// Query para obtener notas de recepción disponibles para recepción física
-export const NOTAS_RECEPCION_DISPONIBLES_QUERY = gql`
-  query notasRecepcionDisponibles($pedidoId: ID!) {
-    notaRecepcionPorPedidoIdAndNumeroPage(
-      pedidoId: $pedidoId
-      page: 0
-      size: 100
-    ) {
-      getContent {
-        id
-        numero
-        fecha
-        tipoBoleta
-        timbrado
-        moneda {
-          id
-          denominacion
-        }
-        cotizacion
-        estado
-        esNotaRechazo
-        notaRecepcionItems {
-          id
-          producto {
-            id
-            descripcion
-            codigo
-          }
-          presentacionEnNota {
-            id
-            descripcion
-            cantidad
-          }
-          cantidadEnNota
-          precioUnitarioEnNota
-          esBonificacion
-          vencimientoEnNota
-          estado
-          notaRecepcionItemDistribuciones {
-            id
-            sucursalEntrega {
-              id
-              nombre
-            }
-            cantidadDistribuida
-          }
-        }
-      }
-      getTotalElements
-      getTotalPages
-      getNumberOfElements
-      isFirst
-      isLast
-      hasNext
-      hasPrevious
-    }
-  }
-`;
-
 // Query para obtener sucursales disponibles para recepción física
 export const SUCURSALES_DISPONIBLES_RECEPCION_FISICA_QUERY = gql`
   query sucursalesDisponiblesRecepcionFisica($pedidoId: ID!) {
