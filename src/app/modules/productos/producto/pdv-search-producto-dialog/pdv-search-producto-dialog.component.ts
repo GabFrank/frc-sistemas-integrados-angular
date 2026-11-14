@@ -49,6 +49,8 @@ import { QueryError, ContextoConsulta } from "../../../../generics/generic-crud.
 import { TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { PrecioMonedaService } from "../../precio-por-sucursal/precio-moneda.service";
+import { Moneda } from "../../../financiero/moneda/moneda.model";
 
 /** La búsqueda por descripción puede tardar más que un escaneo. */
 const TIMEOUT_BUSQUEDA_MOSTRADOR_MS = 20000;
@@ -198,7 +200,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private stockService: MovimientoStockService,
     private configService: ConfiguracionService,
     private cdr: ChangeDetectorRef,
-    private notificacionSnackbar: NotificacionSnackbarService
+    private notificacionSnackbar: NotificacionSnackbarService,
+    private precioMonedaService: PrecioMonedaService
   ) {
     if (data?.mostrarStock == true) {
       this.displayedColumns = [
@@ -876,5 +879,16 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           this.onSearchProducto(res.descripcion, 0);
         }
       });
+  }
+
+  /** La moneda del precio si no es la de la empresa (#746): la tarjeta muestra «US$ 5,85», no «6». */
+  monedaDe(precio: PrecioPorSucursal | null | undefined): Moneda | null {
+    if (precio?.precio == null) return null;
+    return this.precioMonedaService.monedaPdvDe(precio?.id);
+  }
+
+  digitosDe(m: Moneda): string {
+    const d = m?.decimales != null && m.decimales >= 0 ? m.decimales : 2;
+    return `1.${d}-${d}`;
   }
 }
