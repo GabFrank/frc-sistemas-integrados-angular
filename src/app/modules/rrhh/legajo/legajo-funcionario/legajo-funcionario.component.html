@@ -6,7 +6,8 @@
     <div class="dash-card funcionario-head" fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="20px"
       fxLayoutAlign="start center">
       <div class="avatar">
-        <img *ngIf="fotoPerfilSrc" [src]="fotoPerfilSrc" alt="foto de perfil" />
+        <img *ngIf="fotoPerfilSrc" [src]="fotoPerfilSrc" alt="foto de perfil" class="foto-clickeable"
+          matTooltip="Ver foto ampliada" (click)="fotoAmpliada = fotoPerfilSrc" />
         <mat-icon *ngIf="!fotoPerfilSrc">account_circle</mat-icon>
       </div>
       <div class="identidad" fxLayout="column" fxLayoutGap="6px" fxFlex>
@@ -77,7 +78,7 @@
         <mat-tab label="Información general">
           <app-informacion-general [funcionarioId]="funcionario?.id" [persona]="personaNueva"
             (guardado)="onGuardado($event)"
-            (fotoCambiada)="fotoPerfilSrc = $event"></app-informacion-general>
+            (fotoCambiada)="fotoPerfilSrc = $event" (verFoto)="fotoAmpliada = $event"></app-informacion-general>
         </mat-tab>
 
         <ng-container *ngIf="funcionario != null">
@@ -237,4 +238,16 @@
       </mat-tab-group>
     </div>
   </div>
+</div>
+
+<!-- Foto ampliada: clic afuera, la X o Escape la cierran. -->
+<div *ngIf="fotoAmpliada" class="foto-overlay" (click)="fotoAmpliada = null" role="dialog"
+  aria-label="Foto de perfil ampliada">
+  <button type="button" class="foto-overlay-cerrar" mat-icon-button aria-label="Cerrar"
+    (click)="fotoAmpliada = null; $event.stopPropagation()">
+    <mat-icon>close</mat-icon>
+  </button>
+  <img class="foto-overlay-imagen" [src]="fotoAmpliada"
+    [alt]="'Foto de perfil de ' + (funcionario?.persona?.nombre || 'funcionario')"
+    (click)="$event.stopPropagation()" />
 </div>

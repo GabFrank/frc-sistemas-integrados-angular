@@ -1,7 +1,10 @@
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { esRechazoDelServidor } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { LECTURA_ESTRICTA } from '../../../../generics/generic-crud.service';
-import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.constantes';
+import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO } from '../../../../generics/generic-crud.constantes';
+import { of } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -26,8 +29,8 @@ import { FuncionarioDocumento } from '../legajo.model';
  * Foto de perfil — se guarda como FuncionarioDocumento con tipo dedicado 'FOTO_PERFIL'.
  * El botón "Cambiar foto" dispara directamente el selector de archivos del SO (input file
  * oculto); al elegir imagen se sube en un solo paso, sin diálogo ni selección manual de tipo.
- * Fallback de visualización, en orden: documento FOTO_PERFIL más reciente -> funcionario.imagenPrincipal
- * -> avatar genérico.
+ * Fallback de visualización, en orden: documento FOTO_PERFIL más reciente -> foto de frente del
+ * registro facial de marcación (imagen 'perfil' del usuario) -> funcionario.imagenPrincipal -> avatar genérico.
  */
 const FOTO_PERFIL_TIPO = 'FOTO_PERFIL';
 const AVATAR_DEFAULT = 'assets/avatar-3x4.png';
@@ -46,6 +49,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   @Output() guardado = new EventEmitter<number>();
   // Notifica al legajo padre la foto vigente (data URL) para pintar el avatar de la cabecera.
   @Output() fotoCambiada = new EventEmitter<string>();
+  // Clic en la foto: el legajo la muestra ampliada (el mismo visor que el avatar de la cabecera).
+  @Output() verFoto = new EventEmitter<string>();
 
   // ---- Persona ----
   documentoControl = new FormControl(null, Validators.required);
@@ -105,6 +110,9 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   ipsActivo = false;
   cobraBanco = false;
   fotoPerfilSrc = AVATAR_DEFAULT;
+  readonly fotoDefault = AVATAR_DEFAULT;
+  /** La foto al cargar el funcionario: la del registro facial solo la reemplaza si nadie la cambió. */
+  private fotoInicial: string = AVATAR_DEFAULT;
   hoy = new Date();
 
   // Estado interno de guardado
@@ -116,7 +124,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     private funcionarioService: FuncionarioService,
     private sucursalService: SucursalService,
     private legajoService: LegajoService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private usuarioService: UsuarioService
   ) { }
 
   ngOnInit(): void {
@@ -245,6 +254,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.contactoEmergenciaTelefonoControl.setValue(f.contactoEmergenciaTelefono);
 
     this.fotoPerfilSrc = f.imagenPrincipal || AVATAR_DEFAULT;
+    this.fotoInicial = this.fotoPerfilSrc;
     this.actualizarPrecomputados();
   }
 
@@ -320,7 +330,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   private cargarFoto(): void {
     this.legajoService.onGetDocumentos(this.funcionarioId).pipe(untilDestroyed(this)).subscribe((docs: FuncionarioDocumento[]) => {
       const candidatos = (docs || []).filter(d => !d.anulado && d.tipo === FOTO_PERFIL_TIPO);
-      if (candidatos.length === 0) { return; }
+      if (candidatos.length === 0) {
+        this.cargarFotoRegistroFacial();
+        return;
+      }
       candidatos.sort((a, b) => {
         const fa = new Date((a.fechaSubida || a.creadoEn) as any).getTime();
         const fb = new Date((b.fechaSubida || b.creadoEn) as any).getTime();
@@ -335,6 +348,34 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
           this.fotoCambiada.emit(this.fotoPerfilSrc);
         }
       });
+    });
+  }
+
+  /** El avatar genérico no se amplía. */
+  onVerFoto(): void {
+    if (this.fotoPerfilSrc && this.fotoPerfilSrc !== AVATAR_DEFAULT) {
+      this.verFoto.emit(this.fotoPerfilSrc);
+    }
+  }
+
+  /**
+   * Sin foto subida al legajo: la foto de frente que se sacó al hacer el registro facial para
+   * marcar. Se guarda por usuario con tipo 'perfil'. Si no tiene usuario o registro, queda el avatar.
+   */
+  private cargarFotoRegistroFacial(): void {
+    const personaId = this.personaId;
+    if (personaId == null) { return; }
+    this.usuarioService.onGetUsuarioPorPersonaId(personaId, true, SIN_AVISO_DEL_GENERICO).pipe(
+      switchMap(usuario => usuario?.id != null
+        ? this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', true, SIN_AVISO_DEL_GENERICO)
+        : of([] as string[])),
+      catchError(() => of([] as string[])),
+      untilDestroyed(this)
+    ).subscribe((imgs: string[]) => {
+      // Se descarta si mientras tanto cambió de funcionario o se subió una foto.
+      if (!imgs?.length || this.personaId !== personaId || this.fotoPerfilSrc !== this.fotoInicial) { return; }
+      this.fotoPerfilSrc = imgs[0];
+      this.fotoCambiada.emit(this.fotoPerfilSrc);
     });
   }
 

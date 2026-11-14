@@ -114,3 +114,36 @@
 }
 
 .carga-fallida { padding: 40px; color: #ffb74d; }
+
+.foto-clickeable {
+  cursor: zoom-in;
+}
+
+// Mismo visor que el diálogo de funcionario. El fondo oscuro es a propósito en los dos temas.
+.foto-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 24px;
+  cursor: zoom-out;
+}
+
+.foto-overlay-imagen {
+  max-width: min(90vw, 600px);
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.foto-overlay-cerrar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: #fff;
+}
