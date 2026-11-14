@@ -1994,6 +1994,13 @@ export const imprimirSolicitudPagoTicketMutation = gql`
   }
 `;
 
+/** PDF (base64) de la lista de solicitudes: mismos filtros que solicitudesPagoPaginatedQuery, sin paginar. */
+export const imprimirReporteSolicitudesPagoQuery = gql`
+  query ($proveedorId: ID, $estado: SolicitudPagoEstado, $numero: String, $fechaDesde: String, $fechaHasta: String, $monedaIds: [ID]) {
+    data: imprimirReporteSolicitudesPago(proveedorId: $proveedorId, estado: $estado, numero: $numero, fechaDesde: $fechaDesde, fechaHasta: $fechaHasta, monedaIds: $monedaIds)
+  }
+`;
+
 export const solicitudesPagoPaginatedQuery = gql`
   query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado, $numero: String, $fechaDesde: String, $fechaHasta: String, $monedaIds: [ID]) {
     data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado, numero: $numero, fechaDesde: $fechaDesde, fechaHasta: $fechaHasta, monedaIds: $monedaIds) {

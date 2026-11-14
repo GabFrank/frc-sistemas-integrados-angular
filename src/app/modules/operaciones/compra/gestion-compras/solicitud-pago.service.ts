@@ -26,8 +26,9 @@ import {
 } from './graphql/solicitudPagoCajaAsignada';
 import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
+import { ImprimirReporteSolicitudesPagoGQL } from './graphql/imprimirReporteSolicitudesPago';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
-import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
+import { GetSolicitudesPagoPaginatedVariables, SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
@@ -64,6 +65,7 @@ export class SolicitudPagoService {
     private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
+    private imprimirReporteSolicitudesPagoGQL: ImprimirReporteSolicitudesPagoGQL,
     private genericCrudService: GenericCrudService,
     private configService: ConfiguracionService
   ) { }
@@ -381,6 +383,13 @@ export class SolicitudPagoService {
       this.imprimirSolicitudPagoPDFGQL,
       { solicitudPagoId }
     );
+  }
+
+  /** PDF (base64) de la lista de solicitudes, con los mismos filtros que onGetSolicitudesPagoPaginated. */
+  onImprimirReporteSolicitudesPago(filtros: GetSolicitudesPagoPaginatedVariables): Observable<string> {
+    const { proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds } = filtros;
+    return this.genericCrudService.onCustomQuery(this.imprimirReporteSolicitudesPagoGQL,
+      { proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds });
   }
 
   /**
