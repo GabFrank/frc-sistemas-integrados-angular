@@ -17,7 +17,9 @@ import {
   ModuloMoneda,
   MODULOS_MONEDA
 } from './configuracion-moneda-modulo.model';
-import { ConfiguracionMonedaModuloService, esCentralSinMonedaPorModulo } from './configuracion-moneda-modulo.service';
+import {
+  ConfiguracionMonedaModuloService, configuracionesVisibles, esCentralSinMonedaPorModulo, otrasActivasConLaMismaMoneda
+} from './configuracion-moneda-modulo.service';
 import { AddConfiguracionMonedaModuloDialogComponent } from './add-configuracion-moneda-modulo-dialog/add-configuracion-moneda-modulo-dialog.component';
 
 /** Fila de la tabla con los textos ya armados (el template no llama funciones). */
@@ -54,6 +56,10 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
 
   readonly modulos = MODULOS_MONEDA;
   moduloFiltroControl = new FormControl<ModuloMoneda | null>(null);
+  /** false = una vista por módulo y sucursal (la que rige y las programadas); true = todas las filas. */
+  verHistorialControl = new FormControl(false);
+  /** Lo que devolvió el central, sin agrupar. */
+  private todas: ConfiguracionMonedaModulo[] = [];
 
   displayedColumns = ['modulo', 'sucursal', 'moneda', 'vigenteDesde', 'activo', 'usuario'];
   dataSource = new MatTableDataSource<FilaConfiguracion>([]);
@@ -94,11 +100,12 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
-          const filas = (res || []).map((c) => this.aFila(c));
-          this.dataSource.data = filas;
-          this.estado = filas.length ? 'datos' : 'vacio';
+          this.todas = res || [];
+          this.aplicarVista();
+          this.estado = this.todas.length ? 'datos' : 'vacio';
         },
         error: (err) => {
+          this.todas = [];
           this.dataSource.data = [];
           this.estado = 'error';
           // Un central sin V258.5 no conoce el tipo ni la query: no es una falla, falta actualizarlo.
@@ -110,6 +117,11 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
           this.notificacion.openAlgoSalioMal('No se pudieron cargar las configuraciones: ' + this.mensajeError);
         },
       });
+  }
+
+  aplicarVista(): void {
+    const filas = this.verHistorialControl.value ? this.todas : configuracionesVisibles(this.todas, new Date());
+    this.dataSource.data = filas.map((c) => this.aFila(c));
   }
 
   onLimpiarFiltro(): void {
@@ -136,9 +148,12 @@ export class ConfiguracionMonedaModuloComponent implements OnInit {
       return;
     }
     const titulo = activo ? 'Activar configuración' : 'Desactivar configuración';
+    // Con otras activas iguales debajo, desactivar esta no cambia la moneda: hay que decirlo.
+    const repetidas = activo ? 0 : otrasActivasConLaMismaMoneda(this.todas, fila.configuracion);
     const detalle = activo
       ? `${fila.modulo} (${fila.sucursal}) vuelve a usar ${fila.moneda} desde su fecha de vigencia.`
-      : `Si es la vigente, ${fila.modulo} (${fila.sucursal}) vuelve a la configuración activa anterior, o a la moneda de la empresa.`;
+      : `Si es la vigente, ${fila.modulo} (${fila.sucursal}) vuelve a la configuración activa anterior, o a la moneda de la empresa.`
+        + (repetidas ? ` Hay ${repetidas} más activa${repetidas > 1 ? 's' : ''} con ${fila.moneda}: para dejar de usarla, desactivalas desde «Ver historial».` : '');
     this.dialogos.confirm(titulo, detalle, null, null, true, 'Sí', 'No', null, true, !activo)
       .pipe(take(1))
       .subscribe((ok) => {
