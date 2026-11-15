@@ -6,6 +6,7 @@ import { MainService } from '../../../../main.service';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { Vale } from '../vale.model';
+import { digitosMoneda } from '../../liquidacion/moneda-item';
 import { ValeService } from '../vale.service';
 import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 
@@ -21,6 +22,8 @@ export interface ConfirmarValeDialogData {
 })
 export class ConfirmarValeDialogComponent implements OnInit {
 
+  /** Decimales del monto segun la moneda del vale (R$ 100,00; Gs 100.000). */
+  digitos = '1.0-0';
   vale: Vale;
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null, [Validators.required]);
@@ -39,6 +42,7 @@ export class ConfirmarValeDialogComponent implements OnInit {
     private mainService: MainService
   ) {
     this.vale = data.vale;
+    this.digitos = this.vale?.digitos ?? digitosMoneda(this.vale?.moneda);
   }
 
   ngOnInit(): void {

@@ -3,7 +3,7 @@
 
   <div class="resumen" fxLayout="column" fxLayoutGap="4px">
     <div><b>Funcionario:</b> {{ vale.funcionario?.persona?.nombre }}</div>
-    <div><b>Monto:</b> {{ vale.monto | number:'1.0-2' }} {{ vale.moneda?.denominacion }}</div>
+    <div><b>Monto:</b> {{ vale.monto | number:digitos }} {{ vale.moneda?.denominacion }}</div>
     <div class="advertencia">Esta acción registra el egreso real en la Caja Mayor seleccionada.</div>
   </div>
 
