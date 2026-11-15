@@ -1,10 +1,11 @@
 import gql from "graphql-tag";
 
-const ITEM_FIELDS = `id codigo descripcion monto tipo referenciaTipo manual editado editadoPor { id nickname } editadoEn montoOriginal`;
+const ITEM_FIELDS = `id codigo descripcion monto tipo referenciaTipo manual editado editadoPor { id nickname } editadoEn montoOriginal
+  moneda { id denominacion simbolo decimales } montoMoneda cotizacion`;
 const LIQ_FIELDS = `
   id funcionario { id persona { id nombre } } periodo fechaInicio fechaFin
   salarioBase totalHaberes totalDescuentos totalNeto
-  moneda { id denominacion } estado observacion
+  moneda { id denominacion simbolo decimales } estado observacion
 `;
 
 export const liquidacionByIdQuery = gql`

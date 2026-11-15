@@ -58,14 +58,17 @@
         </ng-container>
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>
-          <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
+          <td mat-cell *matCellDef="let row">
+            {{ simbolo }} {{ row.monto | number:digitos }}
+            <div *ngIf="row.origenMoneda" class="origen-moneda">{{ row.origenMoneda }}</div>
+          </td>
         </ng-container>
         <ng-container matColumnDef="origen">
           <th mat-header-cell *matHeaderCellDef>Origen</th>
           <td mat-cell *matCellDef="let row">
             {{ row.referenciaTipo === 'ITEM_PROGRAMADO' ? 'PROGRAMADO' : (row.manual ? 'MANUAL' : 'AUTO') }}
             <mat-icon *ngIf="row.editado" class="editado-icon"
-              [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:'1.0-0') : '')">
+              [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:digitos) : '')">
               edit
             </mat-icon>
           </td>
@@ -91,7 +94,7 @@
     </div>
 
     <div class="total" fxLayout="row" fxLayoutAlign="end center">
-      <span class="neto">Total a liquidar: <b>{{ liq.totalLiquidado | number:'1.0-0' }}</b></span>
+      <span class="neto">Total a liquidar: <b>{{ simbolo }} {{ liq.totalLiquidado | number:digitos }}</b></span>
     </div>
 
     <div class="pago" *ngIf="liq.estado === 'APROBADA' && puedePagar" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">

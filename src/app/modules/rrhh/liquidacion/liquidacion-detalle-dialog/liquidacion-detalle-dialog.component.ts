@@ -15,6 +15,7 @@ import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { digitosMoneda, origenMonedaTexto, simboloMoneda } from '../moneda-item';
 
 /** "2026-11", "11/2026" o "11-2026" → "2026-11"; cualquier otra cosa (o vacío) → null. */
 export function normalizarPeriodo(texto: string): string {
@@ -54,6 +55,9 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   liq: LiquidacionSueldo;
   itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
   items = new MatTableDataSource<LiquidacionItem>([]);
+  /** Simbolo y digitos de la moneda de la liquidacion, para los montos del template. */
+  simbolo = '';
+  digitos = '1.0-0';
 
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null);
@@ -187,6 +191,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         if (res != null) {
           this.liq = res;
           this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+          this.pintarMoneda();
           this.cargarProgramados();
         }
       },
@@ -204,11 +209,23 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         if (pedido !== this.itemsPedido) { return; }
         if (res == null) { this.itemsNoCargados(); return; }
         this.items.data = res;
+        this.pintarMoneda();
         this.itemsCargados = true;
         this.itemsFallo = false;
       },
       error: () => { if (pedido === this.itemsPedido) { this.itemsNoCargados(); } }
     });
+  }
+
+  /**
+   * La cabecera y los items llegan por separado (y en cualquier orden): cada llegada vuelve a calcular el
+   * simbolo y el texto de origen de cada item contra la moneda de la liquidacion.
+   */
+  private pintarMoneda() {
+    const doc = this.liq?.moneda;
+    this.simbolo = simboloMoneda(doc);
+    this.digitos = digitosMoneda(doc);
+    this.items.data = (this.items.data || []).map(it => ({ ...it, origenMoneda: origenMonedaTexto(it, doc) }));
   }
 
   private itemsNoCargados() {
@@ -257,6 +274,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     if (res != null) {
       this.liq = res;
       this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
+      this.pintarMoneda();
       this.cargarItems();
     }
   }

@@ -48,7 +48,7 @@
       </ng-container>
       <ng-container matColumnDef="monto">
         <th mat-header-cell *matHeaderCellDef>Monto</th>
-        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:row.digitos }}</td>
       </ng-container>
       <ng-container matColumnDef="cuotas">
         <th mat-header-cell *matHeaderCellDef>Cuotas</th>
@@ -59,7 +59,7 @@
       </ng-container>
       <ng-container matColumnDef="pendiente">
         <th mat-header-cell *matHeaderCellDef>Pendiente</th>
-        <td mat-cell *matCellDef="let row">{{ row.saldoPendiente | number:'1.0-2' }}</td>
+        <td mat-cell *matCellDef="let row">{{ row.saldoPendiente | number:row.digitos }}</td>
       </ng-container>
       <ng-container matColumnDef="moneda">
         <th mat-header-cell *matHeaderCellDef>Moneda</th>

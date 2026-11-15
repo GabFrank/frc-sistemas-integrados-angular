@@ -29,6 +29,13 @@
   .haber { color: #66bb6a; font-weight: 600; }
   .descuento { color: #ef5350; font-weight: 600; }
 
+  /* El monto original de un item que vino de otra moneda, debajo del convertido. */
+  .origen-moneda {
+    font-size: 11px;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+
   .editado-icon {
     font-size: 15px;
     height: 15px;
