@@ -151,8 +151,8 @@
 /* Mismo formato que el aviso de escaneo, en el verde del chip «Verificado». */
 .aviso-procesados {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 12px;
   margin-bottom: 10px;
   border-radius: 6px;
@@ -161,15 +161,22 @@
   font-size: 13px;
   flex: 0 0 auto;
 
-  mat-icon {
-    color: #81c784;
-    font-size: 19px;
-    width: 19px;
-    height: 19px;
+  /* Un ícono por retiro procesado, no uno para todo el bloque. */
+  .linea {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .lineas { flex: 1; line-height: 1.6; }
-  .extra { opacity: 0.75; }
+  mat-icon {
+    color: #81c784;
+    flex: 0 0 auto;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .extra { opacity: 0.75; padding-left: 25px; }
 }
 
 /* Chip de estado: fondo tenue, borde y texto del color, y un punto de acento. Con muchas

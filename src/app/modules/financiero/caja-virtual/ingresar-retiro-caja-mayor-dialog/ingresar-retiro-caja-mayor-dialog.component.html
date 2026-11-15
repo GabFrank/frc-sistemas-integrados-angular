@@ -46,11 +46,11 @@
 
     <!-- Lo que la tabla no lista: retiros de la caja buscada que ya entraron a una caja mayor. -->
     <div class="aviso-procesados" *ngIf="!modoEscaneo && avisosProcesados.length" role="status">
-      <mat-icon>task_alt</mat-icon>
-      <div class="lineas">
-        <div *ngFor="let a of avisosProcesados">{{ a }}</div>
-        <div *ngIf="avisosProcesadosExtra" class="extra">… y {{ avisosProcesadosExtra }} retiro(s) procesado(s) más</div>
+      <div class="linea" *ngFor="let a of avisosProcesados">
+        <mat-icon>task_alt</mat-icon>
+        <span>{{ a }}</span>
       </div>
+      <div *ngIf="avisosProcesadosExtra" class="extra">… y {{ avisosProcesadosExtra }} retiro(s) procesado(s) más</div>
     </div>
 
     <div class="tabla-wrap">
