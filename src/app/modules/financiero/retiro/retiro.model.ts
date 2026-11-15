@@ -1,3 +1,4 @@
+import { formatDate } from "@angular/common";
 import { Funcionario } from "../../personas/funcionarios/funcionario.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { PdvCaja } from "../pdv/caja/caja.model";
@@ -84,6 +85,35 @@ export function formatMontosRetiro(r: Retiro): string {
   if (r?.retiroRs) partes.push(`${r.retiroRs.toLocaleString('es-PY')} R$`);
   if (r?.retiroDs) partes.push(`${r.retiroDs.toLocaleString('es-PY')} US$`);
   return partes.length ? partes.join(' · ') : '—';
+}
+
+/**
+ * Un retiro de una caja del PDV que ya se procesó (query `retirosIngresadosDeCaja`). `movimientoId` null =
+ * sin movimiento en caja mayor (procesado sin montos o dado por procesado en una limpieza); `usuario` null
+ * con movimiento = lo ingresó el sistema.
+ */
+export interface RetiroIngresado {
+  retiroId: number;
+  sucursalId: number;
+  sucursalNombre: string;
+  cajaSalidaId: number;
+  cajaVirtualId: number;
+  cajaVirtualNombre: string;
+  movimientoId: number;
+  usuario: string;
+  ingresadoEn: string;
+}
+
+/** «Caja #662 (SUC. KM2): retiro #1151 procesado en TESORERÍA por JUAN PÉREZ el 14/11/26 18:30». */
+export function textoRetiroIngresado(r: RetiroIngresado): string {
+  const caja = `Caja #${r.cajaSalidaId} (${r.sucursalNombre || 'sucursal ' + r.sucursalId}): retiro #${r.retiroId}`;
+  if (r.movimientoId == null) {
+    return r.cajaVirtualNombre
+      ? `${caja} procesado en ${r.cajaVirtualNombre} sin montos`
+      : `${caja} dado por procesado sin ingreso a caja mayor`;
+  }
+  const fecha = r.ingresadoEn ? ` el ${formatDate(r.ingresadoEn, 'dd/MM/yy HH:mm', 'en-US')}` : '';
+  return `${caja} procesado en ${r.cajaVirtualNombre} por ${r.usuario || 'el sistema'}${fecha}`;
 }
 
 // Enum de strings: GraphQL devuelve el estado como texto ("CONCLUIDO"), asi que un

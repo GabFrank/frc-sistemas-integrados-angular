@@ -355,6 +355,23 @@ export const retirosFlotantesDeCajaQuery = gql`
   }
 `;
 
+/** Retiros de una caja del PDV que ya se procesaron (aviso del diálogo de ingreso a caja mayor). */
+export const retirosIngresadosDeCajaQuery = gql`
+  query ($cajaId: ID!, $sucId: ID, $cajaVirtualDestinoId: ID) {
+    data: retirosIngresadosDeCaja(cajaId: $cajaId, sucId: $sucId, cajaVirtualDestinoId: $cajaVirtualDestinoId) {
+      retiroId
+      sucursalId
+      sucursalNombre
+      cajaSalidaId
+      cajaVirtualId
+      cajaVirtualNombre
+      movimientoId
+      usuario
+      ingresadoEn
+    }
+  }
+`;
+
 export const ingresarRetiroACajaMayorMutation = gql`
   mutation ingresarRetiroACajaMayor($retiroId: ID!, $sucId: ID!, $cajaVirtualId: ID!) {
     data: ingresarRetiroACajaMayor(retiroId: $retiroId, sucId: $sucId, cajaVirtualId: $cajaVirtualId) {

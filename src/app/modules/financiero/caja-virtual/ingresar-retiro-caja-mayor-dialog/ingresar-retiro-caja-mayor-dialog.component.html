@@ -44,6 +44,15 @@
       <span class="hint" *ngIf="!isLoading">{{ totalElements }} retiro(s) flotante(s)</span>
     </div>
 
+    <!-- Lo que la tabla no lista: retiros de la caja buscada que ya entraron a una caja mayor. -->
+    <div class="aviso-procesados" *ngIf="!modoEscaneo && avisosProcesados.length" role="status">
+      <mat-icon>task_alt</mat-icon>
+      <div class="lineas">
+        <div *ngFor="let a of avisosProcesados">{{ a }}</div>
+        <div *ngIf="avisosProcesadosExtra" class="extra">… y {{ avisosProcesadosExtra }} retiro(s) procesado(s) más</div>
+      </div>
+    </div>
+
     <div class="tabla-wrap">
       <table mat-table [dataSource]="dataSource" class="tabla-retiros">
 

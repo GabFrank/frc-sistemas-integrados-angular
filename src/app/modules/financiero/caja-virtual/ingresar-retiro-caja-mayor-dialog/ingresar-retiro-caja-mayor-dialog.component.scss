@@ -148,6 +148,30 @@
   span { flex: 1; }
 }
 
+/* Mismo formato que el aviso de escaneo, en el verde del chip «Verificado». */
+.aviso-procesados {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border-left: 3px solid #81c784;
+  background: rgba(102, 187, 106, 0.12);
+  font-size: 13px;
+  flex: 0 0 auto;
+
+  mat-icon {
+    color: #81c784;
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+
+  .lineas { flex: 1; line-height: 1.6; }
+  .extra { opacity: 0.75; }
+}
+
 /* Chip de estado: fondo tenue, borde y texto del color, y un punto de acento. Con muchas
    filas seguidas, un fondo solido saturado compite con los datos en vez de ayudarlos. */
 .chip-estado {
