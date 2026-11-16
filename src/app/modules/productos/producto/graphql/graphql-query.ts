@@ -546,6 +546,54 @@ export const productoQuery = gql`
   }
 `;
 
+/**
+ * Solo las presentaciones del producto, para desplegar una fila del buscador (transferencias, PDV).
+ * El subárbol es el mismo de productoQuery; lo que se deja afuera es lo del producto que el buscador
+ * no muestra, sobre todo las fotos del producto: casi ninguna tiene tamaño mediano y el central
+ * mandaba la ORIGINAL en base64 (cientos de KB) cada vez que se desplegaba una fila.
+ */
+export const productoPresentacionesQuery = gql`
+  query ($id: ID!) {
+    data: producto(id: $id) {
+      id
+      presentaciones {
+        id
+        descripcion
+        principal
+        cantidad
+        activo
+        codigos {
+          id
+          codigo
+          principal
+          activo
+        }
+        tipoPresentacion {
+          id
+          descripcion
+        }
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+        precios {
+          id
+          precio
+          tipoPrecio {
+            id
+            descripcion
+          }
+          principal
+          activo
+        }
+        codigoPrincipal {
+          codigo
+        }
+      }
+    }
+  }
+`;
+
 export const productoUltimasComprasQuery = gql`
   query ($id: ID!) {
     data: producto(id: $id) {

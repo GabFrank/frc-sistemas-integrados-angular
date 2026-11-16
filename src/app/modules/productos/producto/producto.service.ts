@@ -7,6 +7,7 @@ import { map } from "rxjs/operators";
 import { Producto } from "./producto.model";
 import { ProductoPorProveedorGQL } from "./graphql/productoPorProveedor";
 import { ProductoPorIdGQL } from "./graphql/productoPorId";
+import { ProductoPresentacionesGQL } from "./graphql/productoPresentaciones";
 import { MainService } from "../../../main.service";
 import { SaveImagenProductoGQL } from "./graphql/saveImagenProducto";
 import {
@@ -72,6 +73,7 @@ export class ProductoService {
     private productoPorProveedor: ProductoPorProveedorGQL,
     private saveProducto: SaveProductoGQL,
     private productoPorId: ProductoPorIdGQL,
+    private productoPresentaciones: ProductoPresentacionesGQL,
     private saveImage: SaveImagenProductoGQL,
     private productoSearch: ProductoForPdvGQL,
     private envaseSearch: EnvaseSearchGQL,
@@ -259,6 +261,15 @@ export class ProductoService {
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   getProducto(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
     return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
+  }
+
+  /**
+   * Solo id + presentaciones (con códigos, precios y miniatura). Es lo que necesita el buscador al
+   * desplegar una fila; getProducto trae además las fotos del producto, que pesan.
+   */
+  getProductoPresentaciones(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPresentaciones, id, null, null, servidor, null, null, null, null, null,
       null, errorConf, contexto);
   }
 
