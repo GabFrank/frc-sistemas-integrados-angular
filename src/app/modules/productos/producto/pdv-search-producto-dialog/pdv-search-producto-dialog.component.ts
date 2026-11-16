@@ -527,7 +527,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       }
     };
     this.productoService
-      .getProducto(producto.id, this.data.servidor, LECTURA_DETALLE, CONSULTA_DETALLE)
+      .getProductoPresentaciones(producto.id, this.data.servidor, LECTURA_DETALLE, CONSULTA_DETALLE)
       .pipe(untilDestroyed(this))
       .subscribe({ error: fallo, next: (res) => {
         if (res == null) {
