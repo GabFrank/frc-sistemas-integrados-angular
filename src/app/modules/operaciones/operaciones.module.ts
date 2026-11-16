@@ -16,6 +16,7 @@ import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento
 import { HistorialLoteComponent } from './lote/historial-lote/historial-lote.component';
 import { ListStockLoteComponent } from './lote/list-stock-lote/list-stock-lote.component';
 import { BuscarLoteComponent } from './lote/buscar-lote/buscar-lote.component';
+import { ListProductoRechazadoComponent } from './producto-rechazado/list-producto-rechazado/list-producto-rechazado.component';
 import { PendientesLoteComponent } from './lote/pendientes-lote/pendientes-lote.component';
 import { CompletarLotePendienteDialogComponent } from './lote/pendientes-lote/completar-lote-pendiente-dialog.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
@@ -108,6 +109,7 @@ import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.dir
     ListMovimientoStockComponent,
     ListStockLoteComponent,
     BuscarLoteComponent,
+    ListProductoRechazadoComponent,
     PendientesLoteComponent,
     CompletarLotePendienteDialogComponent,
     HistorialLoteComponent,
