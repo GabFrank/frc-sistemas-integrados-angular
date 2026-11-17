@@ -121,9 +121,8 @@ export class UltimasCajasDialogComponent implements OnInit {
     this.cajaService.onImprimirBalance(caja.id, caja.sucursalId, false)
     .subscribe({
       next: (response) => {
-        // Handle successful response, e.g., show a success message
-        // TODO: Implement success notification if needed
-        console.log('Balance impreso:', response);
+        // Las fallas ya las avisa la cadena de onImprimirBalance (llegan null/false o no emiten).
+        if (response) this.notificacionSnackBar.openSucess("Cierre impreso con éxito");
       },
       error: (err) => {
         // Handle error, e.g., show an error message
