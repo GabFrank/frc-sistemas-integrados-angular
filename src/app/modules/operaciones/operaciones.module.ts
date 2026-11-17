@@ -46,6 +46,7 @@ import { MainVentaObservacionComponent } from './venta-observacion/main-venta-ob
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { VerificarTransporteDialogComponent } from './transferencia/verificar-transporte-dialog/verificar-transporte-dialog.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
+import { ListProductosFaltantesComponent } from './transferencia/list-productos-faltantes/list-productos-faltantes.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
 import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 
@@ -141,6 +142,7 @@ import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.dir
     RutaHojaComponent,
     VerificarTransporteDialogComponent,
     EntregadoresComponent,
+    ListProductosFaltantesComponent,
     ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,

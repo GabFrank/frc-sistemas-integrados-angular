@@ -14,7 +14,7 @@ import { ContextoConsulta, GenericCrudService, QueryError } from './../../../gen
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.constantes';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput, VerificarParaTransporteInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemMotivoRechazo, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput, VerificarParaTransporteInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
@@ -45,6 +45,7 @@ import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
 import { TransferenciaQrEscaneadoSubGQL } from './graphql/transferenciaQrEscaneadoSub';
 import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
+import { GetTransferenciaItemsRechazadosGQL } from './graphql/getTransferenciaItemsRechazados';
 
 /** Consultas que alguien espera (abrir una transferencia, su grilla, una hoja de ruta) (#390). */
 const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
@@ -58,6 +59,7 @@ const CONSULTA_FONDO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_
 export class TransferenciaService {
 
   constructor(private genericCrudService: GenericCrudService,
+    private getTransferenciaItemsRechazados: GetTransferenciaItemsRechazadosGQL,
     private getTransferencia: GetTransferenciaGQL,
     private saveTransferencia: SaveTransferenciaGQL,
     private deleteTransfencia: DeleteTransferenciaGQL,
@@ -323,6 +325,24 @@ export class TransferenciaService {
       page,
       size
     }, servidor, errorConf ?? null, undefined, contexto);
+  }
+
+  /**
+   * Productos faltantes: items rechazados por motivo. Va siempre al central. Un rechazo del servidor
+   * (p. ej. rango de más de 366 días) lo avisa el genérico y emite null.
+   */
+  onGetItemsRechazados(filtros: {
+    motivo: TransferenciaItemMotivoRechazo;
+    sucursalOrigenId?: number;
+    sucursalDestinoId?: number;
+    productoId?: number;
+    creadoDesde: string;
+    creadoHasta: string;
+    page: number;
+    size: number;
+  }): Observable<PageInfo<TransferenciaItem>> {
+    return this.genericCrudService.onCustomQuery(this.getTransferenciaItemsRechazados, filtros, true, undefined,
+      undefined, CONSULTA_DETALLE);
   }
 
   onGetTransferenciaItem(id: number, servidor = true): Observable<TransferenciaItem> {

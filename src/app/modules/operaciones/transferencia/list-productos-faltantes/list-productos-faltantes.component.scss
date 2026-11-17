@@ -1,0 +1,42 @@
+.table-container {
+  height: 100%;
+  width: 100%;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow: auto;
+}
+
+.data-table {
+  width: 100%;
+
+  th,
+  td {
+    padding: 8px;
+  }
+
+  .numero {
+    text-align: right;
+  }
+
+  .secundario {
+    display: block;
+    font-size: 0.8em;
+    color: rgba(var(--frc-tinta), 0.6);
+  }
+}
+
+.data-row {
+  cursor: pointer;
+}
+
+.empty-cell {
+  padding: 24px;
+  text-align: center;
+  color: rgba(var(--frc-tinta), 0.6);
+}
+
+.paginator {
+  width: 100%;
+}
