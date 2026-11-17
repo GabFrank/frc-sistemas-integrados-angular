@@ -235,21 +235,21 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * "Asignar a otros" desde Asignar horario: copia el horario a los seleccionados como horario
-   * propio de cada uno (#523). Si ya tiene uno igual no se duplica; sin usuario para marcar, se avisa.
+   * "Asignar a otros" desde Asignar horario: les asigna a los seleccionados el mismo horario, sin
+   * copiarlo (editarlo después lo cambia para todos). Sin usuario para marcar, se avisa.
    */
   onAsignarHorario(): void {
     const horarioId = this.horarioParaAsignar?.horarioId;
     if (this.seleccionados.selected.length === 0 || !horarioId) return;
     const funcionarioIds = this.seleccionados.selected.map(f => f.id);
-    this.horarioService.onCopiarHorario(horarioId, funcionarioIds).pipe(untilDestroyed(this)).subscribe({
+    this.horarioService.onAsignarHorario(horarioId, funcionarioIds).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (!res) return;
         if (res.errores?.length) {
           this.notificacionService.openWarn(
             `Horario asignado a ${res.copiados}. No se pudo a ${res.errores.length}: ${res.errores.join(' | ')}`, 12);
         } else {
-          this.notificacionService.openSucess(`Horario asignado a ${res.copiados} funcionarios`);
+          this.notificacionService.openSucess(`Horario asignado a ${res.copiados} funcionario${res.copiados === 1 ? '' : 's'}`);
         }
         this.seleccionados.clear();
         this.buscar();
