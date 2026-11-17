@@ -76,6 +76,11 @@ Impresora: cola `zz_cierre` → `socket://127.0.0.1:9101`, capturada con `nc`. N
 | PDV › Últimas cajas › 3019 › Imprimir balance (filial) | `zz_cierre` | «Cierre impreso con éxito» |
 | ídem | `zz_noexiste` | solo el error, sin verde |
 
+| Cajas › 3021 › Conteo Cierre › Cerrar Caja (imprime solo) | `zz_cierre` | «Cierre impreso con éxito» |
+
+La 3021 se cerró con Gs 100.000 y después se volvió a abrir con «Reabrir caja» (motivo «PRUEBA AVISO
+IMPRIMIR CIERRE»). Quedó como antes en la filial y en el central: activa, apertura 15045, sin cierre.
+
 En «Últimas cajas» se puso `sucursalActual.id = 2` en memoria. La sesión web está en modo central
 (sucursal 0); la PC de una sucursal real trae la suya.
 
@@ -87,6 +92,3 @@ QR capturado del central alpha: `GS ( k` con fn 67 (tamaño), 69 (corrección), 
 ## Sin verificar
 
 - El modo «Imprimir desde esta PC» (solo Electron): se lee por código que devuelve `true`/`false`.
-- La impresión automática al guardar el conteo de cierre (`getConteoMonedaCierre` → `goTo("imprimir")`)
-  pasa por la misma rama ya probada. No se cerró una caja para probarla: la única abierta del alpha
-  es la 3021 de MR y no se tocó.
