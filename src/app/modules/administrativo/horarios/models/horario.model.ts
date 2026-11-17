@@ -12,6 +12,8 @@ export class Horario {
     usuario: Usuario;
     dias: string[];
     turno: string;
+    /** Cuántos funcionarios lo tienen asignado (los horarios se comparten, no se copian). */
+    cantidadAsignados?: number;
 
     toInput(): HorarioInput {
         let input = new HorarioInput();
@@ -42,7 +44,7 @@ export class HorarioInput {
     turno: string;
 }
 
-/** Resultado de copiar un horario a varios funcionarios (#523). */
+/** Resultado de asignar un horario a varios funcionarios: copiados = asignados. */
 export interface CopiaHorarioResultado {
     copiados: number;
     errores: string[];
