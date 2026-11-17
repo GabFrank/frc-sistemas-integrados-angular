@@ -730,8 +730,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
             !this.isVentaTouch
           ).subscribe({
             next: (response) => {
-              // TODO: Implement success notification if needed
-              console.log('Balance impreso:', response);
+              // Las fallas ya las avisa la cadena de onImprimirBalance (llegan null/false o no emiten).
+              if (response) this.notificacionBar.openSucess("Cierre impreso con éxito");
             },
             error: (err) => {
               // TODO: Implement error notification if needed
