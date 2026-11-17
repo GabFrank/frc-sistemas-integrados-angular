@@ -100,7 +100,7 @@ export class NuevoHorarioDialogComponent {
       .subscribe({
         next: res => {
           this.guardando = false;
-          this.notificacionService.openSucess('Horario creado y asignado');
+          this.notificacionService.openSucess('Horario asignado (si ya existía uno igual, se usa ese)');
           this.dialogRef.close(res);
         },
         error: () => (this.guardando = false),
