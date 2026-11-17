@@ -390,13 +390,13 @@ export class ListMarcacionComponent implements OnInit {
     this.filtrar();
   }
 
+  /** Todos los horarios, sin importar el funcionario elegido: se comparten entre funcionarios. */
   onAdicionarHorario(): void {
-    const usuarioId = this.usuarioSeleccionado?.id || this.mainService.usuarioActual?.id;
     this.tabService.addTab(
       new Tab(
         AsignarHorarioDialogComponent,
         'Asignar Horario',
-        new TabData(usuarioId),
+        null,
         ListMarcacionComponent
       )
     );

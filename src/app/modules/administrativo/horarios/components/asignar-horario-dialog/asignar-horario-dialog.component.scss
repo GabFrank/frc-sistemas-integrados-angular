@@ -12,3 +12,8 @@ table {
 mat-form-field {
     width: 100%;
 }
+
+/* El horario que se está editando arriba: marca de estado (naranja), igual en los dos modos. */
+.fila-en-edicion {
+    box-shadow: inset 4px 0 0 #ffc107;
+}
