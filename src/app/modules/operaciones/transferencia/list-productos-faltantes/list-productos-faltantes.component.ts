@@ -19,6 +19,8 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { EditTransferenciaComponent } from "../edit-transferencia/edit-transferencia.component";
 import { TransferenciaItemMotivoRechazo } from "../transferencia.model";
 import { TransferenciaService } from "../transferencia.service";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 
 const DIAS_POR_DEFECTO = 30;
 
@@ -117,7 +119,8 @@ export class ListProductosFaltantesComponent implements OnInit {
     private sucursalService: SucursalService,
     private tabService: TabService,
     private dialog: MatDialog,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private reporteService: ReporteService
   ) {}
 
   ngOnInit(): void {
@@ -127,17 +130,10 @@ export class ListProductosFaltantesComponent implements OnInit {
     // switchMap: si se busca de nuevo antes de que vuelva la anterior, la respuesta vieja se descarta.
     this.buscar$.pipe(
       switchMap(() => {
-        const motivo = this.motivoControl.value;
-        // Con id el central ignora las fechas: una transferencia vieja no queda afuera del rango.
-        const transferenciaId = this.transferenciaIdControl.value || null;
+        const filtros = this.filtros();
+        const motivo = filtros.motivo;
         return this.transferenciaService.onGetItemsRechazados({
-          motivo,
-          sucursalOrigenId: this.origenControl.value,
-          sucursalDestinoId: this.destinoControl.value,
-          productoId: this.selectedProducto?.id,
-          transferenciaId,
-          creadoDesde: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.inicio),
-          creadoHasta: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.fin),
+          ...filtros,
           page: this.pageIndex,
           size: this.pageSize,
         }).pipe(
@@ -167,12 +163,48 @@ export class ListProductosFaltantesComponent implements OnInit {
     this.fechaFormGroup.setValue({ inicio, fin });
   }
 
-  private buscar(): void {
+  /** Los mismos filtros para la lista y el PDF. Con id el central ignora las fechas. */
+  private filtros() {
+    const transferenciaId = this.transferenciaIdControl.value || null;
+    return {
+      motivo: this.motivoControl.value,
+      sucursalOrigenId: this.origenControl.value,
+      sucursalDestinoId: this.destinoControl.value,
+      productoId: this.selectedProducto?.id,
+      transferenciaId,
+      creadoDesde: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.inicio),
+      creadoHasta: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.fin),
+    };
+  }
+
+  private filtrosCompletos(): boolean {
     if (!this.transferenciaIdControl.value && (!this.fechaFormGroup.value.inicio || !this.fechaFormGroup.value.fin)) {
       this.notificacion.openWarn("Elegí las dos fechas del rango.");
-      return;
+      return false;
     }
-    this.buscar$.next();
+    return true;
+  }
+
+  private buscar(): void {
+    if (this.filtrosCompletos()) this.buscar$.next();
+  }
+
+  /** El PDF trae todo lo que coincide con los filtros (hasta 5000 filas), no solo la página visible. */
+  onGenerarPdf(): void {
+    if (!this.filtrosCompletos()) return;
+    this.transferenciaService.onGetReporteItemsRechazados(this.filtros())
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pdf) => {
+          if (pdf == null) {
+            this.notificacion.openWarn("No hay productos rechazados para estos filtros.");
+            return;
+          }
+          this.reporteService.onAdd("Productos faltantes", pdf);
+          this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, ListProductosFaltantesComponent));
+        },
+        error: () => {}, // rechazo del central o error de red: ya lo avisó el genérico
+      });
   }
 
   onFiltrar(): void {

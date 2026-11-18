@@ -1,4 +1,5 @@
-<app-generic-list titulo="Productos faltantes en transferencias" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+<app-generic-list titulo="Productos faltantes en transferencias" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()"
+  [isCustom]="true" customName="Generar PDF" (customFunction)="onGenerarPdf()">
   <div filtros fxLayout="column" style="width: 100%">
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="20%">

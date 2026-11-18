@@ -1493,6 +1493,29 @@ export const transferenciaQrEscaneadoSubQuery = gql`
   }
 `;
 
+/** PDF (base64) de productos faltantes con los mismos filtros que la ventana; null si no hay resultados. */
+export const reporteTransferenciaItemsRechazadosQuery = gql`
+  query (
+    $motivo: TransferenciaItemMotivoRechazo
+    $sucursalOrigenId: ID
+    $sucursalDestinoId: ID
+    $productoId: ID
+    $transferenciaId: ID
+    $creadoDesde: String
+    $creadoHasta: String
+  ) {
+    data: reporteTransferenciaItemsRechazados(
+      motivo: $motivo
+      sucursalOrigenId: $sucursalOrigenId
+      sucursalDestinoId: $sucursalDestinoId
+      productoId: $productoId
+      transferenciaId: $transferenciaId
+      creadoDesde: $creadoDesde
+      creadoHasta: $creadoHasta
+    )
+  }
+`;
+
 /** Productos faltantes: items rechazados por motivo, con todo lo que muestra la tabla (sin transferenciaItemList). */
 export const transferenciaItemsRechazadosQuery = gql`
   query (
