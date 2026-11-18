@@ -1,6 +1,12 @@
 <app-generic-list titulo="Productos faltantes en transferencias" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
   <div filtros fxLayout="column" style="width: 100%">
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>N° de transferencia</mat-label>
+          <input matInput type="number" min="1" [formControl]="transferenciaIdControl" (keyup.enter)="onFiltrar()" />
+        </mat-form-field>
+      </div>
       <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Fecha de la transferencia</mat-label>
@@ -18,13 +24,6 @@
           <mat-select [formControl]="motivoControl">
             <mat-option *ngFor="let m of motivos" [value]="m.value">{{ m.label }}</mat-option>
           </mat-select>
-        </mat-form-field>
-      </div>
-      <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
-          <mat-label>N° de transferencia</mat-label>
-          <input matInput type="number" min="1" [formControl]="transferenciaIdControl" (keyup.enter)="onFiltrar()" />
-          <mat-hint>Con número se ignoran las fechas</mat-hint>
         </mat-form-field>
       </div>
     </div>
