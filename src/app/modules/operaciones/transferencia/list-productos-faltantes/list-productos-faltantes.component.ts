@@ -71,7 +71,7 @@ export function toFilaProductoFaltante(item: any, motivo: TransferenciaItemMotiv
     cantidadPedida: item?.cantidadPreTransferencia,
     cantidadPreparada: item?.cantidadPreparacion,
     etapa: etapa?.nombre,
-    responsable: etapa ? t?.[etapa.usuario]?.persona?.nombre : null,
+    responsable: etapa ? t?.[etapa.usuario]?.nickname : null,
     estado: t?.estado?.replace(/_/g, " "),
   };
 }

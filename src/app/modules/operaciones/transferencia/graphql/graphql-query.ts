@@ -1564,10 +1564,10 @@ export const transferenciaItemsRechazadosQuery = gql`
           estado
           sucursalOrigen { id nombre }
           sucursalDestino { id nombre }
-          usuarioPreTransferencia { id persona { nombre } }
-          usuarioPreparacion { id persona { nombre } }
-          usuarioTransporte { id persona { nombre } }
-          usuarioRecepcion { id persona { nombre } }
+          usuarioPreTransferencia { id nickname }
+          usuarioPreparacion { id nickname }
+          usuarioTransporte { id nickname }
+          usuarioRecepcion { id nickname }
         }
       }
     }

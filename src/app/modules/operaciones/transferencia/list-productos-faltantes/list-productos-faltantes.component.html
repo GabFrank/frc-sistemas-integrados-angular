@@ -88,12 +88,12 @@
           </td>
         </ng-container>
         <ng-container matColumnDef="cantidadPedida">
-          <th mat-header-cell *matHeaderCellDef class="numero">Pedido</th>
-          <td mat-cell *matCellDef="let f" class="numero">{{ f.cantidadPedida | number: '1.0-3' }}</td>
+          <th mat-header-cell *matHeaderCellDef class="centro">Pedido</th>
+          <td mat-cell *matCellDef="let f" class="centro">{{ f.cantidadPedida | number: '1.0-3' }}</td>
         </ng-container>
         <ng-container matColumnDef="cantidadPreparada">
-          <th mat-header-cell *matHeaderCellDef class="numero">Preparado</th>
-          <td mat-cell *matCellDef="let f" class="numero">{{ f.cantidadPreparada != null ? (f.cantidadPreparada | number: '1.0-3') : '-' }}</td>
+          <th mat-header-cell *matHeaderCellDef class="centro">Preparado</th>
+          <td mat-cell *matCellDef="let f" class="centro">{{ f.cantidadPreparada != null ? (f.cantidadPreparada | number: '1.0-3') : '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="etapa">
           <th mat-header-cell *matHeaderCellDef>Rechazado en</th>
@@ -104,8 +104,8 @@
           <td mat-cell *matCellDef="let f">{{ f.responsable || '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef>Estado transf.</th>
-          <td mat-cell *matCellDef="let f">{{ f.estado }}</td>
+          <th mat-header-cell *matHeaderCellDef class="centro">Estado transf.</th>
+          <td mat-cell *matCellDef="let f" class="centro">{{ f.estado }}</td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
