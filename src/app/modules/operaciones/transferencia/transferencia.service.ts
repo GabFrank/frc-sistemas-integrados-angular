@@ -336,8 +336,10 @@ export class TransferenciaService {
     sucursalOrigenId?: number;
     sucursalDestinoId?: number;
     productoId?: number;
-    creadoDesde: string;
-    creadoHasta: string;
+    /** Con id el central ignora las fechas. */
+    transferenciaId?: number;
+    creadoDesde?: string;
+    creadoHasta?: string;
     page: number;
     size: number;
   }): Observable<PageInfo<TransferenciaItem>> {

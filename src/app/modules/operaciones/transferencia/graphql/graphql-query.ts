@@ -1500,6 +1500,7 @@ export const transferenciaItemsRechazadosQuery = gql`
     $sucursalOrigenId: ID
     $sucursalDestinoId: ID
     $productoId: ID
+    $transferenciaId: ID
     $creadoDesde: String
     $creadoHasta: String
     $page: Int
@@ -1510,6 +1511,7 @@ export const transferenciaItemsRechazadosQuery = gql`
       sucursalOrigenId: $sucursalOrigenId
       sucursalDestinoId: $sucursalDestinoId
       productoId: $productoId
+      transferenciaId: $transferenciaId
       creadoDesde: $creadoDesde
       creadoHasta: $creadoHasta
       page: $page
@@ -1524,10 +1526,6 @@ export const transferenciaItemsRechazadosQuery = gql`
         motivoRechazoPreparacion
         motivoRechazoTransporte
         motivoRechazoRecepcion
-        observacionPreTransferencia
-        observacionPreparacion
-        observacionTransporte
-        observacionRecepcion
         presentacionPreTransferencia {
           id
           cantidad

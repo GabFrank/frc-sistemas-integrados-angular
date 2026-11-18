@@ -24,10 +24,10 @@ const DIAS_POR_DEFECTO = 30;
 
 /** Etapas en el orden del flujo: la del rechazo es la primera cuyo motivo coincide con el filtrado. */
 const ETAPAS = [
-  { nombre: "Creación", motivo: "motivoRechazoPreTransferencia", usuario: "usuarioPreTransferencia", observacion: "observacionPreTransferencia" },
-  { nombre: "Preparación (origen)", motivo: "motivoRechazoPreparacion", usuario: "usuarioPreparacion", observacion: "observacionPreparacion" },
-  { nombre: "Transporte", motivo: "motivoRechazoTransporte", usuario: "usuarioTransporte", observacion: "observacionTransporte" },
-  { nombre: "Recepción (destino)", motivo: "motivoRechazoRecepcion", usuario: "usuarioRecepcion", observacion: "observacionRecepcion" },
+  { nombre: "Creación", motivo: "motivoRechazoPreTransferencia", usuario: "usuarioPreTransferencia" },
+  { nombre: "Preparación (origen)", motivo: "motivoRechazoPreparacion", usuario: "usuarioPreparacion" },
+  { nombre: "Transporte", motivo: "motivoRechazoTransporte", usuario: "usuarioTransporte" },
+  { nombre: "Recepción (destino)", motivo: "motivoRechazoRecepcion", usuario: "usuarioRecepcion" },
 ];
 
 export const MOTIVOS_RECHAZO = [
@@ -48,11 +48,8 @@ export interface FilaProductoFaltante {
   presentacion: number;
   cantidadPedida: number;
   cantidadPreparada: number;
-  /** Motivo de recepción cuando difiere del filtrado (el destino lo cambió); si no, null. */
-  motivoFinal: string;
   etapa: string;
   responsable: string;
-  observacion: string;
   estado: string;
 }
 
@@ -60,7 +57,6 @@ export interface FilaProductoFaltante {
 export function toFilaProductoFaltante(item: any, motivo: TransferenciaItemMotivoRechazo): FilaProductoFaltante {
   const t = item?.transferencia;
   const etapa = ETAPAS.find((e) => item?.[e.motivo] === motivo);
-  const recepcion = item?.motivoRechazoRecepcion;
   return {
     itemId: item?.id,
     transferenciaId: t?.id,
@@ -72,10 +68,8 @@ export function toFilaProductoFaltante(item: any, motivo: TransferenciaItemMotiv
     presentacion: item?.presentacionPreTransferencia?.cantidad,
     cantidadPedida: item?.cantidadPreTransferencia,
     cantidadPreparada: item?.cantidadPreparacion,
-    motivoFinal: recepcion && recepcion !== motivo ? MOTIVOS_RECHAZO.find((m) => m.value === recepcion)?.label ?? recepcion : null,
     etapa: etapa?.nombre,
     responsable: etapa ? t?.[etapa.usuario]?.persona?.nombre : null,
-    observacion: etapa ? item?.[etapa.observacion] : null,
     estado: t?.estado?.replace(/_/g, " "),
   };
 }
@@ -98,6 +92,7 @@ export class ListProductosFaltantesComponent implements OnInit {
   motivoControl = new FormControl(TransferenciaItemMotivoRechazo.FALTA_PRODUCTO);
   origenControl = new FormControl<number>(null);
   destinoControl = new FormControl<number>(null);
+  transferenciaIdControl = new FormControl<number>(null);
   buscarProductoControl = new FormControl("");
   selectedProducto: Producto = null;
   sucursalList: Sucursal[] = [];
@@ -114,7 +109,7 @@ export class ListProductosFaltantesComponent implements OnInit {
 
   readonly displayedColumns = [
     "transferencia", "fecha", "ruta", "producto", "cantidadPedida", "cantidadPreparada",
-    "motivo", "etapa", "responsable", "observacion", "estado",
+    "etapa", "responsable", "estado",
   ];
 
   constructor(
@@ -133,13 +128,16 @@ export class ListProductosFaltantesComponent implements OnInit {
     this.buscar$.pipe(
       switchMap(() => {
         const motivo = this.motivoControl.value;
+        // Con id el central ignora las fechas: una transferencia vieja no queda afuera del rango.
+        const transferenciaId = this.transferenciaIdControl.value || null;
         return this.transferenciaService.onGetItemsRechazados({
           motivo,
           sucursalOrigenId: this.origenControl.value,
           sucursalDestinoId: this.destinoControl.value,
           productoId: this.selectedProducto?.id,
-          creadoDesde: fechaSinHora(this.fechaFormGroup.value.inicio),
-          creadoHasta: fechaSinHora(this.fechaFormGroup.value.fin),
+          transferenciaId,
+          creadoDesde: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.inicio),
+          creadoHasta: transferenciaId ? null : fechaSinHora(this.fechaFormGroup.value.fin),
           page: this.pageIndex,
           size: this.pageSize,
         }).pipe(
@@ -170,7 +168,7 @@ export class ListProductosFaltantesComponent implements OnInit {
   }
 
   private buscar(): void {
-    if (!this.fechaFormGroup.value.inicio || !this.fechaFormGroup.value.fin) {
+    if (!this.transferenciaIdControl.value && (!this.fechaFormGroup.value.inicio || !this.fechaFormGroup.value.fin)) {
       this.notificacion.openWarn("Elegí las dos fechas del rango.");
       return;
     }
@@ -187,6 +185,7 @@ export class ListProductosFaltantesComponent implements OnInit {
     this.motivoControl.setValue(TransferenciaItemMotivoRechazo.FALTA_PRODUCTO);
     this.origenControl.setValue(null);
     this.destinoControl.setValue(null);
+    this.transferenciaIdControl.setValue(null);
     this.selectedProducto = null;
     this.buscarProductoControl.setValue("");
     this.onFiltrar();

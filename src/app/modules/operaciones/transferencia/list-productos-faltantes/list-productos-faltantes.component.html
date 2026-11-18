@@ -1,7 +1,7 @@
 <app-generic-list titulo="Productos faltantes en transferencias" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
-  <div filtros>
+  <div filtros fxLayout="column" style="width: 100%">
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="16%">
+      <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Fecha de la transferencia</mat-label>
           <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
@@ -12,7 +12,7 @@
           <mat-date-range-picker #picker></mat-date-range-picker>
         </mat-form-field>
       </div>
-      <div fxFlex="14%">
+      <div fxFlex="20%">
         <mat-form-field style="width: 100%">
           <mat-label>Motivo</mat-label>
           <mat-select [formControl]="motivoControl">
@@ -20,7 +20,16 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="16%">
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>N° de transferencia</mat-label>
+          <input matInput type="number" min="1" [formControl]="transferenciaIdControl" (keyup.enter)="onFiltrar()" />
+          <mat-hint>Con número se ignoran las fechas</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="33%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursal origen</mat-label>
           <mat-select [formControl]="origenControl">
@@ -29,7 +38,7 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="16%">
+      <div fxFlex="33%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursal destino</mat-label>
           <mat-select [formControl]="destinoControl">
@@ -38,7 +47,7 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="30%">
+      <div fxFlex="34%">
         <mat-form-field style="width: 100%">
           <mat-label>Producto</mat-label>
           <input #buscadorInput matInput [formControl]="buscarProductoControl" (keyup.enter)="onBuscarProducto()"
@@ -86,10 +95,6 @@
           <th mat-header-cell *matHeaderCellDef class="numero">Preparado</th>
           <td mat-cell *matCellDef="let f" class="numero">{{ f.cantidadPreparada != null ? (f.cantidadPreparada | number: '1.0-3') : '-' }}</td>
         </ng-container>
-        <ng-container matColumnDef="motivo">
-          <th mat-header-cell *matHeaderCellDef>Motivo final</th>
-          <td mat-cell *matCellDef="let f">{{ f.motivoFinal || '-' }}</td>
-        </ng-container>
         <ng-container matColumnDef="etapa">
           <th mat-header-cell *matHeaderCellDef>Rechazado en</th>
           <td mat-cell *matCellDef="let f">{{ f.etapa || '-' }}</td>
@@ -97,10 +102,6 @@
         <ng-container matColumnDef="responsable">
           <th mat-header-cell *matHeaderCellDef>Responsable</th>
           <td mat-cell *matCellDef="let f">{{ f.responsable || '-' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="observacion">
-          <th mat-header-cell *matHeaderCellDef>Observación</th>
-          <td mat-cell *matCellDef="let f">{{ f.observacion || '-' }}</td>
         </ng-container>
         <ng-container matColumnDef="estado">
           <th mat-header-cell *matHeaderCellDef>Estado transf.</th>
