@@ -202,14 +202,16 @@
                     mat-menu-item 
                     (click)="onEditCajaCategoriaObs(cat, itemIndex)"
                   >
-                    Editar
+                    <mat-icon>edit</mat-icon>
+                    <span>Editar</span>
                   </button>
                   <button 
                     mat-menu-item 
                     style="color:red" 
                     (click)="onDeleteCajaCategoriaObs(cat, itemIndex)"
                   >
-                    Eliminar
+                    <mat-icon style="color: red">delete</mat-icon>
+                    <span>Eliminar</span>
                   </button>
                 </mat-menu>
               </td>
@@ -386,13 +388,15 @@
                   mat-menu-item 
                   (click)="onEditCajaSubCategoriaObs(sub, itemIndex)"
                 >
-                  Editar
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
                 </button>
                 <button 
                   mat-menu-item style="color:red" 
                   (click)="onDeleteCajaSubCategoriaObs(sub, itemIndex)"
                 >
-                  Eliminar
+                  <mat-icon style="color: red">delete</mat-icon>
+                  <span>Eliminar</span>
                 </button>
               </mat-menu>
             </td>
@@ -576,13 +580,15 @@
                 mat-menu-item 
                 (click)="onEditCajaMotivoObs(cajaMotivo, itemIndex)"
               >
-                Editar
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
               </button>
               <button 
                 mat-menu-item style="color:red" 
                 (click)="onDeleteCajaMotivoObs(cajaMotivo, itemIndex)"
               >
-                Eliminar
+                <mat-icon style="color: red">delete</mat-icon>
+                <span>Eliminar</span>
               </button>
             </mat-menu>
           </td>

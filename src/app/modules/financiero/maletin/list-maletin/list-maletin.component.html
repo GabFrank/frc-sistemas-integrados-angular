@@ -161,7 +161,7 @@
         >
           {{
             maletin?.cajaActual?.fechaCierre != null
-              ? maletin?.cajaActual?.fechaCierre
+              ? (maletin?.cajaActual?.fechaCierre | date : "short")
               : (maletin?.cajaActual?.fechaApertura | date : "short")
           }}
         </td>
@@ -205,7 +205,7 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAdd(maletin, i)">Editar</button>
+            <button mat-menu-item (click)="onAdd(maletin, i)"><mat-icon>edit</mat-icon><span>Editar</span></button>
           </mat-menu>
         </td>
       </ng-container>
@@ -243,5 +243,14 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [length]="selectedPageInfo?.getTotalElements"
+      (page)="handlePageEvent($event)"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

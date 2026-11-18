@@ -287,13 +287,14 @@
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="addItem(item, i)">Editar</button>
+                <button mat-menu-item (click)="addItem(item, i)"><mat-icon>edit</mat-icon><span>Editar</span></button>
                 <button
                   style="color: red"
                   mat-menu-item
                   (click)="deleteItem(item, i)"
                 >
-                  Eliminar
+                  <mat-icon style="color: red">delete</mat-icon>
+                  <span>Eliminar</span>
                 </button>
               </mat-menu>
             </td>
@@ -337,7 +338,7 @@
         <div class="total-card__value">
           {{ totalFinalControl.value | number : "1.0-0" }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ totalFinalControl.value / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
@@ -346,7 +347,7 @@
         <div class="total-card__value">
           {{ data?.descuento || 0 | number : "1.0-0" }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ (data?.descuento || 0) / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
@@ -357,7 +358,7 @@
             totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0"
           }}
         </div>
-        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+        <div class="total-card__subtitle" *ngIf="(isServidor || data?.monedaFacturacion) && selectedMoneda && tipoCambioControl.value">
           {{ totalFinalEnMoneda | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>

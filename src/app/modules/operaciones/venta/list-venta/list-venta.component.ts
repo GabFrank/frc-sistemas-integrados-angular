@@ -16,7 +16,7 @@ import { CajaPorIdGQL } from "../../../financiero/pdv/caja/graphql/cajaPorId";
 import { CobroDetalle } from "../cobro/cobro-detalle.model";
 import { Venta } from "../venta.model";
 import { ErrorCancelacionVenta, VentaService } from "../venta.service";
-import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
+import { LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -51,6 +51,13 @@ import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
 import { LoteService } from '../../lote/lote.service';
 import { LoteVentaItem } from '../../lote/lote.model';
 import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from '../../lote/lotes-de-venta.util';
+
+const BALANCE_NO_LEIDO = 'no se pudo leer el balance de la caja';
+
+/** Con LECTURA_ESTRICTA el rechazo llega como `{ message, errors }`; el de red, tal cual (#672). */
+function rechazoDe(error: any): any {
+  return error?.errors ?? error;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -130,6 +137,12 @@ export class ListVentaComponent implements OnInit {
   /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
   puedeCancelarVenta = false;
 
+  /** Verificar o anular la verificación exige ANALISIS DE CAJA (o ADMIN) en el central (#672). */
+  puedeVerificarCaja = false;
+  /** El central rechazó la caja a este usuario: se muestran sus ventas, sin balance ni accesos a la caja (#672). */
+  sinAccesoCaja = false;
+  textoBalanceNoDisponible = BALANCE_NO_LEIDO;
+
   /** Ver de qué lote salió cada ítem (#429 fase 2): VER PRODUCTOS y análisis de caja o de venta. */
   puedeVerLotes = false;
   /** Lotes por ítem de la venta abierta, cargados aparte; vacío si el central es viejo o falla. */
@@ -155,6 +168,7 @@ export class ListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeCancelarVenta = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
+    this.puedeVerificarCaja = this.mainService.tieneAlgunRol([ROLES.ANALISIS_DE_CAJA]);
     this.puedeVerLotes = puedeVerLotesDeVenta(this.mainService.usuarioActual?.roles);
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
       this.monedaList = data;
@@ -173,21 +187,43 @@ export class ListVentaComponent implements OnInit {
         this.selectedCaja = tabData;
       }
 
-      this.cajaService
-        .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true)
-        // La pestaña ya recibió la caja; esta lectura la completa (sucursal). Si falla y la que vino ya trae
-        // su sucursal, se sigue con esa en vez de dejar la lista vacía; si no, no se consulta a ciegas (#390).
-        .pipe(terminarSiFalla(() => {
-          if (this.selectedCaja?.sucursalId == null && this.selectedCaja?.sucursal?.id == null) {
+      // La pestaña ya recibió la caja; la lectura de abajo la completa (sucursal). Si no llega y la que vino ya
+      // trae su sucursal, se sigue con esa en vez de dejar la lista vacía; si no, no se consulta a ciegas (#390).
+      const seguirConLaDeLaPestana = () => {
+        if (this.selectedCaja?.sucursalId == null && this.selectedCaja?.sucursal?.id == null) {
+          if (!this.sinAccesoCaja) {
             this.notificacionService.openWarn('No se pudo cargar la caja: cerrá esta pestaña y volvé a abrirla.', 8);
-            return;
           }
-          if (ventaId) this.idVentaControl.setValue(ventaId);
-          this.buscar();
-          this.onGetBalance();
+          return;
+        }
+        if (ventaId) this.idVentaControl.setValue(ventaId);
+        this.buscar();
+        this.onGetBalance();
+      };
+
+      this.cajaService
+        .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true, true, LECTURA_ESTRICTA)
+        .pipe(terminarSiFalla((error) => {
+          const motivo = erroresDeRechazo(rechazoDe(error)) != null ? motivoDelRechazo(rechazoDe(error)) ?? '' : null;
+          const hayVentas = this.selectedCaja?.sucursalId != null || this.selectedCaja?.sucursal?.id != null;
+          if (motivo != null && /^No autorizado/i.test(motivo)) {
+            // Un solo aviso: el balance y las reaperturas los rechazaría igual, y no se piden (#672)
+            this.sinAccesoCaja = true;
+            this.balanceNoDisponible = true;
+            this.textoBalanceNoDisponible = 'sin acceso a esta caja';
+            // Sin «se muestran sus ventas»: un central con #562 también rechaza la lista
+            this.notificacionService.openWarn(`No tenés acceso a la caja ${this.selectedCaja?.id}.`, 6);
+          } else if (motivo != null && hayVentas) {
+            // Otro rechazo (no de permiso): se avisa el motivo y se sigue con la caja de la pestaña
+            this.notificacionService.openWarn(
+              `No se pudo leer la caja ${this.selectedCaja?.id}: ${motivo.replace(/\.+$/, '') || 'sin detalle'}.`, 6);
+          }
+          seguirConLaDeLaPestana();
         }))
         .subscribe((res) => {
-          if (res != null) {
+          if (res == null) {
+            seguirConLaDeLaPestana(); // no existe: el genérico ya avisó «Item no encontrado»
+          } else {
             this.selectedCaja = res;
             // Establecer el filtro de ventaId si existe, antes de filtrar
             if (ventaId) {
@@ -270,27 +306,42 @@ export class ListVentaComponent implements OnInit {
   }
 
   onGetBalance() {
+    // La caja que llega de Movimientos de stock trae `sucursalId` pero no `sucursal` (#672)
+    const sucursalId = this.selectedCaja?.sucursalId ?? this.selectedCaja?.sucursal?.id;
+    if (this.sinAccesoCaja || sucursalId == null) {
+      // Sin acceso el central lo rechazaría igual (también al cancelar una venta); sin sucursal, por el sucId nulo
+      this.isLoading = false;
+      if (this.selectedCaja) this.selectedCaja.balance = null;
+      this.balanceNoDisponible = true;
+      return;
+    }
     this.cargarReaperturas();
     this.isLoading = true;
     this.cajaService
       .onCajaBalancePorIdAndSucursalId(
         this.selectedCaja.id,
-        this.selectedCaja?.sucursal?.id,
+        sucursalId,
         true,
-        PROPAGAR_ERROR_DE_RED,
+        LECTURA_ESTRICTA,
         { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
       )
-      .subscribe({ error: () => {
+      .subscribe({ error: (e) => {
         // Sin balance leído no queda el total anterior (p. ej. el de antes de una cancelación) (#390)
         this.isLoading = false;
         if (this.selectedCaja) this.selectedCaja.balance = null;
         this.balanceNoDisponible = true;
-        this.notificacionService.openWarn('No se pudo actualizar el balance de la caja: el servidor no responde.', 5);
+        this.textoBalanceNoDisponible = BALANCE_NO_LEIDO;
+        // Un rechazo (p. ej. falta de permiso) no es «el servidor no responde» (#672)
+        const motivo = erroresDeRechazo(rechazoDe(e)) != null ? motivoDelRechazo(rechazoDe(e)) ?? 'sin detalle' : null;
+        this.notificacionService.openWarn(motivo != null
+          ? `No se pudo leer el balance de la caja: ${motivo.replace(/\.+$/, '')}.`
+          : 'No se pudo actualizar el balance de la caja: el servidor no responde.', 5);
       }, next: (res) => {
         this.isLoading = false;
-        // null = error GraphQL (el servicio ya avisó): tampoco queda el total anterior
+        // Sin errores y sin datos: tampoco queda el total anterior
         this.selectedCaja.balance = res ?? null;
         this.balanceNoDisponible = res == null;
+        this.textoBalanceNoDisponible = BALANCE_NO_LEIDO;
       } });
   }
 
@@ -316,15 +367,24 @@ export class ListVentaComponent implements OnInit {
         this.conDescuentoControl.value,
         this.conAumentoControl.value,
         true,
-        PROPAGAR_ERROR_DE_RED,
+        // Sin acceso a la caja, el rechazo de la lista no suma otro aviso: ya se avisó (#562)
+        this.sinAccesoCaja ? LECTURA_ESTRICTA : PROPAGAR_ERROR_DE_RED,
         undefined,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
       .pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
+      .subscribe({ error: (e) => {
         // Sin filas del filtro anterior a la vista como si fueran del nuevo (#390)
         this.selectedPageInfo = null;
         this.ventaDataSource.data = [];
+        if (erroresDeRechazo(rechazoDe(e)) != null) {
+          const motivo = motivoDelRechazo(rechazoDe(e)) ?? '';
+          if (!/^No autorizado/i.test(motivo)) {
+            this.notificacionService.openWarn(
+              `No se pudo cargar la lista de ventas: ${motivo.replace(/\.+$/, '') || 'sin detalle'}.`, 5);
+          }
+          return;
+        }
         this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
       }, next: (res) => {
         // this.cargandoService.closeDialog()
@@ -341,7 +401,24 @@ export class ListVentaComponent implements OnInit {
       } });
   }
 
+  /**
+   * Quién canceló la venta (consulta aparte al central). Solo con la fila abierta y la venta cancelada; se relee al
+   * abrirla y después de cancelar o habilitar. Si no se pudo leer, no se muestra nada.
+   */
+  private cargarCancelacion(venta: Venta): void {
+    venta.canceladoPor = undefined;
+    venta.canceladoEn = undefined;
+    if (venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
+    this.ventaService.onGetCancelacion(venta.id, venta.sucursalId).pipe(untilDestroyed(this)).subscribe((c) => {
+      // La respuesta puede llegar con la fila ya cerrada o la venta habilitada
+      if (c === undefined || venta.estado != VentaEstado.CANCELADA || this.expandedVenta !== venta) return;
+      venta.canceladoPor = c?.usuario?.nickname ?? "sin registro";
+      venta.canceladoEn = c?.creadoEn;
+    });
+  }
+
   onClickRow(venta: Venta, index) {
+    this.cargarCancelacion(venta);
     this.cargarLotesDeVenta(venta);
     if (venta.ventaItemList == null) {
       this.loading = true;
@@ -510,6 +587,7 @@ export class ListVentaComponent implements OnInit {
                 // Otro usuario (o un intento anterior) ya la cambió: no se mandó nada
                 venta.estado = resultado.estadoActual;
                 this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+                this.cargarCancelacion(venta);
                 this.notificacionService.openWarn(
                   `La venta ya estaba ${resultado.estadoActual} en el servidor: no se envió nada. Revisá antes de volver a intentar.`, 8);
                 this.onGetBalance();
@@ -535,6 +613,7 @@ export class ListVentaComponent implements OnInit {
                 });
               }
               this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+              this.cargarCancelacion(venta);
               this.onGetBalance();
             },
             error: (e: ErrorCancelacionVenta) => {
@@ -574,6 +653,7 @@ export class ListVentaComponent implements OnInit {
           });
         }
         this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, venta, index);
+        this.cargarCancelacion(venta);
         this.notificacionService.openWarn(`La venta ${venta.id} está ${estado} en el servidor.`, 6);
         this.onGetBalance();
       },
@@ -646,7 +726,7 @@ export class ListVentaComponent implements OnInit {
         "Conteo de caja " +
         this.selectedCaja.id +
         " de " +
-        this.selectedCaja.sucursal.nombre,
+        (this.selectedCaja.sucursal?.nombre ?? ""),
         new TabData(this.selectedCaja.id, this.selectedCaja)
       )
     );
@@ -676,9 +756,9 @@ export class ListVentaComponent implements OnInit {
             )
             .subscribe((resVerif) => {
               if (resVerif) {
-                this.selectedCaja.verificado = resVerif;
-                this.selectedCaja.verificadoPor =
-                  this.mainService?.usuarioActual;
+                // El central devuelve true al aplicar, tanto al verificar como al anular (#682)
+                this.selectedCaja.verificado = verificado;
+                this.selectedCaja.verificadoPor = verificado ? this.mainService?.usuarioActual : null;
               }
             });
         }

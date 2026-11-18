@@ -6,6 +6,7 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { digitosMoneda } from '../../liquidacion/moneda-item';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -88,7 +89,8 @@ export class ListValeComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
+        // R$ 100 se lee 100,00: cada fila con los decimales de su moneda.
+        this.dataSource.data = (res.getContent || []).map(v => ({ ...v, digitos: digitosMoneda(v.moneda) }));
       }
     });
   }

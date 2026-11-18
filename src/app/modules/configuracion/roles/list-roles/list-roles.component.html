@@ -79,13 +79,14 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAddOrEdit(role, i)">Editar</button>
+            <button mat-menu-item (click)="onAddOrEdit(role, i)"><mat-icon>edit</mat-icon><span>Editar</span></button>
             <button
               mat-menu-item
               color="primary"
               (click)="onDelete(role, i)"
             >
-              Eliminar
+              <mat-icon>delete</mat-icon>
+              <span>Eliminar</span>
             </button>
           </mat-menu>
         </td>

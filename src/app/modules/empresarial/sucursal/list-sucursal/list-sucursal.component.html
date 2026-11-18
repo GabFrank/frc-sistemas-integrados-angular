@@ -203,7 +203,8 @@
               (click)="onEditSucursal(sucursal, i)"
               *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
             >
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
           </mat-menu>
         </td>

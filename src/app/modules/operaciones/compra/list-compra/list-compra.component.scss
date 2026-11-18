@@ -43,3 +43,16 @@ tr.example-detail-row {
   background: #38853c;
 }
 
+
+// Compra cancelada: fila en rojo. La especificidad le gana al hover verde global (.mat-mdc-row:hover con !important).
+tr.mat-mdc-row.fila-compra-cancelada {
+  background-color: #d32f2f !important;
+
+  td {
+    color: #fff;
+  }
+
+  &:hover {
+    background-color: #b71c1c !important;
+  }
+}

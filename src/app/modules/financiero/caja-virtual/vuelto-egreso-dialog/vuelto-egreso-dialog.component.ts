@@ -13,6 +13,10 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 import { nuevaClaveIdempotencia } from '../../../../commons/core/utils/claveIdempotencia';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+
+/** Días que muestra la lista al abrir (hoy incluido). */
+const DIAS_POR_DEFECTO = 3;
 
 export interface VueltoEgresoDialogData {
   cajaVirtual: CajaVirtual;
@@ -24,6 +28,10 @@ const TAMANO_FORMULARIO = { width: '560px', height: 'auto' };
 
 /** Fila de la tabla, con lo que muestra ya resuelto (sin llamadas desde el template). */
 interface FilaVuelto extends EgresoParaVuelto {
+  /** «Solicitud #N · rindió …» si el egreso pagó una solicitud de gasto. */
+  _solicitud: string;
+  /** Lo que el teléfono no rindió, para autocompletar el vuelto (null si no es de una solicitud). */
+  _vueltoSugerido: number | null;
   _tipo: string;
   _entregadoA: string;
   _simbolo: string;
@@ -51,6 +59,12 @@ export class VueltoEgresoDialogComponent implements OnInit {
   isLoading = false;
 
   textoControl = new FormControl<string>('');
+  /**
+   * Rango de la fecha del egreso: arranca en los últimos DIAS_POR_DEFECTO días. Nunca se pide sin «desde»,
+   * para no traer todo el historial de una vez; un rango más amplio lo elige el usuario.
+   */
+  desdeControl = new FormControl<Date>(null);
+  hastaControl = new FormControl<Date>(null);
 
   /** El egreso elegido: con él se pasa del listado al formulario del vuelto. */
   seleccionado: FilaVuelto | null = null;
@@ -79,7 +93,37 @@ export class VueltoEgresoDialogComponent implements OnInit {
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
+    this.rangoPorDefecto();
     this.cargar();
+  }
+
+  private rangoPorDefecto(): void {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const desde = new Date(hoy);
+    desde.setDate(hoy.getDate() - (DIAS_POR_DEFECTO - 1));
+    this.desdeControl.setValue(desde);
+    this.hastaControl.setValue(hoy);
+  }
+
+  /** Al cerrar el rango en el calendario (o al tipear el fin) se vuelve a buscar. */
+  onRangoChange(): void {
+    this.buscar();
+  }
+
+  /** Vuelve a los últimos DIAS_POR_DEFECTO días. */
+  limpiarRango(): void {
+    this.rangoPorDefecto();
+    this.buscar();
+  }
+
+  /** El rango es distinto del de por defecto: recién ahí tiene sentido el botón para volver a él. */
+  get rangoModificado(): boolean {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const desde = new Date(hoy);
+    desde.setDate(hoy.getDate() - (DIAS_POR_DEFECTO - 1));
+    return this.desdeControl.value?.getTime() !== desde.getTime() || this.hastaControl.value?.getTime() !== hoy.getTime();
   }
 
   buscar(): void {
@@ -101,7 +145,12 @@ export class VueltoEgresoDialogComponent implements OnInit {
   private cargar(): void {
     this.isLoading = true;
     const texto = this.textoControl.value?.trim() || null;
-    this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, this.pageIndex, this.pageSize)
+    // Sin «desde» (borrado a mano o inválido) se vuelve al rango por defecto en vez de traer todo.
+    if (!this.desdeControl.value) this.rangoPorDefecto();
+    const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
+    // El central lleva el fin al último minuto de ese día.
+    const fin = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
+    this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, desde, fin, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -118,8 +167,15 @@ export class VueltoEgresoDialogComponent implements OnInit {
 
   private aFila(e: EgresoParaVuelto): FilaVuelto {
     const m = e.movimiento;
+    const pg = e.preGasto;
+    const retirado = Number(pg?.montoRetirado ?? 0);
+    const rendido = Number(pg?.montoGastado ?? 0);
+    // Lo ya devuelto se descuenta: el pendiente del egreso es el tope.
+    const sugerido = pg ? Math.min(Math.max(retirado - rendido - Number(e.devuelto ?? 0), 0), Number(e.pendiente ?? 0)) : null;
     return {
       ...e,
+      _solicitud: pg ? `Solicitud de gasto #${pg.id} · rindió ${rendido.toLocaleString('es-PY')} de ${retirado.toLocaleString('es-PY')}` : '',
+      _vueltoSugerido: sugerido,
       _tipo: labelMovimiento(m?.origenTipo, m?.tipoMovimiento, { EGRESO: 'Egreso', PAGO_PROVEEDOR: 'Pago' }),
       _entregadoA: m?.responsable?.persona?.nombre || '—',
       _simbolo: m?.moneda?.simbolo || '',
@@ -135,6 +191,10 @@ export class VueltoEgresoDialogComponent implements OnInit {
     this.monedaControl.setValue(moneda);
     this.onMonedaChange();
     this.descripcionControl.setValue('');
+    // De una solicitud: arranca con lo que el teléfono no rindió (en la moneda del egreso).
+    if (fila._vueltoSugerido != null && fila.preGasto?.montoVuelto == null) {
+      this.montoControl.setValue(fila._vueltoSugerido);
+    }
   }
 
   volver(): void {

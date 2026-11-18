@@ -12,6 +12,8 @@ import { savePrecioPorSucursalGQL } from "./graphql/savePrecioPorSucursal";
 import { PrecioPorSucursalInput } from "./precio-por-sucursal-input.model";
 import { PrecioPorSucursal } from "./precio-por-sucursal.model";
 
+import { tap } from "rxjs/operators";
+import { PrecioMonedaService } from "./precio-moneda.service";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
 
@@ -29,7 +31,8 @@ export class PrecioPorSucursalService {
     private getPrecioPorSucursalPorPresentacion: PrecioPorSucursalPorPresentacionIdGQL,
     public mainService: MainService,
     private dialogoService: DialogosService,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private precioMonedaService: PrecioMonedaService
   ) {}
 
   /**
@@ -38,12 +41,15 @@ export class PrecioPorSucursalService {
    */
   onSave(input: PrecioPorSucursalInput, servidor = true): Observable<any> {
     input.usuarioId = this.mainService?.usuarioActual?.id;
-    return this.genericService.onSave(this.savePrecioPorSucursal, input, null, null, servidor, PROPAGAR_ERROR_DE_RED);
+    return this.genericService.onSave(this.savePrecioPorSucursal, input, null, null, servidor, PROPAGAR_ERROR_DE_RED).pipe(
+      // El precio puede haber cambiado de moneda: se relee el mapa de precios en otra moneda
+      tap(() => { if (servidor) this.precioMonedaService.refrescarMapaCentral(); }));
   }
 
   onDelete(precio: PrecioPorSucursal, servidor = true): Observable<boolean> {
     // TODO: Implementar el delete con el generic service
-    return this.genericService.onDelete(this.deletePrecioPorSucursal, precio.id, "¿Eliminar precio por sucursal?", null, true, servidor, "¿Está seguro que desea eliminar este precio por sucursal?");
+    return this.genericService.onDelete(this.deletePrecioPorSucursal, precio.id, "¿Eliminar precio por sucursal?", null, true, servidor, "¿Está seguro que desea eliminar este precio por sucursal?").pipe(
+      tap((borrado) => { if (borrado && servidor) this.precioMonedaService.refrescarMapaCentral(); }));
   }
 
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */

@@ -9,7 +9,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { Retiro, formatMontosRetiro, PREGUNTA_RETIROS_DE_LA_CAJA } from '../../retiro/retiro.model';
+import { Retiro, formatMontosRetiro, PREGUNTA_RETIROS_DE_LA_CAJA, textoRetiroIngresado } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -177,6 +177,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
     const hasta = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
     const destinoId = this.acotado ? this.data?.cajaVirtual?.id : undefined;
+    this.cargarProcesados(cajaId, sucId, destinoId);
     this.retiroService.onGetFlotantes(sucId, cajaId, desde, hasta, this.pageIndex, this.pageSize, true, destinoId)
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -202,6 +203,39 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
           this.flotantesNoCargados();
         }
       });
+  }
+
+  /** Cuántos retiros procesados se listan en el aviso; el resto va como «y N más». */
+  static readonly AVISOS_VISIBLES = 5;
+  /** «Caja #N (sucursal): retiro #X procesado en … por …», los primeros AVISOS_VISIBLES. */
+  avisosProcesados: string[] = [];
+  avisosProcesadosExtra = 0;
+  /** Caja y sucursal del último aviso pedido: al paginar no cambian y el aviso no se vuelve a pedir. */
+  private claveProcesados: string = null;
+  private procesadosId = 0;
+
+  /**
+   * Con N° Caja, avisa qué retiros de esa caja ya se procesaron: la tabla lista solo los flotantes y, sin
+   * esto, una caja ya ingresada se ve igual que una sin retiros. Es una ayuda: si falla, no hay aviso.
+   */
+  private cargarProcesados(cajaId: number, sucId: number, destinoId: number) {
+    const clave = `${cajaId}|${sucId}|${destinoId}`;
+    if (clave === this.claveProcesados) return;
+    this.claveProcesados = clave;
+    // Se vacía antes de pedir: el aviso de la caja anterior no puede quedar sobre la tabla de la nueva.
+    this.avisosProcesados = [];
+    this.avisosProcesadosExtra = 0;
+    const id = ++this.procesadosId;
+    if (!Number.isFinite(cajaId)) return;
+    this.retiroService.onGetIngresadosDeCaja(cajaId, sucId, destinoId).pipe(untilDestroyed(this)).subscribe({
+      next: lista => {
+        if (id !== this.procesadosId || !lista?.length) return;
+        this.avisosProcesados = lista.slice(0, IngresarRetiroCajaMayorDialogComponent.AVISOS_VISIBLES).map(textoRetiroIngresado);
+        this.avisosProcesadosExtra = Math.max(0, lista.length - IngresarRetiroCajaMayorDialogComponent.AVISOS_VISIBLES);
+      },
+      // Sin aviso, pero sin fijar la clave: un Enter con la misma caja lo vuelve a pedir.
+      error: () => { if (id === this.procesadosId) this.claveProcesados = null; },
+    });
   }
 
   private flotantesNoCargados() {
@@ -284,7 +318,10 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       const fuera = res?.fuera || [];
       // Los que ya no están pendientes dejan de estar seleccionados: «Ingresar» los mandaría de nuevo.
       [...ingresados, ...fuera].forEach(r => this.seleccionados.delete(`${r.id}_${r.sucursalId}`));
-      if (ingresados.length || fuera.length) this.huboIngresos = true;
+      if (ingresados.length || fuera.length) {
+        this.huboIngresos = true;
+        this.claveProcesados = null; // lo recién ingresado tiene que aparecer en el aviso
+      }
       if (fuera.length) {
         this.notificacion.openWarn(`${fuera.length} retiro(s) ya no estaban pendientes: los ingresó otra PC, `
           + 'se cancelaron o entraron sin que llegara la respuesta. Revisalos en la caja mayor.', 8);

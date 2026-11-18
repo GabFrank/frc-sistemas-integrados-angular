@@ -1,0 +1,29 @@
+<div class="version-bloqueo">
+  <div class="version-bloqueo__titulo">
+    <mat-icon class="version-bloqueo__icono">system_update</mat-icon>
+    <h2>Actualización requerida</h2>
+  </div>
+
+  <mat-dialog-content>
+    <p class="version-bloqueo__mensaje">{{ mensaje }}</p>
+    <div class="version-bloqueo__fila">
+      <span class="version-bloqueo__etiqueta">Versión instalada</span>
+      <span class="version-bloqueo__valor">{{ data?.versionActual }}</span>
+    </div>
+    <div class="version-bloqueo__fila">
+      <span class="version-bloqueo__etiqueta">Versión mínima</span>
+      <span class="version-bloqueo__valor">{{ data?.versionMinima }}</span>
+    </div>
+    <div *ngIf="estado" class="version-bloqueo__estado">{{ estado }}</div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCerrarSesion()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+    <button *ngIf="puedeActualizar" mat-raised-button color="primary"
+            [disabled]="buscando" (click)="onBuscarActualizacion()">
+      <mat-icon>refresh</mat-icon> Buscar actualización
+    </button>
+  </mat-dialog-actions>
+</div>

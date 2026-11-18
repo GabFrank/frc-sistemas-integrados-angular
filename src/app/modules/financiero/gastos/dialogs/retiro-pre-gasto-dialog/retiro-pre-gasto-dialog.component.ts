@@ -59,6 +59,10 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
   cargandoRetiro = false;
   codigoQr = '';
   funcionarioConfirmo = false;
+  /** El cajero entrega sin esperar que el funcionario escanee el QR. */
+  entregaSinQr = false;
+  /** Escaneó el QR o el cajero eligió entregar sin QR: se pueden cargar los montos. */
+  entregaHabilitada = false;
   listaMonedas: Moneda[] = [];
   filasMonto = new FormArray<FormGroup>([]);
   filasMontoView: FilaMontoVista[] = [];
@@ -122,6 +126,8 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
   seleccionarSolicitud(item: PreGasto): void {
     this.seleccionada = item;
     this.funcionarioConfirmo = !!item.retiroConfirmadoEn;
+    this.entregaSinQr = false;
+    this.entregaHabilitada = this.funcionarioConfirmo;
     this.codigoQr = '';
     this.filasMontoInicializadasParaId = null;
     this.limpiarFilasMonto();
@@ -176,9 +182,25 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Entrega directa: el cajero no espera el escaneo. El central marca el retiro como confirmado al
+   * registrarlo, y la PWA del funcionario se actualiza sola.
+   */
+  entregarSinQr(): void {
+    if (!this.seleccionada || this.entregaHabilitada) {
+      return;
+    }
+    this.detenerPolling();
+    this.entregaSinQr = true;
+    this.entregaHabilitada = true;
+    this.intentarInicializarFilasMonto();
+    this.actualizarMontosEntregaValidos();
+    this.cdr.markForCheck();
+  }
+
   ejecutarRetiro(): void {
-    if (!this.seleccionada || !this.funcionarioConfirmo) {
-      this.notificacion.openWarn('El funcionario debe escanear el QR desde su celular primero.');
+    if (!this.seleccionada || !this.entregaHabilitada) {
+      this.notificacion.openWarn('Muestre el QR al funcionario o elija «Entregar sin QR».');
       return;
     }
     if (!this.montosEntregaValidos) {
@@ -219,7 +241,8 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
           responsable,
           autorizado,
           lineas,
-          this.mainService.usuarioActual?.id
+          this.mainService.usuarioActual?.id,
+          this.entregaSinQr && !this.funcionarioConfirmo
         );
       }),
       untilDestroyed(this)
@@ -264,7 +287,7 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
 
   private actualizarMontosEntregaValidos(): void {
     const valido =
-      this.funcionarioConfirmo &&
+      this.entregaHabilitada &&
       this.filasMonto.length > 0 &&
       this.filasMonto.valid;
     if (this.montosEntregaValidos === valido) {
@@ -275,7 +298,7 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   private iniciarPolling(): void {
-    if (!this.seleccionada?.id || !this.seleccionada?.sucursalId || this.funcionarioConfirmo) {
+    if (!this.seleccionada?.id || !this.seleccionada?.sucursalId || this.entregaHabilitada) {
       return;
     }
     this.detenerPolling();
@@ -301,6 +324,7 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
             return;
           }
           this.funcionarioConfirmo = true;
+          this.entregaHabilitada = true;
           this.intentarInicializarFilasMonto();
           this.actualizarMontosEntregaValidos();
           this.cdr.markForCheck();
@@ -316,7 +340,7 @@ export class RetiroPreGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   private intentarInicializarFilasMonto(): void {
-    if (!this.seleccionada || !this.funcionarioConfirmo || this.listaMonedas.length === 0) {
+    if (!this.seleccionada || !this.entregaHabilitada || this.listaMonedas.length === 0) {
       return;
     }
     if (this.filasMontoInicializadasParaId === this.seleccionada.id || this.cargandoFilasMonto) {

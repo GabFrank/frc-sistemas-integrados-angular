@@ -1,0 +1,87 @@
+<div class="cc-pagina">
+  <div class="cc-encabezado">
+    <div>
+      <h2 class="cc-titulo">Cobro en PDV</h2>
+      <div class="cc-ayuda">
+        Topes del cobro del PDV (botones y teclas F8 / F9) y del cobro del delivery. Los porcentajes son
+        sobre el total del cobro. Cada caja los lee de su filial, así que un cambio llega con la replicación.
+      </div>
+    </div>
+    <div class="cc-acciones">
+      <button mat-stroked-button (click)="cargar()" [disabled]="estado === 'cargando' || guardando">
+        <mat-icon>refresh</mat-icon> Recargar
+      </button>
+      <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="estado !== 'datos' || guardando">
+        <mat-icon>save</mat-icon> Guardar
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="estado === 'cargando'" class="cc-estado">
+    <mat-spinner diameter="32"></mat-spinner>
+    <span>Cargando configuración…</span>
+  </div>
+
+  <div *ngIf="estado === 'error'" class="cc-estado cc-estado--error">
+    <mat-icon>error_outline</mat-icon>
+    <span>
+      No se pudo leer la configuración del servidor central: puede estar sin conexión o todavía sin actualizar.
+    </span>
+    <button mat-stroked-button (click)="cargar()"><mat-icon>refresh</mat-icon> Reintentar</button>
+  </div>
+
+  <ng-container *ngIf="estado === 'datos'">
+    <div class="cc-tarjetas">
+      <div class="cc-tarjeta">
+        <div class="cc-tarjeta-cabecera">
+          <div class="cc-tarjeta-info">
+            <div class="cc-tarjeta-titulo"><mat-icon>trending_up</mat-icon> Tope del aumento</div>
+            <div class="cc-tarjeta-desc">
+              Cuánto se puede cobrar de más y registrarlo como aumento (F8). Sin tope, se permite cualquier aumento.
+            </div>
+          </div>
+          <div class="cc-toggle">
+            <mat-slide-toggle [formControl]="aumentoConTopeControl" color="accent"></mat-slide-toggle>
+            <span class="cc-toggle-label" [class.activo]="aumentoConTopeControl.value">
+              {{ aumentoConTopeControl.value ? 'CON TOPE' : 'SIN TOPE' }}
+            </span>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" *ngIf="aumentoConTopeControl.value">
+          <mat-label>Tope del aumento (% del total)</mat-label>
+          <input matInput type="number" min="0.01" max="100" step="0.01" [formControl]="aumentoPorcentajeControl"
+            (keyup.enter)="onGuardar()" />
+          <span matSuffix class="cc-sufijo">%</span>
+        </mat-form-field>
+      </div>
+
+      <div class="cc-tarjeta">
+        <div class="cc-tarjeta-cabecera">
+          <div class="cc-tarjeta-info">
+            <div class="cc-tarjeta-titulo"><mat-icon>trending_down</mat-icon> Tope del descuento</div>
+            <div class="cc-tarjeta-desc">
+              Cuánto descuento puede llevar un cobro (F9), sumando los descuentos por producto que trae la venta.
+              Sin tope, se permite cualquier descuento.
+            </div>
+          </div>
+          <div class="cc-toggle">
+            <mat-slide-toggle [formControl]="descuentoConTopeControl" color="accent"></mat-slide-toggle>
+            <span class="cc-toggle-label" [class.activo]="descuentoConTopeControl.value">
+              {{ descuentoConTopeControl.value ? 'CON TOPE' : 'SIN TOPE' }}
+            </span>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" *ngIf="descuentoConTopeControl.value">
+          <mat-label>Tope del descuento (% del total)</mat-label>
+          <input matInput type="number" min="0.01" max="100" step="0.01" [formControl]="descuentoPorcentajeControl"
+            (keyup.enter)="onGuardar()" />
+          <span matSuffix class="cc-sufijo">%</span>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div *ngIf="modificadoPor || modificadoEn" class="cc-auditoria">
+      Modificado por {{ modificadoPor || '—' }} el {{ modificadoEn | date: 'dd/MM/yyyy HH:mm' }}
+    </div>
+  </ng-container>
+</div>

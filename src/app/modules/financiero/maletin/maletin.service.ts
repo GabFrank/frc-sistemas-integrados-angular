@@ -3,6 +3,9 @@ import { Observable } from 'rxjs';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { AllMaletinsGQL } from './graphql/allMaletines';
+import { MaletinesConFiltrosGQL } from './graphql/maletinesConFiltros';
+import { PageInfo } from '../../../app.component';
+import { Maletin } from './maletin.model';
 import { CountMaletinGQL } from './graphql/count-maletin';
 import { DeleteMaletinGQL } from './graphql/deleteMaletin';
 import { MaletinByIdGQL } from './graphql/MaletinById';
@@ -45,6 +48,7 @@ export class MaletinService {
     private ingresarMaletinCierreGQL: IngresarMaletinCierreGQL,
     private egresarMaletinGQL: EgresarMaletinCajaMayorGQL,
     private egresarMaletinSinClaveGQL: EgresarMaletinCajaMayorSinClaveGQL,
+    private maletinesConFiltros: MaletinesConFiltrosGQL,
   ) { }
 
   /** Ingresa de una vez el valor del cierre del maletín para las monedas seleccionadas. */
@@ -82,6 +86,11 @@ export class MaletinService {
 
   onCount(servidor: boolean = true): Observable<number> {
     return this.genericCrud.onCustomQuery(this.countMaletin, null, servidor);
+  }
+
+  // Filtra y pagina en el central: el total es el de la consulta, no el de la página.
+  onGetConFiltros(sucursalId: number, texto: string, abierto: boolean, page: number, size: number, servidor: boolean = true): Observable<PageInfo<Maletin>> {
+    return this.genericCrud.onCustomQuery(this.maletinesConFiltros, { sucursalId, texto, abierto, page, size }, servidor);
   }
 
   onGetAll(page?, size?, servidor: boolean = true): Observable<any>{

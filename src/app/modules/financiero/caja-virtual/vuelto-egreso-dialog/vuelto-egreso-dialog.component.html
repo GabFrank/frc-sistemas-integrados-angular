@@ -12,6 +12,19 @@
           <mat-icon>close</mat-icon>
         </button>
       </mat-form-field>
+      <mat-form-field appearance="outline" class="filtro-fecha">
+        <mat-label>Fecha del egreso</mat-label>
+        <mat-date-range-input [rangePicker]="pickerRango">
+          <input matStartDate [formControl]="desdeControl" placeholder="Desde" />
+          <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="onRangoChange()" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+        <mat-date-range-picker #pickerRango></mat-date-range-picker>
+      </mat-form-field>
+      <button mat-icon-button *ngIf="rangoModificado" (click)="limpiarRango()"
+        matTooltip="Volver a los últimos 3 días">
+        <mat-icon>event_busy</mat-icon>
+      </button>
       <button mat-stroked-button (click)="buscar()"><mat-icon>search</mat-icon> Buscar</button>
       <span class="spacer"></span>
       <span class="hint" *ngIf="!isLoading">{{ totalElements }} egreso(s) con vuelto pendiente</span>
@@ -64,7 +77,7 @@
 
       <div class="empty" *ngIf="isLoading">Cargando…</div>
       <div class="empty" *ngIf="!isLoading && dataSource.data.length === 0">
-        No hay egresos con vuelto pendiente en esta caja.
+        No hay egresos con vuelto pendiente en esas fechas. Ampliá el rango para ver egresos más viejos.
       </div>
     </div>
 
@@ -80,6 +93,7 @@
         <span>{{ seleccionado.movimiento?.creadoEn | date: 'dd/MM/yy HH:mm' }}</span></div>
       <div class="egreso-desc">{{ seleccionado.movimiento?.descripcion || '—' }}</div>
       <div class="egreso-linea"><span class="etq">Entregado a</span> {{ seleccionado._entregadoA }}</div>
+      <div class="egreso-linea" *ngIf="seleccionado.preGasto"><span class="etq">{{ seleccionado._solicitud }}</span></div>
       <div class="egreso-montos">
         <div><span class="etq">Egreso</span> {{ seleccionado.movimiento?.cantidad | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>
         <div><span class="etq">Ya devuelto</span> {{ seleccionado.devuelto | number: seleccionado._decimales }} {{ seleccionado._simbolo }}</div>

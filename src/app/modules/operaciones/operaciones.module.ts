@@ -16,6 +16,7 @@ import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento
 import { HistorialLoteComponent } from './lote/historial-lote/historial-lote.component';
 import { ListStockLoteComponent } from './lote/list-stock-lote/list-stock-lote.component';
 import { BuscarLoteComponent } from './lote/buscar-lote/buscar-lote.component';
+import { ListProductoRechazadoComponent } from './producto-rechazado/list-producto-rechazado/list-producto-rechazado.component';
 import { PendientesLoteComponent } from './lote/pendientes-lote/pendientes-lote.component';
 import { CompletarLotePendienteDialogComponent } from './lote/pendientes-lote/completar-lote-pendiente-dialog.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
@@ -45,6 +46,7 @@ import { MainVentaObservacionComponent } from './venta-observacion/main-venta-ob
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { VerificarTransporteDialogComponent } from './transferencia/verificar-transporte-dialog/verificar-transporte-dialog.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
+import { ListProductosFaltantesComponent } from './transferencia/list-productos-faltantes/list-productos-faltantes.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
 import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 
@@ -108,6 +110,7 @@ import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.dir
     ListMovimientoStockComponent,
     ListStockLoteComponent,
     BuscarLoteComponent,
+    ListProductoRechazadoComponent,
     PendientesLoteComponent,
     CompletarLotePendienteDialogComponent,
     HistorialLoteComponent,
@@ -139,6 +142,7 @@ import { MascaraFechaDirective } from "../../shared/directives/mascara-fecha.dir
     RutaHojaComponent,
     VerificarTransporteDialogComponent,
     EntregadoresComponent,
+    ListProductosFaltantesComponent,
     ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,

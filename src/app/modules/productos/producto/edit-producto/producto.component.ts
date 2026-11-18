@@ -75,6 +75,15 @@ import {
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
+import { PrecioMonedaService, precioPrincipalDePresentacion } from "../../precio-por-sucursal/precio-moneda.service";
+
+/** Precio principal listo para mostrar: `simbolo` null = moneda de la empresa. */
+interface PrecioPrincipalVista {
+  precio: number;
+  simbolo: string | null;
+  formato: string;
+}
+import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import {
   PrecioEspecialDialogComponent,
   PrecioEspecialDialogData,
@@ -282,7 +291,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
     private notificacionService: NotificacionSnackbarService,
     private thermalPrinterService: ThermalPrinterService,
-    private configuracionService: ConfiguracionService
+    private configuracionService: ConfiguracionService,
+    private precioMonedaService: PrecioMonedaService,
+    private monedaModulo: MonedaModuloService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1123,7 +1134,61 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
+        this.calcularPreciosPrincipales();
+        this.cargarSimbolosDePrecios();
       } });
+  }
+
+  /**
+   * Símbolo de la moneda de cada precio que NO está en la de la empresa, por id de precio. Se lee con una
+   * operación aparte que puede fallar (servidor viejo): sin símbolo, el precio se ve como siempre.
+   */
+  simbolosPrecio: Record<string, string> = {};
+
+  private cargarSimbolosDePrecios(): void {
+    if (this.simbolosSub) return;
+    this.precioMonedaService.asegurarMapaCentral();
+    // Del mapa en caché de precios en otra moneda: vacío en bodega, y si no se pudo leer, sin símbolos
+    this.simbolosSub = this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((e) => {
+      const nuevos: Record<string, string> = {};
+      const formatos: Record<string, string> = {};
+      e.mapa.forEach((moneda, precioId) => {
+        if (this.monedaModulo.esMonedaEmpresa(moneda)) return;
+        nuevos[precioId] = moneda.simbolo || '';
+        const d = moneda?.decimales != null && moneda.decimales >= 0 ? moneda.decimales : 2;
+        formatos[precioId] = `1.${d}-${d}`;
+      });
+      this.simbolosPrecio = nuevos;
+      this.formatosPrecio = formatos;
+      this.calcularPreciosPrincipales();
+    });
+  }
+  private simbolosSub: Subscription;
+  /** Formato de número por id de precio, solo para precios que no están en la moneda de la empresa. */
+  private formatosPrecio: Record<string, string> = {};
+
+  /** Precio principal de cada presentación (por id) y del resumen, con su moneda si no es la de la empresa (#713). */
+  precioPrincipalFila: Record<string, PrecioPrincipalVista> = {};
+  precioPrincipalResumen: PrecioPrincipalVista | null = null;
+
+  /** Se llama al llegar el mapa y al llegar las presentaciones: cualquiera puede llegar primero. */
+  private calcularPreciosPrincipales(): void {
+    const filas: Record<string, PrecioPrincipalVista> = {};
+    let resumen: PrecioPrincipalVista | null = null;
+    (this.presentacionesList || []).forEach((presentacion) => {
+      const precio = precioPrincipalDePresentacion(presentacion);
+      if (precio?.precio == null) return;
+      const id = String(precio.id);
+      const vista: PrecioPrincipalVista = {
+        precio: precio.precio,
+        simbolo: this.simbolosPrecio[id] ?? null,
+        formato: this.formatosPrecio[id] ?? '1.0-2',
+      };
+      filas[String(presentacion.id)] = vista;
+      if (presentacion.principal === true && resumen == null) resumen = vista; // la primera, como monedaDelPrecioPrincipalDe
+    });
+    this.precioPrincipalFila = filas;
+    this.precioPrincipalResumen = resumen;
   }
 
   /** No se dejan a la vista presentaciones, códigos ni precios de una carga anterior. */
@@ -1132,6 +1197,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.presentacionesFallo = true;
     this.presentacionesList = [];
     this.presentacionesDataSource.data = [];
+    this.calcularPreciosPrincipales();
     this.expandedPresentacion = null;
     this.selectedPresentacion = null;
   }
@@ -1376,6 +1442,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.promocion = promocion;
     // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
+    data.productoId = this.selectedProducto?.id;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,

@@ -6,7 +6,7 @@
     [matTooltipDisabled]="!esExtranjera"
     matTooltipPosition="above"
   >
-    {{ valor | number: digitos }}<ng-container *ngIf="sufijo"> {{ sufijo }}</ng-container>
+    {{ valorMostrado | number: digitosMostrados }}<ng-container *ngIf="sufijoMostrado"> {{ sufijoMostrado }}</ng-container>
     <mat-icon *ngIf="esExtranjera" class="costo-display__icon">info_outline</mat-icon>
   </span>
 </ng-container>

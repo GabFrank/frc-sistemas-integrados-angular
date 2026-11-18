@@ -1,0 +1,113 @@
+.cc-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.cc-encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cc-titulo {
+  margin: 0 0 4px;
+  color: var(--frc-texto-fuerte);
+}
+
+.cc-ayuda,
+.cc-tarjeta-desc,
+.cc-auditoria {
+  font-size: 14px;
+  color: var(--frc-texto-suave);
+  line-height: 1.4;
+}
+
+.cc-acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.cc-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--frc-texto-suave);
+  text-align: center;
+}
+
+.cc-estado--error mat-icon {
+  color: #f44336;
+}
+
+.cc-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  max-width: 1100px;
+}
+
+.cc-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--frc-relleno-tenue);
+  border: 1px solid var(--frc-borde);
+  border-radius: 8px;
+}
+
+.cc-tarjeta-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.cc-tarjeta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.cc-tarjeta-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--frc-texto-fuerte);
+}
+
+.cc-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+}
+
+.cc-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #f44336;
+
+  &.activo {
+    color: #81c784;
+  }
+}
+
+// Sin esto el % queda pegado al borde derecho.
+.cc-sufijo {
+  padding-right: 16px;
+}

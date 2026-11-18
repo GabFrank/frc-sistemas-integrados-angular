@@ -11,6 +11,7 @@ export interface GetSolicitudesPagoPaginatedVariables {
   numero?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  monedaIds?: number[];
 }
 
 export interface SolicitudPagoPageResult {

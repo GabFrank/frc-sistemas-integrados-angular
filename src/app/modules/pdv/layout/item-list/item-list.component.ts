@@ -10,6 +10,10 @@ export class ItemListComponent implements OnInit {
   @Input()
   itemList;
 
+  /** Formato de los montos: los decimales de la moneda del PDV. Por defecto el de siempre (enteros). */
+  @Input()
+  formato = '1.0-0';
+
   @Output()
   editEvent = new EventEmitter;
 

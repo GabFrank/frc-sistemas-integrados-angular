@@ -106,6 +106,9 @@
               padding: 10px;
             ">
             <div style="text-align: center">Vuelto</div>
+            <div *ngIf="isVuelto && solicitudVuelto" fxLayout="column" fxLayoutGap="6px" style="margin: 6px 0 10px">
+              <span style="font-size: 0.85em; color: var(--frc-texto-suave); text-align: center">{{ textoSolicitudVuelto }}</span>
+            </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Guaranies G$</mat-label>
@@ -252,13 +255,15 @@
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu">
-              <button mat-menu-item (click)="onVer(gasto)">Ver</button>
+              <button mat-menu-item (click)="onVer(gasto)"><mat-icon>visibility</mat-icon><span>Ver</span></button>
               <button mat-menu-item (click)="onReimprimir(gasto)">
-                Reimprimir
+                <mat-icon>print</mat-icon>
+                <span>Reimprimir</span>
               </button>
-              <button mat-menu-item (click)="onVuelto(gasto)">Vuelto</button>
+              <button mat-menu-item (click)="onVuelto(gasto)"><mat-icon>payments</mat-icon><span>Vuelto</span></button>
               <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
-                Imprimir
+                <mat-icon>print</mat-icon>
+                <span>Imprimir</span>
               </button> -->
             </mat-menu>
           </td>

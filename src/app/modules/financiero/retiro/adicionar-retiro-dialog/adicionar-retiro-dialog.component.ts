@@ -12,7 +12,7 @@ import { BuscadorFieldComponent } from '../../../../shared/components/buscador-f
 import { OpcionesBuscador } from '../../../../shared/services/buscador.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { MonedaService } from '../../moneda/moneda.service';
-import { CajaBalance, esBalanceVerificable, PdvCaja } from '../../pdv/caja/caja.model';
+import { CajaBalance, esBalanceVerificable, PdvCaja, superaDisponible } from '../../pdv/caja/caja.model';
 import { RetiroDetalle } from '../retiro-detalle.model';
 import { Retiro } from '../retiro.model';
 import { RetiroService } from '../retiro.service';
@@ -134,7 +134,8 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onGuardar() {
-    if (this.responsableControl.value != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
+    // Un retiro abierto con Ver ya existe: no se vuelve a guardar (#734).
+    if (this.selectedRetiro == null && this.responsableControl.value != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
@@ -193,6 +194,8 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
               console.error("Error al guardar retiro:", err);
               // En un rechazo el genérico ya mostró el motivo y no se guardó: el diálogo queda para corregir (#488)
               if (erroresDeRechazo(err) != null) {
+                // El filial rechaza, p. ej., porque el saldo cambió desde que se abrió el diálogo.
+                this.cargarBalance();
                 return;
               }
               // Sin respuesta pudo haberse guardado: reintentar crearía otro retiro y descontaría dos veces
@@ -239,15 +242,15 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
 
   verficarValores(): boolean {
     if (!this.saldoVerificado()) return false;
-    if (this.guaraniControl.value > (this.balanceCaja.diferenciaGs * -1)) {
+    if (superaDisponible(this.guaraniControl.value, this.balanceCaja.diferenciaGs)) {
       this.notificacionService.openWarn("El monto en guaraníes es mayor a lo que tiene en caja")
       return false;
     }
-    if (this.realControl.value > (this.balanceCaja.diferenciaRs * -1)) {
+    if (superaDisponible(this.realControl.value, this.balanceCaja.diferenciaRs)) {
       this.notificacionService.openWarn("El monto en reales es mayor a lo que tiene en caja")
       return false;
     }
-    if (this.dolarControl.value > (this.balanceCaja.diferenciaDs * -1)) {
+    if (superaDisponible(this.dolarControl.value, this.balanceCaja.diferenciaDs)) {
       this.notificacionService.openWarn("El monto en dolares es mayor a lo que tiene en caja")
       return false;
     }
@@ -279,13 +282,27 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     this.responsableControl.setValue(retiro.responsable)
     this.observacionControl.setValue(retiro.observacion)
     this.guaraniControl.setValue(retiro.retiroGs)
-    this.dolarControl.setValue(retiro.retiroRs)
-    this.realControl.setValue(retiro.retiroDs)
+    this.realControl.setValue(retiro.retiroRs)
+    this.dolarControl.setValue(retiro.retiroDs)
     this.responsableControl.disable()
     this.observacionControl.disable()
     this.guaraniControl.disable()
     this.realControl.disable()
     this.dolarControl.disable()
+    this.stepper.selectedIndex = 0;
+  }
+
+  /** Sale del modo Ver: deja el formulario como recién abierto. */
+  onNuevo() {
+    this.selectedRetiro = null;
+    this.responsableControl.reset(null);
+    this.observacionControl.reset(null);
+    this.guaraniControl.reset(0);
+    this.realControl.reset(0);
+    this.dolarControl.reset(0);
+    [this.responsableControl, this.observacionControl, this.guaraniControl, this.realControl, this.dolarControl]
+      .forEach(c => c.enable());
+    this.responsableField?.select();
   }
 
   onReimprimir(retiro: Retiro) {

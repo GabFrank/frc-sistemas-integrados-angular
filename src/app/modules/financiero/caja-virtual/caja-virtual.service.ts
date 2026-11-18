@@ -316,8 +316,10 @@ export class CajaVirtualService {
   }
 
   /** Egresos de la caja con algo pendiente de devolver (efectivo, vario, maletín y pago de gasto), paginados. */
-  onGetEgresosParaVuelto(cajaVirtualId: number, texto: string | null, page = 0, size = 10): Observable<PageInfo<EgresoParaVuelto>> {
-    return this.genericService.onCustomQuery(this.egresosParaVueltoGQL, { cajaVirtualId, texto: texto || null, page, size },
+  onGetEgresosParaVuelto(cajaVirtualId: number, texto: string | null, desde: string | null, fin: string | null,
+    page = 0, size = 10): Observable<PageInfo<EgresoParaVuelto>> {
+    return this.genericService.onCustomQuery(this.egresosParaVueltoGQL,
+      { cajaVirtualId, texto: texto || null, desde: desde || null, fin: fin || null, page, size },
       true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_CAJA_MAYOR);
   }
 

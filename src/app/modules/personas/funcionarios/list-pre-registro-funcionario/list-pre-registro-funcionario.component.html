@@ -122,21 +122,24 @@
                 mat-menu-item
                 (click)="onVerFuncionario(preRegistro, i)"
               >
-                Ver funcionario
+                <mat-icon>visibility</mat-icon>
+                <span>Ver funcionario</span>
               </button>
               <button
                 *ngIf="preRegistro?.verificado == false"
                 mat-menu-item
                 (click)="onRegistrarFuncionario(preRegistro, i)"
               >
-                Registrar funcionario
+                <mat-icon>person_add</mat-icon>
+                <span>Registrar funcionario</span>
               </button>
               <button
                 *ngIf="preRegistro?.verificado == false"
                 mat-menu-item
                 (click)="onEliminar(preRegistro, i)"
               >
-                Eliminar
+                <mat-icon>delete</mat-icon>
+                <span>Eliminar</span>
               </button>
             </mat-menu>
           </td>

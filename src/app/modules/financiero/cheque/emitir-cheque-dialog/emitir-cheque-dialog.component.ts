@@ -5,6 +5,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Chequera, EstadoChequera } from '../../chequera/chequera.model';
 import { ChequeraService } from '../../chequera/chequera.service';
 import { ChequeService } from '../cheque.service';
+import { MonedaService } from '../../moneda/moneda.service';
+import { Moneda } from '../../moneda/moneda.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
@@ -38,6 +40,8 @@ export class EmitirChequeDialogComponent implements OnInit {
 
   chequeras: Chequera[] = [];
   chequeraSel: Chequera | null = null;   // para mostrar cuenta/moneda/hojas
+  /** Máscara del monto en la moneda de la chequera; sin prefijo porque el símbolo va de sufijo. */
+  currencyOpts: any;
   isSaving = false;
   /** La emisión que quedó sin respuesta. Mientras exista solo se puede reenviarla o cerrar. */
   private pedidoPendiente: PedidoDeCheque | null = null;
@@ -50,9 +54,11 @@ export class EmitirChequeDialogComponent implements OnInit {
     private chequeraService: ChequeraService,
     private chequeService: ChequeService,
     private notificacion: NotificacionSnackbarService,
+    private monedaService: MonedaService,
   ) {}
 
   ngOnInit(): void {
+    this.currencyOpts = this.mascaraMonto(null);
     this.formGroup = new FormGroup({
       chequeraControl: this.chequeraControl,
       totalControl: this.totalControl,
@@ -74,7 +80,17 @@ export class EmitirChequeDialogComponent implements OnInit {
   }
 
   onChequeraChange(ch: Chequera) {
+    const precisionAnterior = this.currencyOpts.precision;
     this.chequeraSel = ch;
+    this.currencyOpts = this.mascaraMonto(ch?.cuentaBancaria?.moneda);
+    // Al cambiar de precisión la máscara redondea lo que se ve pero no el valor del control:
+    // sin este reset se emitiría un monto distinto al de la pantalla (1.234,56 USD → «1.235» Gs.).
+    if (this.currencyOpts.precision !== precisionAnterior) this.totalControl.setValue(null);
+  }
+
+  private mascaraMonto(moneda: Moneda | null): any {
+    // Sin moneda, guaraní: es lo que dice el sufijo («Gs.»), y decimalesDeMoneda(null) daría 2.
+    return { ...this.monedaService.currencyOptionsMontoPositivo(moneda ?? { decimales: 0 }, { allowZero: false }), prefix: '' };
   }
 
   onSave() {

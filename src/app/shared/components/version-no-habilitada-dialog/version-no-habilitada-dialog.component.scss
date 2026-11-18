@@ -1,0 +1,50 @@
+.version-bloqueo {
+  padding: 16px 20px;
+}
+
+.version-bloqueo__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  h2 {
+    margin: 0;
+    font-weight: 500;
+    color: var(--frc-texto-fuerte);
+  }
+}
+
+.version-bloqueo__icono {
+  color: #ff9800;
+}
+
+.version-bloqueo__mensaje {
+  margin: 12px 0 16px;
+  font-size: 15px;
+  color: var(--frc-texto);
+}
+
+.version-bloqueo__fila {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--frc-borde-suave);
+}
+
+.version-bloqueo__etiqueta {
+  color: var(--frc-texto-suave);
+}
+
+.version-bloqueo__valor {
+  font-family: monospace;
+  color: var(--frc-texto);
+}
+
+.version-bloqueo__estado {
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--frc-relleno-suave);
+  color: var(--frc-texto);
+  font-size: 13px;
+}

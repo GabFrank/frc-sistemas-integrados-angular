@@ -66,7 +66,7 @@
               font-size: 0.8em;
             "
           >
-            {{ item?.precio - item.valorDescuento | number : "1.0-0" }}
+            {{ item?.precio - item.valorDescuento | number : formatoMonto }}
           </td>
           <td
             style="
@@ -78,7 +78,7 @@
           >
             {{
               item?.cantidad * (item.precio - item.valorDescuento)
-                | number : "1.0-0"
+                | number : formatoMonto
             }}
           </td>
         </tr>
@@ -100,9 +100,14 @@
             style="padding-bottom: 5px; padding-top: 5px; text-align: center"
           ></td>
           <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-            {{ delivery?.precio?.valor | number : "1.0-0" }}
+            {{
+              monedaPdv != null
+                ? (delivery?.envioEnBase | number : formatoMonto)
+                : (delivery?.precio?.valor | number : "1.0-0")
+            }}
           </td>
         </tr>
+        <ng-container *ngIf="monedaPdv == null">
         <tr style="font-weight: bold">
           <td
             style="
@@ -166,6 +171,36 @@
             {{ cambioDs ? (totalFinal / cambioDs | number : "1.2-2") : "—" }}
           </td>
         </tr>
+        </ng-container>
+        <ng-container *ngIf="monedaPdv != null">
+          <tr *ngFor="let fila of filasTotal" style="font-weight: bold">
+            <td
+              style="
+                padding-bottom: 0;
+                padding-top: 5px;
+                width: 50%;
+                text-align: start;
+              "
+            >
+              {{ fila.rotulo }}
+            </td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            >
+              {{
+                fila.divisor
+                  ? (totalFinal / fila.divisor | number : fila.formato)
+                  : "—"
+              }}
+            </td>
+          </tr>
+        </ng-container>
         <ng-container *ngIf="vueltoParaGs > 0"
         >
           <tr style="font-weight: bold">

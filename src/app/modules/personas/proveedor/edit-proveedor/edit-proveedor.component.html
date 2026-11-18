@@ -148,6 +148,36 @@
           </mat-form-field>
         </div>
 
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Dirección</mat-label>
+            <input
+              matInput
+              #direccionInput
+              formControlName="direccion"
+              placeholder="Ingrese la dirección (opcional)"
+              (keydown)="onDireccionEnter($event)"
+            />
+            <mat-icon matSuffix>place</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              #emailInput
+              type="email"
+              formControlName="email"
+              placeholder="Ingrese el email (opcional)"
+              (keydown)="onEmailEnter($event)"
+            />
+            <mat-icon matSuffix>email</mat-icon>
+            <mat-error *ngIf="emailInvalidComputed">El email no es válido</mat-error>
+          </mat-form-field>
+        </div>
+
         <div class="section-divider"></div>
         <div class="section-header">
           <span>Datos del Proveedor</span>

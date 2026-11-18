@@ -10,6 +10,11 @@ export class CobroDetalle {
     cobro: Cobro
     moneda: Moneda
     cambio: number
+    /**
+     * Unidades de la moneda de la empresa por 1 unidad de la moneda de la línea, con decimales (Fase 4). Solo la
+     * completa el PDV al guardar cuando la moneda del PDV no es la de la empresa; si no, la clave no viaja.
+     */
+    cotizacion?: number
     formaPago: FormaPago
     valor: number
     descuento: boolean
@@ -59,6 +64,7 @@ export class CobroDetalle {
         input.usuarioId = this.usuario?.id;
         input.identificadorTransaccion = this.identificadorTransaccion;
         input.sucursalId = this.sucursalId;
+        if (this.cotizacion != null) input.cotizacion = this.cotizacion;
         return input;
     }
 }
@@ -78,4 +84,5 @@ export class CobroDetalleInput {
     usuarioId: number
     identificadorTransaccion: string
     sucursalId: number;
+    cotizacion?: number
 }

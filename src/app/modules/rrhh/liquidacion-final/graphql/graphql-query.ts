@@ -1,12 +1,13 @@
 import gql from "graphql-tag";
 
-const ITEM = `id concepto descripcion monto tipo manual editado editadoPor { id nickname } editadoEn montoOriginal referenciaTipo`;
+const ITEM = `id concepto descripcion monto tipo manual editado editadoPor { id nickname } editadoEn montoOriginal referenciaTipo
+  moneda { id denominacion simbolo decimales } montoMoneda cotizacion`;
 const LF = `
   id funcionario { id persona { id nombre } } fechaEgreso motivoEgreso
   antiguedadDias antiguedadMeses antiguedadAnios salarioPromedio
   indemnizacionAplica indemnizacionMonto diasVacacionesNoGozadas montoVacacionesNoGozadas
   aguinaldoProporcional preavisoOtorgado preavisoDias preavisoMonto preavisoEsDescuento
-  totalLiquidado moneda { id denominacion } estado observacion
+  totalLiquidado moneda { id denominacion simbolo decimales } estado observacion
   items { ${ITEM} }
 `;
 

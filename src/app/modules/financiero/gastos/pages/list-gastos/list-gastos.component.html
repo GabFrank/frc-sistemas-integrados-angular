@@ -256,13 +256,14 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAdd(gasto, i)">Editar</button>
+            <button mat-menu-item (click)="onAdd(gasto, i)"><mat-icon>edit</mat-icon><span>Editar</span></button>
             <button
               mat-menu-item
               *ngIf="esAdmin"
               (click)="onCancelarGasto(gasto)"
             >
-              {{ gasto.cancelado ? 'Habilitar' : 'Cancelar' }}
+              <mat-icon>{{ gasto.cancelado ? 'check_circle' : 'block' }}</mat-icon>
+              <span>{{ gasto.cancelado ? 'Habilitar' : 'Cancelar' }}</span>
             </button>
           </mat-menu>
         </td>

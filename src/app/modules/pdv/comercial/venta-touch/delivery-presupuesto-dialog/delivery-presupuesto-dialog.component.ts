@@ -5,6 +5,7 @@ import {
 import html2canvas from 'html2canvas';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { Moneda } from '../../../../financiero/moneda/moneda.model';
 import { Delivery } from '../../../../operaciones/delivery/delivery.model';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -34,6 +35,13 @@ export class DeliveryPresupuestoDialogComponent implements OnInit {
   cambioDs: number;
   @Input()
   totalFinal: number;
+  /** Solo con otra moneda del PDV (Fase 4): los montos están en ella y los totales salen de `filasTotal`. */
+  @Input()
+  monedaPdv: Moneda | null = null;
+  @Input()
+  formatoMonto = '1.0-0';
+  @Input()
+  filasTotal: { rotulo: string; divisor: number | null; formato: string }[] = [];
   @Input()
   calcularVueltoEvent = new Observable<void>();
 

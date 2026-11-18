@@ -699,3 +699,9 @@ button[disabled] {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--frc-relleno-fuerte);
 } 
+// styles.scss deja el subscript en alto 0 y las ayudas se pisaban con el campo de abajo. Solo los
+// campos que muestran una ayuda recuperan el alto, para no espaciar el resto del dialogo.
+:host ::ng-deep .mat-mdc-form-field-subscript-wrapper:has(mat-hint) {
+  height: auto !important;
+  min-height: 18px;
+}

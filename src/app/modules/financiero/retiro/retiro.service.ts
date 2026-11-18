@@ -7,17 +7,17 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { SaveRetiroGQL } from "./graphql/saveRetiro";
-import { Retiro } from "./retiro.model";
+import { Retiro, RetiroIngresado } from "./retiro.model";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { environment } from "../../../../environments/environment";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../shared/services/timeout-link";
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
+import { ContextoConsulta, GenericCrudService, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
-import { RetirosFlotantesDeCajaGQL, RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
+import { RetirosFlotantesDeCajaGQL, RetirosFlotantesGQL, RetirosIngresadosDeCajaGQL } from "./graphql/retirosFlotantes";
 import { IngresarRetiroACajaMayorGQL } from "./graphql/ingresarRetiroACajaMayor";
 import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
@@ -42,6 +42,7 @@ export class RetiroService {
     private filterRetiro: FilterRetirosGQL,
     private retirosFlotantesGQL: RetirosFlotantesGQL,
     private retirosFlotantesDeCajaGQL: RetirosFlotantesDeCajaGQL,
+    private retirosIngresadosDeCajaGQL: RetirosIngresadosDeCajaGQL,
     private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
     private cancelarRetiro: CancelarRetiroGQL,
     private configService: ConfiguracionService,
@@ -77,6 +78,17 @@ export class RetiroService {
       if (page == null) throw new Error('No se pudieron consultar los retiros de la caja.');
       return page.getContent || [];
     }));
+  }
+
+  /**
+   * Retiros de una caja del PDV que ya se procesaron: dónde entraron, quién y cuándo. Es una ayuda del
+   * diálogo de ingreso, así que no avisa nada: error del servidor (un central sin la query), de red o
+   * corte llegan al `error:` de quien llama, y quien llama los trata como «sin aviso».
+   */
+  onGetIngresadosDeCaja(cajaId: number, sucId?: number, cajaVirtualDestinoId?: number): Observable<RetiroIngresado[]> {
+    return this.crudService.onCustomQuery(this.retirosIngresadosDeCajaGQL,
+      { cajaId, sucId: sucId ?? null, cajaVirtualDestinoId: cajaVirtualDestinoId ?? null }, true,
+      LECTURA_ESTRICTA, true, { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true, sinAviso: true });
   }
 
   // servidor = true: la mutation vive en el central, igual que la lista que se

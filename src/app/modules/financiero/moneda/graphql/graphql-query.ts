@@ -125,3 +125,86 @@ export const deleteMonedaQuery = gql`
     deleteMoneda(id: $id)
   }
 `;
+
+/**
+ * Monedas del ABM, con `codigoIso`. Va aparte de `monedasQuery` porque esa la usa todo el sistema
+ * (el PDV incluido) y un campo que el central no conoce hace fallar la consulta entera: si esta
+ * falla, el ABM vuelve a `monedasQuery` y oculta el campo.
+ */
+export const monedasAbmQuery = gql`
+  {
+    data: monedas {
+      id
+      denominacion
+      simbolo
+      activo
+      principal
+      decimales
+      reglaRedondeo
+      redondeoMultiplo
+      codigoIso
+      pais {
+        id
+        descripcion
+      }
+      cambio
+    }
+  }
+`;
+
+/** Campos de moneda que devuelven las consultas de moneda por módulo (solo existen en un central nuevo). */
+const MONEDA_DE_MODULO_CAMPOS = `
+  id
+  denominacion
+  simbolo
+  activo
+  principal
+  decimales
+  reglaRedondeo
+  redondeoMultiplo
+  codigoIso
+`;
+
+export const monedaDeModuloQuery = gql`
+  query ($modulo: ModuloMoneda!, $sucursalId: ID) {
+    data: monedaDeModulo(modulo: $modulo, sucursalId: $sucursalId) {
+      ${MONEDA_DE_MODULO_CAMPOS}
+    }
+  }
+`;
+
+export const monedaEmpresaQuery = gql`
+  {
+    data: monedaEmpresa {
+      ${MONEDA_DE_MODULO_CAMPOS}
+    }
+  }
+`;
+
+/**
+ * Moneda del PDV de esta sucursal y la de facturación (Fase 4), contra la filial. Sin `codigoIso` ni `cambio`:
+ * el `cambio` del comercio sale de la lista de monedas, y una filial anterior ni conoce estas operaciones.
+ */
+const MONEDA_DEL_PDV_CAMPOS = `
+  id
+  denominacion
+  simbolo
+  principal
+  decimales
+`;
+
+export const monedaDelPdvQuery = gql`
+  {
+    data: monedaDelPdv {
+      ${MONEDA_DEL_PDV_CAMPOS}
+    }
+  }
+`;
+
+export const monedaDeFacturacionQuery = gql`
+  {
+    data: monedaDeFacturacion {
+      ${MONEDA_DEL_PDV_CAMPOS}
+    }
+  }
+`;

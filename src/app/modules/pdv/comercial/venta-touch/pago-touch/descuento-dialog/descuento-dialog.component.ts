@@ -9,13 +9,28 @@ import { FormControl, Validators } from "@angular/forms";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { CurrencyMaskInputMode } from "ngx-currency";
 import { MonedaService } from "../../../../../financiero/moneda/moneda.service";
+import { Moneda } from "../../../../../financiero/moneda/moneda.model";
+import { redondearDescuento } from "../../moneda-pdv.util";
 
 export class DescuentoDialogData {
   valorTotal: number;
   saldo: number;
+  /** Cuántas unidades de la moneda base vale 1 R$ (con base == empresa, el cambio de siempre). */
   cambioRs: number;
+  /** Idem para 1 US$. */
   cambioDs: number;
-  costo?: number;
+  /**
+   * Lo máximo que puede llevar ESTE descuento, en la moneda base: el tope configurado en Cobro en PDV menos
+   * los descuentos que el cobro ya tiene (los de producto incluidos). `null`/sin definir = sin tope.
+   */
+  tope?: number | null;
+  /** El mensaje que se muestra si el cajero pasa el tope. */
+  mensajeTope?: string;
+  /**
+   * La moneda base del cobro (la del PDV), solo cuando NO es la de la empresa (Fase 4): `valorTotal`, `saldo` y el
+   * valor que devuelve el diálogo están en ella. Sin definir, son guaraníes como siempre.
+   */
+  monedaBase?: Moneda;
 }
 
 @Component({
@@ -65,7 +80,18 @@ export class DescuentoDialogComponent implements OnInit {
     min: null,
   };
 
-  porcentaje = 15;
+  /** El máximo porcentaje del total que admite este descuento (100 sin tope). */
+  porcentaje = 100;
+  tope: number | null = null;
+  mensajeTope = '';
+  ocultarRs = false;
+  ocultarDs = false;
+
+  /** Cómo se llama la moneda base en el primer campo y cuántos decimales tiene. Guaraní y 0 salvo Fase 4. */
+  nombreMonedaBase = "Guaranies";
+  decimalesBase = 0;
+  optionsBase: any = this.currencyOptionsGuarani;
+  formatoBase = "1.0-0";
 
   // Sin cotización el campo de esa moneda se deshabilita: con null, `valor * null === 0` guardaba
   // en silencio un descuento de 0 Gs.
@@ -79,22 +105,32 @@ export class DescuentoDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (this.data?.monedaBase != null) {
+      const m = this.data.monedaBase;
+      this.decimalesBase = this.monedaService.decimalesDeMoneda(m);
+      this.nombreMonedaBase = m.denominacion ? m.denominacion.charAt(0) + m.denominacion.slice(1).toLowerCase() : "la moneda del PDV";
+      this.optionsBase = this.monedaService.currencyOptionsByMoneda(m);
+      this.formatoBase = this.decimalesBase > 0 ? `1.${this.decimalesBase}-${this.decimalesBase}` : "1.0-0";
+      // La fila fija de la misma moneda que la base repetiria el campo de arriba.
+      const d = (m.denominacion || "").toUpperCase();
+      this.ocultarRs = d === "REAL";
+      this.ocultarDs = d === "DOLAR";
+    }
     this.sinCotizacionRs = !this.data?.cambioRs;
     this.sinCotizacionDs = !this.data?.cambioDs;
     if (this.sinCotizacionRs) this.valorDescuentoRsControl.disable();
     if (this.sinCotizacionDs) this.valorDescuentoDsControl.disable();
-    if (this.data?.costo > 0) {
-      let margen = this.data.valorTotal - this.data.costo;
-      this.porcentaje = (margen * 100) / this.data.valorTotal;
-      this.porcentaje = this.porcentaje + this.porcentaje * 0.05;
+    // Solo el tope de Configuración › Cobro en PDV. El límite por margen de antes (margen + 5%) se quitó:
+    // avisaba «Valor no permitido» pero dejaba guardar igual.
+    if (this.data?.tope != null) {
+      this.tope = Math.max(0, this.data.tope);
+      this.mensajeTope = this.data.mensajeTope ?? '';
+      this.porcentaje = this.data.valorTotal > 0 ? (this.tope * 100) / this.data.valorTotal : 0;
     }
     this.porcentajeDescuento.setValidators(Validators.max(this.porcentaje));
     this.porcentajeDescuento.updateValueAndValidity();
-    if (this.data.saldo <= this.data.valorTotal * (this.porcentaje / 100)) {
-      this.onKeyUp(1, this.data.saldo);
-    } else {
-      this.onKeyUp(1, 0);
-    }
+    // Siempre arranca en 0%: precargar el saldo (100% sin tope) hacía que un Enter de más regalara la venta.
+    this.onKeyUp(1, 0);
     setTimeout(() => {
       this.porcentajeInput.nativeElement.select();
     }, 500);
@@ -138,35 +174,19 @@ export class DescuentoDialogComponent implements OnInit {
     this.matDialogRef.close(0);
   }
 
+  /** Si el monto pasa el tope (comparado en centésimos, por los decimales de otra moneda). */
+  excede(valor: number): boolean {
+    return this.tope != null && Math.round((+valor || 0) * 100) > Math.round(this.tope * 100);
+  }
+
   onGuardar() {
+    // Pasado el tope no se cierra: el cajero corrige el monto o cancela.
+    if (this.excede(this.valorDescuentoGsControl.value)) return;
     this.matDialogRef.close(this.valorDescuentoGsControl.value);
   }
 
   setDescuento(descuento: number) {
-    let discount = this.data.valorTotal * (+descuento / 100);
-    let originalDiscount = discount;
-
-    // Adjust the discount to make it divisible by 500 or 1000
-    let remainder500 = discount % 500;
-    let remainder1000 = discount % 1000;
-
-    if (remainder500 <= 250 && remainder500 !== 0) {
-      // If the remainder is less than or equal to 250, subtract it from the discount
-      discount -= remainder500;
-    } else if (remainder500 > 250) {
-      // If the remainder is greater than 250, check if adding the difference to make it divisible by 500 exceeds the original discount
-      if (discount + (500 - remainder500) <= originalDiscount) {
-        discount += 500 - remainder500;
-      } else {
-        discount -= remainder500;
-      }
-    } else if (remainder1000 !== 0) {
-      // If the remainder is not 0 when divided by 1000, adjust the discount to make it divisible by 1000
-      // But first, check if it doesn't exceed the original discount
-      if (discount + (1000 - remainder1000) <= originalDiscount) {
-        discount += 1000 - remainder1000;
-      }
-    }
-    return discount;
+    // Redondeado hacia abajo a 500 / 1000 (sin decimales, como siempre) o a 0,05 / 0,10 (con decimales).
+    return redondearDescuento(this.data.valorTotal * (+descuento / 100), this.decimalesBase);
   }
 }

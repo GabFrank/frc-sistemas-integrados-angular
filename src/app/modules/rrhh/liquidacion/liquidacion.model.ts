@@ -16,6 +16,12 @@ export class LiquidacionItem {
   editadoPor?: any;
   editadoEn?: any;
   montoOriginal?: number;
+  /** Moneda del origen (vale, prestamo, sueldo); monto ya esta en la de la liquidacion. */
+  moneda?: Moneda;
+  montoMoneda?: number;
+  cotizacion?: number;
+  /** Calculado al cargar: «R$ 110,00 · cot. 1.450» si vino de otra moneda. */
+  origenMoneda?: string | null;
 }
 
 export class LiquidacionSueldo {

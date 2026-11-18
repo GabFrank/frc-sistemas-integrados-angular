@@ -114,23 +114,14 @@ export function stringToInteger(texto: string) {
   return texto;
 }
 
+// Recibe un número en texto ("2", "2.5", "0.15000000000000002") y lo muestra como "2,00" (#714)
 export function stringToDecimal(texto: string) {
-  // if(texto[texto.length-1]=='0' && texto[texto.length-2]=='0' && texto[texto.length-3]=='.'){
-  //   texto = texto.slice(0, texto.length - 3);
-  // }
-  if (texto == '0') {
-    return '0,00'
-  } else {
-    texto = texto.replace('.', ',')
-    let dotIndex = texto.indexOf(',');
-    if (texto[dotIndex + 2] == null) {
-      texto = texto + '0';
-    }
-    texto = stringToInteger(texto.slice(0, texto.length - 3)) + texto.slice(texto.length - 3, texto.length)
-
-    return texto;
-  }
-
+  const n = +texto;
+  // toFixed usa notación científica desde 1e21
+  if (!isFinite(n) || Math.abs(n) >= 1e21) return texto;
+  const [entero, decimales] = Math.abs(n).toFixed(2).split('.');
+  const negativo = n < 0 && +(entero + decimales) !== 0;
+  return (negativo ? '-' : '') + stringToInteger(entero) + ',' + decimales;
 }
 
 export function stringToCantidad(texto: string) {
