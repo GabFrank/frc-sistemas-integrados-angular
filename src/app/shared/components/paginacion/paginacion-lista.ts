@@ -25,7 +25,12 @@ export interface OpcionesPaginacion<T> {
   pageSizeOptions?: number[];
   /** Para lo que la pantalla haga además con la respuesta (un resumen, un mapeo propio). */
   alCargar?: (pagina: PaginaCentral<T>) => void;
+  /** La carga no llegó (la lista ya volvió a la última página cargada): para un aviso propio de la pantalla. */
+  alFallar?: () => void;
 }
+
+/** `nueva`: la pide un filtro nuevo (otra consulta), no un cambio de página de la misma. */
+interface Pedido { pageIndex: number; pageSize: number; nueva: boolean; }
 
 export const PAGE_SIZE_OPTIONS_POR_DEFECTO = [15, 25, 50, 100];
 
@@ -33,7 +38,8 @@ export const PAGE_SIZE_OPTIONS_POR_DEFECTO = [15, 25, 50, 100];
  * Estado y carga de una lista que pagina el central (#772). La pantalla solo dice cómo pedir una
  * página; esto guarda página, tamaño y total, y se encarga de:
  * - descartar la respuesta de una página vieja si se pasan páginas rápido (gana la última pedida);
- * - volver a la última página que cargó si la carga falla (#390);
+ * - si falla un cambio de página, volver a la última página que cargó (#390); si falla un filtro nuevo, quedar vacía
+ *   en la página 1 (no mostrar datos de otro filtro);
  * - retroceder si la página quedó vacía (por ejemplo, después de borrar el último de la última página).
  *
  * El estado vive en un BehaviorSubject (como el tablero de notificaciones): la tabla lo lee con
@@ -50,7 +56,7 @@ export class PaginacionLista<T> {
   readonly items$: Observable<T[]>;
 
   /** `null` cancela la carga en camino sin pedir otra. */
-  private readonly pedidos = new Subject<{ pageIndex: number; pageSize: number } | null>();
+  private readonly pedidos = new Subject<Pedido | null>();
   private readonly suscripcion: Subscription;
   private ultimaCargada: { pageIndex: number; pageSize: number };
 
@@ -83,7 +89,7 @@ export class PaginacionLista<T> {
 
   /** Filtro nuevo, Buscar o Limpiar: vuelve a la página 1. */
   filtrar(): void {
-    this.pedir(0, this.pageSize);
+    this.pedir(0, this.pageSize, true);
   }
 
   /** Repite la página actual (después de guardar o borrar). */
@@ -106,14 +112,21 @@ export class PaginacionLista<T> {
     this.suscripcion.unsubscribe();
   }
 
-  private pedir(pageIndex: number, pageSize: number): void {
+  private pedir(pageIndex: number, pageSize: number, nueva = false): void {
     this.estado.next({ ...this.estado.value, pageIndex, pageSize, cargando: true });
-    this.pedidos.next({ pageIndex, pageSize });
+    this.pedidos.next({ pageIndex, pageSize, nueva });
   }
 
-  private recibir(pedido: { pageIndex: number; pageSize: number }, res: PaginaCentral<T> | null): void {
+  private recibir(pedido: Pedido, res: PaginaCentral<T> | null): void {
     if (res == null) {
-      this.estado.next({ ...this.estado.value, ...this.ultimaCargada, cargando: false, fallo: true });
+      if (pedido.nueva) {
+        // Lo que se ve es de la consulta anterior (otro filtro): mostrarlo confundiría.
+        this.ultimaCargada = { pageIndex: 0, pageSize: pedido.pageSize };
+        this.estado.next({ pageIndex: 0, pageSize: pedido.pageSize, total: 0, items: [], cargando: false, fallo: true });
+      } else {
+        this.estado.next({ ...this.estado.value, ...this.ultimaCargada, cargando: false, fallo: true });
+      }
+      this.opciones.alFallar?.();
       return;
     }
     const total = res.getTotalElements ?? 0;
@@ -125,8 +138,9 @@ export class PaginacionLista<T> {
         return;
       }
     }
-    this.ultimaCargada = pedido;
-    this.estado.next({ ...pedido, total, items, cargando: false, fallo: false });
+    const { pageIndex, pageSize } = pedido;
+    this.ultimaCargada = { pageIndex, pageSize };
+    this.estado.next({ pageIndex, pageSize, total, items, cargando: false, fallo: false });
     this.opciones.alCargar?.(res);
   }
 }
