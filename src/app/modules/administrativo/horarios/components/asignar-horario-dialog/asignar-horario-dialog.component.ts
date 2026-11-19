@@ -1,16 +1,15 @@
-import { ChangeDetectorRef, Component, Input, OnInit, AfterViewInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
+import { map } from 'rxjs/operators';
 import { AbstractControl, FormControl, Validators } from '@angular/forms';
 import { MatAutocomplete } from '@angular/material/autocomplete';
 import { HORA_VALIDA, OPCIONES_HORA, normalizarHora, posicionarListaHora } from '../../utils/selector-hora';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator } from '@angular/material/paginator';
-import { ViewChild } from '@angular/core';
 import { HorarioService } from '../../service/horario.service';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { Horario, HorarioInput } from '../../models/horario.model';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { ListFuncioarioComponent } from '../../../../personas/funcionarios/list-funcioario/list-funcioario.component';
 
 export interface HorarioElement {
@@ -30,13 +29,13 @@ export interface HorarioElement {
  * tienen. Se crea o edita uno y se guarda en el momento; el + lo asigna a otros funcionarios sin
  * copiarlo, y editarlo lo cambia para todos. Uno que alguien usa no se puede borrar.
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
     selector: 'app-asignar-horario-dialog',
     templateUrl: './asignar-horario-dialog.component.html',
     styleUrls: ['./asignar-horario-dialog.component.scss']
 })
-export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
+export class AsignarHorarioDialogComponent implements OnInit {
     @Input() data: Tab;
 
     entradaControl = new FormControl(null, [Validators.required, Validators.pattern(HORA_VALIDA)]);
@@ -65,36 +64,32 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
     ];
 
     displayedColumns: string[] = ['id', 'entrada', 'salida', 'dias', 'turno', 'asignados', 'acciones'];
-    dataSource = new MatTableDataSource<HorarioElement>([]);
-
-    @ViewChild(MatPaginator) paginator: MatPaginator;
+    /** El central pagina el catálogo (#772); antes se traía entero y se paginaba acá. */
+    pag = new PaginacionLista<HorarioElement>({
+        cargar: (page, size) => this.horarioService.onGetHorariosCatalogoPage(page, size).pipe(
+            map(res => res && { ...res, getContent: (res.getContent || []).map(h => this.aFila(h)) })
+        ),
+        pageSize: 15,
+    });
 
     elementoEnEdicion: HorarioElement | null = null;
     private diasAnteriores: string[] = [];
 
     constructor(
         private horarioService: HorarioService,
-        private cdr: ChangeDetectorRef,
         private tabService: TabService,
         private notificacionService: NotificacionSnackbarService
     ) { }
 
     ngOnInit(): void {
-        this.cargar();
+        this.pag.filtrar();
         // Al volver de la lista de funcionarios (asignar a otros), refrescar cuántos lo usan.
         this.tabService.onTabReactivada(this.data).pipe(untilDestroyed(this)).subscribe(() => this.cargar());
     }
 
+    /** Repite la página actual (después de crear, editar o borrar, o al volver de asignar). */
     private cargar(): void {
-        this.horarioService.onGetHorariosCatalogo().pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) this.mostrar(res);
-        });
-    }
-
-    private mostrar(horarios: Horario[]): void {
-        this.dataSource.data = horarios.map(h => this.aFila(h));
-        this.dataSource.paginator = this.paginator;
-        this.cdr.markForCheck();
+        this.pag.recargar();
     }
 
     private aFila(h: Horario): HorarioElement {
@@ -130,10 +125,6 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         else if (dias.includes('TODOS') && dias.length > 1) nuevos = dias.filter(d => d !== 'TODOS');
         if (nuevos !== dias) this.diasControl.setValue(nuevos);
         this.diasAnteriores = nuevos;
-    }
-
-    ngAfterViewInit() {
-        this.dataSource.paginator = this.paginator;
     }
 
     /**

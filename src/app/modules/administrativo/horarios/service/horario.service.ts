@@ -12,7 +12,7 @@ import { HorariosGQL } from '../graphql/horarios';
 import { HorariosPorUsuarioGQL } from '../graphql/horariosPorUsuario';
 import { SaveHorariosUsuarioGQL } from '../graphql/saveHorariosUsuario';
 import { AsignarHorarioGQL } from '../graphql/asignarHorario';
-import { HorariosCatalogoGQL } from '../graphql/horariosCatalogo';
+import { HorariosCatalogoPageGQL } from '../graphql/horariosCatalogoPage';
 import { HorariosPorFuncionarioGQL } from '../graphql/horariosPorFuncionario';
 import { QuitarHorarioFuncionarioGQL } from '../graphql/quitarHorarioFuncionario';
 import { AgregarHorarioFuncionarioGQL } from '../graphql/agregarHorarioFuncionario';
@@ -32,7 +32,7 @@ export class HorarioService {
         private horariosPorUsuario: HorariosPorUsuarioGQL,
         private saveHorariosUsuario: SaveHorariosUsuarioGQL,
         private asignarHorario: AsignarHorarioGQL,
-        private horariosCatalogo: HorariosCatalogoGQL,
+        private horariosCatalogoPage: HorariosCatalogoPageGQL,
         private horariosPorFuncionario: HorariosPorFuncionarioGQL,
         private quitarHorarioFuncionario: QuitarHorarioFuncionarioGQL,
         private agregarHorarioFuncionario: AgregarHorarioFuncionarioGQL
@@ -67,9 +67,9 @@ export class HorarioService {
         return this.genericCrudService.onCustomMutation(this.asignarHorario, { horarioId, funcionarioIds });
     }
 
-    /** Todos los horarios que se pueden asignar, con cuántos funcionarios usan cada uno. */
-    onGetHorariosCatalogo(): Observable<Horario[]> {
-        return this.genericCrudService.onCustomQuery(this.horariosCatalogo, {});
+    /** El catálogo de a una página: el central pagina (#772). */
+    onGetHorariosCatalogoPage(page: number, size: number): Observable<PageInfo<Horario>> {
+        return this.genericCrudService.onCustomQuery(this.horariosCatalogoPage, { page, size });
     }
 
     onGetHorario(id: number, servidor = true): Observable<Horario> {
