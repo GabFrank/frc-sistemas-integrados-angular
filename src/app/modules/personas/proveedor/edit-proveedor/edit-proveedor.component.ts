@@ -63,7 +63,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     direccion: new FormControl(""),
     email: new FormControl("", [Validators.email]),
     credito: new FormControl(false),
-    chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)])
+    chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)]),
+    /** Inactivo: deja de aparecer al elegir proveedor (compras, gastos, pagos). */
+    activo: new FormControl(true)
   });
 
 
@@ -75,6 +77,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
 
   isLoading = false;
   isSaving = false;
+  /** El estado solo se manda si se leyó del proveedor (editar desde la lista) o es un alta. */
+  estadoConocido = true;
 
   dialogTitleComputed = "";
   isEditingModeComputed = false;
@@ -209,7 +213,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       direccion: this.selectedPersona.direccion || "",
       email: this.selectedPersona.email || "",
       credito: this.selectedProveedor.credito || false,
-      chequeDias: this.selectedProveedor.chequeDias || 8
+      chequeDias: this.selectedProveedor.chequeDias || 8,
+      activo: this.selectedProveedor.activo !== false
     });
     this.updateComputedProperties();
   }
@@ -261,6 +266,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
                     credito: proveedor.credito || false,
                     chequeDias: proveedor.chequeDias || 8
                   });
+                  // proveedorPorPersona no trae el estado: se conserva el guardado (activo sin mandar).
+                  this.estadoConocido = false;
                   this.updateComputedProperties();
                 }
               });
@@ -466,6 +473,9 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     proveedorInput.personaId = persona.id;
     proveedorInput.credito = formValue.credito || false;
     proveedorInput.chequeDias = formValue.chequeDias || 8;
+    if (this.estadoConocido) {
+      proveedorInput.activo = formValue.activo !== false;
+    }
     this.proveedorService
       .onSave(proveedorInput, { avisarExito: false })
       .pipe(untilDestroyed(this))
