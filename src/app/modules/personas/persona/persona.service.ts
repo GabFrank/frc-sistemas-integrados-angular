@@ -73,7 +73,8 @@ export class PersonaService {
 
   /** Pais de la persona (#666), siempre del central. */
   onGetPaisDePersona(id: number): Observable<Persona> {
-    return this.genericService.onCustomQuery(this.personaPais, { id }, true)
+    // Silenciosa: es un dato de un campo del dialogo; si falla, el campo queda como estaba (PARAGUAY).
+    return this.genericService.onCustomQuery(this.personaPais, { id }, true, { graphError: { show: false }, networkError: { show: false } }, true)
   }
 
   onDeletePersona(id, servidor: boolean = true): Observable<boolean> {
