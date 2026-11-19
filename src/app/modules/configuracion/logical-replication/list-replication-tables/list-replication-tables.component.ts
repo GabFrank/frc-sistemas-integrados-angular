@@ -1,5 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Component, OnInit, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
@@ -8,12 +7,12 @@ import { timer } from 'rxjs';
 import { ReplicationDirection, ReplicationTable } from '../replication-table.model';
 import { ReplicationTableService } from '../replication-table.service';
 import { EditReplicationTableDialogComponent } from '../edit-replication-table-dialog/edit-replication-table-dialog.component';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-replication-tables',
   templateUrl: './list-replication-tables.component.html',
@@ -21,18 +20,34 @@ import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/cor
 })
 export class ListReplicationTablesComponent implements OnInit {
   private dialogos = inject(DialogosService);
-  // Table data
-  tablesPage: PageInfo<ReplicationTable>;
-  
   // Search and filters
   searchControl = new FormControl('');
   directionFilterControl = new FormControl('');
   enabledFilterControl = new FormControl('');
   
-  // Pagination
-  pageIndex = 0;
-  pageSize = 10;
-  isLoading = false;
+  /** El central filtra (texto, dirección, estado) y pagina (#772). */
+  pag = new PaginacionLista<ReplicationTable>({
+    cargar: (page, size) => this.replicationTableService.getReplicationTablesWithPagination(
+      page,
+      size,
+      this.searchControl.value,
+      (this.directionFilterControl.value as ReplicationDirection) || null,
+      this.enabledFilterControl.value === '' || this.enabledFilterControl.value == null
+        ? null
+        : this.enabledFilterControl.value === 'true'
+    ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50],
+    // Solo la recarga tras el corte libera el bloqueo: otra (el buscador) puede traer el estado de antes de que
+    // el central termine (#501).
+    alCargar: () => {
+      if (this.liberarTogglesAlCargar) {
+        this.liberarTogglesAlCargar = false;
+        this.toggleSinConfirmar = false;
+      }
+    },
+  });
+  private liberarTogglesAlCargar = false;
   /** Un cambio de estado quedó sin respuesta: repetirlo lo invertiría otra vez, así que se bloquea hasta recargar (#501). */
   toggleSinConfirmar = false;
   
@@ -49,8 +64,6 @@ export class ListReplicationTablesComponent implements OnInit {
   // Map for direction names to display
   directionNameMap: { [key in ReplicationDirection]: string } = {} as { [key in ReplicationDirection]: string };
   
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   constructor(
     private replicationTableService: ReplicationTableService,
     private dialog: MatDialog,
@@ -76,103 +89,17 @@ export class ListReplicationTablesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    try {
-      // Load initial data
-      this.loadTables();
-      
-      // Set up search with debounce
-      this.searchControl.valueChanges
-        .pipe(
-          debounceTime(500),
-          distinctUntilChanged(),
-          untilDestroyed(this)
-        )
-        .subscribe({
-          next: () => {
-            console.log('Search term changed');
-            this.pageIndex = 0;
-            this.loadTables();
-          },
-          error: (err) => console.error('Error in search subscription:', err)
-        });
-      
-      // Set up direction filter
-      this.directionFilterControl.valueChanges
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: () => {
-            console.log('Direction filter changed');
-            this.pageIndex = 0;
-            this.loadTables();
-          },
-          error: (err) => console.error('Error in direction filter subscription:', err)
-        });
-      
-      // Set up enabled filter
-      this.enabledFilterControl.valueChanges
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: () => {
-            console.log('Enabled filter changed');
-            this.pageIndex = 0;
-            this.loadTables();
-          },
-          error: (err) => console.error('Error in enabled filter subscription:', err)
-        });
-      
-      console.log('ListReplicationTablesComponent: initialized successfully');
-    } catch (error) {
-      console.error('Error during component initialization:', error);
-      this.notificacionSnackBar.openAlgoSalioMal('ERROR AL INICIALIZAR COMPONENTE');
-    }
+    this.pag.filtrar();
+    this.searchControl.valueChanges
+      .pipe(debounceTime(500), distinctUntilChanged(), untilDestroyed(this))
+      .subscribe(() => this.pag.filtrar());
+    this.directionFilterControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.pag.filtrar());
+    this.enabledFilterControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.pag.filtrar());
   }
 
-  loadTables(liberarToggles = false): void {
-    this.isLoading = true;
-    
-    try {
-      // Get search term and filters
-      const search = this.searchControl.value;
-      
-      this.replicationTableService.getReplicationTablesWithPagination(
-        this.pageIndex,
-        this.pageSize,
-        search
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (page) => {
-          // Solo la recarga tras el corte libera el bloqueo: otra (el buscador) puede traer el estado de antes de que
-          // el central termine. Nunca emite error: el servicio devuelve una página vacía
-          if (liberarToggles) {
-            this.toggleSinConfirmar = false;
-          }
-          try {
-            this.tablesPage = page;
-            
-            // Update pageIndex if provided from the backend
-            if (page?.getPageable?.getPageNumber !== undefined) {
-              this.pageIndex = page.getPageable.getPageNumber;
-            }
-            
-            this.isLoading = false;
-          } catch (error) {
-            console.error('Error while processing replication tables data:', error);
-            this.isLoading = false;
-            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL PROCESAR DATOS DE TABLAS DE REPLICACIÓN');
-          }
-        },
-        error: (error) => {
-          console.error('Error loading replication tables:', error);
-          this.isLoading = false;
-          this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR TABLAS DE REPLICACIÓN');
-        }
-      });
-    } catch (error) {
-      console.error('Exception in loadTables method:', error);
-      this.isLoading = false;
-      this.notificacionSnackBar.openAlgoSalioMal('ERROR AL INTENTAR CARGAR TABLAS DE REPLICACIÓN');
-    }
+  /** Repite la página actual (después de crear, editar, borrar o cambiar el estado). */
+  loadTables(): void {
+    this.pag.recargar();
   }
 
   openCreateDialog(): void {
@@ -272,21 +199,18 @@ export class ListReplicationTablesComponent implements OnInit {
   
   /** Recarga cuando el central tuvo tiempo de terminar lo que quedó sin respuesta (#501). */
   private recargarTrasCorte(): void {
-    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.loadTables(true));
+    timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => {
+      this.liberarTogglesAlCargar = true;
+      this.loadTables();
+    });
   }
 
   clearFilters(): void {
-    this.searchControl.setValue('');
-    this.directionFilterControl.setValue('');
-    this.enabledFilterControl.setValue('');
-    this.pageIndex = 0;
-    this.loadTables();
-  }
-  
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadTables();
+    // Sin emitir: se busca una sola vez, con los tres filtros ya limpios.
+    this.searchControl.setValue('', { emitEvent: false });
+    this.directionFilterControl.setValue('', { emitEvent: false });
+    this.enabledFilterControl.setValue('', { emitEvent: false });
+    this.pag.filtrar();
   }
   
   // This method is kept for compatibility but should not be used in the template

@@ -4,7 +4,6 @@
   (filtrar)="onFilter()"
   (resetFiltro)="onResetFiltro()"
   [isAdicionar]="true"
-  [data]="dataSource.data"
 >
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
@@ -26,7 +25,7 @@
     <div class="roles-scroll" fxFlex>
     <table
       mat-table
-      [dataSource]="dataSource"
+      [dataSource]="pag.items$"
       multiTemplateDataRows
       class="mat-elevation-z8"
       style="width: 100%"
@@ -139,12 +138,7 @@
     <mat-paginator
       class="roles-footer"
       fxFlex="none"
-      [length]="length"
-      [pageSize]="pageSize"
-      [pageIndex]="pageIndex"
-      [pageSizeOptions]="pageSizeOptions"
-      (page)="onPage($event)"
-      showFirstLastButtons
+      [paginacion]="pag"
     ></mat-paginator>
   </div>
 </app-generic-list>
