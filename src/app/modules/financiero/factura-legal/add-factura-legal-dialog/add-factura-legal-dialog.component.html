@@ -64,10 +64,10 @@
         <div fxFlex fxFlex.lt-md="100">
           <mat-form-field class="full-width">
             <span matTextPrefix>{{
-              tributaControl.value == true ? "RUC:" : "Cédula"
+              esExtranjero ? "Documento:" : tributaControl.value == true ? "RUC:" : "Cédula"
             }}</span>
             <input
-              numericOnly
+              [numericOnly]="!esExtranjero"
               #rucInput
               type="text"
               matInput
@@ -128,6 +128,23 @@
               [formControl]="direccionControl"
               (keydown.enter)="onDireccionEnter($event)"
             />
+          </mat-form-field>
+        </div>
+
+        <div fxFlex="20" fxFlex.lt-md="100" *ngIf="!isServidor">
+          <mat-form-field class="full-width">
+            <mat-label>País</mat-label>
+            <input
+              type="text"
+              matInput
+              readonly
+              placeholder="Paraguay"
+              [value]="selectedPais?.descripcion ?? ''"
+              (click)="onBuscarPais()"
+            />
+            <button mat-icon-button matSuffix type="button" (click)="onBuscarPais()">
+              <mat-icon>public</mat-icon>
+            </button>
           </mat-form-field>
         </div>
 

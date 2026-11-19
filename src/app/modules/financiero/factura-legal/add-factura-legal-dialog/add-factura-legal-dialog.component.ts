@@ -54,6 +54,8 @@ import { MonedaService } from "../../moneda/moneda.service";
 import { MonedaModuloService } from "../../../../shared/services/moneda-modulo.service";
 import { CambioService } from "../../cambio/cambio.service";
 import { Cambio } from "../../cambio/cambio.model";
+import { Pais } from "../../../general/pais/pais.model";
+import { BuscadorService } from "../../../../shared/services/buscador.service";
 
 export interface FacturaLegalData {
   venta?: Venta;
@@ -135,6 +137,11 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   // Totales calculados por moneda
   totalFinalEnMoneda: number = 0;
 
+  // Pais del cliente, solo contra el filial (#134): nulo no cambia el de la persona (Paraguay por defecto).
+  // shortcut: no se precarga al encontrar el cliente (la query detallada tambien va al central, que no tiene pais).
+  selectedPais: Pais = null;
+  esExtranjero = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: FacturaLegalData,
     private matDialogRef: MatDialogRef<AddFacturaLegalDialogComponent>,
@@ -152,7 +159,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private monedaService: MonedaService,
     private cambioService: CambioService,
     private mainService: MainService,
-    private monedaModulo: MonedaModuloService
+    private monedaModulo: MonedaModuloService,
+    private buscador: BuscadorService
   ) {}
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -864,6 +872,24 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.tributaControl.setValue(true);
     this.emailControl.setValue(null);
     this.emailControl.disable();
+    this.setPais(null);
+  }
+
+  onBuscarPais() {
+    this.buscador
+      .abrir("pais", { servidor: false })
+      .pipe(untilDestroyed(this))
+      .subscribe((pais: Pais) => {
+        if (pais != null) this.setPais(pais);
+      });
+  }
+
+  /** El filial factura B2F a un extranjero (#134): admite pasaporte con letras y no lleva RUC. */
+  setPais(pais: Pais) {
+    this.selectedPais = pais;
+    const codigo = pais?.codigo?.trim().toUpperCase();
+    this.esExtranjero = codigo != null && codigo !== "PY" && codigo !== "PRY";
+    if (this.esExtranjero) this.tributaControl.setValue(false);
   }
 
   onRucEnter(event: Event) {
@@ -941,6 +967,10 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       factura.tipoCambio = this.tipoCambioControl.value;
     }
     
+    if (!this.isServidor && this.selectedPais != null) {
+      factura.paisId = this.selectedPais.id;
+    }
+
     // Preparar datos del cliente para enviar al backend (el backend manejará creación/actualización)
     if (this.selectedCliente?.id != null) {
       // Cliente existente con ID
