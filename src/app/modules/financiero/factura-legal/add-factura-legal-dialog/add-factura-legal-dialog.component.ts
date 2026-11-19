@@ -137,7 +137,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   // Totales calculados por moneda
   totalFinalEnMoneda: number = 0;
 
-  // Pais del cliente, solo contra el filial (#134): nulo no cambia el de la persona (Paraguay por defecto).
+  // Pais del cliente, solo contra el filial (#134). Se muestra PARAGUAY sin elegir pero no se manda: el filial carga
+  // el pais solo si la persona no tiene, y mandarlo siempre dejaria a todo cliente nuevo fijo como paraguayo.
   // shortcut: no se precarga al encontrar el cliente (la query detallada tambien va al central, que no tiene pais).
   selectedPais: Pais = null;
   esExtranjero = false;
