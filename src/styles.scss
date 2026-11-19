@@ -482,6 +482,11 @@ input {
   #printContainer {
     position: static;
   }
+
+  // El body fijo de la app no se reparte entre hojas: sin esto el visor imprime solo la primera.
+  body[data-pdfjsprinting] {
+    position: static !important;
+  }
 }
 
 .mat-snack-bar-container {
