@@ -16,6 +16,7 @@ import {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { ProveedoresSearchByPersonaPageGQL } from "./graphql/proveedorSearchByPersonaPage";
 import { EditProveedorComponent } from "./edit-proveedor/edit-proveedor.component";
+import { ProveedorListaPageGQL } from "./graphql/proveedorListaPage";
 
 export interface ProveedorPageResult {
   getContent?: Proveedor[];
@@ -34,17 +35,20 @@ export class ProveedorService {
     private proveedorPorId: ProveedorByIdGQL,
     private proveedorPorPersona: ProveedorPorPersonaGQL,
     private proveedorSearchByPersonaPage: ProveedoresSearchByPersonaPageGQL,
+    private proveedorListaPage: ProveedorListaPageGQL,
     private dialog: MatDialog
   ) {}
 
+  /** activo: true = activos, false = inactivos, null = todos. */
   onGetProveedoresPaginated(
     page: number,
     size: number,
-    texto?: string
+    texto?: string,
+    activo: boolean | null = null
   ): Observable<ProveedorPageResult> {
     return this.genericService.onCustomQuery(
-      this.proveedorSearchByPersonaPage,
-      { texto: texto?.trim() || null, page, size },
+      this.proveedorListaPage,
+      { texto: texto?.trim() || null, page, size, activo },
       true,
       null,
       true

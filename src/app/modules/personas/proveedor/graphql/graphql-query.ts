@@ -142,6 +142,7 @@ export const proveedorQuery = gql`
   query ($id: ID!) {
     data: proveedor(id: $id) {
       id
+      activo
       chequeDias
       persona {
         id
@@ -232,3 +233,33 @@ export const proveedorSearchByPersonaPage = gql`
 `;
 
 
+
+/**
+ * La lista de Proveedores: `activo` true/false filtra, null (explícito) trae todos. Sin mandarlo el central
+ * devuelve solo activos, como en los buscadores.
+ */
+export const proveedorListaPage = gql`
+  query ($texto: String, $page: Int, $size: Int, $activo: Boolean) {
+    data: proveedorSearchByPersonaPage(texto: $texto, page: $page, size: $size, activo: $activo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        credito
+        chequeDias
+        activo
+        persona {
+          id
+          nombre
+          documento
+          apodo
+        }
+      }
+    }
+  }
+`;

@@ -477,7 +477,7 @@
             <button mat-menu-item (click)="irObservacion(caja)"><mat-icon>add_comment</mat-icon><span>Adicionar observación</span></button>
             <button mat-menu-item *ngIf="esAdmin && caja?.activo === false && caja?.verificado !== true"
               (click)="onReabrir(caja)">
-              <mat-icon color="warn">lock_open</mat-icon>
+              <mat-icon>lock_open</mat-icon>
               Reabrir caja
             </button>
           </mat-menu>

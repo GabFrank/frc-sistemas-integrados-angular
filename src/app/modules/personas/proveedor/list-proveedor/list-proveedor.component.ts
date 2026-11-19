@@ -24,6 +24,8 @@ export class ListProveedorComponent implements OnInit {
 
   dataSource = new MatTableDataSource<Proveedor>([]);
   textoControl = new FormControl();
+  /** null = todos, true = activos, false = inactivos. */
+  estadoControl = new FormControl<boolean | null>(null);
 
   displayedColumns = [
     'id',
@@ -32,6 +34,7 @@ export class ListProveedorComponent implements OnInit {
     'apodo',
     'credito',
     'chequeDias',
+    'activo',
     'acciones'
   ];
 
@@ -53,7 +56,7 @@ export class ListProveedorComponent implements OnInit {
   loadPage(): void {
     const texto = this.textoControl.value?.trim() || undefined;
     this.proveedorService
-      .onGetProveedoresPaginated(this.pageIndex, this.pageSize, texto)
+      .onGetProveedoresPaginated(this.pageIndex, this.pageSize, texto, this.estadoControl.value)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (pageResult) => {
@@ -74,6 +77,7 @@ export class ListProveedorComponent implements OnInit {
 
   onResetFiltro(): void {
     this.textoControl.setValue(null);
+    this.estadoControl.setValue(null);
     this.pageIndex = 0;
     if (this.paginator) this.paginator.pageIndex = 0;
     this.loadPage();

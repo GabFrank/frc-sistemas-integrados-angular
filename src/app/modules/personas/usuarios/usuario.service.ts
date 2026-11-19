@@ -36,6 +36,7 @@ import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMa
 import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 import { UsuariosSearchPaginatedPorRolesGQL } from "./graphql/usuarioSearchPaginatedPorRoles";
+import { UsuariosSearchPaginatedConFiltrosGQL } from "./graphql/usuarioSearchPaginatedConFiltros";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 
@@ -67,7 +68,8 @@ export class UsuarioService {
     private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL,
     private incorporarEmbeddingMarcacion: IncorporarEmbeddingMarcacionGQL,
     private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL,
-    private usuariosSearchPaginatedPorRolesGQL: UsuariosSearchPaginatedPorRolesGQL
+    private usuariosSearchPaginatedPorRolesGQL: UsuariosSearchPaginatedPorRolesGQL,
+    private usuariosSearchPaginatedConFiltrosGQL: UsuariosSearchPaginatedConFiltrosGQL
 
   ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
@@ -198,7 +200,13 @@ export class UsuarioService {
 
   // roleIds va despues de servidor para no correr el 4to parametro que comparte con ClienteService/SucursalService.
   // Sin roles se usa la query de siempre: la de roles no existe en centrales viejos.
-  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true, roleIds?: number[]): Observable<PageInfo<Usuario>> {
+  // activo: null/undefined = todos, true = solo activos, false = solo inactivos.
+  // Sin estado se usan las queries de siempre: usuarioSearchPaginatedConFiltros no existe en centrales viejos.
+  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true, roleIds?: number[], activo?: boolean): Observable<PageInfo<Usuario>> {
+    if (activo != null) {
+      return this.genericService.onCustomQuery(this.usuariosSearchPaginatedConFiltrosGQL,
+        { texto, page: pageIndex, size: pageSize, roleIds: roleIds?.length > 0 ? roleIds : null, activo }, servidor);
+    }
     if (roleIds?.length > 0) {
       return this.onSearchUsuarioPaginatedPorRoles(texto, pageIndex, pageSize, roleIds, servidor);
     }

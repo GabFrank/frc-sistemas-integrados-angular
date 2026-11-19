@@ -27,6 +27,12 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+
+    <mat-radio-group [formControl]="estadoControl" (change)="onFiltrar()" class="filtro-estado" aria-label="Estado">
+      <mat-radio-button [value]="null">Todos</mat-radio-button>
+      <mat-radio-button [value]="true">Activos</mat-radio-button>
+      <mat-radio-button [value]="false">Inactivos</mat-radio-button>
+    </mat-radio-group>
   </div>
 
   <div table class="lista-tabla">
@@ -110,7 +116,7 @@
       <div *ngIf="!cargando && dataSource.data.length === 0" class="tabla-vacia">
         <mat-icon>person_search</mat-icon>
         <p>No hay usuarios para mostrar</p>
-        <small>Probá con otro nombre o quitá el filtro de roles.</small>
+        <small>Probá con otro nombre o quitá los filtros de roles y estado.</small>
       </div>
 
     <mat-paginator
