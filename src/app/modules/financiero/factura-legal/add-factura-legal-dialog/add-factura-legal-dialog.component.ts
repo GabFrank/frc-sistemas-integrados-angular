@@ -141,6 +141,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   // shortcut: no se precarga al encontrar el cliente (la query detallada tambien va al central, que no tiene pais).
   selectedPais: Pais = null;
   esExtranjero = false;
+  // Solo si el filial factura electrónico: en papel el país no cambia nada. Sin respuesta (filial viejo), oculto.
+  mostrarPais = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: FacturaLegalData,
@@ -189,6 +191,15 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     
     // Detectar modo filial
     this.isServidor = this.data?.isServidor === true;
+    if (!this.isServidor) {
+      this.facturaService
+        .onGetFacturaElectronicaHabilitada()
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => (this.mostrarPais = res === true),
+          error: () => (this.mostrarPais = false),
+        });
+    }
     
     this.cargarDatos();
     
@@ -967,7 +978,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       factura.tipoCambio = this.tipoCambioControl.value;
     }
     
-    if (!this.isServidor && this.selectedPais != null) {
+    if (!this.isServidor && this.mostrarPais && this.selectedPais != null) {
       factura.paisId = this.selectedPais.id;
     }
 
