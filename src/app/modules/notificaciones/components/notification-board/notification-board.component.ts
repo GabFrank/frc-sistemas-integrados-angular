@@ -5,7 +5,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { PaginacionDirective } from '../../../../shared/components/paginacion/paginacion.directive';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -50,6 +51,7 @@ interface NotificacionExtendida extends NotificacionData {
         MatIconModule,
         MatTooltipModule,
         MatPaginatorModule,
+        PaginacionDirective,
         MatProgressSpinnerModule,
         DragDropModule
     ],
@@ -74,7 +76,6 @@ export class NotificationBoardComponent implements OnInit {
         EstadoNotificacionTablero.VERIFICADO
     ];
     readonly ESTADOS_LABELS = ESTADOS_TABLERO_LABELS;
-    readonly pageSizeOptions = [15, 25, 50, 100];
 
     private readonly tieneAccionCache = new Map<string, boolean>();
     private readonly tiposConAccion = [
@@ -91,6 +92,8 @@ export class NotificationBoardComponent implements OnInit {
 
     notificaciones$ = this.notificacionesTableroService.notificaciones$;
     paginationState$ = this.notificacionesTableroService.paginationState$;
+    /** Una lista paginada por columna (#772): el paginador de cada columna se conecta con `[paginacion]`. */
+    readonly columnas = this.notificacionesTableroService.columnas;
 
     notificacionesConConteos$ = combineLatest([
         this.notificacionesTableroService.notificaciones$,
@@ -154,14 +157,6 @@ export class NotificationBoardComponent implements OnInit {
                 this.comentariosService.obtenerConteoComentarios(id).subscribe();
             });
         });
-    }
-
-    onPageChange(event: PageEvent, estado: string): void {
-        this.notificacionesTableroService.cargarNotificaciones(
-            estado,
-            event.pageIndex,
-            event.pageSize
-        );
     }
 
     onNotificationClick(n: NotificacionData): void {
