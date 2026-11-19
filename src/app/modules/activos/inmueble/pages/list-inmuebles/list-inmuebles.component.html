@@ -93,7 +93,7 @@
               <span>{{ row.vinculacionesSucursal?.[0] ? 'Configurar sucursal / tenencia' : 'Vincular a sucursal' }}</span>
             </button>
             <button mat-menu-item (click)="onDesvincularSucursal(row)" *ngIf="row.vinculacionesSucursal?.[0]">
-              <mat-icon color="warn">link_off</mat-icon>
+              <mat-icon>link_off</mat-icon>
               <span>Desvincular de sucursal</span>
             </button>
             <button mat-menu-item (click)="onEditar(row)">
