@@ -44,6 +44,9 @@ export class ListUsuarioComponent implements OnInit {
   // onGetAll emite null y el selector queda deshabilitado en vez de vacio.
   rolesControl = new FormControl<number[]>({ value: [], disabled: true });
   roleList: Role[] = [];
+
+  // null = todos, true = activos, false = inactivos.
+  estadoControl = new FormControl<boolean | null>(null);
   rolesResumen = '';
   private rolesFiltrados = '';
 
@@ -126,7 +129,8 @@ export class ListUsuarioComponent implements OnInit {
     const roleIds = this.rolesControl.value || [];
     this.rolesFiltrados = this.rolesSeleccionadosKey();
     this.cargando = true;
-    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize, true, roleIds)
+    const activo = this.estadoControl.value;
+    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize, true, roleIds, activo)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -147,6 +151,7 @@ export class ListUsuarioComponent implements OnInit {
     this.selectedPageInfo = null;
     this.rolesControl.setValue([]);
     this.rolesResumen = '';
+    this.estadoControl.setValue(null);
     // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca (con los roles vacios).
     this.buscarControl.setValue(null);
   }
