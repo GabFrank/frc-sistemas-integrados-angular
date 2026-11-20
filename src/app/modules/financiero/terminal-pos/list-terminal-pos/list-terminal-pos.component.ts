@@ -1,14 +1,13 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GenericList } from "../../../../generics/generic-list-model";
 import { TerminalPos } from "../terminal-pos.model";
 import { MatTableDataSource } from "@angular/material/table";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { AddTerminalPosDialogComponent } from "../add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "../print-terminal-pos-dialog/print-terminal-pos-dialog.component";
-import { PageInfo } from "../../../../app.component";
 import { TerminalPosService } from "../terminal-pos.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
@@ -18,7 +17,7 @@ import { NotificacionColor, NotificacionSnackbarService } from "../../../../noti
 import { timer } from "rxjs";
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-terminal-pos',
   templateUrl: './list-terminal-pos.component.html',
@@ -26,17 +25,30 @@ import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../.
 })
 export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos> {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   dataSource: MatTableDataSource<TerminalPos>;
   selectedEntity: TerminalPos;
   expandedElement: TerminalPos;
   displayedColumns: string[];
   isLastPage: boolean = false;
   page = 0;
-  pageIndex = 0;
-  pageSize = 15;
-  selectedPageInfo: PageInfo<TerminalPos>;
+
+  /** Terminales paginadas en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<TerminalPos> = new PaginacionLista<TerminalPos>({
+    cargar: (page, size) => this.terminalPosService.onFilter(
+      this.descripcionControl.value,
+      this.codigoControl.value,
+      this.serieControl.value,
+      this.sucursalControl.value,
+      this.activoControl.value,
+      page,
+      size
+    ),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   descripcionControl = new FormControl(null);
   codigoControl = new FormControl(null);
   serieControl = new FormControl(null);
@@ -79,32 +91,10 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
     this.onGetData();
    }
   
+  /** Repite la página a la vista (después de crear, editar o borrar). */
   onGetData(): void {
-    setTimeout(() => {
-      this.terminalPosService
-        .onFilter(
-          this.descripcionControl.value,
-          this.codigoControl.value,
-          this.serieControl.value,
-          this.sucursalControl.value,
-          this.activoControl.value,
-          this.pageIndex,
-          this.pageSize
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          if (res != null) {
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent;
-          }
-        })
-    }, 0);
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetData();
+    // El service arma su GenericCrudService en un setTimeout: se pide en el ciclo siguiente.
+    setTimeout(() => this.pag.recargar(), 0);
   }
 
   onRowClick(entity: TerminalPos, index: any): void {
@@ -137,12 +127,9 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
       }
     })
   }
+  /** Filtrar vuelve a la página 1. */
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   onLimpiarFiltros(): void {
