@@ -161,7 +161,7 @@ export class DetalleCasoDialogComponent implements OnInit {
         contado: d.contado || 0,
         diferencia: dif,
         categoria: d.categoria ? CATEGORIA_LABEL[d.categoria] : '',
-        formato: `1.0-${dec}`,
+        formato: `1.${dec}-${dec}`,
         color: cierra ? '#81c784' : (dif < 0 ? '#ff8a80' : '#64b5f6'),
         cierra,
       };
