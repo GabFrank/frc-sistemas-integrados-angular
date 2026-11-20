@@ -185,6 +185,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     cargar: (page, size) => this.familiaService.onSearchFamilia(this.filtroFamiliaControl.value, page, size),
     pageSize: 15,
     alCargar: (res) => this.mostrarFamilias(res.getContent ?? []),
+    // Falló un filtro nuevo: las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => { if (filtroNuevo) this.familiaDataSource.data = []; },
   });
   /** Subfamilias de la familia elegida, paginadas en el central (#772). */
   subfamiliaPag = new PaginacionLista<Subfamilia>({
@@ -194,6 +196,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     },
     pageSize: 15,
     alCargar: (res) => this.mostrarSubfamilias(res.getContent ?? []),
+    // Falló un filtro nuevo (u otra familia): las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => { if (filtroNuevo) this.subfamiliaDataSource.data = []; },
   });
   private familiaDeLaCargaSubfamilia: number;
   familiaControl = new FormControl(null, [Validators.required]);
