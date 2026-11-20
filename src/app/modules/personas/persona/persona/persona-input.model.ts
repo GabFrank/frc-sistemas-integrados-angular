@@ -10,6 +10,8 @@ export class PersonaInput {
   direccion: string;
   email: string;
   ciudadId: number;
+  /** Solo cuando se elige en el admin (#666); sin el campo, el central no lo toca. */
+  paisId?: number;
   telefono: string;
   socialMedia: string;
   imagenes: string;

@@ -41,6 +41,13 @@
         Número de teléfono no válido.
       </span>
     </div>
+    <mat-form-field fxFlex="30" class="form-element">
+      <mat-label>País</mat-label>
+      <input matInput readonly [value]="selectedPais?.descripcion ?? 'PARAGUAY'" (click)="onBuscarPais()" />
+      <button mat-icon-button matSuffix type="button" (click)="onBuscarPais()">
+        <mat-icon>search</mat-icon>
+      </button>
+    </mat-form-field>
     <mat-form-field fxFlex class="form-element">
       <mat-label>Dirección</mat-label>
       <input #direccion matInput formControlName="direccion" (keyup.enter)="nacimiento.focus()"/>
