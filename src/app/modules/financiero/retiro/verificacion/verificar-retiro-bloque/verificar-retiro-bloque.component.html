@@ -31,7 +31,7 @@
       <ng-template #etiqueta>{{ f.etiqueta === 'Coincide' ? '✓ ' : '' }}{{ f.etiqueta }}</ng-template>
     </span>
     <mat-select *ngIf="f.categoria" class="motivo" [(ngModel)]="f.categoria" aria-label="Motivo de la diferencia">
-      <mat-option *ngFor="let c of categorias" [value]="c.value">{{ c.label }}</mat-option>
+      <mat-option *ngFor="let c of f.opciones" [value]="c.value">{{ c.label }}</mat-option>
     </mat-select>
   </div>
 
