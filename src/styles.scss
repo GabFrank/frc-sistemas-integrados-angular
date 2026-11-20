@@ -99,6 +99,16 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   // Tarjeta semitransparente sobre fondo con degradé y zona hundida (marcación de horario)
   --frc-tarjeta-translucida: rgba(40, 40, 40, 0.9);
   --frc-hundido: rgba(0, 0, 0, 0.2);
+  // Íconos de acciones (AccionColorDirective): rojo destructivo, verde confirma, azul edita, amarillo revierte,
+  // celeste consulta, violeta documento, naranja envía/transfiere, turquesa dinero.
+  --frc-accion-peligro: #ef5350;
+  --frc-accion-positivo: #66bb6a;
+  --frc-accion-editar: #42a5f5;
+  --frc-accion-advertencia: #ffee58;
+  --frc-accion-ver: #4fc3f7;
+  --frc-accion-documento: #ba68c8;
+  --frc-accion-mover: #ffa726;
+  --frc-accion-dinero: #26c6da;
 }
 
 // Etiquetas de checkbox, radio y switch: Material las dejaba negras también en modo oscuro (el color le
@@ -159,7 +169,28 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-dash-texto-2: rgba(0, 0, 0, 0.55);
   --frc-tarjeta-translucida: rgba(255, 255, 255, 0.92);
   --frc-hundido: rgba(0, 0, 0, 0.03);
+  // Mismos colores de acción, un tono más oscuro para que se lean sobre blanco.
+  --frc-accion-peligro: #d32f2f;
+  --frc-accion-positivo: #2e7d32;
+  --frc-accion-editar: #1565c0;
+  --frc-accion-advertencia: #f9a825;
+  --frc-accion-ver: #0288d1;
+  --frc-accion-documento: #7b1fa2;
+  --frc-accion-mover: #e65100;
+  --frc-accion-dinero: #00838f;
 }
+
+// Color de los íconos de acción según su naturaleza. Los pone AccionColorDirective (automática en todo
+// mat-menu-item, o [frcAccion] en un ícono suelto). !important: le gana a los style="color: red" y a los
+// color="warn" (que en este tema es naranja) que quedaron escritos a mano en las pantallas.
+.mat-icon.frc-accion-peligro { color: var(--frc-accion-peligro) !important; }
+.mat-icon.frc-accion-positivo { color: var(--frc-accion-positivo) !important; }
+.mat-icon.frc-accion-editar { color: var(--frc-accion-editar) !important; }
+.mat-icon.frc-accion-advertencia { color: var(--frc-accion-advertencia) !important; }
+.mat-icon.frc-accion-ver { color: var(--frc-accion-ver) !important; }
+.mat-icon.frc-accion-documento { color: var(--frc-accion-documento) !important; }
+.mat-icon.frc-accion-mover { color: var(--frc-accion-mover) !important; }
+.mat-icon.frc-accion-dinero { color: var(--frc-accion-dinero) !important; }
 
 html {
   height: 100%;
