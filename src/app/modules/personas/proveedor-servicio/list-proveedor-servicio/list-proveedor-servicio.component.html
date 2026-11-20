@@ -28,7 +28,7 @@
   >
     <table
       mat-table
-      [dataSource]="dataSource"
+      [dataSource]="pag.items$"
       class="mat-elevation-z8"
       style="width: 100%"
     >
@@ -106,13 +106,6 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Items por página"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="length"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

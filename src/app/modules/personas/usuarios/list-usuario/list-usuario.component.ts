@@ -1,10 +1,9 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Role } from '../../../configuracion/roles/role.model';
@@ -14,7 +13,7 @@ import { AdicionarUsuarioDialogComponent } from '../adicionar-usuario-dialog/adi
 import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-usuario',
   templateUrl: './list-usuario.component.html',
@@ -26,16 +25,19 @@ export class ListUsuarioComponent implements OnInit {
   puedeEditarUsuarios = false;
 
   @ViewChild('buscar', { static: true }) buscar: ElementRef;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<Usuario>([]);
   selectedUsuario: Usuario;
   displayedColumns: string[] = ['id', 'nombre', 'nickname', 'telefono', 'activo', 'creadoEn', 'acciones'];
 
-  pageSize = 25;
-  cargando = false;
-  pageIndex = 0;
-  selectedPageInfo: PageInfo<Usuario>;
+  /** Usuarios paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<Usuario>({
+    cargar: (page, size) => {
+      this.rolesFiltrados = this.rolesSeleccionadosKey();
+      return this.service.onSearchConFiltros(this.buscarControl.value?.toString().trim() || null, page, size, true,
+        this.rolesControl.value || [], this.estadoControl.value);
+    },
+    pageSize: 25,
+  });
   timer: ReturnType<typeof setTimeout>;
 
   buscarControl = new FormControl(null);
@@ -60,17 +62,15 @@ export class ListUsuarioComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeEditarUsuarios = this.mainService.tieneAlgunRol([ROLES.EDITAR_USUARIOS]);
+    // UsuarioService y RoleService resuelven su GenericCrudService en un setTimeout: la primera consulta va después.
     setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.cargarPagina();
+      this.pag.filtrar();
       this.cargarRoles();
     }, 0);
 
     this.buscarControl.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((valor) => {
-        this.pageIndex = 0;
         if (this.timer != null) {
           clearTimeout(this.timer);
         }
@@ -116,50 +116,24 @@ export class ListUsuarioComponent implements OnInit {
       : (nombres[0] || '');
   }
 
-  // Filtrar, Buscar y Enter vuelven a la página 1 (variable y paginador).
+  // Filtrar, Buscar y Enter vuelven a la página 1.
   onFiltrar(): void {
     clearTimeout(this.timer);
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.cargarPagina();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (después de crear o editar). */
   cargarPagina(): void {
-    const texto = this.buscarControl.value?.toString().trim() || null;
-    const roleIds = this.rolesControl.value || [];
-    this.rolesFiltrados = this.rolesSeleccionadosKey();
-    this.cargando = true;
-    const activo = this.estadoControl.value;
-    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize, true, roleIds, activo)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => {
-          this.cargando = false;
-          if (res != null) {
-            this.selectedPageInfo = res;
-            this.dataSource.data = this.selectedPageInfo?.getContent || [];
-          }
-        },
-        error: () => (this.cargando = false),
-      });
+    this.pag.recargar();
   }
 
   resetFiltro(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.dataSource.data = [];
-    this.selectedPageInfo = null;
+    this.pag.limpiar();
     this.rolesControl.setValue([]);
     this.rolesResumen = '';
     this.estadoControl.setValue(null);
     // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca (con los roles vacios).
     this.buscarControl.setValue(null);
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarPagina();
   }
 
   onAddUsuario(usuario?: Usuario, index?) {
