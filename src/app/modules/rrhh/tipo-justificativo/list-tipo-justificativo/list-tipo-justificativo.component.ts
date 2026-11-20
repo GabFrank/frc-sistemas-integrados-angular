@@ -1,10 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { TipoJustificativo } from '../../justificativo/justificativo.model';
@@ -19,18 +17,22 @@ import { EditTipoJustificativoDialogComponent } from '../edit-tipo-justificativo
 })
 export class ListTipoJustificativoComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['nombre', 'descripcion', 'evitaPenalizacion', 'descuentaSalario', 'requiereDocumento', 'origen', 'activo', 'acciones'];
-  dataSource = new MatTableDataSource<TipoJustificativo>([]);
 
   nombreControl = new FormControl(null);
   /** tri-state: null=Todos, true=Activos, false=Inactivos */
   activoControl = new FormControl(null);
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<TipoJustificativo>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<TipoJustificativo>({
+    cargar: (page, size) => this.service.onGetTiposPage(
+      page,
+      size,
+      this.nombreControl.value ? this.nombreControl.value.trim() : null,
+      this.activoControl.value
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private service: JustificativoService,
@@ -45,25 +47,12 @@ export class ListTipoJustificativoComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.service.onGetTiposPage(
-      this.pageIndex,
-      this.pageSize,
-      this.nombreControl.value ? this.nombreControl.value.trim() : null,
-      this.activoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -72,11 +61,6 @@ export class ListTipoJustificativoComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onNuevo() {
     this.abrir(null);

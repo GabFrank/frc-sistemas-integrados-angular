@@ -1,10 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -24,10 +22,7 @@ import { EditBonoDialogComponent } from '../edit-bono-dialog/edit-bono-dialog.co
 })
 export class ListBonoComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['fecha', 'funcionario', 'tipo', 'monto', 'motivo', 'recurrente', 'estado', 'acciones'];
-  dataSource = new MatTableDataSource<Bono>([]);
 
   funcionarioControl = new FormControl(null);
   tipoControl = new FormControl(null);
@@ -36,9 +31,18 @@ export class ListBonoComponent implements OnInit {
 
   tipoOpciones: BonoTipo[] = ['CUMPLEANIOS', 'NAVIDAD', 'DESEMPENIO', 'PRODUCTIVIDAD', 'OTRO'];
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<Bono>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<Bono>({
+    cargar: (page, size) => this.bonoService.onGetPage(
+      page,
+      size,
+      this.funcionarioControl.value,
+      this.tipoControl.value,
+      dateToString(this.desdeControl.value, 'yyyy-MM-dd'),
+      dateToString(this.hastaControl.value, 'yyyy-MM-dd')
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private bonoService: BonoService,
@@ -61,27 +65,12 @@ export class ListBonoComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.bonoService.onGetPage(
-      this.pageIndex,
-      this.pageSize,
-      this.funcionarioControl.value,
-      this.tipoControl.value,
-      dateToString(this.desdeControl.value, 'yyyy-MM-dd'),
-      dateToString(this.hastaControl.value, 'yyyy-MM-dd')
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -92,11 +81,6 @@ export class ListBonoComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onNuevo() {
     this.dialog.open(EditBonoDialogComponent, {
