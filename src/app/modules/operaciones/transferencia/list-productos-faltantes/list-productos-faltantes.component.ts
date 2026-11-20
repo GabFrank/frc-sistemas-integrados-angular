@@ -1,10 +1,9 @@
 import { Component, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { PageEvent } from "@angular/material/paginator";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { of, Subject } from "rxjs";
-import { catchError, map, switchMap } from "rxjs/operators";
+import { map } from "rxjs/operators";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -81,7 +80,7 @@ function fechaSinHora(fecha: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-productos-faltantes",
   templateUrl: "./list-productos-faltantes.component.html",
@@ -99,15 +98,26 @@ export class ListProductosFaltantesComponent implements OnInit {
   selectedProducto: Producto = null;
   sucursalList: Sucursal[] = [];
 
-  filas: FilaProductoFaltante[] = [];
-  length = 0;
-  pageIndex = 0;
-  pageSize = 20;
-  readonly pageSizeOptions = [20, 50, 100];
-  /** «vacio» solo tras una respuesta correcta: un error no se muestra como «no hay faltantes». */
-  estado: "cargando" | "vacio" | "error" = "cargando";
+  /**
+   * Paginada en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior.
+   * Las páginas usan los filtros del último Buscar (un rango a medio elegir no frena el paginador).
+   */
+  pag: PaginacionLista<FilaProductoFaltante> = new PaginacionLista<FilaProductoFaltante>({
+    cargar: (page, size) => {
+      const filtros = this.filtrosAplicados;
+      // Un error de red ya lo avisó el genérico.
+      return this.transferenciaService.onGetItemsRechazados({ ...filtros, page, size }).pipe(
+        map((res) => res && {
+          getTotalElements: res.getTotalElements,
+          getContent: (res.getContent ?? []).map((it) => toFilaProductoFaltante(it, filtros.motivo)),
+        })
+      );
+    },
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+  });
+  private filtrosAplicados: ReturnType<ListProductosFaltantesComponent["filtros"]>;
   private isDialogOpen = false;
-  private buscar$ = new Subject<void>();
 
   readonly displayedColumns = [
     "transferencia", "fecha", "ruta", "producto", "cantidadPedida", "cantidadPreparada",
@@ -127,33 +137,7 @@ export class ListProductosFaltantesComponent implements OnInit {
     this.setFechasPorDefecto();
     this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this))
       .subscribe((data) => (this.sucursalList = data ?? []));
-    // switchMap: si se busca de nuevo antes de que vuelva la anterior, la respuesta vieja se descarta.
-    this.buscar$.pipe(
-      switchMap(() => {
-        const filtros = this.filtros();
-        const motivo = filtros.motivo;
-        return this.transferenciaService.onGetItemsRechazados({
-          ...filtros,
-          page: this.pageIndex,
-          size: this.pageSize,
-        }).pipe(
-          map((res) => ({ res, motivo })),
-          // Un error de red ya lo avisó el genérico; sin esto mataría buscar$ y no se podría volver a buscar.
-          catchError(() => of({ res: null, motivo }))
-        );
-      }),
-      untilDestroyed(this)
-    ).subscribe(({ res, motivo }) => {
-      if (res == null) {
-        // El genérico ya avisó el error: queda la tabla anterior; sin filas, se dice que falló.
-        this.estado = "error";
-        return;
-      }
-      this.filas = (res.getContent ?? []).map((it) => toFilaProductoFaltante(it, motivo));
-      this.length = res.getTotalElements ?? 0;
-      this.estado = "vacio";
-    });
-    this.buscar();
+    this.onFiltrar();
   }
 
   private setFechasPorDefecto(): void {
@@ -164,7 +148,7 @@ export class ListProductosFaltantesComponent implements OnInit {
   }
 
   /** Los mismos filtros para la lista y el PDF. Con id el central ignora las fechas. */
-  private filtros() {
+  filtros() {
     const transferenciaId = this.transferenciaIdControl.value || null;
     return {
       motivo: this.motivoControl.value,
@@ -185,10 +169,6 @@ export class ListProductosFaltantesComponent implements OnInit {
     return true;
   }
 
-  private buscar(): void {
-    if (this.filtrosCompletos()) this.buscar$.next();
-  }
-
   /** El PDF trae todo lo que coincide con los filtros (hasta 5000 filas), no solo la página visible. */
   onGenerarPdf(): void {
     if (!this.filtrosCompletos()) return;
@@ -207,9 +187,11 @@ export class ListProductosFaltantesComponent implements OnInit {
       });
   }
 
+  /** Buscar y Limpiar: vuelve a la página 1 con los filtros de ahora. */
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.buscar();
+    if (!this.filtrosCompletos()) return;
+    this.filtrosAplicados = this.filtros();
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
@@ -221,12 +203,6 @@ export class ListProductosFaltantesComponent implements OnInit {
     this.selectedProducto = null;
     this.buscarProductoControl.setValue("");
     this.onFiltrar();
-  }
-
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.buscar();
   }
 
   onBuscarProducto(): void {

@@ -8,11 +8,11 @@ import {
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLotePresentacion } from '../../lote/lote.model';
@@ -123,7 +123,6 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   /** Origen COMPRAS sin `VER_STOCK_COMPRAS`: el saldo de cada lote se muestra "—". */
   ocultarDisponible = false;
   busquedaControl = new FormControl('');
-  cargando = true;
   /**
    * Solo la primera carga. Buscar y paginar recargan la lista, pero no deben esconder el
    * buscador ni el paginador: hacerlo sacaría el foco en cada tecla y en cada cambio de página.
@@ -137,13 +136,53 @@ export class SeleccionarLotesDialogComponent implements OnInit {
    * se bloquea hasta reintentar; la selección se conserva.
    */
   cargaFallo = false;
-  /** Solo aplica la última carga (búsqueda, página o reintento). */
-  private cargaLotes = 0;
 
-  // Paginación server-side, con el mismo contrato que el resto de los listados del sistema.
-  pageIndex = 0;
-  pageSize = 10;
-  totalElementos = 0;
+  /** Lotes paginados en el central (#772): gana la última carga pedida (búsqueda, página o reintento). */
+  pag: PaginacionLista<LoteRow> = new PaginacionLista<LoteRow>({
+    cargar: (page, size) => this.loteService
+      .onGetStockPorLoteEnPresentacion(
+        this.data.productoId,
+        this.data.sucursalOrigenId,
+        this.data.presentacionId,
+        this.busquedaControl.value,
+        page,
+        size,
+        true,
+        // Solo la primera carga muestra el diálogo de espera.
+        !this.cargandoInicial,
+        TIMEOUT_CONSULTA_DE_FONDO_MS
+      )
+      .pipe(
+        catchError(() => {
+          this.notificacionService.openWarn('No se pudieron consultar los lotes disponibles: usá «Reintentar».', 5);
+          return of(null);
+        }),
+        map((res) => {
+          if (res == null) return null; // error GraphQL: el servicio ya avisó
+          // La fila SIN LOTE (loteId nulo) es lo que el central dejó sin lote: no se elige acá,
+          // así que no se muestra (antes aparecía como una fila deshabilitada que confundía).
+          const contenido = res.getContent || [];
+          const lotes = contenido.filter((l) => l?.loteId != null);
+          this.tomarDatosDePresentacion(lotes);
+          return {
+            getTotalElements: Math.max(0, (res.getTotalElements || 0) - (contenido.length - lotes.length)),
+            getContent: lotes.map((lote) => this.crearFila(lote)),
+          };
+        })
+      ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50],
+    alCargar: (res) => {
+      this.cargaFallo = false;
+      this.filas = res.getContent;
+      this.evaluarEstadoVacio(res.getTotalElements);
+      this.cargandoInicial = false;
+      this.aplicarBloqueoPorSeleccion();
+      this.recalcularTotales();
+      this.cdr.markForCheck();
+    },
+    alFallar: () => this.marcarCargaFallida(),
+  });
 
   /** Lotes elegidos (por loteId), independientes de la página que se esté viendo. */
   seleccion = new Map<number, LoteSeleccionado>();
@@ -209,12 +248,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     // alcanzaría a la página visible.
     this.busquedaControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), untilDestroyed(this))
-      .subscribe(() => {
-        this.pageIndex = 0;
-        this.cargarLotes(true);
-      });
+      .subscribe(() => this.pag.filtrar());
 
-    this.cargarLotes();
+    this.pag.filtrar();
   }
 
   /** Precarga el lote que ya tenía asignado el ítem, para poder corregirlo en vez de recargarlo. */
@@ -232,73 +268,25 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     });
   }
 
-  private cargarLotes(silentLoad = false): void {
-    const carga = ++this.cargaLotes;
-    this.cargando = true;
-    this.loteService
-      .onGetStockPorLoteEnPresentacion(
-        this.data.productoId,
-        this.data.sucursalOrigenId,
-        this.data.presentacionId,
-        this.busquedaControl.value,
-        this.pageIndex,
-        this.pageSize,
-        true,
-        silentLoad,
-        TIMEOUT_CONSULTA_DE_FONDO_MS
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<StockLotePresentacion>) => {
-          if (carga !== this.cargaLotes) return; // respuesta de una búsqueda o página anterior
-          if (res == null) {
-            this.marcarCargaFallida(); // error GraphQL: el servicio ya avisó
-            return;
-          }
-          this.cargaFallo = false;
-          // La fila SIN LOTE (loteId nulo) es lo que el central dejó sin lote: no se elige acá,
-          // así que no se muestra (antes aparecía como una fila deshabilitada que confundía).
-          const contenido = res?.getContent || [];
-          const lotes = contenido.filter((l) => l?.loteId != null);
-          this.totalElementos = Math.max(0, (res?.getTotalElements || 0) - (contenido.length - lotes.length));
-          this.tomarDatosDePresentacion(lotes);
-          this.filas = lotes.map((lote) => this.crearFila(lote));
-          this.evaluarEstadoVacio();
-          this.cargando = false;
-          this.cargandoInicial = false;
-          this.aplicarBloqueoPorSeleccion();
-          this.recalcularTotales();
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          if (carga !== this.cargaLotes) return;
-          this.notificacionService.openWarn('No se pudieron consultar los lotes disponibles: usá «Reintentar».', 5);
-          this.marcarCargaFallida();
-        }
-      });
-  }
-
   private marcarCargaFallida(): void {
-    this.cargando = false;
     this.cargandoInicial = false;
     this.cargaFallo = true;
     this.filas = [];
-    this.totalElementos = 0;
     this.sinLotes = false;
     this.sinCoincidencias = false;
     this.cdr.markForCheck();
   }
 
   reintentarCarga(): void {
-    this.cargarLotes();
+    this.pag.recargar();
   }
 
   /**
    * Distingue "el producto no tiene lotes" de "la búsqueda no encontró nada": el primero es
    * informativo, el segundo se resuelve borrando el filtro.
    */
-  private evaluarEstadoVacio(): void {
-    const vacio = this.totalElementos === 0;
+  private evaluarEstadoVacio(total: number): void {
+    const vacio = total === 0;
     const buscando = (this.busquedaControl.value || '').trim().length > 0;
     this.sinLotes = vacio && !buscando;
     this.sinCoincidencias = vacio && buscando;
@@ -454,12 +442,6 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     }
     const nombres = pasados.map((l) => l.numeroLote).join(', ');
     return `Asignaste más del saldo de ${pasados.length > 1 ? 'los lotes' : 'el lote'} ${nombres}: lo que pase del saldo sale como SIN LOTE.`;
-  }
-
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.cargarLotes(true);
   }
 
   onLimpiar(): void {

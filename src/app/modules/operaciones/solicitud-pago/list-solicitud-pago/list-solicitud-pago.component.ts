@@ -5,10 +5,11 @@ import {
   transition,
   animate
 } from '@angular/animations';
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
+import { of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService } from '../../../../layouts/tab/tab.service';
@@ -40,7 +41,7 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { GetSolicitudesPagoPaginatedVariables } from '../../compra/gestion-compras/graphql/getSolicitudesPagoPaginated';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-solicitud-pago',
   templateUrl: './list-solicitud-pago.component.html',
@@ -54,11 +55,9 @@ import { GetSolicitudesPagoPaginatedVariables } from '../../compra/gestion-compr
   ]
 })
 export class ListSolicitudPagoComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   titulo = 'Lista de solicitudes de pago';
 
-  dataSource = new MatTableDataSource<SolicitudPago>([]);
   expandedSolicitud: SolicitudPago | null = null;
 
   proveedorControl = new FormControl();
@@ -101,9 +100,35 @@ export class ListSolicitudPagoComponent implements OnInit {
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
   ];
 
-  length = 0;
-  pageSize = 25;
-  pageIndex = 0;
+  /**
+   * Solicitudes paginadas en el central (#772): gana la última página pedida; si falla una página vuelve a la
+   * anterior. Las páginas y las recargas usan los filtros del último Buscar.
+   */
+  pag: PaginacionLista<SolicitudPago> = new PaginacionLista<SolicitudPago>({
+    cargar: (page, size) => {
+      const f = this.filtrosPedidos;
+      return this.solicitudPagoService
+        .onGetSolicitudesPagoPaginated(page, size, f.proveedorId, f.estado, f.numero, f.fechaDesde, f.fechaHasta, f.monedaIds)
+        .pipe(catchError((err) => {
+          // Un rechazo del servidor ya lo avisó el genérico; este aviso es solo para la falta de respuesta.
+          if (!err?.errors) this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
+          return of(null);
+        }));
+    },
+    pageSize: 25,
+    alCargar: (res) => {
+      this.filtrosAplicados = this.filtrosPedidos;
+      this.sinFilasParaReporte = !res.getTotalElements;
+    },
+    alFallar: (filtroNuevo) => {
+      // La tabla quedó vacía: no hay filtro cargado que imprimir (#390).
+      if (filtroNuevo) {
+        this.filtrosAplicados = null;
+        this.sinFilasParaReporte = true;
+      }
+    },
+  });
+  private filtrosPedidos: GetSolicitudesPagoPaginatedVariables;
 
   /** Asignar una solicitud a una caja es decidir quién la paga: lo hace tesorería. */
   puedeAsignarCaja = false;
@@ -141,63 +166,28 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) this.monedaList = res;
     });
-    this.loadPage();
+    this.onFilter();
   }
 
+  /** Repite la página a la vista (tras crear, editar o cancelar). */
   loadPage(): void {
-    const proveedorId = this.selectedProveedor?.id ?? null;
-    const estado = this.estadoControl.value?.trim() || undefined;
-    const numero = this.numeroControl.value?.trim() || undefined;
-    const fechaDesde = this.fechaInicioControl.value
-      ? dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd')
-      : undefined;
-    const fechaHasta = this.fechaFinControl.value
-      ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
-      : undefined;
+    this.pag.recargar();
+  }
 
-    const filtros: GetSolicitudesPagoPaginatedVariables = {
-      proveedorId,
-      estado,
-      numero,
-      fechaDesde,
-      fechaHasta,
+  private armarFiltros(): GetSolicitudesPagoPaginatedVariables {
+    return {
+      proveedorId: this.selectedProveedor?.id ?? null,
+      estado: this.estadoControl.value?.trim() || undefined,
+      numero: this.numeroControl.value?.trim() || undefined,
+      fechaDesde: this.fechaInicioControl.value ? dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd') : undefined,
+      fechaHasta: this.fechaFinControl.value ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd') : undefined,
       monedaIds: this.monedaControl.value?.length ? this.monedaControl.value : undefined
     };
-    this.solicitudPagoService
-      .onGetSolicitudesPagoPaginated(
-        this.pageIndex,
-        this.pageSize,
-        filtros.proveedorId,
-        filtros.estado,
-        filtros.numero,
-        filtros.fechaDesde,
-        filtros.fechaHasta,
-        filtros.monedaIds
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (pageResult) => {
-          this.dataSource.data = pageResult?.getContent ?? [];
-          this.length = pageResult?.getTotalElements ?? 0;
-          this.filtrosAplicados = filtros;
-          this.sinFilasParaReporte = this.length === 0;
-        },
-        error: (err) => {
-          // No quedan a la vista las filas del filtro anterior como si fueran del nuevo (#390)
-          this.dataSource.data = [];
-          this.length = 0;
-          this.filtrosAplicados = null;
-          this.sinFilasParaReporte = true;
-          // Un rechazo del servidor ya lo avisó el genérico; este aviso es solo para la falta de respuesta.
-          if (!err?.errors) this.notificacionService.openWarn('No se pudo cargar la lista de solicitudes: el servidor no responde. Intentá de nuevo.', 6);
-        }
-      });
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.loadPage();
+    this.filtrosPedidos = this.armarFiltros();
+    this.pag.filtrar();
   }
 
   /** PDF de la lista entera (sin paginar) con los filtros con los que se cargó la tabla. */
@@ -221,9 +211,7 @@ export class ListSolicitudPagoComponent implements OnInit {
     hace7Dias.setDate(hace7Dias.getDate() - 7);
     this.fechaInicioControl.setValue(hace7Dias);
     this.fechaFinControl.setValue(hoy);
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.loadPage();
+    this.onFilter();
   }
 
   onAdd(): void {
@@ -340,12 +328,6 @@ export class ListSolicitudPagoComponent implements OnInit {
       error: (error) => this.avisarImpresionSinRespuesta(error,
         'No se pudo confirmar si se imprimió el ticket: revisá antes de repetir.')
     });
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.loadPage();
   }
 
   onRowClick(row: SolicitudPago): void {

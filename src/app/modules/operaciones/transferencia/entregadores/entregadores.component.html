@@ -48,16 +48,16 @@
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >
-    <div *ngIf="isLoading" class="cargando-lista">
+    <div *ngIf="pag.cargando$ | async" class="cargando-lista">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Cargando entregadores...</p>
     </div>
 
     <table
       mat-table
-      [dataSource]="dataSource"
+      [dataSource]="pag.items$"
       multiTemplateDataRows
-      [hidden]="isLoading"
+      [hidden]="pag.cargando$ | async"
       class="mat-elevation-z8"
       style="width: 100%"
     >
@@ -182,15 +182,6 @@
       </tr>
     </table>
 
-    <mat-paginator
-      [length]="totalElementos"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="pageSizeOptions"
-      (page)="onCambiarPagina($event)"
-      showFirstLastButtons
-      style="width: 100%"
-    >
-    </mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

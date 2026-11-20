@@ -65,9 +65,9 @@
       </div>
     </div>
   </div>
-  <div table class="table-container" fxLayout="column" fxLayoutAlign="space-between start">
+  <div table class="table-container" fxLayout="column" fxLayoutAlign="space-between start" *ngIf="pag.estado$ | async as e">
     <div class="table-wrapper">
-      <table mat-table [dataSource]="filas" [trackBy]="trackByItemId" class="mat-elevation-z8 data-table">
+      <table mat-table [dataSource]="e.items" [trackBy]="trackByItemId" class="mat-elevation-z8 data-table">
         <ng-container matColumnDef="transferencia">
           <th mat-header-cell *matHeaderCellDef>Transf.</th>
           <td mat-cell *matCellDef="let f">{{ f.transferenciaId }}</td>
@@ -113,13 +113,12 @@
           (dblclick)="onAbrirTransferencia(row)"></tr>
         <tr class="mat-row" *matNoDataRow>
           <td class="empty-cell" [attr.colspan]="displayedColumns.length">
-            {{ estado === 'vacio' ? 'Sin productos rechazados para estos filtros'
-              : estado === 'error' ? 'No se pudo consultar. Probá de nuevo con Buscar.' : 'Cargando...' }}
+            {{ e.cargando ? 'Cargando...'
+              : e.fallo ? 'No se pudo consultar. Probá de nuevo con Buscar.' : 'Sin productos rechazados para estos filtros' }}
           </td>
         </tr>
       </table>
     </div>
-    <mat-paginator [pageIndex]="pageIndex" [length]="length" [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions"
-      (page)="handlePageEvent($event)" showFirstLastButtons class="paginator"></mat-paginator>
+    <mat-paginator [paginacion]="pag" class="paginator"></mat-paginator>
   </div>
 </app-generic-list>
