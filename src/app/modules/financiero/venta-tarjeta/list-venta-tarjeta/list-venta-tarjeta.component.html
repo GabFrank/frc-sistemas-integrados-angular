@@ -214,13 +214,6 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
     </div>
-    <mat-paginator
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      [pageIndex]="pageIndex"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      showFirstLastButtons
-      style="width: 100%"
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

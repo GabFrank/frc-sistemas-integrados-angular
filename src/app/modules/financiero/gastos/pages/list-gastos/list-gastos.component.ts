@@ -11,10 +11,10 @@ import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { sucursalesConServidor } from '../../../../empresarial/sucursal/sucursal-servidor.util';
 import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../../pdv/caja/caja.model';
-import { PageEvent } from '@angular/material/paginator';
-import { combineLatest, BehaviorSubject, Observable, of, timer } from 'rxjs';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
+import { of, timer } from 'rxjs';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
-import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
@@ -27,7 +27,7 @@ import { ROLES } from '../../../../personas/roles/roles.enum';
 /** Gasto de la grilla con el texto del vuelto ya resuelto (no se calcula desde el HTML). */
 export type GastoRow = Omit<Gasto, 'toInput' | 'toDetalleInputList'> & { vueltoLabel: string };
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-gastos',
   templateUrl: './list-gastos.component.html',
@@ -69,38 +69,34 @@ export class ListGastosComponent implements OnInit {
   idGastoControl = new FormControl();
   descripcionControl = new FormControl();
 
-  private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
-  public pagination$ = this.paginationSubject.asObservable();
-  private refetchSubject = new BehaviorSubject<void>(void 0);
-
-  public totalElements$ = new BehaviorSubject<number>(0);
-
-  public gastos$: Observable<GastoRow[]> = combineLatest([
-    this.refetchSubject,
-    this.pagination$
-  ]).pipe(
-    switchMap(([_, pag]) => this.gastoService.onFilterGasto(
+  /** Gastos paginados en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<GastoRow> = new PaginacionLista<GastoRow>({
+    cargar: (page, size) => this.gastoService.onFilterGasto(
       this.idGastoControl.value,
       this.idCajaControl.value,
       this.sucOrigenControl.value?.id,
       null,
       this.descripcionControl.value,
-      pag.pageIndex,
-      pag.pageSize,
+      page,
+      size,
       true,
       PROPAGAR_ERROR_DE_RED,
       { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
     ).pipe(
-      // Dentro del switchMap: si el error saliera de acá, el stream moriría y la lista no se actualizaría más (#390).
-      catchError(() => of(null))
-    )),
-    tap(res => {
-      if (res == null) { this.notificacion.openWarn('No se pudieron cargar los gastos.', 5); }
-      this.totalElements$.next(res ? res.getTotalElements : 0);
-    }),
-    map(res => (res?.getContent || []).map(g => this.toRow(g))),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
+      map(res => {
+        if (res == null) {
+          this.notificacion.openWarn('No se pudieron cargar los gastos.', 5);
+          return null;
+        }
+        return { getTotalElements: res.getTotalElements, getContent: (res.getContent || []).map(g => this.toRow(g)) };
+      }),
+      catchError(() => {
+        this.notificacion.openWarn('No se pudieron cargar los gastos.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 15,
+  });
 
   ngOnInit(): void {
     // Se resuelve aca y no en el template: llamar roles.includes(...) desde el HTML
@@ -117,22 +113,18 @@ export class ListGastosComponent implements OnInit {
         this.sucOrigenControl.setValue(res.find(s => s.id == this.data?.tabData?.data?.sucursal?.id));
         this.onFiltrar();
       })
+      return;
     }
+    this.onFiltrar();
   }
 
   compareSucursal(s1: Sucursal, s2: Sucursal): boolean {
     return s1 && s2 ? s1.id === s2.id : s1 === s2;
   }
 
+  /** Filtrar vuelve a la página 1. */
   onFiltrar() {
-    const { pageIndex, pageSize } = this.paginationSubject.value;
-    // Filtrar desde una pagina > 1 dejaba la grilla parada en un indice que el
-    // nuevo resultado ya no tiene, y se veia vacia. Se vuelve a la primera.
-    if (pageIndex !== 0) {
-      this.paginationSubject.next({ pageIndex: 0, pageSize });
-      return;
-    }
-    this.refetchSubject.next();
+    this.pag.filtrar();
   }
 
   resetFiltro() {
@@ -166,18 +158,18 @@ export class ListGastosComponent implements OnInit {
       this.gastoService.onCancelarGasto(gasto.id, gasto.sucursalId, !estabaCancelado).pipe(untilDestroyed(this)).subscribe({
         next: () => {
           this.notificacion.openSucess(estabaCancelado ? 'Gasto habilitado con éxito' : 'Gasto cancelado con éxito');
-          this.onFiltrar();
+          this.pag.recargar();
         },
         // El motivo del rechazo ya lo avisó onCustomMutation. Se relee por si la lista estaba vieja.
         error: (err) => {
           if (erroresDeRechazo(err) != null) {
-            this.onFiltrar();
+            this.pag.recargar();
             return;
           }
           // Sin respuesta pudo seguir aplicándose: se relee después. Repetir es seguro (manda el estado final) (#501)
           const aviso = avisoTrasMutacion(err, estabaCancelado ? 'se habilitó el gasto' : 'se canceló el gasto');
           if (aviso != null) this.notificacion.openWarn(aviso, 8);
-          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.onFiltrar());
+          timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.pag.recargar());
         }
       });
     });
@@ -290,9 +282,5 @@ export class ListGastosComponent implements OnInit {
 
   getAutorizadoPor(gasto: Gasto): string {
     return gasto?.autorizadoPor?.persona?.nombre || '-';
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 }
