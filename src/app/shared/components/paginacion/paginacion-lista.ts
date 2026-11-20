@@ -1,5 +1,5 @@
 import { PageEvent } from '@angular/material/paginator';
-import { BehaviorSubject, EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, Subject, Subscription, defer, of } from 'rxjs';
 import { catchError, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import { PageInfo } from '../../../app.component';
 
@@ -16,7 +16,7 @@ export interface EstadoPaginacion<T> {
 }
 
 /** Lo único que la lista necesita de la página del central. */
-export type PaginaCentral<T> = Pick<PageInfo<T>, 'getContent' | 'getTotalElements'>;
+export type PaginaCentral<T> = Partial<Pick<PageInfo<T>, 'getContent' | 'getTotalElements'>>;
 
 export interface OpcionesPaginacion<T> {
   /** Pide una página al central. `null` = el servicio ya avisó el error. */
@@ -57,6 +57,8 @@ export class PaginacionLista<T> {
   private readonly estado: BehaviorSubject<EstadoPaginacion<T>>;
   readonly estado$: Observable<EstadoPaginacion<T>>;
   readonly items$: Observable<T[]>;
+  /** Para una barra o un spinner en el HTML: `*ngIf="pag.cargando$ | async"`. */
+  readonly cargando$: Observable<boolean>;
 
   /** `null` cancela la carga en camino sin pedir otra. */
   private readonly pedidos = new Subject<Pedido | null>();
@@ -72,9 +74,11 @@ export class PaginacionLista<T> {
     });
     this.estado$ = this.estado.asObservable();
     this.items$ = this.estado$.pipe(map(e => e.items), distinctUntilChanged());
+    this.cargando$ = this.estado$.pipe(map(e => e.cargando), distinctUntilChanged());
 
     this.suscripcion = this.pedidos.pipe(
-      switchMap(pedido => pedido == null ? EMPTY : opciones.cargar(pedido.pageIndex, pedido.pageSize).pipe(
+      // defer: si `cargar` tira al llamarse (un service todavía sin armar), es una carga fallida y no corta la lista.
+      switchMap(pedido => pedido == null ? EMPTY : defer(() => opciones.cargar(pedido.pageIndex, pedido.pageSize)).pipe(
         catchError(error => {
           console.error('[PaginacionLista]', error);
           return of(null);
