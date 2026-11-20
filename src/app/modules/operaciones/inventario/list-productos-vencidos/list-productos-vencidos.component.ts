@@ -1,10 +1,10 @@
 import { Component, ElementRef, Input, OnInit, ViewChild, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
-import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { BehaviorSubject, forkJoin, of } from "rxjs";
-import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap, tap } from "rxjs/operators";
+import { forkJoin, Observable, of } from "rxjs";
+import { catchError, finalize, map } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 
 import {
   SearchListDialogComponent,
@@ -23,7 +23,6 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { ProductoVencidoView, FuenteVerdadVencimiento } from "../inventario.model";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
-import { PageEvent } from "@angular/material/paginator";
 import { ProductosVencidosGQL } from "../graphql/productos-vencidos.gql";
 import { ReporteProductosVencidosGQL } from "../graphql/reporteProductosVencidos";
 import { ReporteService } from "../../../reportes/reporte.service";
@@ -52,7 +51,7 @@ export interface ProductosVencidosFilters {
   size: number;
 }
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-productos-vencidos",
   templateUrl: "./list-productos-vencidos.component.html",
@@ -64,7 +63,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   @ViewChild("buscarUsuarioInput", { static: true }) buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  dataSource = new MatTableDataSource<ProductoVencidoView>([]);
   expandedProductoVencido: ProductoVencidoView;
   fechaFormGroup: FormGroup;
   sucursalControl = new FormControl();
@@ -80,18 +78,14 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   sucursalList: Sucursal[] = [];
   selectedUsuario: Usuario | null = null;
   selectedProducto: Producto | null = null;
-  length = 0;
-  pageSize = 15;
-  pageIndex = 0;
-  readonly pageSizeOptions = [15, 25, 50, 100];
-
-  private filtersSubject = new BehaviorSubject<ProductosVencidosFilters>({
-    page: 0,
-    size: 15
+  /** Paginada en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag: PaginacionLista<ProductoVencidoView> = new PaginacionLista<ProductoVencidoView>({
+    cargar: (page, size) => this.loadProductosVencidos({ ...this.filtros(), page, size }),
+    alCargar: () => this.cdRef.detectChanges(),
+    alFallar: () => this.cdRef.detectChanges(),
   });
 
   private isDialogOpen = false;
-  private forceRefresh = false;
   readonly today = new Date();
   disableRetiroButton = true;
 
@@ -130,7 +124,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadInitialData();
-    this.initializeSubscriptions();
     this.fechaFormGroup.get("inicio")?.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((val) => {
@@ -164,21 +157,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.expandedProductoVencido = this.expandedProductoVencido === row ? null : row;
   }
 
-  private initializeSubscriptions(): void {
-    this.filtersSubject.asObservable().pipe(
-      debounceTime(300),
-      distinctUntilChanged((prev, curr) => {
-        if (this.forceRefresh) {
-          this.forceRefresh = false;
-          return false;
-        }
-        return JSON.stringify(prev) === JSON.stringify(curr);
-      }),
-      switchMap((filters) => this.loadProductosVencidos(filters)),
-      untilDestroyed(this)
-    ).subscribe();
-  }
-
   private loadInitialData(): void {
     const end = new Date();
     const start = new Date();
@@ -186,9 +164,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
     this.fechaFormGroup.get("inicio")?.setValue(start);
     this.fechaFormGroup.get("fin")?.setValue(end);
-    this.pageIndex = 0;
-    this.pageSize = 15;
-    this.updateFilters();
+    this.pag.filtrar();
     this.loadSucursales();
   }
 
@@ -201,7 +177,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadProductosVencidos(filters: ProductosVencidosFilters) {
+  /** Una página; `null` si no llegó (ya avisado). */
+  private loadProductosVencidos(filters: ProductosVencidosFilters): Observable<PaginaCentral<ProductoVencidoView> | null> {
     const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
@@ -218,54 +195,31 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         clientName: 'servidor',
       },
     }).pipe(
-      tap(result => {
+      map((result: any) => {
         if (result.errors?.length) {
           console.error('Error en productosVencidos:', result.errors);
-          this.notificacion.openAlgoSalioMal(
-            result.errors[0]?.message || 'Error al buscar productos vencidos'
-          );
-          this.setEmptyData();
-          this.cdRef.detectChanges();
-          return;
+          this.notificacion.openAlgoSalioMal(result.errors[0]?.message || 'Error al buscar productos vencidos');
+          return null;
         }
-        this.handleProductosVencidosResponse(result);
+        if (!result?.data?.productosVencidos) {
+          console.error('Estructura de respuesta inválida');
+          return null;
+        }
+        return result.data.productosVencidos;
       }),
       catchError(error => {
-        // Ej: servidor offline. Mostrar aviso en vez de matar la suscripción de filtros.
+        // Ej: servidor offline.
         console.error('Error en productosVencidos:', error);
         this.notificacion.openAlgoSalioMal('Error al buscar productos vencidos');
-        this.setEmptyData();
-        this.cdRef.detectChanges();
         return of(null);
       }),
-      // Cierra el spinner en éxito, error o cancelación (switchMap al cambiar filtros).
+      // Cierra el spinner en éxito, error o cancelación (al pedir otra página o filtro).
       finalize(() => this.cargandoService.closeDialog(requestId))
     );
   }
 
-  private handleProductosVencidosResponse(result: any): void {
-    if (!result?.data?.productosVencidos) {
-      console.error('Estructura de respuesta inválida');
-      this.setEmptyData();
-      this.cdRef.detectChanges();
-      return;
-    }
-
-    const pageData = result.data.productosVencidos;
-    this.dataSource.data = pageData.getContent || [];
-    this.length = pageData.getTotalElements || 0;
-    this.cdRef.detectChanges();
-  }
-
-  private setEmptyData(): void {
-    this.dataSource.data = [];
-    this.length = 0;
-  }
-
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.forceRefresh = true;
-    this.updateFilters();
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
@@ -286,7 +240,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   onGenerarPdf(): void {
     // El reporte trae TODO lo que matchea el filtro, no la pagina visible: por eso
-    // se mandan los mismos filtros que updateFilters() pero sin page/size.
+    // se mandan los mismos filtros que la lista pero sin page/size (filtros()).
     this.genericCrudService.onCustomQuery(this.reporteProductosVencidosGQL, {
       startDate: this.getStartDate(),
       endDate: this.getEndDate(),
@@ -312,7 +266,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   onRetirarProductos(): void {
-    const items = this.dataSource.data || [];
+    const items = this.pag.items;
     if (items.length === 0) {
       this.notificacion.openWarn('No hay productos en la página actual');
       return;
@@ -380,8 +334,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
             const agregados = resultados.filter((ok) => ok).length;
             if (agregados > 0) {
               this.actualizarFiltrosDespuesRetiro(res.sucursalOrigen as Sucursal, res.sucursalDestino as Sucursal);
-              this.forceRefresh = true;
-              this.updateFilters();
+              this.pag.filtrar();
             }
             if (agregados === ops.length) {
               this.notificacion.openSucess(`Transferencia ${t.id} creada exitosamente. Los productos han sido agregados.`);
@@ -444,9 +397,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         this.buscarProductoControl.setValue(
           `${result.producto.descripcion} - ${result.producto.codigoPrincipal}`
         );
-        this.pageIndex = 0;
-        this.forceRefresh = true;
-        this.updateFilters();
+        this.pag.filtrar();
       }
     });
   }
@@ -454,9 +405,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   onClearProducto(): void {
     this.selectedProducto = null;
     this.buscarProductoControl.setValue("");
-    this.pageIndex = 0;
-    this.forceRefresh = true;
-    this.updateFilters();
+    this.pag.filtrar();
   }
 
   onBuscarUsuario(): void {
@@ -488,9 +437,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         this.buscarUsuarioControl.setValue(
           `${result.persona.nombre} ${result.persona.apodo}`
         );
-        this.pageIndex = 0;
-        this.forceRefresh = true;
-        this.updateFilters();
+        this.pag.filtrar();
       }
     });
   }
@@ -498,19 +445,12 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   onClearUsuario(): void {
     this.selectedUsuario = null;
     this.buscarUsuarioControl.setValue("");
-    this.pageIndex = 0;
-    this.forceRefresh = true;
-    this.updateFilters();
+    this.pag.filtrar();
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.updateFilters();
-  }
-
-  private updateFilters(): void {
-    const filters: ProductosVencidosFilters = {
+  /** Los filtros de la pantalla, sin página (también los usa el PDF). */
+  private filtros(): Omit<ProductosVencidosFilters, 'page' | 'size'> {
+    return {
       startDate: this.getStartDate(),
       endDate: this.getEndDate(),
       sucursalIdList: this.sucursalIdList(),
@@ -518,11 +458,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       productoIdList: this.productoIdList(),
       fuenteVerdadList: this.fuenteVerdadList(),
       soloRealmenteVencidos: this.soloRealmenteVencidosControl.value,
-      page: this.pageIndex,
-      size: this.pageSize
     };
-
-    this.filtersSubject.next(filters);
   }
 
   private getStartDate(): string | null {

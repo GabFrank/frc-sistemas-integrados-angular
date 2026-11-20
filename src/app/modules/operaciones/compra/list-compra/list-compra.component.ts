@@ -5,9 +5,8 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
@@ -35,7 +34,9 @@ import {
   ComprasSearchProductoResponse,
 } from "../gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
-import { interval, Subscription } from "rxjs";
+import { interval, Observable, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { SucursalRecepcionFisica } from "../gestion-compras/graphql/getPedidoRecepcionFisicaResumen";
 import {
   ImprimirPedidoDialogComponent,
@@ -49,7 +50,7 @@ import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-compra",
   templateUrl: "./list-compra.component.html",
@@ -66,7 +67,6 @@ import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/cor
   ],
 })
 export class ListCompraComponent implements OnInit, OnDestroy {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   private recargasTrasCorte = new Set<any>();
   private destruido = false;
@@ -109,11 +109,21 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     "acciones",
   ];
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
-  selectedPageInfo: PageInfo<Pedido>;
+  /**
+   * Pedidos paginados en el central (#772): gana la última consulta (filtro, página o el refresco de 5 min). Si falla
+   * una página o el refresco, queda lo que se veía (#390); si falla un filtro nuevo, la lista queda vacía.
+   */
+  pag: PaginacionLista<Pedido> = new PaginacionLista<Pedido>({
+    cargar: (page, size) => this.consultar(page, size).pipe(
+      catchError(() => {
+        this.avisarListaSinRespuesta();
+        return of(null);
+      })
+    ),
+    pageSize: 25,
+    alCargar: (res) => (this.dataSource.data = res.getContent),
+    alFallar: (filtroNuevo) => filtroNuevo && (this.dataSource.data = []),
+  });
 
   constructor(
     private pedidoService: PedidoService,
@@ -135,12 +145,6 @@ export class ListCompraComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.buscar();
-    }, 0);
-
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
@@ -160,7 +164,7 @@ export class ListCompraComponent implements OnInit, OnDestroy {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
-    this.buscar();
+    this.pag.filtrar();
   }
 
   loadSucursales() {
@@ -184,66 +188,53 @@ export class ListCompraComponent implements OnInit, OnDestroy {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
-  /** La consulta en vuelo de un filtro o una página anterior (o del refresco de 5 min) no pisa la nueva. */
-  private listaSub: Subscription;
-
+  /** Repite la página a la vista (refresco de 5 min, tras cancelar o guardar). */
   buscar() {
-    this.listaSub?.unsubscribe();
+    this.pag.recargar();
+  }
+
+  /** Una página de pedidos; con id, solo ese pedido. */
+  private consultar(page: number, size: number): Observable<PaginaCentral<Pedido> | null> {
     if (this.fechaFinControl.value == null)
       this.fechaFinControl.setValue(this.today);
     let unaSemanaAtras = new Date();
     unaSemanaAtras.setDate(this.fechaFinControl.value.getDate() - 7);
     if (this.fechaInicioControl.value == null)
       this.fechaInicioControl.setValue(unaSemanaAtras);
-    
-    if (this.idControl.value == null) {
-      let fechaInicio: Date = this.fechaInicioControl.value;
-      let fechaFin: Date = this.fechaFinControl.value;
-      fechaInicio.setHours(0, 0, 0);
-      fechaFin.setHours(23, 59, 59);
-      
-      this.listaSub = this.pedidoService
-        .onGetPedidosWithFilters(
-          this.sucursalControl.value?.id || null,
-          this.selectedProducto?.id,
-          this.selectedProveedor?.id,
-          this.estadoControl.value || null,
-          dateToString(fechaInicio),
-          dateToString(fechaFin),
-          this.pageIndex,
-          this.pageSize
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (res: PageInfo<Pedido>) => {
-            if (res != null) {
-              this.selectedPageInfo = res;
-              res.getContent.forEach(pedido => this.enriquecerPedido(pedido));
-              this.dataSource.data = res.getContent;
-            }
-          },
-          error: () => this.avisarListaSinRespuesta(),
-        });
-    } else {
-      this.listaSub = this.pedidoService
-        .onGetPedidoById(this.idControl.value)
-        .subscribe({
-          next: (res) => {
-            if (res != null) {
-              this.enriquecerPedido(res);
-              this.dataSource.data = [res];
-            }
-          },
-          error: () => this.avisarListaSinRespuesta(),
-        });
+
+    if (this.idControl.value != null) {
+      return this.pedidoService.onGetPedidoById(this.idControl.value).pipe(
+        map((res) => {
+          if (res == null) return null;
+          this.enriquecerPedido(res);
+          return { getContent: [res], getTotalElements: 1 };
+        })
+      );
     }
+    let fechaInicio: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinControl.value;
+    fechaInicio.setHours(0, 0, 0);
+    fechaFin.setHours(23, 59, 59);
+    return this.pedidoService
+      .onGetPedidosWithFilters(
+        this.sucursalControl.value?.id || null,
+        this.selectedProducto?.id,
+        this.selectedProveedor?.id,
+        this.estadoControl.value || null,
+        dateToString(fechaInicio),
+        dateToString(fechaFin),
+        page,
+        size
+      )
+      .pipe(
+        map((res: PageInfo<Pedido>) => {
+          res?.getContent?.forEach(pedido => this.enriquecerPedido(pedido));
+          return res;
+        })
+      );
   }
 
   onResetFiltro() {
@@ -434,12 +425,6 @@ export class ListCompraComponent implements OnInit, OnDestroy {
         ListCompraComponent
       )
     );
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   onSearchProducto() {

@@ -1,4 +1,4 @@
-<app-generic-list titulo="Inventarios" (filtrar)="onFiltrar(true)" [isCustom]="true" customName="Generar Pdf"
+<app-generic-list titulo="Inventarios" (filtrar)="onFiltrar()" [isCustom]="true" customName="Generar Pdf"
   (customFunction)="onGenerarPdf()" (resetFiltro)="onResetFiltro()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
@@ -163,7 +163,7 @@
   </div>
   <div table style="height: 100%" fxLayout="column"
     fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+    <table mat-table [dataSource]="pag.items$" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="descripcion" style="width: 30%">
         <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Descripción
@@ -373,8 +373,6 @@
 
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator itemsPerPageLabel="Itens por página" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>
