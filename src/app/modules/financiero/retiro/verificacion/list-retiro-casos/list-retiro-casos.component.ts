@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
@@ -76,10 +78,44 @@ export class ListRetiroCasosComponent implements OnInit {
   /** En investigación = asignados a mí; en resueltos = los que yo cerré. */
   soloMios = false;
 
-  isLoading = false;
-  pageIndex = 0;
-  pageSize = 20;
-  totalElements = 0;
+  /** Caso a resaltar cuando llegue la próxima carga (al tomarlo se lo muestra donde quedó). */
+  private resaltarId: number = null;
+
+  /** Casos de la pestaña activa, paginados en el central (#772). */
+  pag: PaginacionLista<CasoRow> = new PaginacionLista<CasoRow>({
+    cargar: (page, size) => this.service.onGetCasos({
+      estado: this.tabs[this.tabActivo].estado,
+      sucursalId: this.sucursalControl.value?.id ?? null,
+      retiroId: this.retiroControl.value ? Number(this.retiroControl.value) : null,
+      desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
+      hasta: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
+      soloMios: this.soloMios,
+    }, page, size).pipe(
+      map(res => {
+        if (res == null) {
+          this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5);
+          return null;
+        }
+        // Clonar antes de agregar props de display: Apollo congela los resultados.
+        return { getTotalElements: res.getTotalElements || 0, getContent: (res.getContent || []).map(c => this.toRow(c)) };
+      }),
+      catchError(() => {
+        this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      const resaltar = this.resaltarId;
+      this.resaltarId = null;
+      if (resaltar != null) this.resaltar(resaltar);
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   puedeGestionar = false;
   /** El ADMIN destraba casos de gente que ya no está; el resto cierra solo lo suyo. */
   esAdmin = false;
@@ -103,31 +139,16 @@ export class ListRetiroCasosComponent implements OnInit {
     this.cargar();
   }
 
+  /** Repite la página a la vista (la primera carga, y después de tomar, devolver o cerrar un caso). */
   cargar(resaltarId?: number) {
-    this.isLoading = true;
-    this.service.onGetCasos({
-      estado: this.tabs[this.tabActivo].estado,
-      sucursalId: this.sucursalControl.value?.id ?? null,
-      retiroId: this.retiroControl.value ? Number(this.retiroControl.value) : null,
-      desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
-      hasta: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
-      soloMios: this.soloMios,
-    }, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isLoading = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5); return; }
-          // Clonar antes de agregar props de display: Apollo congela los resultados.
-          this.dataSource.data = (res.getContent || []).map(c => this.toRow(c));
-          this.totalElements = res.getTotalElements || 0;
-          if (resaltarId != null) this.resaltar(resaltarId);
-        },
-        error: () => {
-          this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
-        },
-      });
+    this.resaltarId = resaltarId ?? null;
+    this.pag.recargar();
+  }
+
+  /** Filtro, pestaña o «solo míos» nuevos: vuelve a la página 1. */
+  private filtrar(resaltarId?: number) {
+    this.resaltarId = resaltarId ?? null;
+    this.pag.filtrar();
   }
 
   private toRow(c: RetiroCaso): CasoRow {
@@ -169,8 +190,7 @@ export class ListRetiroCasosComponent implements OnInit {
   }
 
   aplicarFiltros() {
-    this.pageIndex = 0;
-    this.cargar();
+    this.filtrar();
   }
 
   limpiarFiltros() {
@@ -192,20 +212,12 @@ export class ListRetiroCasosComponent implements OnInit {
 
   onSoloMios() {
     this.soloMios = !this.soloMios;
-    this.pageIndex = 0;
-    this.cargar();
+    this.filtrar();
   }
 
   onTab(i: number) {
     this.tabActivo = i;
-    this.pageIndex = 0;
-    this.cargar();
-  }
-
-  onPage(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
+    this.filtrar();
   }
 
   /**
@@ -238,8 +250,7 @@ export class ListRetiroCasosComponent implements OnInit {
         // Se lo lleva a donde quedó el caso, resaltado, pero sin filtrar: ver el resto de lo
         // que tiene en curso es información útil, y un filtro que no pidió lo confundiría.
         this.tabActivo = 1;
-        this.pageIndex = 0;
-        this.cargar(row.id);
+        this.filtrar(row.id);
       },
       // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom. Se relee:
       // un rechazo es una bandeja vieja (lo tomó otro), y sin respuesta pudo haberse tomado (#390).

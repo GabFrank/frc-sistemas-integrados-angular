@@ -495,14 +495,9 @@
 
                     <!-- Paginador para TimbradoDetalles -->
                     <mat-paginator
-                      #paginatorTimbradoDetalle
-                      [pageSizeOptions]="[10, 15, 25]"
-                      [pageSize]="currentTimbradoDetallePageSize"
-                      [attr.data-trigger]="paginatorUpdateTrigger"
-                      [pageIndex]="currentTimbradoDetallePageIndex"
-                      (page)="handleTimbradoDetallePageEvent($event)"
-                      [length]="selectedTimbradoDetallePageInfo?.getTotalElements"
+                      [paginacion]="detallePag"
                       style="
+                        width: 100%;
                         background-color: var(--frc-superficie-alta); 
                         border-top: 1px solid var(--frc-borde-solido-fuerte);">
                     </mat-paginator>
@@ -533,15 +528,6 @@
       </tr>
     </table>
     
-    <mat-paginator
-      #paginatorTimbrado
-      [pageSize]="pageSize" 
-      [pageIndex]="pageIndex" 
-      (page)="handlePageEvent($event)" 
-      itemsPerPageLabel="Itens por pagina" 
-      [pageSizeOptions]="[15, 25, 50, 100]" 
-      [length]="selectedPageInfo?.getTotalElements" 
-      showFirstLastButtons>
-    </mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>
