@@ -1,11 +1,10 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { NotaRecepcion } from '../../compra/gestion-compras/nota-recepcion.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { NotaRecepcionPageResult } from '../../compra/gestion-compras/graphql/getNotasDisponiblesParaPagoPorProveedorPaginated';
 
 export interface AdicionarNotaDialogData {
   proveedorId: number;
@@ -17,7 +16,7 @@ export interface AdicionarNotaDialogData {
   templateUrl: './adicionar-nota-dialog.component.html',
   styleUrls: ['./adicionar-nota-dialog.component.scss']
 })
-export class AdicionarNotaDialogComponent implements OnInit {
+export class AdicionarNotaDialogComponent implements OnInit, OnDestroy {
   displayedColumns: string[] = ['select', 'proveedor', 'numero', 'fecha', 'moneda', 'valorTotal'];
   dataSource = new MatTableDataSource<(NotaRecepcion & { proveedorNombreDisplay?: string })>([]);
 
@@ -39,11 +38,24 @@ export class AdicionarNotaDialogComponent implements OnInit {
   getDenominacion(nota: NotaRecepcion): string {
     return ((nota as any).moneda?.denominacion || '-').toString().toUpperCase();
   }
-  loading = true;
   filtroTexto = '';
-  pageIndex = 0;
-  pageSize = 10;
-  totalElements = 0;
+
+  /** Notas paginadas en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag = new PaginacionLista<NotaRecepcion>({
+    cargar: (page, size) => this.solicitudPagoService.onGetNotasDisponiblesParaPagoPorProveedorPaginated(
+      this.data.proveedorId, page, size, this.filtroTexto.trim() || undefined),
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 30],
+    alCargar: (res) => this.mostrarNotas(res.getContent || []),
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) {
+        // Sin filas de otro filtro a la vista (#390)
+        this.dataSource.data = [];
+        this.updateComputedProperties();
+      }
+      this.notificacionService.openWarn('No se pudieron cargar las notas disponibles: el servidor no responde. Intentá de nuevo.', 6);
+    },
+  });
   /** IDs de notas seleccionadas (multi-select). */
   selectedNotas: Set<number> = new Set();
   /** Objetos completos de notas seleccionadas (para devolver al cerrar; se mantienen al cambiar de página). */
@@ -64,52 +76,29 @@ export class AdicionarNotaDialogComponent implements OnInit {
     this.loadPage();
   }
 
+  ngOnDestroy(): void {
+    this.pag.unsubscribe();
+  }
+
   loadPage(): void {
-    if (!this.data?.proveedorId) {
-      this.loading = false;
-      return;
-    }
-    this.loading = true;
-    this.solicitudPagoService
-      .onGetNotasDisponiblesParaPagoPorProveedorPaginated(
-        this.data.proveedorId,
-        this.pageIndex,
-        this.pageSize,
-        this.filtroTexto.trim() || undefined
-      )
-      .subscribe({
-        next: (result: NotaRecepcionPageResult) => {
-          const idsAgregados = new Set(this.data.notasYaAgregadasIds || []);
-          const content = (result?.getContent || []).filter((n) => !idsAgregados.has(n.id));
-          content.forEach((n) => {
-            (n as NotaRecepcion & { proveedorNombreDisplay?: string }).proveedorNombreDisplay =
-              (n.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-          });
-          this.dataSource.data = content as (NotaRecepcion & { proveedorNombreDisplay?: string })[];
-          this.totalElements = result?.getTotalElements ?? 0;
-          this.loading = false;
-          this.updateComputedProperties();
-        },
-        error: () => {
-          // Sin filas de otra página o filtro a la vista (#390)
-          this.dataSource.data = [];
-          this.totalElements = 0;
-          this.loading = false;
-          this.updateComputedProperties();
-          this.notificacionService.openWarn('No se pudieron cargar las notas disponibles: el servidor no responde. Intentá de nuevo.', 6);
-        }
-      });
+    if (!this.data?.proveedorId) return;
+    this.pag.recargar();
+  }
+
+  private mostrarNotas(notas: NotaRecepcion[]): void {
+    const idsAgregados = new Set(this.data.notasYaAgregadasIds || []);
+    const content = notas.filter((n) => !idsAgregados.has(n.id));
+    content.forEach((n) => {
+      (n as NotaRecepcion & { proveedorNombreDisplay?: string }).proveedorNombreDisplay =
+        (n.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
+    });
+    this.dataSource.data = content as (NotaRecepcion & { proveedorNombreDisplay?: string })[];
+    this.updateComputedProperties();
   }
 
   onFiltroBuscar(): void {
-    this.pageIndex = 0;
-    this.loadPage();
-  }
-
-  onPage(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadPage();
+    if (!this.data?.proveedorId) return;
+    this.pag.filtrar();
   }
 
   updateComputedProperties(): void {
