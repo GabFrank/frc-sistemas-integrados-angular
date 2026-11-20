@@ -53,6 +53,25 @@ describe('VerificarRetiroBloqueComponent — contado editable', () => {
     expect(b.conteos()[0].contado).toBe(90);
   });
 
+  it('el motivo sigue al signo mientras se tipea: 5 → 50 → 500 contra 200 termina en Sobrante', () => {
+    const b = armar([{ cantidad: 200, moneda: RS }]);
+    [5, 50, 500].forEach(v => b.onContadoChange(b.filas[0], v));
+    expect(b.filas[0].categoria).toBe('SOBRANTE' as any);
+    expect(b.conteos()[0].categoria).toBe('SOBRANTE' as any);
+    expect(b.filas[0].opciones.map(o => o.value)).not.toContain('FALTANTE');
+    b.onContadoChange(b.filas[0], 50);
+    expect(b.filas[0].categoria).toBe('FALTANTE' as any);
+    expect(b.filas[0].opciones.map(o => o.value)).not.toContain('SOBRANTE');
+  });
+
+  it('un motivo elegido a mano se respeta al cambiar el contado', () => {
+    const b = armar([{ cantidad: 200, moneda: RS }]);
+    b.onContadoChange(b.filas[0], 100);
+    b.filas[0].categoria = 'BILLETE_NO_RECIBIBLE' as any;
+    b.onContadoChange(b.filas[0], 150);
+    expect(b.filas[0].categoria).toBe('BILLETE_NO_RECIBIBLE' as any);
+  });
+
   it('borrar el input lo deja sin contar, nunca en 0', () => {
     const b = armar([{ cantidad: 500000, moneda: GS }]);
     b.onContadoChange(b.filas[0], 500000);
