@@ -30,8 +30,7 @@ import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ListRetiroComponent } from "../../../financiero/retiro/list-retiro/list-retiro.component";
-import { PageInfo } from "../../../../app.component";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 import { AdicionarCajaDialogComponent } from "../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
@@ -76,7 +75,6 @@ function rechazoDe(error: any): any {
   ],
 })
 export class ListVentaComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
   @Input()
@@ -102,7 +100,6 @@ export class ListVentaComponent implements OnInit {
   ventaObservacionList: VentaObservacion[];
   loading = false;
   isCargando = false;
-  isLastPage = false;
   idVentaControl = new FormControl();
   formaPagoControl = new FormControl();
   modoControl = new FormControl();
@@ -124,13 +121,19 @@ export class ListVentaComponent implements OnInit {
   conDescuentoControl = new FormControl(false);
   conAumentoControl = new FormControl(false);
 
-  length = 15;
-  pageSize = 15;
-  pageIndex = 0;
-  pageEvent: PageEvent;
   orderById = null;
   orderByNombre = null;
-  selectedPageInfo: PageInfo<Venta>;
+
+  /** Ventas de la caja paginadas en el central (#772): cada página se pide con los filtros a la vista. */
+  pag: PaginacionLista<Venta> = new PaginacionLista<Venta>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 15,
+    alCargar: (res) => this.ventaDataSource.data = this.onObservado(res.getContent ?? []),
+    // Filtro nuevo sin respuesta: sin filas del filtro anterior a la vista como si fueran del nuevo (#390).
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.ventaDataSource.data = [];
+    },
+  });
   form: FormGroup;
   isLoading = false;
 
@@ -265,10 +268,6 @@ export class ListVentaComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
     this.buscar();
   }
 
@@ -287,7 +286,7 @@ export class ListVentaComponent implements OnInit {
     //       }
     //     });
     // } else {
-    this.onGetVentas();
+    this.pag.filtrar();
     // }
   }
 
@@ -349,15 +348,13 @@ export class ListVentaComponent implements OnInit {
     this.filterChanged = true;
   }
 
-  onGetVentas() {
-    // this.cargandoService.openDialog()
-    // this.isCargando = true;
-    this.ventaService
+  private consultar(page: number, size: number) {
+    return this.ventaService
       .onSearch(
         this.idVentaControl.value,
         this.selectedCaja.id,
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         true,
         this.selectedCaja.sucursalId,
         this.formaPagoControl.value,
@@ -372,33 +369,18 @@ export class ListVentaComponent implements OnInit {
         undefined,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
-      .pipe(untilDestroyed(this))
-      .subscribe({ error: (e) => {
-        // Sin filas del filtro anterior a la vista como si fueran del nuevo (#390)
-        this.selectedPageInfo = null;
-        this.ventaDataSource.data = [];
+      .pipe(catchError((e) => {
         if (erroresDeRechazo(rechazoDe(e)) != null) {
           const motivo = motivoDelRechazo(rechazoDe(e)) ?? '';
           if (!/^No autorizado/i.test(motivo)) {
             this.notificacionService.openWarn(
               `No se pudo cargar la lista de ventas: ${motivo.replace(/\.+$/, '') || 'sin detalle'}.`, 5);
           }
-          return;
-        }
-        this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
-      }, next: (res) => {
-        // this.cargandoService.closeDialog()
-        // this.isCargando = false;
-        if (res != null) {
-          this.selectedPageInfo = res;
-          let ventas: Venta[] = res.getContent;
-          ventas = this.onObservado(ventas);
-          this.ventaDataSource.data = ventas;
         } else {
-          this.selectedPageInfo = null;
-          this.ventaDataSource.data = []; // error GraphQL: el servicio ya avisó
+          this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
         }
-      } });
+        return of(null); // error GraphQL: el servicio ya avisó y devuelve null
+      }));
   }
 
   /**
@@ -671,11 +653,7 @@ export class ListVentaComponent implements OnInit {
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
     // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
-    this.selectedPageInfo = null;
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
+    this.pag.limpiar();
     this.conObsControl.setValue(false);
     this.conDescuentoControl.setValue(false);
     this.conAumentoControl.setValue(false);
@@ -711,12 +689,6 @@ export class ListVentaComponent implements OnInit {
         ListVentaComponent
       )
     );
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   abrirConteo() {

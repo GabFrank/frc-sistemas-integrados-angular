@@ -2,7 +2,6 @@ import { Venta } from "../venta.model";
 import { ErrorCancelacionVenta, VentaService } from "../venta.service";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.service";
 import { MatSort } from "@angular/material/sort";
-import { PageInfo } from "../../../../app.component";
 import { MatDialog } from "@angular/material/dialog";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -13,7 +12,9 @@ import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { Cliente } from "../../../personas/clientes/cliente.model";
 import { Component, Input, OnInit, ViewChild } from "@angular/core";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { of } from "rxjs";
+import { catchError } from "rxjs/operators";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
@@ -54,7 +55,6 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../
     ],
 })
 export class GenericListVentaComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
   @Input() data: Tab;
@@ -98,20 +98,33 @@ export class GenericListVentaComponent implements OnInit {
   ventaObservacionList: VentaObservacion[];
   ventaEstadoList = Object.keys(VentaEstado)
 
-  // Pagination
-  length = 0;
-  pageSize = 15;
-  pageIndex = 0;
   totalFinal = 0;
   totalAumento = 0;
   totalRecibido = 0;
   isLoading = false;
-  isLastPage = false;
   totalDescuento = 0;
   totalRecibidoRs = 0;
   totalRecibidoDs = 0;
   totalRecibidoGs = 0;
-  selectedPageInfo: PageInfo<Venta>;
+
+  /** Ventas paginadas en el central (#772): cada página se pide con los filtros a la vista. */
+  pag: PaginacionLista<Venta> = new PaginacionLista<Venta>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 15,
+    alCargar: (res) => {
+      this.ventaDataSource.data = res.getContent ?? [];
+      this.onObservado(this.ventaDataSource.data);
+      this.ventaDataSource.data = [...this.ventaDataSource.data];
+      this.isGenerarReporteDisabled = !res.getContent || res.getContent.length === 0;
+    },
+    // Filtro nuevo sin respuesta: sin filas ni reporte del filtro anterior como si fueran del nuevo (#390).
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) {
+        this.ventaDataSource.data = [];
+        this.isGenerarReporteDisabled = true;
+      }
+    },
+  });
 
   /** Cancelar o reactivar exige CANCELACION DE VENTA (o ADMIN) también en el central (#340): sin el rol no se ofrece. */
   puedeCancelarVenta = false;
@@ -236,24 +249,26 @@ export class GenericListVentaComponent implements OnInit {
   }
 
   onFiltrarConReset() {
-    this.pageIndex = 0;
-    this.paginator.firstPage();
     this.onFiltrar();
   }
 
+  /** Filtrar o Enter: vuelve a la página 1. */
   onFiltrar() {
-    this.isLoading = true;
-    let fechaInicio = this.fechaInicioControl.value != null ? 
+    this.pag.filtrar();
+  }
+
+  private consultar(page: number, size: number) {
+    let fechaInicio = this.fechaInicioControl.value != null ?
       this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
-    let fechaFin = this.fechaFinControl.value != null ? 
+    let fechaFin = this.fechaFinControl.value != null ?
       this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
 
-    this.ventaService
+    return this.ventaService
       .onVentasFilter(
         this.toVentaId(this.idVentaControl.value),
         null, // cajaId
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         false, // asc (descending by default)
         this.sucursalControl.value,
         this.formaPagoControl.value,
@@ -267,32 +282,12 @@ export class GenericListVentaComponent implements OnInit {
         fechaInicio,
         fechaFin
       )
-      .pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
+      .pipe(catchError(() => {
         this.notificacionService.openWarn('No se pudo cargar la lista de ventas: el servidor no responde. Intentá de nuevo.', 5);
-        this.vaciarListaSinRespuesta();
-      }, next: (res) => {
-        this.isLoading = false;
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.ventaDataSource.data = res.getContent;
-          this.onObservado(this.ventaDataSource.data);
-          this.ventaDataSource.data = [...this.ventaDataSource.data];
-          this.isGenerarReporteDisabled = !res.getContent || res.getContent.length === 0;
-        } else {
-          this.vaciarListaSinRespuesta(); // error GraphQL: el servicio ya avisó
-        }
-      } });
+        return of(null); // error GraphQL: el servicio ya avisó y devuelve null
+      }));
   }
 
-  /** Sin filas, paginador ni reporte del filtro anterior a la vista como si fueran del nuevo (#390). */
-  private vaciarListaSinRespuesta(): void {
-    this.isLoading = false;
-    this.selectedPageInfo = null;
-    this.ventaDataSource.data = [];
-    this.isGenerarReporteDisabled = true;
-  }
-  
   /**
    * Carga aparte, sin bloquear el detalle, de qué lote salió cada ítem. Si el central todavía no
    * tiene la consulta o falla, no se muestra nada y el detalle sigue igual.
@@ -373,7 +368,7 @@ export class GenericListVentaComponent implements OnInit {
   
   onResetFiltro() {
     this.selectedCliente = null;
-    this.selectedPageInfo = null;
+    this.pag.limpiar();
     this.ventaDataSource.data = [];
     this.modoControl.setValue(null);
     this.estadoControl.setValue(null);
@@ -515,12 +510,6 @@ export class GenericListVentaComponent implements OnInit {
 
   onToggleConAumento(selected: boolean) {
     this.conAumentoControl.setValue(selected);
-  }
-
-  handlePageEvent(event: PageEvent) {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.onFiltrar();
   }
 
   onObservado(ventas: Venta[]): Venta[] {

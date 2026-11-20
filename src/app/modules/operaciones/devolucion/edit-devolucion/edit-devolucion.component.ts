@@ -1,10 +1,10 @@
-import { Component, Input, OnInit, ViewChild } from "@angular/core";
+import { Component, Input, OnInit } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { EMPTY, Subscription, timer } from "rxjs";
+import { EMPTY, Subscription, of, timer } from "rxjs";
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { catchError, timeout } from "rxjs/operators";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
@@ -70,7 +70,6 @@ import { ListDevolucionComponent } from "../list-devolucion/list-devolucion.comp
   styleUrls: ["./edit-devolucion.component.scss"],
 })
 export class EditDevolucionComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   @Input() data: Tab;
 
@@ -136,10 +135,33 @@ export class EditDevolucionComponent implements OnInit {
   acreditarMode = false;
   private refrescoSub: Subscription;
 
-  /** Los ítems se piden al central de a una página: una devolución puede tener muchos productos. */
-  itemsPageIndex = 0;
-  itemsPageSize = 20;
-  totalItems = 0;
+  /** La próxima carga de ítems no muestra el diálogo de carga ni avisa si falla (refresco o después de guardar). */
+  private itemsSilenciosa = false;
+  private ultimaCargaSilenciosa = false;
+
+  /**
+   * Los ítems se piden al central de a una página: una devolución puede tener muchos productos (#772).
+   * Si una página no carga, las acciones de estado quedan bloqueadas hasta reintentar (#390).
+   */
+  itemsPag: PaginacionLista<DevolucionItem> = new PaginacionLista<DevolucionItem>({
+    cargar: (page, size) => {
+      const silencioso = this.ultimaCargaSilenciosa = this.itemsSilenciosa;
+      this.itemsSilenciosa = false;
+      return this.devolucionService
+        .onGetDevolucionItemsPorDevolucionPage(
+          this.selectedDevolucion.id, page, size, true, silencioso, PROPAGAR_ERROR_DE_RED, CONSULTA_PANTALLA
+        )
+        .pipe(catchError(() => of(null)));
+    },
+    pageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    alCargar: (res) => {
+      this.itemsFallo = false;
+      this.dataSource.data = res.getContent ?? [];
+      this.computeEstadoFlags();
+    },
+    alFallar: (filtroNuevo) => this.marcarItemsFallidos(filtroNuevo),
+  });
 
   columnsToDisplay = [
     "producto",
@@ -351,49 +373,20 @@ export class EditDevolucionComponent implements OnInit {
     this.montoAcreditadoControl.markAsPristine();
   }
 
-  getItems(silencioso = false) {
+  /** `desdeLaPrimera`: después de agregar un ítem (los nuevos van primero). */
+  getItems(silencioso = false, desdeLaPrimera = false) {
     if (this.selectedDevolucion?.id == null) return;
-    this.devolucionService
-      .onGetDevolucionItemsPorDevolucionPage(
-        this.selectedDevolucion.id,
-        this.itemsPageIndex,
-        this.itemsPageSize,
-        true,
-        silencioso,
-        PROPAGAR_ERROR_DE_RED,
-        CONSULTA_PANTALLA
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => {
-          if (res == null) { this.marcarItemsFallidos(silencioso); return; }
-          // Se borró lo último de una página que ya no existe: se vuelve a la anterior.
-          if ((res.getContent?.length ?? 0) == 0 && this.itemsPageIndex > 0 && res.getTotalElements > 0) {
-            this.itemsPageIndex = Math.max(0, (res.getTotalPages ?? 1) - 1);
-            this.getItems(silencioso);
-            return;
-          }
-          this.itemsFallo = false;
-          this.totalItems = res.getTotalElements ?? 0;
-          this.dataSource.data = res.getContent ?? [];
-          this.computeEstadoFlags();
-        },
-        error: () => this.marcarItemsFallidos(silencioso)
-      });
+    this.itemsSilenciosa = silencioso;
+    if (desdeLaPrimera) this.itemsPag.filtrar();
+    else this.itemsPag.recargar();
   }
 
-  onItemsPage(e: PageEvent) {
-    this.itemsPageIndex = e.pageIndex;
-    this.itemsPageSize = e.pageSize;
-    this.getItems();
-  }
-
-  private marcarItemsFallidos(silencioso: boolean) {
+  /** `vaciar`: falló la primera carga; si no, la tabla volvió a la última página cargada. */
+  private marcarItemsFallidos(vaciar: boolean) {
     this.itemsFallo = true;
-    this.totalItems = 0;
-    this.dataSource.data = [];
+    if (vaciar) this.dataSource.data = [];
     this.computeEstadoFlags();
-    if (!silencioso) {
+    if (!this.ultimaCargaSilenciosa) {
       this.notificacionService.openWarn("No se pudieron cargar los ítems de la devolución: no se puede avanzar hasta reintentar.", 5);
     }
   }
@@ -658,8 +651,7 @@ export class EditDevolucionComponent implements OnInit {
           if (res != null) {
             if (isNew) {
               // Los nuevos van primero: se vuelve a la primera página.
-              this.itemsPageIndex = 0;
-              this.getItems(true);
+              this.getItems(true, true);
             } else {
               this.dataSource.data = updateDataSourceWithId(
                 this.dataSource.data,
@@ -777,7 +769,7 @@ export class EditDevolucionComponent implements OnInit {
 
   /** Abre el diálogo de impresión de la etiqueta de separado (una por devolución). */
   onImprimirEtiquetas() {
-    if (!this.selectedDevolucion?.id || this.totalItems === 0) return;
+    if (!this.selectedDevolucion?.id || this.itemsPag.total === 0) return;
     // La tabla tiene una sola página: la etiqueta lista todos los ítems.
     this.devolucionService
       .onGetDevolucionItemsPorDevolucion(this.selectedDevolucion.id)
@@ -923,7 +915,7 @@ export class EditDevolucionComponent implements OnInit {
   /** Los reingresos ya se guardaron uno por uno al registrarlos: solo falta avanzar a CANJEADO. */
   onConfirmarCanje() {
     if (this.itemsFallo) return;
-    if (this.totalItems == 0) {
+    if (this.itemsPag.total == 0) {
       this.notificacionService.openWarn("No hay items para canjear");
       return;
     }

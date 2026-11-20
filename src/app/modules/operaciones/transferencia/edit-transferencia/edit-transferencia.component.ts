@@ -53,7 +53,6 @@ import {
   CurrencyMask,
   stringToInteger,
   updateDataSource,
-  updateDataSourceInsertFirst,
   updateDataSourceWithId,
 } from "../../../../commons/core/utils/numbersUtils";
 import {
@@ -95,8 +94,7 @@ import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
-import { PageInfo } from "../../../../app.component";
+import { PaginacionLista, PaginaCentral } from "../../../../shared/components/paginacion/paginacion-lista";
 import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { ListTransferenciaComponent } from "../list-transferencia/list-transferencia.component";
 import {
@@ -127,7 +125,6 @@ const SUCURSAL_DEPOSITO_AQUARIO_ID = 13;
   ],
 })
 export class EditTransferenciaComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
   @ViewChild("cantPresentacionInput", { static: false })
   cantPresentacionInput: ElementRef;
@@ -180,11 +177,25 @@ export class EditTransferenciaComponent implements OnInit {
 
   currencyMask = new CurrencyMask();
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
-  selectedPageInfo: PageInfo<TransferenciaItem>;
+  /**
+   * Ítems paginados en el central (#772), ya combinados con sus alertas de vencidos y averiados. Paginar, la carga
+   * inicial y las recargas piden lo mismo (con el filtro de producto aplicado).
+   */
+  pag: PaginacionLista<TransferenciaItemView> = new PaginacionLista<TransferenciaItemView>({
+    cargar: (page, size) => this.consultarItems(page, size),
+    pageSize: 25,
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      // Igual que frc-mobile: la etapa (filtro de rechazados y si se puede finalizar) se
+      // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
+      // "todo confirmado".
+      this.verificarEtapa();
+    },
+    // Filtro nuevo sin respuesta: sin ítems de otro filtro a la vista (#390).
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   isLastPage = false;
 
@@ -462,10 +473,6 @@ export class EditTransferenciaComponent implements OnInit {
             }
             this.selectedTransferencia = new Transferencia();
             Object.assign(this.selectedTransferencia, res);
-            setTimeout(() => {
-              this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-              this.pageSize = this.paginator.pageSizeOptions[1];
-            }, 0);
             this.getTransferenciaItemList();
             this.actualizarPermisosPorSucursal();
             this.onVerificarConfirmados();
@@ -494,66 +501,46 @@ export class EditTransferenciaComponent implements OnInit {
       this.mainService?.sucursalActual?.id == 0;
   }
 
+  /** Primera página de los ítems (al abrir o al cambiar el filtro de producto). */
   getTransferenciaItemList() {
-    // Paginar, la carga inicial y las recargas piden lo mismo: antes paginar perdía el filtro de producto.
-    this.cargarPaginaItems(
-      this.filtroProductoAplicado
-        ? this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
-          this.selectedTransferencia.id,
-          this.filtroProductoAplicado,
-          this.pageIndex,
-          this.pageSize
-        )
-        : this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
-          this.selectedTransferencia.id,
-          this.pageIndex,
-          this.pageSize
-        )
-    );
+    this.pag.filtrar();
   }
 
-  private cargarPaginaItems(items$: Observable<PageInfo<TransferenciaItem>>): void {
-    items$
-      .pipe(
-        switchMap((res) => {
-          const items = res?.getContent ?? [];
-          const itemIds = items
-            .map((item) => item.id)
-            .filter((id) => id != null);
-          if (!this.selectedTransferencia?.id || itemIds.length === 0) {
-            return of({ res, alertas: [] as TransferenciaItemAlerta[] });
-          }
-          // Sin alertas los ítems se muestran igual (con aviso); el error queda adentro del switchMap (#390).
-          return this.transferenciaService
-            .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
-            .pipe(
-              catchError(() => of(null)),
-              map((alertas) => {
-                if (alertas == null) { this.avisarAlertasNoCargadas(); }
-                return { res, alertas: alertas ?? [] };
-              })
-            );
-        }),
-        untilDestroyed(this)
-      )
-      .subscribe({
-        next: ({ res, alertas }) => {
-          if (res == null) {
-            this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia.", 5);
-            return;
-          }
-          this.selectedPageInfo = res;
-          this.dataSource.data = this.combinarItemsConAlertas(
-            res.getContent,
-            alertas
+  private consultarItems(page: number, size: number): Observable<PaginaCentral<TransferenciaItemView> | null> {
+    const id = this.selectedTransferencia.id;
+    const items$ = this.filtroProductoAplicado
+      ? this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(id, this.filtroProductoAplicado, page, size)
+      : this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(id, page, size);
+    return items$.pipe(
+      switchMap((res) => {
+        if (res == null) {
+          this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia.", 5);
+          return of(null);
+        }
+        const items = res.getContent ?? [];
+        const itemIds = items
+          .map((item) => item.id)
+          .filter((itemId) => itemId != null);
+        // Sin alertas los ítems se muestran igual (con aviso); el error queda adentro del switchMap (#390).
+        const alertas$ = itemIds.length === 0
+          ? of([] as TransferenciaItemAlerta[])
+          : this.transferenciaService.onAlertasTransferenciaItems(id, itemIds).pipe(
+            catchError(() => of(null)),
+            map((alertas) => {
+              if (alertas == null) { this.avisarAlertasNoCargadas(); }
+              return alertas ?? [];
+            })
           );
-          // Igual que frc-mobile: la etapa (filtro de rechazados y si se puede finalizar) se
-          // evalua sobre los items ya cargados. Antes se evaluaba con la grilla vacia y daba
-          // "todo confirmado".
-          this.verificarEtapa();
-        },
-        error: () => this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia: el servidor no responde.", 5)
-      });
+        return alertas$.pipe(map((alertas) => ({
+          getContent: this.combinarItemsConAlertas(items, alertas),
+          getTotalElements: res.getTotalElements,
+        })));
+      }),
+      catchError(() => {
+        this.notificacionService.openWarn("No se pudieron cargar los ítems de la transferencia: el servidor no responde.", 5);
+        return of(null);
+      })
+    );
   }
 
   private avisarAlertasNoCargadas(): void {
@@ -934,16 +921,11 @@ export class EditTransferenciaComponent implements OnInit {
                 res,
                 res?.id
               );
+              this.actualizarAlertasPaginaActual();
             } else {
-              this.dataSource.data = updateDataSourceInsertFirst(
-                this.dataSource.data,
-                res
-              );
-              if (this.pageSize == this.dataSource.data?.length)
-                this.dataSource.data.pop();
-              this.paginator.length = this.paginator.length + 1;
+              // Los nuevos van primero (el central ordena por id desc): se muestra la página 1 con el total al día.
+              this.pag.onPage({ pageIndex: 0, pageSize: this.pag.pageSize, length: this.pag.total });
             }
-            this.actualizarAlertasPaginaActual();
           }
         },
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom, y el
@@ -962,7 +944,8 @@ export class EditTransferenciaComponent implements OnInit {
             null,
             index
           );
-          this.paginator.length = this.dataSource.data.length;
+          // Repite la página: completa la fila que falta y deja el total al día (antes quedaba el largo de la página).
+          this.pag.recargar();
         }
       });
   }
@@ -1909,12 +1892,6 @@ export class EditTransferenciaComponent implements OnInit {
     }
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.getTransferenciaItemList();
-  }
-
   abrirFiltroProductos() {
     this.filtroProductosOpen = !this.filtroProductosOpen;
     if (!this.filtroProductosOpen) {
@@ -1938,10 +1915,6 @@ export class EditTransferenciaComponent implements OnInit {
   /** Un filtro nuevo (o quitarlo) arranca en la página 1. */
   private aplicarFiltroProducto(texto: string): void {
     this.filtroProductoAplicado = texto;
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
     this.getTransferenciaItemList();
   }
 
