@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SucursalService } from '../../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
@@ -73,9 +72,6 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
 
-    handlePageEvent(event: PageEvent): void {
-        this.vehiculoService.updatePaginationSucursal(event.pageIndex, event.pageSize);
-    }
 
     onBuscarResponsable(): void {
         this.enteService.abrirBuscadorResponsable().pipe(untilDestroyed(this)).subscribe((res: Funcionario | undefined) => {

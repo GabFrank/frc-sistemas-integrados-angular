@@ -4,6 +4,7 @@ import { Inmueble } from '../models/inmueble.model';
 import { InmuebleInput } from '../models/inmueble-input.model';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { InmuebleByIdGQL } from '../graphql/inmuebleById';
 import { SaveInmuebleGQL } from '../graphql/saveInmueble';
 import { DeleteInmuebleGQL } from '../graphql/deleteInmueble';
@@ -64,21 +65,17 @@ export class InmuebleService {
     );
   }
 
-  private inmueblesSubject = new BehaviorSubject<Inmueble[]>([]);
-  public inmuebles$ = this.inmueblesSubject.asObservable();
-
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$ = this.loadingSubject.asObservable();
-
   private _searchText$ = new BehaviorSubject<string>('');
   public searchText$ = this._searchText$.asObservable();
 
-  private _paginationState$ = new BehaviorSubject<{ pageIndex: number; pageSize: number; totalElements: number }>({
-    pageIndex: 0,
+
+  /** Lista paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  readonly pag = new PaginacionLista<Inmueble>({
+    cargar: (page, size) => this.onFiltrar(this._searchText$.value, page, size),
     pageSize: 15,
-    totalElements: 0,
   });
-  public paginationState$ = this._paginationState$.asObservable();
+  public inmuebles$ = this.pag.items$;
+  public loading$ = this.pag.cargando$;
 
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Inmueble> {
@@ -90,35 +87,15 @@ export class InmuebleService {
     return this.genericService.onCustomQuery(this.inmuebleSearchPageGQL, { texto, page, size });
   }
 
+  /** Repite la página a la vista (después de guardar o borrar). */
   refrescar(): void {
-    this.loadingSubject.next(true);
-    const texto = this._searchText$.value;
-    const { pageIndex, pageSize } = this._paginationState$.value;
-    this.onFiltrar(texto, pageIndex, pageSize).subscribe({
-      next: (res) => {
-        this.inmueblesSubject.next(res?.getContent || []);
-        this._paginationState$.next({
-          ...this._paginationState$.value,
-          totalElements: res?.getTotalElements || 0,
-        });
-        this.loadingSubject.next(false);
-      },
-      error: () => this.loadingSubject.next(false),
-    });
+    this.pag.recargar();
   }
 
+  /** Un texto nuevo arranca en la página 1. */
   setSearchText(texto: string): void {
     this._searchText$.next(texto);
-    this.updatePagination(0, this._paginationState$.value.pageSize);
-  }
-
-  updatePagination(pageIndex: number, pageSize: number): void {
-    this._paginationState$.next({
-      ...this._paginationState$.value,
-      pageIndex,
-      pageSize,
-    });
-    this.refrescar();
+    this.pag.filtrar();
   }
 
 

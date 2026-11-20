@@ -2,8 +2,8 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { VehiculoByIdGQL } from '../graphql/vehiculoById';
 import { SaveVehiculoGQL } from '../graphql/saveVehiculo';
 import { DeleteVehiculoGQL } from '../graphql/deleteVehiculo';
-import { VehiculoSearchGQL } from '../graphql/vehiculoSearch';
-import { BehaviorSubject, Observable, combineLatest, of, forkJoin } from 'rxjs';
+import { VehiculoSearchPageGQL } from '../graphql/vehiculoSearchPage';
+import { BehaviorSubject, Observable, of, forkJoin } from 'rxjs';
 import { Vehiculo } from '../models/vehiculo.model';
 import { VehiculoInput } from '../models/vehiculo-input.model';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
@@ -26,6 +26,7 @@ import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError
 import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PageInfo } from '../../../../../app.component';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { VehiculoDialogService } from './vehiculo-dialog-service.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -45,7 +46,7 @@ export class VehiculoService {
   private vehiculoByIdGQL = inject(VehiculoByIdGQL);
   private saveVehiculoGQL = inject(SaveVehiculoGQL);
   private deleteVehiculoGQL = inject(DeleteVehiculoGQL);
-  private vehiculoSearchGQL = inject(VehiculoSearchGQL);
+  private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
   private modeloSearchPageGQL = inject(ModeloSearchPageGQL);
   private tipoVehiculoSearchPageGQL = inject(TipoVehiculoSearchPageGQL);
   private marcaSearchGQL = inject(MarcaSearchGQL);
@@ -60,56 +61,26 @@ export class VehiculoService {
   abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
     return this.injector.get(VehiculoDialogService).abrirFormulario(vehiculo);
   }
-  private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
-  public vehiculos$ = this.vehiculosSubject.asObservable();
-
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$ = this.loadingSubject.asObservable();
-
   private _searchText$ = new BehaviorSubject<string>('');
   public searchText$ = this._searchText$.asObservable();
 
   private _tiposVehiculoSubject = new BehaviorSubject<TipoVehiculo[]>([]);
   public tiposVehiculo$ = this._tiposVehiculoSubject.asObservable();
 
-  private _paginationState$ = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({
-    pageIndex: 0,
-    pageSize: 15
-  });
-  public paginationState$ = this._paginationState$.asObservable();
-
   private _tipoFilter$ = new BehaviorSubject<number | null>(null);
   public tipoFilter$ = this._tipoFilter$.asObservable();
 
-  public totalElements$ = combineLatest([
-    this.vehiculos$,
-    this._tipoFilter$
-  ]).pipe(
-    map(([vehiculos, tipoId]) => {
-      if (tipoId !== null && tipoId !== undefined) {
-        return vehiculos.filter(v => v.tipoVehiculo?.id == tipoId).length;
-      }
-      return vehiculos.length;
-    })
-  );
-
-  public filteredVehiculos$ = combineLatest([
-    this.vehiculos$,
-    this._tipoFilter$,
-    this._paginationState$
-  ]).pipe(
-    map(([vehiculos, tipoId, pag]) => {
-      let filtered = vehiculos;
-      if (tipoId !== null && tipoId !== undefined) {
-        filtered = vehiculos.filter(v => v.tipoVehiculo?.id == tipoId);
-      }
-      const start = pag.pageIndex * pag.pageSize;
-      const end = start + pag.pageSize;
-      return filtered.slice(start, end);
-    })
-  );
-  private vehiculosSucursalSubject = new BehaviorSubject<EnteSucursal[]>([]);
-  public vehiculosSucursal$ = this.vehiculosSucursalSubject.asObservable();
+  /**
+   * Vehículos paginados y filtrados por tipo en el central (#772); antes se traían 1000 y se filtraba y paginaba
+   * acá. Gana la última página pedida; si falla un cambio de página vuelve a la anterior.
+   */
+  readonly pag = new PaginacionLista<Vehiculo>({
+    cargar: (page, size) => this.genericService.onCustomQuery(this.vehiculoSearchPageGQL,
+      { texto: this._searchText$.value, page, size, tipoVehiculoId: this._tipoFilter$.value }),
+    pageSize: 15,
+  });
+  public filteredVehiculos$ = this.pag.items$;
+  public loading$ = this.pag.cargando$;
 
   private _sucursalFilter$ = new BehaviorSubject<number | null>(null);
   public sucursalFilter$ = this._sucursalFilter$.asObservable();
@@ -117,15 +88,16 @@ export class VehiculoService {
   private _responsableFilter$ = new BehaviorSubject<number | null>(null);
   public responsableFilter$ = this._responsableFilter$.asObservable();
 
-  private _paginationSucursalState$ = new BehaviorSubject<{ pageIndex: number, pageSize: number, totalElements: number }>({
-    pageIndex: 0,
-    pageSize: 15,
-    totalElements: 0
-  });
-  public paginationSucursalState$ = this._paginationSucursalState$.asObservable();
-
   private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
   public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
+
+  /** Vehículos asignados a sucursales, paginados en el central (#772). */
+  readonly pagSucursal = new PaginacionLista<EnteSucursal>({
+    cargar: (page, size) => this.enteService.onBuscarAsignacionesPagina(this._searchTextSucursal$.value,
+      this._sucursalFilter$.value, TipoEnte.VEHICULO, this._responsableFilter$.value, page, size),
+    pageSize: 15,
+  });
+  public vehiculosSucursal$ = this.pagSucursal.items$;
 
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Vehiculo> {
@@ -133,37 +105,22 @@ export class VehiculoService {
       errorConf, contexto);
   }
 
-  onFiltrar(texto: string, page: number, size: number): Observable<Vehiculo[]> {
-    return this.genericService.onCustomQuery(this.vehiculoSearchGQL, { texto, page, size });
-  }
-
-  /** volverAPagina1: un filtro nuevo; la página se reinicia al llegar la lista, no antes (sin ver la vieja en la 1, y un error no mueve la página). */
+  /** `volverAPagina1`: un filtro nuevo (Buscar); sin él repite la página a la vista (tras guardar o borrar). */
   refrescar(volverAPagina1 = false): void {
-    this.loadingSubject.next(true);
-    const texto = this._searchText$.value;
-    this.onFiltrar(texto, 0, 1000).subscribe({
-      next: (res) => {
-        if (volverAPagina1) this.updatePagination(0, this._paginationState$.value.pageSize);
-        this.vehiculosSubject.next(res || []);
-        this.loadingSubject.next(false);
-      },
-      error: () => {
-        this.loadingSubject.next(false);
-      }
-    });
+    if (volverAPagina1) this.pag.filtrar();
+    else this.pag.recargar();
   }
 
   setSearchText(texto: string): void {
     this._searchText$.next(texto);
-    this.refrescar(true);
+    this.pag.filtrar();
   }
 
   /** El servicio es singleton: una lista recién abierta arranca sin el filtro ni la página de la anterior (#589). Conserva el tamaño de página. */
   reiniciarFiltros(): void {
     this._searchText$.next('');
     this._tipoFilter$.next(null);
-    this.vehiculosSubject.next([]);
-    this.updatePagination(0, this._paginationState$.value.pageSize);
+    this.pag.limpiar();
   }
 
   cargarTiposCache(): void {
@@ -176,13 +133,9 @@ export class VehiculoService {
 
 
 
-  updatePagination(pageIndex: number, pageSize: number): void {
-    this._paginationState$.next({ pageIndex, pageSize });
-  }
-
   updateTipoFilter(tipoId: number | null): void {
     this._tipoFilter$.next(tipoId);
-    this.updatePagination(0, this._paginationState$.value.pageSize);
+    this.pag.filtrar();
   }
 
   /** Propaga el error de red: sin eso el genérico se lo traga y el formulario no se entera (#390). */
@@ -287,48 +240,24 @@ export class VehiculoService {
     return of({ getContent: [], getTotalElements: 0 } as any);
   }
 
+  /** Repite la página a la vista. */
   refrescarSucursal(): void {
-    this.loadingSubject.next(true);
-    const sucursalId = this._sucursalFilter$.value;
-    const responsableId = this._responsableFilter$.value;
-    const texto = this._searchTextSucursal$.value;
-    const { pageIndex, pageSize } = this._paginationSucursalState$.value;
-
-    this.enteService.onBuscarAsignacionesPagina(texto, sucursalId, TipoEnte.VEHICULO, responsableId, pageIndex, pageSize).subscribe({
-      next: (res) => {
-        this.vehiculosSucursalSubject.next(res?.getContent || []);
-        this._paginationSucursalState$.next({
-          ...this._paginationSucursalState$.value,
-          totalElements: res.getTotalElements || 0
-        });
-        this.loadingSubject.next(false);
-      },
-      error: () => this.loadingSubject.next(false)
-    });
+    this.pagSucursal.recargar();
   }
 
   setSucursalFilter(id: number | null): void {
     this._sucursalFilter$.next(id);
-    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
+    this.pagSucursal.filtrar();
   }
 
   setResponsableFilter(id: number | null): void {
     this._responsableFilter$.next(id);
-    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
-  }
-
-  updatePaginationSucursal(pageIndex: number, pageSize: number): void {
-    this._paginationSucursalState$.next({
-      ...this._paginationSucursalState$.value,
-      pageIndex,
-      pageSize
-    });
-    this.refrescarSucursal();
+    this.pagSucursal.filtrar();
   }
 
   setSearchTextSucursal(texto: string | null): void {
     this._searchTextSucursal$.next(texto);
-    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
+    this.pagSucursal.filtrar();
   }
 
   abrirFormularioSucursal(enteSucursal?: EnteSucursal, vehiculo?: Vehiculo): Observable<EnteSucursal | undefined> {

@@ -6,6 +6,7 @@ import { Mueble } from '../models/mueble.model';
 import { MuebleInput } from '../models/mueble-input.model';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED, QueryError } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MuebleByIdGQL } from '../graphql/muebleById';
 import { SaveMuebleGQL } from '../graphql/saveMueble';
 import { FamiliaMuebleByIdGQL } from '../graphql/familiaMuebleById';
@@ -45,21 +46,17 @@ export class MuebleService {
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
 
-  private mueblesSubject = new BehaviorSubject<Mueble[]>([]);
-  public muebles$ = this.mueblesSubject.asObservable();
-
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$ = this.loadingSubject.asObservable();
-
   private _searchText$ = new BehaviorSubject<string>('');
   public searchText$ = this._searchText$.asObservable();
 
-  private _paginationState$ = new BehaviorSubject<{ pageIndex: number; pageSize: number; totalElements: number }>({
-    pageIndex: 0,
+
+  /** Lista paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  readonly pag = new PaginacionLista<Mueble>({
+    cargar: (page, size) => this.onFiltrar(this._searchText$.value, page, size),
     pageSize: 15,
-    totalElements: 0,
   });
-  public paginationState$ = this._paginationState$.asObservable();
+  public muebles$ = this.pag.items$;
+  public loading$ = this.pag.cargando$;
 
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   onBuscarPorId(id: number, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Mueble> {
@@ -71,35 +68,15 @@ export class MuebleService {
     return this.genericService.onCustomQuery(this.muebleSearchPageGQL, { texto, page, size });
   }
 
+  /** Repite la página a la vista (después de guardar o borrar). */
   refrescar(): void {
-    this.loadingSubject.next(true);
-    const texto = this._searchText$.value;
-    const { pageIndex, pageSize } = this._paginationState$.value;
-    this.onFiltrar(texto, pageIndex, pageSize).subscribe({
-      next: (res) => {
-        this.mueblesSubject.next(res?.getContent || []);
-        this._paginationState$.next({
-          ...this._paginationState$.value,
-          totalElements: res?.getTotalElements || 0,
-        });
-        this.loadingSubject.next(false);
-      },
-      error: () => this.loadingSubject.next(false),
-    });
+    this.pag.recargar();
   }
 
+  /** Un texto nuevo arranca en la página 1. */
   setSearchText(texto: string): void {
     this._searchText$.next(texto);
-    this.updatePagination(0, this._paginationState$.value.pageSize);
-  }
-
-  updatePagination(pageIndex: number, pageSize: number): void {
-    this._paginationState$.next({
-      ...this._paginationState$.value,
-      pageIndex,
-      pageSize,
-    });
-    this.refrescar();
+    this.pag.filtrar();
   }
 
   abrirFormulario(mueble?: Mueble): Observable<boolean | undefined> {
