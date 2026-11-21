@@ -1,5 +1,6 @@
 import { CobroDetalle } from '../../../operaciones/venta/cobro/cobro-detalle.model';
-import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from './cobro-tarjeta';
+import { esCobroTarjetaRegistrable, lineaConMismoCupon, lineasTarjetaSinTerminal } from './cobro-tarjeta';
+import { DatosCupon } from './formato-qr-pos.model';
 
 function linea(over: Partial<CobroDetalle> = {}): CobroDetalle {
   const cd = new CobroDetalle();
@@ -74,5 +75,82 @@ describe('lineasTarjetaSinTerminal', () => {
   it('tolera una lista vacía o nula', () => {
     expect(lineasTarjetaSinTerminal([]).length).toBe(0);
     expect(lineasTarjetaSinTerminal(null).length).toBe(0);
+  });
+});
+
+// #625: venta 81509 de Itaipú, el mismo cupón en dos líneas del mismo cobro.
+describe('lineaConMismoCupon', () => {
+
+  const cupon = (over: Partial<DatosCupon> = {}): DatosCupon => ({ qrCrudo: '', formato: null, ...over });
+
+  function conCupon(c: DatosCupon, terminalId: any = 3): CobroDetalle {
+    return linea({ terminalPos: terminalId == null ? null : { id: terminalId } as any, datosCupon: c });
+  }
+
+  it('encuentra la otra línea con el mismo QR, aunque venga con espacios', () => {
+    const otra = conCupon(cupon({ qrCrudo: 'FRCP1*U1**BRL*50*REF1*202611211210' }));
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ qrCrudo: '  FRCP1*U1**BRL*50*REF1*202611211210\n' })))
+      .toBe(otra);
+  });
+
+  it('encuentra la otra línea con la misma referencia', () => {
+    const otra = conCupon(cupon({ identificadorTransaccion: 'E2E123' }));
+    const nueva = linea();
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ identificadorTransaccion: ' E2E123 ' }))).toBe(otra);
+  });
+
+  it('mismo código en la misma terminal: compara el id como número (GraphQL lo manda string)', () => {
+    const otra = conCupon(cupon({ codigoAutorizacion: 'ab12', monto: 50 }), '3');
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ codigoAutorizacion: ' AB12 ', monto: 50 }))).toBe(otra);
+  });
+
+  it('mismo código sin monto en uno de los dos: no alcanza para descartar', () => {
+    const otra = conCupon(cupon({ codigoAutorizacion: 'AB12' }));
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ codigoAutorizacion: 'AB12', monto: 50 }))).toBe(otra);
+  });
+
+  it('mismo código y sin terminal en un lado: cuenta como la misma, como en el backend', () => {
+    const otra = conCupon(cupon({ codigoAutorizacion: 'AB12', monto: 50 }), null);
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ codigoAutorizacion: 'AB12', monto: 50 }))).toBe(otra);
+  });
+
+  it('mismo código en otra terminal: no es el mismo cupón', () => {
+    const otra = conCupon(cupon({ codigoAutorizacion: 'AB12', monto: 50 }), 4);
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ codigoAutorizacion: 'AB12', monto: 50 }))).toBeNull();
+  });
+
+  it('mismo código con montos distintos: es una colisión de código corto, no un repetido', () => {
+    const otra = conCupon(cupon({ codigoAutorizacion: 'AB12', monto: 50 }));
+    const nueva = linea({ terminalPos: { id: 3 } as any });
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon({ codigoAutorizacion: 'AB12', monto: 60 }))).toBeNull();
+  });
+
+  it('la propia línea no cuenta: volver a escanear el mismo cupón en ella no es un repetido', () => {
+    const misma = conCupon(cupon({ qrCrudo: 'QR-1' }));
+    expect(lineaConMismoCupon([misma], misma, cupon({ qrCrudo: 'QR-1' }))).toBeNull();
+  });
+
+  it('cupones distintos y líneas sin cupón no cortan', () => {
+    const otra = conCupon(cupon({ qrCrudo: 'QR-1', identificadorTransaccion: 'R1', codigoAutorizacion: 'A1' }));
+    const sinCupon = linea();
+    const nueva = linea();
+    expect(lineaConMismoCupon([otra, sinCupon, nueva], nueva,
+      cupon({ qrCrudo: 'QR-2', identificadorTransaccion: 'R2', codigoAutorizacion: 'A2' }))).toBeNull();
+  });
+
+  it('un cupón vacío no coincide con otro vacío', () => {
+    const otra = conCupon(cupon());
+    const nueva = linea();
+    expect(lineaConMismoCupon([otra, nueva], nueva, cupon())).toBeNull();
+  });
+
+  it('tolera lista o cupón nulos', () => {
+    expect(lineaConMismoCupon(null, linea(), cupon({ qrCrudo: 'QR-1' }))).toBeNull();
+    expect(lineaConMismoCupon([linea()], linea(), null)).toBeNull();
   });
 });

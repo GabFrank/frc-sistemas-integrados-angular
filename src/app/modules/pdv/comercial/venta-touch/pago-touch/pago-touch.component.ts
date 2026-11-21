@@ -105,7 +105,7 @@ import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-t
 import { VentaTarjetaService } from "../../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../../financiero/venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
-import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
+import { esCobroTarjetaRegistrable, lineaConMismoCupon, lineasTarjetaSinTerminal } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
@@ -1172,6 +1172,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // cobro para confirmar lo mismo. El chequeo se queda igual para cualquier puerta que NO haya
     // preguntado -- que es la garantía de que la regla no se puede saltear agregando una puerta
     // nueva, justamente el hueco que este código tenía.
+    //
+    // Antes que todo, incluso que el atajo `verificado`: el backend solo ve cupones ya guardados,
+    // y el mismo cupón en dos líneas de este cobro pasaba las dos veces (#625, venta 81509 de
+    // Itaipú). No se aplica: si la línea tenía un cupón bueno de antes, se conserva.
+    if (lineaConMismoCupon(this.cobroDetalleList, item, datosCupon)) {
+      this.avisarCuponNoUsable('Ese cupón ya está cargado en otra línea de este cobro.');
+      this.finEscaneoTarjeta();
+      return;
+    }
     if (datosCupon.verificado) { this.evaluarCupon(item, datosCupon); return; }
 
     this.ventaTarjetaService
