@@ -1,8 +1,9 @@
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Component, OnInit } from "@angular/core";
-import { PageEvent } from "@angular/material/paginator";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { timer } from "rxjs";
+import { of, timer } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from "../../../../commons/core/utils/graphqlErrorUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -17,18 +18,31 @@ import { OperacionDevolucionService } from "../operacion-devolucion/operacion-de
  * reimprimir la etiqueta de cada devolución y revertir la colecta (solo si
  * sus devoluciones siguen en COLECTADO).
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-historial-colectas",
   templateUrl: "./historial-colectas.component.html",
   styleUrls: ["./historial-colectas.component.scss"],
 })
 export class HistorialColectasComponent implements OnInit {
-  operaciones: any[] = [];
-  pageIndex = 0;
-  pageSize = 15;
-  totalElements = 0;
-  cargando = false;
+  /**
+   * Paginadas en el central (#772): gana la última página pedida. Si falla, la lista se oculta y queda
+   * «Reintentar», que repite la última página que cargó (#390).
+   */
+  pag = new PaginacionLista<any>({
+    cargar: (page, size) => this.operacionService
+      .onGetColectas(page, size, this.desde ? this.desde + " 00:00" : undefined, this.hasta ? this.hasta + " 23:59" : undefined)
+      .pipe(
+        // null: el servicio ya avisó el error. Sin respuesta (error de red) se avisa acá.
+        catchError(() => {
+          this.notificacionService.openWarn("No se pudieron cargar las colectas: el servidor no responde.", 5);
+          return of(null);
+        }),
+        map((res: any) => res && { getTotalElements: res.getTotalElements, getContent: (res.getContent || []).map((op: any) => this.mapOp(op)) })
+      ),
+    pageSize: 15,
+    pageSizeOptions: [15, 25, 50],
+  });
   procesando = false;
   desde: string | null = null; // yyyy-MM-dd
   hasta: string | null = null;
@@ -43,58 +57,22 @@ export class HistorialColectasComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.cargar();
+    this.pag.filtrar();
   }
 
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.cargar();
+    this.pag.filtrar();
   }
 
   onLimpiar(): void {
     this.desde = null;
     this.hasta = null;
-    this.pageIndex = 0;
-    this.cargar();
+    this.pag.filtrar();
   }
 
-  /** La última carga falló: se muestra el error con «Reintentar», no «No hay…». */
-  cargaFallo = false;
-  private paginaCargada = { pageIndex: 0, pageSize: 15 };
-
+  /** Repite la página a la vista (Reintentar, tras revertir o acreditar). */
   cargar(): void {
-    this.cargando = true;
-    const fi = this.desde ? this.desde + " 00:00" : undefined;
-    const ff = this.hasta ? this.hasta + " 23:59" : undefined;
-    this.operacionService
-      .onGetColectas(this.pageIndex, this.pageSize, fi, ff)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: any) => {
-          this.cargando = false;
-          // null: el servicio ya avisó el error; acá solo se marca el fallo.
-          if (res == null) { this.noCargo(false); return; }
-          this.cargaFallo = false;
-          this.paginaCargada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
-          this.totalElements = res.getTotalElements;
-          this.operaciones = (res.getContent || []).map((op: any) => this.mapOp(op));
-        },
-        error: () => { this.cargando = false; this.noCargo(true); }
-      });
-  }
-
-  /**
-   * Sin respuesta: no se muestra «No hay…» ni datos viejos, y la página vuelve a la última que cargó (si no,
-   * «Reintentar» pediría la página a la que se intentó ir) (#390).
-   */
-  private noCargo(avisar: boolean): void {
-    this.cargaFallo = true;
-    this.operaciones = [];
-    this.pageIndex = this.paginaCargada.pageIndex;
-    this.pageSize = this.paginaCargada.pageSize;
-    if (avisar) {
-      this.notificacionService.openWarn("No se pudieron cargar las colectas: el servidor no responde.", 5);
-    }
+    this.pag.recargar();
   }
 
   private mapOp(op: any): any {
@@ -111,12 +89,6 @@ export class HistorialColectasComponent implements OnInit {
       _revertida: revertida,
       _revertible: revertible,
     };
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
   }
 
   onReimprimirEtiquetas(d: any): void {

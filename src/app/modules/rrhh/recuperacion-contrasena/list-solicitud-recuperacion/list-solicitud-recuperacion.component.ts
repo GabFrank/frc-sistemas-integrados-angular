@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { filter, switchMap } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
+import { filter, map, switchMap } from 'rxjs/operators';
 import { PageInfo } from '../../../../app.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -32,7 +31,7 @@ interface FilaSolicitud {
  * llamarlo a ese número). Aprobar no le dice la contraseña a nadie: el usuario la elige con el
  * código secreto que solo vio él.
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-solicitud-recuperacion',
   templateUrl: './list-solicitud-recuperacion.component.html',
@@ -40,11 +39,8 @@ interface FilaSolicitud {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ListSolicitudRecuperacionComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['id', 'creadoEn', 'usuario', 'documento', 'telefono', 'telefonoRegistrado', 'email',
     'estado', 'resueltoPor', 'acciones'];
-  dataSource = new MatTableDataSource<FilaSolicitud>([]);
 
   estadoControl = new FormControl<string>('PENDIENTE');
   estados = [
@@ -56,38 +52,36 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
     { valor: 'TODAS', nombre: 'Todas' },
   ];
 
-  pageIndex = 0;
-  pageSize = 25;
-  totalElementos = 0;
+  /** Solicitudes paginadas en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<FilaSolicitud>({
+    cargar: (page, size) => this.service.onGetPage(this.estadoControl.value, page, size).pipe(
+      map((res: PageInfo<SolicitudRecuperacionContrasena>) => res && {
+        getTotalElements: res.getTotalElements,
+        getContent: (res.getContent || []).map((s) => this.aFila(s)),
+      })
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private service: SolicitudRecuperacionContrasenaService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
-    private cdr: ChangeDetectorRef,
   ) { }
 
   ngOnInit(): void {
     this.cargarPagina();
   }
 
-  // Filtrar, Buscar y el cambio de estado vuelven a la página 1 (variable y paginador).
+  // Filtrar, Buscar y el cambio de estado vuelven a la página 1.
   onFiltrar(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.cargarPagina();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras aprobar, rechazar o anular). */
   cargarPagina(): void {
-    this.service.onGetPage(this.estadoControl.value, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<SolicitudRecuperacionContrasena>) => {
-        if (res == null) return;
-        this.totalElementos = res.getTotalElements;
-        this.dataSource.data = (res.getContent || []).map((s) => this.aFila(s));
-        this.cdr.markForCheck();
-      });
+    this.pag.recargar();
   }
 
   onCambiarEstado(): void {
@@ -97,12 +91,6 @@ export class ListSolicitudRecuperacionComponent implements OnInit {
   onResetFiltro(): void {
     this.estadoControl.setValue('PENDIENTE');
     this.onCambiarEstado();
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarPagina();
   }
 
   onAprobar(fila: FilaSolicitud): void {

@@ -1,5 +1,5 @@
 <app-generic-list titulo="Sorteos" (adicionar)="onNuevo()" (filtrar)="onFilter()" (resetFiltro)="onLimpiarFiltros()"
-  [isAdicionar]="true" [data]="dataSource.data">
+  [isAdicionar]="true">
   <div filtros>
     <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
       <mat-form-field appearance="outline" fxFlex="30%">
@@ -10,14 +10,15 @@
     </div>
   </div>
   <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
-    <div *ngIf="listaFallo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 0">
+    <ng-container *ngIf="pag.estado$ | async as e">
+    <div *ngIf="e.fallo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="padding: 8px 0">
       <mat-icon>error_outline</mat-icon>
-      <span *ngIf="!dataSource.data.length">No se pudieron cargar los sorteos.</span>
-      <span *ngIf="dataSource.data.length">No se pudo actualizar la lista: puede no reflejar el último cambio.</span>
+      <span *ngIf="!e.items.length">No se pudieron cargar los sorteos.</span>
+      <span *ngIf="e.items.length">No se pudo actualizar la lista: puede no reflejar el último cambio.</span>
       <button mat-stroked-button type="button" (click)="onGetData()">Reintentar</button>
     </div>
     <div fxFlex style="overflow: auto; min-height: 0">
-      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+      <table mat-table [dataSource]="e.items" class="mat-elevation-z8">
         <ng-container matColumnDef="nombre"><th mat-header-cell *matHeaderCellDef>Nombre</th><td mat-cell *matCellDef="let f">{{ f.sorteo.nombre }}</td></ng-container>
         <ng-container matColumnDef="minimo"><th mat-header-cell *matHeaderCellDef class="centro">Mínimo</th><td mat-cell *matCellDef="let f" class="centro">{{ f.sorteo.montoMinimo | number: '1.0-0' }}</td></ng-container>
         <ng-container matColumnDef="modo"><th mat-header-cell *matHeaderCellDef class="centro">Modo</th><td mat-cell *matCellDef="let f" class="centro">{{ f.modo }}</td></ng-container>
@@ -38,7 +39,7 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
     </div>
-    <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]" [pageIndex]="pageIndex" [pageSize]="pageSize" (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements" showFirstLastButtons style="width: 100%"></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
+    </ng-container>
   </div>
 </app-generic-list>
