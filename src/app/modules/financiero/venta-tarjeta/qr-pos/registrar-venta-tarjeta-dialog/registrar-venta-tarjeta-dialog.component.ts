@@ -684,7 +684,9 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     // Encontrado por Gabriel el 2026-09-17 con el cupón de 3.500 de INFONET.
     if (!hayAlgo) {
       this.capturaUrl = null;   // el QR de esa captura ya no escucha a nadie: sacarlo de pantalla
-      this.capturaToken = null;
+      // El token NO se limpia: la salida que se le ofrece al cajero es cargar a mano, y la foto que
+      // el motor no entendió sigue siendo el cupón. Se limpiaba junto con el QR, el cobro se
+      // completaba sin token, la foto quedaba sin venta y la purga la borraba como huérfana (#786).
       this.esperandoFoto = false;
       this.errorCaptura =
         'Se leyó el cupón pero no se pudo separar ningún campo. Sacá otra foto, o cargalo a mano ' +
