@@ -23,6 +23,8 @@ import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/lis
 /** Fila con los campos de display precalculados (no se llaman funciones desde el HTML). */
 interface CasoRow extends RetiroCaso {
   _diferencias: string;
+  /** Nombre de la sucursal; el id mientras no cargó la lista o si no está en ella (inactiva). */
+  _sucursal: string;
   _contadoPor: string;
   _chipColor: string;
   _chipBg: string;
@@ -99,6 +101,8 @@ export class ListRetiroCasosComponent implements OnInit {
     this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+      // Los casos pueden haber llegado antes: se re-rotulan con el nombre.
+      this.dataSource.data = this.dataSource.data.map(r => ({ ...r, _sucursal: this.nombreSucursal(r.sucursalId) }));
     });
     this.cargar();
   }
@@ -130,6 +134,10 @@ export class ListRetiroCasosComponent implements OnInit {
       });
   }
 
+  private nombreSucursal(id: number): string {
+    return this.sucursalList.find(s => s.id == id)?.nombre || String(id ?? '—');
+  }
+
   private toRow(c: RetiroCaso): CasoRow {
     const row = { ...c } as CasoRow;
     const detalles: RetiroVerificacionDetalle[] = c.verificacion?.detalles || [];
@@ -137,12 +145,14 @@ export class ListRetiroCasosComponent implements OnInit {
     row._diferencias = detalles
       .filter(d => Math.abs(d.diferencia || 0) > 0.005)
       .map(d => {
-        const dec = d.moneda?.decimales != null ? d.moneda.decimales : 0;
-        const monto = (d.diferencia || 0).toLocaleString('es-PY', { maximumFractionDigits: dec });
+        const dec = decimalesDe(d.moneda);
+        const dif = d.diferencia || 0;
+        const monto = dif.toLocaleString('es-PY', { minimumFractionDigits: dec, maximumFractionDigits: dec });
         const cat = d.categoria ? CATEGORIA_LABEL[d.categoria] : '';
-        return `${monto} ${d.moneda?.simbolo || ''} (${cat})`;
+        return `${dif > 0 ? '+' : ''}${monto} ${d.moneda?.simbolo || ''} (${cat})`;
       })
       .join(' · ') || '—';
+    row._sucursal = this.nombreSucursal(c.sucursalId);
     row._contadoPor = c.verificacion?.usuario?.persona?.nombre || '—';
     row._rapida = !!c.verificacion?.rapida;
     // Un caso resuelto sin veredicto es uno cerrado por anulación de la verificación, no por
@@ -291,4 +301,10 @@ export class ListRetiroCasosComponent implements OnInit {
       width: '65vw', height: '70vh', maxWidth: '96vw', data,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.cargar(); });
   }
+}
+
+/** Decimales de la moneda; sin dato, el guaraní sin fracción y las demás con 2 (igual que el central). */
+function decimalesDe(moneda: { decimales?: number; denominacion?: string }): number {
+  if (moneda?.decimales != null) return moneda.decimales;
+  return (moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2;
 }

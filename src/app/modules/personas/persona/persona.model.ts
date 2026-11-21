@@ -1,5 +1,6 @@
 import { dateToString } from '../../../commons/core/utils/dateUtils';
 import { Ciudad } from '../../general/ciudad/ciudad.model';
+import { Pais } from '../../general/pais/pais.model';
 import { Usuario } from '../usuarios/usuario.model';
 import { PersonaInput } from './persona/persona-input.model';
 
@@ -13,6 +14,8 @@ export class Persona  {
   sexo: string;
   direccion: string;
   ciudad: Ciudad;
+  /** Solo lo trae PersonaPaisGQL (central). Nulo = Paraguay (#666). */
+  pais?: Pais;
   telefono: string;
   socialMedia: string;
   imagenes: string;
@@ -35,6 +38,7 @@ export class Persona  {
     input.sexo = this.sexo
     input.direccion = this.direccion
     input.ciudadId = this.ciudad?.id
+    input.paisId = this.pais?.id
     input.telefono = this.telefono
     input.socialMedia = this.socialMedia
     input.imagenes = this.imagenes

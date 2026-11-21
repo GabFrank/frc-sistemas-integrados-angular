@@ -17,6 +17,8 @@ interface FilaMoneda {
   /** null mientras no se contó. */
   diferencia: number | null;
   categoria: CategoriaDiferenciaRetiro;
+  /** Motivos del menú: el que dice el signo (Faltante o Sobrante) más los que se eligen a mano. */
+  opciones: { value: string; label: string }[];
   decimales: number;
   /** digitsInfo del pipe number: decimales fijos de la moneda (-10,00 R$; 3.000.000 Gs). */
   formato: string;
@@ -70,7 +72,8 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
   /** Monto tipeado o tomado de lo declarado, por moneda. Si la moneda tiene billetes, mandan los billetes. */
   montos: { [monedaId: string]: number } = {};
 
-  categorias = Object.keys(CATEGORIA_LABEL).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
+  private readonly opcionesFaltante = opcionesSin(CategoriaDiferenciaRetiro.SOBRANTE);
+  private readonly opcionesSobrante = opcionesSin(CategoriaDiferenciaRetiro.FALTANTE);
 
   private timerAviso: any;
 
@@ -111,7 +114,7 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
         ? d.moneda.decimales
         : ((d.moneda.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
       const fila = porMoneda.get(d.moneda.id) || {
-        moneda: d.moneda, declarado: 0, contado: null, diferencia: null, categoria: null,
+        moneda: d.moneda, declarado: 0, contado: null, diferencia: null, categoria: null, opciones: [],
         decimales: dec, formato: `1.${dec}-${dec}`, opts: opcionesMonto(dec), etiqueta: '', color: '',
       };
       fila.declarado += d.cantidad || 0;
@@ -194,11 +197,14 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
       f.diferencia = redondear(f.contado, f.decimales) - redondear(f.declarado, f.decimales);
       if (Math.abs(f.diferencia) > 0.005) {
         this.hayDiferencia = true;
-        if (!f.categoria) {
-          f.categoria = f.diferencia < 0
-            ? CategoriaDiferenciaRetiro.FALTANTE
-            : CategoriaDiferenciaRetiro.SOBRANTE;
+        // Faltante y Sobrante los dice el signo: fijarlos con el primer dígito dejaba «Faltante» al tipear
+        // 500 contra 200 (pasa por 5 y 50). Los demás motivos los eligió el usuario y se respetan.
+        const porSigno = f.diferencia < 0 ? CategoriaDiferenciaRetiro.FALTANTE : CategoriaDiferenciaRetiro.SOBRANTE;
+        if (!f.categoria || f.categoria === CategoriaDiferenciaRetiro.FALTANTE
+          || f.categoria === CategoriaDiferenciaRetiro.SOBRANTE) {
+          f.categoria = porSigno;
         }
+        f.opciones = f.diferencia < 0 ? this.opcionesFaltante : this.opcionesSobrante;
         f.etiqueta = f.diferencia < 0 ? 'Faltante' : 'Sobrante';
         f.color = f.diferencia < 0 ? '#ff8a80' : '#64b5f6';
       } else {
@@ -271,6 +277,10 @@ export class VerificarRetiroBloqueComponent implements OnInit, OnDestroy {
       })
       .join(' · ');
   }
+}
+
+function opcionesSin(excluida: CategoriaDiferenciaRetiro) {
+  return Object.keys(CATEGORIA_LABEL).filter(k => k !== excluida).map(k => ({ value: k, label: CATEGORIA_LABEL[k] }));
 }
 
 function redondear(valor: number, decimales: number): number {
