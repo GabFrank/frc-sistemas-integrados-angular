@@ -218,7 +218,7 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     // abre la foto como siempre: no saber la config no puede cerrar un camino que hoy anda.
     if (this.ofreceCamara) {
       this.configuracionVentaTarjetaService
-        .onGetConfiguracion(false, CONTEXTO_MOSTRADOR)
+        .onGetConfiguracion(false, CONTEXTO_MOSTRADOR, true)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (config) => {
