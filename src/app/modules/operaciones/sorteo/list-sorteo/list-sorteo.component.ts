@@ -1,10 +1,9 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { textoVigencia } from '../../../productos/precio-especial/precio-especial.util';
@@ -24,25 +23,32 @@ interface FilaSorteo {
   estadoTexto: string;
 }
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-sorteo',
   templateUrl: './list-sorteo.component.html',
   styleUrls: ['./list-sorteo.component.scss'],
 })
 export class ListSorteoComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-  dataSource = new MatTableDataSource<FilaSorteo>([]);
   displayedColumns = ['nombre', 'minimo', 'modo', 'vigencia', 'sucursales', 'estado', 'acciones'];
-  selectedPageInfo: PageInfo<Sorteo>;
-  pageIndex = 0;
-  pageSize = 15;
   textoControl = new FormControl<string>(null);
   soloVigentesControl = new FormControl<boolean>(true);
-  /** La última consulta falló: la grilla vacía no significa «sin sorteos». */
-  listaFallo = false;
-  /** Descarta respuestas de una consulta anterior. */
-  private carga = 0;
+  /** Sorteos paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<FilaSorteo> = new PaginacionLista<FilaSorteo>({
+    cargar: (page, size) => {
+      const params: any = { page, size, soloVigentes: !!this.soloVigentesControl.value };
+      if (this.textoControl.value) params.texto = this.textoControl.value;
+      return this.service.onFiltrar(params).pipe(map(res => res && { getTotalElements: res.getTotalElements, getContent: this.aFilas(res.getContent ?? []) }));
+    },
+    pageSize: 15,
+    alCargar: () => this.avisoMostrado = false,
+    alFallar: () => {
+      // Un solo aviso hasta que vuelva a cargar bien.
+      if (!this.avisoMostrado) this.notificacionService.openWarn('No se pudieron cargar los sorteos: volvé a intentar.', 5);
+      this.avisoMostrado = true;
+    },
+  });
+  private avisoMostrado = false;
 
   constructor(
     private service: SorteoService,
@@ -55,51 +61,31 @@ export class ListSorteoComponent implements OnInit {
     this.onGetData();
   }
 
+  /** Repite la página a la vista (al abrir, Reintentar, tras guardar o cortar). */
   onGetData(): void {
-    const carga = ++this.carga;
-    const fallo = () => {
-      if (carga !== this.carga) return;
-      if (!this.listaFallo) this.notificacionService.openWarn('No se pudieron cargar los sorteos: volvé a intentar.', 5);
-      this.listaFallo = true;
-    };
-    const params: any = { page: this.pageIndex, size: this.pageSize, soloVigentes: !!this.soloVigentesControl.value };
-    if (this.textoControl.value) params.texto = this.textoControl.value;
-    this.service.onFiltrar(params).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
-      if (carga !== this.carga) return;
-      if (!res) {
-        fallo();
-        return;
-      }
-      this.listaFallo = false;
-      this.selectedPageInfo = res;
-      const hoy = new Date();
-      this.dataSource.data = (res.getContent ?? []).map((s) => ({
-        sorteo: s,
-        modo: MODO_SORTEO_TEXTO[s.modoParticipacion] ?? s.modoParticipacion,
-        vigencia: textoVigencia(s),
-        sucursales: s.todasSucursales ? 'Todas' : `${s.sucursales?.length ?? 0}`,
-        sucursalesDetalle: s.todasSucursales ? 'Todas las sucursales' : (s.sucursales ?? []).map((x) => x.nombre).join(', '),
-        estadoTexto: ESTADO_SORTEO_TEXTO[estadoSorteo(s, hoy)],
-      }));
-    } });
+    this.pag.recargar();
+  }
+
+  private aFilas(sorteos: Sorteo[]): FilaSorteo[] {
+    const hoy = new Date();
+    return sorteos.map((s) => ({
+      sorteo: s,
+      modo: MODO_SORTEO_TEXTO[s.modoParticipacion] ?? s.modoParticipacion,
+      vigencia: textoVigencia(s),
+      sucursales: s.todasSucursales ? 'Todas' : `${s.sucursales?.length ?? 0}`,
+      sucursalesDetalle: s.todasSucursales ? 'Todas las sucursales' : (s.sucursales ?? []).map((x) => x.nombre).join(', '),
+      estadoTexto: ESTADO_SORTEO_TEXTO[estadoSorteo(s, hoy)],
+    }));
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   onLimpiarFiltros(): void {
     this.textoControl.setValue(null);
     this.soloVigentesControl.setValue(true);
     this.onFilter();
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetData();
   }
 
   onNuevo(): void {

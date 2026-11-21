@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
-import { PageEvent } from "@angular/material/paginator";
-import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { of } from "rxjs";
-import { catchError, finalize, take } from "rxjs/operators";
+import { Observable, of } from "rxjs";
+import { catchError, finalize, map, take } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { ContextoConsulta, QueryError } from "../../../../generics/generic-crud.service";
@@ -33,7 +32,7 @@ const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FOND
  * Control de stock negativo: productos que salieron por venta o transferencia cuando su stock en
  * la sucursal ya era 0 o negativo. Solo lectura; los registros los crea el central.
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-control-stock-negativo",
   templateUrl: "./list-control-stock-negativo.component.html",
@@ -43,7 +42,6 @@ const CONSULTA_DETALLE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FOND
 export class ListControlStockNegativoComponent implements OnInit {
   @Input() data: Tab;
 
-  dataSource = new MatTableDataSource<ControlStockNegativo>([]);
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(null),
     fin: new FormControl<Date | null>(null),
@@ -65,13 +63,15 @@ export class ListControlStockNegativoComponent implements OnInit {
   readonly displayedColumns: string[] = [
     "fecha", "sucursal", "tipo", "producto", "cantidad", "stockPrevio", "stockActual", "usuario", "referencia", "acciones",
   ];
-  readonly pageSizeOptions = [15, 25, 50, 100];
   readonly today = new Date();
-  length = 0;
-  pageSize = 15;
-  pageIndex = 0;
-  /** true cuando la última consulta falló: la tabla vacía no significa «no hay registros». */
-  huboError = false;
+  /**
+   * Paginada en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. Las
+   * páginas usan los filtros del último «Filtrar» (un rango a medio escribir no frena el paginador).
+   */
+  pag: PaginacionLista<ControlStockNegativo> = new PaginacionLista<ControlStockNegativo>({
+    cargar: (page, size) => this.consultar({ ...this.filtrosAplicados, page, size }),
+  });
+  private filtrosAplicados: ControlStockNegativoFiltros;
 
   constructor(
     private controlStockNegativoGQL: ControlStockNegativoGQL,
@@ -92,12 +92,18 @@ export class ListControlStockNegativoComponent implements OnInit {
         this.sucursalList = lista;
         this.cdRef.detectChanges();
       });
-    this.buscar();
+    this.onFiltrar();
   }
 
+  /** Filtrar y Limpiar: valida el rango y vuelve a la página 1. */
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.buscar();
+    const rango = this.rangoValido();
+    if (rango == null) {
+      this.notificacion.openWarn("Completá un rango de fechas válido (inicio y fin) desde el calendario.");
+      return;
+    }
+    this.filtrosAplicados = this.filtros(rango);
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
@@ -106,21 +112,7 @@ export class ListControlStockNegativoComponent implements OnInit {
     this.tipoControl.setValue(null);
     this.textoControl.setValue("");
     this.stockControl.setValue(null);
-    this.pageIndex = 0;
-    this.buscar();
-  }
-
-  onPage(e: PageEvent): void {
-    const pageIndexAnterior = this.pageIndex;
-    const pageSizeAnterior = this.pageSize;
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    if (!this.buscar()) {
-      // La consulta no salió: el paginador no puede quedar en una página cuyas filas no están en pantalla.
-      this.pageIndex = pageIndexAnterior;
-      this.pageSize = pageSizeAnterior;
-      this.cdRef.detectChanges();
-    }
+    this.onFiltrar();
   }
 
   trackById(_: number, item: ControlStockNegativo): number {
@@ -212,21 +204,16 @@ export class ListControlStockNegativoComponent implements OnInit {
       tipo: this.tipoControl.value ?? null,
       texto: texto.length > 0 ? texto.toUpperCase() : null,
       stock: this.stockControl.value ?? null,
-      page: this.pageIndex,
-      size: this.pageSize,
+      page: 0,
+      size: 15,
     };
   }
 
-  /** @returns true si la consulta se envió; false si el rango no es válido y no se envió. */
-  private buscar(): boolean {
-    const rango = this.rangoValido();
-    if (rango == null) {
-      this.notificacion.openWarn("Completá un rango de fechas válido (inicio y fin) desde el calendario.");
-      return false;
-    }
+  /** Una página; `null` si no llegó (ya avisado). */
+  private consultar(filtros: ControlStockNegativoFiltros): Observable<PaginaCentral<ControlStockNegativo> | null> {
     const { requestId } = this.cargandoService.openDialog(false, "Buscando...");
-    this.controlStockNegativoGQL
-      .fetch(this.filtros(rango), {
+    return this.controlStockNegativoGQL
+      .fetch(filtros, {
         fetchPolicy: "no-cache",
         errorPolicy: "all",
         // La tabla vive solo en el central: sin esto, en modo local Apollo la rutea al filial.
@@ -234,24 +221,16 @@ export class ListControlStockNegativoComponent implements OnInit {
       })
       .pipe(
         catchError(() => of(null)),
-        finalize(() => this.cargandoService.closeDialog(requestId)),
-        untilDestroyed(this)
-      )
-      .subscribe((result) => {
-        const pagina = result?.data?.data;
-        if (result == null || result.errors?.length || pagina == null) {
-          this.huboError = true;
-          this.dataSource.data = [];
-          this.length = 0;
-          this.notificacion.openAlgoSalioMal(this.mensajeDeError(result?.errors?.[0]?.message));
-        } else {
-          this.huboError = false;
-          this.dataSource.data = pagina.getContent || [];
-          this.length = pagina.getTotalElements || 0;
-        }
-        this.cdRef.detectChanges();
-      });
-    return true;
+        map((result) => {
+          const pagina = result?.data?.data;
+          if (result == null || result.errors?.length || pagina == null) {
+            this.notificacion.openAlgoSalioMal(this.mensajeDeError(result?.errors?.[0]?.message));
+            return null;
+          }
+          return pagina;
+        }),
+        finalize(() => this.cargandoService.closeDialog(requestId))
+      );
   }
 
   /** Un servidor central anterior a esta función rechaza la consulta por validación del esquema. */

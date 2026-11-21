@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
-import { PageEvent } from "@angular/material/paginator";
-import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { of } from "rxjs";
-import { catchError, finalize } from "rxjs/operators";
+import { Observable, of } from "rxjs";
+import { catchError, finalize, map } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -30,7 +29,7 @@ import {
  * compras (recepción física o documental), con la fuente y el nro. de transferencia o pedido para
  * abrirlo. Solo lectura; la lista la arma el central (query productosRechazados).
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-producto-rechazado",
   templateUrl: "./list-producto-rechazado.component.html",
@@ -40,7 +39,6 @@ import {
 export class ListProductoRechazadoComponent implements OnInit {
   @Input() data: Tab;
 
-  dataSource = new MatTableDataSource<ProductoRechazado>([]);
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(null),
     fin: new FormControl<Date | null>(null),
@@ -58,13 +56,15 @@ export class ListProductoRechazadoComponent implements OnInit {
   readonly displayedColumns: string[] = [
     "fecha", "fuente", "referencia", "etapa", "producto", "presentacion", "cantidad", "motivo", "origen", "destino", "usuario",
   ];
-  readonly pageSizeOptions = [15, 25, 50, 100];
   readonly today = new Date();
-  length = 0;
-  pageSize = 15;
-  pageIndex = 0;
-  /** true cuando la última consulta falló: la tabla vacía no significa «no hay rechazos». */
-  huboError = false;
+  /**
+   * Paginada en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. Las
+   * páginas usan los filtros del último «Filtrar» (un rango a medio escribir no frena el paginador).
+   */
+  pag: PaginacionLista<ProductoRechazado> = new PaginacionLista<ProductoRechazado>({
+    cargar: (page, size) => this.consultar({ ...this.filtrosAplicados, page, size }),
+  });
+  private filtrosAplicados: ProductoRechazadoFiltros;
 
   constructor(
     private productosRechazadosGQL: ProductosRechazadosGQL,
@@ -83,12 +83,18 @@ export class ListProductoRechazadoComponent implements OnInit {
         this.sucursalList = lista;
         this.cdRef.detectChanges();
       });
-    this.buscar();
+    this.onFiltrar();
   }
 
+  /** Filtrar y Limpiar: valida el rango y vuelve a la página 1. */
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.buscar();
+    const rango = this.rango();
+    if (rango === "invalido") {
+      this.notificacion.openWarn("Completá las dos fechas del rango (o dejá las dos vacías) desde el calendario.");
+      return;
+    }
+    this.filtrosAplicados = this.filtros(rango);
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
@@ -97,20 +103,7 @@ export class ListProductoRechazadoComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.referenciaControl.setValue(null);
     this.textoControl.setValue("");
-    this.pageIndex = 0;
-    this.buscar();
-  }
-
-  onPage(e: PageEvent): void {
-    const pageIndexAnterior = this.pageIndex;
-    const pageSizeAnterior = this.pageSize;
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    if (!this.buscar()) {
-      this.pageIndex = pageIndexAnterior;
-      this.pageSize = pageSizeAnterior;
-      this.cdRef.detectChanges();
-    }
+    this.onFiltrar();
   }
 
   trackByFila(_: number, item: ProductoRechazado): string {
@@ -169,46 +162,33 @@ export class ListProductoRechazadoComponent implements OnInit {
       sucursalId: this.sucursalControl.value?.id ?? null,
       referenciaId: referencia != null && referencia > 0 ? referencia : null,
       texto: texto.length > 0 ? texto : null,
-      page: this.pageIndex,
-      size: this.pageSize,
+      page: 0,
+      size: 15,
     };
   }
 
-  /** @returns true si la consulta se envió; false si el rango no es válido. */
-  private buscar(): boolean {
-    const rango = this.rango();
-    if (rango === "invalido") {
-      this.notificacion.openWarn("Completá las dos fechas del rango (o dejá las dos vacías) desde el calendario.");
-      return false;
-    }
+  /** Una página; `null` si no llegó (ya avisado). */
+  private consultar(filtros: ProductoRechazadoFiltros): Observable<PaginaCentral<ProductoRechazado> | null> {
     const { requestId } = this.cargandoService.openDialog(false, "Buscando...");
-    this.productosRechazadosGQL
-      .fetch(this.filtros(rango), {
+    return this.productosRechazadosGQL
+      .fetch(filtros, {
         fetchPolicy: "no-cache",
         errorPolicy: "all",
-        // Transferencias y compras viven en el central: sin esto, en modo local Apollo la rutea al filial.
+        // La consulta vive en el central: sin esto, en modo local Apollo la rutea al filial.
         context: { clientName: "servidor" },
       })
       .pipe(
         catchError(() => of(null)),
-        finalize(() => this.cargandoService.closeDialog(requestId)),
-        untilDestroyed(this)
-      )
-      .subscribe((result) => {
-        const pagina = result?.data?.data;
-        if (result == null || result.errors?.length || pagina == null) {
-          this.huboError = true;
-          this.dataSource.data = [];
-          this.length = 0;
-          this.notificacion.openAlgoSalioMal(this.mensajeDeError(result?.errors?.[0]?.message));
-        } else {
-          this.huboError = false;
-          this.dataSource.data = pagina.getContent || [];
-          this.length = pagina.getTotalElements || 0;
-        }
-        this.cdRef.detectChanges();
-      });
-    return true;
+        map((result) => {
+          const pagina = result?.data?.data;
+          if (result == null || result.errors?.length || pagina == null) {
+            this.notificacion.openAlgoSalioMal(this.mensajeDeError(result?.errors?.[0]?.message));
+            return null;
+          }
+          return pagina;
+        }),
+        finalize(() => this.cargandoService.closeDialog(requestId))
+      );
   }
 
   /** Un central anterior a esta pantalla rechaza la consulta por validación del esquema. */
