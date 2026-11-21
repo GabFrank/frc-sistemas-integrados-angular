@@ -7,7 +7,6 @@ import { WindowInfoService } from '../../../../shared/services/window-info.servi
 import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
 import { FormControl, Validators } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -38,7 +37,7 @@ const NOMBRE_DIA: Record<string, string> = {
 const ORDEN_DIAS = Object.keys(NOMBRE_DIA);
 const NOMBRE_TURNO: Record<string, string> = { DIA: 'Día', NOCHE: 'Noche', MADRUGADA: 'Madrugada' };
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { MainService } from '../../../../main.service';
@@ -61,7 +60,6 @@ import { MainService } from '../../../../main.service';
 })
 export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
   @Input() data: Tab;
@@ -80,13 +78,16 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   fasePruebaControl = new FormControl(null)
   cobraBancoControl = new FormControl(null)
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
+  /** Funcionarios paginados en el central (#772): descarta respuestas viejas; si falla, vuelve a la página anterior. */
+  pag = new PaginacionLista<Funcionario>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 25,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    // Falló un filtro nuevo: las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => { if (filtroNuevo) this.dataSource.data = []; },
+  });
   orderById = null;
   orderByNombre = null;
-  selectedPageInfo: PageInfo<Funcionario>;
 
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
@@ -112,11 +113,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
-      this.pageSize = this.paginator.pageSizeOptions[1]
-      this.buscar()
-    }, 0);
+    this.pag.filtrar();
 
 
 
@@ -149,22 +146,18 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista. */
   buscar() {
-    let sucursalIdList = [];
-    this.sucursalControl.value?.forEach(s => {
-      if (s != null) {
-        sucursalIdList.push(s.id)
-      }
-    });
-    this.service.onGetAllWithPage(
-      this.pageIndex, this.pageSize,
+    this.pag.recargar();
+  }
+
+  private consultar(page: number, size: number) {
+    const sucursalIdList = (this.sucursalControl.value || []).filter(s => s != null).map(s => s.id);
+    return this.service.onGetAllWithPage(
+      page, size,
       this.idControl.value,
       this.nombreControl.value?.toUpperCase(),
       sucursalIdList.length > 0 ? sucursalIdList : null,
@@ -173,12 +166,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.fasePruebaControl.value,
       this.cobraBancoControl.value,
       this.ipsActivoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent;
-      }
-    })
+    );
   }
 
   onBuscarCargo() {
@@ -214,12 +202,6 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       new TabData(funcionario.id, { id: funcionario.id }),
       null
     ));
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   isAllSelected() {

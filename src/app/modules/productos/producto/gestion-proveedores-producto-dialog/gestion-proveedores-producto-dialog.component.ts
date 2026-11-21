@@ -1,20 +1,19 @@
 import {
   Component,
   Inject,
+  OnDestroy,
   OnInit,
-  ViewChild,
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { Producto } from '../producto.model';
 import { ProductoProveedor } from '../../producto-proveedor/producto-proveedor.model';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProductoProveedorService } from '../../producto-proveedor/producto-proveedor.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { takeUntil } from 'rxjs/operators';
+import { map, takeUntil } from 'rxjs/operators';
 import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 
@@ -51,8 +50,7 @@ const MOTIVOS_DESVINCULAR = [
   templateUrl: './gestion-proveedores-producto-dialog.component.html',
   styleUrls: ['./gestion-proveedores-producto-dialog.component.scss'],
 })
-export class GestionProveedoresProductoDialogComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
+export class GestionProveedoresProductoDialogComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
@@ -64,18 +62,25 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
   selectedProveedorComputed: Proveedor | null = null;
   addButtonDisabledComputed = true;
 
-  dataSource = new MatTableDataSource<ProductoProveedorRow>([]);
   displayedColumns: string[] = ['id', 'proveedor', 'acciones'];
-  loading = false;
-  /** La lista no se pudo leer: la tabla vacía no significa «no hay vinculados». */
-  listaFallo = false;
-  /** Descarta respuestas de una lectura anterior (abrir, paginar, tras vincular o desvincular). */
-  private lectura = 0;
-  /** Página a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
-  private paginaMostrada = { pageIndex: 0, pageSize: 10 };
-  pageIndex = 0;
-  pageSize = 10;
-  totalElements = 0;
+
+  /** Proveedores vinculados, paginados en el central (#772): descarta lecturas viejas y si falla vuelve a la página anterior. */
+  pag: PaginacionLista<ProductoProveedorRow> = new PaginacionLista<ProductoProveedorRow>({
+    cargar: (page, size) => this.productoProveedorService
+      .getByProductoId(this.producto.id, page, size, true, LECTURA_VINCULOS, CONSULTA_VINCULOS)
+      .pipe(map(pagina => pagina && {
+        getTotalElements: pagina.getTotalElements ?? 0,
+        getContent: (pagina.getContent ?? []).map((pp: ProductoProveedor) => ({
+          ...pp,
+          proveedorNombreComputed: pp?.proveedor?.persona?.nombre ?? '',
+        })),
+      })),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25],
+    alFallar: () => this.notificacionService.openWarn(this.pag.items.length
+      ? 'No se pudo actualizar la lista: puede no reflejar el último cambio. Usá «Reintentar».'
+      : 'No se pudo cargar la lista: usá «Reintentar».', 6),
+  });
 
   motivosDesvincularComputed = MOTIVOS_DESVINCULAR;
 
@@ -91,7 +96,7 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.updateHeaderComputed();
-    this.loadList();
+    if (this.producto?.id) this.pag.filtrar();
     this.proveedorControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
@@ -100,55 +105,21 @@ export class GestionProveedoresProductoDialogComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.pag.unsubscribe();
+  }
+
   private updateHeaderComputed(): void {
     this.headerDescripcionComputed = this.producto?.descripcion ?? '';
     this.headerCodigoComputed = this.producto?.codigoPrincipal ?? '';
   }
 
+  /** Repite la página actual (Reintentar, después de vincular o desvincular). */
   loadList(): void {
     if (!this.producto?.id) return;
-    this.loading = true;
-    const lectura = ++this.lectura;
-    const fallo = () => {
-      if (lectura !== this.lectura) return;
-      this.loading = false;
-      this.listaFallo = true;
-      // El total no se toca (el paginador no colapsa) y se vuelve a la página que está a la vista
-      this.pageIndex = this.paginaMostrada.pageIndex;
-      this.pageSize = this.paginaMostrada.pageSize;
-      this.notificacionService.openWarn(this.dataSource.data.length
-        ? 'No se pudo actualizar la lista: puede no reflejar el último cambio. Usá «Reintentar».'
-        : 'No se pudo cargar la lista: usá «Reintentar».', 6);
-    };
-    this.productoProveedorService
-      .getByProductoId(this.producto.id, this.pageIndex, this.pageSize, true, LECTURA_VINCULOS, CONSULTA_VINCULOS)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (page) => {
-          if (lectura !== this.lectura) return;
-          if (page == null) {
-            fallo();
-            return;
-          }
-          this.loading = false;
-          this.listaFallo = false;
-          this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
-          this.totalElements = page.getTotalElements ?? 0;
-          const content = page.getContent ?? [];
-          const rows: ProductoProveedorRow[] = content.map((pp: ProductoProveedor) => ({
-            ...pp,
-            proveedorNombreComputed: pp?.proveedor?.persona?.nombre ?? '',
-          }));
-          this.dataSource.data = rows;
-        },
-        error: fallo,
-      });
-  }
-
-  onPageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.loadList();
+    this.pag.recargar();
   }
 
   onBuscarProveedor(): void {

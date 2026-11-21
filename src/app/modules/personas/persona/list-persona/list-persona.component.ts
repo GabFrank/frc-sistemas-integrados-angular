@@ -2,10 +2,9 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { AdicionarUsuarioDialogComponent, AdicionarUsuarioDialogData } from '../../usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { AdicionarPersonaDialogComponent } from '../adicionar-persona-dialog/adicionar-persona-dialog.component';
@@ -25,7 +24,7 @@ import { ROLES } from '../../roles/roles.enum';
 
 
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-persona',
   templateUrl: './list-persona.component.html',
@@ -44,9 +43,7 @@ import { ROLES } from '../../roles/roles.enum';
 export class ListPersonaComponent implements OnInit {
 
   @ViewChild('buscar', { static: true }) buscar: ElementRef;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<Persona>([]);
   selectedPersona: Persona;
   displayedColumns: string[] = [
     'id',
@@ -61,9 +58,11 @@ export class ListPersonaComponent implements OnInit {
 
   expandedPersona: Persona;
 
-  pageSize = 25;
-  pageIndex = 0;
-  selectedPageInfo: PageInfo<Persona>;
+  /** Personas paginadas en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<Persona>({
+    cargar: (page, size) => this.service.onSearchConFiltros(this.buscarControl.value?.toString().trim() || null, page, size),
+    pageSize: 25,
+  });
   timer: ReturnType<typeof setTimeout>;
 
   buscarControl = new FormControl(null)
@@ -85,57 +84,31 @@ export class ListPersonaComponent implements OnInit {
   ngOnInit(): void {
     this.puedeEditarUsuarios = this.mainService.tieneAlgunRol([ROLES.EDITAR_USUARIOS]);
     this.puedeVerUsuarios = this.puedeEditarUsuarios || this.mainService.tieneAlgunRol([ROLES.VER_USUARIOS]);
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFiltrar();
-    }, 0);
+    this.pag.filtrar();
 
     this.buscarControl.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe(() => {
-        this.irAPrimeraPagina();
         if (this.timer != null) {
           clearTimeout(this.timer);
         }
-        this.timer = setTimeout(() => {
-          this.onFiltrar();
-        }, 500);
+        // Un texto nuevo arranca en la página 1.
+        this.timer = setTimeout(() => this.pag.filtrar(), 500);
       });
   }
 
   rowSelectedEvent(e) {
   }
 
+  /** Repite la página a la vista (después de crear o editar). */
   onFiltrar() {
-    const texto = this.buscarControl.value?.toString().trim() || null;
-    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = this.selectedPageInfo?.getContent || [];
-        }
-      })
+    this.pag.recargar();
   }
 
   resetFiltro() {
-    this.irAPrimeraPagina();
-    this.dataSource.data = [];
-    this.selectedPageInfo = null;
-    // No llamar onFiltrar aca: el valueChanges de buscarControl ya busca.
+    this.pag.limpiar();
+    // No buscar aca: el valueChanges de buscarControl ya busca.
     this.buscarControl.setValue(null);
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onFiltrar();
-  }
-
-  private irAPrimeraPagina() {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
   }
 
   onAddPersona(persona?: Persona, index?) {

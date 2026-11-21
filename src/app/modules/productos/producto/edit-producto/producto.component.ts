@@ -118,6 +118,7 @@ export class ProductoDialogData {
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.component";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
@@ -179,12 +180,26 @@ export class ProductoComponent implements OnInit, OnDestroy {
   filtroSubfamiliaControl = new FormControl("");
   expandedElementFamilia: Familia;
   expandedElementSubfamilia: Subfamilia;
-  selectedFamiliaPageInfo: PageInfo<Familia>;
-  selectedSubfamiliaPageInfo: PageInfo<Subfamilia>;
-  familiaPageIndex = 0;
-  familiaPageSize = 15;
-  subfamiliaPageIndex = 0;
-  subfamiliaPageSize = 15;
+  /** Familias paginadas en el central (#772): gana la última página pedida; la tabla sigue en familiaDataSource. */
+  familiaPag = new PaginacionLista<Familia>({
+    cargar: (page, size) => this.familiaService.onSearchFamilia(this.filtroFamiliaControl.value, page, size),
+    pageSize: 15,
+    alCargar: (res) => this.mostrarFamilias(res.getContent ?? []),
+    // Falló un filtro nuevo: las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => { if (filtroNuevo) this.familiaDataSource.data = []; },
+  });
+  /** Subfamilias de la familia elegida, paginadas en el central (#772). */
+  subfamiliaPag = new PaginacionLista<Subfamilia>({
+    cargar: (page, size) => {
+      this.familiaDeLaCargaSubfamilia = this.selectedFamilia?.id;
+      return this.subfamiliaService.onSearchSubfamilia(this.familiaDeLaCargaSubfamilia, this.filtroSubfamiliaControl.value, page, size);
+    },
+    pageSize: 15,
+    alCargar: (res) => this.mostrarSubfamilias(res.getContent ?? []),
+    // Falló un filtro nuevo (u otra familia): las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => { if (filtroNuevo) this.subfamiliaDataSource.data = []; },
+  });
+  private familiaDeLaCargaSubfamilia: number;
   familiaControl = new FormControl(null, [Validators.required]);
   subfamiliaControl = new FormControl(null, [Validators.required]);
 
@@ -342,55 +357,45 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Repite la página de familias a la vista. */
   onSearchFamilia() {
-    this.familiaService
-      .onSearchFamilia(
-        this.filtroFamiliaControl.value,
-        this.familiaPageIndex,
-        this.familiaPageSize
-      )
-      .subscribe((res: PageInfo<Familia>) => {
-        if (res != null) {
-          this.selectedFamiliaPageInfo = res;
-          this.familiaDataSource.data = res.getContent;
-          if (res.getContent?.length == 1) {
-            this.onFamiliaSelect(res.getContent[0]);
-          } else if (this.selectedFamilia) {
-            // La elegida sobrevive a filtrar o paginar; la fila resalta por referencia, así que se re-apunta por id.
-            this.expandedElementFamilia = res.getContent?.find((f) => f.id == this.selectedFamilia.id) ?? null;
-          }
-        }
-      });
+    this.familiaPag.recargar();
   }
 
+  private mostrarFamilias(familias: Familia[]): void {
+    this.familiaDataSource.data = familias;
+    if (familias.length == 1) {
+      this.onFamiliaSelect(familias[0]);
+    } else if (this.selectedFamilia) {
+      // La elegida sobrevive a filtrar o paginar; la fila resalta por referencia, así que se re-apunta por id.
+      this.expandedElementFamilia = familias.find((f) => f.id == this.selectedFamilia.id) ?? null;
+    }
+  }
+
+  /** Repite la página de subfamilias a la vista. */
   onSearchSubfamilia() {
-    // Sin familia elegida no hay qué buscar, y no quedan a la vista las subfamilias de una familia anterior.
+    if (this.prepararBusquedaSubfamilia()) this.subfamiliaPag.recargar();
+  }
+
+  /** Sin familia elegida no hay qué buscar; la subfamilia elegida sobrevive a filtrar o paginar, salvo que sea de otra familia. */
+  private prepararBusquedaSubfamilia(): boolean {
     if (!this.selectedFamilia) {
       this.onSubfamiliaSelect(null);
+      this.subfamiliaPag.limpiar();
       this.subfamiliaDataSource.data = [];
-      this.selectedSubfamiliaPageInfo = null;
-      return;
+      return false;
     }
-    // La elegida sobrevive a filtrar o paginar, salvo que sea de otra familia.
     if (this.selectedSubfamilia?.familia?.id != this.selectedFamilia.id) this.onSubfamiliaSelect(null);
-    const familiaId = this.selectedFamilia.id;
-    this.subfamiliaService
-      .onSearchSubfamilia(
-        familiaId,
-        this.filtroSubfamiliaControl.value,
-        this.subfamiliaPageIndex,
-        this.subfamiliaPageSize
-      )
-      .subscribe((res: PageInfo<Subfamilia>) => {
-        // Una respuesta que llega después de cambiar de familia no puede dejar elegida una subfamilia ajena.
-        if (res != null && familiaId == this.selectedFamilia?.id) {
-          this.selectedSubfamiliaPageInfo = res;
-          this.subfamiliaDataSource.data = res.getContent;
-          if (res.getContent?.length == 1) {
-            this.onSubfamiliaSelect(res.getContent[0]);
-          }
-        }
-      });
+    return true;
+  }
+
+  private mostrarSubfamilias(subfamilias: Subfamilia[]): void {
+    // Una respuesta que llega después de cambiar de familia no puede dejar elegida una subfamilia ajena.
+    if (this.familiaDeLaCargaSubfamilia != this.selectedFamilia?.id) return;
+    this.subfamiliaDataSource.data = subfamilias;
+    if (subfamilias.length == 1) {
+      this.onSubfamiliaSelect(subfamilias[0]);
+    }
   }
 
   reintentarCargaProducto(): void {
@@ -1573,8 +1578,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onFilterFamilia() {
     // Un filtro nuevo arranca en la página 1.
-    this.familiaPageIndex = 0;
-    this.onSearchFamilia();
+    this.familiaPag.filtrar();
   }
 
   abrirFiltroFamilia() {
@@ -1617,12 +1621,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
   onDeleteFamilia(familia: Familia, index) {}
 
-  handleFamiliaPageEvent(e) {
-    this.familiaPageIndex = e.pageIndex;
-    this.familiaPageSize = e.pageSize;
-    this.onSearchFamilia();
-  }
-
   onFamiliaSelect(familia) {
     this.selectedFamilia = familia;
     this.expandedElementFamilia = familia;
@@ -1630,8 +1628,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onFilterSubfamilia() {
     // Un filtro nuevo (u otra familia) arranca en la página 1.
-    this.subfamiliaPageIndex = 0;
-    this.onSearchSubfamilia();
+    if (this.prepararBusquedaSubfamilia()) this.subfamiliaPag.filtrar();
   }
 
   abrirFiltroSubfamilia() {
@@ -1671,12 +1668,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
   }
   onDeleteSubfamilia(familia: Familia, index) {}
-
-  handleSubfamiliaPageEvent(e) {
-    this.subfamiliaPageIndex = e.pageIndex;
-    this.subfamiliaPageSize = e.pageSize;
-    this.onSearchSubfamilia();
-  }
 
   onSubfamiliaSelect(e) {
     this.selectedSubfamilia = e;

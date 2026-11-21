@@ -1,5 +1,5 @@
 import { PageEvent } from '@angular/material/paginator';
-import { BehaviorSubject, EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, Subject, Subscription, defer, of } from 'rxjs';
 import { catchError, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import { PageInfo } from '../../../app.component';
 
@@ -16,7 +16,7 @@ export interface EstadoPaginacion<T> {
 }
 
 /** Lo único que la lista necesita de la página del central. */
-export type PaginaCentral<T> = Pick<PageInfo<T>, 'getContent' | 'getTotalElements'>;
+export type PaginaCentral<T> = Partial<Pick<PageInfo<T>, 'getContent' | 'getTotalElements'>>;
 
 export interface OpcionesPaginacion<T> {
   /** Pide una página al central. `null` = el servicio ya avisó el error. */
@@ -25,8 +25,11 @@ export interface OpcionesPaginacion<T> {
   pageSizeOptions?: number[];
   /** Para lo que la pantalla haga además con la respuesta (un resumen, un mapeo propio). */
   alCargar?: (pagina: PaginaCentral<T>) => void;
-  /** La carga no llegó (la lista ya volvió a la última página cargada): para un aviso propio de la pantalla. */
-  alFallar?: () => void;
+  /**
+   * La carga no llegó, para un aviso propio de la pantalla. `filtroNuevo`: falló un filtro nuevo y la lista quedó
+   * vacía; si no, falló un cambio de página (o recargar) y la lista volvió a la última página cargada.
+   */
+  alFallar?: (filtroNuevo: boolean) => void;
 }
 
 /** `nueva`: la pide un filtro nuevo (otra consulta), no un cambio de página de la misma. */
@@ -54,6 +57,8 @@ export class PaginacionLista<T> {
   private readonly estado: BehaviorSubject<EstadoPaginacion<T>>;
   readonly estado$: Observable<EstadoPaginacion<T>>;
   readonly items$: Observable<T[]>;
+  /** Para una barra o un spinner en el HTML: `*ngIf="pag.cargando$ | async"`. */
+  readonly cargando$: Observable<boolean>;
 
   /** `null` cancela la carga en camino sin pedir otra. */
   private readonly pedidos = new Subject<Pedido | null>();
@@ -69,9 +74,11 @@ export class PaginacionLista<T> {
     });
     this.estado$ = this.estado.asObservable();
     this.items$ = this.estado$.pipe(map(e => e.items), distinctUntilChanged());
+    this.cargando$ = this.estado$.pipe(map(e => e.cargando), distinctUntilChanged());
 
     this.suscripcion = this.pedidos.pipe(
-      switchMap(pedido => pedido == null ? EMPTY : opciones.cargar(pedido.pageIndex, pedido.pageSize).pipe(
+      // defer: si `cargar` tira al llamarse (un service todavía sin armar), es una carga fallida y no corta la lista.
+      switchMap(pedido => pedido == null ? EMPTY : defer(() => opciones.cargar(pedido.pageIndex, pedido.pageSize)).pipe(
         catchError(error => {
           console.error('[PaginacionLista]', error);
           return of(null);
@@ -126,7 +133,7 @@ export class PaginacionLista<T> {
       } else {
         this.estado.next({ ...this.estado.value, ...this.ultimaCargada, cargando: false, fallo: true });
       }
-      this.opciones.alFallar?.();
+      this.opciones.alFallar?.(pedido.nueva);
       return;
     }
     const total = res.getTotalElements ?? 0;
