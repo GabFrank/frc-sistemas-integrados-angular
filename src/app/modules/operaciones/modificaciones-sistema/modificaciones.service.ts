@@ -1,17 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { ModificacionRegistro, ModificacionDetalle } from './modificaciones.models';
-import { ModificacionesPorSchemaGQL } from './graphql/modificacionesPorSchema';
-import { ModificacionesPorSchemasGQL } from './graphql/modificacionesPorSchemas';
-import { ModificacionesPorTipoEntidadGQL } from './graphql/modificacionesPorTipoEntidad';
-import { ModificacionesPorTipoEntidadAndSchemaGQL } from './graphql/modificacionesPorTipoEntidadAndSchema';
-import { ModificacionRegistroGQL } from './graphql/modificacionRegistro';
-import { DetallesModificacionGQL } from './graphql/detallesModificacion';
-import { PageInfo, Pageable } from '../../../app.component';
-import { dateToString } from '../../../commons/core/utils/dateUtils';
+import { PageInfo } from '../../../app.component';
+import { HistorialCambiosGQL } from './graphql/historialCambios';
+import { HistorialCambiosCategoriasGQL } from './graphql/historialCambiosCategorias';
+import { FiltrosHistorialCambios, HistorialCambio, HistorialCambioCategoria } from './modificaciones.models';
 
+/** Historial de cambios del sistema (pantalla «Modificaciones»): los textos los arma el central. */
 @Injectable({
   providedIn: 'root'
 })
@@ -19,136 +14,15 @@ export class ModificacionesService {
 
   constructor(
     private genericService: GenericCrudService,
-    private modificacionesPorSchema: ModificacionesPorSchemaGQL,
-    private modificacionesPorSchemas: ModificacionesPorSchemasGQL,
-    private modificacionesPorTipoEntidad: ModificacionesPorTipoEntidadGQL,
-    private modificacionesPorTipoEntidadAndSchema: ModificacionesPorTipoEntidadAndSchemaGQL,
-    private modificacionRegistro: ModificacionRegistroGQL,
-    private detallesModificacion: DetallesModificacionGQL
+    private historialCambios: HistorialCambiosGQL,
+    private historialCambiosCategorias: HistorialCambiosCategoriasGQL
   ) { }
 
-  onModificacionesPorSchema(
-    schemaNombre: string,
-    inicio: Date,
-    fin: Date,
-    page: number = 0,
-    size: number = 15
-  ): Observable<PageInfo<ModificacionRegistro>> {
-    return this.genericService.onCustomQuery(
-      this.modificacionesPorSchema,
-      {
-        schemaNombre: schemaNombre,
-        inicio: dateToString(inicio),
-        fin: dateToString(fin),
-        page: page,
-        size: size
-      },
-      true
-    ).pipe(
-      map((response: any) => this.mapToPageInfo(response))
-    );
+  onHistorialCambios(filtros: FiltrosHistorialCambios, page: number, size: number): Observable<PageInfo<HistorialCambio>> {
+    return this.genericService.onCustomQuery(this.historialCambios, { ...filtros, page, size });
   }
 
-  /** Varios esquemas paginados juntos en el central. Propaga el error sin avisar: quien llama decide el respaldo. */
-  onModificacionesPorSchemas(
-    schemaNombres: string[],
-    inicio: Date,
-    fin: Date,
-    page: number,
-    size: number
-  ): Observable<PageInfo<ModificacionRegistro>> {
-    return this.genericService.onCustomQuery(
-      this.modificacionesPorSchemas,
-      {
-        schemaNombres,
-        inicio: dateToString(inicio),
-        fin: dateToString(fin),
-        page,
-        size
-      },
-      true,
-      { graphError: { propagate: true, show: false } }
-    ).pipe(
-      map((response: any) => this.mapToPageInfo(response))
-    );
-  }
-
-  onModificacionesPorTipoEntidad(
-    tipoEntidad: string,
-    page: number = 0,
-    size: number = 15
-  ): Observable<PageInfo<ModificacionRegistro>> {
-    return this.genericService.onCustomQuery(
-      this.modificacionesPorTipoEntidad,
-      {
-        tipoEntidad: tipoEntidad,
-        page: page,
-        size: size
-      },
-      true
-    ).pipe(
-      map((response: any) => this.mapToPageInfo(response))
-    );
-  }
-
-  onModificacionesPorTipoEntidadAndSchema(
-    tipoEntidad: string,
-    schemaNombre: string,
-    inicio: Date,
-    fin: Date,
-    page: number = 0,
-    size: number = 15
-  ): Observable<PageInfo<ModificacionRegistro>> {
-    return this.genericService.onCustomQuery(
-      this.modificacionesPorTipoEntidadAndSchema,
-      {
-        tipoEntidad: tipoEntidad,
-        schemaNombre: schemaNombre,
-        inicio: dateToString(inicio),
-        fin: dateToString(fin),
-        page: page,
-        size: size
-      },
-      true
-    ).pipe(
-      map((response: any) => this.mapToPageInfo(response))
-    );
-  }
-
-  onGetModificacionRegistro(id: number): Observable<ModificacionRegistro> {
-    return this.genericService.onGetById(this.modificacionRegistro, id, null, null, true);
-  }
-  onGetDetallesModificacion(modificacionRegistroId: number): Observable<ModificacionDetalle[]> {
-    return this.genericService.onCustomQuery(
-      this.detallesModificacion,
-      {
-        modificacionRegistroId: modificacionRegistroId
-      },
-      true
-    ).pipe(
-      map((response: any) => {
-        return response.data || response || [];
-      })
-    );
-  }
-  private mapToPageInfo(response: any): PageInfo<ModificacionRegistro> {
-    const data = response.data || response;
-
-    const pageInfo = new PageInfo<ModificacionRegistro>();
-    pageInfo.getContent = data.content || [];
-    pageInfo.getTotalElements = data.totalElements || 0;
-    pageInfo.getTotalPages = data.totalPages || 0;
-    pageInfo.getNumberOfElements = data.content?.length || 0;
-    pageInfo.isFirst = data.pageNumber === 0;
-    pageInfo.isLast = data.pageNumber >= (data.totalPages - 1);
-    pageInfo.hasNext = data.pageNumber < (data.totalPages - 1);
-    pageInfo.hasPrevious = data.pageNumber > 0;
-
-    const pageable = new Pageable();
-    pageable.getPageNumber = data.pageNumber || 0;
-    pageable.getPageSize = data.pageSize || 15;
-    pageInfo.getPageable = pageable;
-
-    return pageInfo;
+  onCategorias(): Observable<HistorialCambioCategoria[]> {
+    return this.genericService.onCustomQuery(this.historialCambiosCategorias, {});
   }
 }

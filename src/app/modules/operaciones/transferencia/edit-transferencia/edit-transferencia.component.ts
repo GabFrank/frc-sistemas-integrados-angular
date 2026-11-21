@@ -924,7 +924,7 @@ export class EditTransferenciaComponent implements OnInit {
               this.actualizarAlertasPaginaActual();
             } else {
               // Los nuevos van primero (el central ordena por id desc): se muestra la página 1 con el total al día.
-              this.pag.onPage({ pageIndex: 0, pageSize: this.pag.pageSize, length: this.pag.total });
+              this.pag.irAPrimera();
             }
           }
         },

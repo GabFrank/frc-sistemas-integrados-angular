@@ -724,14 +724,14 @@
                           </table>
 
                           <!-- Indicador de carga -->
-                          <div *ngIf="productosProveedorLoading" class="loading-indicator">
+                          <div *ngIf="productosProveedorPag.cargando$ | async" class="loading-indicator">
                             <mat-spinner diameter="30"></mat-spinner>
                             <span>Cargando productos...</span>
                           </div>
 
                           <!-- Mensaje cuando no hay productos -->
                           <div
-                            *ngIf="!productosProveedorLoading && productosProveedorDataSource.data.length === 0"
+                            *ngIf="(productosProveedorPag.cargando$ | async) === false && productosProveedorDataSource.data.length === 0"
                             class="no-items-container-small"
                           >
                             <mat-icon>inventory_2</mat-icon>
@@ -742,16 +742,10 @@
                         <!-- Paginador en el footer -->
                         <div class="table-footer">
                           <mat-paginator
-                            [pageSizeOptions]="[5, 10, 25, 50, 100]"
-                            [pageSize]="productosProveedorPageSize"
-                            [pageIndex]="productosProveedorPageIndex"
-                            [length]="productosProveedorTotalElements"
-                            [disabled]="productosProveedorLoading"
-                            showFirstLastButtons
+                            [paginacion]="productosProveedorPag"
                             aria-label="Seleccionar página de productos del proveedor"
-                            (page)="onProductosProveedorPageChange($event)"
-                          >
-                          </mat-paginator>
+                            (page)="onProductosProveedorPageChange()"
+                          ></mat-paginator>
                         </div>
                       </div>
                     </div>
@@ -1126,19 +1120,12 @@
               </div>
                   </div>
               <mat-paginator
-                [pageSizeOptions]="[5, 10, 25, 50, 100]"
-                [pageSize]="itemsPageSize"
-                [pageIndex]="itemsPageIndex"
-                [length]="itemsTotalElements"
-                [disabled]="itemsLoading"
-                showFirstLastButtons
+                [paginacion]="itemsPag"
                 aria-label="Seleccionar página de items"
-                (page)="onItemsPageChange($event)"
-              >
-              </mat-paginator>
+              ></mat-paginator>
               
               <!-- Indicador de carga -->
-              <div *ngIf="itemsLoading" class="loading-indicator">
+              <div *ngIf="itemsPag.cargando$ | async" class="loading-indicator">
                 <mat-spinner diameter="40"></mat-spinner>
                 <span>Cargando ítems...</span>
               </div>
@@ -1333,20 +1320,12 @@
 
                   <!-- Paginador para ítems pendientes -->
                   <mat-paginator
-                    #itemsPendientesPaginator
-                    [pageSizeOptions]="[5, 10, 25, 50, 100]"
-                    [pageSize]="itemsPendientesPageSize"
-                    [pageIndex]="itemsPendientesPageIndex"
-                    [length]="itemsPendientesTotalElements"
-                    [disabled]="itemsPendientesLoading"
-                    showFirstLastButtons
+                    [paginacion]="itemsPendientesPag"
                     aria-label="Seleccionar página de ítems pendientes"
-                    (page)="onItemsPendientesPageChange($event)"
-                  >
-                  </mat-paginator>
+                  ></mat-paginator>
 
                   <!-- Indicador de carga -->
-                  <div *ngIf="itemsPendientesLoading" class="loading-indicator">
+                  <div *ngIf="itemsPendientesPag.cargando$ | async" class="loading-indicator">
                     <mat-spinner diameter="40"></mat-spinner>
                     <span>Cargando ítems pendientes...</span>
                   </div>
@@ -1487,20 +1466,12 @@
 
                   <!-- Paginador para notas de recepción -->
                   <mat-paginator
-                    #notasRecepcionPaginator
-                    [pageSizeOptions]="[5, 10, 25, 50, 100]"
-                    [pageSize]="notasRecepcionPageSize"
-                    [pageIndex]="notasRecepcionPageIndex"
-                    [length]="notasRecepcionTotalElements"
-                    [disabled]="notasRecepcionLoading"
-                    showFirstLastButtons
+                    [paginacion]="notasRecepcionPag"
                     aria-label="Seleccionar página de notas de recepción"
-                    (page)="onNotasRecepcionPageChange($event)"
-                  >
-                  </mat-paginator>
+                  ></mat-paginator>
 
                   <!-- Indicador de carga -->
-                  <div *ngIf="notasRecepcionLoading" class="loading-indicator">
+                  <div *ngIf="notasRecepcionPag.cargando$ | async" class="loading-indicator">
                     <mat-spinner diameter="40"></mat-spinner>
                     <span>Cargando notas de recepción...</span>
                   </div>
