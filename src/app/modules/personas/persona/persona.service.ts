@@ -9,6 +9,7 @@ import {
 import { SavePersonaGQL } from "./graphql/savePersona";
 import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
+import { PersonaPaisGQL } from "./graphql/personaPais";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GenericCrudService, QueryError } from "../../../generics/generic-crud.service";
@@ -32,7 +33,8 @@ export class PersonaService {
     private deletePersona: DeletePersonaGQL,
     private getPersonas: PersonasGQL,
     private personaPorDocumento: PersonaPorDocumentoGQL,
-    private personasPaginadas: PersonasPaginadasGQL
+    private personasPaginadas: PersonasPaginadasGQL,
+    private personaPais: PersonaPaisGQL
   ) { }
 
   onGetAll(page, servidor: boolean = true): Observable<Persona[]> {
@@ -67,6 +69,12 @@ export class PersonaService {
 
   onGetPersona(id, servidor: boolean = true): Observable<Persona> {
     return this.genericService.onGetById(this.getPersona, id, null, null, servidor)
+  }
+
+  /** Pais de la persona (#666), siempre del central. */
+  onGetPaisDePersona(id: number): Observable<Persona> {
+    // Silenciosa: es un dato de un campo del dialogo; si falla, el campo queda como estaba (PARAGUAY).
+    return this.genericService.onCustomQuery(this.personaPais, { id }, true, { graphError: { show: false }, networkError: { show: false } }, true)
   }
 
   onDeletePersona(id, servidor: boolean = true): Observable<boolean> {
