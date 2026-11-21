@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Equipo } from '../../models/equipo.model';
@@ -56,9 +55,6 @@ export class ListEquiposComponent implements OnInit {
     this.equiposService.refrescar();
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.equiposService.updatePagination(event.pageIndex, event.pageSize);
-  }
 
   resetFiltro(): void {
     this.filtroControl.setValue('');

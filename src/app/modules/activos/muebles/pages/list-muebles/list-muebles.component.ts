@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Mueble } from '../../models/mueble.model';
@@ -52,9 +51,6 @@ export class ListMueblesComponent implements OnInit {
     this.muebleService.refrescar();
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.muebleService.updatePagination(event.pageIndex, event.pageSize);
-  }
 
   resetFiltro(): void {
     this.filtroControl.setValue('');

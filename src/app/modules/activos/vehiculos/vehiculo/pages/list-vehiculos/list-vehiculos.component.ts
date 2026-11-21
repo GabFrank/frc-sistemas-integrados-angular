@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject }
 import { Vehiculo } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../service/vehiculo.service';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 @UntilDestroy()
@@ -49,9 +48,6 @@ export class ListVehiculosComponent implements OnInit {
         this.vehiculoService.refrescar(true);
     }
 
-    handlePageEvent(event: PageEvent): void {
-        this.vehiculoService.updatePagination(event.pageIndex, event.pageSize);
-    }
 
     onAdicionar(): void {
         this.vehiculoService.abrirFormulario().subscribe();

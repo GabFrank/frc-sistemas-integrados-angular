@@ -1,5 +1,5 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, EMPTY, Observable, combineLatest, of } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, of } from 'rxjs';
 import { Gps } from '../models/gps.model';
 import { GpsInput } from '../models/gps-input.model';
 import { catchError, map, switchMap, take } from 'rxjs/operators';
@@ -12,6 +12,8 @@ import { DeleteGpsGQL } from '../graphql/deleteGps';
 import { GpsByIdGQL } from '../graphql/gpsById';
 import { GpsListGQL } from '../graphql/gpsList';
 import { GpsSearchGQL } from '../graphql/gpsSearch';
+import { GpsSearchPageGQL } from '../graphql/gpsSearchPage';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { GpsByVehiculoGQL } from '../graphql/gpsByVehiculo';
 import { GpsByImeiGQL } from '../graphql/gpsByImei';
 import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
@@ -44,6 +46,7 @@ export class GpsService {
     private gpsByIdGQL = inject(GpsByIdGQL);
     private gpsListGQL = inject(GpsListGQL);
     private gpsSearchGQL = inject(GpsSearchGQL);
+    private gpsSearchPageGQL = inject(GpsSearchPageGQL);
     private gpsByVehiculoGQL = inject(GpsByVehiculoGQL);
     private gpsByImeiGQL = inject(GpsByImeiGQL);
     private enviarComandoGpsGQL = inject(EnviarComandoGpsGQL);
@@ -52,41 +55,23 @@ export class GpsService {
     private injector = inject(Injector);
     private notificacionService = inject(NotificacionSnackbarService);
     private dialogosService = inject(DialogosService);
-    private gpsSubject = new BehaviorSubject<Gps[]>([]);
-    public gps$ = this.gpsSubject.asObservable();
-
-    private loadingSubject = new BehaviorSubject<boolean>(false);
-    public loading$ = this.loadingSubject.asObservable();
-
-    private estadoListaSubject = new BehaviorSubject<EstadoListaGps>('cargando');
-    public estadoLista$ = this.estadoListaSubject.asObservable();
-    /** Solo se aplica la última búsqueda pedida: una respuesta lenta de un texto anterior no pisa a la nueva. */
-    private lecturaLista = 0;
-    /** Texto de la última respuesta buena, que es lo que está en pantalla (`null`: nada). */
-    private textoMostrado: string | null = null;
-
     private _searchText$ = new BehaviorSubject<string>('');
     public searchText$ = this._searchText$.asObservable();
 
-    private _paginationState$ = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({
-        pageIndex: 0,
-        pageSize: 15
+    /**
+     * La lista de GPS, paginada en el central (#772): antes se traían todos y se paginaba acá. Gana la última
+     * página pedida; si falla un refresco se conservan las filas, si falla una búsqueda nueva queda vacía.
+     */
+    readonly pag = new PaginacionLista<Gps>({
+        cargar: (page, size) => this.genericService.onCustomQuery(this.gpsSearchPageGQL,
+            { texto: this._searchText$.value, page, size }, true, LECTURA_GPS, false, CONSULTA_GPS),
+        pageSize: 15,
     });
-    public paginationState$ = this._paginationState$.asObservable();
-
-    public totalElements$ = this.gps$.pipe(
-        map(gps => gps.length)
-    );
-
-    public filteredGps$ = combineLatest([
-        this.gps$,
-        this._paginationState$
-    ]).pipe(
-        map(([gps, pag]) => {
-            const start = pag.pageIndex * pag.pageSize;
-            const end = start + pag.pageSize;
-            return gps.slice(start, end);
-        })
+    public filteredGps$ = this.pag.items$;
+    public loading$ = this.pag.cargando$;
+    /** `desactualizada`: falló un refresco y se ven las filas de antes; `error`: falló una búsqueda y no hay nada. */
+    public estadoLista$: Observable<EstadoListaGps> = this.pag.estado$.pipe(
+        map(e => e.cargando ? 'cargando' : !e.fallo ? 'ok' : e.items.length ? 'desactualizada' : 'error')
     );
 
     onGetById(id: number, errorConf?: QueryError, contexto?: ContextoConsulta, silentLoad?: boolean): Observable<Gps> {
@@ -149,45 +134,14 @@ export class GpsService {
         return this.genericService.onCustomQuery(this.gpsSearchGQL, { texto }, true, LECTURA_GPS, silencioso, CONSULTA_GPS);
     }
 
-    /**
-     * Carga la lista. Con `texto` cambia la búsqueda (y vuelve a la primera página); sin él repite la actual.
-     * Si falla un refresco de lo que ya está en pantalla se conservan las filas (`desactualizada`); si falla una
-     * búsqueda distinta se vacía (`error`): no se muestran resultados de otra búsqueda como si fueran de esta.
-     */
+    /** Con `texto` busca ese texto desde la página 1; sin él repite la página a la vista. */
     refrescar(texto?: string): void {
-        if (texto != null && texto !== this._searchText$.value) {
+        if (texto != null) {
             this._searchText$.next(texto);
-            this._paginationState$.next({ pageIndex: 0, pageSize: this._paginationState$.value.pageSize });
+            this.pag.filtrar();
+        } else {
+            this.pag.recargar();
         }
-        const buscado = this._searchText$.value;
-        const lectura = ++this.lecturaLista;
-        this.loadingSubject.next(true);
-        this.estadoListaSubject.next('cargando');
-        this.onBuscar(buscado).pipe(take(1)).subscribe({
-            next: (res) => {
-                if (lectura !== this.lecturaLista) return;
-                const lista = res || [];
-                const pag = this._paginationState$.value;
-                if (pag.pageIndex > 0 && pag.pageIndex * pag.pageSize >= lista.length) {
-                    this._paginationState$.next({ pageIndex: 0, pageSize: pag.pageSize });
-                }
-                this.textoMostrado = buscado;
-                this.gpsSubject.next(lista);
-                this.loadingSubject.next(false);
-                this.estadoListaSubject.next('ok');
-            },
-            error: () => {
-                if (lectura !== this.lecturaLista) return;
-                this.loadingSubject.next(false);
-                if (this.textoMostrado === buscado) {
-                    this.estadoListaSubject.next('desactualizada');
-                } else {
-                    this.textoMostrado = null;
-                    this.gpsSubject.next([]);
-                    this.estadoListaSubject.next('error');
-                }
-            }
-        });
     }
 
     setSearchText(texto: string): void {
@@ -201,10 +155,6 @@ export class GpsService {
 
     abrirConfiguracion(gps: Gps): void {
         this.injector.get(GpsDialogService).abrirConfiguracion(gps);
-    }
-
-    updatePagination(pageIndex: number, pageSize: number): void {
-        this._paginationState$.next({ pageIndex, pageSize });
     }
 
     onGetList(page: number, size: number): Observable<Gps[]> {

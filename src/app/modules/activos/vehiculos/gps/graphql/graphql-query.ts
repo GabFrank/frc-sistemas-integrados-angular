@@ -134,6 +134,59 @@ export const gpsSearchQuery = gql`
   }
 `;
 
+/** La lista de GPS paginada en el central (#772); los mismos campos que gpsSearch. */
+export const gpsSearchPageQuery = gql`
+  query gpsSearchPage($texto: String, $page: Int, $size: Int) {
+    data: gpsSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalElements
+      getContent {
+          id
+          imei
+          modeloTracker
+          simNumero
+          activo
+          creadoEm
+          ultimaLatitud
+          ultimaLongitud
+          ultimaFechaReporte
+          ultimaIgnicion
+          ultimaVelocidad
+          modoSueno
+          intervaloReporte
+          motorBloqueado
+          alertaVelocidad
+          velocidadLimite
+          alertaVibracion
+          alertaBateriaBaja
+          alertaAcc
+          vehiculo {
+            id
+            chapa
+            modelo {
+              id
+              descripcion
+              marca {
+                id
+                descripcion
+              }
+            }
+          }
+          ultimaTelemetria {
+            id
+            fechaGps
+            latitud
+            longitud
+            velocidad
+            direccion
+            ignicion
+            alarma
+          }
+    
+      }
+    }
+  }
+`;
+
 export const gpsByVehiculoQuery = gql`
   query gpsByVehiculo($vehiculoId: ID!) {
     data: gpsByVehiculo(vehiculoId: $vehiculoId) {

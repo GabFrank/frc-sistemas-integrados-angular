@@ -95,8 +95,8 @@ export const vehiculosSearchWithPageQuery = gql`
 `;
 
 export const vehiculosSearchPageQuery = gql`
-  query vehiculoSearchPage($texto: String, $page: Int, $size: Int) {
-    data: vehiculoSearchPage(texto: $texto, page: $page, size: $size) {
+  query vehiculoSearchPage($texto: String, $page: Int, $size: Int, $tipoVehiculoId: ID) {
+    data: vehiculoSearchPage(texto: $texto, page: $page, size: $size, tipoVehiculoId: $tipoVehiculoId) {
       getTotalPages
       getTotalElements
       getNumberOfElements

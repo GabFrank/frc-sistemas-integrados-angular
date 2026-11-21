@@ -170,15 +170,6 @@
       ></tr>
     </table>
 
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="(equiposService.paginationState$ | async)?.totalElements || 0"
-      [pageIndex]="(equiposService.paginationState$ | async)?.pageIndex || 0"
-      [pageSize]="(equiposService.paginationState$ | async)?.pageSize || 15"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="equiposService.pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

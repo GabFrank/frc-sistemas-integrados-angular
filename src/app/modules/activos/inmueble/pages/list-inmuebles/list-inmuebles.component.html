@@ -109,10 +109,6 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
     
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="(inmuebleService.paginationState$ | async)?.totalElements || 0"
-      [pageIndex]="(inmuebleService.paginationState$ | async)?.pageIndex || 0"
-      [pageSize]="(inmuebleService.paginationState$ | async)?.pageSize || 15" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="inmuebleService.pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>
