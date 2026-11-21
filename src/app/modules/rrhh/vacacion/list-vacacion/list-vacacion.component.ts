@@ -1,10 +1,9 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
+import { map } from 'rxjs/operators';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Vacacion } from '../vacacion.model';
@@ -21,17 +20,26 @@ interface VacacionRow extends Vacacion { disponibles: number; }
 })
 export class ListVacacionComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['anioServicio', 'funcionario', 'diasGenerados', 'diasGozados', 'disponibles', 'prescrita', 'acciones'];
-  dataSource = new MatTableDataSource<VacacionRow>([]);
 
   funcionarioControl = new FormControl(null);
   anioControl = new FormControl(null);
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<Vacacion>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<VacacionRow>({
+    cargar: (page, size) => this.vacacionService.onGetPage(
+      page,
+      size,
+      this.funcionarioControl.value,
+      this.anioControl.value
+    ).pipe(
+      map(res => res && { getTotalElements: res.getTotalElements, getContent: (res.getContent || []).map(v => ({
+        ...v,
+        disponibles: (v.diasGenerados || 0) - (v.diasGozados || 0)
+      })) })
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private vacacionService: VacacionService,
@@ -46,28 +54,12 @@ export class ListVacacionComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.vacacionService.onGetPage(
-      this.pageIndex,
-      this.pageSize,
-      this.funcionarioControl.value,
-      this.anioControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = (res.getContent || []).map(v => ({
-          ...v,
-          disponibles: (v.diasGenerados || 0) - (v.diasGozados || 0)
-        }));
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -76,11 +68,6 @@ export class ListVacacionComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onDevengar() {
     if (this.funcionarioControl.value == null) {

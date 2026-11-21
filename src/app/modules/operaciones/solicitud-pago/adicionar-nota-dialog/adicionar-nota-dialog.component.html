@@ -17,7 +17,7 @@
       </mat-form-field>
     </div>
 
-    <div class="table-wrapper" *ngIf="!loading">
+    <div class="table-wrapper" *ngIf="(pag.cargando$ | async) === false">
       <table mat-table [dataSource]="dataSource" class="table-center mat-elevation-z1">
         <ng-container matColumnDef="select">
           <th mat-header-cell *matHeaderCellDef>
@@ -64,18 +64,10 @@
           </td>
         </tr>
       </table>
-      <mat-paginator
-        [length]="totalElements"
-        [pageSize]="pageSize"
-        [pageIndex]="pageIndex"
-        [pageSizeOptions]="[10, 20, 30]"
-        (page)="onPage($event)"
-        showFirstLastButtons
-      >
-      </mat-paginator>
+      <mat-paginator [paginacion]="pag"></mat-paginator>
     </div>
 
-    <div *ngIf="loading" class="loading-wrapper">
+    <div *ngIf="pag.cargando$ | async" class="loading-wrapper">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Cargando notas disponibles...</p>
     </div>

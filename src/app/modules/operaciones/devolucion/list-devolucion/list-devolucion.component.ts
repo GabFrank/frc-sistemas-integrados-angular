@@ -1,13 +1,12 @@
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { Component, Input, OnInit, ViewChild } from "@angular/core";
-import { Subscription } from "rxjs";
+import { Component, Input, OnInit } from "@angular/core";
+import { Observable, of } from "rxjs";
+import { catchError } from "rxjs/operators";
 import { FormControl, FormGroup } from "@angular/forms";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
-import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { PageInfo } from "../../../../app.component";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -20,7 +19,7 @@ import { Devolucion, DevolucionEstado } from "../devolucion.model";
 import { DevolucionService } from "../devolucion.service";
 import { EditDevolucionComponent } from "../edit-devolucion/edit-devolucion.component";
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-devolucion",
   templateUrl: "./list-devolucion.component.html",
@@ -28,11 +27,6 @@ import { EditDevolucionComponent } from "../edit-devolucion/edit-devolucion.comp
 })
 export class ListDevolucionComponent implements OnInit {
   @Input() data: Tab;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
-  private filtroSub: Subscription;
-
-  dataSource = new MatTableDataSource<Devolucion>([]);
 
   sucursalControl = new FormControl();
   estadoControl = new FormControl();
@@ -58,9 +52,13 @@ export class ListDevolucionComponent implements OnInit {
     "acciones",
   ];
 
-  pageSize = 25;
-  pageIndex = 0;
-  selectedPageInfo: PageInfo<Devolucion>;
+  /** Paginadas en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag: PaginacionLista<Devolucion> = new PaginacionLista<Devolucion>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 25,
+  });
+  /** La próxima carga es la recarga al volver a la pestaña: sin avisos. */
+  private recargaSilenciosa = false;
 
   constructor(
     private devolucionService: DevolucionService,
@@ -98,19 +96,17 @@ export class ListDevolucionComponent implements OnInit {
       error: () => this.notificacionService.openWarn("No se pudieron cargar las sucursales para el filtro.", 5),
     });
 
-    setTimeout(() => {
-      if (this.paginator != null) {
-        this.paginator._changePageSize(this.pageSize);
-      }
-      this.buscar();
-    }, 0);
+    this.pag.filtrar();
 
     // La pestaña queda viva en segundo plano: al volver, releer con los mismos
     // filtros y página lo que se operó desde otras pestañas.
     this.tabService
       .onTabReactivada(this.data)
       .pipe(untilDestroyed(this))
-      .subscribe(() => this.buscar(true));
+      .subscribe(() => {
+        this.recargaSilenciosa = true;
+        this.pag.recargar();
+      });
   }
 
   onBuscarProveedor() {
@@ -134,14 +130,12 @@ export class ListDevolucionComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
-  buscar(silencioso = false) {
+  private consultar(page: number, size: number): Observable<PaginaCentral<Devolucion> | null> {
+    const silencioso = this.recargaSilenciosa;
+    this.recargaSilenciosa = false;
     let fechaInicio: Date = this.fechaInicioControl.value;
     let fechaFin: Date = this.fechaFinControl.value;
     let inicioStr: string = null;
@@ -156,38 +150,29 @@ export class ListDevolucionComponent implements OnInit {
       aux.setHours(23, 59, 59);
       finStr = dateToString(aux);
     }
-    // Una respuesta vieja no debe pisar a una búsqueda más nueva.
-    this.filtroSub?.unsubscribe();
-    this.filtroSub = this.devolucionService
+    return this.devolucionService
       .onGetDevolucionesConFiltros(
         this.selectedProveedor?.id,
         this.sucursalControl.value?.id,
         this.estadoControl.value,
         inicioStr,
         finStr,
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         true,
         silencioso,
         PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<Devolucion>) => {
-          if (res != null) {
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent;
-          }
-          // null: el servicio ya avisó el error.
-        },
-        // En la recarga silenciosa (al volver a la pestaña) se conservan los datos y no se avisa.
-        error: () => {
+      .pipe(
+        // null: el servicio ya avisó el error. En la recarga silenciosa (al volver a la pestaña) no se avisa.
+        catchError(() => {
           if (!silencioso) {
             this.notificacionService.openWarn("No se pudieron cargar las devoluciones: el servidor no responde.", 5);
           }
-        },
-      });
+          return of(null);
+        })
+      );
   }
 
   onResetFiltro() {
@@ -224,9 +209,4 @@ export class ListDevolucionComponent implements OnInit {
     );
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 }
