@@ -1,5 +1,4 @@
 <app-generic-list
-  [data]="dataSource.data"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
   [isAdicionar]="puedeEditarUsuarios"
@@ -36,9 +35,9 @@
   </div>
 
   <div table class="lista-tabla">
-    <mat-progress-bar *ngIf="cargando" mode="indeterminate" class="tabla-progreso"></mat-progress-bar>
+    <mat-progress-bar *ngIf="pag.cargando$ | async" mode="indeterminate" class="tabla-progreso"></mat-progress-bar>
 
-      <table mat-table [dataSource]="dataSource">
+      <table mat-table [dataSource]="pag.items$">
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef class="col-id">Id</th>
           <td mat-cell *matCellDef="let usuario" class="col-id">{{ usuario?.id }}</td>
@@ -113,17 +112,12 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
 
-      <div *ngIf="!cargando && dataSource.data.length === 0" class="tabla-vacia">
+      <div *ngIf="(pag.cargando$ | async) === false && (pag.items$ | async)?.length === 0" class="tabla-vacia">
         <mat-icon>person_search</mat-icon>
         <p>No hay usuarios para mostrar</p>
         <small>Probá con otro nombre o quitá los filtros de roles y estado.</small>
       </div>
 
-    <mat-paginator
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

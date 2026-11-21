@@ -257,9 +257,7 @@
 
   <!-- Los ítems vienen paginados del central -->
   <ng-template #paginadorItems>
-    <mat-paginator [length]="totalItems" [pageIndex]="itemsPageIndex" [pageSize]="itemsPageSize"
-      [pageSizeOptions]="[10, 20, 50, 100]" (page)="onItemsPage($event)" showFirstLastButtons
-      style="width: 100%"></mat-paginator>
+    <mat-paginator [paginacion]="itemsPag" style="width: 100%"></mat-paginator>
   </ng-template>
 
 </div>

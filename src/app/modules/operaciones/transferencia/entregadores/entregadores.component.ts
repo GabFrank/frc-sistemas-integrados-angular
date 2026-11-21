@@ -1,15 +1,13 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { HojaRuta, Transferencia } from '../transferencia.model';
 import { Persona } from '../../../personas/persona/persona.model';
-import { EMPTY, Observable } from 'rxjs';
-import { expand, finalize, reduce } from 'rxjs/operators';
-import { PageInfo } from '../../../../app.component';
+import { EMPTY, Observable, of } from 'rxjs';
+import { catchError, expand, finalize, reduce } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { UbicacionService } from '../../../../shared/services/ubicacion.service';
 import { TransferenciaService } from '../transferencia.service';
@@ -41,43 +39,53 @@ export class EntregadoresComponent implements OnInit {
   readonly dialog = inject(MatDialog);
 
   displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'qr'];
-  dataSource = new MatTableDataSource<HojaRuta>([]);
-  isLoading = true;
   expandedElement: HojaRuta | null = null;
   transferenciasCache: Record<number, Transferencia[]> = {};
   cargandoTransferencias: Record<number, boolean> = {};
 
-  // Paginación resuelta en el backend
-  pageIndex = 0;
-  pageSize = 15;
-  totalElementos = 0;
-  readonly pageSizeOptions: number[] = [15, 25, 50, 100];
 
   fechaInicioControl = new FormControl(new Date());
   fechaFinControl = new FormControl(new Date());
   searchControl = new FormControl('');
 
+  /** Hojas de ruta paginadas en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag: PaginacionLista<HojaRuta> = new PaginacionLista<HojaRuta>({
+    cargar: (page, size) => this.transferenciaService
+      .buscarHojasRutaPorFecha(
+        this.inicioDelDia(this.fechaInicioControl.value),
+        this.finDelDia(this.fechaFinControl.value),
+        (this.searchControl.value || '').trim(),
+        page,
+        size
+      )
+      .pipe(
+        catchError((err) => {
+          console.error('Error al cargar hojas de ruta:', err);
+          this.notificacionService.openWarn('No se pudieron cargar las hojas de ruta: el servidor no responde.', 5);
+          return of(null);
+        })
+      ),
+    alCargar: () => {
+      // El caché queda invalidado: las transferencias de una hoja pueden haber cambiado desde la última consulta.
+      this.transferenciasCache = {};
+      this.expandedElement = null;
+      this.cdr.markForCheck();
+    },
+  });
+
   ngOnInit(): void {
-    this.buscarHojasRuta();
+    this.pag.filtrar();
   }
 
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.buscarHojasRuta();
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
     this.searchControl.setValue('');
     this.fechaInicioControl.setValue(new Date());
     this.fechaFinControl.setValue(new Date());
-    this.pageIndex = 0;
-    this.buscarHojasRuta();
-  }
-
-  onCambiarPagina(evento: PageEvent): void {
-    this.pageIndex = evento.pageIndex;
-    this.pageSize = evento.pageSize;
-    this.buscarHojasRuta();
+    this.pag.filtrar();
   }
 
   onExpandRow(element: HojaRuta): void {
@@ -112,41 +120,6 @@ export class EntregadoresComponent implements OnInit {
         error: (err) => {
           console.error(`Error al cargar transferencias para hoja de ruta ${hojaRuta.id}:`, err);
           this.notificacionService.openWarn('Error de red: No se lograron cargar las transferencias del backend.');
-        }
-      });
-  }
-
-  /**
-   * Consulta las hojas de ruta con el rango de fechas, el texto y la página resueltos
-   * por el backend. El filtrado y la paginación ya no se hacen sobre el arreglo local.
-   */
-  buscarHojasRuta(): void {
-    this.isLoading = true;
-    this.cdr.markForCheck();
-
-    const inicio = this.inicioDelDia(this.fechaInicioControl.value);
-    const fin = this.finDelDia(this.fechaFinControl.value);
-    const texto = (this.searchControl.value || '').trim();
-
-    this.transferenciaService
-      .buscarHojasRutaPorFecha(inicio, fin, texto, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (pagina: PageInfo<HojaRuta>) => {
-          // El caché queda invalidado: las transferencias de una hoja pueden haber
-          // cambiado desde la última consulta.
-          this.transferenciasCache = {};
-          this.expandedElement = null;
-          this.dataSource.data = pagina?.getContent || [];
-          this.totalElementos = pagina?.getTotalElements || 0;
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          console.error('Error al cargar hojas de ruta:', err);
-          this.notificacionService.openWarn('No se pudieron cargar las hojas de ruta: el servidor no responde.', 5);
-          this.isLoading = false;
-          this.cdr.markForCheck();
         }
       });
   }

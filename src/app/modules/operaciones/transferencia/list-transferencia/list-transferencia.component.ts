@@ -5,9 +5,8 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
@@ -34,7 +33,9 @@ import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
-import { interval, Subscription } from "rxjs";
+import { interval, Observable, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
 import {
@@ -57,7 +58,7 @@ import {
 } from "./../../../../shared/qr-code/qr-code.component";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-transferencia",
   templateUrl: "./list-transferencia.component.html",
@@ -74,7 +75,6 @@ import { Usuario } from "../../../personas/usuarios/usuario.model";
   ],
 })
 export class ListTransferenciaComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   titulo = "Lista de Transferencias";
 
@@ -114,11 +114,25 @@ export class ListTransferenciaComponent implements OnInit {
     "acciones",
   ];
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
-  selectedPageInfo: PageInfo<Transferencia>;
+  /**
+   * Transferencias paginadas en el central (#772): gana la última consulta (filtro, página o el refresco de 5 min).
+   * Si falla una página o el refresco, queda lo que se veía; si falla un filtro nuevo, la lista queda vacía.
+   */
+  pag: PaginacionLista<TransferenciaView> = new PaginacionLista<TransferenciaView>({
+    cargar: (page, size) => this.consultar(page, size).pipe(
+      catchError(() => {
+        this.avisarListaNoCargada();
+        return of(null);
+      })
+    ),
+    pageSize: 25,
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent;
+      this.reseleccionarPendientesDeRuta();
+      this.cargarNotasRemision();
+    },
+    alFallar: (filtroNuevo) => filtroNuevo && (this.dataSource.data = []),
+  });
 
   constructor(
     private transferenciaService: TransferenciaService,
@@ -174,12 +188,6 @@ export class ListTransferenciaComponent implements OnInit {
     this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol(
       [ROLES.FACTURACION_EMITIR, ROLES.NOTA_REMISION_EMITIR, ROLES.ADMIN]);
 
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.buscar();
-    }, 0);
-
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
@@ -213,78 +221,69 @@ export class ListTransferenciaComponent implements OnInit {
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
-    this.buscar();
+    this.pag.filtrar();
   }
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
-  /** La consulta en vuelo de un filtro o una página anterior (o del refresco de 5 min) no pisa la nueva. */
-  private listaSub: Subscription;
-
+  /** Repite la página a la vista (refresco de 5 min, tras asignar ruta o guardar). */
   buscar() {
-    this.listaSub?.unsubscribe();
+    this.pag.recargar();
+  }
+
+  /** Una página de transferencias; con id, solo esa transferencia. `null` si no llegó. */
+  private consultar(page: number, size: number): Observable<PaginaCentral<TransferenciaView> | null> {
     if (this.fechaFinControl.value == null)
       this.fechaFinControl.setValue(this.today);
     let unaSemanaAtras = new Date();
     unaSemanaAtras.setDate(this.fechaFinControl.value.getDate() - 7);
     if (this.fechaInicioControl.value == null)
       this.fechaInicioControl.setValue(unaSemanaAtras);
-    if (this.idControl.value == null) {
-      let fechaInicio: Date = this.fechaInicioControl.value;
-      let fechaFin: Date = this.fechaFinControl.value;
-      fechaInicio.setHours(0, 0, 0);
-      fechaFin.setHours(23, 59, 59);
-      this.listaSub = this.transferenciaService
-        .onGetTransferenciasWithFilters(
-          this.sucOrigenControl.value?.id,
-          this.sucDestinoControl.value?.id,
-          this.estadoControl.value,
-          null,
-          this.etapaControl.value,
-          null,
-          null,
-          this.selectedUltimoResponsable?.id,
-          dateToString(fechaInicio),
-          dateToString(fechaFin),
-          this.pageIndex,
-          this.pageSize,
-          true,
-          PROPAGAR_ERROR_DE_RED,
-          { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (res: PageInfo<Transferencia>) => {
-            if (res == null) { this.avisarListaNoCargada(); return; }
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent.map((t) => this.toView(t));
-            this.reseleccionarPendientesDeRuta();
-            this.cargarNotasRemision();
-          },
-          error: () => this.avisarListaNoCargada()
-        });
-    } else {
-      this.listaSub = this.transferenciaService
-        .onGetTransferencia(this.idControl.value)
-        .subscribe({
-          next: (res) => {
-            if (res == null) {
-              this.notificacionService.openWarn('No se encontró la transferencia o no se pudo consultar.', 5);
-              return;
-            }
-            this.dataSource.data = [this.toView(res)];
-            this.cargarNotasRemision();
-          },
-          error: () => this.avisarListaNoCargada()
-        });
+    if (this.idControl.value != null) {
+      return this.transferenciaService.onGetTransferencia(this.idControl.value).pipe(
+        map((res) => {
+          if (res == null) {
+            this.notificacionService.openWarn('No se encontró la transferencia o no se pudo consultar.', 5);
+            return null;
+          }
+          return { getContent: [this.toView(res)], getTotalElements: 1 };
+        })
+      );
     }
+    let fechaInicio: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinControl.value;
+    fechaInicio.setHours(0, 0, 0);
+    fechaFin.setHours(23, 59, 59);
+    return this.transferenciaService
+      .onGetTransferenciasWithFilters(
+        this.sucOrigenControl.value?.id,
+        this.sucDestinoControl.value?.id,
+        this.estadoControl.value,
+        null,
+        this.etapaControl.value,
+        null,
+        null,
+        this.selectedUltimoResponsable?.id,
+        dateToString(fechaInicio),
+        dateToString(fechaFin),
+        page,
+        size,
+        true,
+        PROPAGAR_ERROR_DE_RED,
+        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
+      )
+      .pipe(
+        map((res: PageInfo<Transferencia>) => {
+          if (res == null) {
+            this.avisarListaNoCargada();
+            return null;
+          }
+          return { getTotalElements: res.getTotalElements, getContent: res.getContent.map((t) => this.toView(t)) };
+        })
+      );
   }
 
   private avisarListaNoCargada() {
@@ -654,12 +653,6 @@ export class ListTransferenciaComponent implements OnInit {
     if (viejas.length > 0) this.selection.deselect(...viejas);
     const filas = this.dataSource.data.filter((t) => t.hojaRuta == null && pendiente.ids.some((id) => id == t.id));
     if (filas.length > 0) this.selection.select(...filas);
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   /**

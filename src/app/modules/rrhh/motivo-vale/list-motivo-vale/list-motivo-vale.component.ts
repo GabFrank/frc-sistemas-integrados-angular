@@ -1,10 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { MotivoVale } from '../motivo-vale.model';
@@ -19,17 +17,21 @@ import { EditMotivoValeDialogComponent } from '../edit-motivo-vale-dialog/edit-m
 })
 export class ListMotivoValeComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['nombre', 'descripcion', 'activo', 'acciones'];
-  dataSource = new MatTableDataSource<MotivoVale>([]);
 
   descripcionControl = new FormControl(null);
   activoControl = new FormControl(null);
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<MotivoVale>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<MotivoVale>({
+    cargar: (page, size) => this.motivoValeService.onGetPage(
+      page,
+      size,
+      this.descripcionControl.value,
+      this.activoControl.value
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private motivoValeService: MotivoValeService,
@@ -44,25 +46,12 @@ export class ListMotivoValeComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.motivoValeService.onGetPage(
-      this.pageIndex,
-      this.pageSize,
-      this.descripcionControl.value,
-      this.activoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -71,11 +60,6 @@ export class ListMotivoValeComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onNuevo() {
     this.dialog.open(EditMotivoValeDialogComponent, { width: '440px', disableClose: true })

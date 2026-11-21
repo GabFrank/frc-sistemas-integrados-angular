@@ -30,12 +30,12 @@
 
     <div class="row ultimas-ventas__tabla">
         <div class="col-12">
-            <div *ngIf="isLoading" class="text-center p-3">
+            <div *ngIf="pag.cargando$ | async" class="text-center p-3">
                 <mat-spinner diameter="40" class="mx-auto"></mat-spinner>
                 <p class="mt-2">Cargando datos...</p>
             </div>
 
-            <div class="mat-elevation-z2 ultimas-ventas__grilla" *ngIf="!isLoading">
+            <div class="mat-elevation-z2 ultimas-ventas__grilla" *ngIf="(pag.cargando$ | async) === false">
                 <div class="ultimas-ventas__scroll">
                 <table mat-table [dataSource]="dataSource" matSort class="w-100">
                     <!-- ID Column -->
@@ -122,10 +122,7 @@
                 </table>
                 </div>
 
-                <mat-paginator #paginator itemsPerPageLabel="Itens por página" [pageSizeOptions]="pageSizeOptions"
-                    [pageSize]="pageSize" [length]="selectedPageInfo?.getTotalElements" (page)="handlePageEvent($event)"
-                    showFirstLastButtons>
-                </mat-paginator>
+                <mat-paginator [paginacion]="pag"></mat-paginator>
             </div>
         </div>
     </div>

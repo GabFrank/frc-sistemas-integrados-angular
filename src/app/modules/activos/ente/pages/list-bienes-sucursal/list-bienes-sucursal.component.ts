@@ -1,7 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { EnteService } from '../../service/ente.service';
 import { Ente } from '../../models/ente.model';
@@ -242,9 +241,6 @@ export class ListBienesSucursalComponent implements OnInit {
     this.enteService.refrescar();
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.enteService.updatePagination(event.pageIndex, event.pageSize);
-  }
 
   resetFiltro(): void {
     this.muebleControl.setValue('');

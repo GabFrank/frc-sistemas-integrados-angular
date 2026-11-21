@@ -413,14 +413,8 @@
             </table>
           </div>
           <mat-paginator
-            itemsPerPageLabel="Itens por pagina"
-            [pageSizeOptions]="[15, 25, 50, 100]"
-            (page)="handleFamiliaPageEvent($event)"
-            [pageIndex]="familiaPageIndex"
-            [pageSize]="familiaPageSize"
-            [length]="selectedFamiliaPageInfo?.getTotalElements"
+            [paginacion]="familiaPag"
             style="width: 100%"
-            showFirstLastButtons
           ></mat-paginator>
           <br />
           <div
@@ -686,14 +680,8 @@
             </table>
           </div>
           <mat-paginator
-            itemsPerPageLabel="Itens por pagina"
-            [pageSizeOptions]="[15, 25, 50, 100]"
-            (page)="handleSubfamiliaPageEvent($event)"
-            [pageIndex]="subfamiliaPageIndex"
-            [pageSize]="subfamiliaPageSize"
-            [length]="selectedSubfamiliaPageInfo?.getTotalElements"
+            [paginacion]="subfamiliaPag"
             style="width: 100%"
-            showFirstLastButtons
           ></mat-paginator>
           <br />
           <div

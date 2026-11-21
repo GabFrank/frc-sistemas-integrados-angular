@@ -120,10 +120,6 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="(vehiculoService.paginationSucursalState$ | async)?.totalElements || 0"
-      [pageIndex]="(vehiculoService.paginationSucursalState$ | async)?.pageIndex || 0"
-      [pageSize]="(vehiculoService.paginationSucursalState$ | async)?.pageSize || 15" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="vehiculoService.pagSucursal" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

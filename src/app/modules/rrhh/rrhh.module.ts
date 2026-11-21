@@ -4,7 +4,6 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
-import { ListConfiguracionRrhhComponent } from './configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 import { EditConfiguracionRrhhDialogComponent } from './configuracion-rrhh/edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
 import { ConfigInfoDialogComponent } from './configuracion-rrhh/config-info-dialog/config-info-dialog.component';
 import { AjusteSalarioMinimoDialogComponent } from './configuracion-rrhh/ajuste-salario-minimo-dialog/ajuste-salario-minimo-dialog.component';
@@ -58,7 +57,6 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
 
 @NgModule({
   declarations: [
-    ListConfiguracionRrhhComponent,
     EditConfiguracionRrhhDialogComponent,
     ConfigInfoDialogComponent,
     AjusteSalarioMinimoDialogComponent,

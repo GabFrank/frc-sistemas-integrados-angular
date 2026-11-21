@@ -1,9 +1,8 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Proveedor } from '../proveedor.model';
@@ -11,18 +10,16 @@ import { ProveedorService } from '../proveedor.service';
 import { EditProveedorComponent } from '../edit-proveedor/edit-proveedor.component';
 import { GestionProductosProveedorDialogComponent } from '../../../productos/producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-proveedor',
   templateUrl: './list-proveedor.component.html',
   styleUrls: ['./list-proveedor.component.scss']
 })
 export class ListProveedorComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   titulo = 'Lista de proveedores';
 
-  dataSource = new MatTableDataSource<Proveedor>([]);
   textoControl = new FormControl();
   /** null = todos, true = activos, false = inactivos. */
   estadoControl = new FormControl<boolean | null>(null);
@@ -38,9 +35,12 @@ export class ListProveedorComponent implements OnInit {
     'acciones'
   ];
 
-  length = 0;
-  pageSize = 25;
-  pageIndex = 0;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<Proveedor>({
+    cargar: (page, size) => this.proveedorService.onGetProveedoresPaginated(page, size, this.textoControl.value?.trim() || undefined, this.estadoControl.value),
+    pageSize: 25,
+    alFallar: () => this.notificacionService.openAlgoSalioMal('Error al cargar proveedores'),
+  });
 
   constructor(
     private proveedorService: ProveedorService,
@@ -50,37 +50,22 @@ export class ListProveedorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadPage();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (después de guardar o borrar). */
   loadPage(): void {
-    const texto = this.textoControl.value?.trim() || undefined;
-    this.proveedorService
-      .onGetProveedoresPaginated(this.pageIndex, this.pageSize, texto, this.estadoControl.value)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (pageResult) => {
-          this.dataSource.data = pageResult?.getContent ?? [];
-          this.length = pageResult?.getTotalElements ?? 0;
-        },
-        error: () => {
-          this.notificacionService.openAlgoSalioMal('Error al cargar proveedores');
-        }
-      });
+    this.pag.recargar();
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.loadPage();
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {
     this.textoControl.setValue(null);
     this.estadoControl.setValue(null);
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.loadPage();
+    this.pag.filtrar();
   }
 
   onAdd(): void {
@@ -120,9 +105,4 @@ export class ListProveedorComponent implements OnInit {
     }).afterClosed().subscribe(() => {});
   }
 
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.loadPage();
-  }
 }

@@ -98,7 +98,7 @@
   </div>
   <div table class="table-container" fxLayout="column" fxLayoutAlign="space-between start">
     <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" [trackBy]="trackByItemId" multiTemplateDataRows
+      <table mat-table [dataSource]="pag.items$" [trackBy]="trackByItemId" multiTemplateDataRows
         class="mat-elevation-z8 data-table">
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
@@ -187,17 +187,15 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true" class="header-row"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"
           [class.selected-row]="expandedProductoVencido === row" (click)="onRowClick(row)" class="data-row"></tr>
-        <tr class="empty-row" *ngIf="dataSource.data.length === 0">
+        <tr class="empty-row" *ngIf="(pag.items$ | async)?.length === 0">
           <td class="empty-cell" [attr.colspan]="displayedColumns.length">
             <div class="empty-message">
-              {{ length === 0 ? 'No se encontraron productos vencidos' : 'Cargando...' }}
+              {{ (pag.cargando$ | async) ? 'Cargando...' : 'No se encontraron productos vencidos' }}
             </div>
           </td>
         </tr>
       </table>
     </div>
-    <mat-paginator [pageIndex]="pageIndex" [length]="length" [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions"
-      (page)="handlePageEvent($event)" showFirstLastButtons class="paginator full-width-paginator">
-    </mat-paginator>
+    <mat-paginator [paginacion]="pag" class="paginator full-width-paginator"></mat-paginator>
   </div>
 </app-generic-list>

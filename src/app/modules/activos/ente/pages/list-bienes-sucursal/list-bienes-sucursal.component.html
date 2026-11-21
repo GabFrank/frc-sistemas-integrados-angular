@@ -176,10 +176,6 @@
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="(enteService.totalElements$ | async) || 0"
-      [pageIndex]="(enteService.paginationState$ | async)?.pageIndex || 0"
-      [pageSize]="(enteService.paginationState$ | async)?.pageSize || 15" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="enteService.pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

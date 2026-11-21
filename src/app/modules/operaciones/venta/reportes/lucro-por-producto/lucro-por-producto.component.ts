@@ -36,6 +36,12 @@ import { FuncionarioSearchGQL } from "../../../../personas/funcionarios/graphql/
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { Familia } from "../../../../productos/familia/familia.model";
 import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familiasSearch";
+import { Observable, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
+import { PaginaCentral, PaginacionLista } from "../../../../../shared/components/paginacion/paginacion-lista";
+
+/** La página del reporte trae además el resumen de todo el período. */
+type PaginaLucro = PaginaCentral<LucroPorProducto> & { summary?: any };
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -49,7 +55,6 @@ export class LucroPorProductoComponent implements OnInit {
   buscadorCajeroInput: ElementRef;
 
   dataSource = new MatTableDataSource<LucroPorProducto>([]);
-  isLastPage = true;
   sucursalControl = new FormControl();
   fechaFormGroup: FormGroup;
   today = new Date();
@@ -95,9 +100,29 @@ export class LucroPorProductoComponent implements OnInit {
   totalAumento = 0;
   margenPromedio = 0;
 
-  page = 0;
-  size = 20;
-  totalElements = 0;
+  /** Filtros del último Filtrar: los cambios de página los repiten aunque el formulario haya cambiado. */
+  private filtrosAplicados: {
+    fechaInicio: string; fechaFin: string; sucursalIdList: number[]; usuarioIdList: number[];
+    productoIdList: number[]; subfamiliaId: number; familiaId: number;
+  };
+
+  /** Lucro paginado en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<LucroPorProducto> = new PaginacionLista<LucroPorProducto>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      const summary = (res as PaginaLucro).summary;
+      if (summary) {
+        this.populateSummary(summary);
+      }
+    },
+    // Filtro nuevo sin respuesta: ni filas ni resumen del filtro anterior (#390).
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.vaciarReporte();
+    },
+  });
 
   constructor(
     private sucursalService: SucursalService,
@@ -168,10 +193,7 @@ export class LucroPorProductoComponent implements OnInit {
     });
   }
 
-  onFiltrar(isPagination: boolean = false) {
-    if (!isPagination) {
-      this.page = 0;
-    }
+  onFiltrar() {
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
       if (this.horaInicioControl.value == null)
         this.horaInicioControl.setValue("07:00");
@@ -189,49 +211,47 @@ export class LucroPorProductoComponent implements OnInit {
           this.horaFinalControl.value
         )
       );
-      let fechaInicio = dateToString(this.fechaInicioControl.value);
-      let fechaFin = dateToString(this.fechaFinalControl.value);
       let productoIdList: number[];
       this.productoList.forEach((p) => {
         if (productoIdList == null) productoIdList = [];
         productoIdList.push(p.id);
       });
-      if (this.selectedUsuario != null) {
-        this.cajeroIdList = [];
-        this.cajeroIdList.push(this.selectedUsuario?.id);
-      } else {
-        this.cajeroIdList = [];
-      }
+      this.cajeroIdList = this.selectedUsuario != null ? [this.selectedUsuario.id] : [];
 
-      this.productoService
-        .onGetLucroPorProducto(
-          fechaInicio,
-          fechaFin,
-          this.toSucursalesId(this.sucursalControl.value),
-          this.cajeroIdList,
-          productoIdList,
-          this.selectedSubFamilia?.id,
-          this.page,
-          this.size,
-          this.selectedFamilia?.id
-        )
-        .subscribe((res) => {
-          console.log('Data received:', res);
-          if (res) {
-            this.dataSource.data = res.content || [];
-            this.totalElements = res.totalElements || 0;
-            if (res.summary) {
-              this.populateSummary(res.summary);
-            }
-          }
-        });
+      this.filtrosAplicados = {
+        fechaInicio: dateToString(this.fechaInicioControl.value),
+        fechaFin: dateToString(this.fechaFinalControl.value),
+        sucursalIdList: this.toSucursalesId(this.sucursalControl.value),
+        usuarioIdList: this.cajeroIdList,
+        productoIdList,
+        subfamiliaId: this.selectedSubFamilia?.id,
+        familiaId: this.selectedFamilia?.id,
+      };
+      this.pag.filtrar();
     }
   }
 
-  handlePageEvent(e: any) {
-    this.page = e.pageIndex;
-    this.size = e.pageSize;
-    this.onFiltrar(true);
+  private consultar(page: number, size: number): Observable<PaginaLucro | null> {
+    const f = this.filtrosAplicados;
+    return this.productoService
+      .onGetLucroPorProducto(
+        f.fechaInicio, f.fechaFin, f.sucursalIdList, f.usuarioIdList, f.productoIdList, f.subfamiliaId,
+        page, size, f.familiaId
+      )
+      .pipe(
+        map((res) => res ? { getContent: res.content || [], getTotalElements: res.totalElements || 0, summary: res.summary } : null),
+        catchError(() => of(null))
+      );
+  }
+
+  private vaciarReporte(): void {
+    this.dataSource.data = [];
+    this.totalVenta = 0;
+    this.totalCosto = 0;
+    this.totalLucro = 0;
+    this.totalDescuento = 0;
+    this.totalAumento = 0;
+    this.margenPromedio = 0;
   }
 
   populateSummary(summary: any) {
@@ -242,8 +262,6 @@ export class LucroPorProductoComponent implements OnInit {
     this.totalAumento = summary.totalAumento || 0;
     this.margenPromedio = summary.margen || 0;
   }
-
-  cargarMasDatos() {}
 
   resetFiltro() {
     let hoy = new Date();
@@ -263,15 +281,8 @@ export class LucroPorProductoComponent implements OnInit {
     this.selectedSubFamilia = null;
     this.selectedFamilia = null;
     this.productoList = [];
-    this.dataSource.data = [];
-    this.totalElements = 0;
-
-    this.totalVenta = 0;
-    this.totalCosto = 0;
-    this.totalLucro = 0;
-    this.totalDescuento = 0;
-    this.totalAumento = 0;
-    this.margenPromedio = 0;
+    this.pag.limpiar();
+    this.vaciarReporte();
   }
 
   onGenerarPdf() {

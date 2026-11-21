@@ -1,43 +1,38 @@
-import { Usuario } from '../../personas/usuarios/usuario.model';
-import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
-
-export class ModificacionRegistro {
+/** Un cambio del historial, ya contado por el central para el personal administrativo. */
+export interface HistorialCambio {
   id: number;
-  tipoEntidad: string;
-  entidadId: number;
-  entidadSucursalId?: number;
-  schemaNombre: string;
-  tablaNombre: string;
-  tipoOperacion: TipoOperacion;
-  usuario?: Usuario;
-  sucursal?: Sucursal;
-  modificadoEn: Date;
-  creadoEn: Date;
-  ipAddress?: string;
-  userAgent?: string;
+  fecha: string;
+  usuarioId?: number;
+  usuario?: string;
+  categoria: string;
+  /** «Cambió el precio», «Agregó un código de barras». */
+  accion: string;
+  /** Sobre qué: «COCA COLA 2L · UNIDAD · CONTADO · CENTRAL». */
+  objeto?: string;
   observacion?: string;
-  activo: boolean;
-  detalles?: ModificacionDetalle[];
-  tipoOperacionLabel?: string;
-  tipoOperacionColor?: string;
+  productoId?: number;
+  /** Actualización registrada sin decir qué cambió (registros viejos). */
+  sinDetalle: boolean;
+  /** Los cambios en una línea: «Precio: 6.000 → 5.000». */
+  resumen?: string;
+  cambios: HistorialCambioDetalle[];
 }
 
-export class ModificacionDetalle {
-  id: number;
-  modificacionRegistro?: ModificacionRegistro;
-  campoNombre: string;
-  campoTipo?: string;
-  valorAnterior?: string;
-  valorNuevo?: string;
-  valorAnteriorId?: number;
-  valorNuevoId?: number;
-  orden: number;
-  esCampoSensible: boolean;
+export interface HistorialCambioDetalle {
+  campo: string;
+  antes?: string;
+  despues?: string;
 }
 
-export enum TipoOperacion {
-  INSERT = 'INSERT',
-  UPDATE = 'UPDATE',
-  DELETE = 'DELETE',
-  SOFT_DELETE = 'SOFT_DELETE'
+export interface HistorialCambioCategoria {
+  codigo: string;
+  nombre: string;
+}
+
+export interface FiltrosHistorialCambios {
+  fechaInicio: string;
+  fechaFin: string;
+  usuarioId?: number;
+  productoId?: number;
+  categoria?: string;
 }
