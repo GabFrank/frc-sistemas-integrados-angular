@@ -1,13 +1,17 @@
-import { Directive, ElementRef, HostListener } from '@angular/core';
+import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 
 @Directive({
   selector: '[numericOnly]'
 })
 export class NumericOnlyDirective {
 
+  /** `numericOnly` sin valor la deja activa; `[numericOnly]="false"` la apaga (ej. pasaporte de un extranjero). */
+  @Input() numericOnly: boolean | '' = '';
+
   constructor(private el: ElementRef) {}
 
   @HostListener('keydown', ['$event']) onKeyDown(event: KeyboardEvent) {
+    if (this.numericOnly === false) return;
     const allowedKeys = ['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'];
     if (allowedKeys.includes(event.key)) {
       return;  // Allow navigation keys
@@ -33,6 +37,7 @@ export class NumericOnlyDirective {
   }
 
   @HostListener('input', ['$event']) onInput(event: InputEvent) {
+    if (this.numericOnly === false) return;
     // Sanitize value on any input (including paste/composition)
     const currentValue: string = this.el.nativeElement.value ?? '';
     const sanitizedValue = currentValue.replace(/[^\d]/g, '');
