@@ -102,6 +102,11 @@
          esta pantalla ofreciera el tercero. Encontrado probando el cupon INFONET del cobro 50. -->
     <!-- Este bloque es el ANTES del QR, y dura lo que tarda el filial en abrir la captura: el
          diálogo ya la pidió solo en `ngOnInit`. No hay botón para pedirla. -->
+    <!-- Con el módulo apagado no hay foto (#151 del filial): sin esta línea quedaba solo el botón,
+         sin decir por qué. -->
+    <div class="zona-lectura" *ngIf="moduloApagado">
+      <div class="error-lectura">La venta con tarjeta está deshabilitada: cargá el cupón a mano.</div>
+    </div>
     <div class="qr" *ngIf="!capturaUrl && ofreceCamara">
       <div class="esperando" *ngIf="pidiendoCaptura">
         <mat-spinner diameter="18"></mat-spinner>
