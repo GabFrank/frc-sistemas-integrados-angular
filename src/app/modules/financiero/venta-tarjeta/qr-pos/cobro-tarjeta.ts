@@ -1,4 +1,5 @@
 import { CobroDetalle } from '../../../operaciones/venta/cobro/cobro-detalle.model';
+import { DatosCupon } from './formato-qr-pos.model';
 
 /**
  * Una línea de cobro que corresponde a un pago con tarjeta que hay que registrar en venta_tarjeta.
@@ -35,4 +36,42 @@ export function esCobroTarjetaRegistrable(cd: CobroDetalle): boolean {
 export function lineasTarjetaSinTerminal(lineas: CobroDetalle[]): CobroDetalle[] {
   return (lineas || []).filter(cd =>
     esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta && !cd.terminalPos?.id);
+}
+
+/**
+ * Otra línea del mismo cobro que ya tiene este cupón, o null (#625).
+ *
+ * El backend solo ve cupones ya guardados, así que el mismo QR escaneado en dos líneas antes de
+ * finalizar pasaba las dos veces: venta 81509 de Itaipú, cobros 1670 y 1672. Desde #278 el filial
+ * rechaza el segundo al completar, pero recién después de guardar la venta.
+ *
+ * La regla es la de `motivoCuponNoUsable` del filial: mismo QR, misma referencia, o mismo código de
+ * autorización en la misma terminal con el mismo monto del cupón (si falta un monto no descarta, y
+ * sin terminal en un lado cuenta como la misma, igual que allá). Los ids se comparan con Number():
+ * GraphQL `ID` llega como string.
+ *
+ * No filtra por `esCobroTarjetaRegistrable`: solo una línea con cupón aplicado tiene `datosCupon`.
+ */
+export function lineaConMismoCupon(
+  lineas: CobroDetalle[],
+  item: CobroDetalle,
+  cupon: DatosCupon
+): CobroDetalle | null {
+  if (!cupon) return null;
+  const texto = (v?: string) => (v || '').trim();
+  const qr = texto(cupon.qrCrudo);
+  const ref = texto(cupon.identificadorTransaccion);
+  const codigo = texto(cupon.codigoAutorizacion).toUpperCase();
+  return (lineas || []).find(otra => {
+    const suyo = otra?.datosCupon;
+    if (!suyo || otra === item) return false;
+    if (qr && texto(suyo.qrCrudo) === qr) return true;
+    if (ref && texto(suyo.identificadorTransaccion) === ref) return true;
+    if (!codigo || texto(suyo.codigoAutorizacion).toUpperCase() !== codigo) return false;
+    const a = otra.terminalPos?.id;
+    const b = item?.terminalPos?.id;
+    const mismaTerminal = a == null || b == null || Number(a) === Number(b);
+    const montosDistintos = suyo.monto != null && cupon.monto != null && Number(suyo.monto) !== Number(cupon.monto);
+    return mismaTerminal && !montosDistintos;
+  }) ?? null;
 }
