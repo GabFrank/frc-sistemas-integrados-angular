@@ -1,7 +1,5 @@
 <app-generic-list
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
-  [isLastPage]="isLastPage"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
   [isCustom]="true"
@@ -465,17 +463,7 @@
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
         </table>
       </div>
-      <mat-paginator
-        [length]="totalElements"
-        [pageSize]="size"
-        [pageIndex]="page"
-        [pageSizeOptions]="[10, 20, 50, 100]"
-        (page)="handlePageEvent($event)"
-        showFirstLastButtons
-        aria-label="Select page"
-        style="width: 100%"
-      >
-      </mat-paginator>
+      <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
     </div>
   </div>
 </app-generic-list>

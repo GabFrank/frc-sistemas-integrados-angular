@@ -1,248 +1,52 @@
-import gql from "graphql-tag";
+import gql from 'graphql-tag';
 
-export const modificacionesPorSchemaQuery = gql`
+export const historialCambiosQuery = gql`
   query (
-    $schemaNombre: String!
-    $inicio: Date!
-    $fin: Date!
+    $fechaInicio: String
+    $fechaFin: String
+    $usuarioId: ID
+    $productoId: ID
+    $categoria: String
     $page: Int
     $size: Int
   ) {
-    data: modificacionesPorSchema(
-      schemaNombre: $schemaNombre
-      inicio: $inicio
-      fin: $fin
+    data: historialCambios(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      usuarioId: $usuarioId
+      productoId: $productoId
+      categoria: $categoria
       page: $page
       size: $size
     ) {
-      content {
+      getTotalElements
+      getContent {
         id
-        tipoEntidad
-        entidadId
-        entidadSucursalId
-        schemaNombre
-        tablaNombre
-        tipoOperacion
-        modificadoEn
-        creadoEn
-        ipAddress
-        userAgent
+        fecha
+        usuarioId
+        usuario
+        categoria
+        accion
+        objeto
         observacion
-        activo
-        usuario {
-          id
-          nickname
-          persona {
-            id
-            nombre
-          }
+        productoId
+        sinDetalle
+        resumen
+        cambios {
+          campo
+          antes
+          despues
         }
-        sucursal {
-          id
-          nombre
-        }
-      }
-      pageNumber
-      pageSize
-      totalElements
-      totalPages
-    }
-  }
-`;
-
-export const modificacionesPorTipoEntidadQuery = gql`
-  query (
-    $tipoEntidad: String!
-    $page: Int
-    $size: Int
-  ) {
-    data: modificacionesPorTipoEntidad(
-      tipoEntidad: $tipoEntidad
-      page: $page
-      size: $size
-    ) {
-      content {
-        id
-        tipoEntidad
-        entidadId
-        entidadSucursalId
-        schemaNombre
-        tablaNombre
-        tipoOperacion
-        modificadoEn
-        creadoEn
-        ipAddress
-        userAgent
-        observacion
-        activo
-        usuario {
-          id
-          nickname
-          persona {
-            id
-            nombre
-          }
-        }
-        sucursal {
-          id
-          nombre
-        }
-      }
-      pageNumber
-      pageSize
-      totalElements
-      totalPages
-    }
-  }
-`;
-
-export const modificacionesPorTipoEntidadAndSchemaQuery = gql`
-  query (
-    $tipoEntidad: String!
-    $schemaNombre: String!
-    $inicio: Date!
-    $fin: Date!
-    $page: Int
-    $size: Int
-  ) {
-    data: modificacionesPorTipoEntidadAndSchema(
-      tipoEntidad: $tipoEntidad
-      schemaNombre: $schemaNombre
-      inicio: $inicio
-      fin: $fin
-      page: $page
-      size: $size
-    ) {
-      content {
-        id
-        tipoEntidad
-        entidadId
-        entidadSucursalId
-        schemaNombre
-        tablaNombre
-        tipoOperacion
-        modificadoEn
-        creadoEn
-        ipAddress
-        userAgent
-        observacion
-        activo
-        usuario {
-          id
-          nickname
-          persona {
-            id
-            nombre
-          }
-        }
-        sucursal {
-          id
-          nombre
-        }
-      }
-      pageNumber
-      pageSize
-      totalElements
-      totalPages
-    }
-  }
-`;
-
-export const modificacionRegistroQuery = gql`
-  query ($id: ID!) {
-    data: modificacionRegistro(id: $id) {
-      id
-      tipoEntidad
-      entidadId
-      entidadSucursalId
-      schemaNombre
-      tablaNombre
-      tipoOperacion
-      modificadoEn
-      creadoEn
-      ipAddress
-      userAgent
-      observacion
-      activo
-      usuario {
-        id
-        nickname
-        persona {
-          id
-          nombre
-        }
-      }
-      sucursal {
-        id
-        nombre
       }
     }
   }
 `;
 
-export const detallesModificacionQuery = gql`
-  query ($modificacionRegistroId: Int!) {
-    data: detallesModificacion(modificacionRegistroId: $modificacionRegistroId) {
-      id
-      campoNombre
-      campoTipo
-      valorAnterior
-      valorNuevo
-      valorAnteriorId
-      valorNuevoId
-      orden
-      esCampoSensible
-    }
-  }
-`;
-
-
-export const modificacionesPorSchemasQuery = gql`
-  query (
-    $schemaNombres: [String!]!
-    $inicio: Date!
-    $fin: Date!
-    $page: Int
-    $size: Int
-  ) {
-    data: modificacionesPorSchemas(
-      schemaNombres: $schemaNombres
-      inicio: $inicio
-      fin: $fin
-      page: $page
-      size: $size
-    ) {
-      content {
-        id
-        tipoEntidad
-        entidadId
-        entidadSucursalId
-        schemaNombre
-        tablaNombre
-        tipoOperacion
-        modificadoEn
-        creadoEn
-        ipAddress
-        userAgent
-        observacion
-        activo
-        usuario {
-          id
-          nickname
-          persona {
-            id
-            nombre
-          }
-        }
-        sucursal {
-          id
-          nombre
-        }
-      }
-      pageNumber
-      pageSize
-      totalElements
-      totalPages
+export const historialCambiosCategoriasQuery = gql`
+  query {
+    data: historialCambiosCategorias {
+      codigo
+      nombre
     }
   }
 `;
