@@ -43,8 +43,9 @@ import { VentaService } from '../../operaciones/venta/venta.service';
 import { Venta } from '../../operaciones/venta/venta.model';
 import { MonedaService } from '../moneda/moneda.service';
 import { Moneda } from '../moneda/moneda.model';
-import { of, forkJoin, combineLatest, BehaviorSubject } from 'rxjs';
-import { catchError, timeout } from 'rxjs/operators';
+import { of, forkJoin, combineLatest, BehaviorSubject, Observable } from 'rxjs';
+import { catchError, map, timeout } from 'rxjs/operators';
+import { PaginacionLista, PaginaCentral } from '../../../shared/components/paginacion/paginacion-lista';
 import { PROPAGAR_ERROR_DE_RED, SIN_AVISO_DEL_GENERICO, ContextoConsulta } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 
@@ -84,10 +85,19 @@ export class AnalisisDiferenciaComponent implements OnInit {
   diferenciaMaletinColumns: string[] = ['cierre', 'sucursal', 'maletin', 'cierreCaja', 'aperturaCaja', 'estado'];
   diferenciaMaletinDataSource = new MatTableDataSource<DataRow>([]);
   diferenciaMaletinFilters: FormGroup;
-  totalElementsMaletin: number = 0;
-  selectedPageInfo: PageInfo<PdvCaja>;
-  pageIndexMaletin: number = 0;
-  pageSizeMaletin: number = 10;
+  /**
+   * Diferencias de maletín paginadas en el central (#772): el estado de cada fila (y el filtro por estado) lo
+   * calcula el central. Gana la última página pedida; si falla, vuelve a la anterior.
+   */
+  pagMaletin: PaginacionLista<DataRow> = new PaginacionLista<DataRow>({
+    cargar: (page, size) => this.consultarMaletin(page, size),
+    pageSize: 10,
+    pageSizeOptions: [10, 25, 50, 100],
+    alCargar: (res) => this.diferenciaMaletinDataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.diferenciaMaletinDataSource.data = [];
+    },
+  });
   expandedElementMaletin: DataRow | null = null;
 
   diferenciaCajaDataSource = new MatTableDataSource<DataRow>([]);
@@ -124,6 +134,11 @@ export class AnalisisDiferenciaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    // El spinner de la tabla y el «Buscando…» global siguen el estado de la lista.
+    this.pagMaletin.cargando$.pipe(untilDestroyed(this)).subscribe(cargando => {
+      this.isLoadingMaletin = cargando;
+      this.loadingMaletinSubject.next(cargando);
+    });
     this.initForms();
     this.loadInitialData();
     this.subscribeToFilterChanges();
@@ -242,7 +257,6 @@ export class AnalisisDiferenciaComponent implements OnInit {
       distinctUntilChanged(),
       untilDestroyed(this)
     ).subscribe(() => {
-      this.pageIndexMaletin = 0;
       this.loadDiferenciasMaletin();
     });
 
@@ -256,13 +270,12 @@ export class AnalisisDiferenciaComponent implements OnInit {
     });
   }
 
+  /** Filtro nuevo (o la primera carga): vuelve a la página 1. */
   loadDiferenciasMaletin() {
-    this.isLoadingMaletin = true;
-    this.loadingMaletinSubject.next(true);
-    
-    const minLoadingTime = 300;
-    const startTime = Date.now();
-    
+    this.pagMaletin.filtrar();
+  }
+
+  private consultarMaletin(page: number, size: number): Observable<PaginaCentral<DataRow> | null> {
     const filters = this.diferenciaMaletinFilters.value;
     const estadoFiltrado = filters.estadoDiferencia !== 'TODAS' ? filters.estadoDiferencia : null;
 
@@ -326,11 +339,11 @@ export class AnalisisDiferenciaComponent implements OnInit {
       sucursalId,
       fechaInicio,
       fechaFin,
-      page: this.pageIndexMaletin,
-      size: this.pageSizeMaletin
+      page,
+      size
     };
 
-    this.cajaService.onGetCajasAnalisisDiferencias(
+    return this.cajaService.onGetCajasAnalisisDiferencias(
       null,
       params.cajaAnteriorId,
       estadoBackend,
@@ -347,54 +360,29 @@ export class AnalisisDiferenciaComponent implements OnInit {
       true,
       PROPAGAR_ERROR_DE_RED,
       CONSULTA_ANALISIS
-    ).pipe(untilDestroyed(this)).subscribe((response: any) => {
-      
-      const responseData = response?.data || response;
-      
-      this.selectedPageInfo = responseData as PageInfo<PdvCaja>;
-      const rawData = (this.selectedPageInfo?.getContent as any[]) || [];
-
-      const dataAugmented: DataRow[] = rawData.map(c => ({ 
-        ...(c as any),
-        estadoDiferencia: c.estadoDiferenciaConsecutiva
-      }));
-
-      this.diferenciaMaletinDataSource.data = dataAugmented;
-      this.totalElementsMaletin = this.selectedPageInfo?.getTotalElements || 0;
-      
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-      
-      setTimeout(() => {
-        this.isLoadingMaletin = false;
-        this.loadingMaletinSubject.next(false);
-      }, remainingTime);
-      
-    }, (error: any) => {
-      console.error('Error en la petición:', error);
-      this.notificacionBar.openWarn('No se pudieron cargar las diferencias de maletín: el servidor no responde.', 5);
-      
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-      
-      setTimeout(() => {
-        this.isLoadingMaletin = false;
-        this.loadingMaletinSubject.next(false);
-      }, remainingTime);
-    });
-  }
-
-  handlePageEventMaletin(event: PageEvent) {
-    this.pageIndexMaletin = event.pageIndex;
-    this.pageSizeMaletin = event.pageSize;
-    this.loadDiferenciasMaletin();
+    ).pipe(
+      map((response: any) => {
+        const pagina = (response?.data || response) as PageInfo<PdvCaja>;
+        if (pagina == null) return null;
+        return {
+          getTotalElements: pagina.getTotalElements || 0,
+          getContent: ((pagina.getContent as any[]) || []).map(c => ({
+            ...(c as any),
+            estadoDiferencia: c.estadoDiferenciaConsecutiva
+          })),
+        };
+      }),
+      catchError((error: any) => {
+        console.error('Error en la petición:', error);
+        this.notificacionBar.openWarn('No se pudieron cargar las diferencias de maletín: el servidor no responde.', 5);
+        return of(null);
+      })
+    );
   }
 
   limpiarFiltros() {
     const fechaInicial = new Date();
     fechaInicial.setDate(fechaInicial.getDate() - 1);
-    
-    this.pageIndexMaletin = 0;
     
     this.diferenciaMaletinFilters.patchValue({
       fechaCierre: fechaInicial,
@@ -428,8 +416,6 @@ export class AnalisisDiferenciaComponent implements OnInit {
           this.isLoadingGlobal = false;
         }
       });
-      
-      this.pageIndexMaletin = 0;
       this.pageIndexCaja = 0;
       
       this.loadDiferenciasMaletin();
@@ -442,8 +428,6 @@ export class AnalisisDiferenciaComponent implements OnInit {
     
     const fechaInicial = new Date();
     fechaInicial.setDate(fechaInicial.getDate() - 1);
-    
-    this.pageIndexMaletin = 0;
     this.pageIndexCaja = 0;
     
     this.diferenciaMaletinFilters.patchValue({

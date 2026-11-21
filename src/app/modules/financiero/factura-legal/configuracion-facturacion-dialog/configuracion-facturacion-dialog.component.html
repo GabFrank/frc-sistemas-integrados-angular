@@ -165,7 +165,7 @@
                         <td>{{ h.activoLabel }}</td>
                         <td>{{ h.usuario }}</td>
                     </tr>
-                    <tr *ngIf="!historialCargando && historial.length === 0">
+                    <tr *ngIf="(historialPag.cargando$ | async) === false && historial.length === 0">
                         <td colspan="7" class="vacio">
                             <mat-icon>info_outline</mat-icon>
                             <span>Sin cambios registrados.</span>
@@ -175,9 +175,7 @@
             </table>
         </div>
 
-        <mat-paginator *ngIf="!historialError" [length]="historialTotal" [pageSize]="historialPageSize"
-            [pageSizeOptions]="[15, 30, 50]" [pageIndex]="historialPageIndex" (page)="onHistorialPage($event)"
-            showFirstLastButtons></mat-paginator>
+        <mat-paginator *ngIf="!historialError" [paginacion]="historialPag"></mat-paginator>
     </ng-container>
 </mat-dialog-content>
 

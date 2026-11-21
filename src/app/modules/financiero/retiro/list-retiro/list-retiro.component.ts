@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { EstadoRetiro, Retiro } from '../retiro.model';
 import { animate, state, style, transition, trigger } from '@angular/animations';
@@ -13,8 +13,7 @@ import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-v
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { timer } from 'rxjs';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
-import { PageInfo } from '../../../../app.component';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -38,7 +37,6 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
   ],
 })
 export class ListRetiroComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
 
   @Input()
@@ -47,8 +45,6 @@ export class ListRetiroComponent implements OnInit {
   dataSource = new MatTableDataSource<Retiro>([])
   selectedRetiro: Retiro;
   expandedRetiro: Retiro;
-  isLastPage = true;
-  isSearching = false;
   displayedColumns = [
     'id',
     'sucursal',
@@ -65,15 +61,23 @@ export class ListRetiroComponent implements OnInit {
   // Se resuelve en ngOnInit y no en el template: llamar roles.includes(...) desde el
   // HTML lo re-evalua en cada ciclo de change detection.
   esAdmin = false;
-  pageIndex = 0;
-  pageSize = 15;
 
   sucursalList: Sucursal[]
   sucOrigenControl = new FormControl()
   idCajaControl = new FormControl()
   idRetiroControl = new FormControl()
   formGroup : FormGroup;
-  selectedPageInfo: PageInfo<Retiro>;
+
+  /** Retiros paginados en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<Retiro> = new PaginacionLista<Retiro>({
+    cargar: (page, size) => this.retiroService.onFilterRetiro(
+      this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, page, size),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   
   constructor(
     private retiroService: RetiroService,
@@ -103,22 +107,13 @@ export class ListRetiroComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (la primera carga y después de un rechazo o un corte). */
   buscar() {
-    this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.pageIndex, this.pageSize).subscribe(res => {      
-      if(res!=null){
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo.getContent;
-      }
-    })
+    this.pag.recargar();
   }
-
 
   resetFiltro() {
     this.sucOrigenControl.setValue(null)
@@ -126,11 +121,7 @@ export class ListRetiroComponent implements OnInit {
     this.idRetiroControl.setValue(null)
     this.dataSource.data = []
     // Sin consulta, como antes, pero sin dejar el paginador en la página y el total del filtro anterior.
-    this.selectedPageInfo = null;
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
+    this.pag.limpiar();
   }
 
   onIrACaja(cajaSalida: PdvCaja){
@@ -174,12 +165,6 @@ export class ListRetiroComponent implements OnInit {
         });
       }
     });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
 }

@@ -37,8 +37,7 @@
     </table>
   </div>
 
-  <mat-paginator [length]="totalElementos" [pageSize]="tamanoPagina" [pageSizeOptions]="[15, 25, 50, 100]"
-    [pageIndex]="paginaActual" (page)="onPageChange($event)"
-    *ngIf="ultimasSolicitudes && ultimasSolicitudes.length > 0" style="padding: 0 24px; background: transparent;">
+  <mat-paginator [paginacion]="pag"
+    *ngIf="pag && ultimasSolicitudes && ultimasSolicitudes.length > 0" style="padding: 0 24px; background: transparent;">
   </mat-paginator>
 </div>
