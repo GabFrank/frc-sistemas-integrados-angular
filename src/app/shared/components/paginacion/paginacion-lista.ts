@@ -104,6 +104,14 @@ export class PaginacionLista<T> {
     this.pedir(this.pageIndex, this.pageSize);
   }
 
+  /**
+   * Vuelve a la página 1 de la misma consulta (por ejemplo, después de agregar: los nuevos van primero). A
+   * diferencia de `filtrar()`, si falla queda la página que se veía.
+   */
+  irAPrimera(): void {
+    this.pedir(0, this.pageSize);
+  }
+
   /** Cambio de página o de tamaño desde el paginador. */
   onPage(e: PageEvent): void {
     this.pedir(e.pageIndex, e.pageSize);

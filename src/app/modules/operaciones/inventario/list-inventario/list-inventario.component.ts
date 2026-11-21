@@ -8,7 +8,6 @@ import {
 import { Component, ElementRef, Input, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import {
   SearchListDialogComponent,
@@ -38,7 +37,8 @@ import { PageInfo } from "../../../../app.component";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
-import { PageEvent, MatPaginator } from "@angular/material/paginator";
+import { map } from "rxjs/operators";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 
 export interface OrderList {
@@ -75,7 +75,7 @@ export const VENCIMIENTO_FILTRO = {
 const DIAS_POR_VENCER_DEFAULT = 30;
 const MS_POR_DIA = 1000 * 60 * 60 * 24;
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-inventario",
   templateUrl: "./list-inventario.component.html",
@@ -97,17 +97,15 @@ export class ListInventarioComponent implements OnInit {
   @ViewChild("buscarUsuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<InventarioProductoItemFila>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
   isDialogOpen = false;
   ordenarPorControl = new FormControl();
   tipoOrdenControl = new FormControl();
-  selectedPageInfo: PageInfo<InventarioProductoItem>;
-  length = 15;
-  pageSize = 15;
-  pageIndex = 0;
+  /** Ítems de inventario paginados en el central (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag: PaginacionLista<InventarioProductoItemFila> = new PaginacionLista<InventarioProductoItemFila>({
+    cargar: (page, size) => this.consultar(page, size),
+  });
 
   fechaFormGroup: FormGroup;
   today = new Date();
@@ -245,11 +243,12 @@ export class ListInventarioComponent implements OnInit {
     });
   }
 
-  onFiltrar(resetPage: boolean = false) {
-    if (resetPage) {
-      this.pageIndex = 0;
-      if (this.paginator) this.paginator.firstPage();
-    }
+  /** Filtrar: vuelve a la página 1. */
+  onFiltrar() {
+    this.pag.filtrar();
+  }
+
+  private consultar(page: number, size: number) {
     let productoIdList: number[];
     this.productoList.forEach((p) => {
       if (productoIdList == null) productoIdList = [];
@@ -270,13 +269,13 @@ export class ListInventarioComponent implements OnInit {
     const sucursalIds = this.toSucursalesId(this.sucursalControl.value);
     const usuarioIds = this.selectedUsuario != null ? [this.selectedUsuario.id] : null;
     const estado = this.estadoControl.value;
-    
-    this.inventarioService
+
+    return this.inventarioService
       .onGetInventarioProductoItemWithFilters(
         dateToString(fechaInicial),
         dateToString(fechaFin),
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         this.ordenarPorControl.value?.value,
         this.tipoOrdenControl.value?.value,
         sucursalIds,
@@ -285,11 +284,7 @@ export class ListInventarioComponent implements OnInit {
         estado,
         this.construirFiltroVencimiento()
       )
-      .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<InventarioProductoItem>) => {
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.aFilas(res.getContent);
-      });
+      .pipe(map((res: PageInfo<InventarioProductoItem>) => res && { getTotalElements: res.getTotalElements, getContent: this.aFilas(res.getContent) }));
   }
 
   /**
@@ -498,12 +493,6 @@ export class ListInventarioComponent implements OnInit {
     );
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onFiltrar();
-  }
-
   onGenerarPdf(){
     let productoIdList: number[];
     this.productoList.forEach((p) => {
@@ -514,8 +503,8 @@ export class ListInventarioComponent implements OnInit {
       this.inventarioService.onGetReporteInventario(
         dateToString(this.fechaInicioControl.value),
         dateToString(this.fechaFinalControl.value),
-        this.pageIndex,
-        this.pageSize,
+        this.pag.pageIndex,
+        this.pag.pageSize,
         this.ordenarPorControl.value?.value,
         this.tipoOrdenControl.value?.value,
         null,

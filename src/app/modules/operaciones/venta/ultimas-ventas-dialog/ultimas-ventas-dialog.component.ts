@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild } from "@angular/core";
+import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -26,11 +26,10 @@ class UltimasVentasDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
-import { catchError, map, merge, startWith, switchMap, Observable, of as observableOf } from "rxjs";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
+import { catchError, of } from "rxjs";
 import { VentaEstado } from "../enums/venta-estado.enums";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
-import { PageInfo } from "../../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -39,19 +38,29 @@ import { PageInfo } from "../../../../app.component";
   styleUrls: ["./ultimas-ventas-dialog.component.scss"],
 })
 export class UltimasVentasDialogComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   dataSource = new MatTableDataSource<Venta>([]);
   selectedVenta: Venta;
   codigoVentaControl = new FormControl();
   titulo = "";
-  isLoading = false;
-  selectedPageInfo: PageInfo<Venta>;
 
-  // Pagination properties
-  pageIndex = 0;
-  pageSize = 10;
-  pageSizeOptions = [5, 10, 15, 25, 50];
+  /** Ventas de la caja paginadas en la sucursal (#772): gana la última página pedida; si falla una página vuelve a la anterior. */
+  pag: PaginacionLista<Venta> = new PaginacionLista<Venta>({
+    cargar: (page, size) => this.ventaService
+      .onSearch(null, this.data.caja.id, page, size, false, this.data.caja.sucursalId, null, null, null, null, false, false, false,
+        PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_MOSTRADOR)
+      .pipe(catchError(() => {
+        this.notificacionSnackBar.openWarn('No se pudieron cargar las últimas ventas: la sucursal no responde. Intentá de nuevo.', 5);
+        return of(null); // null sin aviso: error GraphQL, el servicio ya avisó
+      })),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 15, 25, 50],
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      this.marcarSorteos(this.dataSource.data);
+    },
+    // Sin el listado de otra búsqueda a la vista (y cancelable) como si fuera el pedido (#390).
+    alFallar: (filtroNuevo) => filtroNuevo && (this.dataSource.data = []),
+  });
 
   displayedColumns = [
     "id",
@@ -82,40 +91,14 @@ export class UltimasVentasDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargarVentas();
-  }
-
-  cargarVentas() {
-    this.isLoading = true;
-    this.ventaService
-      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false, false,
-        PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_MOSTRADOR).pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
-        this.isLoading = false;
-        this.vaciarSinRespuesta('No se pudieron cargar las últimas ventas: la sucursal no responde. Intentá de nuevo.');
-      }, next: (res) => {
-        this.isLoading = false;
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
-          this.marcarSorteos(res.getContent);
-        } else {
-          this.vaciarSinRespuesta(null); // error GraphQL: el servicio ya avisó
-        }
-      } });
+    this.pag.filtrar();
   }
 
   /** Sin el listado de otra página o búsqueda a la vista (y cancelable) como si fuera el pedido (#390). */
   private vaciarSinRespuesta(aviso: string | null): void {
-    this.selectedPageInfo = null;
+    this.pag.limpiar();
     this.dataSource.data = [];
     if (aviso) this.notificacionSnackBar.openWarn(aviso, 5);
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarVentas();
   }
 
   onBuscarPorCodigo() {

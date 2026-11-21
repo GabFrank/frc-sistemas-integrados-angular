@@ -28,7 +28,7 @@ describe('ListMovimientoStockComponent', () => {
   });
 
   it('pide la primera página con el tamaño que muestra el paginador (15)', () => {
-    expect(component.size).toBe(15);
+    expect(component.pag.pageSize).toBe(15);
   });
 
   it('sin producto no consulta la lista y avisa', () => {
@@ -52,10 +52,7 @@ describe('ListMovimientoStockComponent', () => {
     component.referenciaControl.setValue('X');
     component.horaInicioControl.setValue('08:00');
     component.horaFinalControl.setValue('10:00');
-    component.page = 3;
-    component.paginator = { pageIndex: 3 } as any;
     component.dataSource.data = [{ id: 1 } as any];
-    component.selectedPageInfo = {} as any;
     component.stockActualEstado = 'ok';
     component.stockPeriodoEstado = 'no-disponible';
     component.stockTotal = 10;
@@ -83,10 +80,9 @@ describe('ListMovimientoStockComponent', () => {
     expect(component.sucursalControl.value).toBeNull();
     expect(component.tipoMovimientoControl.value).toBeNull();
     expect(component.referenciaControl.value).toBeNull();
-    expect(component.page).toBe(0);
-    expect(component.paginator.pageIndex).toBe(0);
+    expect(component.pag.pageIndex).toBe(0);
     expect(component.dataSource.data).toEqual([]);
-    expect(component.selectedPageInfo).toBeNull();
+    expect(component.pag.total).toBe(0);
     expect(component.stockActualEstado).toBe('inicial');
     expect(component.stockPeriodoEstado).toBe('inicial');
     expect(component.stockTotal).toBeNull();
@@ -108,7 +104,7 @@ describe('ListMovimientoStockComponent', () => {
     respuestaLista.next({ getContent: [{ id: 1 }], getTotalElements: 1 });
 
     expect(component.dataSource.data).toEqual([]);
-    expect(component.selectedPageInfo).toBeNull();
+    expect(component.pag.items).toEqual([]);
   });
 
   it('una respuesta que llega después de buscar sin producto no repinta la tabla', () => {

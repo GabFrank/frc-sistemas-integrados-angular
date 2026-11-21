@@ -439,14 +439,7 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Items por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>
 

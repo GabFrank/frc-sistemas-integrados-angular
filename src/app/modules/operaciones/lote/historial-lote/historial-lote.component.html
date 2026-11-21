@@ -72,22 +72,23 @@
         última fila.
       -->
       <div class="tab-contenido" fxLayout="column">
+      <ng-container *ngIf="movPag.estado$ | async as m">
         <div class="tab-cuerpo">
 
-          <div *ngIf="movCargando" class="mensaje-estado">
+          <div *ngIf="m.cargando" class="mensaje-estado">
             Cargando historial...
           </div>
 
-          <div *ngIf="!movCargando && movFallo" class="mensaje-estado">
+          <div *ngIf="!m.cargando && m.fallo" class="mensaje-estado">
             No se pudo consultar el historial del lote.
             <button mat-stroked-button type="button" (click)="reintentarMovimientos()">Reintentar</button>
           </div>
-          <div *ngIf="!movCargando && movSinResultados" class="mensaje-estado">
+          <div *ngIf="!m.cargando && !m.fallo && !m.items.length" class="mensaje-estado">
             Este lote no tiene movimientos con esos filtros.
           </div>
 
-          <div class="tabla-container" *ngIf="!movCargando && !movSinResultados && !movFallo">
-            <table mat-table [dataSource]="movimientos" class="mat-elevation-z8 tabla-historial">
+          <div class="tabla-container" *ngIf="!m.cargando && !m.fallo && m.items.length">
+            <table mat-table [dataSource]="m.items" class="mat-elevation-z8 tabla-historial">
 
               <ng-container matColumnDef="fecha">
                 <th mat-header-cell *matHeaderCellDef>Fecha</th>
@@ -139,36 +140,30 @@
           </div>
         </div>
 
-        <mat-paginator
-          class="paginador"
-          itemsPerPageLabel="Itens por pagina"
-          [pageSizeOptions]="[20, 50, 100]"
-          [pageIndex]="movPageIndex"
-          (page)="onMovimientosPage($event)"
-          [length]="movTotalElements"
-          showFirstLastButtons
-        ></mat-paginator>
+        <mat-paginator class="paginador" [paginacion]="movPag"></mat-paginator>
+      </ng-container>
       </div>
     </mat-tab>
 
     <mat-tab label="Clientes">
       <div class="tab-contenido" fxLayout="column">
+      <ng-container *ngIf="cliPag.estado$ | async as c">
         <div class="tab-cuerpo">
 
-          <div *ngIf="cliCargando" class="mensaje-estado">
+          <div *ngIf="c.cargando" class="mensaje-estado">
             Cargando ventas...
           </div>
 
-          <div *ngIf="!cliCargando && cliFallo" class="mensaje-estado">
+          <div *ngIf="!c.cargando && c.fallo" class="mensaje-estado">
             No se pudieron consultar los clientes del lote.
             <button mat-stroked-button type="button" (click)="reintentarClientes()">Reintentar</button>
           </div>
-          <div *ngIf="!cliCargando && cliSinResultados" class="mensaje-estado">
+          <div *ngIf="!c.cargando && !c.fallo && !c.items.length" class="mensaje-estado">
             No hay ventas de este lote con ese filtro.
           </div>
 
-        <div class="tabla-container" *ngIf="!cliCargando && !cliSinResultados && !cliFallo">
-            <table mat-table [dataSource]="clientes" class="mat-elevation-z8 tabla-historial">
+        <div class="tabla-container" *ngIf="!c.cargando && !c.fallo && c.items.length">
+            <table mat-table [dataSource]="c.items" class="mat-elevation-z8 tabla-historial">
 
               <ng-container matColumnDef="cliente">
                 <th mat-header-cell *matHeaderCellDef>Cliente</th>
@@ -235,15 +230,8 @@
           </div>
         </div>
 
-        <mat-paginator
-          class="paginador"
-          itemsPerPageLabel="Itens por pagina"
-          [pageSizeOptions]="[20, 50, 100]"
-          [pageIndex]="cliPageIndex"
-          (page)="onClientesPage($event)"
-          [length]="cliTotalElements"
-          showFirstLastButtons
-        ></mat-paginator>
+        <mat-paginator class="paginador" [paginacion]="cliPag"></mat-paginator>
+      </ng-container>
       </div>
     </mat-tab>
 

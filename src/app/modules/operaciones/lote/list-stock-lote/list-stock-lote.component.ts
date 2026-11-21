@@ -2,12 +2,13 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
 import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MainService } from '../../../../main.service';
@@ -202,14 +203,25 @@ export class ListStockLoteComponent implements OnInit, OnDestroy {
     }
   ];
 
-  pageIndex = 0;
-  pageSize = 15;
-  totalElements = 0;
   sinResultados = false;
-  isSearching = false;
   /** La última búsqueda falló: la grilla queda vacía con «Reintentar», no «sin resultados» (#390). */
   busquedaFallo = false;
-  private cargaBusqueda = 0;
+  /** Stock por lote paginado en el central (#772): gana la última búsqueda o página pedida. */
+  pag: PaginacionLista<StockLoteRow> = new PaginacionLista<StockLoteRow>({
+    cargar: (page, size) => this.consultar(page, size),
+    alCargar: (res) => {
+      this.busquedaFallo = false;
+      // Las filas se reconstruyen, así que el desglose ya cargado se descarta con ellas.
+      this.filaExpandida = null;
+      this.tituloDetalle = this.filtros.value.sucursal ? 'Stock en Sucursal Seleccionada' : 'Stock por Sucursal';
+      this.dataSource.data = res.getContent;
+      this.sinResultados = res.getContent.length === 0;
+      this.cdr.markForCheck();
+    },
+    alFallar: () => this.marcarBusquedaFallida(),
+  });
+  /** La próxima consulta sin el diálogo de espera (cambios de página, recargas y búsqueda por texto). */
+  private silenciosa = false;
 
   constructor(
     private loteService: LoteService,
@@ -300,16 +312,21 @@ export class ListStockLoteComponent implements OnInit, OnDestroy {
 
   /** Vuelve a la primera página y busca. Es lo que dispara el botón "Buscar" del listado. */
   onFiltrar(silentLoad = false): void {
-    this.pageIndex = 0;
-    this.onBuscar(silentLoad);
+    this.silenciosa = silentLoad;
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir y después de ajustar o cambiar el estado de un lote). */
   onBuscar(silentLoad = false): void {
+    this.silenciosa = silentLoad;
+    this.pag.recargar();
+  }
+
+  private consultar(page: number, size: number) {
+    const silentLoad = this.silenciosa;
+    this.silenciosa = true;
     const valores = this.filtros.value;
-    const carga = ++this.cargaBusqueda;
-    this.isSearching = true;
-    this.busquedaFallo = false;
-    this.loteService
+    return this.loteService
       .onBuscarStockPorLote(
         {
           sucursalId: valores.sucursal?.id,
@@ -320,58 +337,34 @@ export class ListStockLoteComponent implements OnInit, OnDestroy {
           vencimientoDesde: this.resolverVencimientoDesde(),
           vencimientoHasta: this.resolverVencimientoHasta()
         },
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         true,
         silentLoad
       )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<StockLote>) => {
-          if (carga !== this.cargaBusqueda) return; // respuesta de una búsqueda anterior
-          if (res == null) {
-            this.marcarBusquedaFallida(); // error GraphQL: el servicio ya avisó
-            return;
-          }
-          this.busquedaFallo = false;
-          const contenido = res?.getContent || [];
-          this.totalElements = res?.getTotalElements || 0;
-          // Las filas se reconstruyen, así que el desglose ya cargado se descarta con ellas.
-          this.filaExpandida = null;
-          this.tituloDetalle = valores.sucursal
-            ? 'Stock en Sucursal Seleccionada'
-            : 'Stock por Sucursal';
-          this.dataSource.data = contenido.map((item) => this.mapearFila(item));
-          this.sinResultados = contenido.length === 0;
-          this.isSearching = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          if (carga !== this.cargaBusqueda) return;
+      .pipe(
+        catchError(() => {
           this.notificacionService.openWarn('No se pudo consultar el stock por lotes: el servidor no responde.', 4);
-          this.marcarBusquedaFallida();
-        }
-      });
+          return of(null);
+        }),
+        // null: error GraphQL, el servicio ya avisó.
+        map((res: PageInfo<StockLote>) => res && {
+          getTotalElements: res.getTotalElements,
+          getContent: (res.getContent || []).map((item) => this.mapearFila(item)),
+        })
+      );
   }
 
   /** Sin filas de otra búsqueda a la vista como si fueran de esta (#390). */
   private marcarBusquedaFallida(): void {
-    this.isSearching = false;
     this.busquedaFallo = true;
     this.filaExpandida = null;
     this.dataSource.data = [];
-    this.totalElements = 0;
     this.sinResultados = false;
     this.cdr.markForCheck();
   }
 
   reintentarBusqueda(): void {
-    this.onBuscar(true);
-  }
-
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
     this.onBuscar(true);
   }
 

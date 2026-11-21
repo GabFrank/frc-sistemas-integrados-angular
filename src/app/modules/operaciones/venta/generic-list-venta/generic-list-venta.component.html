@@ -679,11 +679,8 @@
         </table>
       </div>
       <mat-paginator
-        [pageSizeOptions]="[15, 25, 50, 100]"
-        (page)="handlePageEvent($event)"
-        [length]="selectedPageInfo?.getTotalElements"
+        [paginacion]="pag"
         style="width: 100%; position: sticky; bottom: 0; z-index: 10;"
-        showFirstLastButtons
       >
       </mat-paginator>
     </div>

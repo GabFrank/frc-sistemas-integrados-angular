@@ -59,7 +59,7 @@
     Cargando lotes disponibles...
   </div>
 
-  <div *ngIf="cargaFallo && !cargando" class="mensaje-estado" role="status" aria-live="polite">
+  <div *ngIf="cargaFallo && (pag.cargando$ | async) === false" class="mensaje-estado" role="status" aria-live="polite">
     No se pudieron cargar los lotes de la sucursal de origen.
     <button mat-stroked-button type="button" (click)="reintentarCarga()">Reintentar</button>
   </div>
@@ -185,15 +185,7 @@
       ></tr>
     </table>
 
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[5, 10, 25, 50]"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [length]="totalElementos"
-      (page)="handlePageEvent($event)"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag"></mat-paginator>
   </div>
 
   <div
@@ -229,7 +221,7 @@
   <button
     mat-stroked-button
     (click)="onLimpiar()"
-    [disabled]="cargando"
+    [disabled]="pag.cargando$ | async"
   >
     Limpiar
   </button>
@@ -244,7 +236,7 @@
     mat-raised-button
     color="accent"
     (click)="onConfirmar()"
-    [disabled]="cargando || excedeRequerido"
+    [disabled]="(pag.cargando$ | async) || excedeRequerido"
   >
     Confirmar
   </button>
