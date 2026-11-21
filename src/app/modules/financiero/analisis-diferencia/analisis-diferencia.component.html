@@ -227,10 +227,7 @@
           <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row no-padding"></tr>
         </table>
       </div>
-      <mat-paginator *ngIf="!isLoadingMaletin" itemsPerPageLabel="Itens por pagina"
-        [pageSizeOptions]="[10, 25, 50, 100]" (page)="handlePageEventMaletin($event)" [length]="totalElementsMaletin"
-        [pageIndex]="pageIndexMaletin" [pageSize]="pageSizeMaletin" showFirstLastButtons>
-      </mat-paginator>
+      <mat-paginator *ngIf="!isLoadingMaletin" [paginacion]="pagMaletin"></mat-paginator>
     </div>
     <div class="table-wrapper mat-elevation-z8">
       <div class="column-header">

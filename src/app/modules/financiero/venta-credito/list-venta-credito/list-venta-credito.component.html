@@ -1,7 +1,5 @@
 <app-generic-list
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
-  [isLastPage]="isLastPage || isSearching"
   (filtrar)="onBuscar()"
   (resetFiltro)="resetFiltro()"
 >
@@ -501,13 +499,5 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <!-- <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[5, 15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator> -->
   </div>
 </app-generic-list>
