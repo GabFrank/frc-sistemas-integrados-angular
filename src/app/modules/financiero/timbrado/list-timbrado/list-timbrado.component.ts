@@ -7,7 +7,8 @@ import { MainService } from '../../../../main.service';
 import { Timbrado, TimbradoDetalle } from '../timbrado.modal';
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MatTable, MatTableDataSource } from '@angular/material/table';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { animate, state, style, transition, trigger } from '@angular/animations';
@@ -34,9 +35,6 @@ export class ListTimbradoComponent implements OnInit {
   @Input() data;
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatTable) table: MatTable<any>;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild('paginatorTimbrado') paginatorTimbrado: MatPaginator;
-  @ViewChild('paginatorTimbradoDetalle') paginatorTimbradoDetalle: MatPaginator;
 
   displayedColumns = [
     "id",
@@ -64,13 +62,6 @@ export class ListTimbradoComponent implements OnInit {
   selectedTimbradoDetalle: TimbradoDetalle;
   expandedTimbradoDetalleId: string | null = null;
   expandedTimbradoDetalle: TimbradoDetalle | null = null;
-  timbradoDetalleStates: Map<number, {
-    expandedDetalle: TimbradoDetalle | null;
-    dataSource: MatTableDataSource<any>;
-    pageInfo: PageInfo<TimbradoDetalle>;
-    pageIndex: number;
-    pageSize: number;
-  }> = new Map();
   
   timer;
   buscarControl = new FormControl(null);
@@ -78,15 +69,38 @@ export class ListTimbradoComponent implements OnInit {
   filtroTimbradoDetalleControl = new FormControl('');
   timbradoDetalleDataSource = new MatTableDataSource<any>([]);
   
-  pageIndex = 0;
-  pageSize = 15;
-  pageEvent: PageEvent;
-  paginatorUpdateTrigger = 0;
-  currentTimbradoDetallePageIndex = 0;
-  currentTimbradoDetallePageSize = 10;
   expandedTimbrado: any | null = null;
-  selectedPageInfo: PageInfo<Timbrado>
-  selectedTimbradoDetallePageInfo: PageInfo<TimbradoDetalle>;
+
+  /** Timbrados paginados en el central (#772), buscados por número. */
+  pag: PaginacionLista<any> = new PaginacionLista<any>({
+    cargar: (page, size) => this.timbradoService.onFindByNumero(this.buscarControl.value?.toUpperCase(), page, size, true).pipe(
+      map(res => res ? {
+        getTotalElements: res.getTotalElements,
+        getContent: (res.getContent || []).map(timbrado => this.formatear(timbrado)),
+      } : null)
+    ),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
+
+  /** Detalles (puntos de expedición) del timbrado abierto, paginados en el central. */
+  detallePag: PaginacionLista<any> = new PaginacionLista<any>({
+    cargar: (page, size) => this.timbradoService.onGetTimbradoDetallesByTimbradoId(this.selectedTimbrado.id, page, size, true).pipe(
+      map(res => res ? {
+        getTotalElements: res.getTotalElements,
+        getContent: (res.getContent || []).map(detalle => ({ ...detalle, sucursal: detalle.sucursal?.nombre || '-' })),
+      } : null)
+    ),
+    pageSize: 10,
+    pageSizeOptions: [10, 15, 25],
+    alCargar: (res) => this.timbradoDetalleDataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.timbradoDetalleDataSource.data = [];
+    },
+  });
 
   constructor(
     private dialog: MatDialog,
@@ -96,18 +110,13 @@ export class ListTimbradoComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[0])
-      this.pageSize = this.paginator.pageSizeOptions[0] 
-      this.onSearch()
-    }, 0);
+    setTimeout(() => this.onSearch(), 0);
 
     this.setupSearchSubscription();
   }
 
   setupSearchSubscription() {
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.pageIndex = 0;
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
@@ -121,26 +130,21 @@ export class ListTimbradoComponent implements OnInit {
     });
   }
 
+  /** Búsqueda nueva: vuelve a la página 1. */
   onSearch() {
-    this.timbradoService.onFindByNumero(
-      this.buscarControl.value?.toUpperCase(), 
-      this.pageIndex, 
-      this.pageSize, true
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent?.map(timbrado => ({
-          ...timbrado,
-          fechaInicioFormateada: timbrado.fechaInicio ? dateToString(timbrado.fechaInicio, 'dd/MM/yyyy') : null,
-          fechaFinFormateada: timbrado.fechaFin ? dateToString(timbrado.fechaFin, 'dd/MM/yyyy') : null,
-          creadoEnFormateado: timbrado.creadoEn ? dateToString(timbrado.creadoEn, 'dd/MM/yyyy HH:mm') : null
-        })) || [];
-      }
-    })
+    this.pag.filtrar();
+  }
+
+  private formatear(timbrado: any) {
+    return {
+      ...timbrado,
+      fechaInicioFormateada: timbrado.fechaInicio ? dateToString(timbrado.fechaInicio, 'dd/MM/yyyy') : null,
+      fechaFinFormateada: timbrado.fechaFin ? dateToString(timbrado.fechaFin, 'dd/MM/yyyy') : null,
+      creadoEnFormateado: timbrado.creadoEn ? dateToString(timbrado.creadoEn, 'dd/MM/yyyy HH:mm') : null
+    };
   }
 
   onResetFiltro() {
-    this.pageIndex = 0;
     this.dataSource.data = [];
     this.buscarControl.setValue(null);
   }
@@ -198,11 +202,6 @@ export class ListTimbradoComponent implements OnInit {
     }
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onSearch();
-  }
   
   onToggleTimbradoExpansion(timbrado: any) {
     this.expandedTimbrado = this.expandedTimbrado === timbrado ? null : timbrado;
@@ -221,70 +220,11 @@ export class ListTimbradoComponent implements OnInit {
     this.loadTimbradoDetalleData(timbrado.id, true);
   }
 
-  loadTimbradoDetalleData(timbradoId: number, forceReload: boolean = false) {
-    let state;
-    
-    if (forceReload) {
-      this.timbradoDetalleStates.delete(timbradoId);
-      state = this.getTimbradoDetalleState(timbradoId);
-    } else {
-      state = this.getTimbradoDetalleState(timbradoId);
-    }
-    
-    this.timbradoService.onGetTimbradoDetallesByTimbradoId(
-        timbradoId,
-        state.pageIndex,
-        state.pageSize,
-        true
-      ).pipe(untilDestroyed(this)).subscribe({
-        next: (res) => {
-          if (res) {
-            state.pageInfo = res;
-            
-            const mappedData = res.getContent?.map(detalle => ({
-              ...detalle,
-              sucursal: detalle.sucursal?.nombre || '-',
-            })) || [];
-            
-            state.dataSource.data = mappedData;
-            
-            this.timbradoDetalleDataSource.data = mappedData;
-            this.selectedTimbradoDetallePageInfo = res;
-
-            this.currentTimbradoDetallePageIndex = state.pageIndex;
-            this.currentTimbradoDetallePageSize = state.pageSize;
-            
-            this.updatePaginatorState();
-            
-          } else {
-
-            this.timbradoDetalleDataSource.data = [];
-            this.selectedTimbradoDetallePageInfo = null;
-          }
-        },
-        error: (error) => {
-          console.error('Error al obtener TimbradoDetalle:', error);
-
-          this.timbradoDetalleDataSource.data = [];
-          this.selectedTimbradoDetallePageInfo = null;
-        }
-      });
-  }
-
-  onFilterTimbradoDetalle() {
-    const state = this.getTimbradoDetalleState(this.selectedTimbrado.id);
-    state.pageIndex = 0;
-    this.currentTimbradoDetallePageIndex = 0;
-    this.loadTimbradoDetalleData(this.selectedTimbrado.id, true);
-  }
-
-  handleTimbradoDetallePageEvent(e: PageEvent) {
-    const state = this.getTimbradoDetalleState(this.selectedTimbrado.id);
-    state.pageSize = e.pageSize;
-    state.pageIndex = e.pageIndex;
-    this.currentTimbradoDetallePageSize = e.pageSize;
-    this.currentTimbradoDetallePageIndex = e.pageIndex;
-    this.loadTimbradoDetalleData(this.selectedTimbrado.id, false);
+  /** `desdeLaPrimera`: al abrir otro timbrado; si no, repite la página (después de agregar o editar). */
+  loadTimbradoDetalleData(timbradoId: number, desdeLaPrimera: boolean = false) {
+    if (timbradoId == null) return;
+    if (desdeLaPrimera) this.detallePag.filtrar();
+    else this.detallePag.recargar();
   }
 
   onNewTimbradoDetalle(timbrado?: any) {
@@ -311,7 +251,7 @@ export class ListTimbradoComponent implements OnInit {
       disableClose: false,
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.loadTimbradoDetalleData(targetTimbrado.id, true);
+        this.loadTimbradoDetalleData(targetTimbrado.id, esTimbradoDiferente);
       }
     })
   }
@@ -326,8 +266,7 @@ export class ListTimbradoComponent implements OnInit {
       disableClose: false,
     }).afterClosed().subscribe(res => {
       if (res != null) {
-
-        this.loadTimbradoDetalleData(this.selectedTimbrado.id, true);
+        this.loadTimbradoDetalleData(this.selectedTimbrado.id);
       }
     })
   }
@@ -335,10 +274,7 @@ export class ListTimbradoComponent implements OnInit {
   onClickTimbradoDetalleRow(timbradoDetalle: TimbradoDetalle) {
     this.selectedTimbradoDetalle = timbradoDetalle;
     
-    const state = this.getTimbradoDetalleState(this.selectedTimbrado.id);
-    state.expandedDetalle = state.expandedDetalle === timbradoDetalle ? null : timbradoDetalle;
-    
-    this.expandedTimbradoDetalle = state.expandedDetalle;
+    this.expandedTimbradoDetalle = this.expandedTimbradoDetalle === timbradoDetalle ? null : timbradoDetalle;
     this.expandedTimbradoDetalleId = this.expandedTimbradoDetalle?.id ? String(this.expandedTimbradoDetalle.id) : null;
   }
 
@@ -354,40 +290,16 @@ export class ListTimbradoComponent implements OnInit {
     );
   };
 
-  updatePaginatorState() {
-    this.paginatorUpdateTrigger++;
-  }
-
-
-  getTimbradoDetalleState(timbradoId: number) {
-    if (!this.timbradoDetalleStates.has(timbradoId)) {
-      this.timbradoDetalleStates.set(timbradoId, {
-        expandedDetalle: null,
-        dataSource: new MatTableDataSource<any>([]),
-        pageInfo: null,
-        pageIndex: 0,
-        pageSize: 10
-      });
-    }
-    return this.timbradoDetalleStates.get(timbradoId);
-  }
-  
   clearTimbradoDetalleState() {
-    this.timbradoDetalleStates.clear();
     this.expandedTimbradoDetalle = null;
     this.expandedTimbradoDetalleId = null; // Limpiar la propiedad simple
-    this.currentTimbradoDetallePageIndex = 0;
-    this.currentTimbradoDetallePageSize = 10;
     this.timbradoDetalleDataSource.data = [];
-    this.selectedTimbradoDetallePageInfo = null;
+    this.detallePag.limpiar();
   }
 
   forceRecreateDataSource() {
 
     this.timbradoDetalleDataSource = new MatTableDataSource<TimbradoDetalle>([]);
-    this.currentTimbradoDetallePageIndex = 0;
-    this.currentTimbradoDetallePageSize = 10;
-    this.selectedTimbradoDetallePageInfo = null;
   }
 
 }

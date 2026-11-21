@@ -10,10 +10,10 @@ import { GastoService } from '../../service/gasto.service';
 import { PreGasto } from '../../models/pre-gasto.model';
 import { AutorizarGastoDialogComponent } from '../../dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { BehaviorSubject, combineLatest, Observable, timer } from 'rxjs';
-import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
+import { BehaviorSubject, Observable, timer } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { of } from 'rxjs';
-import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
@@ -22,7 +22,7 @@ import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.serv
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-pre-gastos',
   templateUrl: './list-pre-gastos.component.html',
@@ -61,13 +61,6 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   private tabActivaSubject = new BehaviorSubject<number>(this.tabTodos);
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
-  private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
-  public pagination$ = this.paginationSubject.asObservable();
-
-  private refetchSubject = new BehaviorSubject<void>(void 0);
-
-  public totalElements$ = new BehaviorSubject<number>(0);
-
   public cargandoSubject = new BehaviorSubject<boolean>(false);
   public cargando$ = this.cargandoSubject.asObservable();
 
@@ -98,6 +91,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   private lastAppliedBuscarId: number | null = null;
 
   ngOnInit(): void {
+    this.pag.filtrar();
     this.aplicarFiltroDesdeTabData();
   }
 
@@ -120,8 +114,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
     this.lastAppliedBuscarId = buscarId;
     this.fechaFormGroup.controls.buscarId.setValue(buscarId);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
-    this.refetchSubject.next();
+    this.pag.filtrar();
   }
 
   /** Rango por defecto: desde hace 3 días hasta hoy (inclusive). */
@@ -132,61 +125,47 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     return inicio;
   }
 
-  public listaFiltrada$: Observable<PreGasto[]> = combineLatest([
-    this.tabActiva$,
-    this.refetchSubject,
-    this.pagination$
-  ]).pipe(
-    tap(() => this.cargandoSubject.next(true)),
-    switchMap(([tabIndex, _, pag]) => {
-      const estado = this.tabEstados[tabIndex];
-      const inicioStr = this.toDayBoundary(this.fechaFormGroup.controls.inicio.value, false);
-      const finStr = this.toDayBoundary(this.fechaFormGroup.controls.fin.value, true);
-
-      return this.gastoService.preGastoFilter(
-        this.fechaFormGroup.controls.buscarId.value,
-        undefined,
-        estado,
-        inicioStr,
-        finStr,
-        pag.pageIndex,
-        pag.pageSize,
-        undefined,
-        undefined,
-        PROPAGAR_ERROR_DE_RED,
-        { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
-      ).pipe(
-        map(res => {
-          if (res == null) { this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto.', 5); }
-          return res;
-        }),
-        catchError(err => {
-          console.error('Error fetching pre_gastos:', err);
-          this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto: el servidor no responde.', 5);
-          return of(null);
-        })
-      );
-    }),
-    tap(res => {
-      this.cargandoSubject.next(false);
-      // Sin respuesta la lista queda vacía: el paginador no conserva el total de la consulta anterior.
-      this.totalElements$.next(res ? (res.getTotalElements || 0) : 0);
-    }),
-    map(res => {
-      const list = res?.getContent || [];
-      list.forEach(item => {
-        (item as any).descripcionLimpia = this.limpiarDescripcion(item.descripcion);
-      });
-      return list;
-    }),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
+  /** Solicitudes de la pestaña activa, paginadas en el central (#772): cada página con las fechas a la vista. */
+  pag: PaginacionLista<PreGasto> = new PaginacionLista<PreGasto>({
+    cargar: (page, size) => this.gastoService.preGastoFilter(
+      this.fechaFormGroup.controls.buscarId.value,
+      undefined,
+      this.tabEstados[this.tabActivaSubject.value],
+      this.toDayBoundary(this.fechaFormGroup.controls.inicio.value, false),
+      this.toDayBoundary(this.fechaFormGroup.controls.fin.value, true),
+      page,
+      size,
+      undefined,
+      undefined,
+      PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
+    ).pipe(
+      map(res => {
+        if (res == null) {
+          this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto.', 5);
+          return null;
+        }
+        const list = res.getContent || [];
+        list.forEach(item => {
+          (item as any).descripcionLimpia = this.limpiarDescripcion(item.descripcion);
+        });
+        return { getTotalElements: res.getTotalElements || 0, getContent: list };
+      }),
+      catchError(err => {
+        console.error('Error fetching pre_gastos:', err);
+        this.notificacionAviso.openWarn('No se pudieron cargar las solicitudes de gasto: el servidor no responde.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 15,
+    pageSizeOptions: [15, 30, 50, 100],
+  });
 
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
     this.preGastoSeleccionadoSubject.next(null);
     this.mostrarRendicionSubject.next(false);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.pag.filtrar();
   }
 
   seleccionarPreGasto(preGasto: PreGasto): void {
@@ -261,14 +240,14 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       .subscribe(res => {
         if (res?.recargar) {
           // El diálogo tocó el pre-gasto sin devolver uno nuevo: se recarga y se suelta la copia vieja (#501)
-          this.refetchSubject.next();
+          this.pag.recargar();
           if (this.preGastoSeleccionadoSubject.value?.id === preGasto.id) {
             this.preGastoSeleccionadoSubject.next(null);
           }
           return;
         }
         if (res != null) {
-          this.refetchSubject.next();
+          this.pag.recargar();
           const actual = this.preGastoSeleccionadoSubject.value;
           if (actual?.id === preGasto.id) {
             this.preGastoSeleccionadoSubject.next(res);
@@ -289,7 +268,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
       next: (res) => {
         this.cargandoSubject.next(false);
         if (res) {
-          this.refetchSubject.next();
+          this.pag.recargar();
           this.preGastoSeleccionadoSubject.next(res);
         }
       },
@@ -303,7 +282,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         if (aviso != null) this.notificacionAviso.openWarn(aviso, 10);
         this.enviosSinConfirmar = { ...this.enviosSinConfirmar, [preGasto.id]: true };
         this.preGastoSeleccionadoSubject.next(null);
-        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.refetchSubject.next());
+        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(() => this.pag.recargar());
       }
     });
   }
@@ -335,8 +314,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   onRefrescar(): void {
     this.enviosSinConfirmar = {};
-    // Volver a la página 1 ya vuelve a consultar (combineLatest); refetch aparte saldría dos veces.
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.pag.filtrar();
   }
 
   onLimpiarFiltro(): void {
@@ -349,12 +327,7 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   onFiltrarFechas(): void {
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
-    this.refetchSubject.next();
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
+    this.pag.filtrar();
   }
 
   colorEstado(preGastoOrEstado: PreGasto | string): string {

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../../generics/generic-crud.service';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -7,10 +7,11 @@ import { PdvCaja, PdvCajaEstado } from '../../../../financiero/pdv/caja/caja.mod
 import { CajaService } from '../../../../financiero/pdv/caja/caja.service';
 import { MainService } from '../../../../../main.service';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../../shared/components/cargando-dialog/cargando-dialog.service';
-import { PageInfo } from '../../../../../app.component';
 
 @UntilDestroy({checkProperties: true})
 @Component({
@@ -19,13 +20,9 @@ import { PageInfo } from '../../../../../app.component';
   styleUrls: ['./ultimas-cajas-dialog.component.scss']
 })
 export class UltimasCajasDialogComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<PdvCaja>([]);
-  isLoading = false;
-  isLastPage = false;
   displayedColumns = ['id', 'responsable', 'fechaApertura', 'fechaCierre', 'acciones'];
-  selectedPageInfo: PageInfo<PdvCaja>;
   
   // Filtros en formulario
   filtrosForm = new FormGroup({
@@ -33,10 +30,37 @@ export class UltimasCajasDialogComponent implements OnInit {
     fechaFin: new FormControl(new Date())
   });
 
-  // Pagination properties
-  pageIndex = 0;
-  pageSize = 10;
-  pageSizeOptions = [5, 10, 15, 25, 50];
+  /** Últimas cajas del cajero en esta sucursal, paginadas en la filial (#772). */
+  pag: PaginacionLista<PdvCaja> = new PaginacionLista<PdvCaja>({
+    cargar: (page, size) => this.cajaService.onGetCajasWithFilters(
+      null,
+      null,
+      null,
+      this.mainService.usuarioActual.id,
+      this.filtrosForm.get('fechaInicio').value,
+      this.filtrosForm.get('fechaFin').value,
+      this.mainService.sucursalActual?.id || null,
+      null,
+      null,
+      null,
+      page,
+      size,
+      false,
+      PROPAGAR_ERROR_DE_RED,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
+    ).pipe(
+      catchError(() => {
+        this.notificacionSnackBar.openWarn('No se pudieron cargar las cajas: el servidor no responde.');
+        return of(null);
+      })
+    ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 15, 25, 50],
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   constructor(
     public dialogRef: MatDialogRef<UltimasCajasDialogComponent>,
@@ -50,53 +74,11 @@ export class UltimasCajasDialogComponent implements OnInit {
   }
 
   cargarCajas() {
-    this.isLoading = true;
-    const fechaInicio = this.filtrosForm.get('fechaInicio').value;
-    const fechaFin = this.filtrosForm.get('fechaFin').value;
-
-    this.cajaService.onGetCajasWithFilters(
-      null,
-      null,
-      null,
-      this.mainService.usuarioActual.id,
-      fechaInicio,
-      fechaFin,
-      this.mainService.sucursalActual?.id || null,
-      null,
-      null,
-      null,
-      this.pageIndex,
-      this.pageSize,
-      false,
-      // Sin esto el error: de abajo nunca corría y el spinner quedaba para siempre (#390).
-      PROPAGAR_ERROR_DE_RED,
-      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      this.isLoading = false;
-      if (res != null) {
-        console.log(res);
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-        this.isLastPage = res.isLast || false;
-      }
-    }, error => {
-      this.isLoading = false;
-      this.notificacionSnackBar.openWarn('No se pudieron cargar las cajas: el servidor no responde.');
-    });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarCajas();
+    this.pag.filtrar();
   }
 
   aplicarFiltros() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.firstPage();
-    }
-    this.cargarCajas();
+    this.pag.filtrar();
   }
 
   limpiarFiltros() {
@@ -104,11 +86,7 @@ export class UltimasCajasDialogComponent implements OnInit {
       fechaInicio: this.getOneWeekAgoDate(),
       fechaFin: new Date()
     });
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.firstPage();
-    }
-    this.cargarCajas();
+    this.pag.filtrar();
   }
 
   getOneWeekAgoDate(): Date {
