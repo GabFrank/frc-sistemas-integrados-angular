@@ -225,19 +225,11 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
 
-      <div *ngIf="!cargando && dataSource.data.length === 0" class="estado-vacio">
+      <div *ngIf="(pag.cargando$ | async) === false && dataSource.data.length === 0" class="estado-vacio">
         No hay cobros con tarjeta que coincidan con el filtro.
       </div>
     </div>
 
-    <mat-paginator
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      showFirstLastButtons
-      style="width: 100%"
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

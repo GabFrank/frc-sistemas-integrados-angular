@@ -5,8 +5,8 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, OnInit, ViewChild } from "@angular/core";
-import { MatPaginator } from '@angular/material/paginator';
+import { Component, OnInit } from "@angular/core";
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -35,7 +35,6 @@ import { MainService } from "../../../../../main.service";
 import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/sucursalesByNombre";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
-import { PageInfo } from "../../../../../app.component";
 import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
 import { CajaObservacionDashboardComponent } from "../../caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component";
@@ -67,7 +66,6 @@ import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
   ],
 })
 export class ListCajaComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<PdvCaja>([]);
   cajaObservacionList: CajaObservacion[];
@@ -129,9 +127,16 @@ export class ListCajaComponent implements OnInit {
   today = new Date();
 
   //pagtination
-  selectedPageInfo: PageInfo<PdvCaja>;
-  pageSize = 15;
-  pageIndex = 0;
+  /** Cajas paginadas en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<PdvCaja> = new PaginacionLista<PdvCaja>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 15,
+    // Marca las cajas que tienen observación
+    alCargar: (res) => this.dataSource.data = this.onObservado(res.getContent ?? []),
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   constructor(
     private cajaService: CajaService,
@@ -209,14 +214,15 @@ export class ListCajaComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFilter() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (después de reabrir o cerrar una caja). */
   buscar() {
+    this.pag.recargar();
+  }
+
+  private consultar(page: number, size: number) {
 
     // Asegurar que sucursalId sea un número
     let sucursalId: number = null;
@@ -234,7 +240,7 @@ export class ListCajaComponent implements OnInit {
       ? (typeof this.selectedCajero.id === 'string' ? parseInt(this.selectedCajero.id, 10) : this.selectedCajero.id)
       : null;
 
-    this.cajaService
+    return this.cajaService
       .onGetCajasWithFilters(
         this.codigoControl.value,
         this.estadoControl.value,
@@ -246,20 +252,9 @@ export class ListCajaComponent implements OnInit {
         this.verificadoControl.value,
         this.activoControl.value,
         this.turnoControl.value,
-        this.pageIndex,
-        this.pageSize
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<PdvCaja>) => {
-        if (res != null) {
-          this.dataSource.data = [];
-          this.dataSource.data = res.getContent;
-          this.selectedPageInfo = res;
-          let cajas: PdvCaja[] = res.getContent;
-          cajas = this.onObservado(cajas);  // Marca las cajas que tienen observación
-          this.dataSource.data = cajas; 
-        }
-      });
+        page,
+        size
+      );
   }
 
   onResetFilter() {
@@ -565,11 +560,6 @@ export class ListCajaComponent implements OnInit {
       });
   }
 
-  handlePageEvent(e) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 }
 
 // true => false => null

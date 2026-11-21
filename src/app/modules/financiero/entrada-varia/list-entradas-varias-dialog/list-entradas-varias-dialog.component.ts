@@ -1,12 +1,13 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { EntradaVaria } from '../entrada-varia.model';
 import { EntradaVariaService } from '../entrada-varia.service';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
-import { PageInfo } from '../../../../app.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { MainService } from '../../../../main.service';
@@ -21,10 +22,24 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 export class ListEntradasVariasDialogComponent implements OnInit {
 
   dataSource = new MatTableDataSource<EntradaVaria>([]);
-  isSearching = false;
-  pageIndex = 0;
-  pageSize = 10;
-  selectedPageInfo: PageInfo<EntradaVaria>;
+  /** Entradas varias de la caja, paginadas en el central (#772): si una página falla, vuelve a la anterior. */
+  pag: PaginacionLista<EntradaVaria> = new PaginacionLista<EntradaVaria>({
+    cargar: (page, size) => this.entradaVariaService.onGetEntradasVarias(this.cajaVirtual.id, page, size).pipe(
+      tap(res => {
+        if (res == null) this.notificacion.openWarn('No se pudieron cargar las entradas varias.', 5);
+      }),
+      catchError(() => {
+        this.notificacion.openWarn('No se pudieron cargar las entradas varias: el servidor no responde.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   puedeGestionar = false;
 
@@ -57,21 +72,7 @@ export class ListEntradasVariasDialogComponent implements OnInit {
 
   onFiltrar() {
     if (!this.cajaVirtual?.id) return;
-    this.isSearching = true;
-    this.entradaVariaService.onGetEntradasVarias(this.cajaVirtual.id, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isSearching = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las entradas varias.', 5); return; }
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
-        },
-        error: () => {
-          this.isSearching = false;
-          this.notificacion.openWarn('No se pudieron cargar las entradas varias: el servidor no responde.', 5);
-        }
-      });
+    this.pag.filtrar();
   }
 
   onAnular(item: EntradaVaria) {
@@ -93,19 +94,13 @@ export class ListEntradasVariasDialogComponent implements OnInit {
               } else {
                 this.notificacion.openWarn('No se pudo confirmar la anulación: se vuelve a leer para verificarla.', 6);
               }
-              this.onFiltrar();
+              this.pag.recargar();
             },
             // Rechazo («ya está anulada»: la lista estaba vieja) o sin respuesta (pudo haberse
             // aplicado): en los dos casos hay que releer antes de ofrecer otra vez la acción (#390).
-            error: () => this.onFiltrar()
+            error: () => this.pag.recargar()
           });
       }
     });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onFiltrar();
   }
 }

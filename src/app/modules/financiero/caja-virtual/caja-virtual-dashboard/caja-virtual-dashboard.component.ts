@@ -1,11 +1,11 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { auditTime, catchError, filter, switchMap } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { auditTime, catchError, filter, map, switchMap } from 'rxjs/operators';
+import { PaginacionLista, PaginaCentral } from '../../../../shared/components/paginacion/paginacion-lista';
 import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
 import { FormControl } from '@angular/forms';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService } from '../../../../layouts/tab/tab.service';
@@ -14,7 +14,6 @@ import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
          labelMovimiento, formatoDe } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { ConfigurarCajaVirtualDialogComponent } from '../configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
@@ -119,6 +118,9 @@ const ANULACION_EN_SU_MODULO: Record<string, string> = {
   RRHH_LIQUIDACION_FINAL: 'Se anula en R.R.H.H. → Liquidaciones → Finiquito (rol RRHH PAGAR)',
 };
 
+/** Página de movimientos con el número de su lectura y de qué fuente es. */
+type PaginaMovimientos = PaginaCentral<any> & { carga: number; banco: boolean };
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -160,7 +162,6 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   // Movimientos (tabla)
   dataSource = new MatTableDataSource<MovimientoRow>([]);
-  isLoading = false;
   /** La última lectura de movimientos (de caja o de banco) falló: la tabla muestra lo que había antes. */
   movimientosNoCargados = false;
   /** Número de la última lectura de movimientos: una respuesta vieja (dos recargas seguidas) no pisa a la nueva. */
@@ -173,9 +174,34 @@ export class CajaVirtualDashboardComponent implements OnInit {
    * filas se reconstruyen en cada lectura.
    */
   private anulacionesPendientes = new Map<string, number | null>();
-  pageIndex = 0;
-  pageSize = 15;
-  selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
+
+  /**
+   * Movimientos de la fuente elegida (la caja o una cuenta bancaria), paginados en el central (#772). La respuesta
+   * lleva el número de su lectura: las anulaciones pendientes se liberan con la lectura de caja que las incluye.
+   */
+  pag: PaginacionLista<any> = new PaginacionLista<any>({
+    cargar: (page, size) => this.consultarMovimientos(page, size),
+    pageSize: 15,
+    pageSizeOptions: [15, 30, 50],
+    alCargar: (pagina) => {
+      const res = pagina as PaginaMovimientos;
+      this.movimientosNoCargados = false;
+      if (res.banco) {
+        this.dataSourceBanco.data = res.getContent ?? [];
+        return;
+      }
+      this.liberarAnulacionesLeidas(res.carga);
+      this.dataSource.data = res.getContent ?? [];
+    },
+    // Un cambio de página que falla deja la página anterior, con el aviso; un filtro nuevo, la tabla vacía.
+    alFallar: (filtroNuevo) => {
+      this.movimientosNoCargados = true;
+      if (filtroNuevo) {
+        this.dataSource.data = [];
+        this.dataSourceBanco.data = [];
+      }
+    },
+  });
   displayedColumns = ['creadoEn', 'usuario', 'entregadoA', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
 
   // Fuente de la tabla: caja mayor o una cuenta bancaria (los movimientos de banco no
@@ -370,8 +396,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (id == null) return;
     this.monedaSelId = this.monedaSelId === id ? null : id;
     this.saldoCards.forEach(c => c.seleccionada = c.saldo?.moneda?.id === this.monedaSelId);
-    this.pageIndex = 0;
-    this.cargarMovimientos();
+    this.cargarMovimientos(true, true);
   }
 
   /**
@@ -467,8 +492,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onFuenteChange(f: { label: string; tipo: 'CAJA' | 'BANCO'; cuentaId: number | null }) {
     this.fuenteSel = f;
     this.setFuenteEsBanco(f.tipo === 'BANCO');
-    this.pageIndex = 0;
-    this.cargarMovimientos();
+    this.cargarMovimientos(true, true);
   }
 
   /** Al pasar de caja a banco (o al revés) el tipo elegido deja de existir: se limpia. */
@@ -488,78 +512,53 @@ export class CajaVirtualDashboardComponent implements OnInit {
     };
   }
 
-  /** `releerFiltros = false`: con los filtros de la última carga (la relectura de fondo). */
-  cargarMovimientos(releerFiltros = true) {
+  /**
+   * `releerFiltros = false`: con los filtros de la última carga (la relectura de fondo). `primeraPagina`: un filtro
+   * nuevo (vuelve a la página 1); si no, se repite la página a la vista.
+   */
+  cargarMovimientos(releerFiltros = true, primeraPagina = false) {
     if (releerFiltros || !this.filtrosAplicados) this.filtrosAplicados = this.leerFiltros();
-    if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
-    if (!this.cajaVirtual?.id) return;
-    this.isLoading = true;
+    if (!this.fuenteEsBanco && !this.cajaVirtual?.id) return;
+    if (primeraPagina) this.pag.filtrar();
+    else this.pag.recargar();
+  }
+
+  private consultarMovimientos(page: number, size: number): Observable<PaginaMovimientos | null> {
     const carga = ++this.movimientosCargaId;
     const f = this.filtrosAplicados;
-    this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
+    if (this.fuenteEsBanco) {
+      const cuentaId = this.fuenteSel.cuentaId;
+      // Sin cuenta elegida no hay qué leer: la tabla del banco queda vacía.
+      if (!cuentaId) return of({ getContent: [], getTotalElements: 0, carga, banco: true });
+      return this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, page, size, {
+        desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
+      }).pipe(
+        // Clonar: Apollo congela los resultados (mismo motivo que toRow).
+        map(res => res == null ? null : {
+          getTotalElements: res.getTotalElements,
+          getContent: (res.getContent || []).map(m => ({ ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) })),
+          carga,
+          banco: true,
+        }),
+        catchError(() => of(null))
+      );
+    }
+    return this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
       desde: f.desde,
       fin: f.fin,
       tipo: f.tipo as CajaVirtualTipoMovimiento,
       monedaId: f.monedaId,
       soloActivos: f.soloActivos,
-    }, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          if (carga !== this.movimientosCargaId) return;
-          this.isLoading = false;
-          // Un resultado vacío sin error tampoco es una lectura: antes dejaba las filas viejas sin avisar.
-          this.movimientosNoCargados = res == null;
-          if (res != null) {
-            this.liberarAnulacionesLeidas(carga);
-            this.selectedPageInfo = res;
-            const rows = (res.getContent || []).map(m => this.toRow(m));
-            this.marcarGruposOperacion(rows);
-            this.dataSource.data = rows;
-          }
-        },
-        error: () => {
-          if (carga !== this.movimientosCargaId) return;
-          this.isLoading = false;
-          this.movimientosNoCargados = true;
-        }
-      });
-  }
-
-  /** Carga los movimientos de la cuenta bancaria seleccionada como fuente. */
-  private cargarMovimientosBancarios() {
-    const cuentaId = this.fuenteSel.cuentaId;
-    if (!cuentaId) {
-      // También cuenta como lectura: una respuesta bancaria anterior todavía en vuelo no debe llenar la tabla.
-      ++this.movimientosCargaId;
-      this.dataSourceBanco.data = [];
-      this.movimientosNoCargados = false;
-      return;
-    }
-    this.isLoading = true;
-    const carga = ++this.movimientosCargaId;
-    const f = this.filtrosAplicados;
-    this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize, {
-      desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
-    })
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          if (carga !== this.movimientosCargaId) return;
-          this.isLoading = false;
-          this.movimientosNoCargados = res == null;
-          if (res == null) return;
-          // Clonar: Apollo congela los resultados (mismo motivo que toRow).
-          this.dataSourceBanco.data = (res.getContent || []).map(m => (
-            { ...m, _accion: accionAnularMovimientoBancario(m, this.permisosAnulacionBanco) }));
-          this.selectedPageInfo = { getTotalElements: res.getTotalElements };
-        },
-        error: () => {
-          if (carga !== this.movimientosCargaId) return;
-          this.isLoading = false;
-          this.movimientosNoCargados = true;
-        }
-      });
+    }, page, size).pipe(
+      // Un resultado vacío sin error tampoco es una lectura: null es «no se pudo leer».
+      map(res => {
+        if (res == null) return null;
+        const rows = (res.getContent || []).map(m => this.toRow(m));
+        this.marcarGruposOperacion(rows);
+        return { getTotalElements: res.getTotalElements, getContent: rows, carga, banco: false };
+      }),
+      catchError(() => of(null))
+    );
   }
 
   /**
@@ -637,8 +636,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   aplicarFiltros() {
-    this.pageIndex = 0;
-    this.cargarMovimientos();
+    this.cargarMovimientos(true, true);
   }
 
   limpiarFiltros() {
@@ -647,14 +645,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.tipoControl.setValue(null);
     this.monedaSelId = null;
     this.saldoCards.forEach(c => c.seleccionada = false);
-    this.pageIndex = 0;
-    this.cargarMovimientos();
+    this.cargarMovimientos(true, true);
   }
 
   onToggleVerAnulaciones() {
     this.verAnulaciones = !this.verAnulaciones;
-    this.pageIndex = 0;
-    this.cargarMovimientos();
+    this.cargarMovimientos(true, true);
   }
 
   // ---- Acciones ----
@@ -971,9 +967,4 @@ export class CajaVirtualDashboardComponent implements OnInit {
       });
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarMovimientos();
-  }
 }

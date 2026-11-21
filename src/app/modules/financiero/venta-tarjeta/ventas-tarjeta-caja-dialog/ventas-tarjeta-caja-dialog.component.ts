@@ -2,9 +2,9 @@ import { Component, Inject, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
@@ -21,7 +21,7 @@ import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { descodificarQr } from '../../../../shared/qr-code/qr-code.component';
 import { LectorTecladoDirective } from '../../../../shared/lector-teclado/lector-teclado.directive';
 import { lecturasAProbar } from '../../../../shared/lector-teclado/teclado-lector';
-import { debounceTime, filter, map } from 'rxjs/operators';
+import { catchError, debounceTime, filter, map } from 'rxjs/operators';
 import { mensajeDeError } from '../../../../commons/core/utils/graphqlErrorUtils';
 import {
   NotificacionColor,
@@ -144,10 +144,29 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   private puedeReabrirCerrada = false;
 
   decimalesPorMoneda: { [id: number]: number } = {};
-  selectedPageInfo: PageInfo<VentaTarjeta>;
-  pageIndex = 0;
-  pageSize = 15;
-  cargando = true;
+  /** Ventas con tarjeta de la caja, paginadas en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<VentaTarjeta> = new PaginacionLista<VentaTarjeta>({
+    cargar: (page, size) => this.ventaTarjetaService.onFiltrarPorCaja(this.params(page, size)).pipe(
+      map(res => {
+        const filas = res?.getContent ?? [];
+        // La lista de cajeros se arma con lo que aparece, y se ACUMULA: no hay consulta de
+        // "usuarios de esta caja". Arranca con el propio, y al poner "Todos" aparecen los demas
+        // y quedan disponibles. Acumular y no reemplazar evita que el filtro se vacie a si mismo
+        // -- filtrando por un cajero, la pagina solo trae ese.
+        filas.forEach((f: any) => this.recordarCajero(Number(f?.usuario?.id), f?.usuario?.nickname));
+        return { getTotalElements: res?.getTotalElements ?? 0, getContent: filas.map((item) => this.aFilaConMoneda(item)) };
+      }),
+      catchError(() => {
+        this.notificacionSnackbar.openWarn('No se pudieron cargar las ventas con tarjeta: el servidor no responde.', 4);
+        return of(null);
+      })
+    ),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   /** Una acción de fila en vuelo. Los iconos no se deshabilitan, así que la guarda vive acá. */
   accionEnCurso = false;
 
@@ -442,13 +461,17 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     });
   }
 
+  /** Repite la página a la vista (la primera carga y después de registrar o anular una venta). */
   onGetData(): void {
-    this.cargando = true;
+    this.pag.recargar();
+  }
+
+  private params(page: number, size: number): any {
     const params: any = {
       cajaId: this.data.cajaId,
       sucId: Number(this.mainService.sucursalActual?.id),
-      page: this.pageIndex,
-      size: this.pageSize,
+      page,
+      size,
     };
     if (this.estadoControl.value) params.estado = this.estadoControl.value;
     if (this.terminalPosIdControl.value) params.terminalPosId = Number(this.terminalPosIdControl.value);
@@ -460,33 +483,11 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       params.montoHasta = Number(this.montoHastaControl.value);
     }
     if (this.usuarioIdControl.value) params.usuarioId = Number(this.usuarioIdControl.value);
-
-    this.ventaTarjetaService
-      .onFiltrarPorCaja(params)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => {
-          this.selectedPageInfo = res;
-          const filas = res?.getContent ?? [];
-          // La lista de cajeros se arma con lo que aparece, y se ACUMULA: no hay consulta de
-          // "usuarios de esta caja". Arranca con el propio, y al poner "Todos" aparecen los demas
-          // y quedan disponibles. Acumular y no reemplazar evita que el filtro se vacie a si mismo
-          // -- filtrando por un cajero, la pagina solo trae ese.
-          filas.forEach((f: any) => this.recordarCajero(Number(f?.usuario?.id), f?.usuario?.nickname));
-          this.dataSource.data = filas.map((item) => this.aFilaConMoneda(item));
-          this.cargando = false;
-        },
-        error: () => {
-          this.dataSource.data = [];
-          this.cargando = false;
-          this.notificacionSnackbar.openWarn('No se pudieron cargar las ventas con tarjeta: el servidor no responde.', 4);
-        },
-      });
+    return params;
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   onLimpiarFiltros(): void {
@@ -498,14 +499,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     this.monedaIdControl.setValue(null);
     this.montoDesdeControl.setValue(null);
     this.montoHastaControl.setValue(null);
-    this.pageIndex = 0;
-    this.onGetData();
-  }
-
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   /**

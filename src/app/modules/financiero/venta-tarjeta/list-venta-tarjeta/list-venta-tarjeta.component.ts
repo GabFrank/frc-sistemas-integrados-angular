@@ -1,9 +1,10 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { PageInfo } from '../../../../app.component';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { textoMotivoNoCompletado, VentaTarjeta } from '../venta-tarjeta.model';
 import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -19,7 +20,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { DecimalesPorMoneda } from '../qr-pos/qr-pos-parser';
 import { VentasTarjetaCajaDialogComponent } from '../ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-venta-tarjeta',
   templateUrl: './list-venta-tarjeta.component.html',
@@ -38,14 +39,27 @@ export class ListVentaTarjetaComponent implements OnInit {
    */
   modoLectura = false;
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<VentaTarjeta>([]);
   displayedColumns = ['id', 'ventaId', 'sucursal', 'terminal', 'codigo', 'monto', 'montoEscaneado', 'estado', 'creadoEn', 'acciones'];
   decimalesPorMoneda: DecimalesPorMoneda = {};
-  selectedPageInfo: PageInfo<VentaTarjeta>;
-  pageIndex = 0;
-  pageSize = 15;
+  /** Ventas con tarjeta paginadas en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<VentaTarjeta> = new PaginacionLista<VentaTarjeta>({
+    cargar: (page, size) => this.ventaTarjetaService.onFiltrar(this.params(page, size)).pipe(
+      // null: error GraphQL, el servicio ya avisó
+      map(res => res ? { getTotalElements: res.getTotalElements, getContent: (res.getContent ?? []).map(item => this.aFilaConMoneda(item)) } : null),
+      catchError(() => {
+        this.notificacionSnackbar.openWarn('No se pudo cargar la lista de ventas con tarjeta: el servidor no responde. Intentá de nuevo.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    // Sin filas del filtro anterior a la vista como si fueran del nuevo (#390)
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   today = new Date();
   fechaFormGroup: FormGroup;
   idControl = new FormControl(null);
@@ -123,11 +137,13 @@ export class ListVentaTarjetaComponent implements OnInit {
     this.onGetData();
   }
 
+  /** Repite la página a la vista. */
   onGetData(): void {
-    const params: any = {
-      page: this.pageIndex,
-      size: this.pageSize
-    };
+    this.pag.recargar();
+  }
+
+  private params(page: number, size: number): any {
+    const params: any = { page, size };
     if (this.idControl.value) params.id = Number(this.idControl.value);
     if (this.ventaIdControl.value) params.ventaId = Number(this.ventaIdControl.value);
     if (this.sucursalIdControl.value) params.sucursalId = Number(this.sucursalIdControl.value);
@@ -141,22 +157,7 @@ export class ListVentaTarjetaComponent implements OnInit {
       params.fechaHasta = hasta.toISOString().slice(0, 19);
     }
 
-    this.ventaTarjetaService.onFiltrar(params)
-      .pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
-        // Sin filas ni paginador del filtro anterior a la vista como si fueran del nuevo (#390)
-        this.selectedPageInfo = null;
-        this.dataSource.data = [];
-        this.notificacionSnackbar.openWarn('No se pudo cargar la lista de ventas con tarjeta: el servidor no responde. Intentá de nuevo.', 5);
-      }, next: res => {
-        if (res) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = (res.getContent ?? []).map(item => this.aFilaConMoneda(item));
-        } else {
-          this.selectedPageInfo = null;
-          this.dataSource.data = []; // error GraphQL: el servicio ya avisó
-        }
-      } });
+    return params;
   }
 
   /**
@@ -182,9 +183,7 @@ export class ListVentaTarjetaComponent implements OnInit {
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   onLimpiarFiltros(): void {
@@ -197,12 +196,6 @@ export class ListVentaTarjetaComponent implements OnInit {
     this.fechaDesdeControl.setValue(null);
     this.fechaHastaControl.setValue(null);
     this.onFilter();
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetData();
   }
 
   onGenerarPdf(): void {

@@ -1,5 +1,5 @@
 <app-generic-list
-  [data]="(gastos$ | async) || []"
+  [data]="(pag.items$ | async) || []"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
 >
@@ -60,7 +60,7 @@
   >
     <table
       mat-table
-      [dataSource]="(gastos$ | async) || []"
+      [dataSource]="(pag.items$ | async) || []"
       multiTemplateDataRows
       class="mat-elevation-z8"
       style="width: 100%"
@@ -300,15 +300,6 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="(totalElements$ | async)"
-      [pageIndex]="(pagination$ | async)?.pageIndex"
-      [pageSize]="(pagination$ | async)?.pageSize"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

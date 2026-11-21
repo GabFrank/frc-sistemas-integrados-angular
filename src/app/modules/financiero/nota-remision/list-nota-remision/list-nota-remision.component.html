@@ -111,10 +111,5 @@
   </div>
   </div>
 
-  <mat-paginator class="paginador" [length]="selectedPageInfo?.getTotalElements"
-                 [pageSize]="pageSize"
-                 [pageIndex]="pageIndex"
-                 [pageSizeOptions]="[10, 15, 30, 50]"
-                 (page)="onPage($event)">
-  </mat-paginator>
+  <mat-paginator [paginacion]="pag" class="paginador" style="width: 100%"></mat-paginator>
 </div>

@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { OperacionFinanciera } from '../operacion-financiera.model';
 import { OperacionFinancieraService } from '../operacion-financiera.service';
@@ -26,10 +28,39 @@ export class ListOperacionFinancieraComponent implements OnInit {
   // Filas de display: la entidad + origenLabel/destinoLabel precalculados (any porque
   // el spread pierde el toInput() de la clase; es solo para la tabla, no se guarda).
   dataSource = new MatTableDataSource<any>([]);
-  isSearching = false;
-  pageIndex = 0;
-  pageSize = 10;
-  totalElements = 0;
+  /** Operaciones paginadas en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<any> = new PaginacionLista<any>({
+    cargar: (page, size) => this.operacionFinancieraService.onGetOperaciones(page, size).pipe(
+      map(res => {
+        if (res == null) {
+          this.notificacion.openWarn('No se pudieron cargar las operaciones financieras.', 5);
+          return null;
+        }
+        // Etiquetas de origen/destino pre-calculadas al cargar — evita llamar
+        // funciones desde el HTML en cada fila.
+        return {
+          getTotalElements: res.getTotalElements,
+          getContent: (res.getContent || []).map(op => ({
+            ...op,
+            origenLabel: op.cajaMayorOrigen?.nombre
+              || (op.cuentaBancariaOrigen ? `${op.cuentaBancariaOrigen.banco?.nombre} ${op.cuentaBancariaOrigen.numero}` : '-'),
+            destinoLabel: op.cajaMayorDestino?.nombre
+              || (op.cuentaBancariaDestino ? `${op.cuentaBancariaDestino.banco?.nombre} ${op.cuentaBancariaDestino.numero}` : '-'),
+          })),
+        };
+      }),
+      catchError(() => {
+        this.notificacion.openWarn('No se pudieron cargar las operaciones financieras: el servidor no responde.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   puedeGestionar = false;
 
@@ -57,29 +88,7 @@ export class ListOperacionFinancieraComponent implements OnInit {
   }
 
   onFiltrar() {
-    this.isSearching = true;
-    this.operacionFinancieraService.onGetOperaciones(this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isSearching = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar las operaciones financieras.', 5); return; }
-          this.totalElements = res.getTotalElements;
-          // Etiquetas de origen/destino pre-calculadas al cargar — evita llamar
-          // funciones desde el HTML en cada fila.
-          this.dataSource.data = (res.getContent || []).map(op => ({
-            ...op,
-            origenLabel: op.cajaMayorOrigen?.nombre
-              || (op.cuentaBancariaOrigen ? `${op.cuentaBancariaOrigen.banco?.nombre} ${op.cuentaBancariaOrigen.numero}` : '-'),
-            destinoLabel: op.cajaMayorDestino?.nombre
-              || (op.cuentaBancariaDestino ? `${op.cuentaBancariaDestino.banco?.nombre} ${op.cuentaBancariaDestino.numero}` : '-'),
-          }));
-        },
-        error: () => {
-          this.isSearching = false;
-          this.notificacion.openWarn('No se pudieron cargar las operaciones financieras: el servidor no responde.', 5);
-        }
-      });
+    this.pag.filtrar();
   }
 
   onAdd() {
@@ -91,8 +100,7 @@ export class ListOperacionFinancieraComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       if (res == null) return;
       // La operación nueva (o la que pudo haberse registrado) queda arriba de todo: se vuelve a la primera página.
-      this.pageIndex = 0;
-      this.onFiltrar();
+      this.pag.irAPrimera();
     });
   }
 
@@ -125,11 +133,11 @@ export class ListOperacionFinancieraComponent implements OnInit {
                 color: NotificacionColor.success, duracion: 3,
               });
             }
-            this.onFiltrar();
+            this.pag.recargar();
           },
           // El mensaje ya lo muestra GenericCrudService. Se relee igual: un rechazo «ya está
           // anulada» es una lista vieja, y sin respuesta la anulación pudo haberse aplicado (#390).
-          error: () => this.onFiltrar(),
+          error: () => this.pag.recargar(),
         });
     });
   }
@@ -139,11 +147,5 @@ export class ListOperacionFinancieraComponent implements OnInit {
     this.dialog.open(OperacionFinancieraDetalleDialogComponent, {
       width: '720px', maxWidth: '95vw', data: { operacionId: row.id },
     });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onFiltrar();
   }
 }

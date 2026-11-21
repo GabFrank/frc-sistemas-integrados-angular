@@ -2,13 +2,14 @@ import { MatSort } from '@angular/material/sort';
 import { LoteDeService } from '../lote-de.service';
 import { MatDialog } from '@angular/material/dialog';
 import { EstadoLoteDE, LoteDE } from '../lote-de.model';
-import { PageInfo } from '../../../../../app.component';
 import { MainService } from '../../../../../main.service';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista, PaginaCentral } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { MatTable, MatTableDataSource } from '@angular/material/table';
 import { state, transition, trigger, animate, style } from '@angular/animations';
 import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
@@ -34,7 +35,6 @@ import { NotificacionColor, NotificacionSnackbarService } from '../../../../../n
 })
 export class ListLoteDeComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatTable) table: MatTable<any>;
   @ViewChild(MatSort) sort: MatSort;
 
@@ -69,9 +69,15 @@ export class ListLoteDeComponent implements OnInit {
     "acciones",
   ]
 
-  pageIndex = 0;
-  pageSize = 15;
-  selectedPageInfo: PageInfo<LoteDE>;
+  /** Lotes paginados en el central (#772); con un id, una página con ese lote. */
+  pag: PaginacionLista<LoteDE> = new PaginacionLista<LoteDE>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   constructor(
     private loteDeService: LoteDeService,
@@ -106,59 +112,39 @@ export class ListLoteDeComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onSearch() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
   buscar() {
+    this.pag.recargar();
+  }
+
+  private consultar(page: number, size: number): Observable<PaginaCentral<LoteDE> | null> {
     if (this.idControl.value == null) {
-      this.loteDeService.onGetAllLotes(
-        this.pageIndex,
-        this.pageSize,
+      return this.loteDeService.onGetAllLotes(
+        page,
+        size,
         this.estadoControl.value,
         this.fechaFormGroup.get('fechaInicioControl')?.value,
         this.fechaFormGroup.get('fechaFinControl')?.value,
         true
-      ).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res != null){
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
-        }
-      })
-  } else {
+      );
+    }
     const id = this.idControl.value;
     const sucursalId = this.sucursalControl.value;
     if (sucursalId == null) {
       this.avisar('Elegí la sucursal del lote: el mismo ID existe en varias sucursales');
-      return;
+      return of(null);
     }
-    this.loteDeService.onFindByLoteId(id, sucursalId).pipe(
+    // Un solo lote: el paginador no sigue mostrando el total de la lista.
+    return this.loteDeService.onFindByLoteId(id, sucursalId).pipe(
+      map(lote => {
+        if (lote == null) this.avisar(`No se encontró el lote ${id} en esa sucursal`);
+        return { getContent: lote != null ? [lote] : [], getTotalElements: lote != null ? 1 : 0 };
+      }),
       // El genérico ya avisó el error: no dejar a la vista el resultado anterior.
-      terminarSiFalla(() => this.mostrarLote(null)),
-      untilDestroyed(this)
-    ).subscribe(res => {
-      this.mostrarLote(res);
-      if (res == null) {
-        this.avisar(`No se encontró el lote ${id} en esa sucursal`);
-      }
-    })
-  }
-  }
-
-  // Un solo lote: el paginador no debe seguir mostrando el total de la lista.
-  private mostrarLote(lote: LoteDE) {
-    this.dataSource.data = lote != null ? [lote] : [];
-    const pageInfo = new PageInfo<LoteDE>();
-    pageInfo.getContent = this.dataSource.data;
-    pageInfo.getTotalElements = this.dataSource.data.length;
-    this.selectedPageInfo = pageInfo;
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
+      catchError(() => of({ getContent: [], getTotalElements: 0 }))
+    );
   }
 
   private avisar(texto: string) {
@@ -170,12 +156,6 @@ export class ListLoteDeComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.estadoControl.setValue(null);
     this.onSearch();
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   getEstadoClass(estado: string | EstadoLoteDE): string {

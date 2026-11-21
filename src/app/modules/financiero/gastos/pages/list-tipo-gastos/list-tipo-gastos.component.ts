@@ -6,9 +6,9 @@ import { GastoService } from '../../service/gasto.service';
 import { TipoGasto } from '../../models/tipo-gasto.model';
 import { AdicionarTipoGastoDialogComponent } from '../../dialogs/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
-import { PageEvent } from '@angular/material/paginator';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { switchMap, map, shareReplay, catchError, take } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ModuloGastoService } from '../../service/modulo-gasto.service';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
@@ -17,7 +17,7 @@ import { etiquetaModuloPadre, ModuloGastoInfo } from '../../utils/tipo-gasto-mod
 
 type TipoGastoVista = TipoGasto & { moduloPadreEtiqueta: string };
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-tipo-gastos',
   templateUrl: './list-tipo-gastos.component.html',
@@ -48,8 +48,8 @@ export class ListTipoGastosComponent implements OnInit {
     'id', 'descripcion', 'tipoNaturaleza', 'moduloPadre', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
 
-  // Sin catálogo la lista de tipos sigue viva (sin etiqueta de módulo): antes un error del catálogo, que entra al
-  // combineLatest por fuera del switchMap, mataba la lista (#390).
+  // Sin catálogo la lista de tipos sigue viva (sin etiqueta de módulo): antes un error del catálogo, que entraba al
+  // combineLatest por fuera del switchMap, mataba la lista (#390). Ahora se lee una vez por página.
   private catalogoModulos$ = this.moduloGastoService.obtenerModulos().pipe(
     catchError(() => {
       this.notificacionAviso.openWarn('No se pudo cargar el catálogo de módulos de gasto.', 5);
@@ -61,86 +61,68 @@ export class ListTipoGastosComponent implements OnInit {
   private tabActivaSubject = new BehaviorSubject<number>(0);
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
-  private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
-  public pagination$ = this.paginationSubject.asObservable();
-
-  private refetchSubject = new BehaviorSubject<void>(void 0);
-
-  public totalElements$ = new BehaviorSubject<number>(0);
-
-  public cargandoSubject = new BehaviorSubject<boolean>(false);
-  public cargando$ = this.cargandoSubject.asObservable();
-
   searchFormGroup = new FormGroup({
     texto: new FormControl<string | null>(''),
     moduloPadre: new FormControl<string | null>(null),
   });
 
-  public listaFiltrada$: Observable<TipoGastoVista[]> = combineLatest([
-    this.tabActiva$,
-    this.refetchSubject,
-    this.pagination$,
-    this.catalogoModulos$
-  ]).pipe(
-    tap(() => this.cargandoSubject.next(true)),
-    switchMap(([tabIndex, _, pag, catalogo]) => {
-      const naturaleza = this.tabNaturalezas[tabIndex];
-      const texto = this.searchFormGroup.controls.texto.value || null;
-      const moduloPadre = this.searchFormGroup.controls.moduloPadre.value || null;
-
-      return this.gastoService.tipoGastoFilter(
-        naturaleza,
-        texto,
-        pag.pageIndex,
-        pag.pageSize,
-        moduloPadre,
+  /** Tipos de gasto de la pestaña activa, paginados en el central (#772). */
+  pag: PaginacionLista<TipoGastoVista> = new PaginacionLista<TipoGastoVista>({
+    cargar: (page, size) => this.catalogoModulos$.pipe(
+      take(1),
+      switchMap(catalogo => this.gastoService.tipoGastoFilter(
+        this.tabNaturalezas[this.tabActivaSubject.value],
+        this.searchFormGroup.controls.texto.value || null,
+        page,
+        size,
+        this.searchFormGroup.controls.moduloPadre.value || null,
         PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true }
       ).pipe(
         map(res => {
-          if (res == null) { this.notificacionAviso.openWarn('No se pudieron cargar los tipos de gasto.', 5); }
-          return { res, catalogo };
+          if (res == null) {
+            this.notificacionAviso.openWarn('No se pudieron cargar los tipos de gasto.', 5);
+            return null;
+          }
+          return {
+            getTotalElements: res.getTotalElements,
+            getContent: (res.getContent || []).map(item => ({
+              ...item,
+              moduloPadreEtiqueta: etiquetaModuloPadre(catalogo, item.moduloPadre),
+            })),
+          };
         }),
         catchError(err => {
           console.error('Error fetching tipo_gastos:', err);
           this.notificacionAviso.openWarn('No se pudieron cargar los tipos de gasto: el servidor no responde.', 5);
-          return of({ res: null, catalogo });
+          return of(null);
         })
-      );
-    }),
-    tap(({ res }) => {
-      this.cargandoSubject.next(false);
-      // Sin respuesta la lista queda vacía: el paginador no conserva el total de la consulta anterior.
-      this.totalElements$.next(res ? (res.getTotalElements || 0) : 0);
-    }),
-    map(({ res, catalogo }) => (res?.getContent || []).map(item => ({
-      ...item,
-      moduloPadreEtiqueta: etiquetaModuloPadre(catalogo, item.moduloPadre),
-    }))),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
+      ))
+    ),
+    pageSize: 15,
+    pageSizeOptions: [15, 30, 50, 100],
+  });
 
   ngOnInit(): void {
     this.catalogoModulos$.pipe(untilDestroyed(this)).subscribe(modulos => {
       this.modulosPadreOpciones = modulos;
     });
+    this.pag.filtrar();
   }
 
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.pag.filtrar();
   }
 
   onBuscar(): void {
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
-    this.refetchSubject.next();
+    this.pag.filtrar();
   }
 
   onLimpiar(): void {
     this.searchFormGroup.reset();
     this.tabActivaSubject.next(0);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
-    this.refetchSubject.next();
+    this.pag.filtrar();
   }
 
   agregarNuevo(): void {
@@ -155,7 +137,7 @@ export class ListTipoGastosComponent implements OnInit {
       .afterClosed()
       .subscribe(res => {
         if (res != null) {
-          this.refetchSubject.next();
+          this.pag.recargar();
         }
       });
   }
@@ -174,7 +156,7 @@ export class ListTipoGastosComponent implements OnInit {
       .afterClosed()
       .subscribe(res => {
         if (res != null) {
-          this.refetchSubject.next();
+          this.pag.recargar();
         }
       });
   }
@@ -183,13 +165,9 @@ export class ListTipoGastosComponent implements OnInit {
     this.gastoService.tipoGastoOnDelete(tipoGasto.id)
       .subscribe(res => {
         if (res) {
-          this.refetchSubject.next();
+          this.pag.recargar();
         }
       });
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 
   esTabActiva(indice: number, tabActiva: number | null): boolean {
