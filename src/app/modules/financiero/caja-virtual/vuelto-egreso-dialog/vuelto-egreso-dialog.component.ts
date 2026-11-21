@@ -2,7 +2,9 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, EgresoParaVuelto, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -53,10 +55,31 @@ export class VueltoEgresoDialogComponent implements OnInit {
 
   readonly displayedColumns = ['creadoEn', 'tipo', 'entregadoA', 'descripcion', 'monto', 'pendiente', 'acciones'];
   dataSource = new MatTableDataSource<FilaVuelto>([]);
-  totalElements = 0;
-  pageIndex = 0;
-  pageSize = 10;
-  isLoading = false;
+
+  /** Egresos con vuelto pendiente, paginados en el central (#772). */
+  pag: PaginacionLista<FilaVuelto> = new PaginacionLista<FilaVuelto>({
+    cargar: (page, size) => {
+      const texto = this.textoControl.value?.trim() || null;
+      // Sin «desde» (borrado a mano o inválido) se vuelve al rango por defecto en vez de traer todo.
+      if (!this.desdeControl.value) this.rangoPorDefecto();
+      const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
+      // El central lleva el fin al último minuto de ese día.
+      const fin = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
+      return this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, desde, fin, page, size).pipe(
+        map(res => ({ getTotalElements: res?.getTotalElements ?? 0, getContent: (res?.getContent ?? []).map(e => this.aFila(e)) })),
+        catchError(() => {
+          this.notificacion.openWarn('No se pudieron cargar los egresos. Intentá de nuevo.', 5);
+          return of(null);
+        })
+      );
+    },
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   textoControl = new FormControl<string>('');
   /**
@@ -126,9 +149,9 @@ export class VueltoEgresoDialogComponent implements OnInit {
     return this.desdeControl.value?.getTime() !== desde.getTime() || this.hastaControl.value?.getTime() !== hoy.getTime();
   }
 
+  /** Búsqueda o rango nuevos: vuelve a la página 1. */
   buscar(): void {
-    this.pageIndex = 0;
-    this.cargar();
+    this.pag.filtrar();
   }
 
   limpiarBusqueda(): void {
@@ -136,33 +159,9 @@ export class VueltoEgresoDialogComponent implements OnInit {
     this.buscar();
   }
 
-  onPage(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
-  }
-
+  /** Repite la página a la vista (la primera carga y después de registrar un vuelto). */
   private cargar(): void {
-    this.isLoading = true;
-    const texto = this.textoControl.value?.trim() || null;
-    // Sin «desde» (borrado a mano o inválido) se vuelve al rango por defecto en vez de traer todo.
-    if (!this.desdeControl.value) this.rangoPorDefecto();
-    const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
-    // El central lleva el fin al último minuto de ese día.
-    const fin = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
-    this.cajaVirtualService.onGetEgresosParaVuelto(this.data.cajaVirtual.id, texto, desde, fin, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isLoading = false;
-          this.totalElements = res?.getTotalElements ?? 0;
-          this.dataSource.data = (res?.getContent ?? []).map(e => this.aFila(e));
-        },
-        error: () => {
-          this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los egresos. Intentá de nuevo.', 5);
-        }
-      });
+    this.pag.recargar();
   }
 
   private aFila(e: EgresoParaVuelto): FilaVuelto {

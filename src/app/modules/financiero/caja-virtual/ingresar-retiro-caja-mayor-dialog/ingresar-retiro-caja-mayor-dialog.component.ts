@@ -6,6 +6,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, of } from 'rxjs';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { CajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -65,11 +66,49 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   /** Algún retiro del lote ya entró a la caja mayor (aunque otros fallaran). */
   private huboIngresos = false;
 
-  pageIndex = 0;
-  pageSize = 10;
+  /** Lo que dice el contador: el total de flotantes, o los escaneados en modo escaneo. */
   totalElements = 0;
 
-  isLoading = false;
+  /** Retiros flotantes paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<RetiroRow> = new PaginacionLista<RetiroRow>({
+    cargar: (page, size) => {
+      const sucId = this.sucursalControl.value?.id ?? null;
+      const cajaId = this.cajaControl.value ? Number(this.cajaControl.value) : null;
+      const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
+      const hasta = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
+      const destinoId = this.acotado ? this.data?.cajaVirtual?.id : undefined;
+      // Sin retiros flotantes la página llega vacía, no null: null es un error y no «no hay retiros» (#390).
+      return this.retiroService.onGetFlotantes(sucId, cajaId, desde, hasta, page, size, true, destinoId).pipe(
+        map(res => res == null ? null : {
+          getTotalElements: res.getTotalElements ?? 0,
+          // Clonar cada fila (Apollo congela los resultados en dev) + campos de display.
+          getContent: (res.getContent ?? []).map((r: Retiro) => {
+            const row = { ...r } as RetiroRow;
+            row._montos = formatMontosRetiro(r);
+            row._sel = this.seleccionados.has(`${r.id}_${r.sucursalId}`);
+            this.marcarEstadoVerificacion(row);
+            return row;
+          }),
+        }),
+        catchError(() => of(null))
+      );
+    },
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    alCargar: (res) => {
+      if (this.modoEscaneo) return;
+      this.dataSource.data = res.getContent ?? [];
+      this.totalElements = res.getTotalElements ?? 0;
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo && !this.modoEscaneo) {
+        this.dataSource.data = [];
+        this.totalElements = 0;
+      }
+      this.notificacion.openWarn('No se pudieron cargar los retiros: intentá de nuevo.', 5);
+    },
+  });
+
   isSaving = false;
 
   /**
@@ -135,15 +174,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   /** Sale del modo escaneo sin perder lo ya seleccionado. */
   verTodosLosFlotantes() {
     this.modoEscaneo = false;
-    this.pageIndex = 0;
-    this.cargar();
+    this.cargar(true);
   }
-
-  /**
-   * Número de la última carga: los filtros recargan al salir del campo, así que puede haber dos en vuelo.
-   * Solo responde la última: una vieja no pisa la tabla ni repite el aviso (#390).
-   */
-  private cargaId = 0;
 
   /** N° de caja con el que se hizo la última carga: salir del campo sin cambiarlo no recarga. */
   private cajaCargada: any = null;
@@ -168,41 +200,15 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     }
   }
 
-  cargar() {
-    this.isLoading = true;
-    const id = ++this.cargaId;
+  /** `filtroNuevo`: vuelve a la página 1; si no, repite la página a la vista (después de ingresar). */
+  cargar(filtroNuevo = false) {
     this.cajaCargada = this.cajaControl.value;
     const sucId = this.sucursalControl.value?.id ?? null;
     const cajaId = this.cajaControl.value ? Number(this.cajaControl.value) : null;
-    const desde = this.desdeControl.value ? dateToString(this.desdeControl.value) : null;
-    const hasta = this.hastaControl.value ? dateToString(this.hastaControl.value) : null;
     const destinoId = this.acotado ? this.data?.cajaVirtual?.id : undefined;
     this.cargarProcesados(cajaId, sucId, destinoId);
-    this.retiroService.onGetFlotantes(sucId, cajaId, desde, hasta, this.pageIndex, this.pageSize, true, destinoId)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          if (id !== this.cargaId) return;
-          this.isLoading = false;
-          // Sin retiros flotantes la página llega vacía, no null: null es un error y no «no hay retiros» (#390).
-          if (res == null) { this.flotantesNoCargados(); return; }
-          const content = res?.getContent ?? [];
-          // Clonar cada fila (Apollo congela los resultados en dev) + campos de display.
-          this.dataSource.data = content.map((r: Retiro) => {
-            const row = { ...r } as RetiroRow;
-            row._montos = formatMontosRetiro(r);
-            row._sel = this.seleccionados.has(`${r.id}_${r.sucursalId}`);
-            this.marcarEstadoVerificacion(row);
-            return row;
-          });
-          this.totalElements = res?.getTotalElements ?? 0;
-        },
-        error: () => {
-          if (id !== this.cargaId) return;
-          this.isLoading = false;
-          this.flotantesNoCargados();
-        }
-      });
+    if (filtroNuevo) this.pag.filtrar();
+    else this.pag.recargar();
   }
 
   /** Cuántos retiros procesados se listan en el aviso; el resto va como «y N más». */
@@ -236,12 +242,6 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       // Sin aviso, pero sin fijar la clave: un Enter con la misma caja lo vuelve a pedir.
       error: () => { if (id === this.procesadosId) this.claveProcesados = null; },
     });
-  }
-
-  private flotantesNoCargados() {
-    this.dataSource.data = [];
-    this.totalElements = 0;
-    this.notificacion.openWarn('No se pudieron cargar los retiros: intentá de nuevo.', 5);
   }
 
   /**
@@ -345,8 +345,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   }
 
   onFiltroChange() {
-    this.pageIndex = 0;
-    this.cargar();
+    this.cargar(true);
   }
 
   limpiarFiltros() {
@@ -356,12 +355,6 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     this.desdeControl.reset();
     this.hastaControl.reset();
     this.onFiltroChange();
-  }
-
-  onPage(ev: any) {
-    this.pageIndex = ev.pageIndex;
-    this.pageSize = ev.pageSize;
-    this.cargar();
   }
 
   cantidadSeleccionada = 0;

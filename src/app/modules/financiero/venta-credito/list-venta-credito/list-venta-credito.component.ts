@@ -58,8 +58,6 @@ import {
   getLastDayOfMonths,
   getLastDayOfNMonth,
 } from "../../../../commons/core/utils/dateUtils";
-import { PageInfo } from "../../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { PROPAGAR_ERROR_DE_RED } from "../../../../generics/generic-crud.service";
 import { TIMEOUT_POR_DEFECTO_MS } from "../../../../shared/services/timeout-link";
@@ -111,12 +109,7 @@ export class ListVentaCreditoComponent implements OnInit {
 
   filtrarPorFechaList = ["Venta", "Cobro"];
 
-  isLastPage = false;
-  isSearching = false;
   expandedVentaCredito: VentaCredito;
-
-  page = 0;
-  size = 5;
 
   loading = false;
 
@@ -133,7 +126,6 @@ export class ListVentaCreditoComponent implements OnInit {
   isAbiertos = false;
   isConcluidos = false;
 
-  selectedPageInfo: PageInfo<VentaCredito>;
 
   // El destino muestra el resumen de la caja: mismo rol que el menú «Cajas» (side-mini-variant, list-caja)
   puedeVerVentas = false;
@@ -150,15 +142,6 @@ export class ListVentaCreditoComponent implements OnInit {
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService
   ) {
-    this.estadoControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res == EstadoVentaCredito.ABIERTO) {
-          this.isLastPage = true;
-        } else {
-          this.isLastPage = false;
-        }
-      });
   }
 
   ngOnInit(): void {
@@ -170,32 +153,10 @@ export class ListVentaCreditoComponent implements OnInit {
       fin: this.fechaFinalControl,
     });
 
-    this.isLastPage = true;
     if (this.data?.tabData?.id != null) {
       this.selectedCliente = this.data?.tabData.data;
 
       this.onFiltrar();
-      // this.clienteService
-      //   .onGetById(this.data.tabData.id)
-      //   .pipe(untilDestroyed(this))
-      //   .subscribe((res) => {
-      //     if (res != null) {
-      //       this.selectedCliente = res;
-      //       this.ventaCreditoService
-      //         .onGetPorCliente(
-      //           this.selectedCliente.id,
-      //           EstadoVentaCredito.ABIERTO,
-      //           this.page,
-      //           this.size
-      //         )
-      //         .pipe(untilDestroyed(this))
-      //         .subscribe((res) => {
-      //           if (res != null) {
-      //             this.dataSource.data = res;
-      //           }
-      //         });
-      //     }
-      //   });
     }
 
     this.selection.changed.pipe(untilDestroyed(this)).subscribe((res) => {
@@ -266,15 +227,7 @@ export class ListVentaCreditoComponent implements OnInit {
     return this.selection.selected.length > 0;
   }
 
-  cargarMasDatos() {
-    this.page++;
-    this.onFiltrar();
-  }
-
   onBuscar() {
-    this.page = 0;
-    this.size = 15;
-    this.selectedPageInfo = null;
     this.dataSource.data = [];
     this.onFiltrar();
   }
@@ -326,7 +279,6 @@ export class ListVentaCreditoComponent implements OnInit {
   }
 
   resetFiltro() {
-    this.page = 0;
     this.estadoControl.setValue(EstadoVentaCredito.ABIERTO);
     this.isAbiertos = false;
     this.isConcluidos = false;
@@ -659,18 +611,5 @@ export class ListVentaCreditoComponent implements OnInit {
           });
         }
       });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    let lastPage = this.selectedPageInfo?.getPageable?.getPageNumber;
-    let lastSize = this.selectedPageInfo?.getPageable?.getPageSize;
-    this.page = e.pageIndex;
-    this.size = e.pageSize;
-
-    if (lastSize != undefined && lastSize != this.size) {
-      this.page = 0;
-      this.selectedPageInfo.getMultiPageableList = null;
-    }
-    this.onFiltrar();
   }
 }
