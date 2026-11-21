@@ -28,6 +28,8 @@ import {
   parsearCupon,
 } from '../qr-pos-parser';
 import { switchMapSinCortar } from '../../../../../commons/core/utils/rxjsUtils';
+import { ConfiguracionVentaTarjetaService } from '../../configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service';
+import { CONTEXTO_MOSTRADOR } from '../../../../../generics/generic-crud.constantes';
 
 export interface RegistrarVentaTarjetaData {
   /** Id del venta_tarjeta PENDIENTE que creó el PDV. */
@@ -148,6 +150,8 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    * getters en bindings.
    */
   ofreceCargaManual = true;
+  /** El módulo está apagado: no se ofrece la foto y se avisa por qué (#151 del filial). */
+  moduloApagado = false;
   /** Motivo por el que no se puede registrar acá. `null` = se puede. */
   bloqueo: string = null;
 
@@ -177,7 +181,8 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     private formatoTerminalPosService: FormatoTerminalPosService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private capturaCuponService: CapturaCuponService
+    private capturaCuponService: CapturaCuponService,
+    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService
   ) {
     this.decidirCaminos();
     if (data.segundos != null) {
@@ -205,7 +210,29 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     //
     // Sólo cuando se ofrece la camara: en `tipo = WEB` el camino es el lector y una captura abierta
     // de prepo consumiria un token por cada pendiente que se abre, sin que nadie la use.
-    if (this.ofreceCamara) this.onSacarFoto();
+    //
+    // Antes, si el modulo esta prendido (#151 del filial): apagado, el filial rechaza la captura, y
+    // en una terminal con la carga manual apagada la foto era el unico camino. Un pendiente que
+    // quedo de antes del apagado abria con un error y sin boton. Apagado = sin foto y con carga a
+    // mano (el filial no la valida contra `habilitado`). Si la consulta falla o no responde, se
+    // abre la foto como siempre: no saber la config no puede cerrar un camino que hoy anda.
+    if (this.ofreceCamara) {
+      this.configuracionVentaTarjetaService
+        .onGetConfiguracion(false, CONTEXTO_MOSTRADOR)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (config) => {
+            if (config != null && config.habilitado !== true) {
+              this.moduloApagado = true;
+              this.ofreceCamara = false;
+              this.ofreceCargaManual = true;
+              return;
+            }
+            this.onSacarFoto();
+          },
+          error: () => this.onSacarFoto(),
+        });
+    }
 
     // De `formato_terminal_pos`, el del ABM. Ver el comentario largo en `escanear-cupon-dialog`:
     // esta era la tercera pantalla que leía la tabla legacy, y las tres tenían que moverse juntas
