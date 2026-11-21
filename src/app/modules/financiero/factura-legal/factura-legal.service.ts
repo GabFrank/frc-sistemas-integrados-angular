@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Observable, of } from "rxjs";
 import { catchError, tap, timeout } from "rxjs/operators";
 import { GenericCrudService, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED, QueryError } from "../../../generics/generic-crud.service";
+import { CONTEXTO_MOSTRADOR } from "../../../generics/generic-crud.constantes";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import {
   FacturaLegal,
@@ -30,6 +31,7 @@ import { UpdateFacturaLegalGQL } from "./graphql/updateFacturaLegal";
 import { NominarFacturaElectronicaGQL } from "./graphql/nominarFacturaElectronica";
 import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
 import { SaveFacturaLegalToFilialGQL, SaveFacturaLegalToFilialResponse } from "./graphql/saveFacturaLegalToFilial";
+import { FacturaElectronicaHabilitadaGQL } from "./graphql/facturaElectronicaHabilitada";
 import { DescargarXmlFacturaElectronicaGQL } from "./graphql/descargarXmlFacturaElectronica";
 import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFacturaElectronica";
 import { EnviarFacturaLegalPorCorreoGQL } from "./graphql/enviarFacturaLegalPorCorreo";
@@ -72,7 +74,8 @@ export class FacturaLegalService {
     private enviarFacturaLegalPorCorreoGQL: EnviarFacturaLegalPorCorreoGQL,
     private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL,
     private facturaSimilarRecienteGQL: FacturaSimilarRecienteGQL,
-    private impresionPos: ImpresionPosService
+    private impresionPos: ImpresionPosService,
+    private facturaElectronicaHabilitadaGQL: FacturaElectronicaHabilitadaGQL
   ) {}
 
   /**
@@ -384,6 +387,15 @@ export class FacturaLegalService {
       { facturaLegalId, sucursalId, cancelarVenta },
       servidor
     );
+  }
+
+  /**
+   * Si el filial de esta caja factura electrónico (#134). Sin aviso: quien llama decide qué hacer si falla
+   * (un filial anterior al #134 no tiene la query).
+   */
+  onGetFacturaElectronicaHabilitada(): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.facturaElectronicaHabilitadaGQL, {}, false, LECTURA_ESTRICTA, true,
+      CONTEXTO_MOSTRADOR);
   }
 
   onSaveFacturaToFilial(

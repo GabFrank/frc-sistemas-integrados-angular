@@ -41,6 +41,8 @@ export class FacturaLegal {
     documentoElectronico: DocumentoElectronico
     monedaExtranjera: string
     tipoCambio: number
+    /** Solo hacia el filial (#134): pais de la persona del cliente. */
+    paisId: number
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
@@ -54,6 +56,8 @@ export class FacturaLegal {
         input.ruc = this.ruc
         input.direccion = this.direccion
         input.email = this.email
+        // Sin pais la clave no viaja: el central no la conoce
+        if (this.paisId != null) input.paisId = this.paisId
         input.cdc = this.cdc
         input.ivaParcial0 = this.ivaParcial0
         input.ivaParcial5 = this.ivaParcial5
@@ -86,6 +90,7 @@ export class FacturaLegalInput {
     ruc: string
     direccion: string
     email: string
+    paisId?: number
     cdc: string
     ivaParcial0: number
     ivaParcial5: number

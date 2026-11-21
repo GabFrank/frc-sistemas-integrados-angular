@@ -9,6 +9,8 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PersonaSearchGQL } from '../../persona/graphql/personaSearch';
 import { Persona } from '../../persona/persona.model';
+import { Pais } from '../../../general/pais/pais.model';
+import { BuscadorService } from '../../../../shared/services/buscador.service';
 import { PersonaService } from '../../persona/persona.service';
 import { ROLES } from '../../roles/roles.enum';
 import { Cliente, TipoCliente } from '../cliente.model';
@@ -36,6 +38,8 @@ export class AddClienteDialogComponent implements OnInit {
   /** Leyendo el cliente de la persona elegida: hasta que llegue tampoco se puede guardar. */
   leyendoCliente = false;
   selectedPersona: Persona;
+  selectedPais: Pais;
+  paisElegido = false;
 
   //cliente
   tipoControl = new FormControl(TipoCliente.NORMAL, Validators.required)
@@ -67,7 +71,8 @@ export class AddClienteDialogComponent implements OnInit {
     private dialog: MatDialog,
     private personaSearch: PersonaSearchGQL,
     private notificacionService: NotificacionSnackbarService,
-    private dialogRef: MatDialogRef<AddClienteDialogComponent>
+    private dialogRef: MatDialogRef<AddClienteDialogComponent>,
+    private buscador: BuscadorService
   ) { }
 
   ngOnInit(): void {
@@ -108,6 +113,7 @@ export class AddClienteDialogComponent implements OnInit {
       this.emailControl.setValue(this.selectedPersona?.email)
       this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
       this.direccionControl.setValue(this.selectedPersona?.direccion)
+      this.cargarPais(this.selectedPersona?.id)
     } else if (this.data?.persona != null) {
       // Alta desde Personas («Crear cliente»): la persona ya está elegida.
       this.selectedPersona = new Persona;
@@ -119,6 +125,7 @@ export class AddClienteDialogComponent implements OnInit {
       this.emailControl.setValue(this.selectedPersona?.email)
       this.nacimientoControl.setValue(this.selectedPersona?.nacimiento != null ? new Date(this.selectedPersona.nacimiento) : null)
       this.direccionControl.setValue(this.selectedPersona?.direccion)
+      this.cargarPais(this.selectedPersona?.id)
     }
 
   }
@@ -192,8 +199,29 @@ export class AddClienteDialogComponent implements OnInit {
         this.emailControl.setValue(this.selectedPersona?.email)
         this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
         this.direccionControl.setValue(this.selectedPersona?.direccion)
+        this.cargarPais(this.selectedPersona?.id)
       }
     })
+  }
+
+  /** Pais del receptor (#666): se muestra el guardado y solo se manda si se elige otro. */
+  private cargarPais(personaId: number) {
+    this.selectedPais = null;
+    this.paisElegido = false;
+    if (personaId == null) return;
+    this.personaService.onGetPaisDePersona(personaId).pipe(untilDestroyed(this)).subscribe(res => {
+      // otra persona elegida mientras tanto: esta respuesta ya no es de la que se muestra
+      if (res?.id == personaId && this.selectedPersona?.id == personaId && !this.paisElegido) this.selectedPais = res?.pais ?? null;
+    });
+  }
+
+  onBuscarPais() {
+    this.buscador.abrir('pais').pipe(untilDestroyed(this)).subscribe((pais: Pais) => {
+      if (pais != null) {
+        this.selectedPais = pais;
+        this.paisElegido = true;
+      }
+    });
   }
 
   onCrearPersona() {
@@ -219,6 +247,7 @@ export class AddClienteDialogComponent implements OnInit {
     newPersona.nacimiento = this.nacimientoControl.value;
     newPersona.email = this.emailControl.value;
     newPersona.telefono = this.telefonoControl.value;
+    newPersona.pais = this.paisElegido ? this.selectedPais : undefined;
     
     // Paso intermedio: el verde es el del final (#501)
     this.personaService.onSavePersona(newPersona.toInput(), true, { avisarExito: false }).pipe(terminarSiFalla(), untilDestroyed(this)).subscribe((personaRes: Persona) => {
