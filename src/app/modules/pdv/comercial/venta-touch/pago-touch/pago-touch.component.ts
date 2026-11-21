@@ -306,7 +306,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.configuracionVentaTarjetaService.onGetConfiguracion(false, contextoFilial).subscribe({
       next: (config) => {
         if (config == null) return this.configNoCargo("tarjeta");
-        this.ventaTarjetaHabilitada = config.habilitado === true;
+        // ⚠️ Y solo si la caja habla con el filial (#151 del filial). Con `isLocal: false` no hay link
+        // local: esta consulta la contesta el central --que la tiene y dice `habilitado`--, pero el
+        // central no tiene `crearCapturaCupon` ni `completarVentaTarjeta`, y su `saveVentaTarjeta`
+        // escribiría `venta_tarjeta` del lado que solo la recibe por réplica. «Sacar foto» fallaba
+        // con un error de esquema. TARJETA queda como con el módulo apagado; no es un fallo de
+        // configuración, así que `configTarjeta` sigue en "ok" y no se bloquea el cobro.
+        this.ventaTarjetaHabilitada = config.habilitado === true && this.mainService.isLocal();
         this.configTarjeta = "ok";
       },
       error: () => this.configNoCargo("tarjeta"),
