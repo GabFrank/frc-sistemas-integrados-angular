@@ -6,9 +6,9 @@ import { Query } from "apollo-angular";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SelectionModel } from "@angular/cdk/collections";
-import { PageInfo } from "../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
-import { timeout, catchError } from 'rxjs/operators';
+import { Observable } from "rxjs";
+import { timeout, catchError, skip } from 'rxjs/operators';
+import { PaginacionLista } from "../paginacion/paginacion-lista";
 
 /**
  * Interfaz que define la estructura de los datos de una columna en la tabla
@@ -81,9 +81,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   displayedColumns = []
   selectedItem;
   queryData: any;
-  selectedPageInfo: PageInfo<any> = new PageInfo<any>();
-  pageIndex = 0;
-  pageSize = 15;
+  /** Modo `paginator: true`: el central pagina; esto guarda página, tamaño y total (#772). */
+  readonly pag = new PaginacionLista<any>({
+    cargar: (page, size) => this.consultar({ ...this.armarQueryData(), page, size }),
+    pageSize: 15,
+  });
   seleccionadosMap = new Map<number, any>();
 
   // **PERFORMANCE**: Computed properties for template usage (avoid getters/functions in template)
@@ -117,6 +119,15 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     // Initialize query data
     if (data?.queryData != null) {
       this.queryData = data.queryData;
+    }
+
+    // Modo paginado: cada página que llega (o el fallo) se dibuja en la misma tabla.
+    if (data?.paginator === true) {
+      this.pag.estado$.pipe(skip(1), untilDestroyed(this)).subscribe(e => {
+        this.isLoadingComputed = e.cargando;
+        if (!e.cargando) this.mostrarFilas(e.items);
+        this.updateComputedProperties();
+      });
     }
 
     // Set initial search text
@@ -205,20 +216,12 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /** Buscar o Enter: un filtro nuevo, que en modo paginado arranca en la página 1. */
   onBuscar(): void {
-    // Una búsqueda en curso descarta la nueva (onSearch): sin reiniciar, la página no se desfasa de la tabla.
-    if (this.isSearching) return;
-    // Un filtro nuevo arranca en la página 1.
-    this.pageIndex = 0;
-    this.onSearch()
+    this.onSearch();
   }
 
   onSearch(): void {
-    // **PERFORMANCE**: Prevent multiple simultaneous searches
-    if (this.isSearching) {
-      return;
-    }
-
     if (this.data?.query == null) {
       this.filterLocalData();
       return;
@@ -230,26 +233,19 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    if (this.data?.paginator == true) {
+      // PaginacionLista descarta la respuesta de una búsqueda o página vieja: gana la última pedida.
+      this.pag.filtrar();
+      return;
+    }
+
+    // Sin paginar: una búsqueda en curso descarta la nueva.
+    if (this.isSearching) {
+      return;
+    }
     this.isSearching = true;
     this.isLoadingComputed = true;
     this.updateComputedProperties();
-
-    const searchField = this.data?.searchFieldName || 'texto';
-    if (!this.queryData) {
-      this.queryData = {};
-    }
-    let text = this.buscarControl.value;
-    if (text != null && String(text).trim() !== '' && String(text).trim() !== '%') {
-      text = String(text).toUpperCase();
-      this.queryData[searchField] = text;
-    } else {
-      this.queryData[searchField] = '%';
-    }
-
-    if (this.data?.paginator == true) {
-      this.queryData.page = this.pageIndex;
-      this.queryData.size = this.pageSize;
-    }
 
     const finishSearch = () => {
       this.isSearching = false;
@@ -257,44 +253,46 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       this.updateComputedProperties();
     };
 
+    this.consultar(this.armarQueryData()).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        this.procesarResultados(res);
+        finishSearch();
+      },
+      error: (error) => {
+        console.error('Search error:', error);
+        this.dataSource.data = [];
+        finishSearch();
+      }
+    });
+  }
+
+  /** Los parámetros de la consulta con el texto del buscador ('%' = todos), en mayúsculas. */
+  private armarQueryData(): any {
+    const searchField = this.data?.searchFieldName || 'texto';
+    if (!this.queryData) {
+      this.queryData = {};
+    }
+    const text = this.buscarControl.value;
+    this.queryData[searchField] = text != null && String(text).trim() !== '' && String(text).trim() !== '%'
+      ? String(text).toUpperCase()
+      : '%';
+    return this.queryData;
+  }
+
+  /** La consulta al servidor; con `fallbackToLocal`, si el central no responde en 5 s se pregunta a la local. */
+  private consultar(queryData: any): Observable<any> {
     if (this.data?.fallbackToLocal) {
-      this.genericCrudService
-        .onCustomQuery(this.data.query, this.queryData, true,
-          { networkError: { propagate: true, show: false } }, true)
+      return this.genericCrudService
+        .onCustomQuery(this.data.query, queryData, true, { networkError: { propagate: true, show: false } }, true)
         .pipe(
-          untilDestroyed(this),
           timeout(5000),
           catchError(err => {
             console.warn('Búsqueda en servidor central falló, intentando en local...', err);
-            return this.genericCrudService.onCustomQuery(this.data.query, this.queryData, false, undefined, true);
+            return this.genericCrudService.onCustomQuery(this.data.query, queryData, false, undefined, true);
           })
-        )
-        .subscribe({
-          next: (res) => {
-            this.procesarResultados(res);
-            finishSearch();
-          },
-          error: (error) => {
-            console.error('Search error:', error);
-            this.dataSource.data = [];
-            finishSearch();
-          }
-        });
-    } else {
-      this.genericCrudService
-        .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
-        .subscribe({
-          next: (res) => {
-            this.procesarResultados(res);
-            finishSearch();
-          },
-          error: (error) => {
-            console.error('Search error:', error);
-            this.dataSource.data = [];
-            finishSearch();
-          }
-        });
+        );
     }
+    return this.genericCrudService.onCustomQuery(this.data.query, queryData, this.data.isServidor);
   }
 
   private filterLocalData(): void {
@@ -320,27 +318,22 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Resultado sin paginar (una lista). */
   private procesarResultados(res: any): void {
-    if (res != null) {
-      const filtrar = (filas: any[]) => this.data?.filtro ? (filas || []).filter(this.data.filtro) : (filas || []);
-      if (this.data?.paginator == true) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = filtrar(this.selectedPageInfo?.getContent);
-      } else {
-        this.dataSource.data = filtrar(res);
-      }
-      if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
-        (this.dataSource as any)._updateChangeSubscription();
-      }
-      setTimeout(() => {
-        this.cdr.detectChanges();
-        if (this.table) {
-          this.table.renderRows();
-        }
-      }, 0);
-    } else {
-      this.dataSource.data = [];
+    this.mostrarFilas(res ?? []);
+  }
+
+  private mostrarFilas(filas: any[]): void {
+    this.dataSource.data = this.data?.filtro ? (filas || []).filter(this.data.filtro) : (filas || []);
+    if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
+      (this.dataSource as any)._updateChangeSubscription();
     }
+    setTimeout(() => {
+      this.cdr.detectChanges();
+      if (this.table) {
+        this.table.renderRows();
+      }
+    }, 0);
     this.cdr.markForCheck();
   }
 
@@ -402,12 +395,6 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.matDialogRef.close({ adicionar: true })
   }
 
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onSearch();
-  }
-
   /**
    * **PERFORMANCE**: Update computed properties for template usage
    * This avoids function calls and getters in templates which cause performance issues
@@ -425,7 +412,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       : this.selectedItem != null;
 
     // Pagination
-    this.showPaginatorComputed = this.data?.paginator === true && this.selectedPageInfo != null;
+    this.showPaginatorComputed = this.data?.paginator === true;
 
     // Adicionar button
     this.showAdicionarButtonComputed = this.data?.isAdicionar === true;
@@ -442,19 +429,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * **PERFORMANCE**: Method to get total elements count (for template usage)
-   */
-  getTotalElementsCount(): number {
-    return this.selectedPageInfo?.getTotalElements || 0;
-  }
-
-  /**
    * Clear search and reset to initial state
    */
   clearSearch(): void {
     this.buscarControl.setValue('');
     this.selectedItem = null;
-    this.pageIndex = 0;
     this.dataSource.data = this.data?.inicialData || [];
     this.updateComputedProperties();
   }

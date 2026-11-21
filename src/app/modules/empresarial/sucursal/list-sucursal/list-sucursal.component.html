@@ -1,5 +1,4 @@
 <app-generic-list
-  [data]="dataSource.data"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
   (adicionar)="onNewSucursal()"
@@ -59,7 +58,7 @@
   >
     <table
       mat-table
-      [dataSource]="dataSource"
+      [dataSource]="pag.items$"
       multiTemplateDataRows
       class="mat-elevation-z8"
       style="width: 100%"
@@ -247,12 +246,8 @@
     
     <!-- Pagination -->
     <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
+      [paginacion]="pag"
       style="width: 100%"
-      showFirstLastButtons
     ></mat-paginator>
   </div>
 </app-generic-list>

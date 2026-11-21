@@ -1,7 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
@@ -9,8 +7,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Cargo } from '../cargo.model';
 import { CargoService } from '../cargo.service';
 import { EditCargoDialogComponent } from '../edit-cargo-dialog/edit-cargo-dialog.component';
-import { terminarSiFalla } from '../../../../commons/core/utils/rxjsUtils';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 
 /**
  * ABM de cargos. El backend ya existia entero (CargoGraphQL); lo que faltaba era esta
@@ -25,13 +22,12 @@ import { PageInfo } from '../../../../app.component';
 export class ListCargoComponent implements OnInit {
 
   displayedColumns = ['nombre', 'descripcion', 'sueldoBase', 'supervisadoPor', 'acciones'];
-  dataSource = new MatTableDataSource<Cargo>([]);
-
   textoControl = new FormControl(null);
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<Cargo>;
+  pag = new PaginacionLista<Cargo>({
+    cargar: (page, size) => this.cargoService.onGetAllWithPage(page, size, this.textoControl.value || null),
+    pageSize: 25,
+  });
 
   constructor(
     private cargoService: CargoService,
@@ -46,30 +42,7 @@ export class ListCargoComponent implements OnInit {
 
   /** Un filtro nuevo vuelve a la primera pagina: la actual puede no existir con menos resultados. */
   onFiltrar() {
-    this.pageIndex = 0;
-    this.cargarPagina();
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarPagina();
-  }
-
-  private cargarPagina() {
-    this.cargoService.onGetAllWithPage(this.pageIndex, this.pageSize, this.textoControl.value || null)
-      .pipe(terminarSiFalla(), untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          // Borrar el ultimo cargo de la ultima pagina la deja vacia: retroceder una.
-          if (!res.getContent?.length && this.pageIndex > 0) {
-            this.pageIndex--;
-            this.cargarPagina();
-            return;
-          }
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent || [];
-        }
-      });
+    this.pag.filtrar();
   }
 
   onResetFiltro() {
@@ -79,12 +52,12 @@ export class ListCargoComponent implements OnInit {
 
   onNuevo() {
     this.dialog.open(EditCargoDialogComponent, { width: '520px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargarPagina(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.pag.recargar(); });
   }
 
   onEditar(cargo: Cargo) {
     this.dialog.open(EditCargoDialogComponent, { data: { cargo }, width: '520px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargarPagina(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.pag.recargar(); });
   }
 
   onEliminar(cargo: Cargo) {
@@ -95,7 +68,7 @@ export class ListCargoComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.cargoService.onDelete(cargo.id)
-          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.cargarPagina(); });
+          .pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.pag.recargar(); });
       }
     });
   }

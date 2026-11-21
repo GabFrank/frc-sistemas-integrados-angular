@@ -1,12 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { timer } from 'rxjs';
 import { LogicalReplication, ReplicationStatus } from '../logical-replication.model';
 import { LogicalReplicationService } from '../logical-replication.service';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { EditRemotePublicationDialogComponent } from '../edit-remote-publication-dialog/edit-remote-publication-dialog.component';
@@ -17,7 +16,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-replication',
   templateUrl: './list-replication.component.html',
@@ -32,25 +31,30 @@ export class ListReplicationComponent implements OnInit {
   // Pre-calculated properties to avoid function calls in template
   selectedBranchName = 'Local';
   
-  // Subscriptions data
-  subscriptionsPage: PageInfo<LogicalReplication>;
-  isLoadingSubscriptions = false;
-  subPageSize = 10;
-  subPageIndex = 0;
-  
-  // Publications data
-  publicationsPage: PageInfo<LogicalReplication>;
-  isLoadingPublications = false;
-  pubPageSize = 10;
-  pubPageIndex = 0;
+  // Suscripciones y publicaciones: locales o de la sucursal elegida, paginadas en el central (#772).
+  subs = new PaginacionLista<LogicalReplication>({
+    cargar: (page, size) => this.isLocalMode
+      ? this.logicalReplicationService.getReplicationSubscriptions(page, size)
+      : this.logicalReplicationService.getRemoteReplicationSubscriptions(this.selectedSucursalControl.value, page, size),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50],
+    alFallar: () => this.notificacionSnackBar.openAlgoSalioMal(
+      this.isLocalMode ? 'ERROR AL CARGAR SUSCRIPCIONES' : 'ERROR AL CARGAR SUSCRIPCIONES REMOTAS'),
+  });
+  pubs = new PaginacionLista<LogicalReplication>({
+    cargar: (page, size) => this.isLocalMode
+      ? this.logicalReplicationService.getReplicationPublications(page, size)
+      : this.logicalReplicationService.getRemoteReplicationPublications(this.selectedSucursalControl.value, page, size),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50],
+    alFallar: () => this.notificacionSnackBar.openAlgoSalioMal(
+      this.isLocalMode ? 'ERROR AL CARGAR PUBLICACIONES' : 'ERROR AL CARGAR PUBLICACIONES REMOTAS'),
+  });
   isSyncingPublications = false;
 
   // Common
   displayedColumns: string[] = ['name', 'sucursal', 'enabled', 'actions'];
   
-  @ViewChild('subPaginator') subPaginator: MatPaginator;
-  @ViewChild('pubPaginator') pubPaginator: MatPaginator;
-
   constructor(
     private logicalReplicationService: LogicalReplicationService,
     private sucursalService: SucursalService,
@@ -63,9 +67,8 @@ export class ListReplicationComponent implements OnInit {
     // Load branches for remote selection
     this.loadSucursales();
     
-    // Initial data load
-    this.loadSubscriptions();
-    this.loadPublications();
+    this.subs.filtrar();
+    this.pubs.filtrar();
     
     // Subscribe to branch selection changes
     this.selectedSucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(value => {
@@ -74,13 +77,9 @@ export class ListReplicationComponent implements OnInit {
       // Update the display name for the selected branch
       this.updateSelectedBranchName();
       
-      // Reset pagination
-      this.subPageIndex = 0;
-      this.pubPageIndex = 0;
-      
-      // Reload data
-      this.loadSubscriptions();
-      this.loadPublications();
+      // Otra sucursal: las dos listas vuelven a la página 1.
+      this.subs.filtrar();
+      this.pubs.filtrar();
     });
   }
   
@@ -91,100 +90,16 @@ export class ListReplicationComponent implements OnInit {
     });
   }
 
+  /** Repite la página actual de suscripciones. */
   loadSubscriptions(): void {
-    this.isLoadingSubscriptions = true;
-    
-    const sucursalId = this.selectedSucursalControl.value;
-    
-    if (this.isLocalMode) {
-      // Load local subscriptions
-      this.logicalReplicationService.getReplicationSubscriptions(this.subPageIndex, this.subPageSize)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (page) => {
-            this.subscriptionsPage = page;
-            
-            // Update pageIndex if available from the response
-            if (page?.getPageable?.getPageNumber !== undefined) {
-              this.subPageIndex = page.getPageable.getPageNumber;
-            }
-            this.isLoadingSubscriptions = false;
-          },
-          error: (error) => {
-            console.error('Error loading subscriptions:', error);
-            this.isLoadingSubscriptions = false;
-            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR SUSCRIPCIONES');
-          }
-        });
-    } else {
-      // Load remote subscriptions
-      this.logicalReplicationService.getRemoteReplicationSubscriptions(sucursalId, this.subPageIndex, this.subPageSize)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (page) => {
-            this.subscriptionsPage = page;
-            
-            // Update pageIndex if available from the response
-            if (page?.getPageable?.getPageNumber !== undefined) {
-              this.subPageIndex = page.getPageable.getPageNumber;
-            }
-            this.isLoadingSubscriptions = false;
-          },
-          error: (error) => {
-            console.error('Error loading remote subscriptions:', error);
-            this.isLoadingSubscriptions = false;
-            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR SUSCRIPCIONES REMOTAS');
-          }
-        });
-    }
+    this.subs.recargar();
   }
-  
+
+  /** Repite la página actual de publicaciones. */
   loadPublications(): void {
-    this.isLoadingPublications = true;
-    
-    const sucursalId = this.selectedSucursalControl.value;
-    
-    if (this.isLocalMode) {
-      // Load local publications
-      this.logicalReplicationService.getReplicationPublications(this.pubPageIndex, this.pubPageSize)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (page) => {
-            this.publicationsPage = page;
-            // Update pageIndex if available from the response
-            if (page?.getPageable?.getPageNumber !== undefined) {
-              this.pubPageIndex = page.getPageable.getPageNumber;
-            }
-            this.isLoadingPublications = false;
-          },
-          error: (error) => {
-            console.error('Error loading publications:', error);
-            this.isLoadingPublications = false;
-            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR PUBLICACIONES');
-          }
-        });
-    } else {
-      // Load remote publications
-      this.logicalReplicationService.getRemoteReplicationPublications(sucursalId, this.pubPageIndex, this.pubPageSize)
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (page) => {
-            this.publicationsPage = page;
-            // Update pageIndex if available from the response
-            if (page?.getPageable?.getPageNumber !== undefined) {
-              this.pubPageIndex = page.getPageable.getPageNumber;
-            }
-            this.isLoadingPublications = false;
-          },
-          error: (error) => {
-            console.error('Error loading remote publications:', error);
-            this.isLoadingPublications = false;
-            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR PUBLICACIONES REMOTAS');
-          }
-        });
-    }
+    this.pubs.recargar();
   }
-  
+
   setupReplication(): void {
     const dialogRef = this.dialog.open(SetupReplicationDialogComponent, {
       width: '50vw',
@@ -333,18 +248,6 @@ export class ListReplicationComponent implements OnInit {
         this.loadSubscriptions(); // Refresh subscriptions list
       }
     });
-  }
-  
-  handleSubPageEvent(event: PageEvent): void {
-    this.subPageIndex = event.pageIndex;
-    this.subPageSize = event.pageSize;
-    this.loadSubscriptions();
-  }
-  
-  handlePubPageEvent(event: PageEvent): void {
-    this.pubPageIndex = event.pageIndex;
-    this.pubPageSize = event.pageSize;
-    this.loadPublications();
   }
   
   // Update the pre-calculated branch name when needed
