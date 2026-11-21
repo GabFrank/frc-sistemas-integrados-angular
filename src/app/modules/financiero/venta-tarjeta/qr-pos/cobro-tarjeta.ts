@@ -46,9 +46,11 @@ export function lineasTarjetaSinTerminal(lineas: CobroDetalle[]): CobroDetalle[]
  * rechaza el segundo al completar, pero recién después de guardar la venta.
  *
  * La regla es la de `motivoCuponNoUsable` del filial: mismo QR, misma referencia, o mismo código de
- * autorización en la misma terminal con el mismo monto del cupón (si falta un monto no descarta, y
- * sin terminal en un lado cuenta como la misma, igual que allá). Los ids se comparan con Number():
- * GraphQL `ID` llega como string.
+ * autorización en la misma terminal con el mismo monto del cupón (si falta un monto no descarta).
+ * Sin terminal en cualquiera de los dos lados cuenta como la misma: allá solo si falta en la
+ * consulta, así que esto es un poco más estricto, del lado de avisar de más; en el cobro no pasa,
+ * porque escanearTarjeta pone la terminal antes de leer el cupón. Los ids se comparan con
+ * Number(): GraphQL `ID` llega como string.
  *
  * No filtra por `esCobroTarjetaRegistrable`: solo una línea con cupón aplicado tiene `datosCupon`.
  */

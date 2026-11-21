@@ -75,6 +75,35 @@ primer diálogo (QR que resuelve la terminal) y el diálogo de cupón después d
 rama del código: dos cupones distintos con el mismo código de autorización, misma terminal y mismo
 monto (cupón retipeado) → la segunda avisa.
 
+## Resultado (21/11)
+
+- Spec: `cobro-tarjeta.spec.ts` 24 de 24 (13 previos + 11 nuevos). Con la función como stub que
+  devuelve null fallan los 5 que esperan encontrar la otra línea.
+- `npm run check`: build AOT de producción sin errores.
+- Por pantalla (build `web-production` de esta rama, filial propio en el 8082, PDV de la 24 con MR,
+  terminal U1 con el formato `VALIDAPIX web` copiado del alpha, restaurado al final):
+  1. Puerta del QR directo: línea 1 QR A ✔; línea 2 QR A → «Ese cupón ya está cargado en otra
+     línea de este cobro…», queda ⏱.
+  2. Puerta del diálogo de cupón (terminal por código, después el QR; marca `verificado`): mismo
+     QR A → mismo aviso, la línea sigue ⏱.
+  3. Rama de la referencia: otro QR con la misma referencia → mismo aviso.
+  4. Finalizar con la línea 2 pendiente: venta 79362 guardada, cobro 1206 COMPLETADO con el QR A y
+     1208 PENDIENTE, sin rechazo del backend.
+  5. Dos QR distintos en las dos líneas: las dos ✔.
+  La rama del código de autorización no se pudo por pantalla: el formato disponible no trae ese
+  campo (ni por QR ni a mano). La cubren los tests.
+- Visto de paso, ajeno a #625: el desktop de `develop` pide `configuracionFacturaConVenta`, que
+  este filial local no tiene («Field … is undefined»).
+
+## Auditoría del diff (paso 8)
+
+Ejes fijos 1, 2 y 3; condicionales no aplican. Sin hallazgos bloqueantes. Corregido: el comentario
+de la terminal nula (allá es comodín solo si falta en la consulta; acá en cualquier lado, que es
+más estricto). Verificado: `item` es la misma instancia que está en `cobroDetalleList`; una línea
+rechazada nunca queda con el `identificadorTransaccion` del cupón rechazado; la línea rechazada sin
+cupón previo sigue el camino PENDIENTE de siempre; paridad de normalización con el filial (QR y
+referencia con trim, código con `upper(trim)`).
+
 ## Auditoría del plan (paso 5)
 
 Ejes A y B, los dos «aceptar con reservas», sin bloqueos. Aplicado: terminal comparada con
