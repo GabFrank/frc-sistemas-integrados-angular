@@ -56,6 +56,7 @@ import { FormattedTooltipDirective } from './directives/formatted-tooltip.direct
 import { MatTooltip } from '@angular/material/tooltip';
 import { AutoFitTextDirective } from './directives/auto-fit-text-directive.directive';
 import { AccionColorDirective } from './directives/accion-color.directive';
+import { PaginacionDirective } from './components/paginacion/paginacion.directive';
 import { NgxSpinnerModule } from 'ngx-spinner';
 import { DataDisplayComponent } from './data-display/data-display.component';
 import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
@@ -162,9 +163,11 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxSpinnerModule,
     NotificationBoardComponent,
     NgxEchartsModule,
-    LectorTecladoDirective
+    LectorTecladoDirective,
+    PaginacionDirective
   ],
   exports: [
+    PaginacionDirective,
     GrillaConteoComponent,
     HeaderComponent,
     SideMiniVariantComponent,

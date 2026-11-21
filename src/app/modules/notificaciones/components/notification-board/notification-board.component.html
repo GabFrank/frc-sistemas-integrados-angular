@@ -72,10 +72,7 @@
                     </ng-template>
                 </mat-card-content>
                 <div class="notifications-column-paginator" *ngIf="data.pagination[estado]?.length > 0">
-                    <mat-paginator [length]="data.pagination[estado]?.length"
-                        [pageSize]="data.pagination[estado]?.pageSize" [pageSizeOptions]="pageSizeOptions"
-                        [pageIndex]="data.pagination[estado]?.pageIndex" (page)="onPageChange($event, estado)"
-                        showFirstLastButtons [disabled]="data.pagination[estado]?.loading">
+                    <mat-paginator [paginacion]="columnas[estado]" [disabled]="data.pagination[estado]?.loading">
                     </mat-paginator>
                 </div>
             </mat-card>

@@ -93,7 +93,7 @@
 
     <div table style="height: 100%" fxLayout="column"
         fxLayoutAlign="space-between start">
-        <table mat-table [dataSource]="dataSource" [trackBy]="trackById" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+        <table mat-table [dataSource]="pag.items$" [trackBy]="trackById" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
             <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
                     Id
@@ -301,9 +301,6 @@
                 </button>
             </ng-template>
         </mat-menu>
-        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="totalElementos" [pageIndex]="pageIndex" [pageSize]="pageSize"
-            [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)" style="width: 100%"
-            showFirstLastButtons>
-        </mat-paginator>
+        <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
     </div>
 </app-generic-list>

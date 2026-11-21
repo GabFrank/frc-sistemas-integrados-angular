@@ -2,15 +2,13 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { AdicionarRoleDialogComponent } from '../adicionar-role-dialog/adicionar-role-dialog.component';
 import { Role } from '../role.model';
 import { RoleService } from '../role.service';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-roles',
   templateUrl: './list-roles.component.html',
@@ -28,20 +26,20 @@ import { RoleService } from '../role.service';
 })
 export class ListRolesComponent implements OnInit {
 
-  dataSource: MatTableDataSource<Role>;
   expandedElement: Role;
   displayedColumns: string[];
-  readonly pageSizeOptions = [15, 25, 50, 100];
-  length = 0;
-  pageSize = 15;
-  pageIndex = 0;
   nombreControl = new FormControl<string>(null)
+
+  pag = new PaginacionLista<Role>({
+    cargar: (page, size) => this.roleService.onGetRolesPaginated(
+      (this.nombreControl.value ?? '').trim().toUpperCase(), page, size),
+    alCargar: () => this.expandedElement = null,
+  });
   constructor(
     private roleService: RoleService,
     private matDialog: MatDialog,
 
   ) {
-    this.dataSource = new MatTableDataSource<Role>([])
     this.displayedColumns = [
       'id',
       'nombre',
@@ -52,29 +50,7 @@ export class ListRolesComponent implements OnInit {
 
   ngOnInit(): void {
     // RoleService resuelve su GenericCrudService en un setTimeout: la primera consulta va después.
-    setTimeout(() => this.onGetData(), 0);
-  }
-
-  onGetData(): void {
-    const texto = (this.nombreControl.value ?? '').trim().toUpperCase();
-    this.roleService.onGetRolesPaginated(texto, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => this.mostrar(res),
-        error: () => this.mostrar(null),
-      })
-  }
-
-  private mostrar(pagina: PageInfo<Role>): void {
-    this.expandedElement = null;
-    this.dataSource.data = pagina?.getContent || [];
-    this.length = pagina?.getTotalElements || 0;
-  }
-
-  onPage(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetData();
+    setTimeout(() => this.pag.filtrar(), 0);
   }
 
   onDelete(entity: Role, index: any): void {
@@ -88,13 +64,12 @@ export class ListRolesComponent implements OnInit {
       width: '30%'
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.onGetData()
+        this.pag.recargar()
       }
     })
   }
   onFilter(): void {
-    this.pageIndex = 0;
-    this.onGetData();
+    this.pag.filtrar();
   }
 
   onResetFiltro(): void {

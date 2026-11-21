@@ -63,82 +63,27 @@ export class ReplicationTableService {
   }
 
   /**
-   * Get replication tables with pagination
+   * Una página de tablas de replicación; el central filtra (texto, dirección, estado) y pagina (#772).
+   * Si falla avisa y devuelve null: la lista vuelve a la última página que cargó.
    */
   getReplicationTablesWithPagination(
-    page: number = 0,
-    size: number = 10,
-    search?: string
-  ): Observable<PageInfo<ReplicationTable>> {
-    console.log(`Getting paginated replication tables - page: ${page}, size: ${size}, search: ${search}`);
-    try {
-      return this.replicationTablesWithPaginationGQL.fetch({
-        page,
-        size,
-        search: search || ''
-      }, {
-        fetchPolicy: 'network-only'
-      }).pipe(
-        map(response => {
-          console.log('Replication tables pagination response:', response);
-          if (response.data && response.data.data) {
-            return response.data.data;
-          } else {
-            console.warn('No data received from pagination query');
-            return {
-              getContent: [],
-              getTotalElements: 0,
-              getTotalPages: 0,
-              getNumberOfElements: 0,
-              isFirst: true,
-              isLast: true,
-              hasNext: false,
-              hasPrevious: false,
-              getPageable: {
-                getPageNumber: page,
-                getPageSize: size
-              }
-            };
-          }
-        }),
-        catchError(error => {
-          console.error('Error fetching replication tables with pagination:', error);
-          this.notificacionSnackBar.openAlgoSalioMal('ERROR AL OBTENER TABLAS DE REPLICACIÓN');
-          // Return empty page instead of throwing to avoid unhandled errors
-          return of({
-            getContent: [],
-            getTotalElements: 0,
-            getTotalPages: 0,
-            getNumberOfElements: 0,
-            isFirst: true,
-            isLast: true,
-            hasNext: false,
-            hasPrevious: false,
-            getPageable: {
-              getPageNumber: page,
-              getPageSize: size
-            }
-          });
-        })
-      );
-    } catch (error) {
-      console.error('Exception in getReplicationTablesWithPagination method:', error);
-      this.notificacionSnackBar.openAlgoSalioMal('ERROR INESPERADO AL OBTENER TABLAS DE REPLICACIÓN');
-      return of({
-        getContent: [],
-        getTotalElements: 0,
-        getTotalPages: 0,
-        getNumberOfElements: 0,
-        isFirst: true,
-        isLast: true,
-        hasNext: false,
-        hasPrevious: false,
-        getPageable: {
-          getPageNumber: page,
-          getPageSize: size
-        }
-      });
-    }
+    page: number,
+    size: number,
+    search?: string,
+    direction?: ReplicationDirection,
+    enabled?: boolean
+  ): Observable<PageInfo<ReplicationTable> | null> {
+    return this.replicationTablesWithPaginationGQL.fetch(
+      { page, size, search: search || null, direction: direction || null, enabled: enabled ?? null },
+      { fetchPolicy: 'network-only' }
+    ).pipe(
+      map(response => response.data?.data ?? null),
+      catchError(error => {
+        console.error('Error fetching replication tables with pagination:', error);
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL OBTENER TABLAS DE REPLICACIÓN');
+        return of(null);
+      })
+    );
   }
 
   /**
