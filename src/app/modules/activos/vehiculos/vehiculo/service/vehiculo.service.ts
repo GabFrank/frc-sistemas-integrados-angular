@@ -91,10 +91,14 @@ export class VehiculoService {
   private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
   public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
 
+  /** Ente del vehículo elegido en «Vehículo por sucursal» (#774). */
+  private _enteFilterSucursal$ = new BehaviorSubject<number | null>(null);
+
   /** Vehículos asignados a sucursales, paginados en el central (#772). */
   readonly pagSucursal = new PaginacionLista<EnteSucursal>({
     cargar: (page, size) => this.enteService.onBuscarAsignacionesPagina(this._searchTextSucursal$.value,
-      this._sucursalFilter$.value, TipoEnte.VEHICULO, this._responsableFilter$.value, page, size),
+      this._sucursalFilter$.value, TipoEnte.VEHICULO, this._responsableFilter$.value, page, size,
+      this._enteFilterSucursal$.value),
     pageSize: 15,
   });
   public vehiculosSucursal$ = this.pagSucursal.items$;
@@ -257,6 +261,23 @@ export class VehiculoService {
 
   setSearchTextSucursal(texto: string | null): void {
     this._searchTextSucursal$.next(texto);
+    this.pagSucursal.filtrar();
+  }
+
+  setEnteFilterSucursal(enteId: number | null): void {
+    this._enteFilterSucursal$.next(enteId);
+    this.pagSucursal.filtrar();
+  }
+
+  /**
+   * El servicio es singleton: la lista por sucursal recién abierta arranca sin los filtros de la anterior, que la
+   * pantalla ya no muestra, y en la página 1 (como #589).
+   */
+  reiniciarFiltrosSucursal(): void {
+    this._sucursalFilter$.next(null);
+    this._responsableFilter$.next(null);
+    this._searchTextSucursal$.next(null);
+    this._enteFilterSucursal$.next(null);
     this.pagSucursal.filtrar();
   }
 
