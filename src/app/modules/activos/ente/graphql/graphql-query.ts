@@ -281,8 +281,8 @@ export const deleteEnteVinculacionMutation = gql`
 `;
 
 export const enteSucursalSearchPageQuery = gql`
-  query enteSucursalSearchPage($texto: String, $sucursalId: ID, $tipoEnte: TipoEnte, $responsableId: ID, $page: Int, $size: Int) {
-    data: enteSucursalSearchPage(texto: $texto, sucursalId: $sucursalId, tipoEnte: $tipoEnte, responsableId: $responsableId, page: $page, size: $size) {
+  query enteSucursalSearchPage($texto: String, $sucursalId: ID, $tipoEnte: TipoEnte, $responsableId: ID, $page: Int, $size: Int, $enteId: ID) {
+    data: enteSucursalSearchPage(texto: $texto, sucursalId: $sucursalId, tipoEnte: $tipoEnte, responsableId: $responsableId, page: $page, size: $size, enteId: $enteId) {
       getTotalPages
       getTotalElements
       getNumberOfElements
