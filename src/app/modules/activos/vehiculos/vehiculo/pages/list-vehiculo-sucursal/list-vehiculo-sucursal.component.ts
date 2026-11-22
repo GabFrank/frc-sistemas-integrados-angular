@@ -34,7 +34,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     ngOnInit(): void {
         this.cargarSucursales();
-        this.vehiculoService.refrescarSucursal();
+        this.vehiculoService.reiniciarFiltrosSucursal();
         this.initFiltros();
         this.initDataStream();
     }
@@ -86,8 +86,9 @@ export class ListVehiculoSucursalComponent implements OnInit {
     onBuscarVehiculo(): void {
         this.enteService.abrirBuscadorEnte(TipoEnte.VEHICULO).pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
+                // Se filtra por el id del bien: la descripción mostrada no es la guardada y como texto no coincide (#774).
                 this.vehiculoControl.setValue(res.descripcion || '');
-                this.vehiculoService.setSearchTextSucursal(res.descripcion || '');
+                this.vehiculoService.setEnteFilterSucursal(res.id ?? null);
                 this.cdr.markForCheck();
             }
         });
@@ -100,7 +101,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     resetVehiculo(): void {
         this.vehiculoControl.setValue('');
-        this.vehiculoService.setSearchTextSucursal('');
+        this.vehiculoService.setEnteFilterSucursal(null);
     }
 
     resetFiltro(): void {
@@ -108,6 +109,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
         this.responsableControl.setValue('');
         this.vehiculoControl.setValue('');
         this.vehiculoService.setSearchTextSucursal('');
+        this.vehiculoService.setEnteFilterSucursal(null);
         this.vehiculoService.setSucursalFilter(null);
         this.vehiculoService.setResponsableFilter(null);
     }

@@ -221,8 +221,9 @@ export class EnteService {
     );
   }
 
-  onBuscarAsignacionesPagina(texto: string | null, sucursalId: number | null, tipoEnte: TipoEnte | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<EnteSucursal>> {
-    return this.genericService.onCustomQuery(this.enteSucursalSearchPageGQL, { texto, sucursalId, tipoEnte, responsableId, page, size });
+  /** `enteId` filtra por el bien elegido; su descripción como texto no sirve porque la mostrada no es la guardada (#774). */
+  onBuscarAsignacionesPagina(texto: string | null, sucursalId: number | null, tipoEnte: TipoEnte | null, responsableId: number | null, page: number, size: number, enteId: number | null = null): Observable<PageInfo<EnteSucursal>> {
+    return this.genericService.onCustomQuery(this.enteSucursalSearchPageGQL, { texto, sucursalId, tipoEnte, responsableId, page, size, enteId });
   }
 
   /** Asignaciones de un ente ([] si no tiene). Con `errorConf` un fallo llega como error, no como «sin asignación». */
