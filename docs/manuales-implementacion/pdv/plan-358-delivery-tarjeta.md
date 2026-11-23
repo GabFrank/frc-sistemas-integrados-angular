@@ -102,6 +102,25 @@ Dos auditores (eje A contrato/propagación, eje B reversibilidad/estado), verifi
 | B4 | La moneda del replay podría quedar cruzada | Descartado: `setMoneda` hace `find` y, si no está, `item.moneda` conserva la de la línea (`:846`) | Se suma una prueba con una línea en USD |
 | B6 | Lo ya concluido en producción sigue sin `venta_tarjeta` | Cierto; el cierre de caja no lo ve | Fuera de alcance; si se quiere, un conteo de solo lectura aparte |
 
+## Resultado de la prueba (23/11)
+
+Desktop web de la rama (`ng serve` en 127.0.0.1:4200) contra central (8081) y filial (8082, sucursal 24, SIFEN
+apagado) compilados de `develop`; MR, caja 1185, PDV 25; impresora inexistente (la seña avisa y no sale).
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | 8044 (línea TARJETA ya guardada, el caso de la issue) → pide terminal → más tarde | `venta_tarjeta` 1210 PENDIENTE, D1, 11.000 Gs; delivery CONCLUIDO |
+| 2 | 8060 nuevo, TARJETA cargada en el diálogo de edición → terminal → cupón a mano | 1214 COMPLETADO, origen MANUAL, AUT358B/B358B |
+| 3 | 8058: TARJETA cargada en el cobro, cancelar sin finalizar, reabrir | al reabrir pide terminal; 1212 PENDIENTE (U1 en reales: el filial rechazó completar por moneda, guarda existente) |
+| 4 | 8043 solo EFECTIVO | CONCLUIDO, sin `venta_tarjeta`, sin pedir terminal |
+| 5 | `habilitado=false` (8063) | sin íconos de tarjeta, CONCLUIDO, sin `venta_tarjeta` |
+| 6 | `terminal_obligatoria=false` (8062) | no pide terminal; 1220 PENDIENTE sin terminal |
+| 7 | Venta común con TARJETA | igual que antes: escaneo al agregar; 1224 PENDIENTE |
+| 8 | Dos líneas TARJETA (8061); «Cancelar» en el escaneo (8044) | pide una terminal por vez; Cancelar deja el cobro abierto sin concluir |
+| 9 | Config de tarjeta caída (8064, query desviada a un puerto cerrado) | no finaliza: «No se pudo cargar la configuración de cobro con tarjeta…»; al reabrir con la config bien, 1222 PENDIENTE |
+| 10 | Línea en USD (8061) | 1218 PENDIENTE 0,64 DOLAR (y 1216 3.000 GUARANI) |
+| 11 | Aumento TARJETA guardado + config caída (8065) | finaliza sin bloquear, sin `venta_tarjeta` |
+
 ## Queda sin verificar
 
 - Electron (impresión real de la seña en la térmica): se usa la cola de captura.
