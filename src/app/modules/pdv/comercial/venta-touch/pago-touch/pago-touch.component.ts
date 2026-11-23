@@ -896,7 +896,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             }
           });
       } else {
-        item.requiereRegistroTarjeta = esLineaNueva;
+        // Una línea ya guardada de un delivery también se registra: su venta_tarjeta no existe hasta que el
+        // delivery se concluye acá, y un delivery concluido no vuelve a este cobro. Antes se la daba por
+        // registrada y el delivery cobraba con tarjeta sin terminal ni registro (#358). El escaneo sigue
+        // solo para la línea nueva: la terminal de las guardadas se pide al finalizar.
+        item.requiereRegistroTarjeta = esLineaNueva || this.data?.delivery != null;
         this.cobroDetalleList.push(item);
         if (esLineaNueva) abrioEscaneo = this.escanearSiEsTarjeta(item);
       }
@@ -959,9 +963,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const tarjetaPagos: TarjetaPago[] = this.ventaTarjetaHabilitada
       ? this.cobroDetalleList
-          // `requiereRegistroTarjeta` y no solo el predicado: al reabrir un delivery, sus líneas
-          // ya cobradas vuelven a la lista y su venta_tarjeta YA existe. Registrarlas otra vez
-          // crearía pendientes duplicados que después traban el cierre de caja.
+          // `requiereRegistroTarjeta` y no solo el predicado: la marca la pone addCobroDetalle (las
+          // líneas nuevas, y todas las de un delivery, que todavía no tienen venta_tarjeta: #358).
           .filter(cd => esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta)
           .map(cd => ({
             terminalPosId: cd.terminalPos?.id ?? null,
@@ -1416,12 +1419,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Líneas TARJETA cargadas en este cobro (no las ya guardadas de un delivery reabierto, que no se
-   * bloquean: misma marca que usa la regla de terminal).
+   * Líneas TARJETA que este cobro va a registrar en venta_tarjeta: misma marca y mismo predicado que
+   * `onFinalizar`. Un aumento con TARJETA no se registra, así que tampoco bloquea. Las de un delivery
+   * cuentan aunque ya estén guardadas (#358): sin la config no se pueden registrar.
    */
   private hayTarjetaNueva(): boolean {
     return this.cobroDetalleList?.some(
-      (cd) => cd?.formaPago?.descripcion == "TARJETA" && cd.requiereRegistroTarjeta
+      (cd) => esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta
     ) === true;
   }
 

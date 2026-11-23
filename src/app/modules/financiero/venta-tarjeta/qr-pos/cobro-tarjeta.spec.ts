@@ -62,7 +62,7 @@ describe('lineasTarjetaSinTerminal', () => {
     expect(lineasTarjetaSinTerminal([linea({ requiereRegistroTarjeta: true, terminalPos: conTerminal })]).length).toBe(0);
   });
 
-  it('no exige terminal a la línea ya registrada de un delivery que se reabre', () => {
+  it('no exige terminal a una línea que no se va a registrar', () => {
     expect(lineasTarjetaSinTerminal([linea({ requiereRegistroTarjeta: false, terminalPos: null })]).length).toBe(0);
   });
 

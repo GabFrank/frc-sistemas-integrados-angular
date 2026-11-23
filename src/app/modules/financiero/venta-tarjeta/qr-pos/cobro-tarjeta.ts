@@ -30,8 +30,8 @@ export function esCobroTarjetaRegistrable(cd: CobroDetalle): boolean {
  * esta lista no esté vacía. Existe porque el lector escribía en el cobro de atrás y su Enter
  * finalizaba la venta sin terminal: en farmacia filial 1, 116 de 631 del 25 al 28/09/2026.
  *
- * `requiereRegistroTarjeta` por lo mismo que en `onFinalizar`: las líneas ya cobradas de un delivery
- * que se reabre no se registran de nuevo, así que tampoco se les exige terminal acá.
+ * `requiereRegistroTarjeta` por lo mismo que en `onFinalizar`: solo se exige terminal a lo que se va a
+ * registrar. Incluye las líneas ya guardadas de un delivery, que se registran al finalizarlo (#358).
  */
 export function lineasTarjetaSinTerminal(lineas: CobroDetalle[]): CobroDetalle[] {
   return (lineas || []).filter(cd =>
