@@ -203,7 +203,8 @@
               (click)="onCancelarRetiro(retiro, i)"
               *ngIf="esAdmin"
             >
-              {{ retiro?.estado == "CANCELADO" ? "Habilitar" : "Cancelar" }}
+              <mat-icon>{{ retiro?.estado == 'CANCELADO' ? 'check_circle' : 'block' }}</mat-icon>
+              <span>{{ retiro?.estado == "CANCELADO" ? "Habilitar" : "Cancelar" }}</span>
             </button>
           </mat-menu>
         </td>

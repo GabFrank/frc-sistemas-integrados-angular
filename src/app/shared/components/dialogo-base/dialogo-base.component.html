@@ -6,6 +6,17 @@
     >
       {{ titulo }}
     </h2>
+    <button
+      *ngIf="botonCerrar"
+      type="button"
+      mat-icon-button
+      class="frc-dialogo-cerrar"
+      [mat-dialog-close]="null"
+      aria-label="Cerrar"
+      title="Cerrar"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
   </div>
   <div class="frc-dialogo-contenido">
     <ng-content></ng-content>

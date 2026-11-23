@@ -5,6 +5,7 @@ import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/c
  * acciones. El estilo vive aca y no copiado en cada dialogo.
  *
  * - `tono="peligro"`: misma cabecera en rojo, para eliminar/anular.
+ * - `botonCerrar`: X arriba a la derecha que cierra devolviendo null.
  * - `llenar`: ocupa todo el alto del dialogo y el contenido no scrollea (lo maneja quien lo usa, como el
  *   buscador, que scrollea solo la tabla).
  *
@@ -34,6 +35,8 @@ export class DialogoBaseComponent implements OnChanges {
   @Input() titulo: string;
   @Input() tono: 'normal' | 'peligro' = 'normal';
   @Input() llenar = false;
+  /** Muestra una X en la cabecera que cierra el dialogo sin elegir (devuelve null). */
+  @Input() botonCerrar = false;
 
   esPeligro = false;
 

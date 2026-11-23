@@ -195,19 +195,24 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(transferencia, i)">
-              Editar
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
             </button>
             <button mat-menu-item (click)="onImprimir(transferencia.id)">
-              Imprimir
+              <mat-icon>print</mat-icon>
+              <span>Imprimir</span>
             </button>
             <button mat-menu-item (click)="onQrClick(transferencia)">
-              Generar QR
+              <mat-icon>qr_code</mat-icon>
+              <span>Generar QR</span>
             </button>
             <button mat-menu-item *ngIf="puedeEmitirNotaRemision" (click)="onNotaRemision(transferencia)">
-              {{ notaRemisionPorTransferencia[transferencia.id] ? 'Imprimir nota de remisión' : 'Nota de remisión' }}
+              <mat-icon>description</mat-icon>
+              <span>{{ notaRemisionPorTransferencia[transferencia.id] ? 'Imprimir nota de remisión' : 'Nota de remisión' }}</span>
             </button>
             <button mat-menu-item (click)="onDelete(transferencia, i)" style="color: red">
-              Eliminar
+              <mat-icon style="color: red">delete</mat-icon>
+              <span>Eliminar</span>
             </button>
           </mat-menu>
         </td>

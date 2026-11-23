@@ -4,6 +4,8 @@
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
       [funcionarioId]="funcionarioControl.value"
+      [soloActivos]="true"
+      [descartarInactivo]="true"
       (idSelected)="funcionarioControl.setValue($event)">
     </app-select-funcionario>
     <span class="error-funcionario" *ngIf="funcionarioControl.touched && funcionarioControl.hasError('required')">
@@ -59,7 +61,7 @@
       <div class="preview-fila" *ngFor="let c of cuotasPreview" fxLayout="row" fxLayoutGap="12px">
         <span class="preview-numero">{{ c.numero }}/{{ cuotasPreview.length }}</span>
         <span fxFlex>{{ c.fecha | date:'dd/MM/yyyy' }}</span>
-        <span>{{ c.monto | number:'1.0-2' }}</span>
+        <span>{{ c.monto | number:digitos }}</span>
       </div>
     </div>
 

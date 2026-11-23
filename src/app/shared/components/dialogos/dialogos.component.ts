@@ -22,6 +22,8 @@ export class DialogoData {
   public peligro?: boolean;
   /** Boton con el foco al abrir. Default: 'si' (confirm); 'no' en confirmar(). */
   public foco?: 'si' | 'no';
+  /** X en la cabecera que cierra devolviendo null. */
+  public botonCerrar?: boolean;
 }
 
 /**

@@ -9,6 +9,7 @@ import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
 import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
 import { DevolverSolicitudPagoGQL } from './graphql/devolverSolicitudPago';
+import { CancelarGastoParaPagoGQL } from './graphql/cancelarGastoParaPago';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 import { GastosPendientesGQL } from './graphql/gastosPendientes';
 import { CrearGastoParaPagoGQL, CrearGastoParaPagoSinClaveGQL } from './graphql/crearGastoParaPago';
@@ -95,6 +96,7 @@ export class PagarComprasService {
     private pagarMixtoGQL: PagarSolicitudesMixtoGQL,
     private anularGQL: AnularPagoCppGQL,
     private devolverGQL: DevolverSolicitudPagoGQL,
+    private cancelarGastoGQL: CancelarGastoParaPagoGQL,
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
     private gastosPendientesGQL: GastosPendientesGQL,
     private crearGastoGQL: CrearGastoParaPagoGQL,
@@ -221,6 +223,11 @@ export class PagarComprasService {
   /** Devuelve a compras una solicitud que tesorería no va a pagar: vuelve a borrador, con motivo. */
   onDevolverSolicitud(id: number, motivo: string, servidor = true): Observable<any> {
     return this.mutar(this.devolverGQL, { id, motivo }, servidor);
+  }
+
+  /** Cancela un gasto sin pagos, con motivo. Si ya tiene pagos, el central lo rechaza con su mensaje. */
+  onCancelarGasto(solicitudId: number, motivo: string, servidor = true): Observable<any> {
+    return this.mutar(this.cancelarGastoGQL, { solicitudId, motivo }, servidor);
   }
 
   /**

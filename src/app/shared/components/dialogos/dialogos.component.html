@@ -1,4 +1,4 @@
-<app-dialogo-base [titulo]="data.title" [tono]="tono">
+<app-dialogo-base [titulo]="data.title" [tono]="tono" [botonCerrar]="!!data.botonCerrar">
   <p class="mensaje" *ngIf="data?.message1 != null">{{ data.message1 }}</p>
   <p class="detalle" *ngIf="data?.message2 != null">{{ data.message2 }}</p>
   <ng-container *ngIf="data.listMessages?.length > 0">

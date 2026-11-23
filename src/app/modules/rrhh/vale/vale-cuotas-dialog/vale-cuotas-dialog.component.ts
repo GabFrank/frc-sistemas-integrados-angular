@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Vale, ValeCuota } from '../vale.model';
+import { digitosMoneda } from '../../liquidacion/moneda-item';
 import { ValeService } from '../vale.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
@@ -18,6 +19,8 @@ export interface ValeCuotasDialogData {
 })
 export class ValeCuotasDialogComponent implements OnInit {
 
+  /** Decimales de los montos segun la moneda del vale (R$ 100,00; Gs 100.000). */
+  digitos = '1.0-0';
   vale: Vale;
   cuotas: ValeCuota[] = [];
   columnas = ['numero', 'fechaDescuento', 'monto', 'estado', 'documento'];
@@ -32,6 +35,7 @@ export class ValeCuotasDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService
   ) {
     this.vale = data.vale;
+    this.digitos = this.vale?.digitos ?? digitosMoneda(this.vale?.moneda);
   }
 
   ngOnInit(): void {

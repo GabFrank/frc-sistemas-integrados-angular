@@ -90,6 +90,7 @@
                 <span>Apertura</span>
                 <button
                   mat-icon-button
+                  *ngIf="!sinAccesoCaja"
                   matTooltip="Ir a conteo"
                   (click)="abrirConteo()"
                 >
@@ -135,7 +136,7 @@
             <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
           </div>
           <div *ngIf="!isLoading && balanceNoDisponible" style="width: 100%; text-align: center">
-            — (no se pudo leer el balance de la caja)
+            — ({{ textoBalanceNoDisponible }})
           </div>
           <div
             *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
@@ -316,7 +317,7 @@
             <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
           </div>
           <div *ngIf="!isLoading && balanceNoDisponible" style="width: 100%; text-align: center">
-            — (no se pudo leer el balance de la caja)
+            — ({{ textoBalanceNoDisponible }})
           </div>
           <div
             *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
@@ -382,6 +383,7 @@
                 <span>Retiros</span>
                 <button
                   mat-icon-button
+                  *ngIf="!sinAccesoCaja"
                   matTooltip="Ir a retiros"
                   (click)="onGoToRetiros()"
                 >
@@ -396,7 +398,7 @@
             <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
           </div>
           <div *ngIf="!isLoading && balanceNoDisponible" style="width: 100%; text-align: center">
-            — (no se pudo leer el balance de la caja)
+            — ({{ textoBalanceNoDisponible }})
           </div>
           <div
             *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
@@ -430,6 +432,7 @@
                 <span>Gastos</span>
                 <button
                   mat-icon-button
+                  *ngIf="!sinAccesoCaja"
                   matTooltip="Ir a gastos"
                   (click)="onGoToGastos()"
                 >
@@ -444,7 +447,7 @@
             <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
           </div>
           <div *ngIf="!isLoading && balanceNoDisponible" style="width: 100%; text-align: center">
-            — (no se pudo leer el balance de la caja)
+            — ({{ textoBalanceNoDisponible }})
           </div>
           <div
             *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
@@ -486,7 +489,7 @@
       [data]="ventaDataSource.data"
       (cargarMasDatos)="onGetVentas()"
       [isLastPage]="isLastPage"
-      [isCustom]="true"
+      [isCustom]="puedeVerificarCaja"
       [customName]="
         selectedCaja?.verificado == true ? 'Anular verif.' : 'Verificar'
       "
@@ -739,10 +742,12 @@
               </button>
               <mat-menu #menu="matMenu">
                 <button mat-menu-item *ngIf="puedeCancelarVenta" (click)="onCancelarVenta(venta, i)">
-                  {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar" }}
+                  <mat-icon>{{ venta?.estado == 'CANCELADA' ? 'check_circle' : 'block' }}</mat-icon>
+                  <span>{{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar" }}</span>
                 </button>
                 <button mat-menu-item (click)="onListObservaciones(venta)">
-                  Adicionar observación
+                  <mat-icon>add_comment</mat-icon>
+                  <span>Adicionar observación</span>
                 </button>
               </mat-menu>
             </td>
@@ -996,20 +1001,16 @@
                       <mat-divider></mat-divider>
                     </div>
                     <div fxFlex fxLayout="row" style="padding-top: 5px">
-                      <ng-container *ngIf="venta?.delivery?.fechaConcluido; else noDelivery">
-                        <div fxFlex="15%">Delivery concluido:</div>
-                        <div fxFlex="15%">
-                          {{
-                            venta?.delivery?.fechaConcluido
-                              | date : "dd/MM/yyyy HH:mm"
-                          }}
-                        </div>
-                      </ng-container>
-                      <ng-template #noDelivery>
-                        <div fxFlex="30%"></div>
-                      </ng-template>
-
-                      <div fxFlex="40%"></div>
+                      <div fxFlex="70%" fxLayout="row" fxLayoutAlign="space-evenly center">
+                        <span *ngIf="venta?.delivery?.fechaConcluido" class="par-detalle">
+                          Delivery concluido:
+                          <span class="valor-detalle">{{ venta?.delivery?.fechaConcluido | date : "dd/MM/yyyy HH:mm" }}</span>
+                        </span>
+                        <span *ngIf="venta?.canceladoPor" class="par-detalle">
+                          <span class="titulo-cancelado">Cancelado por:</span>
+                          <span class="valor-detalle">{{ venta.canceladoPor }}<ng-container *ngIf="venta.canceladoEn"> — {{ venta.canceladoEn | date : "dd/MM/yyyy HH:mm" }}</ng-container></span>
+                        </span>
+                      </div>
 
                       <div fxFlex="15%">Total final:</div>
                       <div fxFlex="15%">

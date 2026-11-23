@@ -8,6 +8,7 @@
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
       [funcionarioId]="funcionarioControl.value"
+      [descartarInactivo]="editandoId == null"
       [soloActivos]="true"
       (idSelected)="funcionarioControl.setValue($event)">
     </app-select-funcionario>

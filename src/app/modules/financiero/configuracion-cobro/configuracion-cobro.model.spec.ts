@@ -1,4 +1,4 @@
-import { aumentoPermitido, aumentosRegistradosGs, mensajeTopeAumento } from './configuracion-cobro.model';
+import { aumentoPermitido, aumentosRegistradosGs, descuentoPermitido, descuentosRegistradosGs, mensajeTopeAumento, mensajeTopeDescuento, topeDescuento } from './configuracion-cobro.model';
 
 describe('aumentoPermitido', () => {
   const total = 100000;
@@ -71,5 +71,47 @@ describe('aumentosRegistradosGs', () => {
   it('sin líneas da 0', () => {
     expect(aumentosRegistradosGs(null)).toBe(0);
     expect(aumentosRegistradosGs([])).toBe(0);
+  });
+});
+
+describe('tope del descuento', () => {
+  const total = 100000;
+  const conTope = (pct: number) => ({ descuentoConTope: true, descuentoTopePorcentaje: pct });
+
+  it('sin configuración, o con el dato faltante, no hay tope (como antes)', () => {
+    expect(descuentoPermitido(90000, total, null)).toBeTrue();
+    expect(descuentoPermitido(90000, total, { aumentoConTope: true, aumentoTopePorcentaje: 20 })).toBeTrue();
+    expect(topeDescuento(total, null)).toBeNull();
+    expect(descuentoPermitido(90000, total, { descuentoConTope: false, descuentoTopePorcentaje: 5 })).toBeTrue();
+  });
+
+  it('justo en el tope se permite y 1 Gs arriba se bloquea', () => {
+    expect(descuentoPermitido(10000, total, conTope(10))).toBeTrue();
+    expect(descuentoPermitido(10001, total, conTope(10))).toBeFalse();
+    expect(topeDescuento(total, conTope(10))).toBe(10000);
+  });
+
+  it('con porcentaje inválido cae al 15%, nunca a sin tope', () => {
+    expect(topeDescuento(total, { descuentoConTope: true, descuentoTopePorcentaje: 0 })).toBe(15000);
+    expect(topeDescuento(total, { descuentoConTope: true, descuentoTopePorcentaje: null })).toBe(15000);
+  });
+
+  it('no pierde 1 Gs por punto flotante y respeta decimales de otra moneda', () => {
+    expect(descuentoPermitido(33300, total, conTope(33.3))).toBeTrue();
+    expect(topeDescuento(10.5, conTope(15))).toBe(1.57);
+    expect(descuentoPermitido(1.57, 10.5, conTope(15))).toBeTrue();
+    expect(descuentoPermitido(1.58, 10.5, conTope(15))).toBeFalse();
+  });
+
+  it('suma los descuentos ya registrados (los de producto incluidos) y no los pagos ni aumentos', () => {
+    const lineas = [
+      { descuento: true, valor: 3000, cambio: 1 },
+      { aumento: true, valor: -500, cambio: 1 },
+      { valor: 50000, cambio: 1 },
+    ];
+    expect(descuentosRegistradosGs(lineas)).toBe(3000);
+    expect(descuentosRegistradosGs(lineas, () => 2)).toBe(6000);
+    expect(descuentoPermitido(descuentosRegistradosGs(lineas) + 8000, total, conTope(10))).toBeFalse();
+    expect(mensajeTopeDescuento(conTope(10))).toContain('10%');
   });
 });

@@ -5,12 +5,15 @@ import { ThermalPrinterService } from '../../../../configuracion/thermal-printer
 import { MatSnackBar } from '@angular/material/snack-bar';
 import html2canvas from 'html2canvas';
 import { Observable, of, from } from 'rxjs';
-import { catchError, map, switchMap, take } from 'rxjs/operators';
+import { catchError, map, switchMap, take, timeout } from 'rxjs/operators';
 import { Producto } from '../../producto.model';
 import { PrinterInfo, PrintResult } from '../../../../../commons/core/electron/electron.service';
 import { BarcodeQrGeneratorService } from './barcode-qr-generator.service';
 import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
+import { MonedaModuloService } from '../../../../../shared/services/moneda-modulo.service';
+import { PrecioMonedaService } from '../../../precio-por-sucursal/precio-moneda.service';
+import { decisionMonedaEtiqueta, lecturaDelPrincipalConfirmada, precioEnMonedaEmpresa, textoPrecioEtiqueta, textoQrEtiqueta } from '../../../precio-por-sucursal/etiqueta-precio.util';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @Component({
@@ -52,6 +55,15 @@ export class PrintLabelDialogComponent implements OnInit {
   faltaCotizacion = false;
   textoCotizaciones = '';
 
+  /**
+   * Moneda del precio principal cuando NO es la de la empresa (Fase 3); null = la de la empresa, o no se pudo leer
+   * (entonces la etiqueta sale como siempre). La etiqueta imprime el precio en SU moneda.
+   */
+  monedaPrecio: Moneda | null = null;
+  monedaPrecioEstado: 'cargando' | 'ok' | 'sinConfirmar' = 'cargando';
+  /** Las monedas con su cambio (guaraníes por unidad), para llevar un precio en otra moneda a reales o dólares. */
+  private monedasConCambio: Moneda[] = [];
+
   // Precios calculados para preview y plantilla vertical
   previewPrecioReal: string = '';
   previewPrecioDolar: string = '';
@@ -67,13 +79,16 @@ export class PrintLabelDialogComponent implements OnInit {
     private fb: FormBuilder,
     private barcodeQrService: BarcodeQrGeneratorService,
     private monedaService: MonedaService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private precioMonedaService: PrecioMonedaService,
+    private monedaModulo: MonedaModuloService
   ) { }
 
   ngOnInit(): void {
     this.initForm();
     this.loadPrinters();
     this.loadCotizaciones();
+    this.loadMonedaPrecio();
     console.log('Product data:', this.data.producto);
 
     // Set initial form values based on product
@@ -85,12 +100,7 @@ export class PrintLabelDialogComponent implements OnInit {
         this.printForm.get('barcodeData').setValue(product.codigoPrincipal);
       }
 
-      // Set default QR code data
-      const qrData = `${product.codigoPrincipal || ''}\n${product.descripcion}\nPrecio: ${product.precioPrincipal.toLocaleString('es-PY', {
-        style: 'currency',
-        currency: 'PYG'
-      })}`;
-      this.printForm.get('qrCodeData').setValue(qrData);
+      this.aplicarQrPorDefecto();
       this.printForm.get('qrCodeTitle').setValue(product.descripcion);
     }
 
@@ -134,12 +144,77 @@ export class PrintLabelDialogComponent implements OnInit {
           aplicar(null, null, 'error');
           return;
         }
+        this.monedasConCambio = monedas;
         const real = monedas.find(m => m.denominacion === 'REAL');
         const dolar = monedas.find(m => m.denominacion === 'DOLAR');
         aplicar(real?.cambio > 0 ? real.cambio : null, dolar?.cambio > 0 ? dolar.cambio : null, 'ok');
       },
       error: () => aplicar(null, null, 'error')
     });
+  }
+
+  /**
+   * Decide la moneda del precio a partir del mapa en caché de precios en otra moneda (una lectura del central tras
+   * el login). Sin precios en otra moneda (bodega) o con el mapa fallido, es la de la empresa y se decide en el acto.
+   * Con el mapa todavía cargando se espera como mucho 2 s y se sigue como moneda de la empresa (con un aviso en el
+   * log). Solo si hay precios en otra moneda hace falta una lectura más para saber cuál es el principal, con el mismo tope.
+   */
+  loadMonedaPrecio(): void {
+    const productoId = this.data?.producto?.id;
+    const actual = this.precioMonedaService.mapaCentral$.value;
+    if (productoId == null || (actual.estado !== 'cargando' && actual.estado !== 'sinCargar'
+        && decisionMonedaEtiqueta(actual.estado, actual.mapa.size) === 'empresa')) {
+      this.monedaPrecioEstado = 'ok';
+      return;
+    }
+    this.monedaPrecioEstado = 'cargando';
+    this.precioMonedaService.esperarMapaCentral(2000).subscribe((m) => {
+      if (m.estado === 'cargando' || m.estado === 'sinCargar') {
+        console.warn('[etiqueta] el mapa de precios en otra moneda no llegó en 2 s: se imprime en la moneda de la empresa');
+        this.monedaPrecioEstado = 'ok';
+        return;
+      }
+      if (decisionMonedaEtiqueta(m.estado, m.mapa.size) === 'empresa') {
+        this.monedaPrecioEstado = 'ok';
+        return;
+      }
+      // Hay precios en otra moneda: se averigua si el principal de este producto es uno de ellos
+      this.precioMonedaService.monedaDelPrecioPrincipal(productoId).pipe(timeout(2000), catchError(() => of(undefined as Moneda | null | undefined)))
+        .subscribe((moneda) => {
+          if (!lecturaDelPrincipalConfirmada(moneda)) {
+            // No se cae a la moneda de la empresa: un precio en otra moneda saldría con «Gs.»
+            this.monedaPrecioEstado = 'sinConfirmar';
+            return;
+          }
+          this.monedaPrecio = moneda != null && !this.monedaModulo.esMonedaEmpresa(moneda) ? moneda : null;
+          this.monedaPrecioEstado = 'ok';
+          this.aplicarQrPorDefecto();
+          this.updatePreviewComputedProperties();
+        });
+    });
+  }
+
+  /** Último texto por defecto escrito en el QR; si el campo ya no es igual, lo editó el usuario. */
+  private qrPorDefecto = '';
+
+  /** Pone el texto por defecto del QR con la moneda actual del precio, sin pisar lo que el usuario escribió (#750). */
+  private aplicarQrPorDefecto(): void {
+    const producto = this.data?.producto;
+    const control = this.printForm.get('qrCodeData');
+    if (!producto || (control.value || '') !== this.qrPorDefecto) return;
+    const precio: number = typeof producto.precioPrincipal === 'number'
+      ? producto.precioPrincipal
+      : parseFloat(producto.precioPrincipal) || 0;
+    this.qrPorDefecto = textoQrEtiqueta(producto.codigoPrincipal, producto.descripcion, precio, this.monedaPrecio);
+    // Sin evento: el que llama repinta con updatePreviewComputedProperties (una sola generación del QR)
+    control.setValue(this.qrPorDefecto, { emitEvent: false });
+  }
+
+  /** El precio llevado a la moneda de la empresa, base de las conversiones a reales y dólares; null si no se conoce el cambio. */
+  private precioBase(precio: number): number | null {
+    const cambio = this.monedaPrecio == null ? null
+      : this.monedasConCambio.find((m) => String(m.id) === String(this.monedaPrecio.id))?.cambio;
+    return precioEnMonedaEmpresa(precio, this.monedaPrecio, cambio);
   }
 
   /** Cotización usable del formulario, o `null` si no hay (vacía, 0, sin leer). */
@@ -149,8 +224,8 @@ export class PrintLabelDialogComponent implements OnInit {
   }
 
   /** Precio convertido y formateado, o «—» sin cotización (solo llega a la vista previa: la impresión se bloquea). */
-  private precioConvertido(precioGs: number, cotizacion: number | null): string {
-    return cotizacion == null ? '—' : (precioGs / cotizacion).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  private precioConvertido(precioGs: number | null, cotizacion: number | null): string {
+    return cotizacion == null || precioGs == null ? '—' : (precioGs / cotizacion).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   /** Recalcula si el modo de moneda elegido necesita una cotización que no hay, y el texto del cartel. */
@@ -159,8 +234,13 @@ export class PrintLabelDialogComponent implements OnInit {
     const esPrecio = this.printForm.get('selectedLabelType').value === 'price';
     const faltaReal = modo !== 'guarani' && this.cotizacionDe('cotizacionReal') == null;
     const faltaDolar = modo === 'todas' && this.cotizacionDe('cotizacionDolar') == null;
-    this.faltaCotizacion = esPrecio && (faltaReal || faltaDolar);
-    if (!faltaReal && !faltaDolar) {
+    // Precio en otra moneda: para llevarlo a reales o dólares hace falta el cambio de SU moneda
+    const faltaCambioDelPrecio = esPrecio && modo !== 'guarani' && this.monedaPrecio != null
+      && this.precioBase(1) == null;
+    this.faltaCotizacion = esPrecio && (faltaReal || faltaDolar || faltaCambioDelPrecio);
+    if (faltaCambioDelPrecio && !faltaReal && !faltaDolar) {
+      this.textoCotizaciones = `No hay cotización de ${this.monedaPrecio.denominacion}: no se puede imprimir en esa moneda.`;
+    } else if (!faltaReal && !faltaDolar) {
       this.textoCotizaciones = '';
     } else if (this.cotizacionesEstado === 'cargando') {
       this.textoCotizaciones = 'Leyendo cotizaciones…';
@@ -174,6 +254,14 @@ export class PrintLabelDialogComponent implements OnInit {
 
   /** Guarda de las dos entradas de impresión (térmica y afiche). */
   private impresionBloqueadaPorCotizacion(): boolean {
+    if (this.monedaPrecioEstado === 'sinConfirmar') {
+      this.notificacionService.openWarn('No se pudo confirmar la moneda del precio; reintentá.', 6);
+      return true;
+    }
+    if (this.monedaPrecioEstado === 'cargando') {
+      this.notificacionService.openWarn('Leyendo la moneda del precio: esperá un instante y volvé a imprimir.', 4);
+      return true;
+    }
     this.actualizarFaltaCotizacion();
     if (!this.faltaCotizacion) return false;
     this.notificacionService.openWarn(this.textoCotizaciones, 6);
@@ -300,10 +388,10 @@ export class PrintLabelDialogComponent implements OnInit {
     const selType = this.printForm.get('selectedLabelType').value;
     const nameMaxChars = this.getMaxNameCharsForLabel(selType);
     this.previewNameLines = this.wrapNameToTwoLines(productName, nameMaxChars);
-    this.previewPrice = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    this.previewPrice = textoPrecioEtiqueta(priceNum, this.monedaPrecio);
     this.previewDate = `Fab: ${this.formatShortDate(creationDate)}`;
-    this.previewPrecioReal = `R$ ${this.precioConvertido(priceNum, cotReal)}`;
-    this.previewPrecioDolar = `D$ ${this.precioConvertido(priceNum, cotDolar)}`;
+    this.previewPrecioReal = `R$ ${this.precioConvertido(this.precioBase(priceNum), cotReal)}`;
+    this.previewPrecioDolar = `D$ ${this.precioConvertido(this.precioBase(priceNum), cotDolar)}`;
     
     // Actualizar propiedades para la plantilla vertical
     this.priceGs = this.previewPrice;
@@ -399,10 +487,7 @@ export class PrintLabelDialogComponent implements OnInit {
         // Price
         {
           type: 'text',
-          value: `Gs. ${price.toLocaleString('es-PY', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          })}`,
+          value: textoPrecioEtiqueta(price, this.monedaPrecio),
           style: {
             fontWeight: 'bold',
             textAlign: 'center',
@@ -487,7 +572,7 @@ export class PrintLabelDialogComponent implements OnInit {
         const priceNum: number = typeof this.data.producto?.precioPrincipal === 'number'
           ? this.data.producto?.precioPrincipal
           : parseFloat(this.data.producto?.precioPrincipal) || 0;
-        const priceText = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        const priceText = textoPrecioEtiqueta(priceNum, this.monedaPrecio);
 
         const data: any[] = [];
         const maxNameChars = this.getMaxNameCharsForLabel(labelType);
@@ -611,9 +696,9 @@ export class PrintLabelDialogComponent implements OnInit {
       const cotReal = this.cotizacionDe('cotizacionReal');
       const cotDolar = this.cotizacionDe('cotizacionDolar');
 
-      const priceGs = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-      const priceReal = `R$ ${this.precioConvertido(priceNum, cotReal)}`;
-      const priceDolar = `D$ ${this.precioConvertido(priceNum, cotDolar)}`;
+      const priceGs = textoPrecioEtiqueta(priceNum, this.monedaPrecio);
+      const priceReal = `R$ ${this.precioConvertido(this.precioBase(priceNum), cotReal)}`;
+      const priceDolar = `D$ ${this.precioConvertido(this.precioBase(priceNum), cotDolar)}`;
 
       const data: any[] = [];
       
@@ -868,9 +953,10 @@ export class PrintLabelDialogComponent implements OnInit {
     const cotReal = this.cotizacionDe('cotizacionReal');
     const cotDolar = this.cotizacionDe('cotizacionDolar');
 
-    const priceGs = priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    const priceReal = this.precioConvertido(priceNum, cotReal);
-    const priceDolar = this.precioConvertido(priceNum, cotDolar);
+    // Con el prefijo de su moneda («Gs. 26.252», «US$ 4,39»)
+    const priceGs = textoPrecioEtiqueta(priceNum, this.monedaPrecio);
+    const priceReal = this.precioConvertido(this.precioBase(priceNum), cotReal);
+    const priceDolar = this.precioConvertido(this.precioBase(priceNum), cotDolar);
 
     const showAllCurrencies = currencyMode === 'todas';
 
@@ -906,7 +992,7 @@ export class PrintLabelDialogComponent implements OnInit {
       let priceSection = '';
       if (currencyMode === 'todas') {
         priceSection = `<div class="prices-row">
-            <span class="price-gs">Gs. ${priceGs}</span>
+            <span class="price-gs">${priceGs}</span>
             <span class="price-divider">|</span>
             <span class="price-other">R$ ${priceReal}</span>
             <span class="price-divider">|</span>
@@ -914,14 +1000,14 @@ export class PrintLabelDialogComponent implements OnInit {
            </div>`;
       } else if (currencyMode === 'guarani_real') {
         priceSection = `<div class="prices-row">
-            <span class="price-gs" style="font-size: 14px;">Gs. ${priceGs}</span>
+            <span class="price-gs" style="font-size: 14px;">${priceGs}</span>
             <span class="price-divider">|</span>
             <span class="price-other" style="font-size: 14px;">R$ ${priceReal}</span>
            </div>`;
       } else if (currencyMode === 'real') {
         priceSection = `<div class="prices-row"><span class="price-gs-solo" style="font-size: 14px;">R$ ${priceReal}</span></div>`;
       } else {
-        priceSection = `<div class="prices-row"><span class="price-gs-solo" style="font-size: 14px;">Gs. ${priceGs}</span></div>`;
+        priceSection = `<div class="prices-row"><span class="price-gs-solo" style="font-size: 14px;">${priceGs}</span></div>`;
       }
 
       return `<div class="etiqueta">

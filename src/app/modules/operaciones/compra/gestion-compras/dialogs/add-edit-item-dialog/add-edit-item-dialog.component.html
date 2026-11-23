@@ -184,7 +184,7 @@
                   class="precio-anterior-hint"
                   *ngIf="mostrarPrecioAnteriorComputed"
                 >
-                  Precio anterior: {{ precioOriginalPorPresentacionComputed | number:'1.0-0' }} {{ selectedCurrencyPrefix }}
+                  Precio anterior: {{ precioOriginalPorPresentacionComputed | number:selectedCostoDecimalFormat }} {{ selectedCurrencyPrefix }}
                 </div>
               </div>
 
@@ -212,7 +212,7 @@
                   class="precio-anterior-hint"
                   *ngIf="mostrarPrecioAnteriorComputed"
                 >
-                  Precio anterior: {{ precioOriginal | number:'1.0-0' }} {{ selectedCurrencyPrefix }}
+                  Precio anterior: {{ precioOriginal | number:selectedCostoDecimalFormat }} {{ selectedCurrencyPrefix }}
                 </div>
               </div>
 
@@ -238,7 +238,7 @@
                 <mat-icon aria-hidden="true">{{ precioCambioIconoComputed }}</mat-icon>
                 <span class="cambio-text">
                   {{ precioCambioPorcentualSignoComputed }}{{ precioCambioPorcentualComputed | number:'1.1-1' }}%
-                  ({{ precioCambioSignoComputed }}{{ precioCambioComputed | number:'1.0-0' }} {{ selectedCurrencyPrefix }})
+                  ({{ precioCambioSignoComputed }}{{ precioCambioComputed | number:selectedCostoDecimalFormat }} {{ selectedCurrencyPrefix }})
                 </span>
               </div>
               <button

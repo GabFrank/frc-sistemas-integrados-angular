@@ -45,7 +45,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '2em' }"
         >
-          {{ formGroup.controls.valorTotal.value | number : "1.0-0" }}
+          {{ factorGs ? (formGroup.controls.valorTotal.value / factorGs | number : "1.0-0") : "—" }}
         </div>
       </div>
       <div
@@ -68,8 +68,8 @@
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{
-            cambioRs
-              ? (formGroup.controls.valorTotal.value / cambioRs | number : "1.2-2")
+            factorRs
+              ? (formGroup.controls.valorTotal.value / factorRs | number : "1.2-2")
               : "—"
           }}
         </div>
@@ -94,8 +94,8 @@
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{
-            cambioDs
-              ? (formGroup.controls.valorTotal.value / cambioDs | number : "1.2-2")
+            factorDs
+              ? (formGroup.controls.valorTotal.value / factorDs | number : "1.2-2")
               : "—"
           }}
         </div>
@@ -189,24 +189,14 @@
                     >{{ item.datosCupon || item.identificadorTransaccion ? 'check_circle' : 'schedule' }}</mat-icon>
                   </td>
                   <td
-                    *ngIf="item.moneda?.id == 1"
                     style="
                       padding-bottom: 5px;
                       padding-top: 5px;
                       text-align: center;
                     "
                   >
-                    {{ item.valor | number : "1.0-0" }}
-                  </td>
-                  <td
-                    *ngIf="item.moneda?.id != 1"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.valor | number : "1.2-2" }}
+                    <!-- Sin decimales (guaraní) o con 2, según los decimales de la moneda de la línea -->
+                    {{ item.valor | number : ((item.moneda?.decimales ?? (item.moneda?.denominacion === 'GUARANI' ? 0 : 2)) > 0 ? "1.2-2" : "1.0-0") }}
                   </td>
                   <td
                     *ngIf="item.vuelto && !item.aumento"
@@ -520,11 +510,7 @@
             formControlName="valor"
             style="color: var(--frc-texto-fuerte); font-size: 1.3em"
             currencyMask
-            [options]="
-              selectedMoneda?.id == 1
-                ? currencyOptionsGuarani
-                : currencyOptionsNoGuarani
-            "
+            [options]="optionsValor"
             autocomplete="off"
             (keydown.enter)="onValorEnter(); $event.stopPropagation()"
           />
@@ -589,7 +575,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value | number : "1.0-0" }}
+          {{ factorGs ? (formGroup.controls.saldo.value / factorGs | number : "1.0-0") : "—" }}
         </div>
       </div>
       <div
@@ -611,7 +597,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ cambioRs ? (formGroup.controls.saldo.value / cambioRs | number : "1.2-2") : "—" }}
+          {{ factorRs ? (formGroup.controls.saldo.value / factorRs | number : "1.2-2") : "—" }}
         </div>
       </div>
       <div
@@ -633,7 +619,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ cambioDs ? (formGroup.controls.saldo.value / cambioDs | number : "1.2-2") : "—" }}
+          {{ factorDs ? (formGroup.controls.saldo.value / factorDs | number : "1.2-2") : "—" }}
         </div>
       </div>
     </div>
@@ -648,7 +634,7 @@
         <app-boton
           color="accent"
           nombre="Finalizar (F10)"
-          [disableExpression]="!(formGroup.controls.saldo.value == 0)"
+          [disableExpression]="!saldoEnCero"
           (clickEvent)="onFinalizar()"
           icon="price_check"
           [iconSize]="2"
@@ -659,7 +645,7 @@
           color="accent"
           nombre="Finalizar + Ticket"
           [disableExpression]="
-            !(formGroup.controls.saldo.value == 0) || facturado || isCredito
+            !saldoEnCero || facturado || isCredito
           "
           (clickEvent)="onFinalizar(null, null, true)"
           icon="price_check"
@@ -682,7 +668,7 @@
           color="primary"
           nombre="Aumento (F8)"
           [disableExpression]="
-            formGroup.controls.saldo.value == 0 ||
+            saldoEnCero ||
             formGroup.controls.saldo.value > 0
           "
           (clickEvent)="onAumento()"
@@ -696,7 +682,7 @@
           color="primary"
           nombre="Descuento (F9)"
           [disableExpression]="
-            formGroup.controls.saldo.value == 0 ||
+            saldoEnCero ||
             formGroup.controls.saldo.value < 0
           "
           (clickEvent)="onDescuento()"

@@ -88,13 +88,16 @@
                     </button>
                     <mat-menu #menu="matMenu">
                         <button mat-menu-item (click)="onConfigurar(gps)">
-                            Configurar
+                            <mat-icon>settings</mat-icon>
+                            <span>Configurar</span>
                         </button>
                         <button mat-menu-item (click)="onEditar(gps)">
-                            Editar
+                            <mat-icon>edit</mat-icon>
+                            <span>Editar</span>
                         </button>
                         <button mat-menu-item (click)="onEliminar(gps)">
-                            Eliminar
+                            <mat-icon>delete</mat-icon>
+                            <span>Eliminar</span>
                         </button>
                     </mat-menu>
                 </td>

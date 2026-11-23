@@ -665,6 +665,8 @@ export class ListMovimientoStockComponent implements OnInit {
       .subscribe((res) => {
         this.isDialogOpen = false;
         let response: PdvSearchProductoResponseData = res;
+        // Cerrado sin elegir (Salir, Esc o clic afuera): queda el producto de antes (#743).
+        if (response?.producto == null) return;
         this.selectedProducto = response.producto;
         this.buscarProductoControl.setValue(
           this.selectedProducto.id + " - " + this.selectedProducto.descripcion

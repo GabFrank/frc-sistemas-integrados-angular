@@ -338,7 +338,8 @@
               "
               (click)="onFinalizarDesdeMenu(ventaCredito, i)"
             >
-              Finalizar
+              <mat-icon>task_alt</mat-icon>
+              <span>Finalizar</span>
             </button>
             <button
               mat-menu-item
@@ -348,14 +349,16 @@
               "
               (click)="onCancelar(ventaCredito, i)"
             >
-              Cancelar
+              <mat-icon>block</mat-icon>
+              <span>Cancelar</span>
             </button>
             <button
               mat-menu-item
               *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
               (click)="onImprimir(ventaCredito)"
             >
-              Imprimir
+              <mat-icon>print</mat-icon>
+              <span>Imprimir</span>
             </button>
           </mat-menu>
         </td>

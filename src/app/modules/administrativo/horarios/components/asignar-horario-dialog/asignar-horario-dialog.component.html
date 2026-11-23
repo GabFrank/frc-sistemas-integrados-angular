@@ -54,11 +54,9 @@
             <button mat-button (click)="onCancelar()">
                 Cancelar
             </button>
-            <button mat-raised-button color="primary" (click)="onAgregarHorario()">
-                Agregar
-            </button>
-            <button mat-raised-button color="primary" (click)="onGuardar()">
-                Guardar
+            <button mat-raised-button color="primary" (click)="onGuardarHorario()"
+                [matTooltip]="elementoEnEdicion?.asignados ? 'Cambia el horario para los ' + elementoEnEdicion.asignados + ' que lo usan' : ''">
+                {{ elementoEnEdicion ? 'Guardar cambios' : 'Agregar' }}
             </button>
         </div>
     </div>
@@ -92,6 +90,11 @@
                 <td mat-cell *matCellDef="let element"> {{element.turno}} </td>
             </ng-container>
 
+            <ng-container matColumnDef="asignados">
+                <th mat-header-cell *matHeaderCellDef> Funcionarios </th>
+                <td mat-cell *matCellDef="let element"> {{element.asignados}} </td>
+            </ng-container>
+
             <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef> ... </th>
                 <td mat-cell *matCellDef="let element">
@@ -99,17 +102,20 @@
                         matTooltip="Asignar a otros">
                         <mat-icon>add</mat-icon>
                     </button>
-                    <button mat-icon-button style="color: #ffc107;" (click)="onEditarHorario(element)">
+                    <button mat-icon-button style="color: #ffc107;" (click)="onEditarHorario(element)"
+                        matTooltip="Editar (cambia para todos los que lo usan)">
                         <mat-icon>edit</mat-icon>
                     </button>
-                    <button mat-icon-button color="warn" (click)="onEliminarHorario(element)">
+                    <button mat-icon-button color="warn" (click)="onEliminarHorario(element)"
+                        [matTooltip]="element.asignados ? 'Lo usan ' + element.asignados + ': quitáselo antes de borrarlo' : 'Borrar'">
                         <mat-icon>delete</mat-icon>
                     </button>
                 </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                [class.fila-en-edicion]="row.id === elementoEnEdicion?.id"></tr>
         </table>
 
         <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSize]="15" [pageSizeOptions]="[15, 25, 50, 100]"

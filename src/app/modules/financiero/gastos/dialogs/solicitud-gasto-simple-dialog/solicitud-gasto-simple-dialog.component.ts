@@ -50,8 +50,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   vencimientoControl = new FormControl(new Date(), Validators.required);
   filasMonto = new FormArray<FormGroup>([]);
   sucursalRetiroControl = new FormControl({ value: '', disabled: true });
-  beneficiarioControl = new FormControl('', Validators.required);
-  proveedorIdControl = new FormControl<number | null>(null, Validators.required);
+  beneficiarioControl = new FormControl('');
+  // Beneficiario opcional: un gasto puede no tener proveedor.
+  proveedorIdControl = new FormControl<number | null>(null);
   enteDisplayControl = new FormControl('');
   enteIdControl = new FormControl<number | null>(null);
 
@@ -70,7 +71,6 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   descripcionRequerida = false;
   vencimientoRequerido = false;
   enteRequerido = false;
-  proveedorRequerido = false;
   resumenEnte: SolicitudGastoData | null = null;
   notificacionVencimiento: string | null = null;
   cargandoResumenEnte = false;
@@ -264,7 +264,6 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     this.descripcionRequerida = this.descripcionControl.hasError('required');
     this.vencimientoRequerido = this.vencimientoControl.hasError('required');
     this.enteRequerido = this.enteIdControl.hasError('required');
-    this.proveedorRequerido = this.proveedorIdControl.hasError('required');
   }
 
   private inicializarPropiedadesEnteActivo(): void {
@@ -434,6 +433,11 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     return `[${tipo}] Ente ${ente.id}${ref ? ' — Ref. ' + ref : ''}`;
   }
 
+  quitarBeneficiario(): void {
+    this.proveedorIdControl.setValue(null);
+    this.beneficiarioControl.setValue('');
+  }
+
   abrirBuscadorProveedor(): void {
     const data = new SearchListtDialogData();
     data.titulo = 'Seleccionar Proveedor';
@@ -500,7 +504,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       monedaId: primera?.monedaId,
       monto: primera?.monto,
       sucursalRetiroId: this.mainService.sucursalActual?.id,
-      proveedorId: this.proveedorIdControl.value,
+      proveedorId: this.proveedorIdControl.value ?? null,
       enteId: this.enteIdControl.value ?? null,
     };
     this.matDialogRef.close(resultado);

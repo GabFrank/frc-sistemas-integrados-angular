@@ -42,7 +42,7 @@
               margin: 0px;
             "
           >
-            {{ presentacion?.precioPrincipal?.precio | number : "1.0-2" }}
+            <ng-container *ngIf="monedaDe(presentacion?.precioPrincipal) as m; else sm1">{{ m.simbolo }} {{ presentacion?.precioPrincipal?.precio | number : digitosDe(m) }}</ng-container><ng-template #sm1>{{ presentacion?.precioPrincipal?.precio | number : "1.0-2" }}</ng-template>
           </div>
           <div>
             <img
@@ -79,7 +79,7 @@
             {{ precio?.tipoPrecio?.descripcion | uppercase }}
           </div>
           <div fxFlex>
-            {{ precio?.precio | number : "1.0-2" }}
+            <ng-container *ngIf="monedaDe(precio) as m; else sm2">{{ m.simbolo }} {{ precio?.precio | number : digitosDe(m) }}</ng-container><ng-template #sm2>{{ precio?.precio | number : "1.0-2" }}</ng-template>
           </div>
         </mat-card>
       </div>
@@ -184,7 +184,7 @@
             {{ precio?.tipoPrecio?.descripcion | uppercase }}
           </div>
           <div style="text-align: center">
-            {{ precio?.precio | number : "1.0-0" }}
+            <ng-container *ngIf="monedaDe(precio) as m; else sm3">{{ m.simbolo }} {{ precio?.precio | number : digitosDe(m) }}</ng-container><ng-template #sm3>{{ precio?.precio | number : "1.0-0" }}</ng-template>
           </div>
         </div>
       </mat-card>

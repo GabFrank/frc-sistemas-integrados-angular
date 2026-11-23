@@ -1,3 +1,5 @@
+import { PrecioMonedaService } from "../../precio-por-sucursal/precio-moneda.service";
+import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ReasignarLoteDialogComponent } from '../reasignar-lote-dialog/reasignar-lote-dialog.component';
 import {
   animate,
@@ -192,7 +194,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private precioMonedaService: PrecioMonedaService
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
@@ -303,6 +306,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
+        this.cargarMonedasPrecioPrincipal(res.getContent);
         this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
         this.filtroDeLaLista = filtroDeLaBusqueda;
         this.isSearching = false;
@@ -791,5 +795,24 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.notificacionService.openAlgoSalioMal('Error al generar el reporte');
       }
     });
+  }
+
+  /** productoId → moneda del precio principal, cuando no es la de la empresa (Fase 3). */
+  monedasPrecioPrincipal = new Map<string, Moneda>();
+
+  private cargarMonedasPrecioPrincipal(productos: Producto[]): void {
+    this.monedasPrecioPrincipal = new Map();
+    const ids = (productos || []).map((p) => p?.id).filter((id) => id != null);
+    this.precioMonedaService.monedaPrecioPrincipalDeProductos(ids).pipe(untilDestroyed(this))
+      .subscribe((m) => (this.monedasPrecioPrincipal = m));
+  }
+
+  monedaPrecioPrincipal(producto: Producto): Moneda | null {
+    return producto?.id != null ? this.monedasPrecioPrincipal.get(String(producto.id)) ?? null : null;
+  }
+
+  digitosDe(m: Moneda): string {
+    const d = m?.decimales != null && m.decimales >= 0 ? m.decimales : 2;
+    return `1.${d}-${d}`;
   }
 }

@@ -325,7 +325,8 @@
             </button>
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="onReferenciaClick(movimiento)">
-                Ir a {{ movimiento?.tipoMovimiento | enumToString }}
+                <mat-icon>open_in_new</mat-icon>
+                <span>Ir a {{ movimiento?.tipoMovimiento | enumToString }}</span>
               </button>
             </mat-menu>
           </td>

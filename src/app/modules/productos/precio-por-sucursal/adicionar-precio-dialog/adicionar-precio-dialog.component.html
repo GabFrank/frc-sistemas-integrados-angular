@@ -5,16 +5,38 @@
         <h3 *ngIf="selectedPrecioPorSucursal?.id != null">Editar Precio</h3>
         <h3 *ngIf="selectedPrecioPorSucursal?.id == null">Nuevo Precio</h3>
       </div>
+      <div fxFlex *ngIf="mostrarSelectorMoneda">
+        <mat-form-field style="width: 100%">
+          <mat-label>Moneda</mat-label>
+          <mat-select formControlName="moneda">
+            <mat-option *ngFor="let moneda of monedaList" [value]="moneda.id">
+              {{ moneda?.simbolo }} · {{ moneda?.denominacion | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
       <div fxFlex>
         <mat-form-field style="width: 100%">
           <mat-label>Precio</mat-label>
+          <!-- Moneda de la empresa: el campo de siempre. Otra moneda: con la máscara y los decimales de esa moneda. -->
           <input
+            *ngIf="!usaMascaraMoneda"
             #precioInput
             type="text"
             matInput
             formControlName="precio"
             autocomplete="off"
             oninput="this.value == ' ' ? this.value = '': null"
+          />
+          <input
+            *ngIf="usaMascaraMoneda"
+            #precioInput
+            type="text"
+            matInput
+            currencyMask
+            [options]="opcionesMascara"
+            formControlName="precio"
+            autocomplete="off"
           />
           <mat-error *ngIf="precioControl.hasError('required')">
             El precio es obligatorio
@@ -83,7 +105,7 @@
             mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
-            (click)="onBotonPrincipal(); precioInput.focus()"
+            (click)="onBotonPrincipal(); enfocarPrecio()"
           >
             {{ isEditting ? "Guardar" : "Editar" }}
           </button>

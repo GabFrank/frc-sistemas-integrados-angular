@@ -12,7 +12,7 @@ import { ClienteService } from '../../modules/personas/clientes/cliente.service'
 import { FuncionarioSearchPageGQL } from '../../modules/personas/funcionarios/graphql/funcionarioSearchPage';
 import { FuncionariosACargoGQL } from '../../modules/personas/funcionarios/graphql/funcionariosACargo';
 import { FuncionarioService } from '../../modules/personas/funcionarios/funcionario.service';
-import { UsuarioSearchGQL } from '../../modules/personas/usuarios/graphql/usuarioSearch';
+import { UsuariosSearchPaginatedGQL } from '../../modules/personas/usuarios/graphql/usuarioSearchPaginated';
 import { ProveedoresSearchByPersonaPageGQL } from '../../modules/personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { ProveedorServicioSearchPageGQL } from '../../modules/personas/proveedor-servicio/graphql/proveedorServicioSearchPage';
 import { CiudadesSearchGQL } from '../../modules/general/ciudad/graphql/ciudadesSearchGQL';
@@ -96,7 +96,7 @@ export class BuscadorService {
   private personaSearchPage = inject(PersonaSearchPageGQL);
   private funcionariosACargo = inject(FuncionariosACargoGQL);
   private funcionarioSearchPage = inject(FuncionarioSearchPageGQL);
-  private usuarioSearch = inject(UsuarioSearchGQL);
+  private usuariosSearchPaginated = inject(UsuariosSearchPaginatedGQL);
   private proveedorSearchPage = inject(ProveedoresSearchByPersonaPageGQL);
   private proveedorServicioSearchPage = inject(ProveedorServicioSearchPageGQL);
   private ciudadSearch = inject(CiudadesSearchGQL);
@@ -164,7 +164,10 @@ export class BuscadorService {
     usuario: {
       dialogo: () => ({
         titulo: 'Buscar usuario',
-        query: this.usuarioSearch,
+        // Paginada: usuarioSearch traia a todos los usuarios con su embedding facial y el dialogo quedaba cargando (#655).
+        // Solo central: el filial no tiene usuarioSearchPaginated (no usar con servidor: false).
+        query: this.usuariosSearchPaginated,
+        paginator: true,
         tableData: [
           { id: 'id', nombre: 'Id', width: '10%' },
           { id: 'persona.nombre', nombre: 'Nombre', width: '60%' },

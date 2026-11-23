@@ -27,6 +27,22 @@ export function limpiarErroresGraphQL(errors: any): any {
   );
 }
 
+/** Prefijo con que el central marca «falta configurar la versión mínima del escritorio» (precios y PDV en otra moneda). */
+export const PREFIJO_VERSION_MINIMA = "VERSION_MINIMA:";
+
+/**
+ * Si el texto de un aviso lleva el rechazo `VERSION_MINIMA:` del central, devuelve ese motivo legible, sin el
+ * «Ups! Algo salió mal…» que lo precede; si no, null. Es una instrucción para el administrador (configurar la
+ * versión mínima del escritorio), no una falla: el aviso genérico la tapaba.
+ */
+export function motivoVersionMinima(texto: any): string | null {
+  if (typeof texto !== "string") return null;
+  const i = texto.indexOf(PREFIJO_VERSION_MINIMA);
+  if (i < 0) return null;
+  const motivo = texto.substring(i + PREFIJO_VERSION_MINIMA.length).trim();
+  return motivo ? `Versión mínima del escritorio: ${motivo}` : null;
+}
+
 /** Mensaje del resultado sintético que GenericCrudService arma cuando el servidor corta sin cuerpo. */
 export const MENSAJE_RESPUESTA_VACIA = "Respuesta vacía del servidor";
 

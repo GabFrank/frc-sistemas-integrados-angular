@@ -26,8 +26,9 @@ import {
 } from './graphql/solicitudPagoCajaAsignada';
 import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
+import { ImprimirReporteSolicitudesPagoGQL } from './graphql/imprimirReporteSolicitudesPago';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
-import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
+import { GetSolicitudesPagoPaginatedVariables, SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 
@@ -64,6 +65,7 @@ export class SolicitudPagoService {
     private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
+    private imprimirReporteSolicitudesPagoGQL: ImprimirReporteSolicitudesPagoGQL,
     private genericCrudService: GenericCrudService,
     private configService: ConfiguracionService
   ) { }
@@ -123,13 +125,15 @@ export class SolicitudPagoService {
     estado?: string,
     numero?: string,
     fechaDesde?: string,
-    fechaHasta?: string
+    fechaHasta?: string,
+    monedaIds?: number[]
   ): Observable<SolicitudPagoPageResult> {
     return this.genericCrudService.onCustomQuery(
       this.getSolicitudesPagoPaginatedGQL,
-      { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta },
+      { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds },
       true,
-      PROPAGAR_ERROR_DE_RED,
+      // El rechazo también llega al error: (con su aviso del genérico): un central sin monedaIds no deja la lista vacía como si no hubiera solicitudes.
+      { networkError: { propagate: true, show: false }, graphError: { propagate: true } },
       true,
       CONSULTA_SOLICITUD
     ).pipe(
@@ -379,6 +383,13 @@ export class SolicitudPagoService {
       this.imprimirSolicitudPagoPDFGQL,
       { solicitudPagoId }
     );
+  }
+
+  /** PDF (base64) de la lista de solicitudes, con los mismos filtros que onGetSolicitudesPagoPaginated. */
+  onImprimirReporteSolicitudesPago(filtros: GetSolicitudesPagoPaginatedVariables): Observable<string> {
+    const { proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds } = filtros;
+    return this.genericCrudService.onCustomQuery(this.imprimirReporteSolicitudesPagoGQL,
+      { proveedorId, estado, numero, fechaDesde, fechaHasta, monedaIds });
   }
 
   /**

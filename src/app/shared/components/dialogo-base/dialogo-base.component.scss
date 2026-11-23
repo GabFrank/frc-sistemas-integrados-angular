@@ -48,6 +48,7 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 }
 
 .frc-dialogo-header {
+  position: relative;
   flex-shrink: 0;
   padding: 18px 24px;
   text-align: center;
@@ -57,6 +58,15 @@ $rojo: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
 
 :host(.peligro) .frc-dialogo-header {
   background: $rojo;
+}
+
+// X de cierre: a la derecha sin correr el titulo centrado.
+.frc-dialogo-cerrar {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  color: #ffffff;
 }
 
 // Lleva mat-dialog-title (por el aria-labelledby): se anulan el padding, el ::before y la tipografia

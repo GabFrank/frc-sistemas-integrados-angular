@@ -1,10 +1,15 @@
 /** El 20% que estaba clavado en el botón de aumento del cobro. */
 export const TOPE_AUMENTO_DEFAULT = 20;
 
+/** Lo que se propone al activar el tope del descuento (la opción más alta del diálogo de descuento). */
+export const TOPE_DESCUENTO_DEFAULT = 15;
+
 export class ConfiguracionCobro {
   id?: number;
   aumentoConTope?: boolean;
   aumentoTopePorcentaje?: number;
+  descuentoConTope?: boolean;
+  descuentoTopePorcentaje?: number;
   usuarioNickname?: string;
   modificadoEn?: Date;
 }
@@ -12,6 +17,8 @@ export class ConfiguracionCobro {
 export class ConfiguracionCobroInput {
   aumentoConTope?: boolean;
   aumentoTopePorcentaje?: number;
+  descuentoConTope?: boolean;
+  descuentoTopePorcentaje?: number;
 }
 
 /** Con tope salvo que la configuración diga explícitamente que no: un dato faltante nunca libera. */
@@ -48,5 +55,52 @@ export function aumentosRegistradosGs(lineas: { aumento?: boolean; valor?: numbe
 
 export function mensajeTopeAumento(config?: ConfiguracionCobro | null): string {
   return `El aumento supera el tope del ${porcentaje(config)}% del total. ` +
+    'Lo configura Tesorería en Financiero › Configuración › Cobro en PDV.';
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Tope del descuento. Al revés que el aumento: un dato faltante es «sin tope», que es como funcionaba el
+// descuento antes de la configuración. Cuentan TODOS los descuentos del cobro (los que vienen por ítem
+// desde la venta y el de F9), medidos contra el total sin descontar.
+// ---------------------------------------------------------------------------------------------------
+
+export function descuentoConTope(config?: ConfiguracionCobro | null): boolean {
+  return config?.descuentoConTope === true;
+}
+
+export function porcentajeTopeDescuento(config?: ConfiguracionCobro | null): number {
+  const pct = config?.descuentoTopePorcentaje;
+  return pct != null && pct > 0 ? pct : TOPE_DESCUENTO_DEFAULT;
+}
+
+/**
+ * El máximo descuento total del cobro, o `null` sin tope. En centésimos y redondeado antes de cortar,
+ * por lo mismo que el aumento (100.000 × 33,3 da 33.299,999… en punto flotante); en centésimos y no en
+ * enteros porque con otra moneda del PDV el total puede llevar decimales.
+ */
+export function topeDescuento(total: number, config?: ConfiguracionCobro | null): number | null {
+  if (!descuentoConTope(config)) return null;
+  return Math.floor(Math.round(total * porcentajeTopeDescuento(config) * 100) / 100) / 100;
+}
+
+/** Si el cobro puede llevar `descuentoTotal` de descuento en total (lo ya registrado más lo nuevo). */
+export function descuentoPermitido(descuentoTotal: number, total: number, config?: ConfiguracionCobro | null): boolean {
+  const tope = topeDescuento(total, config);
+  if (tope == null) return true;
+  return Math.round(descuentoTotal * 100) <= Math.round(tope * 100);
+}
+
+/** Lo que ya se registró como descuento en el cobro, en guaraníes (o en la moneda base con `factor`). */
+export function descuentosRegistradosGs(
+  lineas: { descuento?: boolean; valor?: number; cambio?: number }[],
+  factor?: (l: any) => number,
+): number {
+  return (lineas ?? [])
+    .filter((l) => l?.descuento)
+    .reduce((suma, l) => suma + Math.abs((l.valor ?? 0) * (factor ? factor(l) : (l.cambio ?? 1))), 0);
+}
+
+export function mensajeTopeDescuento(config?: ConfiguracionCobro | null): string {
+  return `El descuento supera el tope del ${porcentajeTopeDescuento(config)}% del total (contando los descuentos por producto). ` +
     'Lo configura Tesorería en Financiero › Configuración › Cobro en PDV.';
 }

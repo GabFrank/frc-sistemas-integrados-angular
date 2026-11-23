@@ -94,9 +94,32 @@ export class FaceRecognitionService {
         return null;
     }
 
+    /**
+     * Coseno entre dos embeddings: la misma medida que usa el central para el 1:N
+     * (`EmbeddingGaleriaService.cosineSimilarity`), así verificar y buscar dan el mismo número.
+     *
+     * ⚠️ No usar `human.match.similarity`: es una distancia euclidiana que depende del
+     * largo del vector. La cámara entrega vectores de largo ~11 y lo aprendido en cada
+     * marcación se guarda con largo 1; entre los dos daba ~50 % sea quien sea, así que en
+     * verificación solo contaban las 3 fotos del enrolamiento y la persona tenía que girar
+     * la cara hasta parecerse a la foto de costado.
+     */
     similarity(embedding1: number[], embedding2: number[]): number {
-        if (!embedding1 || !embedding2) return 0;
-        return this.human?.match.similarity(embedding1, embedding2) || 0;
+        if (!embedding1?.length || !embedding2?.length || embedding1.length !== embedding2.length) {
+            return 0;
+        }
+        let producto = 0;
+        let normaA = 0;
+        let normaB = 0;
+        for (let i = 0; i < embedding1.length; i++) {
+            producto += embedding1[i] * embedding2[i];
+            normaA += embedding1[i] * embedding1[i];
+            normaB += embedding2[i] * embedding2[i];
+        }
+        if (normaA === 0 || normaB === 0) {
+            return 0;
+        }
+        return Math.max(0, producto / (Math.sqrt(normaA) * Math.sqrt(normaB)));
     }
 
     calcularMejorSimilitudConGaleria(embedding: number[], galeria: EmbeddingGaleria): number {

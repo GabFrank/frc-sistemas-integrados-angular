@@ -35,15 +35,10 @@ export class AutorizarGastoDialogComponent implements OnInit {
   montoRendidoGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
-  devolucionDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
-  registrandoDevolucion = false;
-  /** Una devolución o un finalizar quedó sin respuesta: repetirlos puede duplicar en el central (#501). */
-  devolucionSinConfirmar = false;
+  /** Un finalizar quedó sin respuesta: repetirlo puede duplicar en el central (#501). */
   finalizarSinConfirmar = false;
-  /** La lista tiene una copia vieja del pre-gasto (devolución registrada o escritura sin respuesta): recarga al cerrar. */
+  /** La lista tiene una copia vieja del pre-gasto (escritura sin respuesta): recarga al cerrar. */
   private recargarListaAlCerrar = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
@@ -73,52 +68,6 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   tieneSaldoDevolver(): boolean {
     return Number(this.preGasto?.saldoDevolver ?? 0) > 0;
-  }
-
-  registrarDevolucion(): void {
-    if (!this.esTramite() || !this.tieneSaldoDevolver()) {
-      return;
-    }
-    const vueltoGs = this.parseMontoMoneda(this.devolucionGsControl.value, 'GS');
-    const vueltoRs = this.parseMontoMoneda(this.devolucionRsControl.value, 'RS');
-    const vueltoDs = this.parseMontoMoneda(this.devolucionDsControl.value, 'DS');
-    if (vueltoGs + vueltoRs + vueltoDs <= 0) {
-      return;
-    }
-    this.registrandoDevolucion = true;
-    this.gastoService.registrarDevolucionSaldo({
-      preGastoId: this.preGasto.id,
-      sucursalId: this.preGasto.sucursalId,
-      cajaId: this.preGasto.cajaId,
-      vueltoGs,
-      vueltoRs,
-      vueltoDs,
-      usuarioId: this.mainService.usuarioActual?.id,
-    }).pipe(untilDestroyed(this)).subscribe({
-      next: (res) => {
-        this.registrandoDevolucion = false;
-        if (res) {
-          this.recargarListaAlCerrar = true;
-          this.preGasto = { ...this.preGasto, ...res };
-          this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
-          this.devolucionGsControl.setValue(0, { emitEvent: false });
-          this.devolucionRsControl.setValue(0, { emitEvent: false });
-          this.devolucionDsControl.setValue(0, { emitEvent: false });
-          this.cdr.markForCheck();
-        }
-      },
-      error: (err) => {
-        this.registrandoDevolucion = false;
-        // Sin respuesta pudo registrarse, y repetirla resta otra vez el saldo: no se deja repetir con estos datos (#501)
-        if (this.avisarSinConfirmar(err, 'se registró la devolución del saldo')) {
-          this.devolucionSinConfirmar = true;
-          this.devolucionGsControl.setValue(0, { emitEvent: false });
-          this.devolucionRsControl.setValue(0, { emitEvent: false });
-          this.devolucionDsControl.setValue(0, { emitEvent: false });
-        }
-        this.cdr.markForCheck();
-      },
-    });
   }
 
   autorizar(): void {
@@ -298,22 +247,46 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Arranca con lo ya rendido para no tener que tipearlo: si la caja registró vuelto, manda ese
+   * (rendido = retirado − vuelto); si no, lo que rindió el funcionario desde el teléfono.
+   */
   private inicializarMontosRendidos(): void {
+    const retirado = Number(this.preGasto?.montoRetirado ?? 0);
+    const vuelto = this.preGasto?.montoVuelto;
+    const rendido = vuelto != null
+      ? Math.max(retirado - Number(vuelto), 0)
+      : Number(this.preGasto?.montoGastado ?? 0);
+    this.ponerMontosRendidos(this.porMonedaDeLaSolicitud(rendido));
+  }
+
+  /** Gastó todo lo retirado: lo rendido es lo retirado en cada moneda. */
+  rindioTotalmente(): void {
     const gasto = this.preGasto?.gasto;
-    const retiroGs = Number(gasto?.retiroGs ?? 0);
-    const retiroRs = Number(gasto?.retiroRs ?? 0);
-    const retiroDs = Number(gasto?.retiroDs ?? 0);
-    const vueltoGs = Number(gasto?.vueltoGs ?? 0);
-    const vueltoRs = Number(gasto?.vueltoRs ?? 0);
-    const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+    const retiros = { gs: Number(gasto?.retiroGs ?? 0), rs: Number(gasto?.retiroRs ?? 0), ds: Number(gasto?.retiroDs ?? 0) };
+    const hayRetiroPorMoneda = retiros.gs + retiros.rs + retiros.ds > 0;
+    this.ponerMontosRendidos(hayRetiroPorMoneda
+      ? retiros
+      : this.porMonedaDeLaSolicitud(Number(this.preGasto?.montoRetirado ?? 0)));
+  }
 
-    this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
-    this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
-    this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+  private porMonedaDeLaSolicitud(monto: number): { gs: number; rs: number; ds: number } {
+    const simbolo = (this.preGasto?.moneda?.simbolo ?? '').trim().toUpperCase();
+    const denominacion = (this.preGasto?.moneda?.denominacion ?? '').trim().toUpperCase();
+    if (simbolo.includes('R$') || simbolo.includes('RS') || denominacion.includes('REAL')) {
+      return { gs: 0, rs: monto, ds: 0 };
+    }
+    if (simbolo.includes('USD') || simbolo.includes('US$') || simbolo === '$' || denominacion.includes('DOLAR')) {
+      return { gs: 0, rs: 0, ds: monto };
+    }
+    return { gs: monto, rs: 0, ds: 0 };
+  }
 
-    this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
-    this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
-    this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
+  private ponerMontosRendidos(montos: { gs: number; rs: number; ds: number }): void {
+    this.montoRendidoGsControl.setValue(Math.max(montos.gs, 0));
+    this.montoRendidoRsControl.setValue(Math.max(montos.rs, 0));
+    this.montoRendidoDsControl.setValue(Math.max(montos.ds, 0));
+    this.cdr.markForCheck();
   }
 
   private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {

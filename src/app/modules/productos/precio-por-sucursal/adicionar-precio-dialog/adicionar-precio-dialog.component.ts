@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -12,22 +12,32 @@ import { PrecioPorSucursal } from '../precio-por-sucursal.model';
 import { PrecioPorSucursalService } from '../precio-por-sucursal.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import {
+  costoEnMonedaDelPrecio,
   evaluarMargenPrecio,
   MARGEN_MINIMO_PORCENTAJE,
 } from '../margen-precio.util';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { ModuloMoneda } from '../../../financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model';
+import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
+import { CostoPorProductoService } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
+import { PrecioMonedaService } from '../precio-moneda.service';
+import { debeMostrarSelectorMoneda, redondearMonto } from '../precio-moneda.util';
 
 export class AdicionarPrecioPorSucursalData {
   precio: PrecioPorSucursal;
   presentacion: Presentacion;
-  /** Costo medio del producto en guaraníes, por unidad base de stock. */
+  /** Costo medio del producto en la moneda de la empresa, por unidad base de stock. */
   costoMedio?: number;
+  /** Producto de la presentación: para leer su costo en la moneda de costeo al evaluar el margen en otra moneda. */
+  productoId?: number;
   /** El alta llega marcada como precio de promoción (viene del alta de una presentación promo). */
   promocion?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { concat, defer } from 'rxjs';
-import { take, toArray } from 'rxjs/operators';
+import { concat, defer, forkJoin, of } from 'rxjs';
+import { catchError, take, toArray } from 'rxjs/operators';
 import { ContextoConsulta, QueryError } from '../../../../generics/generic-crud.service';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.constantes';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
@@ -56,6 +66,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   formGroup: FormGroup;
   selectedPrecioPorSucursal: PrecioPorSucursal;
   precioControl = new FormControl(null, Validators.required);
+  /** Id de la moneda del precio. Null = todavía no se resolvió (no se manda nada y el central usa la del módulo PRECIOS). */
+  monedaControl = new FormControl<number | string | null>(null);
   principalControl = new FormControl(null);
   tipoPrecioControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(null);
@@ -72,6 +84,28 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   tipoPrecioList: TipoPrecio[];
   tiposPrecioFallo = false;
 
+  // Moneda del precio (Fase 3). Con todo en la moneda de la empresa nada de esto se ve ni cambia.
+  /** Monedas elegibles; vacía si no se pudieron leer (no hay selector). */
+  monedaList: Moneda[] = [];
+  /** Hay selector: más de una moneda y, en una edición, se pudo leer la moneda guardada. */
+  mostrarSelectorMoneda = false;
+  /** El precio se carga con máscara de la moneda (solo si no es la de la empresa; la de siempre es el campo plano). */
+  usaMascaraMoneda = false;
+  opcionesMascara: any = null;
+  /** Símbolo de la moneda del precio, solo en otra moneda que la de la empresa. */
+  simboloPrecio = '';
+  /** Moneda de la empresa; null hasta resolverla. */
+  private monedaEmpresa: Moneda | null = null;
+  /** Moneda no-empresa con que el precio está guardado (edición); null = en la de la empresa o no se pudo leer. */
+  private monedaGuardada: Moneda | null = null;
+  /** En una edición, ¿se pudo leer la moneda guardada? Sin eso no se ofrece cambiarla. */
+  private monedaGuardadaLeida = false;
+  /** La moneda del módulo PRECIOS es la de la empresa (true hasta saber lo contrario: bodega no ve nada nuevo). */
+  private monedaPreciosEsEmpresa = true;
+  private cantidadPreciosOtraMoneda = 0;
+  /** El campo del precio que esté a la vista (plano o enmascarado). */
+  @ViewChild('precioInput') campoPrecio: ElementRef<HTMLInputElement>;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarPrecioPorSucursalData,
     private matDialogRef: MatDialogRef<AdicionarPrecioDialogComponent>,
@@ -80,7 +114,11 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     private tipoPrecioService: TipoPrecioService,
     private cargandoDialog: CargandoDialogService,
     private mainService: MainService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private monedaModulo: MonedaModuloService,
+    private monedaService: MonedaService,
+    private precioMonedaService: PrecioMonedaService,
+    private costoService: CostoPorProductoService
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +127,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.tipoPrecioList = []
 
     this.loadTipoPrecios()
+    this.cargarMoneda();
 
     if (this.data?.precio?.id != null) {
       this.cargarDato();
@@ -100,6 +139,103 @@ export class AdicionarPrecioDialogComponent implements OnInit {
         this.onPromocionChange();
       }
     }
+  }
+
+  /** Pone el foco en el campo del precio (el de siempre o el enmascarado, según la moneda). */
+  enfocarPrecio(): void {
+    this.campoPrecio?.nativeElement?.focus();
+  }
+
+  /**
+   * Resuelve la moneda del precio sin bloquear nada: todo son lecturas de fondo que pueden fallar, y
+   * si fallan el diálogo es el de siempre (moneda de la empresa, sin selector).
+   */
+  private cargarMoneda(): void {
+    this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarMoneda());
+
+    this.monedaModulo.empresa$.pipe(untilDestroyed(this)).subscribe((e) => {
+      this.monedaEmpresa = e;
+      this.actualizarMoneda();
+    });
+
+    this.monedaService.onGetAllEnSegundoPlano(true, { graphError: { show: false }, networkError: { show: false, propagate: true } })
+      .pipe(take(1), untilDestroyed(this))
+      .subscribe({
+        next: (monedas) => {
+          this.monedaList = (monedas || []).filter((m) => m?.activo !== false);
+          this.actualizarMoneda();
+        },
+        error: () => {},
+      });
+
+    // Moneda del módulo PRECIOS (decide si se ofrece el selector y la moneda de un alta)
+    this.monedaModulo.monedaDe(ModuloMoneda.PRECIOS).pipe(take(1), untilDestroyed(this)).subscribe((m) => {
+      this.monedaPreciosEsEmpresa = this.monedaModulo.esMonedaEmpresa(m);
+      if (this.data?.precio?.id == null) this.monedaControl.setValue(m.id, { emitEvent: true });
+      this.actualizarMoneda();
+    });
+
+    // El mapa de precios en otra moneda (una lectura única del central, en caché). Sin él (falló o todavía no
+    // llegó) un precio editado se trata como de la empresa y no se ofrece cambiar su moneda.
+    this.precioMonedaService.asegurarMapaCentral();
+    this.precioMonedaService.mapaCentral$.pipe(untilDestroyed(this)).subscribe((m) => {
+      this.cantidadPreciosOtraMoneda = m.mapa.size;
+      if (this.data?.precio?.id != null && m.estado === 'ok' && !this.monedaGuardadaLeida) {
+        this.monedaGuardadaLeida = true;
+        const guardada = m.mapa.get(String(this.data.precio.id)) ?? null;
+        if (guardada != null && !this.monedaModulo.esMonedaEmpresa(guardada)) {
+          this.monedaGuardada = guardada;
+          this.monedaControl.setValue(guardada.id);
+        } else if (this.monedaEmpresa?.id != null) {
+          this.monedaControl.setValue(this.monedaEmpresa.id);
+        }
+      }
+      this.actualizarMoneda();
+    });
+  }
+
+  /** La moneda elegida; null si no hay selección (se trata como la de la empresa). */
+  private monedaElegida(): Moneda | null {
+    const id = this.monedaControl.value;
+    if (id == null) return null;
+    return this.monedaList.find((m) => String(m.id) === String(id))
+      ?? (this.monedaGuardada && String(this.monedaGuardada.id) === String(id) ? this.monedaGuardada : null)
+      ?? (this.monedaEmpresa && String(this.monedaEmpresa.id) === String(id) ? this.monedaEmpresa : null);
+  }
+
+  private esMonedaDeLaEmpresa(m: Moneda | null): boolean {
+    return m == null || this.monedaModulo.esMonedaEmpresa(m);
+  }
+
+  private actualizarMoneda(): void {
+    const elegida = this.monedaElegida();
+    const otra = !this.esMonedaDeLaEmpresa(elegida);
+    this.usaMascaraMoneda = otra;
+    this.simboloPrecio = otra ? (elegida?.simbolo || '') : '';
+    this.opcionesMascara = otra ? this.monedaService.currencyOptionsMontoPositivo(elegida, { allowZero: true }) : null;
+    const hayEleccion = this.monedaList.length > 1 || this.monedaGuardada != null;
+    this.mostrarSelectorMoneda = hayEleccion
+      && (this.data?.precio?.id == null || this.monedaGuardadaLeida)
+      && debeMostrarSelectorMoneda(this.monedaPreciosEsEmpresa, this.cantidadPreciosOtraMoneda, this.monedaGuardada != null);
+  }
+
+  /** Mínimo guardable: 1 en la moneda de la empresa (como siempre); el centavo de la moneda en otra con decimales. */
+  private minimoPrecio(): number {
+    const m = this.monedaElegida();
+    if (this.esMonedaDeLaEmpresa(m)) return 1;
+    return m.decimales > 0 ? Math.pow(10, -m.decimales) : 1;
+  }
+
+  /**
+   * El `monedaId` a mandar, o undefined (la clave NO viaja). Un central viejo rechaza el input entero si
+   * llega una clave que no conoce, así que solo viaja si el usuario eligió una moneda distinta de la de
+   * la empresa, o si el precio ya la tenía guardada (para poder volver a la de la empresa).
+   */
+  private monedaIdParaGuardar(): number | undefined {
+    const elegida = this.monedaElegida();
+    if (elegida == null) return undefined;
+    if (!this.esMonedaDeLaEmpresa(elegida) || this.monedaGuardada != null) return Number(elegida.id);
+    return undefined;
   }
 
   onPromocionChange() {
@@ -153,6 +289,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.formGroup.addControl("principal", this.principalControl);
     this.formGroup.addControl("activo", this.activoControl);
     this.formGroup.addControl("tipoPrecio", this.tipoPrecioControl);
+    this.formGroup.addControl("moneda", this.monedaControl);
 
     this.principalControl.setValue(false);
     this.activoControl.setValue(true);
@@ -190,6 +327,9 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioInput.principal = this.principalControl.value;
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
+    const monedaId = this.monedaIdParaGuardar();
+    if (monedaId !== undefined) this.precioInput.monedaId = monedaId;
+    else delete this.precioInput.monedaId;
 
     if (this.precioInput.id == null) {
       this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id, true, LECTURA_PRECIOS, CONSULTA_PRECIOS)
@@ -228,9 +368,36 @@ export class AdicionarPrecioDialogComponent implements OnInit {
    * igual el precio que ingresó.
    */
   private verificarMargen() {
+    const elegida = this.monedaElegida();
+    if (this.esMonedaDeLaEmpresa(elegida)) {
+      // Moneda de la empresa: el costo de siempre, sin leer nada más.
+      this.avisarMargen(this.data?.costoMedio, null);
+      return;
+    }
+    // Otra moneda: el margen se mide en la moneda del precio. Costo de costeo y cambios del comercio,
+    // leídos de fondo; si no se pueden leer no hay margen que calcular y se guarda sin avisar.
+    const productoId = this.data?.productoId ?? this.data?.presentacion?.producto?.id;
+    forkJoin({
+      costeo: productoId != null ? this.costoService.getCostoEnCosteo(productoId) : of(null),
+      monedas: this.monedaService.onGetAllEnSegundoPlano(true, { graphError: { show: false }, networkError: { show: false, propagate: true } })
+        .pipe(take(1), catchError(() => of([] as Moneda[]))),
+    }).pipe(untilDestroyed(this)).subscribe(({ costeo, monedas }) => {
+      const conCambio = (m: Moneda) => (monedas || []).find((x) => String(x.id) === String(m?.id)) ?? m;
+      const costo = costoEnMonedaDelPrecio(
+        this.data?.costoMedio,
+        conCambio(elegida),
+        this.monedaEmpresa ? conCambio(this.monedaEmpresa) : null,
+        costeo,
+      );
+      this.avisarMargen(costo, elegida);
+    });
+  }
+
+  /** `moneda`: la del precio cuando no es la de la empresa (para formatear los montos); null = la de siempre. */
+  private avisarMargen(costoMedio: number, moneda: Moneda | null) {
     const evaluacion = evaluarMargenPrecio(
       Number(this.precioControl.value),
-      this.data?.costoMedio,
+      costoMedio,
       this.data?.presentacion?.cantidad
     );
 
@@ -239,7 +406,9 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       return;
     }
 
-    const precioSugerido = Math.round(evaluacion.precioMinimoSugerido);
+    const precioSugerido = moneda == null
+      ? Math.round(evaluacion.precioMinimoSugerido)
+      : redondearMonto(evaluacion.precioMinimoSugerido, moneda.decimales);
 
     this.dialogosService
       .confirm(
@@ -249,13 +418,13 @@ export class AdicionarPrecioDialogComponent implements OnInit {
         )}% sobre el costo.`,
         `Se espera un margen mínimo de ${MARGEN_MINIMO_PORCENTAJE}%.`,
         [
-          `Costo de la presentación: ${this.formatearGs(
-            evaluacion.costoPresentacion
+          `Costo de la presentación: ${this.formatearMonto(
+            evaluacion.costoPresentacion, moneda
           )}`,
-          `Precio ingresado: ${this.formatearGs(
-            Number(this.precioControl.value)
+          `Precio ingresado: ${this.formatearMonto(
+            Number(this.precioControl.value), moneda
           )}`,
-          `Precio mínimo sugerido: ${this.formatearGs(precioSugerido)}`,
+          `Precio mínimo sugerido: ${this.formatearMonto(precioSugerido, moneda)}`,
         ],
         true,
         'Cancelar',
@@ -283,8 +452,12 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioInput.precio = precioSugerido;
   }
 
-  private formatearGs(valor: number): string {
-    return Math.round(valor).toLocaleString('es-PY');
+  /** Moneda de la empresa (`moneda` null): el formato de siempre. Otra: símbolo y decimales de esa moneda. */
+  private formatearMonto(valor: number, moneda: Moneda | null): string {
+    if (moneda == null) return Math.round(valor).toLocaleString('es-PY');
+    const decimales = moneda.decimales > 0 ? moneda.decimales : 0;
+    const texto = valor.toLocaleString('es-PY', { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+    return `${moneda.simbolo ? moneda.simbolo + ' ' : ''}${texto}`;
   }
 
   private formatearPorcentaje(valor: number): string {
@@ -301,8 +474,11 @@ export class AdicionarPrecioDialogComponent implements OnInit {
    * validador del control: un precio viejo en cero tiene que poder editarse sin tocar el valor.
    */
   private precioSinValor(): boolean {
-    if (esPrecioGuardable(this.precioControl.value, this.selectedPrecioPorSucursal?.precio)) return false;
-    this.notificacionSnackBar.openWarn("El precio tiene que ser de 1 o más.", 4);
+    const minimo = this.minimoPrecio();
+    if (esPrecioGuardable(this.precioControl.value, this.selectedPrecioPorSucursal?.precio, minimo)) return false;
+    this.notificacionSnackBar.openWarn(minimo === 1
+      ? "El precio tiene que ser de 1 o más."
+      : `El precio tiene que ser de ${this.formatearMonto(minimo, this.monedaElegida())} o más.`, 4);
     return true;
   }
 

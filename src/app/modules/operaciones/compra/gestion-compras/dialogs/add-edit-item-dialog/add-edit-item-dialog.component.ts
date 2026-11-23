@@ -40,6 +40,7 @@ import {
 import { CurrencyMask } from "../../../../../../commons/core/utils/numbersUtils";
 import { Pedido } from "../../pedido.model";
 import { MonedaService } from "../../../../../financiero/moneda/moneda.service";
+import { MonedaModuloService } from "../../../../../../shared/services/moneda-modulo.service";
 import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
@@ -146,6 +147,7 @@ export class AddEditItemDialogComponent implements OnInit {
   private dialogRef = inject<MatDialogRef<AddEditItemDialogComponent, AddEditItemDialogResult>>(MatDialogRef);
   private dialog = inject(MatDialog);
   private monedaService = inject(MonedaService);
+  private monedaModuloService = inject(MonedaModuloService);
   private pedidoService = inject(PedidoService);
   private notificacionService = inject(NotificacionSnackbarService);
   private dialogosService = inject(DialogosService);
@@ -288,6 +290,8 @@ export class AddEditItemDialogComponent implements OnInit {
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
   selectedCurrencyDecimalFormat = '1.0-0';
+  /** Formato de los costos unitarios (precio anterior y su variación): hasta 4 decimales en moneda extranjera. */
+  selectedCostoDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -678,15 +682,20 @@ export class AddEditItemDialogComponent implements OnInit {
     const monedaCompleta = this.completarMoneda(this.data.pedido.moneda);
     
     if (monedaCompleta) {
-      this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
+      this.selectedCurrencyOptions = this.monedaService.currencyOptionsCostoByMoneda(monedaCompleta);
+      this.selectedCostoDecimalFormat = `1.0-${this.selectedCurrencyOptions.precision}`;
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
-      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+      const decimales = monedaCompleta.decimales != null
+        ? monedaCompleta.decimales
+        : (this.monedaModuloService.esMonedaEmpresa(monedaCompleta) ? 0 : 2);
+      this.selectedCurrencyDecimalFormat = decimales > 0 ? `1.0-${decimales}` : '1.0-0';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
       this.selectedCurrencyDecimalFormat = '1.0-0';
+      this.selectedCostoDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -1023,12 +1032,17 @@ export class AddEditItemDialogComponent implements OnInit {
 
     // Pedido en moneda extranjera: se prioriza pedido.cotizacion (fijada al guardar el pedido)
     // y se cae a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
-    // cotizacion > 1 identifica a la moneda extranjera (el guaraní cotiza 1), misma convención
-    // que CostoMedioCalculator.aGuaranies y <app-costo-display>.
+    // Moneda distinta de la de la empresa = extranjera (cotiza contra la de la empresa); si el pedido
+    // no trae moneda, cotizacion > 1, misma convención que CostoMedioCalculator.aGuaranies.
     const pedidoCotizacion =
       this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
-    if (precioInicial > 0 && pedidoCotizacion > 1) {
-      precioInicial = Math.round((precioInicial / pedidoCotizacion) * 100) / 100;
+    const pedidoMoneda = this.data.pedido?.moneda;
+    const monedaDistinta = pedidoMoneda
+      ? !this.monedaModuloService.esMonedaEmpresa(pedidoMoneda)
+      : pedidoCotizacion > 1;
+    if (precioInicial > 0 && monedaDistinta && pedidoCotizacion > 0) {
+      const factor = Math.pow(10, this.monedaService.decimalesCosto(pedidoMoneda));
+      precioInicial = Math.round((precioInicial / pedidoCotizacion) * factor) / factor;
     }
 
     this.itemForm.patchValue(
@@ -1521,8 +1535,9 @@ export class AddEditItemDialogComponent implements OnInit {
       if (cambioAbsoluto > 50) {
         const direccion = cambioPorcentual > 0 ? "aumentó" : "disminuyó";
         const porcentajeFormateado = Math.abs(Math.round(cambioPorcentual * 10) / 10);
-        const precioOriginalFormateado = this.precioOriginal.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        const precioNuevoFormateado = precio.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const decimales = this.selectedCurrencyOptions?.precision ?? 0;
+        const precioOriginalFormateado = this.precioOriginal.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: decimales });
+        const precioNuevoFormateado = precio.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: decimales });
         mensaje = `El precio ${direccion} ${porcentajeFormateado}% respecto al valor original (${precioOriginalFormateado} → ${precioNuevoFormateado}). ¿Está seguro de que es correcto?`;
       }
     }

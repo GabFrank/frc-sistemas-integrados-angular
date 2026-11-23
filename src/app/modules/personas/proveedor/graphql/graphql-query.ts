@@ -149,6 +149,8 @@ export const proveedorQuery = gql`
         documento
         apodo
         telefono
+        direccion
+        email
       }
       vendedores {
         id

@@ -21,7 +21,7 @@
         <span class="pe-etiqueta__rotulo">{{ rotuloPrecioGlobal }}</span>
         <span class="pe-etiqueta__actual" [class.pe-tachado]="precioEspecial != null && !precioInactivo"
           [class.pe-etiqueta__actual--inactivo]="precioInactivo">
-          {{ precioGlobal | number: '1.0-0' }}
+          {{ precioGlobal | number: formatoMonto }}
         </span>
         <span class="pe-etiqueta__nota">{{ notaPrecioGlobal }}</span>
       </div>
@@ -33,7 +33,7 @@
       <div class="pe-etiqueta__lado pe-etiqueta__lado--especial">
         <span class="pe-etiqueta__rotulo">Precio promocional</span>
         <ng-container *ngIf="precioEspecial != null; else sinPrecio">
-          <span class="pe-etiqueta__especial">{{ precioEspecial | number: '1.0-0' }}</span>
+          <span class="pe-etiqueta__especial">{{ precioEspecial | number: formatoMonto }}</span>
           <div class="pe-etiqueta__datos">
             <span class="pe-pildora" *ngIf="descuentoPorcentaje != null"
               [class.pe-pildora--baja]="descuentoPorcentaje < 0" [class.pe-pildora--sube]="descuentoPorcentaje > 0">
@@ -75,8 +75,8 @@
       <div class="pe-fila">
         <mat-form-field appearance="outline" class="pe-campo">
           <mat-label>Precio promocional</mat-label>
-          <input matInput type="number" min="1" [formControl]="precioControl" autocomplete="off" />
-          <span matTextSuffix>Gs.</span>
+          <input matInput type="number" [min]="minimoPrecio" [step]="pasoPrecio" [formControl]="precioControl" autocomplete="off" />
+          <span matTextSuffix>{{ simboloMoneda }}</span>
         </mat-form-field>
         <mat-form-field appearance="outline" class="pe-campo">
           <mat-label>Desde</mat-label>
@@ -138,7 +138,7 @@
         <div class="pe-item" *ngFor="let f of filas" [ngClass]="'pe-item--' + (f.estado | lowercase)"
           [class.pe-item--seleccionado]="editando?.id === f.especial.id">
           <div class="pe-item__sucursal">{{ f.sucursal }}</div>
-          <div class="pe-item__precio">{{ f.especial.precio | number: '1.0-0' }}</div>
+          <div class="pe-item__precio">{{ f.especial.precio | number: formatoMonto }}</div>
           <div class="pe-item__dato"><mat-icon>event</mat-icon><span>{{ f.vigencia }}</span></div>
           <div class="pe-item__dato" [matTooltip]="f.autorDetalle"><mat-icon>person</mat-icon><span>{{ f.autor }}</span></div>
           <span class="pe-estado" [ngClass]="'pe-estado--' + (f.estado | lowercase)">{{ f.estadoTexto }}</span>

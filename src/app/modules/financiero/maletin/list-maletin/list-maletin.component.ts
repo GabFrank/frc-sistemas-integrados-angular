@@ -3,7 +3,6 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { AdicionarMaletinDialogComponent } from '../adicionar-maletin-dialog/adicionar-maletin-dialog.component';
 import { Maletin } from '../maletin.model';
@@ -11,7 +10,8 @@ import { MaletinService } from '../maletin.service';
 
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PageInfo } from '../../../../app.component';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
@@ -38,7 +38,7 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 })
 export class ListMaletinComponent implements OnInit {
 
-  @ViewChild('paginator', { static: true }) paginator: MatPaginator;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   headerHeight;
   tableHeight;
@@ -54,7 +54,10 @@ export class ListMaletinComponent implements OnInit {
   isSearching = false;
 
   sucursalList: Sucursal[] = [];
-  maletinList: Maletin[] = [];
+
+  pageIndex = 0;
+  pageSize = 15;
+  selectedPageInfo: PageInfo<Maletin>;
 
   sucursalControl = new FormControl(null);
   codigoControl = new FormControl(null);
@@ -97,11 +100,7 @@ export class ListMaletinComponent implements OnInit {
       restoreFocus: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        if (maletin == null) {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res);
-        } else {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
-        }
+        this.cargarPagina();
       }
     })
   }
@@ -109,27 +108,32 @@ export class ListMaletinComponent implements OnInit {
   cargarMasDatos() {
 
   }
+
+  // Buscar, Enter y Limpiar vuelven a la página 1; el central filtra y pagina.
   onFiltrar() {
-    this.maletinService.onGetAll()
+    this.pageIndex = 0;
+    if (this.paginator) this.paginator.pageIndex = 0;
+    this.cargarPagina();
+  }
+
+  cargarPagina() {
+    const sucursalId = this.sucursalControl.value?.id ?? null;
+    const texto = (this.codigoControl.value || '').toString().trim() || null;
+    const abierto = this.abiertoControl.value;
+    this.maletinService.onGetConFiltros(sucursalId, texto, abierto, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
-          this.maletinList = res;
-          this.aplicarFiltros();
+          this.selectedPageInfo = res;
+          this.dataSource.data = res.getContent || [];
         }
       })
   }
 
-  aplicarFiltros() {
-    const sucursalId = this.sucursalControl.value?.id;
-    const codigo = (this.codigoControl.value || '').toString().trim().toLowerCase();
-    const abierto = this.abiertoControl.value;
-
-    this.dataSource.data = (this.maletinList || []).filter(maletin =>
-      (sucursalId == null || maletin?.sucursal?.id == sucursalId) &&
-      (codigo == '' || (maletin?.descripcion || '').toLowerCase().includes(codigo)) &&
-      (abierto == null || (maletin?.abierto == true) == abierto)
-    );
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.cargarPagina();
   }
 
   onCambiarAbierto() {
@@ -146,7 +150,7 @@ export class ListMaletinComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.codigoControl.setValue(null);
     this.abiertoControl.setValue(null);
-    this.aplicarFiltros();
+    this.onFiltrar();
   }
 
   onIrACaja(cajaSalida: PdvCaja){

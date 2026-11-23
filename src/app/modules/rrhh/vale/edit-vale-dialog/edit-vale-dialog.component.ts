@@ -6,6 +6,7 @@ import { merge } from 'rxjs';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { digitosMoneda } from '../../liquidacion/moneda-item';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { MotivoVale } from '../../motivo-vale/motivo-vale.model';
@@ -54,6 +55,8 @@ export class EditValeDialogComponent implements OnInit {
 
   puedeAprobar = false;
   cuotasPreview: CuotaPreview[] = [];
+  /** Decimales de la vista previa segun la moneda elegida (R$ 100,00; Gs 100.000). */
+  digitos = '1.0-0';
   maxCuotas = MAX_CUOTAS_VALE;
 
   constructor(
@@ -79,7 +82,8 @@ export class EditValeDialogComponent implements OnInit {
       enEspecie: this.enEspecieControl
     });
     this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
-    merge(this.montoControl.valueChanges, this.cuotasControl.valueChanges, this.fechaControl.valueChanges)
+    merge(this.montoControl.valueChanges, this.cuotasControl.valueChanges, this.fechaControl.valueChanges,
+          this.monedaControl.valueChanges)
       .pipe(untilDestroyed(this))
       .subscribe(() => this.actualizarPreview());
     // Un uniforme o una herramienta no son adelanto de sueldo.
@@ -105,6 +109,7 @@ export class EditValeDialogComponent implements OnInit {
    * la fecha y no el mes porque con día de cierre < 28 el periodo no es el mes calendario.
    */
   private actualizarPreview() {
+    this.digitos = digitosMoneda(this.monedas.find(m => m.id === this.monedaControl.value));
     const n = +this.cuotasControl.value || 1;
     const monto = +this.montoControl.value || 0;
     const fecha: Date = this.fechaControl.value ? new Date(this.fechaControl.value) : null;

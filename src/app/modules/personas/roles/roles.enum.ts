@@ -53,6 +53,8 @@ export enum ROLES {
   TESORERIA_CPP_PAGAR = "TESORERIA CPP PAGAR",
   /** Operador de caja acotado: opera las cajas a las que tiene acceso, sin ver nada global de tesorería. */
   TESORERIA_CAJA = "TESORERIA CAJA",
+  /** Moneda por módulo (compras, costos, precios, PDV): crear y activar/desactivar configuraciones. */
+  CONFIGURAR_MONEDA = "CONFIGURAR MONEDA",
   VENTA_TARJETA_COMPLETAR = "VENTA TARJETA COMPLETAR"
 }
 

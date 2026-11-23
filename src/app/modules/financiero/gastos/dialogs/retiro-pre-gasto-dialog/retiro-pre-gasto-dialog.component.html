@@ -5,8 +5,8 @@
   </div>
 
   <p class="hint-text">
-    Seleccione la solicitud, muestre el QR al funcionario para que lo escanee desde su celular,
-    y luego confirme la entrega de efectivo en caja.
+    Seleccione la solicitud y muestre el QR al funcionario para que lo escanee desde su celular,
+    o use «Entregar sin QR». Luego confirme la entrega de efectivo en caja.
   </p>
 
   <div *ngIf="cargandoLista" class="estado-carga">
@@ -49,12 +49,12 @@
     </div>
     <div class="detalle-campo">
       <span class="etiqueta">Confirmación móvil</span>
-      <span class="valor" [class.confirmado]="funcionarioConfirmo">
-        {{ funcionarioConfirmo ? 'Funcionario confirmó retiro' : 'Pendiente de escaneo' }}
+      <span class="valor" [class.confirmado]="entregaHabilitada">
+        {{ funcionarioConfirmo ? 'Funcionario confirmó retiro' : (entregaSinQr ? 'Entrega directa, sin QR' : 'Pendiente de escaneo') }}
       </span>
     </div>
 
-    <div *ngIf="funcionarioConfirmo" class="panel-entrega-efectivo">
+    <div *ngIf="entregaHabilitada" class="panel-entrega-efectivo">
       <p class="hint-entrega">
         Confirme la moneda y el monto a entregar. Si no dispone del efectivo en la moneda solicitada,
         use el botón + para agregar otra moneda.
@@ -134,10 +134,19 @@
       Mostrar QR
     </button>
     <button
+      mat-stroked-button
+      type="button"
+      [disabled]="!seleccionada || entregaHabilitada"
+      (click)="entregarSinQr()"
+    >
+      <mat-icon>pan_tool</mat-icon>
+      Entregar sin QR
+    </button>
+    <button
       mat-raised-button
       class="boton-entregar"
       type="button"
-      [disabled]="!seleccionada || !funcionarioConfirmo || !montosEntregaValidos || cargandoRetiro"
+      [disabled]="!seleccionada || !entregaHabilitada || !montosEntregaValidos || cargandoRetiro"
       (click)="ejecutarRetiro()"
     >
       <mat-icon>payments</mat-icon>

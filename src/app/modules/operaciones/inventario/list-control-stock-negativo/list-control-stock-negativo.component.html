@@ -107,6 +107,7 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item [disabled]="item.referenciaId == null" (click)="onIrAReferencia(item)">
+              <mat-icon>open_in_new</mat-icon>
               <span *ngIf="item.tipo === 'TRANSFERENCIA'">Ir a transferencia</span>
               <span *ngIf="item.tipo === 'VENTA'">Ir a venta</span>
             </button>

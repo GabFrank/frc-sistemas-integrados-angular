@@ -16,6 +16,7 @@ import { ReportesComponent } from '../../../../reportes/reportes/reportes.compon
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../../shared/services/timeout-link';
+import { MonedaModuloService } from '../../../../../shared/services/moneda-modulo.service';
 
 @UntilDestroy()
 @Component({
@@ -46,6 +47,8 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges, OnDestro
   totalSolicitudesComputed = 0;
   totalMontoSolicitudesComputed: number | null = 0;
   totalMonedaSimbolo = '';
+  /** Formato del total: los decimales de su moneda (US$ 21,23, no US$ 21). */
+  totalMonedaFormato = '1.0-0';
   canCreateSolicitudComputed = false;
 
   // Table configuration
@@ -60,7 +63,8 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges, OnDestro
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private tabService: TabService,
-    private reporteService: ReporteService
+    private reporteService: ReporteService,
+    private monedaModuloService: MonedaModuloService
   ) {}
 
   ngOnInit(): void {
@@ -141,18 +145,30 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges, OnDestro
       });
   }
 
+  /** Formato de un monto en `moneda`: sus decimales; sin el dato, 0 en la de la empresa y 2 en otra. */
+  private formatoDe(moneda: any): string {
+    const decimales = moneda?.decimales ?? (this.monedaModuloService.esMonedaEmpresa(moneda) ? 0 : 2);
+    return decimales > 0 ? `1.${decimales}-${decimales}` : '1.0-0';
+  }
+
   /**
    * Actualiza todas las propiedades computadas
    */
   private updateComputedProperties(): void {
     // Process solicitudes
     this.solicitudesPagoComputed = this.solicitudesPago;
+    this.solicitudesPago.forEach((s) => {
+      (s as any).montoSimboloComputed = s.moneda?.simbolo || '';
+      (s as any).montoFormatoComputed = this.formatoDe(s.moneda);
+    });
     this.totalSolicitudesComputed = this.solicitudesPago.length;
     // Sum totals only if all solicitudes share the same currency
     const monedaIds = new Set(this.solicitudesPago.map(s => s.moneda?.id).filter(Boolean));
     if (monedaIds.size <= 1) {
       this.totalMontoSolicitudesComputed = this.solicitudesPago.reduce((total, s) => total + (s.montoTotal || 0), 0);
-      this.totalMonedaSimbolo = this.solicitudesPago[0]?.moneda?.simbolo || this.pedido?.moneda?.simbolo || '';
+      const monedaTotal = this.solicitudesPago[0]?.moneda || this.pedido?.moneda;
+      this.totalMonedaSimbolo = monedaTotal?.simbolo || '';
+      this.totalMonedaFormato = this.formatoDe(monedaTotal);
     } else {
       this.totalMontoSolicitudesComputed = null;
       this.totalMonedaSimbolo = 'Mixto';

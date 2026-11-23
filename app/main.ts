@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "electron";
+import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen, session } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
@@ -320,7 +320,11 @@ app.on('second-instance', () => {
     }
     return;
   }
-  createWindow(SECOND_INSTANCE_PARTITION).catch((e) => log.error('No se pudo crear la 2da ventana:', e));
+  // La partición que quedó libre: si se cerró la 1ra, la nueva va a la por defecto. Antes iba siempre a la
+  // de la 2da, y dos ventanas con el mismo localStorage se pisaban el token del cajero (#142 del filial).
+  const defaultEnUso = windows.some((w) => !w.isDestroyed() && w.webContents.session === session.defaultSession);
+  createWindow(defaultEnUso ? SECOND_INSTANCE_PARTITION : undefined)
+    .catch((e) => log.error('No se pudo crear la 2da ventana:', e));
 });
 
 /**
@@ -2740,7 +2744,7 @@ async function printThermalReceipt(printer: PrinterConfig, content: string): Pro
       return await printImageWithCUPS(printer, content);
     }
 
-    const isLabel = content.includes('Gs.') && content.includes('\x1B\x61\x01');
+    const isLabel = esEtiquetaDePrecio(content);
     console.log(`Print job detected as ${isLabel ? 'LABEL' : 'RECEIPT/TEST'}`);
 
     if (printer.connectionType === 'usb' && printer.address.includes('ticket-')) {
@@ -2824,9 +2828,20 @@ async function printImageWithCUPS(printer: PrinterConfig, content: string): Prom
   }
 }
 
+/**
+ * ¿Es una etiqueta de precio? Va centrada (ESC a 1) y lleva un precio. El de la moneda de la empresa se detecta
+ * como siempre, por «Gs.»; el de otra moneda es una línea con solo «símbolo monto» («US$ 4,39», «R$ 2,50», «€ 3,00»):
+ * el símbolo lleva un signo de moneda, así un renglón de ticket como «IVA 5» no se confunde con una etiqueta.
+ */
+function esEtiquetaDePrecio(content: string): boolean {
+  if (!content.includes('\x1B\x61\x01')) return false;
+  if (content.includes('Gs.')) return true;
+  return /(^|[\r\n])[A-Za-z]{0,3}[$\u20AC\u00A3\u00A5]\s\d{1,3}(\.\d{3})*(,\d+)?[ \t]*(?=[\r\n]|$)/.test(content);
+}
+
 async function printWithCUPS(printer: PrinterConfig, content: string): Promise<boolean> {
   const isImagePrint = content.includes('__IMAGE_PRINT_DATA__:');
-  const isLabel = content.includes('Gs.') && content.includes('\x1B\x61\x01');
+  const isLabel = esEtiquetaDePrecio(content);
   const isRotatedLabel = (isLabel || isImagePrint) && (
     content.includes('\x1B\x54\x01') ||
     content.includes('\x1D\x7C\x01') ||

@@ -7,6 +7,7 @@ import { map } from "rxjs/operators";
 import { Producto } from "./producto.model";
 import { ProductoPorProveedorGQL } from "./graphql/productoPorProveedor";
 import { ProductoPorIdGQL } from "./graphql/productoPorId";
+import { ProductoPresentacionesGQL } from "./graphql/productoPresentaciones";
 import { MainService } from "../../../main.service";
 import { SaveImagenProductoGQL } from "./graphql/saveImagenProducto";
 import {
@@ -14,6 +15,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
+import { ProductoSearchTransferenciaGQL } from "./graphql/productoSearchTransferencia";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { ContextoConsulta, GenericCrudService, QueryError, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../generics/generic-crud.service";
@@ -71,12 +73,14 @@ export class ProductoService {
     private productoPorProveedor: ProductoPorProveedorGQL,
     private saveProducto: SaveProductoGQL,
     private productoPorId: ProductoPorIdGQL,
+    private productoPresentaciones: ProductoPresentacionesGQL,
     private saveImage: SaveImagenProductoGQL,
     private productoSearch: ProductoForPdvGQL,
     private envaseSearch: EnvaseSearchGQL,
     private notificacionSnack: NotificacionSnackbarService,
     private printProductoPorId: PrintProductoPorIdGQL,
     private searchForPdv: ProductoForPdvGQL,
+    private productoSearchTransferencia: ProductoSearchTransferenciaGQL,
     private getAllProductos: AllProductosGQL,
     private genericService: GenericCrudService,
     private getProductoParaPedido: ProductoParaPedidoGQL,
@@ -213,6 +217,15 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, errorConf, silentLoad, contexto);
   }
 
+  /** Buscador de transferencias (#673): con `ordenStockSucursalId` el central ordena por el stock de esa sucursal (mayor o menor primero). */
+  onSearchTransferencia(texto, offset?, sucursalId?, conStock?, activo?, ordenStockSucursalId?: number,
+           ordenStockMayor?: boolean, servidor = true, silentLoad: boolean = false, errorConf?: QueryError,
+           contexto?: ContextoConsulta): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearchTransferencia,
+      {texto, offset, sucursalId, conStock, isEnvase: false, activo, ordenStockSucursalId, ordenStockMayor},
+      servidor, errorConf, silentLoad, contexto);
+  }
+
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {
     // El error de red y el del servidor llegan al buscador (20 s), que avisa: sin esto quedaba «buscando» (#390)
     return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor,
@@ -248,6 +261,15 @@ export class ProductoService {
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
   getProducto(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
     return this.genericService.onGetById(this.productoPorId, id, null, null, servidor, null, null, null, null, null,
+      null, errorConf, contexto);
+  }
+
+  /**
+   * Solo id + presentaciones (con códigos, precios y miniatura). Es lo que necesita el buscador al
+   * desplegar una fila; getProducto trae además las fotos del producto, que pesan.
+   */
+  getProductoPresentaciones(id, servidor = true, errorConf?: QueryError, contexto?: ContextoConsulta): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPresentaciones, id, null, null, servidor, null, null, null, null, null,
       null, errorConf, contexto);
   }
 

@@ -6,10 +6,15 @@ import { NotificacionColor, NotificacionSnackbarService } from '../../../../noti
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { MainService } from '../../../../main.service';
 import { Producto } from '../producto.model';
-import { CostoPorProductoService, CostoPorProductoInput } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
+import { CostoPorProductoService, CostoPorProductoInput, CostoEnCosteo } from '../../../operaciones/costo-por-producto/costo-por-producto.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
+import { MonedaModuloService } from '../../../../shared/services/moneda-modulo.service';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { ModuloMoneda } from '../../../financiero/moneda/configuracion-moneda-modulo/configuracion-moneda-modulo.model';
+import { redondearMonto } from '../../precio-por-sucursal/precio-moneda.util';
+import { combineLatest } from 'rxjs';
 
 export interface AjustarCostoDialogData {
   producto: Producto;
@@ -36,6 +41,12 @@ export class AjustarCostoDialogComponent implements OnInit {
   costoCotizacion: number | null = null;
   isLoadingCosto = false;
   diferenciaCosto: number = 0;
+  /** Moneda de la empresa: en ella se ingresa y se guarda el costo. «Gs.» mientras no se resuelva. */
+  monedaEmpresa: Moneda | null = null;
+  simboloEmpresa = 'Gs.';
+  stepCosto = '1';
+  /** Referencia en la moneda de costeo; null si el central no la da o es la de la empresa. */
+  costoCosteo: CostoEnCosteo | null = null;
   variacionPorcentual: number = 0;
 
   constructor(
@@ -45,12 +56,41 @@ export class AjustarCostoDialogComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private cargandoService: CargandoDialogService,
     private dialogosService: DialogosService,
-    private mainService: MainService
+    private mainService: MainService,
+    private monedaModuloService: MonedaModuloService
   ) {}
 
   ngOnInit(): void {
     this.createForm();
     this.cargarCostoActual();
+    this.monedaModuloService.empresa$.pipe(untilDestroyed(this)).subscribe((m) => {
+      this.monedaEmpresa = m;
+      if (m) {
+        this.simboloEmpresa = (m.denominacion || '').toUpperCase().includes('GUARANI') ? 'Gs.' : (m.simbolo || 'Gs.');
+        this.stepCosto = m.decimales > 0 ? (1 / Math.pow(10, m.decimales)).toFixed(m.decimales) : '1';
+        // A los decimales de la empresa, como se muestra: el input arrancaba con 5161.1111111111 (#712)
+        if (this.costoControl.pristine) {
+          this.costoActual = redondearMonto(this.costoActual, m.decimales) ?? 0;
+          this.costoControl.setValue(this.costoActual);
+        }
+      }
+    });
+    this.cargarCostoCosteo();
+  }
+
+  private cargarCostoCosteo(): void {
+    if (!this.data.producto?.id) return;
+    // El costeo guardado queda aunque COSTOS se desactive o cambie de moneda: solo se muestra si es la vigente (#712)
+    combineLatest([
+      this.costoPorProductoService.getCostoEnCosteo(this.data.producto.id),
+      this.monedaModuloService.monedaDe(ModuloMoneda.COSTOS),
+    ])
+      .pipe(untilDestroyed(this))
+      .subscribe(([costo, monedaCostos]) => {
+        this.costoCosteo = costo
+          && String(costo.moneda?.id) === String(monedaCostos.id)
+          && !this.monedaModuloService.esMonedaEmpresa(costo.moneda) ? costo : null;
+      });
   }
 
   createForm(): void {
@@ -125,7 +165,7 @@ export class AjustarCostoDialogComponent implements OnInit {
         
         this.dialogosService.confirm(
           "Atención!!",
-          `Costo ingresado: ${costoIngresado.toLocaleString()} Gs.`,
+          `Costo ingresado: ${costoIngresado.toLocaleString()} ${this.simboloEmpresa}`,
           "¿Está seguro de que desea guardar este costo?",
           [referencias],
           true,
@@ -148,11 +188,11 @@ export class AjustarCostoDialogComponent implements OnInit {
     const referencias = [];
     
     if (costoMedio) {
-      referencias.push(`Costo actual: ${costoMedio.toLocaleString()} Gs. (${varMedio > 0 ? '+' : ''}${varMedio.toFixed(0)}%)`);
+      referencias.push(`Costo actual: ${costoMedio.toLocaleString()} ${this.simboloEmpresa} (${varMedio > 0 ? '+' : ''}${varMedio.toFixed(0)}%)`);
     }
     
     if (ultimoPrecioCompra && ultimoPrecioCompra !== costoMedio) {
-      referencias.push(`Última compra: ${ultimoPrecioCompra.toLocaleString()} Gs. (${varUltimo > 0 ? '+' : ''}${varUltimo.toFixed(0)}%)`);
+      referencias.push(`Última compra: ${ultimoPrecioCompra.toLocaleString()} ${this.simboloEmpresa} (${varUltimo > 0 ? '+' : ''}${varUltimo.toFixed(0)}%)`);
     }
     
     return referencias.join(' | ');
@@ -177,7 +217,8 @@ export class AjustarCostoDialogComponent implements OnInit {
       costoMedio: nuevoCosto,
       ultimoPrecioCompra: nuevoCosto,
       usuarioId: this.mainService.usuarioActual.id,
-      monedaId: 1,
+      // El costo se ingresa en la moneda de la empresa; si no se resolvió, el guaraní de siempre
+      monedaId: this.monedaEmpresa?.id ?? 1,
       cotizacion: 1
     };
 
