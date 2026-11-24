@@ -1330,6 +1330,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDescuento() {
+    // Con CONVENIO elegido el descuento no se registraba (addCobroDetalle abre el convenio) y la marca quedaba
+    // puesta: el siguiente Enter guardaba el pago como descuento.
+    if (this.selectedFormaPago?.descripcion == "CONVENIO") {
+      this.notificacionSnackbar.openWarn("No se puede aplicar descuento a una venta por convenio.", 5);
+      return;
+    }
     if (this.cobroDetalleList.some(item => item.descuento)) {
       this.notificacionSnackbar.openWarn("Ya se aplicó un descuento a esta venta.");
       return;
@@ -1546,6 +1552,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // `isDialogOpen` se marca recién al abrir el diálogo y se apaga al cerrarlo. Antes se ponía en
     // true acá arriba --incluso en los return tempranos-- y nunca volvía a false: después de un
     // CONVENIO los atajos del cobro (Enter, F10, F1-F6) quedaban muertos.
+    // El convenio paga toda la venta y sin descuento: con cualquier línea cargada no se abre (el filial también lo rechaza).
+    if (this.cobroDetalleList?.length > 0) {
+      this.setFormaPago(this.formaPagoList[0]?.descripcion);
+      return this.notificacionSnackbar.openWarn(
+        this.cobroDetalleList.some((l) => l.descuento)
+          ? "No se puede aplicar descuento a una venta por convenio."
+          : "El convenio solo se puede usar como única forma de pago.",
+        5
+      );
+    }
     this.setFormaPago("CONVENIO");
     if (this.saldoCero()) {
       return this.notificacionSnackbar.openWarn("El valor no puede ser 0.");
