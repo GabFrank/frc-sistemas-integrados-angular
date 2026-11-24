@@ -1546,6 +1546,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // `isDialogOpen` se marca recién al abrir el diálogo y se apaga al cerrarlo. Antes se ponía en
     // true acá arriba --incluso en los return tempranos-- y nunca volvía a false: después de un
     // CONVENIO los atajos del cobro (Enter, F10, F1-F6) quedaban muertos.
+    // El convenio paga toda la venta y sin descuento: con cualquier línea cargada no se abre (el filial también lo rechaza).
+    if (this.cobroDetalleList?.length > 0) {
+      this.setFormaPago(this.formaPagoList[0]?.descripcion);
+      return this.notificacionSnackbar.openWarn(
+        this.cobroDetalleList.some((l) => l.descuento)
+          ? "No se puede aplicar descuento a una venta por convenio: quitá el descuento para cobrar por convenio."
+          : "El convenio paga toda la venta: quitá las otras formas de pago para cobrar por convenio.",
+        5
+      );
+    }
     this.setFormaPago("CONVENIO");
     if (this.saldoCero()) {
       return this.notificacionSnackbar.openWarn("El valor no puede ser 0.");
