@@ -9,11 +9,11 @@
       fxLayout="row wrap"
       fxLayoutAlign="start center"
       fxLayoutGap="10px"
-      style="width: 100%;  padding-top: 25px;"
+      class="ancho-100 relleno-arr-25"
     >
       <!-- Main search filter -->
       <div fxFlex="40%">
-        <mat-form-field style="width: 90%" appearance="outline">
+        <mat-form-field class="ancho-90" appearance="outline">
           <mat-label>Buscar por nombre o localización</mat-label>
           <input
             #buscar
@@ -27,7 +27,7 @@
       
       <!-- Deposito filter -->
       <div fxFlex="18%">
-        <mat-form-field style="width: 100%" appearance="outline">
+        <mat-form-field class="ancho-100" appearance="outline">
           <mat-label>Depósito</mat-label>
           <mat-select [formControl]="depositoControl" name="deposito">
             <mat-option [value]="null">Todos</mat-option>
@@ -41,7 +41,7 @@
         fxFlex="25%" 
         fxLayout="column" 
         fxLayoutAlign="center start" 
-        style="padding-left: 30px;"
+        class="relleno-izq-30"
       >
         <mat-checkbox [formControl]="activoControl">
           {{ activoControl.value ? 'Activos' : 'Inactivos' }}
@@ -52,7 +52,7 @@
   
   <div
     table
-    style="height: 100%;"
+    class="alto-100"
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >
@@ -60,105 +60,104 @@
       mat-table
       [dataSource]="pag.items$"
       multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
+      class="mat-elevation-z8 ancho-100"
     >
       <!-- ID Column -->
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-5">
           Id
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center; width: 5%">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro ancho-5">
           {{ sucursal?.id }}
         </td>
       </ng-container>
 
       <!-- Nombre Column -->
       <ng-container matColumnDef="nombre">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Nombre
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.nombre | titlecase }}
         </td>
       </ng-container>
 
       <!-- Localizacion Column -->
       <ng-container matColumnDef="localizacion">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Localización
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.localizacion | titlecase }}
         </td>
       </ng-container>
 
       <!-- Ciudad Column -->
       <ng-container matColumnDef="ciudad">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Ciudad
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.ciudad?.descripcion | titlecase }}
         </td>
       </ng-container>
 
       <!-- IP Column -->
       <ng-container matColumnDef="ip">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           IP
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.ip || '-' }}
         </td>
       </ng-container>
 
       <!-- Puerto Servidor Column -->
       <ng-container matColumnDef="puertoServidor">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Puerto Servidor
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.puertoServidor ?? '-' }}
         </td>
       </ng-container>
 
       <!-- Deposito Column -->
       <ng-container matColumnDef="deposito">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Depósito
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.deposito ? 'Si' : 'No' }}
         </td>
       </ng-container>
 
       <!-- Deposito Predeterminado Column -->
       <ng-container matColumnDef="depositoPredeterminado">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Depósito Predeterminado
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.depositoPredeterminado ? 'Si' : 'No' }}
         </td>
       </ng-container>
 
       <!-- Codigo Establecimiento Factura Column -->
       <ng-container matColumnDef="codigoEstablecimientoFactura">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Código Establecimiento
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.codigoEstablecimientoFactura }}
         </td>
       </ng-container>
 
       <!-- Activo Column -->
       <ng-container matColumnDef="activo">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Estado
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           <span class="gl-estado" [class.gl-estado-activo]="sucursal?.activo">
             {{ sucursal?.activo ? 'Activo' : 'Inactivo' }}
           </span>
@@ -167,10 +166,10 @@
 
       <!-- Usuario Column -->
       <ng-container matColumnDef="usuario">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef class="texto-centro">
           Usuario
         </th>
-        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+        <td mat-cell *matCellDef="let sucursal" class="texto-centro">
           {{ sucursal?.usuario?.nickname }}
         </td>
       </ng-container>
@@ -180,14 +179,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="width: 5%; text-align: center"
+          class="ancho-5 texto-centro"
         >
           ...
         </th>
         <td
           mat-cell
           *matCellDef="let sucursal; let i = index"
-          style="text-align: center; width: 5%"
+          class="texto-centro ancho-5"
         >
           <button
             mat-icon-button
@@ -225,11 +224,10 @@
           class="expanded"
         >
           <div
-            class="example-sucursal-detail"
+            class="example-sucursal-detail texto-centro"
             [@detailExpand]="
               sucursal == expandedSucursal ? 'expanded' : 'collapsed'
             "
-            style="text-align: center"
             fxLayout="column"
             fxLayoutAlign="start start"
           >
@@ -247,7 +245,7 @@
     <!-- Pagination -->
     <mat-paginator
       [paginacion]="pag"
-      style="width: 100%"
+      class="ancho-100"
     ></mat-paginator>
   </div>
 </app-generic-list>

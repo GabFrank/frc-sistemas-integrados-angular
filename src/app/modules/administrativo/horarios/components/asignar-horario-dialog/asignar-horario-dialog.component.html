@@ -1,5 +1,5 @@
 <app-generic-list titulo="Asignar Horario" [isAdicionar]="false" [isMenu]="false">
-    <div filtros fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%; height: 100%">
+    <div filtros fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" class="ancho-100 alto-100">
         <mat-form-field fxFlex="25">
             <mat-label>Entrada</mat-label>
             <input matInput [formControl]="entradaControl" placeholder="HH:MM" maxlength="5" autocomplete="off"
@@ -61,9 +61,9 @@
         </div>
     </div>
 
-    <div table style="height: 100%" fxLayout="column"
+    <div table class="alto-100" fxLayout="column"
         fxLayoutAlign="space-between start">
-        <table mat-table [dataSource]="pag.items$" class="mat-elevation-z8" style="width: 100%">
+        <table mat-table [dataSource]="pag.items$" class="mat-elevation-z8 ancho-100">
 
             <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef> Reg. H. </th>
@@ -118,6 +118,6 @@
                 [class.fila-en-edicion]="row.id === elementoEnEdicion?.id"></tr>
         </table>
 
-        <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
+        <mat-paginator [paginacion]="pag" class="ancho-100"></mat-paginator>
     </div>
 </app-generic-list>
