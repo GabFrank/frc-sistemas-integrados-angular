@@ -40,7 +40,7 @@ export class PagarAguinaldoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => {
-        this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR');
+        this.cajas = (res || []);
       });
   }
 

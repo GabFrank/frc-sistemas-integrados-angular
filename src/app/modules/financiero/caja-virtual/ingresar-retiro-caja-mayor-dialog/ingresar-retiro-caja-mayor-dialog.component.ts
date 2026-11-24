@@ -8,7 +8,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin, of } from 'rxjs';
 import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { catchError, map, switchMap } from 'rxjs/operators';
-import { CajaVirtual } from '../caja-virtual.model';
+import { CajaVirtual, ordenarSucursales, parseListaJson } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { Retiro, formatMontosRetiro, PREGUNTA_RETIROS_DE_LA_CAJA, textoRetiroIngresado } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
@@ -130,7 +130,15 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     private dialogosService: DialogosService,
   ) {}
 
+  /** Orden de sucursales configurado en la caja (desk #653). Vacío = como llegan. */
+  private sucursalesOrden: number[] = [];
+
   ngOnInit(): void {
+    // Llega en paralelo con las listas: si es la última en llegar, reordena la que ya esté. Nunca falla.
+    this.cajaVirtualService.onGetOrdenes(this.data?.cajaVirtual?.id).pipe(untilDestroyed(this)).subscribe(o => {
+      this.sucursalesOrden = parseListaJson<any>(o.sucursalesOrden).map(x => Number(x));
+      this.sucursalList = ordenarSucursales(this.sucursalList, this.sucursalesOrden);
+    });
     if (operaAcotadoCaja(this.mainService)) {
       // El rol acotado ingresa a su caja solo los retiros de las sucursales que la caja cubre.
       this.acotado = true;
@@ -146,7 +154,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
       });
     } else {
       this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+        if (res != null) this.sucursalList = ordenarSucursales(res.filter(s => s.id != 0), this.sucursalesOrden);
       });
     }
     if (this.data?.preseleccion?.length) {
@@ -190,7 +198,7 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
 
   /** Una sola sucursal: filtro fijo en ella. Varias: se elige entre ellas, y «Todas» son solo esas. */
   private fijarSucursales(sucursales: Sucursal[]) {
-    this.sucursalList = sucursales;
+    this.sucursalList = ordenarSucursales(sucursales, this.sucursalesOrden);
     if (sucursales.length > 1) {
       this.sucursalControl.setValue(null, { emitEvent: false });
       this.sucursalControl.enable({ emitEvent: false });

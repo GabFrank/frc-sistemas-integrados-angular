@@ -21,7 +21,8 @@
 
       <div class="of-flecha">
         <mat-icon>arrow_forward</mat-icon>
-        <span class="of-cotiz" *ngIf="mostrarCotizacion">cotiz. {{ op.cotizacion | number:'1.0-6' }}</span>
+        <span class="of-cotiz" *ngIf="mostrarCotizacion">{{ cotizacionTexto }}</span>
+        <span class="of-cotiz of-cotiz-inversa" *ngIf="mostrarCotizacion && cotizacionInversa">{{ cotizacionInversa }}</span>
       </div>
 
       <div class="of-lado" *ngIf="mostrarDestino">

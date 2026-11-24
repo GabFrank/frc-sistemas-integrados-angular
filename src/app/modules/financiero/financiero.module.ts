@@ -105,6 +105,8 @@ import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas
 import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { DetallePagoDialogComponent } from './caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
+import { DetalleRetiroDialogComponent } from './caja-virtual/detalle-retiro-dialog/detalle-retiro-dialog.component';
+import { DetalleMovimientoDialogComponent } from './caja-virtual/detalle-movimiento-dialog/detalle-movimiento-dialog.component';
 import { GestionarAccesosCajaDialogComponent } from './caja-virtual/gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
 import { SucursalesDeCajaDialogComponent } from './caja-virtual/sucursales-de-caja-dialog/sucursales-de-caja-dialog.component';
 import { AjustarSaldoCuentaDialogComponent } from './cuenta-bancaria/ajustar-saldo-cuenta-dialog/ajustar-saldo-cuenta-dialog.component';
@@ -112,6 +114,7 @@ import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-da
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
 import { GestionarChequerasDialogComponent } from './chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
+import { NumerosInutilizadosDialogComponent } from './chequera/numeros-inutilizados-dialog/numeros-inutilizados-dialog.component';
 import { ListOperacionFinancieraComponent } from './operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
 import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
@@ -215,6 +218,8 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     AddOperacionFinancieraDialogComponent,
     OperacionFinancieraDetalleDialogComponent,
     DetallePagoDialogComponent,
+    DetalleRetiroDialogComponent,
+    DetalleMovimientoDialogComponent,
     GestionarAccesosCajaDialogComponent,
     SucursalesDeCajaDialogComponent,
     AjustarSaldoCuentaDialogComponent,
@@ -222,6 +227,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     EmitirChequeDialogComponent,
     EditChequeraDialogComponent,
     GestionarChequerasDialogComponent,
+    NumerosInutilizadosDialogComponent,
     ListOperacionFinancieraComponent,
     ListMovimientosBancariosDialogComponent,
     AddBancoDialogComponent,

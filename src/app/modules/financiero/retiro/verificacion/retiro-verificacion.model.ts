@@ -136,6 +136,11 @@ export interface BorradorVerificacion {
    */
   montos?: { [monedaId: string]: number };
   observacion?: string;
+  /**
+   * Monedas que el sobre trajo y el cajero no declaró (desk #670): sin esto, al reabrir se perdía su fila y lo
+   * contado. Solo lo necesario para volver a armar la fila.
+   */
+  monedasNoDeclaradas?: { id: number; denominacion: string; simbolo: string; decimales: number }[];
   actualizadoEn: string;
 }
 

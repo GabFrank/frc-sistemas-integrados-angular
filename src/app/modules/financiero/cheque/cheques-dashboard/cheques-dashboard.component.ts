@@ -1,6 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
-import { skip } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -13,9 +12,11 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../noti
 import { EmitirChequeDialogComponent } from '../emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { GestionarChequerasDialogComponent } from '../../chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
-import { EChartsOption } from 'echarts';
-import { GRAFICO_COLORES, formatoEjeCompacto, opcionesSegunTema } from '../../../../shared/utils/grafico-echarts.theme';
-import { TemaService } from '../../../../shared/services/tema.service';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
+import { CrearExcelService } from '../../../../shared/crear-excel/crear-excel.service';
+import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
+import { DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '../../caja-virtual/detalle-movimiento-dialog/detalle-movimiento-dialog.component';
+import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { ChequeService } from '../cheque.service';
 import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../cheque.model';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
@@ -29,7 +30,24 @@ interface ChequeRow extends Cheque {
   _cuentaLabel?: string;
   _chequeraNombre?: string;
   _esFoco?: boolean;           // pertenece al día enfocado por el KPI
+  _beneficiario?: string;      // el beneficiario, o el proveedor si no hay
+  _origenLabel?: string;       // «Manual» o «Pago #N»
+  _usuario?: string;
+  _fechaEmision?: Date;        // fecha de emisión, o creación si no la tiene
+  _motivoNoAnulable?: string | null;
+  /** Fila de un número inutilizado, no de un cheque: sin acciones. */
+  _inutilizado?: boolean;
 }
+
+/** Estados del filtro (desk #708): «Pendientes» son los que todavía no se debitaron. */
+type FiltroEstado = 'TODOS' | 'PENDIENTES' | 'COBRADOS' | 'ANULADOS' | 'INUTILIZADOS';
+const ESTADOS_DE_FILTRO: Record<FiltroEstado, EstadoCheque[]> = {
+  TODOS: [],
+  PENDIENTES: [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO],
+  COBRADOS: [EstadoCheque.COBRADO],
+  ANULADOS: [EstadoCheque.ANULADO],
+  INUTILIZADOS: [],
+};
 
 interface ChequeraOpcion { id: number; label: string; }
 
@@ -50,14 +68,24 @@ export class ChequesDashboardComponent implements OnInit {
   focoDesdeControl = new FormControl();
   focoHastaControl = new FormControl();
   chequeraSel: number | null = null;
-  estadoSel: string | null = EstadoCheque.DIFERIDO;   // default: diferidos (pendientes)
+  /** Por defecto, «Emitidos hoy»: todos los estados por fecha de emisión (desk #708). */
+  estadoSel: FiltroEstado = 'TODOS';
+  tipoFechaSel: 'EMISION' | 'PAGO' | 'COBRO' = 'EMISION';
+  textoControl = new FormControl('');
 
-  estados = [
-    { label: 'Diferidos (pendientes)', value: EstadoCheque.DIFERIDO },
-    { label: 'Emitidos', value: EstadoCheque.EMITIDO },
-    { label: 'Cobrados', value: EstadoCheque.COBRADO },
-    { label: 'Anulados', value: EstadoCheque.ANULADO },
-    { label: 'Todos', value: null },
+  estados: { label: string; value: FiltroEstado }[] = [
+    { label: 'Todos', value: 'TODOS' },
+    { label: 'Pendientes (diferidos y al día sin cobrar)', value: 'PENDIENTES' },
+    { label: 'Cobrados', value: 'COBRADOS' },
+    { label: 'Anulados', value: 'ANULADOS' },
+    // Los números inutilizados vigentes de todas las chequeras (central #603): para que el control de la chequera
+    // no tenga huecos sin explicar.
+    { label: 'Números inutilizados', value: 'INUTILIZADOS' },
+  ];
+  tiposFecha = [
+    { label: 'Emisión', value: 'EMISION' },
+    { label: 'Pago (vencimiento)', value: 'PAGO' },
+    { label: 'Cobro', value: 'COBRO' },
   ];
 
   chequeraOpciones: ChequeraOpcion[] = [];
@@ -67,7 +95,8 @@ export class ChequesDashboardComponent implements OnInit {
   resumen: ChequeResumenDia[] = [];
   chequesFull: ChequeRow[] = [];   // lista completa del rango (la tabla puede filtrarse por día enfocado)
   dataSource = new MatTableDataSource<ChequeRow>([]);
-  displayedColumns = ['numero', 'chequera', 'beneficiario', 'fechaEmision', 'fechaPago', 'estado', 'monto', 'acciones'];
+  displayedColumns = ['numero', 'chequera', 'beneficiario', 'concepto', 'origen', 'fechaEmision', 'fechaPago', 'estado',
+    'usuario', 'monto', 'acciones'];
   isLoading = false;
   /**
    * Alguna de las tres lecturas (lista, resumen, saldos) falló: lo que se ve puede ser de antes. Antes quedaba
@@ -80,10 +109,6 @@ export class ChequesDashboardComponent implements OnInit {
   /** Cheques con un cobro o una anulación en curso: sin acciones hasta que termine (las filas se rearman al releer). */
   private chequesEnCurso = new Set<number>();
 
-  // ── Gráfico (monto por día de pago) ──
-  chartOptions: EChartsOption | null = null;
-  hayDatosGrafico = false;
-
   // ── Consolidado (card "Posición general") ──
   consolidadoPendiente = 0;
   consolidadoSaldo = 0;
@@ -91,14 +116,14 @@ export class ChequesDashboardComponent implements OnInit {
   consolidadoDisponible = 0;
 
   // ── KPI "a pagar en la fecha/rango" ──
-  kpiLabel = 'Total del rango (por pagar)';
+  kpiLabel = 'Total del filtro';
   kpiTotal = 0;
   kpiCantidad = 0;
 
   puedeGestionar = false;
 
   estadoLabels: Record<string, string> = {
-    DIFERIDO: 'Diferido', EMITIDO: 'Emitido', COBRADO: 'Cobrado', ANULADO: 'Anulado',
+    DIFERIDO: 'Diferido', EMITIDO: 'Al día, sin cobrar', COBRADO: 'Cobrado', ANULADO: 'Anulado', INUTILIZADO: 'Inutilizado',
   };
 
   constructor(
@@ -107,17 +132,16 @@ export class ChequesDashboardComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private dialog: MatDialog,
     public mainService: MainService,
-    private temaService: TemaService,
+    private crearExcel: CrearExcelService,
+    private numeracion: NumeracionChequeraService,
   ) {}
 
   ngOnInit(): void {
-    // El gráfico se dibuja en canvas: al cambiar de tema se rearma con los grises del tema nuevo.
-    this.temaService.tema$.pipe(skip(1), untilDestroyed(this)).subscribe(() => this.construirGrafico());
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
-    // Default: mes actual.
+    // Default: hoy por fecha de emisión, todos los estados («Emitidos hoy», desk #708).
     const hoy = new Date();
-    this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-    this.hastaControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+    this.desdeControl.setValue(hoy);
+    this.hastaControl.setValue(hoy);
     this.recargar();
   }
 
@@ -164,22 +188,40 @@ export class ChequesDashboardComponent implements OnInit {
     this.recargar();
   }
 
-  /** Restablece todos los filtros a su estado por defecto (mes actual, todas las chequeras,
-   *  diferidos) y quita el foco del día. */
+  /** Restablece los filtros al de por defecto («Emitidos hoy») y quita el foco del día. */
   limpiarFiltros() {
     const hoy = new Date();
-    this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-    this.hastaControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+    this.desdeControl.setValue(hoy);
+    this.hastaControl.setValue(hoy);
     this.chequeraSel = null;
-    this.estadoSel = EstadoCheque.DIFERIDO;
+    this.estadoSel = 'TODOS';
+    this.tipoFechaSel = 'EMISION';
+    this.textoControl.setValue('');
     this.focoDesdeControl.setValue(null);
     this.focoHastaControl.setValue(null);
     this.recargar();
   }
 
-  onEstadoChange(v: string | null) {
+  onEstadoChange(v: FiltroEstado) {
     this.estadoSel = v;
     this.recargar();
+  }
+
+  onTipoFechaChange(v: 'EMISION' | 'PAGO' | 'COBRO') {
+    this.tipoFechaSel = v;
+    this.limpiarFoco();
+    this.recargar();
+  }
+
+  /** Lo que la lista y el resumen mandan al central. */
+  private filtroActual() {
+    return {
+      desde: this.desdeStr, hasta: this.hastaStr,
+      chequeraId: this.chequeraSel || undefined,
+      tipoFecha: this.tipoFechaSel,
+      estados: ESTADOS_DE_FILTRO[this.estadoSel],
+      texto: this.textoControl.value || null,
+    };
   }
 
   onChequeraChange(v: number | null) {
@@ -191,10 +233,10 @@ export class ChequesDashboardComponent implements OnInit {
   // ── Cargas ──
 
   cargarSaldos() {
-    // Los cards del sidebar muestran siempre los DIFERIDO pendientes (compromiso futuro),
-    // independiente del estado filtrado en la tabla.
+    // Los cards del sidebar muestran siempre lo pendiente (diferidos y al día sin cobrar: el central lo suma sin
+    // estado), independiente del estado filtrado en la tabla.
     const n = ++this.seq.saldos;
-    this.chequeService.onGetSaldosPorChequera(this.hastaStr, EstadoCheque.DIFERIDO)
+    this.chequeService.onGetSaldosPorChequera(this.hastaStr, null)
       .pipe(untilDestroyed(this)).subscribe({
         next: res => {
           if (n !== this.seq.saldos) return;
@@ -217,11 +259,8 @@ export class ChequesDashboardComponent implements OnInit {
   cargarLista() {
     this.isLoading = true;
     const n = ++this.seq.lista;
-    this.chequeService.onGetChequesDashboard({
-      desde: this.desdeStr, hasta: this.hastaStr,
-      chequeraId: this.chequeraSel || undefined,
-      estado: (this.estadoSel as EstadoCheque) || null,
-    }).pipe(untilDestroyed(this)).subscribe({
+    if (this.estadoSel === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
+    this.chequeService.onGetChequesDashboard(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.lista) return;
         this.isLoading = false;
@@ -239,19 +278,39 @@ export class ChequesDashboardComponent implements OnInit {
 
   cargarResumen() {
     const n = ++this.seq.resumen;
-    this.chequeService.onGetResumenPorDia({
-      desde: this.desdeStr, hasta: this.hastaStr,
-      chequeraId: this.chequeraSel || undefined,
-      estado: (this.estadoSel as EstadoCheque) || null,
-    }).pipe(untilDestroyed(this)).subscribe({
+    // Un número inutilizado no tiene monto: el KPI no suma nada.
+    if (this.estadoSel === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
+    // El KPI suma plata comprometida: con «Todos» no cuenta los anulados (sí se ven en la lista, atenuados).
+    const filtro = this.filtroActual();
+    if (this.estadoSel === 'TODOS') {
+      filtro.estados = [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO, EstadoCheque.COBRADO];
+    }
+    this.chequeService.onGetResumenPorDia(filtro).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.resumen) return;
         this.marcarLectura('resumen', false);
         this.resumen = res || [];
         this.recalcularKpi();
-        this.construirGrafico();
       },
       error: () => { if (n === this.seq.resumen) this.marcarLectura('resumen', true); },
+    });
+  }
+
+  /** Los inutilizados vigentes, como filas del tablero (estado «Inutilizado»), filtrados por chequera. */
+  private cargarInutilizados(n: number) {
+    this.numeracion.onGetInutilizados(null).pipe(untilDestroyed(this)).subscribe(lista => {
+      if (n !== this.seq.lista) return;
+      this.isLoading = false;
+      this.marcarLectura('lista', false);
+      this.chequesFull = lista
+        .filter(i => !this.chequeraSel || i.chequera?.id === this.chequeraSel)
+        .map(i => ({
+          id: -i.id, numero: i.numero, estado: 'INUTILIZADO', concepto: i.motivo, total: null,
+          _chequeraNombre: i.chequera?.nombre || ('Chequera #' + i.chequera?.id), _cuentaLabel: '',
+          _beneficiario: '', _origenLabel: 'Inutilizado', _usuario: i.usuario?.persona?.nombre || '',
+          _fechaEmision: i.creadoEn, _inutilizado: true, _cobrable: false, _anulable: false, _monedaSimbolo: '',
+        } as any as ChequeRow));
+      this.aplicarFocoALista();
     });
   }
 
@@ -260,8 +319,15 @@ export class ChequesDashboardComponent implements OnInit {
     // si no, asignar sobre el objeto congelado lanza TypeError en modo estricto.
     const row = { ...c } as ChequeRow;
     const libre = !this.chequesEnCurso.has(c.id);
-    row._cobrable = libre && this.puedeGestionar && c.estado === EstadoCheque.DIFERIDO;
-    row._anulable = libre && this.puedeGestionar && (c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO);
+    const pendiente = c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO;
+    row._cobrable = libre && this.puedeGestionar && pendiente;
+    // Un cheque de un pago se anula anulando el pago (el central también lo rechaza).
+    row._motivoNoAnulable = c.pagoId ? `Es del pago #${c.pagoId}: anulá el pago desde la caja mayor.` : null;
+    row._anulable = libre && this.puedeGestionar && pendiente && !c.pagoId;
+    row._beneficiario = c.beneficiario || c.proveedor?.persona?.nombre || '';
+    row._origenLabel = c.pagoId ? `Pago #${c.pagoId}` : 'Manual';
+    row._usuario = c.usuario?.persona?.nombre || '';
+    row._fechaEmision = c.fechaEntrega || c.creadoEn;
     row._monedaSimbolo = c.moneda?.simbolo || '';
     const banco = c.cuentaBancaria?.banco?.nombre || '';
     row._cuentaLabel = banco ? (banco + ' · ' + (c.cuentaBancaria?.numero || '')) : '';
@@ -271,8 +337,15 @@ export class ChequesDashboardComponent implements OnInit {
 
   private consolidar() {
     this.consolidadoPendiente = this.saldos.reduce((a, s) => a + (s.pendienteHastaFecha || 0), 0);
-    this.consolidadoSaldo = this.saldos.reduce((a, s) => a + (s.saldoCuenta || 0), 0);
-    this.consolidadoReservado = this.saldos.reduce((a, s) => a + (s.saldoReservado || 0), 0);
+    // El saldo y lo reservado son de la cuenta: dos chequeras de la misma cuenta la contaban dos veces.
+    const porCuenta = new Map<string, ChequeSaldoChequera>();
+    this.saldos.forEach(s => {
+      const clave = s.cuentaBancaria?.id != null ? 'c' + s.cuentaBancaria.id : 'q' + s.chequera?.id;
+      if (!porCuenta.has(clave)) porCuenta.set(clave, s);
+    });
+    const cuentas = [...porCuenta.values()];
+    this.consolidadoSaldo = cuentas.reduce((a, s) => a + (s.saldoCuenta || 0), 0);
+    this.consolidadoReservado = cuentas.reduce((a, s) => a + (s.saldoReservado || 0), 0);
     this.consolidadoDisponible = this.consolidadoSaldo - this.consolidadoPendiente;
   }
 
@@ -295,10 +368,9 @@ export class ChequesDashboardComponent implements OnInit {
     return fecha >= d && fecha <= this.focoHastaStr;
   }
 
-  /** Aplica el foco (día o rango) a KPI, gráfico y lista (foco null = rango completo). */
+  /** Aplica el foco (día o rango) a KPI y lista (foco null = rango completo). */
   private aplicarFoco() {
     this.recalcularKpi();
-    this.construirGrafico();
     this.aplicarFocoALista();
   }
 
@@ -308,34 +380,19 @@ export class ChequesDashboardComponent implements OnInit {
     this.aplicarFoco();
   }
 
-  /** Clic en una barra del gráfico: enfoca ese día puntual (toggle si ya era el único enfocado). */
-  onBarClick(e: any) {
-    const dia = this.resumen[e?.dataIndex];
-    if (!dia) return;
-    const yaSolo = this.focoDesdeStr === dia.fecha && this.focoHastaStr === dia.fecha;
-    if (yaSolo) {
-      this.focoDesdeControl.setValue(null);
-      this.focoHastaControl.setValue(null);
-    } else {
-      const d = stringToLocalDate(dia.fecha);
-      this.focoDesdeControl.setValue(d);
-      this.focoHastaControl.setValue(d);
-    }
-    this.aplicarFoco();
-  }
-
   private recalcularKpi() {
+    const verbo = this.tipoFechaSel === 'EMISION' ? 'Emitido' : (this.tipoFechaSel === 'COBRO' ? 'Cobrado' : 'A pagar');
     const d = this.focoDesdeStr;
     if (d) {
       const h = this.focoHastaStr;
       this.kpiLabel = d === h
-        ? `A pagar el ${this.labelDia(d)}`
-        : `A pagar del ${this.labelDia(d)} al ${this.labelDia(h)}`;
+        ? `${verbo} el ${this.labelDia(d)}`
+        : `${verbo} del ${this.labelDia(d)} al ${this.labelDia(h)}`;
       const items = this.resumen.filter(r => r.fecha >= d && r.fecha <= h);
       this.kpiTotal = items.reduce((a, r) => a + (r.total || 0), 0);
       this.kpiCantidad = items.reduce((a, r) => a + (r.cantidad || 0), 0);
     } else {
-      this.kpiLabel = 'Total del rango (por pagar)';
+      this.kpiLabel = 'Total del filtro';
       this.kpiTotal = this.resumen.reduce((a, r) => a + (r.total || 0), 0);
       this.kpiCantidad = this.resumen.reduce((a, r) => a + (r.cantidad || 0), 0);
     }
@@ -345,10 +402,15 @@ export class ChequesDashboardComponent implements OnInit {
   private aplicarFocoALista() {
     const activo = !!this.focoDesdeStr;
     const filas = activo
-      ? this.chequesFull.filter(r => { const f = this.diaDe(r.fechaPago); return f && this.enFoco(f); })
+      ? this.chequesFull.filter(r => { const f = this.diaDe(this.fechaDelFiltro(r)); return f && this.enFoco(f); })
       : this.chequesFull;
     for (const row of filas) row._esFoco = activo;
     this.dataSource.data = filas;
+  }
+
+  /** La fecha de la fila que corresponde al tipo de fecha filtrado. */
+  private fechaDelFiltro(r: ChequeRow): any {
+    return this.tipoFechaSel === 'EMISION' ? r._fechaEmision : (this.tipoFechaSel === 'COBRO' ? r.fechaCobro : r.fechaPago);
   }
 
   private diaDe(fecha: any): string | null {
@@ -360,54 +422,10 @@ export class ChequesDashboardComponent implements OnInit {
     return p.length === 3 ? `${p[2]}/${p[1]}` : fecha;
   }
 
-  private construirGrafico() {
-    const dias = this.resumen;
-    this.hayDatosGrafico = dias.length > 0;
-    if (!this.hayDatosGrafico) { this.chartOptions = null; return; }
-    const opciones: EChartsOption = {
-      grid: { left: 58, right: 16, top: 20, bottom: dias.length > 12 ? 60 : 40 },
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: GRAFICO_COLORES.backgroundDark,
-        borderColor: GRAFICO_COLORES.axisLine,
-        textStyle: { color: GRAFICO_COLORES.text },
-        formatter: (params: any) => {
-          const i = Array.isArray(params) ? params[0]?.dataIndex : params?.dataIndex;
-          const d = dias[i];
-          if (!d) return '';
-          return `${this.labelDia(d.fecha)}<br/>` +
-                 `<b>${Number(d.total).toLocaleString('es-PY')}</b><br/>` +
-                 `${d.cantidad} cheque(s)`;
-        },
-      },
-      xAxis: {
-        type: 'category',
-        data: dias.map(d => this.labelDia(d.fecha)),
-        axisLabel: { color: GRAFICO_COLORES.textSecondary, rotate: dias.length > 12 ? 45 : 0 },
-        axisLine: { lineStyle: { color: GRAFICO_COLORES.axisLine } },
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: GRAFICO_COLORES.textSecondary, formatter: (v: number) => formatoEjeCompacto(v) },
-        splitLine: { lineStyle: { color: GRAFICO_COLORES.splitLine } },
-      },
-      series: [{
-        type: 'bar',
-        barMaxWidth: 44,
-        cursor: 'pointer',
-        data: dias.map(d => ({
-          value: d.total,
-          itemStyle: { color: this.enFoco(d.fecha) ? GRAFICO_COLORES.warning : GRAFICO_COLORES.info },
-        })),
-      }],
-    };
-    this.chartOptions = opcionesSegunTema(opciones, this.temaService.tema);
-  }
-
   // ── Acciones ──
 
   onEmitirCheque() {
-    this.dialog.open(EmitirChequeDialogComponent, { width: '520px', maxWidth: '95vw', maxHeight: '92vh' })
+    this.dialog.open(EmitirChequeDialogComponent, { width: '640px', maxWidth: '95vw', maxHeight: '92vh' })
       .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
   }
 
@@ -430,17 +448,62 @@ export class ChequesDashboardComponent implements OnInit {
     });
   }
 
+  /** Anula pidiendo el motivo (desk #708: antes iba fijo «Anulado desde dashboard»). */
   onAnular(cheque: ChequeRow) {
     if (!cheque?.id) return;
-    this.dialogosService.confirm(
-      'Anular cheque',
-      '¿Anular este cheque? Si es diferido se libera la reserva; si ya debitó, se revierte el movimiento bancario.',
-      'Nº ' + (cheque.numero || '') + ' · ' + (cheque._monedaSimbolo || '') + ' ' + (cheque.total || 0),
-      null, true, 'Sí, anular', 'No',
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res !== true) return;
-      this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, 'Anulado desde dashboard'), 'Cheque anulado');
-    });
+    const data: MotivoDialogData = {
+      titulo: 'Anular cheque',
+      mensaje: 'Nº ' + (cheque.numero || '') + ' · ' + (cheque._monedaSimbolo || '') + ' '
+        + (cheque.total || 0).toLocaleString('es-PY') + (cheque._beneficiario ? ' · ' + cheque._beneficiario : ''),
+      detalle: 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.',
+      etiqueta: 'Motivo de la anulación',
+      botonConfirmar: 'Anular',
+    };
+    this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed()
+      .pipe(untilDestroyed(this)).subscribe((motivo: string | null) => {
+        if (!motivo) return;
+        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, motivo), 'Cheque anulado');
+      });
+  }
+
+  /** Detalle del cheque; si salió de un pago, el desglose del pago. */
+  onVerDetalle(cheque: ChequeRow) {
+    if (cheque.pagoId) {
+      const data: DetallePagoDialogData = { pagoId: cheque.pagoId, descripcion: 'Cheque Nº ' + (cheque.numero || '') };
+      this.dialog.open(DetallePagoDialogComponent, { width: '65vw', maxWidth: '95vw', height: '70vh', data });
+      return;
+    }
+    const f = (d: any) => d ? dateToString(new Date(d), 'dd/MM/yyyy') : '—';
+    const data: DetalleMovimientoDialogData = {
+      titulo: 'Cheque Nº ' + (cheque.numero || ''),
+      subtitulo: cheque._chequeraNombre + (cheque._cuentaLabel ? ' · ' + cheque._cuentaLabel : ''),
+      datos: [
+        { etiqueta: 'Beneficiario', valor: cheque._beneficiario || '—' },
+        { etiqueta: 'Monto', valor: (cheque._monedaSimbolo || '') + ' ' + (cheque.total || 0).toLocaleString('es-PY') },
+        { etiqueta: 'Nominal', valor: cheque.nominal === false ? 'Al portador' : 'Nominal' },
+        { etiqueta: 'Emisión', valor: f(cheque._fechaEmision) },
+        { etiqueta: 'Pago', valor: f(cheque.fechaPago) },
+        { etiqueta: 'Cobro', valor: f(cheque.fechaCobro) },
+        { etiqueta: 'Estado', valor: this.estadoLabels[cheque.estado] || String(cheque.estado || '') },
+        { etiqueta: 'Concepto', valor: cheque.concepto || '—' },
+        { etiqueta: 'Usuario', valor: cheque._usuario || '—' },
+        ...(cheque.motivoAnulacion ? [{ etiqueta: 'Motivo de anulación', valor: cheque.motivoAnulacion }] : []),
+      ],
+    };
+    this.dialog.open(DetalleMovimientoDialogComponent, { width: '520px', maxWidth: '95vw', maxHeight: '80vh', data });
+  }
+
+  /** Exporta la lista filtrada (la que se ve) a Excel. */
+  onExportar() {
+    const f = (d: any) => d ? dateToString(new Date(d), 'dd/MM/yyyy') : '';
+    const filas = this.dataSource.data.map(c => [
+      c.numero, c._chequeraNombre, c._cuentaLabel, c._beneficiario, c.concepto || '', c._origenLabel,
+      f(c._fechaEmision), f(c.fechaPago), f(c.fechaCobro), this.estadoLabels[c.estado] || c.estado, c._usuario,
+      c._monedaSimbolo, c.total,
+    ]);
+    const encabezado = ['Nº', 'Chequera', 'Cuenta', 'Beneficiario', 'Concepto', 'Origen', 'Emisión', 'Pago', 'Cobro',
+      'Estado', 'Usuario', 'Moneda', 'Monto'];
+    this.crearExcel.onCreateAndExport(encabezado, filas, 'Cheques ' + dateToString(new Date(), 'dd-MM-yyyy'));
   }
 
   /**

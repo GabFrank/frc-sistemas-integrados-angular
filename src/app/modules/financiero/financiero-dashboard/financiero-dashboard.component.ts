@@ -5,7 +5,7 @@ import { catchError } from 'rxjs/operators';
 import { PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { TesoreriaReporteService } from '../tesoreria-dashboard/tesoreria-reporte.service';
-import { SaldoTesoreria, VencimientoTesoreria, AgingTesoreria } from '../tesoreria-dashboard/tesoreria-reporte.model';
+import { DisponibleTesoreria, SaldoTesoreria, VencimientoTesoreria, AgingTesoreria } from '../tesoreria-dashboard/tesoreria-reporte.model';
 import { CajaVirtual } from '../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual/caja-virtual.service';
 import { TabService, TabData } from '../../../layouts/tab/tab.service';
@@ -82,12 +82,13 @@ export class FinancieroDashboardComponent implements OnInit {
       saldo: fuente(this.tesoreriaReporteService.onGetSaldoConsolidado()),
       vencimientos: fuente(this.tesoreriaReporteService.onGetProximosVencimientos(30)),
       aging: fuente(this.tesoreriaReporteService.onGetAgingCpp()),
+      disponible: fuente(this.tesoreriaReporteService.onGetDisponible()),
       cajas: fuente(this.cajaVirtualService.onGetActivas(PROPAGAR_ERROR_DE_RED,
         { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true })),
     }).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargando = false;
       const saldos = res.saldo || [];
-      this.armarKpis(res.saldo, res.aging, res.cajas);
+      this.armarKpis(res.saldo, res.aging, res.cajas, res.disponible);
       this.vencimientoItems = (res.vencimientos || []).map(v => this.toRankingItem(v));
       this.vencimientosNoCargados = res.vencimientos == null;
       this.cajasNoCargadas = res.cajas == null;
@@ -132,7 +133,8 @@ export class FinancieroDashboardComponent implements OnInit {
   }
 
   /** null = esa fuente no cargó: se muestra «No disponible», no un 0. */
-  private armarKpis(saldos: SaldoTesoreria[] | null, aging: AgingTesoreria | null, cajas: CajaVirtual[] | null) {
+  private armarKpis(saldos: SaldoTesoreria[] | null, aging: AgingTesoreria | null, cajas: CajaVirtual[] | null,
+                    disponibles: DisponibleTesoreria[] | null = null) {
     const kpis: KpiItem[] = saldos == null
       ? [{ icon: 'account_balance_wallet', color: 'warning', label: 'Saldos', value: NO_DISPONIBLE }]
       : saldos.map(s => ({
@@ -141,6 +143,19 @@ export class FinancieroDashboardComponent implements OnInit {
       label: s.moneda,
       value: this.fmt.format(s.total || 0),
     }));
+    // Saldo y disponible (decidido en #601): el disponible descuenta lo reservado por cheques diferidos y al día
+    // sin cobrar. Solo donde hay reserva, para no duplicar los chips; sin el dato (central viejo) no se agrega.
+    const porMoneda = new Map((disponibles || []).map(d => [String(d.monedaId), d]));
+    (saldos || []).forEach(s => {
+      const d = porMoneda.get(String(s.monedaId));
+      if (!d || !(s.bancoReservado > 0)) return;
+      kpis.push({
+        icon: 'lock_clock',
+        color: (d.totalDisponible || 0) < 0 ? 'error' : 'info',
+        label: 'Disponible ' + s.moneda,
+        value: this.fmt.format(d.totalDisponible || 0),
+      });
+    });
     kpis.push({
       icon: 'warning',
       color: aging == null ? 'warning' : ((aging.vencido || 0) > 0 ? 'error' : 'success'),

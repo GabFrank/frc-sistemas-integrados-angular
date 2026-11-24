@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { limpiarErroresGraphQL, limpiarMensajeGraphQL } from '../../../commons/core/utils/graphqlErrorUtils';
-import { Cheque, ChequeInput, ChequeResumenDia, ChequeSaldoChequera, ChequeDashboardFiltro } from './cheque.model';
+import { Cheque, ChequeInput, ChequeResumenDia, ChequeSaldoChequera, ChequeDashboardFiltro, PedidoEmisionCheques } from './cheque.model';
 import { GetChequeGQL } from './graphql/getCheque';
 import { GetChequesGQL } from './graphql/getCheques';
 import { GetChequesSearchGQL } from './graphql/getChequesSearch';
@@ -18,6 +18,7 @@ import { GetChequesSaldosPorChequeraGQL } from './graphql/getChequesSaldosPorChe
 import { CobrarChequeGQL } from './graphql/cobrarCheque';
 import { AnularChequeGQL } from './graphql/anularCheque';
 import { EmitirChequeGQL } from './graphql/emitirCheque';
+import { EmitirChequesGQL } from './graphql/emitirCheques';
 
 /**
  * Los cheques son del central. Sin esto, con «Usar servidor local» tildado el dashboard y sus acciones iban al
@@ -45,7 +46,8 @@ export class ChequeService {
     private getChequesSaldosPorChequeraGQL: GetChequesSaldosPorChequeraGQL,
     private cobrarChequeGQL: CobrarChequeGQL,
     private anularChequeGQL: AnularChequeGQL,
-    private emitirChequeGQL: EmitirChequeGQL
+    private emitirChequeGQL: EmitirChequeGQL,
+    private emitirChequesGQL: EmitirChequesGQL,
   ) { }
 
   /**
@@ -157,6 +159,14 @@ export class ChequeService {
    * Emite un cheque suelto (no ligado a un pago CPP). Reenviar las mismas variables con la misma
    * `claveIdempotencia` devuelve el cheque ya emitido en vez de emitir otro (franco-system-backend-servidor#376).
    */
+  /**
+   * Emite 1 o N cheques (cuotas) en una sola operación, con una sola clave (central #601). Mismo contrato de error que
+   * onEmitirManual: el rechazo lleva `graphQLErrors`, un «sin respuesta» no.
+   */
+  onEmitirCheques(pedido: PedidoEmisionCheques): Observable<Cheque[]> {
+    return this.mutar(this.emitirChequesGQL, pedido);
+  }
+
   onEmitirManual(vars: {
     chequeraId: number; total: number; diferido: boolean;
     monedaId?: number; cuentaBancariaId?: number; fechaPago?: string; concepto?: string;
@@ -187,6 +197,10 @@ export class ChequeService {
       cuentaBancariaId: f.cuentaBancariaId || null,
       chequeraId: f.chequeraId || null,
       estado: f.estado || null,
+      tipoFecha: f.tipoFecha || null,
+      estados: f.estados?.length ? f.estados : null,
+      texto: f.texto?.trim() ? f.texto.trim() : null,
+      proveedorId: f.proveedorId || null,
     };
   }
 } 
