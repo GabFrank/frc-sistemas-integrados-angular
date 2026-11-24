@@ -129,8 +129,11 @@ export class DescuentoDialogComponent implements OnInit {
     }
     this.porcentajeDescuento.setValidators(Validators.max(this.porcentaje));
     this.porcentajeDescuento.updateValueAndValidity();
-    // Siempre arranca en 0%: precargar el saldo (100% sin tope) hacía que un Enter de más regalara la venta.
-    this.onKeyUp(1, 0);
+    // Con pagos ya cargados arranca con lo que falta (el resto que se quiere descontar). Con la venta entera
+    // sin pagar arranca en 0%: precargar el 100% hacía que un Enter de más regalara la venta.
+    const saldo = +this.data?.saldo || 0;
+    const esResto = saldo > 0 && saldo < this.data.valorTotal;
+    this.onKeyUp(1, esResto && !this.excede(saldo) ? saldo : 0);
     setTimeout(() => {
       this.porcentajeInput.nativeElement.select();
     }, 500);
