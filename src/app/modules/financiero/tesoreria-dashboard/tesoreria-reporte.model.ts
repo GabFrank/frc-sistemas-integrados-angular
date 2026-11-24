@@ -11,6 +11,13 @@ export class SaldoTesoreria {
   total: number;
 }
 
+/** Saldo − reservado por moneda (central #601). Consulta aparte: ver saldoDisponibleTesoreriaQuery. */
+export class DisponibleTesoreria {
+  monedaId: number;
+  bancoDisponible: number;
+  totalDisponible: number;
+}
+
 export class VencimientoTesoreria {
   tipo: string;
   referenciaId: number;

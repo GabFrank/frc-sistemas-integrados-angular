@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario } from './operacion-financiera.model';
@@ -67,13 +68,21 @@ export class OperacionFinancieraService {
    */
   onRegistrar(pedido: PedidoDeOperacionFinanciera,
               opciones?: { avisarExito?: boolean } & OpcionesDePedidoConClave): Observable<OperacionFinanciera> {
-    return conClaveSiElCentralLaConoce(conClave => conClave
+    const registrar = (input: any) => conClaveSiElCentralLaConoce(conClave => conClave
       ? this.genericService.onSaveCustom<OperacionFinanciera>(this.registrarGQL,
-          { input: pedido.input, claveIdempotencia: pedido.claveIdempotencia }, true,
-          { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceLaClave })
-      : this.genericService.onSaveCustom<OperacionFinanciera>(this.registrarSinClaveGQL, { input: pedido.input }, true,
-          { avisarExito: opciones?.avisarExito }),
+          { input, claveIdempotencia: pedido.claveIdempotencia }, true,
+          { avisarExito: opciones?.avisarExito,
+            silenciarRechazo: (e: any) => centralNoConoceLaClave(e) || centralNoConoceCotizacionMoneda(e) })
+      : this.genericService.onSaveCustom<OperacionFinanciera>(this.registrarSinClaveGQL, { input }, true,
+          { avisarExito: opciones?.avisarExito, silenciarRechazo: centralNoConoceCotizacionMoneda }),
       opciones?.sinClave, !opciones?.esReenvio);
+    // Un central anterior a #603 no conoce cotizacionMonedaId y rechaza el input entero en la validación (antes de
+    // ejecutar nada): se reenvía igual sin ese campo. Ese central normaliza la cotización por su cuenta.
+    return registrar(pedido.input).pipe(catchError(err => {
+      if (!centralNoConoceCotizacionMoneda(err) || pedido.input?.cotizacionMonedaId == null) return throwError(err);
+      const { cotizacionMonedaId, ...sinElCampo } = pedido.input as any;
+      return registrar(sinElCampo);
+    }));
   }
 
   /** Anula la operación financiera entera: revierte todas sus patas (caja y/o banco) en el backend. */
@@ -93,4 +102,11 @@ export class OperacionFinancieraService {
       page, size
     }, true, PROPAGAR_ERROR_DE_RED, undefined, CONSULTA_OPERACIONES);
   }
+}
+
+/** El central rechazó el input porque no conoce cotizacionMonedaId (versión anterior a central #603). */
+export function centralNoConoceCotizacionMoneda(error: any): boolean {
+  const errores = Array.isArray(error) ? error : error?.graphQLErrors;
+  if (!Array.isArray(errores)) return false;
+  return errores.some(e => typeof e?.message === 'string' && e.message.includes('cotizacionMonedaId'));
 }

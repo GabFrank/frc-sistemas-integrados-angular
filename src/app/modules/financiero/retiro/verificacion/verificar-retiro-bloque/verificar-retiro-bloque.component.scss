@@ -22,7 +22,14 @@
   .sub { font-size: 11px; color: var(--frc-texto-tenue); }
 }
 
-.c-moneda { color: var(--frc-texto-suave); font-size: 13px; }
+.c-moneda {
+  color: var(--frc-texto-suave);
+  font-size: 13px;
+  gap: 6px;
+
+  // Naranja de estado (igual en los dos modos): avisa que esa moneda no estaba en el ticket del cajero.
+  .no-declarada { font-size: 11px; color: #ffb74d; white-space: nowrap; }
+}
 
 .c-num {
   justify-content: flex-end;
@@ -87,4 +94,16 @@
   color: #ffb74d;
 
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+.agregar-moneda {
+  border-bottom: 1px solid var(--frc-borde-suave);
+
+  button { font-size: 12px; color: var(--frc-texto-suave); }
+}
+
+.menu-aviso {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--frc-texto-tenue);
 }

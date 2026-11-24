@@ -1,0 +1,47 @@
+<div class="detalle-retiro">
+  <h2 class="titulo-dialog">Retiro #{{ data.retiroId }}</h2>
+  <div class="subtitulo-dialog" *ngIf="data.descripcion">{{ data.descripcion }}</div>
+
+  <mat-dialog-content class="dr-content">
+    <div class="dr-vacio" *ngIf="isLoading">Cargando…</div>
+    <div class="dr-vacio" *ngIf="!isLoading && cargaFallo">
+      No se pudo cargar el retiro. Cerrá y volvé a abrir para reintentar.
+    </div>
+
+    <ng-container *ngIf="!isLoading && !cargaFallo">
+      <div class="dr-datos">
+        <div class="dr-dato"><span>Sucursal</span><strong>{{ sucursal }}</strong></div>
+        <div class="dr-dato"><span>Caja del PDV</span><strong>{{ caja }}</strong></div>
+        <div class="dr-dato"><span>Fecha</span><strong>{{ fecha | date: 'dd/MM/yyyy HH:mm' }}</strong></div>
+        <div class="dr-dato"><span>Responsable</span><strong>{{ responsable }}</strong></div>
+        <div class="dr-dato"><span>Cajero</span><strong>{{ cajero }}</strong></div>
+        <div class="dr-dato" *ngIf="estado"><span>Estado</span><strong>{{ estado }}</strong></div>
+      </div>
+      <div class="dr-obs" *ngIf="observacion">{{ observacion }}</div>
+
+      <table class="dr-tabla">
+        <thead>
+          <tr><th>Moneda</th><th>Declarado</th><th>Contado</th><th>Diferencia</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of filas">
+            <td>{{ f.moneda }}</td>
+            <td>{{ f.declarado }}</td>
+            <td>{{ f.contado }}</td>
+            <td [style.color]="f.colorDiferencia">{{ f.diferencia }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="dr-verificacion" *ngIf="!sinVerificacion">
+        Verificado por <strong>{{ verificadoPor || '—' }}</strong> el {{ verificadoEn | date: 'dd/MM/yyyy HH:mm' }}
+        <span *ngIf="resultado"> · {{ resultado }}</span>
+      </div>
+      <div class="dr-verificacion" *ngIf="sinVerificacion">Sin verificación registrada (o no disponible para tu rol).</div>
+    </ng-container>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close>Cerrar</button>
+  </mat-dialog-actions>
+</div>

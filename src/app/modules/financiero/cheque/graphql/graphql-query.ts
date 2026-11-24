@@ -200,19 +200,27 @@ const chequeDashboardFields = `
   cuentaBancaria { id numero banco { id nombre } }
   chequera { id nombre }
   pagoDetalleCuota { id }
+  creadoEn
+  usuario { id persona { nombre } }
+  proveedor { id persona { id nombre } }
+  pagoId
 `;
 
 export const chequesDashboardQuery = gql`
-  query chequesDashboard($desde: String!, $hasta: String!, $cuentaBancariaId: ID, $chequeraId: ID, $estado: EstadoCheque) {
-    data: chequesDashboard(desde: $desde, hasta: $hasta, cuentaBancariaId: $cuentaBancariaId, chequeraId: $chequeraId, estado: $estado) {
+  query chequesDashboard($desde: String!, $hasta: String!, $cuentaBancariaId: ID, $chequeraId: ID, $estado: EstadoCheque,
+                         $tipoFecha: String, $estados: [EstadoCheque], $texto: String, $proveedorId: ID) {
+    data: chequesDashboard(desde: $desde, hasta: $hasta, cuentaBancariaId: $cuentaBancariaId, chequeraId: $chequeraId,
+                           estado: $estado, tipoFecha: $tipoFecha, estados: $estados, texto: $texto, proveedorId: $proveedorId) {
       ${chequeDashboardFields}
     }
   }
 `;
 
 export const chequesResumenPorDiaQuery = gql`
-  query chequesResumenPorDia($desde: String!, $hasta: String!, $cuentaBancariaId: ID, $chequeraId: ID, $estado: EstadoCheque) {
-    data: chequesResumenPorDia(desde: $desde, hasta: $hasta, cuentaBancariaId: $cuentaBancariaId, chequeraId: $chequeraId, estado: $estado) {
+  query chequesResumenPorDia($desde: String!, $hasta: String!, $cuentaBancariaId: ID, $chequeraId: ID, $estado: EstadoCheque,
+                             $tipoFecha: String, $estados: [EstadoCheque], $texto: String, $proveedorId: ID) {
+    data: chequesResumenPorDia(desde: $desde, hasta: $hasta, cuentaBancariaId: $cuentaBancariaId, chequeraId: $chequeraId,
+                               estado: $estado, tipoFecha: $tipoFecha, estados: $estados, texto: $texto, proveedorId: $proveedorId) {
       fecha
       total
       cantidad
@@ -227,7 +235,7 @@ export const chequesSaldosPorChequeraQuery = gql`
       saldoCuenta
       saldoReservado
       hojasDisponibles
-      chequera { id nombre siguienteNumero rangoHasta }
+      chequera { id nombre siguienteNumero rangoHasta estado }
       cuentaBancaria { id numero banco { id nombre } moneda { id simbolo } }
     }
   }
@@ -256,3 +264,19 @@ export const emitirChequeMutation = gql`
     }
   }
 `; 
+/**
+ * N cheques de una chequera en una sola operación (central #601): todos o ninguno, con una clave para el lote. Lo usa
+ * Emitir cheque también para uno solo.
+ */
+export const emitirChequesMutation = gql`
+  mutation emitirCheques($chequeraId: Int!, $cheques: [CuotaChequeInput!]!, $diferido: Boolean!, $nominal: Boolean,
+                         $beneficiario: String, $proveedorId: Int, $fechaEmision: String, $concepto: String,
+                         $claveIdempotencia: String) {
+    data: emitirCheques(chequeraId: $chequeraId, cheques: $cheques, diferido: $diferido, nominal: $nominal,
+                        beneficiario: $beneficiario, proveedorId: $proveedorId, fechaEmision: $fechaEmision,
+                        concepto: $concepto, claveIdempotencia: $claveIdempotencia) {
+      ${chequeDashboardFields}
+      avisoFondos
+    }
+  }
+`;

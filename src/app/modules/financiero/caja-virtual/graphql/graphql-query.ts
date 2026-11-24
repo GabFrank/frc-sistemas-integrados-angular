@@ -231,6 +231,22 @@ export const cajaVirtualConfiguracionQuery = gql`
   }
 `;
 
+/**
+ * Órdenes configurables de la caja (central #540/#603, desk #653), en una query aparte a propósito: si el central
+ * todavía no los conoce (versión vieja o rollback), falla solo esta y el resto de la configuración sigue cargando.
+ * La lee también el rol acotado (TESORERIA CAJA), que no ve el resto de la configuración.
+ */
+export const cajaVirtualConfiguracionOrdenesQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cajaVirtualOrdenes(cajaVirtualId: $cajaVirtualId) {
+      monedasOrden
+      sucursalesOrden
+      operacionesFinancierasOrden
+      operacionesFinancierasOcultas
+    }
+  }
+`;
+
 export const saveCajaVirtualConfiguracionMutation = gql`
   mutation saveCajaVirtualConfiguracion($input: CajaVirtualConfiguracionInput!) {
     data: saveCajaVirtualConfiguracion(input: $input) {

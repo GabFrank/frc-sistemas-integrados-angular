@@ -64,22 +64,11 @@ export class ListCajaVirtualComponent implements OnInit {
     },
   });
 
-  tipoList = [
-    { label: 'Caja Mayor', value: CajaVirtualTipo.CAJA_MAYOR },
-    { label: 'Caja Chica', value: CajaVirtualTipo.CAJA_CHICA }
-  ];
-
-  tipoLabels: Record<string, string> = {
-    [CajaVirtualTipo.CAJA_MAYOR]: 'Caja Mayor',
-    [CajaVirtualTipo.CAJA_CHICA]: 'Caja Chica'
-  };
-
   sucursalList: Sucursal[] = [];
 
   displayedColumns = [
     'id',
     'nombre',
-    'tipo',
     'sucursal',
     'responsable',
     'saldoGs',
@@ -91,7 +80,6 @@ export class ListCajaVirtualComponent implements OnInit {
 
   // Filtros
   nombreControl = new FormControl();
-  tipoControl = new FormControl();
   sucursalControl = new FormControl();
   activoControl = new FormControl();
 
@@ -148,7 +136,8 @@ export class ListCajaVirtualComponent implements OnInit {
   private capturarFiltros() {
     this.filtrosAplicados = {
       nombre: this.nombreControl.value || null,
-      tipo: this.tipoControl.value || null,
+      // CAJA_CHICA se retiró (central #220): todas las cajas son CAJA_MAYOR, no hay nada que filtrar.
+      tipo: null,
       sucursalId: this.sucursalControl.value || null,
       activo: (this.activoControl.value === null || this.activoControl.value === undefined) ? null : this.activoControl.value,
     };
@@ -156,7 +145,6 @@ export class ListCajaVirtualComponent implements OnInit {
 
   onResetFiltro() {
     this.nombreControl.setValue(null);
-    this.tipoControl.setValue(null);
     this.sucursalControl.setValue(null);
     this.activoControl.setValue(null);
     this.onFiltrar();

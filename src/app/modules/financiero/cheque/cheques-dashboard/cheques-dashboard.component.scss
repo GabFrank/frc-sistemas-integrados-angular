@@ -44,7 +44,8 @@
   gap: 10px;
   margin-bottom: 16px;
 
-  .f-rango { width: 230px; }
+  // Ancho para las dos fechas completas («12/11/2026 – 12/11/2026») sin cortarlas.
+  .f-rango { width: 270px; }
   .f-sel { width: 190px; }
 
   .presets {
@@ -204,18 +205,6 @@
   padding-top: 0;
 }
 
-.grafico-area {
-  flex: 0 0 auto;
-  padding: 6px 4px 10px;
-  border-bottom: 1px solid rgba(var(--frc-tinta), 0.08);
-  margin-bottom: 4px;
-}
-
-.grafico-cheques {
-  width: 100%;
-  height: 220px;
-}
-
 .lista-scroll {
   flex: 1;
   overflow: auto;
@@ -294,4 +283,42 @@
 
   span { flex: 1; }
   mat-icon { color: #fb923c; }
+}
+
+.f-texto {
+  width: 220px;
+}
+
+.concepto {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+// Origen del cheque: suelto (manual) o de un pago, que se anula desde la caja mayor.
+.chip-origen {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--frc-relleno-suave);
+  color: var(--frc-texto-suave);
+
+  &.chip-pago {
+    background: rgba(92, 107, 192, 0.18);
+    color: #9fa8da;
+  }
+}
+
+// Chequera agotada/anulada que sigue en el panel por sus cheques pendientes.
+.chip-estado-chequera {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #ff9800;
+  border: 1px solid #ff9800;
 }

@@ -79,3 +79,50 @@ export const deleteChequera = gql`
     data: deleteChequera(id: $id)
   }
 `; 
+// ── Números inutilizados (central #603) ──
+
+const numeroInutilizadoFields = `
+  id
+  numero
+  motivo
+  creadoEn
+  accionCheque
+  numeroNuevo
+  revertidoEn
+  usuario { id persona { nombre } }
+  revertidoPor { id persona { nombre } }
+  cheque { id numero estado beneficiario total }
+  chequera { id nombre }
+`;
+
+export const numerosInutilizadosQuery = gql`
+  query numerosInutilizados($chequeraId: ID) {
+    data: numerosInutilizados(chequeraId: $chequeraId) {
+      ${numeroInutilizadoFields}
+    }
+  }
+`;
+
+export const proximosNumerosChequeQuery = gql`
+  query proximosNumerosCheque($chequeraId: ID!, $cantidad: Int!) {
+    data: proximosNumerosCheque(chequeraId: $chequeraId, cantidad: $cantidad)
+  }
+`;
+
+export const inutilizarNumeroChequeMutation = gql`
+  mutation inutilizarNumeroCheque($chequeraId: ID!, $numero: Float!, $motivo: String!,
+                                  $accionCheque: AccionChequeInutilizado, $numeroNuevo: Float) {
+    data: inutilizarNumeroCheque(chequeraId: $chequeraId, numero: $numero, motivo: $motivo,
+                                 accionCheque: $accionCheque, numeroNuevo: $numeroNuevo) {
+      ${numeroInutilizadoFields}
+    }
+  }
+`;
+
+export const revertirInutilizacionMutation = gql`
+  mutation revertirInutilizacion($id: ID!) {
+    data: revertirInutilizacion(id: $id) {
+      ${numeroInutilizadoFields}
+    }
+  }
+`;

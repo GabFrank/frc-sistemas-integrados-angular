@@ -192,3 +192,6 @@
   .aviso-detalle { opacity: 0.9; margin-top: 4px; }
 }
 
+
+// Candado de la cotización: naranja de estado cuando está fija (igual en los dos modos).
+.candado-fijo mat-icon { color: #ff9800; }

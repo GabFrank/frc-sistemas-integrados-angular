@@ -13,7 +13,10 @@
     </ng-container>
   </div>
 
-  <div class="c c-moneda" [class.primera]="first">{{ f.moneda?.denominacion }}</div>
+  <div class="c c-moneda" [class.primera]="first">
+    {{ f.moneda?.denominacion }}
+    <span class="sub no-declarada" *ngIf="f.noDeclarada">no declarada</span>
+  </div>
 
   <div class="c c-num" [class.primera]="first">{{ f.declarado | number:f.formato }} {{ f.moneda?.simbolo }}</div>
 
@@ -40,8 +43,13 @@
             [class.activo]="monedaAbierta?.id === f.moneda?.id">
       <mat-icon>grid_view</mat-icon>
     </button>
-    <button mat-icon-button type="button" (click)="usarDeclarado(f)" matTooltip="Usar lo declarado">
+    <!-- Una moneda no declarada no tiene nada que copiar: en su lugar se puede quitar mientras no tenga conteo. -->
+    <button mat-icon-button type="button" *ngIf="!f.noDeclarada" (click)="usarDeclarado(f)" matTooltip="Usar lo declarado">
       <mat-icon>done_all</mat-icon>
+    </button>
+    <button mat-icon-button type="button" *ngIf="f.quitable" (click)="quitarMonedaNoDeclarada(f)"
+            matTooltip="Quitar esta moneda">
+      <mat-icon>close</mat-icon>
     </button>
     <button mat-icon-button type="button" *ngIf="first" (click)="verObservacion = !verObservacion"
             matTooltip="Observación" [class.activo]="verObservacion || observacion">
@@ -57,6 +65,23 @@
                        (cargaFallidaChange)="f.grillaNoCargo = $event"></app-grilla-conteo>
   </div>
 </ng-container>
+
+<!-- El sobre trajo una moneda que el cajero no declaró (desk #670): se agrega con declarado 0 y queda como sobrante. -->
+<div class="fila-ancha agregar-moneda" *ngIf="filas.length">
+  <button mat-button type="button" [matMenuTriggerFor]="menuMonedas" (click)="prepararMonedasParaAgregar()">
+    <mat-icon>add</mat-icon> Agregar moneda no declarada
+  </button>
+  <mat-menu #menuMonedas="matMenu">
+    <div class="menu-aviso" *ngIf="cargandoMonedas">Cargando monedas…</div>
+    <div class="menu-aviso" *ngIf="monedasNoCargaron">No se pudieron cargar las monedas.</div>
+    <div class="menu-aviso" *ngIf="!cargandoMonedas && !monedasNoCargaron && !monedasParaAgregar.length">
+      No hay otras monedas activas.
+    </div>
+    <button mat-menu-item *ngFor="let m of monedasParaAgregar" (click)="agregarMonedaNoDeclarada(m)">
+      {{ m.denominacion }} ({{ m.simbolo }})
+    </button>
+  </mat-menu>
+</div>
 
 <div class="fila-ancha observacion" *ngIf="verObservacion">
   <mat-form-field appearance="outline" subscriptSizing="dynamic">
