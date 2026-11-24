@@ -13,6 +13,7 @@ import { FuncionarioSearchPageGQL } from '../../modules/personas/funcionarios/gr
 import { FuncionariosACargoGQL } from '../../modules/personas/funcionarios/graphql/funcionariosACargo';
 import { FuncionarioService } from '../../modules/personas/funcionarios/funcionario.service';
 import { UsuariosSearchPaginatedGQL } from '../../modules/personas/usuarios/graphql/usuarioSearchPaginated';
+import { UsuarioPorIdSimpleGQL } from '../../modules/personas/usuarios/graphql/usuarioPorIdSimple';
 import { ProveedoresSearchByPersonaPageGQL } from '../../modules/personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { ProveedorServicioSearchPageGQL } from '../../modules/personas/proveedor-servicio/graphql/proveedorServicioSearchPage';
 import { CiudadesSearchGQL } from '../../modules/general/ciudad/graphql/ciudadesSearchGQL';
@@ -97,6 +98,7 @@ export class BuscadorService {
   private funcionariosACargo = inject(FuncionariosACargoGQL);
   private funcionarioSearchPage = inject(FuncionarioSearchPageGQL);
   private usuariosSearchPaginated = inject(UsuariosSearchPaginatedGQL);
+  private usuarioPorIdSimple = inject(UsuarioPorIdSimpleGQL);
   private proveedorSearchPage = inject(ProveedoresSearchByPersonaPageGQL);
   private proveedorServicioSearchPage = inject(ProveedorServicioSearchPageGQL);
   private ciudadSearch = inject(CiudadesSearchGQL);
@@ -174,7 +176,10 @@ export class BuscadorService {
           { id: 'nickname', nombre: 'Usuario', width: '30%' }
         ]
       }),
-      etiqueta: u => u?.id + ' - ' + (u?.persona?.nombre ?? u?.nickname ?? 'SIN NOMBRE')
+      etiqueta: u => u?.id + ' - ' + (u?.persona?.nombre ?? u?.nickname ?? 'SIN NOMBRE'),
+      // Un numero escrito es el id del usuario, el mismo que muestra la etiqueta. La busqueda por texto lo
+      // compara con «contiene» contra ids, documentos y personas: sola, 657 traia decenas de filas (#802).
+      porId: id => this.genericCrud.onCustomQuery(this.usuarioPorIdSimple, { id }, true, LECTURA_ESTRICTA, true)
     },
     proveedor: {
       dialogo: () => ({

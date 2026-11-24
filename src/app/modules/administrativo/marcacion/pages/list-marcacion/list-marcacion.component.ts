@@ -2,7 +2,8 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  ViewChild
 } from '@angular/core';
 import {
   trigger,
@@ -15,6 +16,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { Observable, timer } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
+import { DateAdapter } from '@angular/material/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../../main.service';
@@ -23,11 +25,9 @@ import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Jornada, JornadaResumen } from '../../models/jornada.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
-import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
-import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
-import { PersonaService } from '../../../../personas/persona/persona.service';
+import { BuscadorFieldComponent } from '../../../../../shared/components/buscador-field/buscador-field.component';
+import { FechaPyDateAdapter } from '../../../../../shared/utils/fecha-py-date-adapter';
 import { AsignarHorarioDialogComponent } from '../../../horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
@@ -37,7 +37,6 @@ import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ObservacionJornadaDialogComponent } from '../../components/observacion-jornada-dialog.component';
 import { EstadoJornada } from '../../enums/estado-jornada.enum';
-import { terminarSiFalla } from '../../../../../commons/core/utils/rxjsUtils';
 import { UbicacionMarcacionComponent } from '../ubicacion-marcacion/ubicacion-marcacion.component';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../../commons/core/utils/graphqlErrorUtils';
 
@@ -68,6 +67,8 @@ export interface JornadaFila extends Jornada {
   templateUrl: './list-marcacion.component.html',
   styleUrls: ['./list-marcacion.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Las fechas escritas a mano se leen dia/mes, como se muestran: el adapter nativo leia 3/10 como 10 de marzo (#802).
+  providers: [{ provide: DateAdapter, useClass: FechaPyDateAdapter }],
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({ height: '0px', minHeight: '0' })),
@@ -87,8 +88,9 @@ export class ListMarcacionComponent implements OnInit {
     pageSize: 15,
   });
 
-  usuarioIdControl = new FormControl();
-  usuarioNombreControl = new FormControl();
+  /** El usuario elegido en el buscador (objeto), o `null`. Es el filtro de funcionario. */
+  usuarioControl = new FormControl<Usuario>(null);
+  @ViewChild(BuscadorFieldComponent) buscadorUsuario: BuscadorFieldComponent;
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
   turnoControl = new FormControl('TODOS');
@@ -103,7 +105,6 @@ export class ListMarcacionComponent implements OnInit {
   listaSucursales: Sucursal[] = [];
   fechaFormGroup: FormGroup;
 
-  usuarioSeleccionado: Usuario = null;
   hoy = new Date();
   mesResumen: string;
   diasTrabajados: number;
@@ -134,9 +135,6 @@ export class ListMarcacionComponent implements OnInit {
     public mainService: MainService,
     private marcacionService: MarcacionService,
     private matDialog: MatDialog,
-    private personaService: PersonaService,
-    private usuarioService: UsuarioService,
-    private searchUsuario: UsuarioSearchGQL,
     private notificacionService: NotificacionSnackbarService,
     private cdr: ChangeDetectorRef,
     private horarioService: HorarioService,
@@ -144,47 +142,31 @@ export class ListMarcacionComponent implements OnInit {
     private sucursalService: SucursalService
   ) { }
 
-  buscarUsuario(): void {
-    const valor = this.usuarioIdControl.value;
-    if (valor) {
-      if (!isNaN(valor)) {
-        this.usuarioService.onGetUsuarioPorPersonaId(valor)
-          .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) {
-              this.seleccionarUsuario(res);
-            } else {
-              this.mensajeErrorPersona(valor);
-            }
-          });
-      } else {
-        this.abrirBuscadorUsuario();
-      }
-    } else {
-      this.abrirBuscadorUsuario();
-    }
-  }
-
-  mensajeErrorPersona(id: number): void {
-    this.personaService.onGetPersona(id)
-      // El control queda inválido igual: no se sabe quién es (#390).
-      .pipe(terminarSiFalla(() => this.usuarioIdControl.setErrors({ invalid: true })), untilDestroyed(this))
-      .subscribe(res => {
-        if (res) {
-          this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');
-        } else {
-          this.notificacionService.openWarn('No se encontró ninguna persona con ese ID');
-        }
-        this.usuarioIdControl.setErrors({ invalid: true });
-      });
-  }
-
   selectedJornada: JornadaFila;
 
-  seleccionarUsuario(usuario: Usuario): void {
-    this.usuarioSeleccionado = usuario;
-    this.usuarioNombreControl.setValue(usuario.persona?.nombre);
-    this.usuarioIdControl.setValue(usuario.id);
+  /**
+   * El buscador eligio un usuario o se quito con la X: se filtra enseguida, como turno y sucursal. Al editar el
+   * texto de uno ya elegido tambien llega `null`, pero ahi todavia no hay a quien buscar: se espera la eleccion.
+   */
+  onUsuarioElegido(usuario: Usuario): void {
+    if (usuario == null && this.textoUsuarioPendiente()) return;
+    this.filtrar();
+  }
+
+  /** Hay un nombre o id escrito que todavia no se convirtio en un usuario elegido. */
+  private textoUsuarioPendiente(): boolean {
+    return this.usuarioControl.value == null && !!this.buscadorUsuario?.textoControl.value?.trim();
+  }
+
+  /**
+   * Boton Buscar. Con un nombre escrito y sin elegir, antes buscaba a todos sin avisar (#802): ahora abre el
+   * buscador con ese texto y, al elegir, filtra.
+   */
+  onBuscar(): void {
+    if (this.textoUsuarioPendiente()) {
+      this.buscadorUsuario.abrir();
+      return;
+    }
     this.filtrar();
   }
 
@@ -236,7 +218,37 @@ export class ListMarcacionComponent implements OnInit {
 
   /** Una búsqueda nueva (botón o cambio de filtro) arranca en la primera página. */
   filtrar(): void {
+    if (!this.rangoDeFechasValido()) return;
     this.pag.filtrar();
+  }
+
+  /**
+   * Fecha mal escrita, posterior a hoy o un fin antes del inicio: antes salia la lista vacia sin aviso (#802).
+   * El error de lectura se mira antes de completar: una fecha mal escrita deja el control en null, y completar
+   * la reemplazaria por hoy sin decir nada.
+   */
+  private rangoDeFechasValido(): boolean {
+    const malEscrita = this.fechaInicioControl.hasError('matDatepickerParse') || this.fechaFinControl.hasError('matDatepickerParse');
+    if (!malEscrita) this.completarFechas();
+    if (malEscrita || this.fechaFormGroup.invalid) {
+      this.notificacionService.openWarn('Revisá el rango de fechas: una fecha no es válida o el fin es anterior al inicio.');
+      return false;
+    }
+    return true;
+  }
+
+  /** Sin fin, hasta hoy; sin inicio, una semana antes del fin. */
+  private completarFechas(): void {
+    if (this.fechaFinControl.value == null) {
+      this.fechaFinControl.setValue(this.hoy);
+    }
+    if (this.fechaInicioControl.value == null) {
+      // Desde la fecha fin: antes se le restaban 7 dias al dia del fin pero en el mes actual (#802).
+      const unaSemanaAntes = new Date(this.fechaFinControl.value);
+      unaSemanaAntes.setDate(unaSemanaAntes.getDate() - 7);
+      unaSemanaAntes.setHours(0, 0, 0, 0);
+      this.fechaInicioControl.setValue(unaSemanaAntes);
+    }
   }
 
   /** Repite la página actual. */
@@ -246,19 +258,10 @@ export class ListMarcacionComponent implements OnInit {
 
   /** Pide al central una página: él filtra, pagina y suma el resumen. */
   private pedirPagina(page: number, size: number): Observable<PaginaCentral<JornadaFila>> {
-    if (this.fechaFinControl.value == null) {
-      this.fechaFinControl.setValue(this.hoy);
-    }
-
-    if (this.fechaInicioControl.value == null) {
-      const unaSemanaAtras = new Date();
-      unaSemanaAtras.setDate(this.fechaFinControl.value.getDate() - 7);
-      this.fechaInicioControl.setValue(unaSemanaAtras);
-    }
-
+    this.completarFechas();
     const turno = this.turnoControl.value;
     const filtro = {
-      usuarioId: this.usuarioSeleccionado?.id || null,
+      usuarioId: this.usuarioControl.value?.id || null,
       fechaInicio: dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd'),
       fechaFin: dateToString(this.fechaFinControl.value, 'yyyy-MM-dd'),
       turno: turno && turno !== 'TODOS' ? turno : null,
@@ -326,60 +329,13 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   resetearFiltro(): void {
-    this.usuarioIdControl.setValue(null);
-    this.usuarioNombreControl.setValue(null);
-    this.usuarioSeleccionado = null;
+    // writeValue del buscador: tambien borra el texto escrito, sin emitir (seleccionado).
+    this.usuarioControl.setValue(null);
     this.inicializarFechas();
     // Sin emitir: la consulta de abajo ya lleva los tres filtros, y se hace una sola vez.
     this.turnoControl.setValue('TODOS', { emitEvent: false });
     this.sucursalEntradaControl.setValue(null, { emitEvent: false });
     this.sucursalSalidaControl.setValue(null, { emitEvent: false });
-    this.filtrar();
-  }
-
-  abrirBuscadorUsuario(): void {
-    let data: SearchListtDialogData = {
-      titulo: "Buscar Persona",
-      tableData: [
-        { id: "id", nombre: "Id", width: "10%" },
-        {
-          id: "nombre",
-          nombre: "Nombre",
-          nested: true,
-          nestedId: "persona",
-          width: "50%",
-        },
-        {
-          id: "documento",
-          nombre: "Documento",
-          nested: true,
-          nestedId: "persona",
-          width: "40%",
-        },
-      ],
-      query: this.searchUsuario,
-    };
-
-    this.matDialog
-      .open(SearchListDialogComponent, {
-        data: data,
-        height: "80vh",
-        width: "70vw",
-        panelClass: 'search-dialog-dark'
-      })
-      .afterClosed()
-      .pipe(untilDestroyed(this))
-      .subscribe((usuario: Usuario) => {
-        if (usuario) {
-          this.seleccionarUsuario(usuario);
-        }
-      });
-  }
-
-  limpiarUsuario(): void {
-    this.usuarioSeleccionado = null;
-    this.usuarioNombreControl.setValue(null);
-    this.usuarioIdControl.setValue(null);
     this.filtrar();
   }
 
@@ -408,15 +364,7 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   onGenerarPdf(): void {
-    if (this.fechaFinControl.value == null) {
-      this.fechaFinControl.setValue(this.hoy);
-    }
-
-    if (this.fechaInicioControl.value == null) {
-      const unaSemanaAtras = new Date();
-      unaSemanaAtras.setDate(this.fechaFinControl.value.getDate() - 7);
-      this.fechaInicioControl.setValue(unaSemanaAtras);
-    }
+    if (!this.rangoDeFechasValido()) return;
 
     const fechaInicio = this.fechaInicioControl.value
       ? dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd')
@@ -424,7 +372,7 @@ export class ListMarcacionComponent implements OnInit {
     const fechaFin = this.fechaFinControl.value
       ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
       : null;
-    const usuarioId = this.usuarioSeleccionado?.id || null;
+    const usuarioId = this.usuarioControl.value?.id || null;
 
     this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
   }

@@ -276,6 +276,25 @@ export const getUsuarioImagesQuery = gql`
   }
 `;
 
+/**
+ * Un usuario por id con lo justo para mostrarlo en un buscador (id, nickname y nombre). Sin `imagenes` ni
+ * `embeddingFacial`, que pesan: es la busqueda por id del campo rapido de usuario (#802).
+ */
+export const usuarioSimpleQuery = gql`
+  query ($id: ID!) {
+    data: usuario(id: $id) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+        documento
+      }
+    }
+  }
+`;
+
 export const usuariosSearchPaginated = gql`
   query ($texto: String, $page: Int, $size: Int) {
     data: usuarioSearchPaginated(texto: $texto, page: $page, size: $size) {
