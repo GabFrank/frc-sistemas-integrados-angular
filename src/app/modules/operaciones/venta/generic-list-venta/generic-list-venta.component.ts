@@ -37,6 +37,7 @@ import { agruparLotesPorItem, puedeVerLotesDeVenta, textoLotesDeItem } from "../
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { dateToString } from "../../../../commons/core/utils/dateUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -230,6 +231,14 @@ export class GenericListVentaComponent implements OnInit {
   }
 
 
+  /**
+   * Fecha del rango sin hora ("2025-01-31"), en horario local: el central toma la de fin como el
+   * día completo (#744). toISOString pasaba a UTC y podía correr el día.
+   */
+  private fechaDelRango(fecha: Date): string {
+    return fecha != null ? dateToString(fecha, 'yyyy-MM-dd') : null;
+  }
+
   // Acepta el nro. de venta con o sin separadores de miles (ej: 734.498 -> 734498)
   toVentaId(value: any): number {
     if (value == null || value === '') {
@@ -258,10 +267,8 @@ export class GenericListVentaComponent implements OnInit {
   }
 
   private consultar(page: number, size: number) {
-    let fechaInicio = this.fechaInicioControl.value != null ?
-      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
-    let fechaFin = this.fechaFinControl.value != null ?
-      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+    let fechaInicio = this.fechaDelRango(this.fechaInicioControl.value);
+    let fechaFin = this.fechaDelRango(this.fechaFinControl.value);
 
     return this.ventaService
       .onVentasFilter(
@@ -644,10 +651,8 @@ export class GenericListVentaComponent implements OnInit {
   }
 
   onGenerarReporte() {
-    let fechaInicio = this.fechaInicioControl.value != null ?
-      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
-    let fechaFin = this.fechaFinControl.value != null ?
-      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+    let fechaInicio = this.fechaDelRango(this.fechaInicioControl.value);
+    let fechaFin = this.fechaDelRango(this.fechaFinControl.value);
 
     this.ventaService.onReporteGenericVentas(
       this.toVentaId(this.idVentaControl.value),
@@ -667,10 +672,8 @@ export class GenericListVentaComponent implements OnInit {
   }
 
   onGenerarReporteDetallado() {
-    let fechaInicio = this.fechaInicioControl.value != null ?
-      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
-    let fechaFin = this.fechaFinControl.value != null ?
-      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+    let fechaInicio = this.fechaDelRango(this.fechaInicioControl.value);
+    let fechaFin = this.fechaDelRango(this.fechaFinControl.value);
 
     this.ventaService.onReporteGenericVentasDetallado(
       this.toVentaId(this.idVentaControl.value),

@@ -227,7 +227,7 @@ export class ListFacturaLegalComponent implements OnInit {
   onGetResumen() {
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
       let fechaInicio = dateToString(this.fechaInicioControl.value);
-      let fechaFin = dateToString(this.fechaFinControl.value);
+      let fechaFin = this.fechaFinDelRango();
       this.facturaService
         .onGetResumenFacturas(
           fechaInicio,
@@ -271,7 +271,7 @@ export class ListFacturaLegalComponent implements OnInit {
     }
     if (!(this.fechaFormGroup.valid && this.sucursalControl.valid)) return of(null);
     let fechaInicio = dateToString(this.fechaInicioControl.value);
-    let fechaFin = dateToString(this.fechaFinControl.value);
+    let fechaFin = this.fechaFinDelRango();
     let isElectronico = this.tipoControl.value === 'ELECTRONICO' ? true : this.tipoControl.value === 'AUTOIMPRESO' ? false : null;
     let activo = this.estadoControl.value === 'ACTIVOS' ? true : this.estadoControl.value === 'INACTIVOS' ? false : null;
     return this.facturaService
@@ -485,6 +485,15 @@ export class ListFacturaLegalComponent implements OnInit {
     this.dataSource.data = [];
   }
 
+  /**
+   * Fecha de fin sin hora ("2026-09-30"): el central la toma como el día completo (#744). Mandarla
+   * como "2026-09-30 00:00" dejaba afuera las facturas de ese día. La lista, el resumen y el Excel
+   * usan la misma, así dan el mismo total.
+   */
+  private fechaFinDelRango(): string {
+    return dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
+  }
+
   exportarExcel(todos?: Boolean) {
     let filename = "frc_";
     let sucursalesNames: Sucursal[] = this.sucursalControl.value;
@@ -492,10 +501,8 @@ export class ListFacturaLegalComponent implements OnInit {
     if (sucursalesNames.length != 1 && todos == false) {
       return null;
     }
-    let fechaFinDate: Date = this.fechaFinControl.value;
-    fechaFinDate.setHours(23, 59, 59, 59);
     let fechaInicio = dateToString(this.fechaInicioControl.value);
-    let fechaFin = dateToString(fechaFinDate);
+    let fechaFin = this.fechaFinDelRango();
 
     !todos
       ? this.facturaService
