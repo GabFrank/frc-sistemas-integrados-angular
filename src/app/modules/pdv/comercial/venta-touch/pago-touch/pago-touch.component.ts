@@ -1551,8 +1551,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.setFormaPago(this.formaPagoList[0]?.descripcion);
       return this.notificacionSnackbar.openWarn(
         this.cobroDetalleList.some((l) => l.descuento)
-          ? "No se puede aplicar descuento a una venta por convenio: quitá el descuento para cobrar por convenio."
-          : "El convenio paga toda la venta: quitá las otras formas de pago para cobrar por convenio.",
+          ? "No se puede aplicar descuento a una venta por convenio."
+          : "El convenio solo se puede usar como única forma de pago.",
         5
       );
     }

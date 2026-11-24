@@ -32,7 +32,7 @@ describe("PagoTouchComponent: convenio como forma de pago única y sin descuento
     c.cobroDetalleList = [{ pago: true, descuento: false, formaPago: { descripcion: "EFECTIVO" } }];
     c.onConvenioClick();
     expect(abrio).toBeFalse();
-    expect(avisos[0]).toContain("quitá las otras formas de pago");
+    expect(avisos[0]).toBe("El convenio solo se puede usar como única forma de pago.");
     expect(c.selectedFormaPago.descripcion).toBe("EFECTIVO");
   });
 
@@ -40,6 +40,6 @@ describe("PagoTouchComponent: convenio como forma de pago única y sin descuento
     c.cobroDetalleList = [{ pago: false, descuento: true, formaPago: { descripcion: "EFECTIVO" } }];
     c.onConvenioClick();
     expect(abrio).toBeFalse();
-    expect(avisos[0]).toContain("No se puede aplicar descuento a una venta por convenio");
+    expect(avisos[0]).toBe("No se puede aplicar descuento a una venta por convenio.");
   });
 });
