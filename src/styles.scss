@@ -506,6 +506,39 @@ input {
   margin-top: -5px;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Clases utilitarias (#772). Reemplazan los `style="…"` repetidos en los templates: una declaración, una clase,
+// con el mismo valor exacto (`ancho-8` es 8 %, nunca se redondea). Llevan `!important` para tener la misma
+// prioridad que el estilo inline al que reemplazan: sin él, una regla del .scss del componente que antes perdía
+// contra el inline pasaría a ganar y la pantalla cambiaría. Por lo mismo no van en un elemento con
+// `[style.x]`/`[ngStyle]` (le ganarían al binding). Los espacios son en px: `relleno-arr-5` = `padding-top: 5px`.
+// Nombres en español a propósito: `p-5`, `mt-2`, `w-100` ya aparecen en templates sin definir o con otro valor.
+// ---------------------------------------------------------------------------------------------------------------
+@each $p in (4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 18, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100) {
+  .ancho-#{$p} { width: $p * 1% !important; }
+}
+
+.alto-100 { height: 100% !important; }
+
+.texto-centro { text-align: center !important; }
+.texto-inicio { text-align: start !important; }
+.texto-fin { text-align: end !important; }
+.texto-izquierda { text-align: left !important; }
+.texto-derecha { text-align: right !important; }
+
+.puntero { cursor: pointer !important; }
+.negrita { font-weight: bold !important; }
+.desborde-auto { overflow: auto !important; }
+.desborde-oculto { overflow: hidden !important; }
+
+@each $prefijo, $propiedad in (relleno: padding, margen: margin) {
+  @each $lado, $sufijo in ('': '', '-arr': '-top', '-aba': '-bottom', '-izq': '-left', '-der': '-right') {
+    @each $n in (0, 5, 10, 15, 20, 25, 30) {
+      .#{$prefijo}#{$lado}-#{$n} { #{$propiedad}#{$sufijo}: #{$n}px !important; }
+    }
+  }
+}
+
 @media print {
   body[data-pdfjsprinting] #printContainer .printedPage {
     display: block !important;
