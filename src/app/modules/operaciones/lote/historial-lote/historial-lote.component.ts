@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -123,24 +124,28 @@ export class HistorialLoteComponent implements OnInit {
   /** Solo aplica a movimientos: la solapa de clientes son todas ventas por definición. */
   tipoControl = new FormControl<string>(null);
 
-  movimientos: MovimientoRow[] = [];
-  movPageIndex = 0;
-  movPageSize = 20;
-  movTotalElements = 0;
-  movCargando = false;
-  /** Cargas fallidas (#390): tabla vacía con «Reintentar», no «sin resultados» ni filas del filtro anterior. */
-  movFallo = false;
-  cliFallo = false;
-  private cargaMov = 0;
-  private cargaCli = 0;
-  movSinResultados = false;
-
-  clientes: ClienteRow[] = [];
-  cliPageIndex = 0;
-  cliPageSize = 20;
-  cliTotalElements = 0;
-  cliCargando = false;
-  cliSinResultados = false;
+  /**
+   * Las dos solapas paginan en el central (#772): gana la última página pedida. Si una carga falla, la tabla se
+   * oculta y queda «Reintentar», que repite la última página que cargó (#390).
+   */
+  movPag: PaginacionLista<MovimientoRow> = new PaginacionLista<MovimientoRow>({
+    cargar: (page, size) => this.conAviso(
+      this.loteService.onMovimientosPorLote(this.loteId, this.sucursalControl.value?.id, this.tipoControl.value, page, size),
+      'No se pudo consultar el historial del lote: el servidor no responde.',
+      (item) => this.mapearMovimiento(item)
+    ),
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+  });
+  cliPag: PaginacionLista<ClienteRow> = new PaginacionLista<ClienteRow>({
+    cargar: (page, size) => this.conAviso(
+      this.loteService.onClientesPorLote(this.loteId, this.sucursalControl.value?.id, this.rastreableControl.value, page, size),
+      'No se pudieron consultar los clientes del lote: el servidor no responde.',
+      (item) => this.mapearCliente(item)
+    ),
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+  });
 
   /**
    * Marcado (el default) trae las ventas con cliente identificado, que son las que se pueden
@@ -188,139 +193,48 @@ export class HistorialLoteComponent implements OnInit {
       } });
   }
 
-  /** La sucursal recorta las dos solapas, así que las rehace a las tres consultas. */
+  /** La sucursal recorta las dos solapas, así que las rehace a las dos. */
   onSucursalChange(): void {
-    this.movPageIndex = 0;
-    this.cliPageIndex = 0;
     this.buscarMovimientos();
     this.buscarClientes();
   }
 
   onTipoChange(): void {
-    this.movPageIndex = 0;
     this.buscarMovimientos();
-  }
-
-  onMovimientosPage(event: PageEvent): void {
-    this.movPageIndex = event.pageIndex;
-    this.movPageSize = event.pageSize;
-    this.buscarMovimientos();
-  }
-
-  onClientesPage(event: PageEvent): void {
-    this.cliPageIndex = event.pageIndex;
-    this.cliPageSize = event.pageSize;
-    this.buscarClientes();
   }
 
   /** Cambia el conjunto entero, así que vuelve a la primera página. */
   onRastreableChange(): void {
-    this.cliPageIndex = 0;
     this.buscarClientes();
   }
 
   private buscarMovimientos(): void {
-    if (this.loteId == null) {
-      return;
-    }
-    const carga = ++this.cargaMov;
-    this.movCargando = true;
-    this.movFallo = false;
-    this.loteService
-      .onMovimientosPorLote(
-        this.loteId,
-        this.sucursalControl.value?.id,
-        this.tipoControl.value,
-        this.movPageIndex,
-        this.movPageSize
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<MovimientoLote>) => {
-          if (carga !== this.cargaMov) return; // respuesta de un filtro anterior
-          if (res == null) {
-            this.marcarMovFallido(); // error GraphQL: el servicio ya avisó
-            return;
-          }
-          const contenido = res?.getContent || [];
-          this.movTotalElements = res?.getTotalElements || 0;
-          this.movimientos = contenido.map((item) => this.mapearMovimiento(item));
-          this.movSinResultados = contenido.length === 0;
-          this.movCargando = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          if (carga !== this.cargaMov) return;
-          this.notificacionService.openWarn('No se pudo consultar el historial del lote: el servidor no responde.', 4);
-          this.marcarMovFallido();
-        }
-      });
-  }
-
-  private marcarMovFallido(): void {
-    this.movCargando = false;
-    this.movFallo = true;
-    this.movimientos = [];
-    this.movTotalElements = 0;
-    this.movSinResultados = false;
-    this.cdr.markForCheck();
-  }
-
-  reintentarMovimientos(): void {
-    this.buscarMovimientos();
+    if (this.loteId != null) this.movPag.filtrar();
   }
 
   private buscarClientes(): void {
-    if (this.loteId == null) {
-      return;
-    }
-    const carga = ++this.cargaCli;
-    this.cliCargando = true;
-    this.cliFallo = false;
-    this.loteService
-      .onClientesPorLote(
-        this.loteId,
-        this.sucursalControl.value?.id,
-        this.rastreableControl.value,
-        this.cliPageIndex,
-        this.cliPageSize
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<ClienteLote>) => {
-          if (carga !== this.cargaCli) return; // respuesta de un filtro anterior
-          if (res == null) {
-            this.marcarCliFallido(); // error GraphQL: el servicio ya avisó
-            return;
-          }
-          const contenido = res?.getContent || [];
-          this.cliTotalElements = res?.getTotalElements || 0;
-          this.clientes = contenido.map((item) => this.mapearCliente(item));
-          this.cliSinResultados = contenido.length === 0;
-          this.cliCargando = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          if (carga !== this.cargaCli) return;
-          this.notificacionService.openWarn('No se pudieron consultar los clientes del lote: el servidor no responde.', 4);
-          this.marcarCliFallido();
-        }
-      });
+    if (this.loteId != null) this.cliPag.filtrar();
   }
 
-  private marcarCliFallido(): void {
-    this.cliCargando = false;
-    this.cliFallo = true;
-    this.clientes = [];
-    this.cliTotalElements = 0;
-    this.cliSinResultados = false;
-    this.cdr.markForCheck();
+  reintentarMovimientos(): void {
+    this.movPag.recargar();
   }
 
   reintentarClientes(): void {
-    this.buscarClientes();
+    this.cliPag.recargar();
   }
 
+  /** null = error GraphQL (el servicio ya avisó); sin respuesta, se avisa acá. */
+  private conAviso<T, F>(consulta: Observable<{ getContent?: T[]; getTotalElements?: number } | null>, aviso: string,
+                         mapear: (item: T) => F) {
+    return consulta.pipe(
+      catchError(() => {
+        this.notificacionService.openWarn(aviso, 4);
+        return of(null);
+      }),
+      map((res) => res && { getTotalElements: res.getTotalElements, getContent: (res.getContent || []).map(mapear) })
+    );
+  }
 
   private mapearMovimiento(item: MovimientoLote): MovimientoRow {
     const cantidad = item.cantidad || 0;

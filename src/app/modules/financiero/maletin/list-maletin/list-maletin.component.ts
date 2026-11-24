@@ -1,5 +1,5 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -10,8 +10,7 @@ import { MaletinService } from '../maletin.service';
 
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
@@ -38,26 +37,32 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 })
 export class ListMaletinComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   headerHeight;
   tableHeight;
   containerHeight;
   displayedColumns: string[] = ['id', 'descripcion', 'sucursalActual', 'cajaActual', 'activo', 'creadoEn', 'usuario', 'acciones'];
   expandedMaletin: Maletin;
   selectedMaletin: Maletin;
-  resultsLength = 0;
   dataSource = new MatTableDataSource<Maletin>(null);
 
 
-  isLastPage = false;
-  isSearching = false;
-
   sucursalList: Sucursal[] = [];
 
-  pageIndex = 0;
-  pageSize = 15;
-  selectedPageInfo: PageInfo<Maletin>;
+  /** Maletines paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<Maletin> = new PaginacionLista<Maletin>({
+    cargar: (page, size) => this.maletinService.onGetConFiltros(
+      this.sucursalControl.value?.id ?? null,
+      (this.codigoControl.value || '').toString().trim() || null,
+      this.abiertoControl.value,
+      page,
+      size
+    ),
+    pageSize: 15,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   sucursalControl = new FormControl(null);
   codigoControl = new FormControl(null);
@@ -105,35 +110,14 @@ export class ListMaletinComponent implements OnInit {
     })
   }
 
-  cargarMasDatos() {
-
-  }
-
   // Buscar, Enter y Limpiar vuelven a la página 1; el central filtra y pagina.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.cargarPagina();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (después de crear o editar). */
   cargarPagina() {
-    const sucursalId = this.sucursalControl.value?.id ?? null;
-    const texto = (this.codigoControl.value || '').toString().trim() || null;
-    const abierto = this.abiertoControl.value;
-    this.maletinService.onGetConFiltros(sucursalId, texto, abierto, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent || [];
-        }
-      })
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarPagina();
+    this.pag.recargar();
   }
 
   onCambiarAbierto() {

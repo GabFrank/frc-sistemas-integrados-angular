@@ -64,10 +64,10 @@
         <div fxFlex fxFlex.lt-md="100">
           <mat-form-field class="full-width">
             <span matTextPrefix>{{
-              tributaControl.value == true ? "RUC:" : "Cédula"
+              esExtranjero ? "Documento:" : tributaControl.value == true ? "RUC:" : "Cédula"
             }}</span>
             <input
-              numericOnly
+              [numericOnly]="!esExtranjero"
               #rucInput
               type="text"
               matInput
@@ -118,6 +118,22 @@
       </div>
 
       <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex="20" fxFlex.lt-md="100" *ngIf="!isServidor && mostrarPais">
+          <mat-form-field class="full-width">
+            <mat-label>País</mat-label>
+            <input
+              type="text"
+              matInput
+              readonly
+              [value]="selectedPais?.descripcion ?? 'PARAGUAY'"
+              (click)="onBuscarPais()"
+            />
+            <button mat-icon-button matSuffix type="button" (click)="onBuscarPais()">
+              <mat-icon>public</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+
         <div fxFlex fxFlex.lt-md="100">
           <mat-form-field class="full-width">
             <mat-label>Dirección</mat-label>
@@ -293,7 +309,7 @@
                   mat-menu-item
                   (click)="deleteItem(item, i)"
                 >
-                  <mat-icon style="color: red">delete</mat-icon>
+                  <mat-icon>delete</mat-icon>
                   <span>Eliminar</span>
                 </button>
               </mat-menu>

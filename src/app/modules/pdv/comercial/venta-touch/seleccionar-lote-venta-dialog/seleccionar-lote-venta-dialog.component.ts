@@ -10,9 +10,10 @@ import {
 import { TIMEOUT_CONSULTA_MOSTRADOR_MS } from '../../../../../generics/generic-crud.service';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PageInfo } from '../../../../../app.component';
 import { etiquetaLote } from './lotes-caja';
@@ -160,10 +161,32 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   /** Error de una recarga posterior. No bloquea: el buscador sigue en pantalla para reintentar. */
   mensajeError = '';
 
-  // Paginación server-side, con el mismo contrato que el resto de los listados del sistema.
-  pageIndex = 0;
-  pageSize = 5;
+  /** Total de la búsqueda a la vista: decide «sin lotes», «sin coincidencias» y el Enter de un solo resultado. */
   totalElementos = 0;
+
+  /**
+   * Stock por lote paginado en la filial (#772): gana la última página pedida. Siempre en silencio: el diálogo
+   * muestra su propio estado de carga y el spinner global taparía el mostrador en cada tecla del buscador.
+   */
+  pag: PaginacionLista<any> = new PaginacionLista<any>({
+    cargar: (page, size) => this.loteService
+      .onGetStockPorLoteEnPresentacion(
+        this.data.productoId,
+        this.data.sucursalId,
+        this.data.presentacionId,
+        this.busquedaControl.value,
+        page,
+        size,
+        false,
+        true,
+        TIMEOUT_CONSULTA_MOSTRADOR_MS
+      )
+      .pipe(catchError(() => of(null))),
+    pageSize: 5,
+    pageSizeOptions: [5, 10, 25],
+    alCargar: (res: PageInfo<StockLotePresentacion> | any) => this.mostrarLotes(res),
+    alFallar: (filtroNuevo) => this.manejarErrorDeCarga(filtroNuevo),
+  });
 
   /** Todo precalculado para el template. */
   productoDescripcion = '';
@@ -227,10 +250,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     // alcanzaría a la página visible.
     this.busquedaControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), untilDestroyed(this))
-      .subscribe(() => {
-        this.pageIndex = 0;
-        this.cargarLotes();
-      });
+      .subscribe(() => this.cargarLotes());
 
     this.cargarUniverso();
     this.cargarLotes();
@@ -313,42 +333,27 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
    * Siempre en silencio: el diálogo muestra su propio estado de carga y el spinner global taparía
    * el mostrador en cada tecla del buscador.
    */
+  /** Búsqueda nueva (o la primera carga): vuelve a la página 1. */
   private cargarLotes(): void {
-    this.loteService
-      .onGetStockPorLoteEnPresentacion(
-        this.data.productoId,
-        this.data.sucursalId,
-        this.data.presentacionId,
-        this.busquedaControl.value,
-        this.pageIndex,
-        this.pageSize,
-        false,
-        true,
-        TIMEOUT_CONSULTA_MOSTRADOR_MS
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<StockLotePresentacion>) => {
-          const primeraCarga = this.cargandoInicial;
-          const contenido = res?.getContent || [];
-          this.totalElementos = res?.getTotalElements || 0;
-          this.filas = contenido.map((lote) => this.mapearFila(lote));
-          this.mensajeError = '';
-          this.evaluarEstadoVacio();
-          this.cargandoInicial = false;
-          this.recalcular();
-          this.resolverEnterPendiente();
-          // El buscador recién existe cuando Angular pinta la lista, así que el foco va acá y no
-          // en ngOnInit: es lo primero que el cajero necesita para tipear el lote que tiene en la
-          // mano.
-          if (primeraCarga && !this.sinLotes) {
-            this.enfocarBusqueda();
-          }
-        },
-        error: () => {
-          this.manejarErrorDeCarga();
-        }
-      });
+    this.pag.filtrar();
+  }
+
+  private mostrarLotes(res: PageInfo<StockLotePresentacion> | any): void {
+    const primeraCarga = this.cargandoInicial;
+    const contenido = res?.getContent || [];
+    this.totalElementos = res?.getTotalElements || 0;
+    this.filas = contenido.map((lote) => this.mapearFila(lote));
+    this.mensajeError = '';
+    this.evaluarEstadoVacio();
+    this.cargandoInicial = false;
+    this.recalcular();
+    this.resolverEnterPendiente();
+    // El buscador recién existe cuando Angular pinta la lista, así que el foco va acá y no
+    // en ngOnInit: es lo primero que el cajero necesita para tipear el lote que tiene en la
+    // mano.
+    if (primeraCarga && !this.sinLotes) {
+      this.enfocarBusqueda();
+    }
   }
 
   /**
@@ -367,10 +372,16 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     }
   }
 
-  private manejarErrorDeCarga(): void {
+  /**
+   * `vaciar`: falló la primera carga o una búsqueda nueva. Si falló un cambio de página, queda la página anterior
+   * con el aviso de reintentar.
+   */
+  private manejarErrorDeCarga(vaciar = true): void {
     this.seleccionarUnicoAlCargar = false;
-    this.filas = [];
-    this.totalElementos = 0;
+    if (vaciar) {
+      this.filas = [];
+      this.totalElementos = 0;
+    }
     this.sinCoincidencias = false;
 
     if (this.cargandoInicial) {
@@ -529,12 +540,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     });
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.cargarLotes();
-  }
-
   /**
    * Enter en el buscador cierra el caso frecuente: tipear el lote que se tiene en la mano y
    * confirmar sin soltar el teclado. Solo actúa si el filtro dejó UN lote en todo el resultado;
@@ -550,7 +555,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       return;
     }
     this.seleccionarUnicoAlCargar = true;
-    this.pageIndex = 0;
     this.cargarLotes();
   }
 

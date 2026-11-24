@@ -31,6 +31,7 @@ import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-us
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
 import { ListStockLoteComponent } from "../../../modules/operaciones/lote/list-stock-lote/list-stock-lote.component";
 import { BuscarLoteComponent } from "../../../modules/operaciones/lote/buscar-lote/buscar-lote.component";
+import { ListProductoRechazadoComponent } from "../../../modules/operaciones/producto-rechazado/list-producto-rechazado/list-producto-rechazado.component";
 import { PendientesLoteComponent } from "../../../modules/operaciones/lote/pendientes-lote/pendientes-lote.component";
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
@@ -734,6 +735,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN, ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_DE_VENTA]
         },
         {
+          name: 'Productos rechazados',
+          icon: 'block',
+          action: 'list-producto-rechazado',
+          visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
+        },
+        {
           name: 'Promociones',
           icon: 'local_offer',
           action: 'list-precio-especial',
@@ -1412,6 +1419,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
           this.tabService.addTab(new Tab(ListStockLoteComponent, "Stock por lotes", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-producto-rechazado":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
+          || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.tabService.addTab(new Tab(ListProductoRechazadoComponent, "Productos rechazados", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

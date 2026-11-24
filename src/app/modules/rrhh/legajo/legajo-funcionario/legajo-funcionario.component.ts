@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, HostListener, OnInit, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MainService } from '../../../../main.service';
@@ -47,8 +47,10 @@ export class LegajoFuncionarioComponent implements OnInit {
   funcionario: Funcionario = null;
   /** Legajo nuevo abierto desde Personas («Crear funcionario»): persona a precargar. */
   personaNueva: Persona = null;
-  // Avatar de la cabecera: lo emite el tab "Información general" (documento FOTO_PERFIL).
+  // Avatar de la cabecera: lo emite el tab "Información general" (documento FOTO_PERFIL o foto del registro facial).
   fotoPerfilSrc: string = null;
+  /** Foto que se muestra ampliada (la de la cabecera o la de la tarjeta); null = cerrada. */
+  fotoAmpliada: string = null;
 
   // Métricas del dashboard. PLACEHOLDER hasta que existan los módulos que las alimentan
   // (TODO-5 valoración, TODO-7 metas/comisiones — ver plan de testeo RRHH).
@@ -399,5 +401,10 @@ export class LegajoFuncionarioComponent implements OnInit {
           .subscribe({ next: res => { if (res != null) this.recargar(); }, error: () => {} });
       }
     });
+  }
+
+  @HostListener('document:keydown.escape')
+  cerrarFotoAmpliada(): void {
+    this.fotoAmpliada = null;
   }
 }

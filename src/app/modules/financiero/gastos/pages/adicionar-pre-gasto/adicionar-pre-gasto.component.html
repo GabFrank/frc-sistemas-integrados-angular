@@ -412,11 +412,8 @@
 
   <div class="history-container" fxFlex="35%" fxFlex.lt-lg="40%" fxFlex.lt-md="100%" fxLayout="column">
     <app-historial-solicitudes 
-      [ultimasSolicitudes]="ultimasSolicitudes"
-      [totalElementos]="totalElementos"
-      [tamanoPagina]="tamanoPagina"
-      [paginaActual]="paginaActual"
-      (pageChange)="onPageChange($event)"
+      [ultimasSolicitudes]="(historialPag.items$ | async) || []"
+      [pag]="historialPag"
       (onReimprimir)="reimprimir($event.id, $event.sucursalId)">
     </app-historial-solicitudes>
   </div>

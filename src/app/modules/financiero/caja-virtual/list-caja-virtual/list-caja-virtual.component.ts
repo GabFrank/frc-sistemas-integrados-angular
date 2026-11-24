@@ -1,14 +1,14 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
-import { auditTime, filter } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { auditTime, catchError, filter, tap } from 'rxjs/operators';
 import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MatDialog } from '@angular/material/dialog';
 import { CajaVirtual, CajaVirtualTipo } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { PageInfo } from '../../../../app.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { AddCajaVirtualDialogComponent } from '../add-caja-virtual-dialog/add-caja-virtual-dialog.component';
@@ -30,16 +30,39 @@ import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
   styleUrls: ['./list-caja-virtual.component.scss']
 })
 export class ListCajaVirtualComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
 
   @Input() data: Tab;
 
   dataSource = new MatTableDataSource<CajaVirtual>([]);
-  isSearching = false;
-  pageIndex = 0;
-  pageSize = 10;
-  selectedPageInfo: PageInfo<CajaVirtual>;
+  /** La próxima carga es una relectura de fondo: sin avisos si falla. */
+  private silenciosa = false;
+
+  /** Cajas paginadas en el central (#772), con los filtros de la última búsqueda. */
+  pag: PaginacionLista<CajaVirtual> = new PaginacionLista<CajaVirtual>({
+    cargar: (page, size) => {
+      const silenciosa = this.silenciosa;
+      this.silenciosa = false;
+      return this.cajaVirtualService.onGetFilter(this.filtrosAplicados, page, size).pipe(
+        tap(res => {
+          if (res == null && !silenciosa) this.notificacion.openWarn('No se pudieron cargar las cajas.', 5);
+        }),
+        catchError(() => {
+          if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar las cajas: el servidor no responde.', 5);
+          return of(null);
+        })
+      );
+    },
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 20],
+    alCargar: (res) => {
+      this.dataSource.data = this.marcarAdminAccesos(res.getContent ?? []);
+      this.marcarReceptoras();
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   sucursalList: Sucursal[] = [];
 
@@ -84,7 +107,10 @@ export class ListCajaVirtualComponent implements OnInit {
     // por segundo, con los filtros de la última búsqueda (no lo que haya a medio escribir) y sin avisos si falla.
     this.cajaVirtualService.onCambiosTesoreria()
       .pipe(filter(c => this.esCambioDeLaPagina(c)), auditTime(1000), untilDestroyed(this))
-      .subscribe(() => this.cargar(this.filtrosAplicados, true));
+      .subscribe(() => {
+        this.silenciosa = true;
+        this.pag.recargar();
+      });
   }
 
   /** De una caja de la página, o sin ids (el central volvió tras un corte). Los cambios de banco no van en la lista. */
@@ -97,14 +123,17 @@ export class ListCajaVirtualComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.capturarFiltros();
+    this.pag.filtrar();
   }
 
+  /** Toma los filtros a la vista y repite la página (la primera carga y después de cada acción). */
   buscar() {
+    this.capturarFiltros();
+    this.pag.recargar();
+  }
+
+  private capturarFiltros() {
     this.filtrosAplicados = {
       nombre: this.nombreControl.value || null,
       // CAJA_CHICA se retiró (central #220): todas las cajas son CAJA_MAYOR, no hay nada que filtrar.
@@ -112,32 +141,6 @@ export class ListCajaVirtualComponent implements OnInit {
       sucursalId: this.sucursalControl.value || null,
       activo: (this.activoControl.value === null || this.activoControl.value === undefined) ? null : this.activoControl.value,
     };
-    this.cargar(this.filtrosAplicados);
-  }
-
-  /** Número de la última carga: una respuesta vieja (una relectura de fondo lenta) no pisa una búsqueda nueva. */
-  private cargaId = 0;
-
-  private cargar(filtros: ListCajaVirtualComponent['filtrosAplicados'], silenciosa = false) {
-    if (!silenciosa) this.isSearching = true;
-    const id = ++this.cargaId;
-    this.cajaVirtualService.onGetFilter(filtros, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: PageInfo<CajaVirtual>) => {
-          if (id !== this.cargaId) return;
-          if (!silenciosa) this.isSearching = false;
-          if (res == null) { if (!silenciosa) this.notificacion.openWarn('No se pudieron cargar las cajas.', 5); return; }
-          this.selectedPageInfo = res;
-          this.dataSource.data = this.marcarAdminAccesos(res.getContent);
-          this.marcarReceptoras();
-        },
-        error: () => {
-          if (silenciosa || id !== this.cargaId) return;
-          this.isSearching = false;
-          this.notificacion.openWarn('No se pudieron cargar las cajas: el servidor no responde.', 5);
-        }
-      });
   }
 
   onResetFiltro() {
@@ -305,12 +308,6 @@ export class ListCajaVirtualComponent implements OnInit {
       height: '85vh',
       data: item
     });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
 }

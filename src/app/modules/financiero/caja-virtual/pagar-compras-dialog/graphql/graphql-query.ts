@@ -113,6 +113,16 @@ export const devolverSolicitudPagoMutation = gql`
   }
 `;
 
+// Tesorería cancela un gasto sin pagos, con motivo (franco-system-backend-servidor#599).
+export const cancelarGastoParaPagoMutation = gql`
+  mutation ($solicitudId: ID!, $motivo: String!) {
+    data: cancelarGastoParaPago(solicitudId: $solicitudId, motivo: $motivo) {
+      id
+      estado
+    }
+  }
+`;
+
 // ── Modo VALES ──
 // El vale es la unidad pagable (no la SolicitudPago): su obligacion de pago se crea/resuelve
 // en el backend. Por eso la query devuelve ValePendiente y la mutation toma valeId.

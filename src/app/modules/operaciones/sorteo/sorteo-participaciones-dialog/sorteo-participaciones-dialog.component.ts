@@ -1,9 +1,9 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Sorteo, SorteoParticipacion, SorteoResumenSucursal } from '../sorteo.model';
@@ -16,7 +16,7 @@ export interface SorteoParticipacionesDialogData {
 /** Fila ya resuelta: el template no llama funciones (regla del repo). */
 type FilaParticipacion = SorteoParticipacion & { fecha: string };
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-sorteo-participaciones-dialog',
   templateUrl: './sorteo-participaciones-dialog.component.html',
@@ -24,7 +24,6 @@ type FilaParticipacion = SorteoParticipacion & { fecha: string };
 })
 export class SorteoParticipacionesDialogComponent implements OnInit {
   displayedColumns = ['codigo', 'sucursal', 'venta', 'cliente', 'tickets', 'fecha', 'estado'];
-  dataSource = new MatTableDataSource<FilaParticipacion>([]);
   resumen: SorteoResumenSucursal[] = [];
   resumenFallo = false;
   sucursalControl = new FormControl<number>(null);
@@ -32,12 +31,30 @@ export class SorteoParticipacionesDialogComponent implements OnInit {
   /** Código con el que se está filtrando; vacío = listado normal. */
   codigoBuscado = '';
   mensajeCodigo = '';
-  pageIndex = 0;
-  pageSize = 20;
-  total = 0;
-  listaFallo = false;
-  cargando = false;
-  private carga = 0;
+  /** Participaciones paginadas en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<FilaParticipacion> = new PaginacionLista<FilaParticipacion>({
+    cargar: (page, size) => this.service.onParticipaciones(this.armarParams(page, size)).pipe(
+      map(res => res && {
+        getTotalElements: res.getTotalElements ?? 0,
+        getContent: (res.getContent ?? []).map((p) => ({
+          ...p,
+          fecha: p.creadoEn ? stringToLocalDate(p.creadoEn).toLocaleDateString('es-PY') : '',
+        })),
+      })
+    ),
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+    alCargar: () => {
+      this.avisoMostrado = false;
+      this.actualizarMensajeCodigo();
+    },
+    alFallar: () => {
+      // Un solo aviso hasta que vuelva a cargar bien.
+      if (!this.avisoMostrado) this.notificacionService.openWarn('No se pudieron cargar las participaciones: volvé a intentar.', 5);
+      this.avisoMostrado = true;
+    },
+  });
+  private avisoMostrado = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SorteoParticipacionesDialogData,
@@ -47,7 +64,7 @@ export class SorteoParticipacionesDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarResumen();
-    this.cargar();
+    this.pag.filtrar();
   }
 
   cargarResumen(): void {
@@ -64,33 +81,16 @@ export class SorteoParticipacionesDialogComponent implements OnInit {
     });
   }
 
+  /** Repite la página a la vista (Reintentar). */
   cargar(): void {
-    const carga = ++this.carga;
-    this.cargando = true;
-    const fallo = () => {
-      if (carga !== this.carga) return;
-      this.cargando = false;
-      if (!this.listaFallo) this.notificacionService.openWarn('No se pudieron cargar las participaciones: volvé a intentar.', 5);
-      this.listaFallo = true;
-    };
-    const params: any = { sorteoId: this.data.sorteo.id, page: this.pageIndex, size: this.pageSize };
+    this.pag.recargar();
+  }
+
+  private armarParams(page: number, size: number): any {
+    const params: any = { sorteoId: this.data.sorteo.id, page, size };
     if (this.sucursalControl.value != null) params.sucursalId = Number(this.sucursalControl.value);
     if (this.codigoBuscado) params.codigo = this.codigoBuscado;
-    this.service.onParticipaciones(params).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
-      if (carga !== this.carga) return;
-      if (!res) {
-        fallo();
-        return;
-      }
-      this.cargando = false;
-      this.listaFallo = false;
-      this.total = res.getTotalElements ?? 0;
-      this.dataSource.data = (res.getContent ?? []).map((p) => ({
-        ...p,
-        fecha: p.creadoEn ? stringToLocalDate(p.creadoEn).toLocaleDateString('es-PY') : '',
-      }));
-      this.actualizarMensajeCodigo();
-    } });
+    return params;
   }
 
   private actualizarMensajeCodigo(): void {
@@ -98,15 +98,14 @@ export class SorteoParticipacionesDialogComponent implements OnInit {
       this.mensajeCodigo = '';
       return;
     }
-    const filas = this.dataSource.data;
+    const filas = this.pag.items;
     if (!filas.length) this.mensajeCodigo = 'No existe ningún ticket con ese código.';
     else if (filas.some((f) => f.anulada)) this.mensajeCodigo = 'Ojo: ese ticket está ANULADO. No participa del sorteo.';
     else this.mensajeCodigo = 'El ticket es válido.';
   }
 
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.cargar();
+    this.pag.filtrar();
   }
 
   onValidar(): void {
@@ -120,9 +119,4 @@ export class SorteoParticipacionesDialogComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
-  }
 }

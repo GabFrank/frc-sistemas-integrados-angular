@@ -62,14 +62,17 @@
       </ng-container>
       <ng-container matColumnDef="monto">
         <th mat-header-cell *matHeaderCellDef>Monto</th>
-        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
+        <td mat-cell *matCellDef="let row">
+          {{ simbolo }} {{ row.monto | number:digitos }}
+          <div *ngIf="row.origenMoneda" class="origen-moneda">{{ row.origenMoneda }}</div>
+        </td>
       </ng-container>
       <ng-container matColumnDef="origen">
         <th mat-header-cell *matHeaderCellDef>Origen</th>
         <td mat-cell *matCellDef="let row">
           {{ row.referenciaTipo === 'ITEM_PROGRAMADO' ? 'PROGRAMADO' : (row.manual ? 'MANUAL' : 'AUTO') }}
           <mat-icon *ngIf="row.editado" class="editado-icon"
-            [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:'1.0-0') : '')">
+            [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:digitos) : '')">
             edit
           </mat-icon>
         </td>
@@ -138,11 +141,11 @@
   <!-- Totales en cards, como en los demás dashboards -->
   <div class="totales-cards" fxLayout="row" fxLayoutGap="12px">
     <dash-stat-chip fxFlex icon="add_circle" color="success"
-      [value]="liq.totalHaberes | number:'1.0-0'" label="Haberes"></dash-stat-chip>
+      [value]="simbolo + ' ' + (liq.totalHaberes | number:digitos)" label="Haberes"></dash-stat-chip>
     <dash-stat-chip fxFlex icon="remove_circle" color="danger"
-      [value]="liq.totalDescuentos | number:'1.0-0'" label="Descuentos"></dash-stat-chip>
+      [value]="simbolo + ' ' + (liq.totalDescuentos | number:digitos)" label="Descuentos"></dash-stat-chip>
     <dash-stat-chip fxFlex icon="payments" color="primary"
-      [value]="liq.totalNeto | number:'1.0-0'" label="Neto a pagar"></dash-stat-chip>
+      [value]="simbolo + ' ' + (liq.totalNeto | number:digitos)" label="Neto a pagar"></dash-stat-chip>
   </div>
 
   <div class="pago" *ngIf="liq.estado === 'APROBADA' && puedePagar && !netoNegativo" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">

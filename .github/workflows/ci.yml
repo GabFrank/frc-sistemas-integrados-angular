@@ -36,6 +36,18 @@ jobs:
       - name: Compile Electron main process
         run: npm run electron:serve-tsc
 
+      # El build de producción no entra en los 2 GB de la VM de desarrollo: se hace acá y el bundle
+      # queda como artefacto para bajarlo y probarlo (capturas, arranque) sin recompilar.
+      # Solo en Linux: el bundle es el mismo en los dos sistemas.
+      - name: Subir bundle de producción
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist-${{ github.sha }}
+          path: dist/
+          retention-days: 5
+          if-no-files-found: error
+
       # El build compila el bundle pero no lo ejecuta: acá se abre en Electron y falla si queda en blanco.
       # Solo en Linux: el bundle es el mismo en los dos sistemas. El script termina solo en ~2 min como mucho.
       - name: Arranque del bundle de producción

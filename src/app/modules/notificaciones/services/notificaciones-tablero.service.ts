@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, BehaviorSubject, of, Subject } from 'rxjs';
+import { Observable, BehaviorSubject, of, Subject, combineLatest } from 'rxjs';
 import { map, tap, catchError, debounceTime, finalize } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
@@ -9,6 +9,8 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../ge
 /** Consultas de fondo del tablero: nadie las espera, pero sin esto con el central sin responder no terminan (#390). */
 const CONSULTA_TABLERO: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 import { MainService } from '../../../main.service';
+import { PaginacionLista } from '../../../shared/components/paginacion/paginacion-lista';
+import { PageEvent } from '@angular/material/paginator';
 import { NotificacionesUsuarioGQL } from '../graphql/notificacionesUsuario.gql';
 import {
   MarcarNotificacionLeidaGQL,
@@ -82,7 +84,11 @@ export class NotificacionesTableroService {
   private readonly enviarNotificacionPersonalizadaGQL = inject(EnviarNotificacionPersonalizadaGQL);
 
   private readonly pageSize = 15;
-  private readonly _paginationState$ = new BehaviorSubject<{ [key: string]: PaginationState }>({});
+  /**
+   * Una lista paginada en el central por columna del tablero (#772): página, tamaño, total y carga. Las tarjetas que
+   * se ven siguen en `_notificaciones$`, porque arrastrar y «leída» las cambian en el momento.
+   */
+  readonly columnas: { [estado: string]: PaginacionLista<NotificacionData> } = {};
   private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
   private readonly _tokenFcm$ = new BehaviorSubject<string>('');
   private readonly _refreshTrigger$ = new Subject<void>();
@@ -94,22 +100,30 @@ export class NotificacionesTableroService {
   private refrescoPendiente = false;
 
   readonly notificaciones$ = this._notificaciones$.asObservable();
-  readonly paginationState$ = this._paginationState$.asObservable();
+  readonly paginationState$: Observable<{ [key: string]: PaginationState }>;
   readonly unreadCount$ = this._unreadCount$.asObservable();
   readonly filtroFechas$ = this._filtroFechas$.asObservable();
 
   constructor() {
     Object.values(EstadoNotificacionTablero).forEach(estado => {
-      this._paginationState$.next({
-        ...this._paginationState$.value,
-        [estado]: {
-          pageIndex: 0,
-          pageSize: this.pageSize,
-          length: 0,
-          loading: false
-        }
+      const columna = new PaginacionLista<NotificacionData>({
+        cargar: (page, size) => this.consultarColumna(estado, page, size),
+        pageSize: this.pageSize,
+        pageSizeOptions: [15, 25, 50, 100],
       });
+      // Cada página que llega (o la columna vacía si falló un filtro nuevo) reemplaza las tarjetas de esa columna.
+      columna.estado$.subscribe(e => {
+        if (e.cargando) return;
+        this._notificaciones$.next({ ...this._notificaciones$.value, [estado]: e.items });
+        this.actualizarConteoDesdeNotificaciones();
+      });
+      this.columnas[estado] = columna;
     });
+    this.paginationState$ = combineLatest(
+      Object.entries(this.columnas).map(([estado, columna]) => columna.estado$.pipe(
+        map(e => [estado, { pageIndex: e.pageIndex, pageSize: e.pageSize, length: e.total, loading: e.cargando }] as const)
+      ))
+    ).pipe(map(pares => Object.fromEntries(pares) as { [key: string]: PaginationState }));
 
     // Sin distinctUntilChanged: el trigger emite siempre undefined, así que solo pasaba el primer disparo de la
     // sesión. isRefreshing se baja en finalize: sin respuesta del central quedaba en true para siempre (#390).
@@ -188,76 +202,32 @@ export class NotificacionesTableroService {
     this._unreadCount$.next(conteoNoLeidas);
   }
 
+  /** Pide una página de la columna; la columna descarta la respuesta de un pedido viejo (#772). */
   cargarNotificaciones(estado: string, pageIndex: number, pageSize: number): void {
-    const currentState = this._paginationState$.value;
-    if (!currentState[estado]) {
-      currentState[estado] = {
-        pageIndex: 0,
-        pageSize: this.pageSize,
-        length: 0,
-        loading: false
-      };
+    const columna = this.columnas[estado];
+    if (!columna) return;
+    if (pageIndex === 0 && pageSize === columna.pageSize) {
+      columna.filtrar();
+    } else {
+      columna.onPage({ pageIndex, pageSize } as PageEvent);
     }
+  }
 
-    this._paginationState$.next({
-      ...currentState,
-      [estado]: {
-        ...currentState[estado],
-        loading: true
-      }
-    });
-
+  private consultarColumna(estado: string, page: number, size: number): Observable<{ getContent: NotificacionData[]; getTotalElements: number } | null> {
     if (this.mainService.authenticationSub.value !== true) {
-      this._paginationState$.next({
-        ...currentState,
-        [estado]: {
-          ...currentState[estado],
-          loading: false
-        }
-      });
-      return;
+      return of(null);
     }
-
     const filtroFechas = this._filtroFechas$.value;
-
-    this.genericService.onCustomQuery(this.notificacionesUsuarioGQL, {
-      page: pageIndex,
-      size: pageSize,
+    return this.genericService.onCustomQuery(this.notificacionesUsuarioGQL, {
+      page,
+      size,
       estadoTablero: estado,
       fechaInicio: filtroFechas.fechaInicio,
       fechaFin: filtroFechas.fechaFin
     }, true, PROPAGAR_ERROR_DE_RED, true, CONSULTA_TABLERO).pipe(
-      tap((data: any) => {
-        // null = error del servidor: va al error: que baja el loading de la columna.
-        if (data == null) { throw new Error('No se pudieron cargar las notificaciones'); }
-        const notificacionesActuales = this._notificaciones$.value;
-        this._notificaciones$.next({
-          ...notificacionesActuales,
-          [estado]: data.content
-        });
-
-        this._paginationState$.next({
-          ...this._paginationState$.value,
-          [estado]: {
-            pageIndex: data.pageNumber,
-            pageSize: data.pageSize,
-            length: data.totalElements,
-            loading: false
-          }
-        });
-        this.actualizarConteoDesdeNotificaciones();
-      })
-    ).subscribe({
-      error: () => {
-        this._paginationState$.next({
-          ...this._paginationState$.value,
-          [estado]: {
-            ...this._paginationState$.value[estado],
-            loading: false
-          }
-        });
-      }
-    });
+      // null = error del servidor (ya avisado): la columna vuelve a la última página que cargó.
+      map((data: any) => data == null ? null : { getContent: data.content || [], getTotalElements: data.totalElements || 0 })
+    );
   }
 
   actualizarEstadoLeido(notificacionId: number): void {
@@ -327,12 +297,7 @@ export class NotificacionesTableroService {
   }
 
   refrescarTodas(): void {
-    Object.values(EstadoNotificacionTablero).forEach(estado => {
-      const estadoPagination = this._paginationState$.value[estado];
-      if (estadoPagination) {
-        this.cargarNotificaciones(estado, 0, estadoPagination.pageSize);
-      }
-    });
+    Object.values(this.columnas).forEach(columna => columna.filtrar());
   }
 
   actualizarConteoNoLeidas(): void {

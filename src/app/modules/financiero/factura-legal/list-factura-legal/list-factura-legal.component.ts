@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import {
   FacturaLegal,
@@ -33,8 +33,10 @@ import {
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BdcWalkService, TaskList } from "bdc-walkthrough";
 import { removeSecondDigito } from "../../../../commons/core/utils/rucUtils";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
-import { PageInfo } from "../../../../app.component";
+import { PageEvent } from "@angular/material/paginator";
+import { Observable, of } from "rxjs";
+import { map } from "rxjs/operators";
+import { PaginacionLista, PaginaCentral } from "../../../../shared/components/paginacion/paginacion-lista";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -58,10 +60,6 @@ import { GestionDeDialogComponent } from "../gestion-de-dialog/gestion-de-dialog
   ],
 })
 export class ListFacturaLegalComponent implements OnInit {
-  // Por referencia y no por tipo: el detalle expandido tiene su propio
-  // mat-paginator y aparece antes en la vista, asi que @ViewChild(MatPaginator)
-  // pasaria a apuntar al de los items al abrir una factura larga.
-  @ViewChild("paginadorFacturas") paginator: MatPaginator;
 
   selectedSucursal: Sucursal;
   sucursalList: Sucursal[];
@@ -80,13 +78,17 @@ export class ListFacturaLegalComponent implements OnInit {
   sinNombreControl = new FormControl(null); // null: Todos, true: Sin Nombre, false: Con Nombre
   fechaFormGroup: FormGroup;
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
   orderById = null;
   orderByNombre = null;
-  selectedPageInfo: PageInfo<FacturaLegal>;
+  /** Facturas paginadas en el central (#772); con un CDC, una página con esa factura. */
+  pag: PaginacionLista<FacturaLegal> = new PaginacionLista<FacturaLegal>({
+    cargar: (page, size) => this.consultarFacturas(page, size),
+    pageSize: 25,
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   today = new Date();
   cantidadFacturas = 0;
@@ -164,11 +166,7 @@ export class ListFacturaLegalComponent implements OnInit {
     this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
     this.puedeCancelarFactura = this.mainService.tieneAlgunRol([ROLES.CANCELACION_DE_VENTA]);
 
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFilter();
-    }, 0);
+    setTimeout(() => this.onFilter(), 0);
 
     this.cdcControl.valueChanges.subscribe(res => {
       if (res) {
@@ -220,11 +218,9 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onFilter() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
+    if (this.cdcControl.value || (this.fechaFormGroup.valid && this.sucursalControl.valid)) {
+      this.pag.filtrar();
     }
-    this.onGetFacturas();
     this.onGetResumen();
   }
 
@@ -256,52 +252,52 @@ export class ListFacturaLegalComponent implements OnInit {
     }
   }
 
+  /** Repite la página a la vista (después de cancelar una factura o emitir una nota de crédito). */
   onGetFacturas() {
+    this.pag.recargar();
+  }
+
+  /** Marca en cada factura si se puede cancelar (se calcula al cargar, no en el template). */
+  private conPuedeCancelar(factura: FacturaLegal): FacturaLegal {
+    (factura as any).puedeCancelar = this.calcularPuedeCancelarFactura(factura);
+    return factura;
+  }
+
+  private consultarFacturas(page: number, size: number): Observable<PaginaCentral<FacturaLegal> | null> {
     if (this.cdcControl.value) {
-      this.facturaService.onGetFacturaLegalByCdc(this.cdcControl.value).subscribe(res => {
-        if (res) {
-          // Calcular propiedad puedeCancelar para la factura
-          (res as any).puedeCancelar = this.calcularPuedeCancelarFactura(res);
-          this.dataSource.data = [res];
-        } else {
-          this.dataSource.data = [];
-        }
-      })
-    } else if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
-      let fechaInicio = dateToString(this.fechaInicioControl.value);
-      let fechaFin = dateToString(this.fechaFinControl.value);
-      let isElectronico = this.tipoControl.value === 'ELECTRONICO' ? true : this.tipoControl.value === 'AUTOIMPRESO' ? false : null;
-      let activo = this.estadoControl.value === 'ACTIVOS' ? true : this.estadoControl.value === 'INACTIVOS' ? false : null;
-      this.facturaService
-        .onGetAllFacturasLegales(
-          this.pageIndex,
-          this.pageSize,
-          fechaInicio,
-          fechaFin,
-          this.toSucursalesId(this.sucursalControl.value),
-          this.rucControl.value != null
-            ? `%${this.rucControl.value?.toUpperCase()}%`
-            : null,
-          this.nombreControl.value != null
-            ? `%${this.nombreControl.value?.toUpperCase()}%`
-            : null,
-          this.iva5Control.value,
-          this.iva10Control.value,
-          false,
-          isElectronico,
-          activo,
-          this.sinNombreControl.value,
-          this.toVentaId(this.ventaIdControl.value)
-        )
-        .subscribe((res) => {
-          this.selectedPageInfo = res;
-          // Calcular propiedad puedeCancelar para cada factura
-          this.selectedPageInfo?.getContent?.forEach(factura => {
-            (factura as any).puedeCancelar = this.calcularPuedeCancelarFactura(factura);
-          });
-          this.dataSource.data = this.selectedPageInfo?.getContent;
-        });
+      return this.facturaService.onGetFacturaLegalByCdc(this.cdcControl.value).pipe(
+        map(res => ({ getContent: res ? [this.conPuedeCancelar(res)] : [], getTotalElements: res ? 1 : 0 }))
+      );
     }
+    if (!(this.fechaFormGroup.valid && this.sucursalControl.valid)) return of(null);
+    let fechaInicio = dateToString(this.fechaInicioControl.value);
+    let fechaFin = dateToString(this.fechaFinControl.value);
+    let isElectronico = this.tipoControl.value === 'ELECTRONICO' ? true : this.tipoControl.value === 'AUTOIMPRESO' ? false : null;
+    let activo = this.estadoControl.value === 'ACTIVOS' ? true : this.estadoControl.value === 'INACTIVOS' ? false : null;
+    return this.facturaService
+      .onGetAllFacturasLegales(
+        page,
+        size,
+        fechaInicio,
+        fechaFin,
+        this.toSucursalesId(this.sucursalControl.value),
+        this.rucControl.value != null
+          ? `%${this.rucControl.value?.toUpperCase()}%`
+          : null,
+        this.nombreControl.value != null
+          ? `%${this.nombreControl.value?.toUpperCase()}%`
+          : null,
+        this.iva5Control.value,
+        this.iva10Control.value,
+        false,
+        isElectronico,
+        activo,
+        this.sinNombreControl.value,
+        this.toVentaId(this.ventaIdControl.value)
+      )
+      .pipe(
+        map(res => res ? { getTotalElements: res.getTotalElements, getContent: (res.getContent || []).map(f => this.conPuedeCancelar(f)) } : null)
+      );
   }
 
   calcularResumen() {
@@ -569,12 +565,6 @@ export class ListFacturaLegalComponent implements OnInit {
 
   onImprimir(factura: FacturaLegal, i) {
     this.facturaService.onReimprimirFacturaTicket(factura.id, factura.sucursalId);
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetFacturas();
   }
 
   /** Rol para emitir notas de crédito; se calcula una vez, nunca desde el HTML. */

@@ -13,12 +13,14 @@
         <mat-option *ngFor="let m of modulos" [value]="m.value">{{ m.label }}</mat-option>
       </mat-select>
     </mat-form-field>
+    <mat-slide-toggle [formControl]="verHistorialControl" (change)="aplicarVista()">Ver historial</mat-slide-toggle>
   </div>
 
   <div table class="cmm-contenido">
     <div class="cmm-ayuda">
       Cada cambio crea una configuración nueva desde su fecha de vigencia. Sin configuraciones, todos
       los módulos usan la moneda de la empresa. Desactivar la vigente vuelve el módulo a la anterior.
+      La lista muestra la que rige y las programadas de cada módulo; «Ver historial» muestra todas.
     </div>
 
     <div *ngIf="estado === 'cargando'" class="cmm-estado">

@@ -331,3 +331,32 @@ export const usuariosSearchPaginatedPorRoles = gql`
     }
   }
 `;
+
+// Solo se usa al filtrar por estado (activo true/false): con "Todos" van las queries de siempre,
+// que existen tambien en centrales que todavia no tienen esta.
+export const usuariosSearchPaginatedConFiltros = gql`
+  query ($texto: String, $page: Int, $size: Int, $roleIds: [ID], $activo: Boolean) {
+    data: usuarioSearchPaginatedConFiltros(texto: $texto, page: $page, size: $size, roleIds: $roleIds, activo: $activo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nickname
+        activo
+        creadoEn
+        persona {
+          id
+          nombre
+          telefono
+          documento
+          imagenes
+        }
+      }
+    }
+  }
+`;

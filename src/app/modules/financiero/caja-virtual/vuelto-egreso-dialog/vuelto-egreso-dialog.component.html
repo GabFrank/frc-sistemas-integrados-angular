@@ -27,7 +27,7 @@
       </button>
       <button mat-stroked-button (click)="buscar()"><mat-icon>search</mat-icon> Buscar</button>
       <span class="spacer"></span>
-      <span class="hint" *ngIf="!isLoading">{{ totalElements }} egreso(s) con vuelto pendiente</span>
+      <span class="hint" *ngIf="pag.estado$ | async as e"><ng-container *ngIf="!e.cargando">{{ e.total }} egreso(s) con vuelto pendiente</ng-container></span>
     </div>
 
     <div class="tabla-wrap">
@@ -75,14 +75,13 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns;" (dblclick)="elegir(row)"></tr>
       </table>
 
-      <div class="empty" *ngIf="isLoading">Cargando…</div>
-      <div class="empty" *ngIf="!isLoading && dataSource.data.length === 0">
+      <div class="empty" *ngIf="pag.cargando$ | async">Cargando…</div>
+      <div class="empty" *ngIf="(pag.cargando$ | async) === false && dataSource.data.length === 0">
         No hay egresos con vuelto pendiente en esas fechas. Ampliá el rango para ver egresos más viejos.
       </div>
     </div>
 
-    <mat-paginator [length]="totalElements" [pageSize]="pageSize" [pageIndex]="pageIndex"
-      [pageSizeOptions]="[10, 20, 50]" (page)="onPage($event)"></mat-paginator>
+    <mat-paginator [paginacion]="pag"></mat-paginator>
   </mat-dialog-content>
 
   <!-- ═══ Formulario del vuelto del egreso elegido ═══ -->

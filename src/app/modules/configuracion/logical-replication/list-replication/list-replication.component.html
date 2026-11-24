@@ -22,14 +22,14 @@
   
   <div fxLayout="row" fxLayoutAlign="start stretch" fxLayout.lt-md="column" fxLayoutGap="20px" class="columnas">
     <!-- Subscriptions Column -->
-    <div fxFlex="50%" fxFlex.lt-md="100%" class="column-container mat-elevation-z4">
+    <div fxFlex="50%" fxFlex.lt-md="100%" *ngIf="subs.estado$ | async as sub" class="column-container mat-elevation-z4">
       <div class="column-header">
         <h3>{{ isLocalMode ? 'Suscripciones (desde servidor central)' : 'Suscripciones en ' + selectedBranchName }}</h3>
         <div class="header-actions">
           <button mat-raised-button color="accent" 
                   (click)="refreshAllSubscriptions()" 
                   matTooltip="Refrescar todas las suscripciones"
-                  *ngIf="subscriptionsPage?.getContent?.length > 0">
+                  *ngIf="sub.items.length > 0">
             <mat-icon>refresh</mat-icon> Refrescar Todas
           </button>
           <button mat-raised-button color="primary" 
@@ -40,17 +40,17 @@
         </div>
       </div>
       
-      <div *ngIf="isLoadingSubscriptions" class="loading-container">
+      <div *ngIf="sub.cargando" class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
       </div>
       
-      <div *ngIf="!isLoadingSubscriptions && subscriptionsPage?.getContent?.length === 0" class="no-data">
+      <div *ngIf="!sub.cargando && sub.items.length === 0" class="no-data">
         No hay suscripciones configuradas.
       </div>
       
-      <div *ngIf="!isLoadingSubscriptions && subscriptionsPage?.getContent?.length > 0" class="table-container">
+      <div *ngIf="!sub.cargando && sub.items.length > 0" class="table-container">
         <div class="tabla-scroll">
-        <table mat-table [dataSource]="subscriptionsPage?.getContent">
+        <table mat-table [dataSource]="sub.items">
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Nombre</th>
@@ -102,19 +102,12 @@
         </table>
         </div>
         
-        <mat-paginator #subPaginator
-                       [length]="subscriptionsPage?.getTotalElements"
-                       [pageSize]="subPageSize"
-                       [pageSizeOptions]="[5, 10, 25, 50]"
-                       [pageIndex]="subPageIndex"
-                       (page)="handleSubPageEvent($event)"
-                       showFirstLastButtons>
-        </mat-paginator>
+        <mat-paginator [paginacion]="subs"></mat-paginator>
       </div>
     </div>
     
     <!-- Publications Column -->
-    <div fxFlex="50%" fxFlex.lt-md="100%" class="column-container mat-elevation-z4">
+    <div fxFlex="50%" fxFlex.lt-md="100%" *ngIf="pubs.estado$ | async as pub" class="column-container mat-elevation-z4">
       <div class="column-header">
         <h3>{{ isLocalMode ? 'Publicaciones (hacia sucursales)' : 'Publicaciones en ' + selectedBranchName }}</h3>
         <div class="header-actions">
@@ -133,17 +126,17 @@
         </div>
       </div>
       
-      <div *ngIf="isLoadingPublications" class="loading-container">
+      <div *ngIf="pub.cargando" class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
       </div>
       
-      <div *ngIf="!isLoadingPublications && publicationsPage?.getContent?.length === 0" class="no-data">
+      <div *ngIf="!pub.cargando && pub.items.length === 0" class="no-data">
         No hay publicaciones configuradas.
       </div>
       
-      <div *ngIf="!isLoadingPublications && publicationsPage?.getContent?.length > 0" class="table-container">
+      <div *ngIf="!pub.cargando && pub.items.length > 0" class="table-container">
         <div class="tabla-scroll">
-        <table mat-table [dataSource]="publicationsPage?.getContent">
+        <table mat-table [dataSource]="pub.items">
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Nombre</th>
@@ -192,14 +185,7 @@
         </table>
         </div>
         
-        <mat-paginator #pubPaginator
-                       [length]="publicationsPage?.getTotalElements"
-                       [pageSize]="pubPageSize"
-                       [pageSizeOptions]="[5, 10, 25, 50]"
-                       [pageIndex]="pubPageIndex"
-                       (page)="handlePubPageEvent($event)"
-                       showFirstLastButtons>
-        </mat-paginator>
+        <mat-paginator [paginacion]="pubs"></mat-paginator>
       </div>
     </div>
   </div>

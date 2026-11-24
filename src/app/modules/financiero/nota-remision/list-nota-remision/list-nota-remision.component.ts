@@ -1,10 +1,9 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MatDialog } from '@angular/material/dialog';
-import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { NotaRemision, OrigenNotaRemision } from '../nota-remision.model';
@@ -28,7 +27,7 @@ import {
  * Los permisos se calculan una vez en ngOnInit y quedan en flags: llamar funciones desde el HTML
  * las re-evalúa en cada ciclo de detección de cambios (regla del repo).
  */
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-nota-remision',
   templateUrl: './list-nota-remision.component.html',
@@ -36,7 +35,6 @@ import {
 })
 export class ListNotaRemisionComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<NotaRemision>([]);
   displayedColumns = ['numero', 'fecha', 'origen', 'receptor', 'vehiculo', 'chofer', 'estadoDe', 'acciones'];
@@ -46,9 +44,25 @@ export class ListNotaRemisionComponent implements OnInit {
   fechaHastaControl = new FormControl(null);
 
   sucursales: Sucursal[] = [];
-  selectedPageInfo: PageInfo<NotaRemision>;
-  pageIndex = 0;
-  pageSize = 15;
+  /** Notas de remisión paginadas en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<NotaRemision> = new PaginacionLista<NotaRemision>({
+    cargar: (page, size) => this.service.onGetPorFiltro(
+      this.sucursalIdControl.value,
+      this.fechaDesdeControl.value ? dateToString(this.fechaDesdeControl.value) : null,
+      this.fechaHastaControl.value ? dateToString(this.fechaHastaControl.value) : null,
+      page,
+      size
+    ),
+    pageSize: 15,
+    pageSizeOptions: [10, 15, 30, 50],
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      this.cargarEstados();
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   /** Estado del documento electrónico por nota, para el chip y los botones. */
   estadoDePorNota: { [notaId: number]: string } = {};
@@ -88,30 +102,14 @@ export class ListNotaRemisionComponent implements OnInit {
     this.buscar();
   }
 
-  // Un filtro nuevo arranca en la página 1 (el paginador tiene [pageIndex] enlazado).
+  /** Un filtro nuevo arranca en la página 1. */
   onFiltrar(): void {
-    this.pageIndex = 0;
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (después de emitir, reenviar o anular). */
   buscar(): void {
-    this.service.onGetPorFiltro(
-      this.sucursalIdControl.value,
-      this.fechaDesdeControl.value ? dateToString(this.fechaDesdeControl.value) : null,
-      this.fechaHastaControl.value ? dateToString(this.fechaHastaControl.value) : null,
-      this.pageIndex,
-      this.pageSize
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      this.selectedPageInfo = res;
-      this.dataSource.data = res?.getContent ?? [];
-      this.cargarEstados();
-    });
-  }
-
-  onPage(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.buscar();
+    this.pag.recargar();
   }
 
   /**

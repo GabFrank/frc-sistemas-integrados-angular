@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SucursalService } from '../../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
@@ -35,7 +34,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     ngOnInit(): void {
         this.cargarSucursales();
-        this.vehiculoService.refrescarSucursal();
+        this.vehiculoService.reiniciarFiltrosSucursal();
         this.initFiltros();
         this.initDataStream();
     }
@@ -73,9 +72,6 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
 
-    handlePageEvent(event: PageEvent): void {
-        this.vehiculoService.updatePaginationSucursal(event.pageIndex, event.pageSize);
-    }
 
     onBuscarResponsable(): void {
         this.enteService.abrirBuscadorResponsable().pipe(untilDestroyed(this)).subscribe((res: Funcionario | undefined) => {
@@ -90,8 +86,9 @@ export class ListVehiculoSucursalComponent implements OnInit {
     onBuscarVehiculo(): void {
         this.enteService.abrirBuscadorEnte(TipoEnte.VEHICULO).pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
+                // Se filtra por el id del bien: la descripción mostrada no es la guardada y como texto no coincide (#774).
                 this.vehiculoControl.setValue(res.descripcion || '');
-                this.vehiculoService.setSearchTextSucursal(res.descripcion || '');
+                this.vehiculoService.setEnteFilterSucursal(res.id ?? null);
                 this.cdr.markForCheck();
             }
         });
@@ -104,7 +101,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     resetVehiculo(): void {
         this.vehiculoControl.setValue('');
-        this.vehiculoService.setSearchTextSucursal('');
+        this.vehiculoService.setEnteFilterSucursal(null);
     }
 
     resetFiltro(): void {
@@ -112,6 +109,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
         this.responsableControl.setValue('');
         this.vehiculoControl.setValue('');
         this.vehiculoService.setSearchTextSucursal('');
+        this.vehiculoService.setEnteFilterSucursal(null);
         this.vehiculoService.setSucursalFilter(null);
         this.vehiculoService.setResponsableFilter(null);
     }

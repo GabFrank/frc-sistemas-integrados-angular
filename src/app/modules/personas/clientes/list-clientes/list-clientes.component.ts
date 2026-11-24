@@ -13,13 +13,12 @@ import { ROLES } from '../../roles/roles.enum';
 import { MatDialog } from '@angular/material/dialog';
 import { updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/list-venta-credito/list-venta-credito.component';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { SelectionModel } from '@angular/cdk/collections';
 import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
-import { forkJoin, Subscription, timer } from 'rxjs';
+import { forkJoin, timer } from 'rxjs';
 import { avisoTrasMutacion, erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
@@ -44,7 +43,6 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 })
 export class ListClientesComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatTable) table: MatTable<any>;
 
@@ -76,16 +74,24 @@ export class ListClientesComponent implements OnInit {
   timer;
   tipoClienteList = Object.keys(TipoCliente)
 
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
+  /** Clientes paginados en el central (#772): descarta respuestas viejas; si falla, vuelve a la página anterior. */
+  pag = new PaginacionLista<Cliente>({
+    cargar: (page, size) => this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, page, size),
+    pageSize: 25,
+    alCargar: (res) => this.mostrarClientes(res.getContent ?? []),
+    // Falló un filtro nuevo: las filas a la vista son de otro filtro.
+    alFallar: (filtroNuevo) => {
+      if (!filtroNuevo) return;
+      this.dataSource.data = [];
+      this.selection.clear();
+    },
+  });
+  /** Ids a volver a tildar cuando llegue la página (recarga tras cobrar); null = la selección se limpia. */
+  private idsAMantener: number[] | null = null;
   orderById = null;
   orderByNombre = null;
-  selectedPageInfo: PageInfo<Cliente>;
   selection = new SelectionModel<Cliente>(true, []);
   sinFiltro = true;
-  busqueda: Subscription;
 
 
   constructor(
@@ -101,14 +107,9 @@ export class ListClientesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
-      this.pageSize = this.paginator.pageSizeOptions[1]
-      this.buscar()
-    }, 0);
+    this.onFiltrar();
 
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.pageIndex = 0;
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
@@ -128,44 +129,42 @@ export class ListClientesComponent implements OnInit {
   onFiltrar() {
     // El debounce del texto pendiente repetiría la misma consulta.
     clearTimeout(this.timer);
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    if (this.prepararBusqueda(false)) this.pag.filtrar();
   }
 
+  /** Repite la página a la vista; `keepSelection`: vuelve a tildar los clientes que siguen en ella. */
   buscar(keepSelection = false) {
-    // Una respuesta tardía de la consulta anterior no debe pisar la actual ni el aviso.
-    this.busqueda?.unsubscribe();
-    // El central no lista todos los clientes a propósito (#587): sin texto ni tipo no se consulta.
-    // Un texto de solo espacios, % o _ también listaría todos: el central los toma como comodines.
+    if (this.prepararBusqueda(keepSelection)) this.pag.recargar();
+  }
+
+  /**
+   * El central no lista todos los clientes a propósito (#587): sin texto ni tipo no se consulta. Un texto de solo
+   * espacios, % o _ también listaría todos: el central los toma como comodines.
+   */
+  private prepararBusqueda(keepSelection: boolean): boolean {
     if (!/[^%_\s]/.test(this.buscarControl.value ?? '') && this.tipoClienteControl.value == null) {
+      this.pag.limpiar();
       this.dataSource.data = [];
-      this.selectedPageInfo = null;
       this.selection.clear();
       this.sinFiltro = true;
-      return;
+      return false;
     }
     this.sinFiltro = false;
-    const selectedIds = this.selection.selected.map(s => s.id);
-    this.busqueda = this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent;
-        this.selection.clear();
-        if (keepSelection) {
-          this.dataSource.data.forEach(item => {
-            if (selectedIds.includes(item.id)) {
-              this.selection.select(item);
-            }
-          });
-        }
-        if (res.getContent && res.getContent.length === 0) {
-          this.notificacionService.openWarn('Cliente no encontrado');
-        }
-      }
-    });
+    this.idsAMantener = keepSelection ? this.selection.selected.map(s => s.id) : null;
+    return true;
+  }
+
+  private mostrarClientes(clientes: Cliente[]): void {
+    const ids = this.idsAMantener;
+    this.idsAMantener = null;
+    this.dataSource.data = clientes;
+    this.selection.clear();
+    if (ids) {
+      clientes.filter(item => ids.includes(item.id)).forEach(item => this.selection.select(item));
+    }
+    if (clientes.length === 0) {
+      this.notificacionService.openWarn('Cliente no encontrado');
+    }
   }
 
   // El tipo se limpia sin evento: limpiar el texto ya dispara onFiltrar, una vez y sin filtro.
@@ -207,12 +206,6 @@ export class ListClientesComponent implements OnInit {
     console.log(cliente);
 
     this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id, cliente), ListClientesComponent))
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
 
   isAllSelected() {

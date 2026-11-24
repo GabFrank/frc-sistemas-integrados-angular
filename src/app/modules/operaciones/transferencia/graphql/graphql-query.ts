@@ -1492,3 +1492,84 @@ export const transferenciaQrEscaneadoSubQuery = gql`
     }
   }
 `;
+
+/** PDF (base64) de productos faltantes con los mismos filtros que la ventana; null si no hay resultados. */
+export const reporteTransferenciaItemsRechazadosQuery = gql`
+  query (
+    $motivo: TransferenciaItemMotivoRechazo
+    $sucursalOrigenId: ID
+    $sucursalDestinoId: ID
+    $productoId: ID
+    $transferenciaId: ID
+    $creadoDesde: String
+    $creadoHasta: String
+  ) {
+    data: reporteTransferenciaItemsRechazados(
+      motivo: $motivo
+      sucursalOrigenId: $sucursalOrigenId
+      sucursalDestinoId: $sucursalDestinoId
+      productoId: $productoId
+      transferenciaId: $transferenciaId
+      creadoDesde: $creadoDesde
+      creadoHasta: $creadoHasta
+    )
+  }
+`;
+
+/** Productos faltantes: items rechazados por motivo, con todo lo que muestra la tabla (sin transferenciaItemList). */
+export const transferenciaItemsRechazadosQuery = gql`
+  query (
+    $motivo: TransferenciaItemMotivoRechazo
+    $sucursalOrigenId: ID
+    $sucursalDestinoId: ID
+    $productoId: ID
+    $transferenciaId: ID
+    $creadoDesde: String
+    $creadoHasta: String
+    $page: Int
+    $size: Int
+  ) {
+    data: transferenciaItemsRechazados(
+      motivo: $motivo
+      sucursalOrigenId: $sucursalOrigenId
+      sucursalDestinoId: $sucursalDestinoId
+      productoId: $productoId
+      transferenciaId: $transferenciaId
+      creadoDesde: $creadoDesde
+      creadoHasta: $creadoHasta
+      page: $page
+      size: $size
+    ) {
+      getTotalElements
+      getContent {
+        id
+        cantidadPreTransferencia
+        cantidadPreparacion
+        motivoRechazoPreTransferencia
+        motivoRechazoPreparacion
+        motivoRechazoTransporte
+        motivoRechazoRecepcion
+        presentacionPreTransferencia {
+          id
+          cantidad
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        transferencia {
+          id
+          creadoEn
+          estado
+          sucursalOrigen { id nombre }
+          sucursalDestino { id nombre }
+          usuarioPreTransferencia { id nickname }
+          usuarioPreparacion { id nickname }
+          usuarioTransporte { id nickname }
+          usuarioRecepcion { id nickname }
+        }
+      }
+    }
+  }
+`;

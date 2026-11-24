@@ -5,7 +5,7 @@ const VALE_FIELDS = `
   funcionario { id persona { id nombre } }
   motivo { id nombre }
   monto
-  moneda { id denominacion }
+  moneda { id denominacion simbolo decimales }
   fecha
   estado
   esAdelanto

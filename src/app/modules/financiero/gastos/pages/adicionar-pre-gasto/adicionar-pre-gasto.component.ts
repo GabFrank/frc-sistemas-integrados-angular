@@ -2,7 +2,7 @@ import { NotificacionSnackbarService } from '../../../../../notificacion-snackba
 import { PROPAGAR_ERROR_DE_RED } from '../../../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../../../shared/services/timeout-link';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { FormControl, Validators } from '@angular/forms';
 import { GastoService } from '../../service/gasto.service';
 import { PreGasto, PreGastoInput } from '../../models/pre-gasto.model';
@@ -86,11 +86,20 @@ export class AdicionarPreGastoComponent implements OnInit {
   tiposEnte = [TipoEnte.VEHICULO, TipoEnte.INMUEBLE, TipoEnte.MUEBLE];
 
   displayedColumns: string[] = ['ref', 'descripcion', 'acciones'];
-  ultimasSolicitudes: PreGasto[] = [];
 
-  totalElementos = 0;
-  paginaActual = 0;
-  tamanoPagina = 15;
+  /** Últimas solicitudes de la caja, paginadas en el central (#772). */
+  historialPag: PaginacionLista<PreGasto> = new PaginacionLista<PreGasto>({
+    cargar: (page, size) => this.gastoService.preGastoFilter(
+      undefined,
+      this.cajaService.selectedCaja?.id,
+      undefined,
+      undefined,
+      undefined,
+      page,
+      size
+    ),
+    pageSize: 15,
+  });
 
   listaMotivos = [
     { valor: 'CUOTA', etiqueta: 'Pago de Cuota / Deuda', icono: 'event_note' },
@@ -312,7 +321,8 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.guardado = true;
         this.idPreGastoGuardado = Number(res.id);
         this.sucursalIdPreGastoGuardado = Number(res.sucursalId);
-        this.cargarUltimasSolicitudes();
+        // La nueva va primero: el historial vuelve a la página 1.
+        this.historialPag.irAPrimera();
         this.cdr.markForCheck();
       }
     });
@@ -348,30 +358,9 @@ export class AdicionarPreGastoComponent implements OnInit {
     }
   }
 
+  /** Repite la página del historial (al abrir y después de guardar una solicitud). */
   cargarUltimasSolicitudes(): void {
-    this.gastoService.preGastoFilter(
-      undefined,
-      this.cajaService.selectedCaja?.id,
-      undefined,
-      undefined,
-      undefined,
-      this.paginaActual,
-      this.tamanoPagina
-    )
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res) {
-          this.ultimasSolicitudes = res.getContent || [];
-          this.totalElementos = res.getTotalElements || 0;
-          this.cdr.markForCheck();
-        }
-      });
-  }
-
-  onPageChange(event: PageEvent): void {
-    this.paginaActual = event.pageIndex;
-    this.tamanoPagina = event.pageSize;
-    this.cargarUltimasSolicitudes();
+    this.historialPag.recargar();
   }
 
   nuevaSolicitud(): void {

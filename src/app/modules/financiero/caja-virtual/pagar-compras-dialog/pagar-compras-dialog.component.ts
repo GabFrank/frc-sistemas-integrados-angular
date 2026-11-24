@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { MainService } from '../../../../main.service';
 import { pagaAcotadoCaja } from '../rol-tesoreria-caja';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -84,6 +85,8 @@ interface SolicitudRow {
   _bloqueado?: boolean;         // no se puede pagar (dato incompleto); nunca seleccionable
   _bloqueoMotivo?: string;
   _devolvible?: boolean;        // compra en SOLICITADO: tesorería puede devolverla a compras
+  _cancelable?: boolean;        // gasto sin pagos: TESORERIA GESTIONAR puede cancelarlo (#599)
+  _cancelando?: boolean;        // la cancelación está en curso: el botón no acepta otro clic
   _sinConfirmar?: boolean;      // estaba en un pago que quedó sin respuesta: su saldo puede haber cambiado
 }
 
@@ -309,6 +312,9 @@ export class PagarComprasDialogComponent implements OnInit {
   /** Rol acotado (TESORERIA CAJA): paga solo en efectivo desde esta caja; sin cuentas ni cheques. */
   soloCaja = false;
 
+  /** Cancelar un gasto que ya no corresponde es de TESORERIA GESTIONAR (el central lo vuelve a exigir). */
+  puedeGestionar = false;
+
   constructor(
     private dialogRef: MatDialogRef<PagarComprasDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PagarComprasDialogData,
@@ -328,6 +334,7 @@ export class PagarComprasDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.soloCaja = pagaAcotadoCaja(this.mainService);
+    this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
     this.esGasto = this.data?.modo === 'GASTOS';
     this.esVale = this.data?.modo === 'VALES';
     this.esRrhh = this.data?.modo === 'LIQUIDACION' || this.data?.modo === 'FINIQUITO'
@@ -359,7 +366,7 @@ export class PagarComprasDialogComponent implements OnInit {
     }
     if (this.esGasto) {
       this.titulo = 'Pagar Gasto';
-      this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar'];
+      this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar', 'acciones'];
       // Filtros de la tabla (client-side sobre lo cargado).
       this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
       this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.filtrarDesdeLaPrimeraPagina());
@@ -553,6 +560,8 @@ export class PagarComprasDialogComponent implements OnInit {
       // Solo una compra todavía sin pagos se devuelve; la regla la vuelve a chequear el central.
       // Devolver a compras es decisión de tesorería: el rol acotado no la toma.
       _devolvible: !this.esGasto && s.estado === 'SOLICITADO' && !this.soloCaja,
+      // Solo un gasto sin pagos se cancela; el central vuelve a chequear pagos, rol y caja.
+      _cancelable: this.esGasto && this.puedeGestionar && s.estado !== 'PARCIAL' && !(Number(s.montoPagado) > 0),
     };
   }
 
@@ -819,6 +828,41 @@ export class PagarComprasDialogComponent implements OnInit {
               this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud');
             } else if (!esTimeoutDeLink(err)) {
               this.notificacion.openWarn(`No se pudo confirmar si ${row.numeroSolicitud} se devolvió a compras: se vuelve a leer la lista.`, 6);
+            }
+            this.cargar(true);
+          },
+        });
+      });
+  }
+
+  // ── Cancelar un gasto que ya no corresponde (#599): sin pagos, con motivo ──
+  onCancelarGasto(row: SolicitudRow) {
+    if (!row._cancelable || row._sel || row._cancelando) return;
+    const data: MotivoDialogData = {
+      titulo: `Cancelar el gasto #${row.id}`,
+      mensaje: `¿Por qué ya no corresponde pagar ${row._categoria || 'este gasto'}?`,
+      detalle: 'Sale de esta lista y queda cancelado. Si vino de una solicitud de gasto, esa solicitud queda rechazada.',
+      botonConfirmar: 'Cancelar gasto',
+    };
+    this.dialog.open(MotivoDialogComponent, { data }).afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((motivo: string | null) => {
+        if (!motivo) return;
+        row._cancelando = true;
+        this.pagarComprasService.onCancelarGasto(row.id, motivo).pipe(untilDestroyed(this)).subscribe({
+          next: () => {
+            this.notificacion.openSucess(`Gasto #${row.id} cancelado`);
+            this.todas = this.todas.filter(r => r.id !== row.id);
+            this.aplicarFiltro();
+          },
+          error: (err) => {
+            row._cancelando = false;
+            // Rechazo: el motivo del servidor (con pagos, sin rol, ya cancelado). Sin respuesta: pudo haberse
+            // cancelado. En los dos casos la lista se relee.
+            if (erroresDeRechazo(err)) {
+              this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo cancelar el gasto');
+            } else if (!esTimeoutDeLink(err)) {
+              this.notificacion.openWarn(`No se pudo confirmar si el gasto #${row.id} se canceló: se vuelve a leer la lista.`, 6);
             }
             this.cargar(true);
           },

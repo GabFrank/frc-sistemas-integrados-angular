@@ -17,6 +17,7 @@ import { LiquidacionFinal, LiquidacionFinalItem, MotivoEgreso } from '../liquida
 import { LiquidacionFinalService } from '../liquidacion-final.service';
 import { LiquidacionFinalGenerarDialogComponent } from '../liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { digitosMoneda, origenMonedaTexto, simboloMoneda } from '../../liquidacion/moneda-item';
 
 /**
  * Liquidación final / finiquito. Se abre en una TAB (no diálogo) para tener espacio
@@ -52,6 +53,9 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
   itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
   items = new MatTableDataSource<LiquidacionFinalItem>([]);
+  /** Simbolo y digitos de la moneda del finiquito, para los montos del template. */
+  simbolo = '';
+  digitos = '1.0-0';
 
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null);
@@ -109,7 +113,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   private recargarItems() {
     if (this.liq?.id == null) { return; }
     this.liquidacionFinalService.onGetItems(this.liq.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+      .pipe(untilDestroyed(this)).subscribe(res => this.ponerItems(res));
   }
 
   /** Carga (o recarga, para el total recalculado) cabecera + items. Si falla se conserva lo que habia. */
@@ -124,6 +128,14 @@ export class LiquidacionFinalDialogComponent implements OnInit {
         },
         error: () => this.finiquitoNoCargado()
       });
+  }
+
+  /** Los items, con el simbolo del finiquito y el texto de origen de los que vinieron de otra moneda. */
+  private ponerItems(items: LiquidacionFinalItem[]) {
+    const doc = this.liq?.moneda;
+    this.simbolo = simboloMoneda(doc);
+    this.digitos = digitosMoneda(doc);
+    this.items.data = (items || []).map(it => ({ ...it, origenMoneda: origenMonedaTexto(it, doc) }));
   }
 
   private finiquitoNoCargado() {
@@ -141,7 +153,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
   private setLiq(liq: LiquidacionFinal) {
     this.liq = liq;
-    this.items.data = liq.items || [];
+    this.ponerItems(liq.items);
     this.totalNegativo = (liq.totalLiquidado ?? 0) < 0;
   }
 

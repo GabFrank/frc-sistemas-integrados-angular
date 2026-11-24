@@ -21,6 +21,12 @@ $texto-suave: var(--frc-texto-suave);
   width: 260px;
 }
 
+.filtro-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 input {
   text-transform: uppercase;
 }

@@ -1,9 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
+import { map } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -26,30 +25,44 @@ interface FilaPrecioEspecial {
   precioInactivo: boolean;
 }
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-precio-especial',
   templateUrl: './list-precio-especial.component.html',
   styleUrls: ['./list-precio-especial.component.scss'],
 })
 export class ListPrecioEspecialComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-  dataSource = new MatTableDataSource<FilaPrecioEspecial>([]);
   displayedColumns = ['id', 'sucursal', 'producto', 'presentacion', 'tipoPrecio', 'global', 'precio', 'vigencia', 'estado', 'usuario', 'acciones'];
-  selectedPageInfo: PageInfo<PrecioEspecialSucursal>;
-  pageIndex = 0;
-  pageSize = 15;
   sucursalIdControl = new FormControl<number>(null);
   textoControl = new FormControl<string>(null);
   soloVigentesControl = new FormControl<boolean>(true);
   sucursales: Sucursal[] = [];
   sucursalesFallo = false;
-  /** La última consulta falló: la grilla vacía no significa «sin promociones» (#390). */
-  listaFallo = false;
-  /** Descarta respuestas de una consulta anterior. */
-  private carga = 0;
-  /** Página a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
-  private paginaMostrada = { pageIndex: 0, pageSize: 15 };
+
+  /**
+   * Promociones paginadas en el central (#772). Si falla un filtro la grilla queda vacía (lo anterior no corresponde
+   * a los filtros a la vista); si falla un cambio de página o releer tras cortar, se conserva lo que se ve (#390).
+   */
+  pag = new PaginacionLista<FilaPrecioEspecial>({
+    cargar: (page, size) => this.service.onFiltrar(this.armarParams(page, size)).pipe(
+      map(res => res && { getTotalElements: res.getTotalElements ?? 0, getContent: this.aFilas(res.getContent ?? []) })
+    ),
+    pageSize: 15,
+    alFallar: () => {
+      // Un cambio de página fallido solo avisa: la página a la vista sigue siendo buena (sin cartel).
+      this.cartelFallo = this.avisoAlFallar != null;
+      this.notificacionService.openWarn(this.avisoAlFallar ?? 'No se pudo cambiar de página: volvé a intentar.', 5);
+      this.avisoAlFallar = null;
+    },
+    alCargar: () => {
+      this.avisoAlFallar = null;
+      this.cartelFallo = false;
+    },
+  });
+  /** Cartel con «Reintentar»: falló un filtro (grilla vacía) o releer tras cortar (filas que pueden no reflejarlo). */
+  cartelFallo = false;
+  /** El aviso si falla la carga en curso; sin él (cambio de página desde el paginador) va el de página. */
+  private avisoAlFallar: string | null = null;
 
   constructor(
     private service: PrecioEspecialService,
@@ -80,67 +93,41 @@ export class ListPrecioEspecialComponent implements OnInit {
       } });
   }
 
-  /**
-   * `filtro` (por defecto): si falla, la grilla se vacía (lo anterior ya no corresponde a los filtros a la vista).
-   * `pagina`: cambio de página; si falla se conserva la página a la vista. `releer`: tras cortar; si falla se
-   * conservan las filas con el cartel de que pueden no reflejar el cambio.
-   */
-  onGetData(modo: 'filtro' | 'pagina' | 'releer' = 'filtro'): void {
-    const carga = ++this.carga;
-    const fallo = () => {
-      if (carga !== this.carga) return;
-      if (modo === 'releer' && !this.listaFallo) {
-        this.listaFallo = true;
-        this.notificacionService.openWarn('No se pudo actualizar la lista: puede no reflejar el último cambio.', 6);
-        return;
-      }
-      if (modo === 'pagina' && !this.listaFallo) {
-        this.pageIndex = this.paginaMostrada.pageIndex;
-        this.pageSize = this.paginaMostrada.pageSize;
-        if (this.paginator) {
-          this.paginator.pageIndex = this.pageIndex;
-          this.paginator.pageSize = this.pageSize;
-        }
-        this.notificacionService.openWarn('No se pudo cambiar de página: volvé a intentar.', 5);
-        return;
-      }
-      // Filtro nuevo: lo anterior ya no corresponde a los filtros a la vista
-      this.listaFallo = true;
-      this.selectedPageInfo = null;
-      this.dataSource.data = [];
-      this.notificacionService.openWarn('No se pudieron cargar las promociones: volvé a intentar.', 5);
-    };
-    const params: any = { page: this.pageIndex, size: this.pageSize, soloVigentes: !!this.soloVigentesControl.value };
+  /** `filtro` (por defecto, también Reintentar): página 1. `releer`: tras cortar, se repite la página a la vista. */
+  onGetData(modo: 'filtro' | 'releer' = 'filtro'): void {
+    if (modo === 'releer') {
+      this.avisoAlFallar = 'No se pudo actualizar la lista: puede no reflejar el último cambio.';
+      this.pag.recargar();
+    } else {
+      this.avisoAlFallar = 'No se pudieron cargar las promociones: volvé a intentar.';
+      this.pag.filtrar();
+    }
+  }
+
+  private armarParams(page: number, size: number): any {
+    const params: any = { page, size, soloVigentes: !!this.soloVigentesControl.value };
     if (this.sucursalIdControl.value != null) params.sucursalId = Number(this.sucursalIdControl.value);
     if (this.textoControl.value) params.texto = this.textoControl.value;
-    this.service.onFiltrar(params).pipe(untilDestroyed(this)).subscribe({ error: fallo, next: (res) => {
-      if (carga !== this.carga) return; // respuesta de un filtro o una página anterior
-      if (!res) {
-        fallo();
-        return;
-      }
-      this.listaFallo = false;
-      this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
-      this.selectedPageInfo = res;
-      const hoy = new Date();
-      this.dataSource.data = (res.getContent ?? []).map((e) => {
-        const p = e.precioPorSucursal?.presentacion;
-        const estado = estadoPrecioEspecial(e, hoy);
-        return {
-          especial: e,
-          presentacion: (p?.descripcion || `x${p?.cantidad ?? ''}`).toUpperCase(),
-          vigencia: textoVigencia(e),
-          estado,
-          estadoTexto: ESTADO_PRECIO_ESPECIAL_TEXTO[estado],
-          precioInactivo: esPrecioInactivo(e.precioPorSucursal),
-        };
-      });
-    } });
+    return params;
+  }
+
+  private aFilas(especiales: PrecioEspecialSucursal[]): FilaPrecioEspecial[] {
+    const hoy = new Date();
+    return especiales.map((e) => {
+      const p = e.precioPorSucursal?.presentacion;
+      const estado = estadoPrecioEspecial(e, hoy);
+      return {
+        especial: e,
+        presentacion: (p?.descripcion || `x${p?.cantidad ?? ''}`).toUpperCase(),
+        vigencia: textoVigencia(e),
+        estado,
+        estadoTexto: ESTADO_PRECIO_ESPECIAL_TEXTO[estado],
+        precioInactivo: esPrecioInactivo(e.precioPorSucursal),
+      };
+    });
   }
 
   onFilter(): void {
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
     this.onGetData();
   }
 
@@ -149,12 +136,6 @@ export class ListPrecioEspecialComponent implements OnInit {
     this.textoControl.setValue(null);
     this.soloVigentesControl.setValue(true);
     this.onFilter();
-  }
-
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onGetData('pagina');
   }
 
   onCortar(fila: FilaPrecioEspecial): void {

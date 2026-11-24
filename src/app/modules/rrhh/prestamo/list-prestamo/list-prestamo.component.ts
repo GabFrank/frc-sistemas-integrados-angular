@@ -1,10 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
@@ -23,19 +21,23 @@ import { PrestamoCuotasDialogComponent } from '../prestamo-cuotas-dialog/prestam
 })
 export class ListPrestamoComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['fechaInicio', 'funcionario', 'descripcion', 'montoTotal', 'montoPagado', 'cantidadCuotas', 'estado', 'acciones'];
-  dataSource = new MatTableDataSource<Prestamo>([]);
 
   funcionarioControl = new FormControl(null);
   estadoControl = new FormControl(null);
 
   estadoOpciones = ['ACTIVO', 'PAGADO', 'CANCELADO'];
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<Prestamo>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<Prestamo>({
+    cargar: (page, size) => this.prestamoService.onGetPage(
+      page,
+      size,
+      this.funcionarioControl.value,
+      this.estadoControl.value
+    ),
+    pageSize: 25,
+  });
 
   constructor(
     private prestamoService: PrestamoService,
@@ -57,25 +59,12 @@ export class ListPrestamoComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.prestamoService.onGetPage(
-      this.pageIndex,
-      this.pageSize,
-      this.funcionarioControl.value,
-      this.estadoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -84,11 +73,6 @@ export class ListPrestamoComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onNuevo() {
     this.dialog.open(EditPrestamoDialogComponent, {

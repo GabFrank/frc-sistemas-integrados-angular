@@ -20,7 +20,7 @@ import {
 import { FormControl } from "@angular/forms";
 import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { MatDialog } from "@angular/material/dialog";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { MatTableDataSource } from "@angular/material/table";
 import { ContextoConsulta, GenericCrudService, QueryError } from "../../../../generics/generic-crud.service";
 import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from "../../../../generics/generic-crud.constantes";
@@ -105,7 +105,6 @@ import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 export class ListProductoComponent implements OnInit, AfterViewInit {
   readonly ROLES = ROLES;
   titulo = 'Lista de productos';
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("filtroProductoInput") filtroProductoInput: ElementRef;
 
   // la fuente de datos de la tabla
@@ -128,10 +127,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   selectedProducto = new Producto();
   selectedRowIndex;
   menuState: string = "out";
-  isSearching = false;
-  // secuencia para descartar respuestas viejas que llegan despues de una busqueda
-  // mas nueva y pisarian la grilla con resultados de un texto ya reemplazado
-  private busquedaSeq = 0;
   displayedColumns: string[] = [
     "id",
     "descripcion",
@@ -143,9 +138,25 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     "acciones",
   ];
   expandedProducto: Producto;
-  pageIndex = 0;
-  pageSize = 15;
-  selectedPageInfo: PageInfo<Producto>;
+  /**
+   * Productos paginados en el central (#772): descarta la respuesta de una búsqueda o página vieja; si falla un
+   * cambio de página se vuelve a la anterior, si falla una búsqueda nueva la grilla queda vacía.
+   */
+  pag = new PaginacionLista<Producto>({
+    cargar: (page, size) => this.buscarPagina(page, size),
+    pageSize: 15,
+    alCargar: (res) => this.mostrarPagina(res.getContent ?? []),
+    alFallar: (filtroNuevo) => this.avisarFallo(filtroNuevo),
+  });
+  /**
+   * Cómo avisar la próxima carga: la pone una búsqueda nueva y la consume `buscarPagina`; las páginas que pide el
+   * paginador van en silencio y sin «no encontrado».
+   */
+  private opcionesBusqueda = { mostrarAvisoSinResultados: false, silentLoad: true };
+  /** Las opciones de la carga en curso (la última pedida: las anteriores se descartan). */
+  private opcionesEnCurso = this.opcionesBusqueda;
+  /** Filtros de stock de la búsqueda en curso: pasan a `filtroDeLaLista` cuando llega. */
+  private filtroDeLaBusqueda: { stock: string; sucursalId: number } = { stock: 'todos', sucursalId: null };
 
   //subfamilia
   selectedSubfamilia: Subfamilia;
@@ -232,48 +243,23 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   /** Evita un aviso por tecla: el campo de texto dispara una búsqueda en cada pausa. */
   private ultimoAvisoDeBusqueda = 0;
-  /** Página que está a la vista (la última que respondió bien): a esa se vuelve si falla un cambio de página. */
-  private paginaMostrada = { pageIndex: 0, pageSize: 15 };
   /** Filtros de stock con que se armó la lista a la vista: el select puede haber cambiado sin volver a buscar. */
   filtroDeLaLista: { stock: string; sucursalId: number } = { stock: 'todos', sucursalId: null };
 
-  /** `paginaAnterior`: la búsqueda es un cambio de página; si falla se vuelve a esa página en vez de vaciar. */
-  onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false,
-                   paginaAnterior?: { pageIndex: number; pageSize: number }) {
-    this.isSearching = true;
+  /** Búsqueda nueva (página 1) con sus avisos; los cambios de página del paginador van en silencio. */
+  onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false) {
+    this.opcionesBusqueda = { mostrarAvisoSinResultados, silentLoad };
+    this.pag.filtrar();
+  }
+
+  private buscarPagina(page: number, size: number) {
+    this.opcionesEnCurso = this.opcionesBusqueda;
+    this.opcionesBusqueda = { mostrarAvisoSinResultados: false, silentLoad: true };
+    const { silentLoad } = this.opcionesEnCurso;
     this.expandedProducto = null;
     this.selectedProducto = new Producto();
-    const seq = ++this.busquedaSeq;
-    const filtroDeLaBusqueda = { stock: this.stockFiltroControl.value, sucursalId: this.sucursalFiltroControl.value };
-    const fallo = () => {
-      if (seq !== this.busquedaSeq) return;
-      this.isSearching = false;
-      if (paginaAnterior != null) {
-        // Cambio de página: la que estaba a la vista sigue siendo buena
-        this.pageIndex = paginaAnterior.pageIndex;
-        this.pageSize = paginaAnterior.pageSize;
-        if (this.paginator) {
-          this.paginator.pageIndex = paginaAnterior.pageIndex;
-          this.paginator.pageSize = paginaAnterior.pageSize;
-        }
-      } else {
-        // Búsqueda o filtro nuevo: los resultados anteriores ya no corresponden a los filtros a la vista
-        this.selectedPageInfo = null;
-        this.dataSource.data = [];
-        this.isGenerarPdfDisabled = true;
-      }
-      if (paginaAnterior != null) {
-        this.notificacionService.openWarn('No se pudo cambiar de página: volvé a intentar.', 5);
-        return;
-      }
-      const ahora = Date.now();
-      if (ahora - this.ultimoAvisoDeBusqueda > 5000) {
-        this.ultimoAvisoDeBusqueda = ahora;
-        this.notificacionService.openWarn('No se pudieron buscar los productos: volvé a intentar.', 5);
-      }
-    };
-
-    this.service
+    this.filtroDeLaBusqueda = { stock: this.stockFiltroControl.value, sucursalId: this.sucursalFiltroControl.value };
+    return this.service
       .onSearchWithFilters(
         this.filtroCodigoControl.value == true
           ? null
@@ -290,36 +276,38 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.costoCeroControl.value,
         this.stockFiltroControl.value,
         this.sucursalFiltroControl.value,
-        this.pageIndex,
-        this.pageSize,
+        page,
+        size,
         true,
         silentLoad
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({ error: () => fallo(), next: (res) => {
-        // llego tarde: ya hay una busqueda mas nueva en curso o resuelta
-        if (seq !== this.busquedaSeq) return;
-        if (res == null) {
-          fallo();
-          return;
-        }
+      );
+  }
 
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent;
-        this.cargarMonedasPrecioPrincipal(res.getContent);
-        this.paginaMostrada = { pageIndex: this.pageIndex, pageSize: this.pageSize };
-        this.filtroDeLaLista = filtroDeLaBusqueda;
-        this.isSearching = false;
-        this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
+  private mostrarPagina(productos: Producto[]): void {
+    const { mostrarAvisoSinResultados } = this.opcionesEnCurso;
+    this.dataSource.data = productos;
+    this.cargarMonedasPrecioPrincipal(productos);
+    this.filtroDeLaLista = this.filtroDeLaBusqueda;
+    this.isGenerarPdfDisabled = productos.length === 0;
+    if (mostrarAvisoSinResultados && productos.length === 0) {
+      this.notificacionService.openWarn('Producto no encontrado');
+    }
+  }
 
-        if (
-          mostrarAvisoSinResultados &&
-          res.getContent &&
-          res.getContent.length === 0
-        ) {
-          this.notificacionService.openWarn('Producto no encontrado');
-        }
-      } });
+  private avisarFallo(filtroNuevo: boolean): void {
+    if (!filtroNuevo) {
+      // Cambio de página: la que estaba a la vista sigue siendo buena
+      this.notificacionService.openWarn('No se pudo cambiar de página: volvé a intentar.', 5);
+      return;
+    }
+    // Búsqueda o filtro nuevo: los resultados anteriores ya no corresponden a los filtros a la vista
+    this.dataSource.data = [];
+    this.isGenerarPdfDisabled = true;
+    const ahora = Date.now();
+    if (ahora - this.ultimoAvisoDeBusqueda > 5000) {
+      this.ultimoAvisoDeBusqueda = ahora;
+      this.notificacionService.openWarn('No se pudieron buscar los productos: volvé a intentar.', 5);
+    }
   }
 
   onRowClick(row, isCurrentlyExpanded: boolean) {
@@ -426,19 +414,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onVerMovimiento(producto: Producto, i) {}
 
-  handlePageEvent(e: PageEvent) {
-    // La que está a la vista, no `this.pageIndex`: otro cambio de página pendiente ya lo pudo mover
-    const paginaAnterior = { ...this.paginaMostrada };
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.onSearchProducto(false, true, paginaAnterior);
-  }
-
   onFiltrar(mostrarAvisoSinResultados = true, silentLoad = false) {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
     this.onSearchProducto(mostrarAvisoSinResultados, silentLoad);
   }
 

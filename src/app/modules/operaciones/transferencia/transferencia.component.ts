@@ -4,6 +4,7 @@ import { Component, OnInit } from '@angular/core';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { ListTransferenciaComponent } from './list-transferencia/list-transferencia.component';
 import { EntregadoresComponent } from './entregadores/entregadores.component';
+import { ListProductosFaltantesComponent } from './list-productos-faltantes/list-productos-faltantes.component';
 import { ConfiguracionTransferenciaDialogComponent } from './configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { MainService } from '../../../main.service';
@@ -32,6 +33,10 @@ export class TransferenciaComponent implements OnInit {
 
   onEntregadores() {
     this.tabService.addTab(new Tab(EntregadoresComponent, 'Entregadores', null, TransferenciaComponent))
+  }
+
+  onProductosFaltantes() {
+    this.tabService.addTab(new Tab(ListProductosFaltantesComponent, 'Productos faltantes', null, TransferenciaComponent))
   }
 
   onAbrirConfiguracion() {

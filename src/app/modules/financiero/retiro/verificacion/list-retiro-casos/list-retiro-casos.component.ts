@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { PageEvent } from '@angular/material/paginator';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
@@ -23,6 +25,8 @@ import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/lis
 /** Fila con los campos de display precalculados (no se llaman funciones desde el HTML). */
 interface CasoRow extends RetiroCaso {
   _diferencias: string;
+  /** Nombre de la sucursal; el id mientras no cargó la lista o si no está en ella (inactiva). */
+  _sucursal: string;
   _contadoPor: string;
   _chipColor: string;
   _chipBg: string;
@@ -76,10 +80,44 @@ export class ListRetiroCasosComponent implements OnInit {
   /** En investigación = asignados a mí; en resueltos = los que yo cerré. */
   soloMios = false;
 
-  isLoading = false;
-  pageIndex = 0;
-  pageSize = 20;
-  totalElements = 0;
+  /** Caso a resaltar cuando llegue la próxima carga (al tomarlo se lo muestra donde quedó). */
+  private resaltarId: number = null;
+
+  /** Casos de la pestaña activa, paginados en el central (#772). */
+  pag: PaginacionLista<CasoRow> = new PaginacionLista<CasoRow>({
+    cargar: (page, size) => this.service.onGetCasos({
+      estado: this.tabs[this.tabActivo].estado,
+      sucursalId: this.sucursalControl.value?.id ?? null,
+      retiroId: this.retiroControl.value ? Number(this.retiroControl.value) : null,
+      desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
+      hasta: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
+      soloMios: this.soloMios,
+    }, page, size).pipe(
+      map(res => {
+        if (res == null) {
+          this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5);
+          return null;
+        }
+        // Clonar antes de agregar props de display: Apollo congela los resultados.
+        return { getTotalElements: res.getTotalElements || 0, getContent: (res.getContent || []).map(c => this.toRow(c)) };
+      }),
+      catchError(() => {
+        this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
+        return of(null);
+      })
+    ),
+    pageSize: 20,
+    pageSizeOptions: [20, 50, 100],
+    alCargar: (res) => {
+      this.dataSource.data = res.getContent ?? [];
+      const resaltar = this.resaltarId;
+      this.resaltarId = null;
+      if (resaltar != null) this.resaltar(resaltar);
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   puedeGestionar = false;
   /** El ADMIN destraba casos de gente que ya no está; el resto cierra solo lo suyo. */
   esAdmin = false;
@@ -99,35 +137,26 @@ export class ListRetiroCasosComponent implements OnInit {
     this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+      // Los casos pueden haber llegado antes: se re-rotulan con el nombre.
+      this.dataSource.data = this.dataSource.data.map(r => ({ ...r, _sucursal: this.nombreSucursal(r.sucursalId) }));
     });
     this.cargar();
   }
 
+  /** Repite la página a la vista (la primera carga, y después de tomar, devolver o cerrar un caso). */
   cargar(resaltarId?: number) {
-    this.isLoading = true;
-    this.service.onGetCasos({
-      estado: this.tabs[this.tabActivo].estado,
-      sucursalId: this.sucursalControl.value?.id ?? null,
-      retiroId: this.retiroControl.value ? Number(this.retiroControl.value) : null,
-      desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
-      hasta: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
-      soloMios: this.soloMios,
-    }, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isLoading = false;
-          if (res == null) { this.notificacion.openWarn('No se pudieron cargar los casos de retiro.', 5); return; }
-          // Clonar antes de agregar props de display: Apollo congela los resultados.
-          this.dataSource.data = (res.getContent || []).map(c => this.toRow(c));
-          this.totalElements = res.getTotalElements || 0;
-          if (resaltarId != null) this.resaltar(resaltarId);
-        },
-        error: () => {
-          this.isLoading = false;
-          this.notificacion.openWarn('No se pudieron cargar los casos de retiro: el servidor no responde.', 5);
-        },
-      });
+    this.resaltarId = resaltarId ?? null;
+    this.pag.recargar();
+  }
+
+  /** Filtro, pestaña o «solo míos» nuevos: vuelve a la página 1. */
+  private filtrar(resaltarId?: number) {
+    this.resaltarId = resaltarId ?? null;
+    this.pag.filtrar();
+  }
+
+  private nombreSucursal(id: number): string {
+    return this.sucursalList.find(s => s.id == id)?.nombre || String(id ?? '—');
   }
 
   private toRow(c: RetiroCaso): CasoRow {
@@ -137,12 +166,14 @@ export class ListRetiroCasosComponent implements OnInit {
     row._diferencias = detalles
       .filter(d => Math.abs(d.diferencia || 0) > 0.005)
       .map(d => {
-        const dec = d.moneda?.decimales != null ? d.moneda.decimales : 0;
-        const monto = (d.diferencia || 0).toLocaleString('es-PY', { maximumFractionDigits: dec });
+        const dec = decimalesDe(d.moneda);
+        const dif = d.diferencia || 0;
+        const monto = dif.toLocaleString('es-PY', { minimumFractionDigits: dec, maximumFractionDigits: dec });
         const cat = d.categoria ? CATEGORIA_LABEL[d.categoria] : '';
-        return `${monto} ${d.moneda?.simbolo || ''} (${cat})`;
+        return `${dif > 0 ? '+' : ''}${monto} ${d.moneda?.simbolo || ''} (${cat})`;
       })
       .join(' · ') || '—';
+    row._sucursal = this.nombreSucursal(c.sucursalId);
     row._contadoPor = c.verificacion?.usuario?.persona?.nombre || '—';
     row._rapida = !!c.verificacion?.rapida;
     // Un caso resuelto sin veredicto es uno cerrado por anulación de la verificación, no por
@@ -169,8 +200,7 @@ export class ListRetiroCasosComponent implements OnInit {
   }
 
   aplicarFiltros() {
-    this.pageIndex = 0;
-    this.cargar();
+    this.filtrar();
   }
 
   limpiarFiltros() {
@@ -192,20 +222,12 @@ export class ListRetiroCasosComponent implements OnInit {
 
   onSoloMios() {
     this.soloMios = !this.soloMios;
-    this.pageIndex = 0;
-    this.cargar();
+    this.filtrar();
   }
 
   onTab(i: number) {
     this.tabActivo = i;
-    this.pageIndex = 0;
-    this.cargar();
-  }
-
-  onPage(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
+    this.filtrar();
   }
 
   /**
@@ -238,8 +260,7 @@ export class ListRetiroCasosComponent implements OnInit {
         // Se lo lleva a donde quedó el caso, resaltado, pero sin filtrar: ver el resto de lo
         // que tiene en curso es información útil, y un filtro que no pidió lo confundiría.
         this.tabActivo = 1;
-        this.pageIndex = 0;
-        this.cargar(row.id);
+        this.filtrar(row.id);
       },
       // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom. Se relee:
       // un rechazo es una bandeja vieja (lo tomó otro), y sin respuesta pudo haberse tomado (#390).
@@ -291,4 +312,10 @@ export class ListRetiroCasosComponent implements OnInit {
       width: '65vw', height: '70vh', maxWidth: '96vw', data,
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.cargar(); });
   }
+}
+
+/** Decimales de la moneda; sin dato, el guaraní sin fracción y las demás con 2 (igual que el central). */
+function decimalesDe(moneda: { decimales?: number; denominacion?: string }): number {
+  if (moneda?.decimales != null) return moneda.decimales;
+  return (moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2;
 }

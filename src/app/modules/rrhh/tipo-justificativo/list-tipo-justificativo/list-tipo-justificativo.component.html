@@ -22,7 +22,7 @@
       Cada tipo define su comportamiento: si evita la penalización automática, cuánto descuenta
       del salario en la liquidación y si requiere documento respaldatorio.
     </p>
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+    <table mat-table [dataSource]="pag.items$" class="mat-elevation-z2" style="width: 100%">
 
       <ng-container matColumnDef="nombre">
         <th mat-header-cell *matHeaderCellDef>Nombre</th>
@@ -90,8 +90,6 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
 
-    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%" showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

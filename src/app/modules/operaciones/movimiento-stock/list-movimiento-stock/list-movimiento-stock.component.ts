@@ -39,8 +39,7 @@ import {
 import { UsuarioService } from "../../../personas/usuarios/usuario.service";
 import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { PageInfo } from "../../../../app.component";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { Time } from "@angular/common";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import { StockPorTipoMovimientoDto } from "../graphql/getStockPorTipoMovimientoByFilters";
@@ -106,7 +105,6 @@ export interface StockResumenView {
 })
 export class ListMovimientoStockComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("usuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
 
@@ -144,9 +142,25 @@ export class ListMovimientoStockComponent implements OnInit {
   productoIdList: number[];
   isDialogOpen = false;
   isPesable = false;
-  page = 0;
-  size = 15; // la primera opción del paginador, que no declara [pageSize] (#581)
-  selectedPageInfo: PageInfo<MovimientoStock>;
+  /** Filtros del último Filtrar: los cambios de página los repiten aunque el formulario haya cambiado. */
+  private filtrosAplicados: {
+    inicio: string; fin: string; sucursalIdList: number[]; productoId: number; tipos: any; usuarioId: number;
+  };
+
+  /** Movimientos paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag: PaginacionLista<MovimientoStock> = new PaginacionLista<MovimientoStock>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 15, // la primera opción del paginador (#581)
+    alCargar: (res) => {
+      ++this.cargaLista; // descarta el stock anterior de ajustes de otra página que siga en camino
+      this.dataSource.data = res.getContent || [];
+      this.procesarDataDeAjustes();
+    },
+    // Filtro nuevo sin respuesta: ni filas ni paginador del filtro anterior.
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
   
   stockActualDesglose: { sucursal: string; stock: number | null }[] = [];
   stockActualEstado: EstadoResumen = 'inicial';
@@ -224,7 +238,7 @@ export class ListMovimientoStockComponent implements OnInit {
     });
   }
 
-  onGetResumen(isPagination: boolean = false) {
+  onGetResumen() {
     if (!this.selectedProducto?.id) {
       // Sin producto no se consulta nada: el central respondería null y parecería un fallo
       this.vaciarResultados();
@@ -263,7 +277,7 @@ export class ListMovimientoStockComponent implements OnInit {
 
     this.onGetMovimientos();
 
-    if (sucursalIdList.length > 0 && !isPagination) {
+    if (sucursalIdList.length > 0) {
       const carga = ++this.cargaResumen;
       this.stockTotal = null;
       this.stockPorRangoFecha = null;
@@ -375,6 +389,7 @@ export class ListMovimientoStockComponent implements OnInit {
     this.notificacionService.openWarn('No se pudo calcular el resumen de stock en todas las sucursales: volvé a filtrar.', 6);
   }
 
+  /** Captura los filtros a la vista y pide la página 1. */
   onGetMovimientos() {
     this.sucursalIdList = this.toEntityId(
       this.sucursalControl.value,
@@ -394,37 +409,27 @@ export class ListMovimientoStockComponent implements OnInit {
     fechaFin.setMinutes(horaFinal.getMinutes());
     fechaFin.setSeconds(horaFinal.getSeconds());
 
-    const carga = ++this.cargaLista;
-    this.service
-      .onGetMovimientoStockPorFiltros(
-        dateToString(fechaInicial),
-        dateToString(fechaFin),
-        this.sucursalIdList,
-        this.selectedProducto?.id,
-        this.tipoMovimientoControl.value,
-        this.selectedUsuario?.id,
-        this.page,
-        this.size
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe({ error: () => {
-        if (carga !== this.cargaLista) return;
-        // Ni filas ni paginador del filtro anterior
-        this.selectedPageInfo = null;
-        this.dataSource.data = [];
-        this.notificacionService.openWarn('No se pudieron cargar los movimientos: volvé a filtrar.', 6);
-      }, next: (res) => {
-        if (carga !== this.cargaLista) return; // respuesta de un filtro o una página anterior
-        if (!res) {
-          this.selectedPageInfo = null;
-          this.dataSource.data = [];
-          return;
-        }
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-        this.procesarDataDeAjustes();
-      } });
+    this.filtrosAplicados = {
+      inicio: dateToString(fechaInicial),
+      fin: dateToString(fechaFin),
+      sucursalIdList: this.sucursalIdList,
+      productoId: this.selectedProducto?.id,
+      tipos: this.tipoMovimientoControl.value,
+      usuarioId: this.selectedUsuario?.id,
+    };
+    this.pag.filtrar();
   }
+
+  private consultar(page: number, size: number) {
+    const f = this.filtrosAplicados;
+    return this.service
+      .onGetMovimientoStockPorFiltros(f.inicio, f.fin, f.sucursalIdList, f.productoId, f.tipos, f.usuarioId, page, size)
+      .pipe(catchError(() => {
+        this.notificacionService.openWarn('No se pudieron cargar los movimientos: volvé a filtrar.', 6);
+        return of(null); // error GraphQL: el servicio ya avisó y devuelve null
+      }));
+  }
+
   onReferenciaClick(movimiento: MovimientoStock) {
     console.log(movimiento);
     switch (movimiento.tipoMovimiento) {
@@ -665,6 +670,8 @@ export class ListMovimientoStockComponent implements OnInit {
       .subscribe((res) => {
         this.isDialogOpen = false;
         let response: PdvSearchProductoResponseData = res;
+        // Cerrado sin elegir (Salir, Esc o clic afuera): queda el producto de antes (#743).
+        if (response?.producto == null) return;
         this.selectedProducto = response.producto;
         this.buscarProductoControl.setValue(
           this.selectedProducto.id + " - " + this.selectedProducto.descripcion
@@ -683,19 +690,12 @@ export class ListMovimientoStockComponent implements OnInit {
     this.productoList.splice(index, 1);
   }
 
-  onFiltrar(isPagination: boolean = false) {
-    this.dataSource.data = [];
-    if (!isPagination) {
-      // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
-      this.page = 0;
-      if (this.paginator) {
-        this.paginator.pageIndex = 0;
-      }
-      this.stockPorRangoFecha = null;
-      this.stockTotal = null;
-      this.stockPorTipoMovimiento = [];
-    }
-    this.onGetResumen(isPagination);
+  /** Filtro nuevo: arranca en la página 1 y recalcula el resumen. */
+  onFiltrar() {
+    this.stockPorRangoFecha = null;
+    this.stockTotal = null;
+    this.stockPorTipoMovimiento = [];
+    this.onGetResumen();
   }
 
   /** Vuelve los filtros al estado de ngOnInit. No consulta: sin producto solo saldría el aviso (#581). */
@@ -726,12 +726,8 @@ export class ListMovimientoStockComponent implements OnInit {
     ++this.cargaLista;
     ++this.cargaResumen;
     this.dataSource.data = [];
-    this.selectedPageInfo = null;
+    this.pag.limpiar();
     this.expandedMovimiento = null;
-    this.page = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
     this.stockTotal = null;
     this.stockPorRangoFecha = null;
     this.stockPorTipoMovimiento = [];
@@ -821,12 +817,6 @@ export class ListMovimientoStockComponent implements OnInit {
     if (entity == null) entity = sourceListId;
     entity?.forEach((s) => idList.push(s?.id));
     return idList;
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.page = e.pageIndex;
-    this.size = e.pageSize;
-    this.onFiltrar(true);
   }
 
   onClickRow(movimiento: MovimientoStock, index: number) {

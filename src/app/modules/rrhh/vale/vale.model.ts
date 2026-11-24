@@ -32,6 +32,8 @@ export class Vale {
   enEspecie: boolean;
   /** Lo que falta descontar (lo calcula el backend). */
   saldoPendiente: number;
+  /** Calculado al cargar la lista: digitsInfo del pipe number segun la moneda (Gs sin decimales). */
+  digitos?: string;
   cajaVirtualId: number;
   autorizadoPor: Usuario;
   observacion: string;

@@ -209,6 +209,15 @@
             </mat-form-field>
           </div>
         </div>
+
+        <div class="form-row" *ngIf="isEditingModeComputed">
+          <mat-slide-toggle formControlName="activo" color="primary">
+            <span class="toggle-label">
+              <mat-icon>{{ proveedorFormGroup.get('activo')?.value ? 'check_circle' : 'block' }}</mat-icon>
+              {{ proveedorFormGroup.get('activo')?.value ? 'Activo' : 'Inactivo: no aparece al elegir proveedor' }}
+            </span>
+          </mat-slide-toggle>
+        </div>
       </form>
     </div>
 

@@ -12,6 +12,10 @@
       <div fxFlex="30%" style="height: 250px">
         <app-boton nombre="Entregadores" icon="move_up" [iconSize]="4" (clickEvent)="onEntregadores()"></app-boton>
       </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton nombre="Productos faltantes" icon="remove_shopping_cart" [iconSize]="4"
+          (clickEvent)="onProductosFaltantes()"></app-boton>
+      </div>
       <div fxFlex="30%" style="height: 250px" *ngIf="
                 mainService.usuarioActual?.roles.includes(
                   ROLES.ADMIN

@@ -3,9 +3,9 @@
 
   <div class="resumen" fxLayout="column" fxLayoutGap="4px">
     <div><b>Funcionario:</b> {{ vale.funcionario?.persona?.nombre }}</div>
-    <div><b>Monto:</b> {{ vale.monto | number:'1.0-2' }} {{ vale.moneda?.denominacion }}
+    <div><b>Monto:</b> {{ vale.monto | number:digitos }} {{ vale.moneda?.denominacion }}
       en {{ vale.cantidadCuotas }} cuotas</div>
-    <div><b>Pendiente:</b> {{ vale.saldoPendiente | number:'1.0-2' }}</div>
+    <div><b>Pendiente:</b> {{ vale.saldoPendiente | number:digitos }}</div>
   </div>
 
   <table mat-table [dataSource]="cuotas" class="mat-elevation-z1" style="width: 100%">
@@ -19,7 +19,7 @@
     </ng-container>
     <ng-container matColumnDef="monto">
       <th mat-header-cell *matHeaderCellDef>Monto</th>
-      <td mat-cell *matCellDef="let c">{{ c.monto | number:'1.0-2' }}</td>
+      <td mat-cell *matCellDef="let c">{{ c.monto | number:digitos }}</td>
     </ng-container>
     <ng-container matColumnDef="estado">
       <th mat-header-cell *matHeaderCellDef>Estado</th>

@@ -3,8 +3,6 @@ import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
-import { MonedaService } from '../../../financiero/moneda/moneda.service';
-import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { MainService } from '../../../../main.service';
 import { liquidaAcotadoRrhh } from '../../rol-rrhh-sucursal';
@@ -25,7 +23,7 @@ interface FuncionarioElegido {
  *
  * Reemplaza los dos botones sueltos anteriores ("+ Adicionar" = uno, "Generar mes"
  * = todos sin confirmación, disparando cientos de un click). Ahora un solo flujo
- * elige período, alcance (todos / algunos funcionarios) y moneda.
+ * elige período y alcance (todos / algunos funcionarios). Se liquida siempre en guaraníes.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -35,10 +33,8 @@ interface FuncionarioElegido {
 })
 export class GenerarLiquidacionDialogComponent implements OnInit {
 
-  monedas: Moneda[] = [];
 
   periodoControl = new FormControl(null, [Validators.required, Validators.pattern(/^\d{4}-\d{2}$/)]);
-  monedaControl = new FormControl(null);
 
   /** 'TODOS' corre para todos los activos; 'ALGUNOS' solo para los elegidos. */
   alcanceControl = new FormControl('TODOS');
@@ -55,7 +51,6 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) private data: GenerarLiquidacionDialogData,
     private dialogRef: MatDialogRef<GenerarLiquidacionDialogComponent>,
     private liquidacionService: LiquidacionService,
-    private monedaService: MonedaService,
     private notificacion: NotificacionSnackbarService,
     private mainService: MainService
   ) { }
@@ -73,11 +68,6 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
       this.alcanceControl.setValue('ALGUNOS');
       this.funcionarioSeleccionadoId = this.data.funcionarioId;
     }
-    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res: Moneda[]) => {
-      this.monedas = res || [];
-      const g = this.monedas.find(m => m.denominacion && m.denominacion.toUpperCase().includes('GUARANI'));
-      if (g) { this.monedaControl.setValue(g.id); }
-    });
   }
 
   onAgregarFuncionario(f: any) {
@@ -110,7 +100,7 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
     const ids = todos ? null : this.elegidos.map(x => x.id);
     this.generando = true;
     // El éxito lo avisa este diálogo (con la cantidad): sin «Guardado con éxito».
-    this.liquidacionService.onGenerarLote(ids, this.periodoControl.value, this.monedaControl.value, true, { avisarExito: false })
+    this.liquidacionService.onGenerarLote(ids, this.periodoControl.value, null, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (cant: number) => {

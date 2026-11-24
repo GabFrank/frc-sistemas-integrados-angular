@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { map } from 'rxjs/operators';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -103,7 +104,7 @@ function modoLabel(modo: ModoFacturacion, ventasSinFactura: number): string {
   templateUrl: './configuracion-facturacion-dialog.component.html',
   styleUrls: ['./configuracion-facturacion-dialog.component.scss']
 })
-export class ConfiguracionFacturacionDialogComponent implements OnInit {
+export class ConfiguracionFacturacionDialogComponent implements OnInit, OnDestroy {
 
   /** Valor del select para la global: null lo trata Material como "vacío" y no lo muestra. 0 existe. */
   readonly GLOBAL = -1;
@@ -132,14 +133,25 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
 
   historial: FilaHistorial[] = [];
   historialError = false;
-  historialCargando = false;
   /** null = sin filtro; GLOBAL = solo la fila "Todas"; id = una sucursal. */
   filtroHistorial: number = null;
-  historialTotal = 0;
-  historialPageIndex = 0;
-  historialPageSize = 15;
-  /** Número de la última consulta del historial: una respuesta de una anterior llega tarde y se descarta. */
-  private historialConsulta = 0;
+
+  /** Historial de cambios paginado en el central (#772). null = error (distinto de "sin cambios"). */
+  historialPag: PaginacionLista<FilaHistorial> = new PaginacionLista<FilaHistorial>({
+    cargar: (page, size) => this.configuracionService.onGetHistorialPage(this.filtroHistorial, page, size).pipe(
+      map(res => res == null ? null : {
+        getTotalElements: res.getTotalElements ?? 0,
+        getContent: (res.getContent ?? []).map((h) => this.toFilaHistorial(h)),
+      })
+    ),
+    pageSize: 15,
+    pageSizeOptions: [15, 30, 50],
+    alCargar: (res) => {
+      this.historialError = false;
+      this.historial = res.getContent ?? [];
+    },
+    alFallar: () => this.historialError = true,
+  });
 
   // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
   modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
@@ -363,40 +375,21 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     this.vista = 'config';
   }
 
+  ngOnDestroy(): void {
+    this.historialPag.unsubscribe();
+  }
+
   onVerHistorial(): void {
     this.vista = 'historial';
     this.cargarHistorial();
   }
 
   onFiltroHistorialChange(): void {
-    this.historialPageIndex = 0;
-    this.cargarHistorial();
-  }
-
-  onHistorialPage(event: PageEvent): void {
-    this.historialPageIndex = event.pageIndex;
-    this.historialPageSize = event.pageSize;
-    this.cargarHistorial();
+    this.historialPag.filtrar();
   }
 
   private cargarHistorial(): void {
-    const consulta = ++this.historialConsulta;
-    this.historialCargando = true;
-    this.configuracionService.onGetHistorialPage(this.filtroHistorial, this.historialPageIndex, this.historialPageSize).subscribe({
-      next: (res) => {
-        if (consulta !== this.historialConsulta) return;
-        // null = error (distinto de "sin cambios", que llega con getContent vacío).
-        this.historialError = res == null;
-        this.historialTotal = res?.getTotalElements ?? 0;
-        this.historial = (res?.getContent ?? []).map((h) => this.toFilaHistorial(h));
-        this.historialCargando = false;
-      },
-      error: () => {
-        if (consulta !== this.historialConsulta) return;
-        this.historialError = true;
-        this.historialCargando = false;
-      }
-    });
+    this.historialPag.recargar();
   }
 
   private toFilaHistorial(h: ConfiguracionFacturacionHistorial): FilaHistorial {

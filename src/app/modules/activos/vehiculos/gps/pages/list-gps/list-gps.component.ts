@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Gps } from '../../models/gps.model';
@@ -71,10 +70,6 @@ export class ListGpsComponent implements OnInit {
     this.gpsService.refrescar();
   }
 
-  handlePageEvent(event: PageEvent): void {
-    this.gpsService.updatePagination(event.pageIndex, event.pageSize);
-  }
-
   onAdicionar(): void {
     this.gpsService.abrirFormulario().subscribe();
   }
@@ -95,7 +90,6 @@ export class ListGpsComponent implements OnInit {
 
   resetFiltro(): void {
     this.filtroControl.setValue('', { emitEvent: false });
-    this.gpsService.updatePagination(0, 15);
     this.gpsService.refrescar('');
   }
 }

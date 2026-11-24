@@ -459,7 +459,7 @@
             </button>
             <button mat-menu-item (click)="onDeleteItem(item, itemIndex)" style="color: red"
               [disabled]="isPreparacionMercaderia">
-              <mat-icon style="color: red">delete</mat-icon>
+              <mat-icon>delete</mat-icon>
               <span>Eliminar</span>
             </button>
           </mat-menu>
@@ -1037,8 +1037,6 @@
         [class.producto-averiado]="element.alertaAveriado"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
   </div>
 </app-generic-list>

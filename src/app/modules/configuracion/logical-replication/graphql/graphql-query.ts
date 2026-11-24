@@ -338,8 +338,8 @@ export const REPLICATION_TABLE_QUERY = gql`
 `;
 
 export const REPLICATION_TABLES_WITH_PAGINATION_QUERY = gql`
-  query ReplicationTablesWithPagination($page: Int = 0, $size: Int = 10, $search: String) {
-    data:replicationTablesWithPagination(page: $page, size: $size, search: $search) {
+  query ReplicationTablesWithPagination($page: Int = 0, $size: Int = 10, $search: String, $direction: ReplicationDirection, $enabled: Boolean) {
+    data:replicationTablesWithPagination(page: $page, size: $size, search: $search, direction: $direction, enabled: $enabled) {
       getContent {
         id
         tableName

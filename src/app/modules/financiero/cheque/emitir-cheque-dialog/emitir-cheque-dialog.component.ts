@@ -4,9 +4,12 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { DateAdapter } from '@angular/material/core';
 import { FechaPyDateAdapter } from '../../../../shared/utils/fecha-py-date-adapter';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { distinctUntilChanged } from 'rxjs/operators';
 import { Chequera, EstadoChequera } from '../../chequera/chequera.model';
 import { ChequeraService } from '../../chequera/chequera.service';
 import { ChequeService } from '../cheque.service';
+import { MonedaService } from '../../moneda/moneda.service';
+import { Moneda } from '../../moneda/moneda.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
@@ -68,6 +71,8 @@ export class EmitirChequeDialogComponent implements OnInit {
   chequeraSel: Chequera | null = null;   // para mostrar cuenta/moneda/hojas
   /** Primer número libre según el central (saltea los inutilizados); mientras no responde, el de la chequera. */
   proximoNumero: number | null = null;
+  /** Máscara del monto en la moneda de la chequera; sin prefijo porque el símbolo va de sufijo. */
+  currencyOpts: any;
   isSaving = false;
   /** La emisión que quedó sin respuesta. Mientras exista solo se puede reenviarla o cerrar. */
   private pedidoPendiente: PedidoDeCheque | null = null;
@@ -82,9 +87,11 @@ export class EmitirChequeDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private proveedorService: ProveedorService,
     private numeracion: NumeracionChequeraService,
+    private monedaService: MonedaService,
   ) {}
 
   ngOnInit(): void {
+    this.currencyOpts = this.mascaraMonto(null);
     this.formGroup = new FormGroup({
       chequeraControl: this.chequeraControl,
       totalControl: this.totalControl,
@@ -97,6 +104,8 @@ export class EmitirChequeDialogComponent implements OnInit {
       cuotasControl: this.cuotasControl,
       intervaloControl: this.intervaloControl,
     });
+    // Con la máscara de moneda el input no dispara (change): la vista previa sigue al valor del control.
+    this.totalControl.valueChanges.pipe(distinctUntilChanged(), untilDestroyed(this)).subscribe(() => this.armarPrevia());
 
     const sinChequeras = () => this.notificacion.openWarn('No se pudieron cargar las chequeras: cerrá y volvé a abrir para reintentar.', 6);
     this.chequeraService.onLeerChequeras(0, 200).pipe(untilDestroyed(this)).subscribe({
@@ -111,7 +120,13 @@ export class EmitirChequeDialogComponent implements OnInit {
   }
 
   onChequeraChange(ch: Chequera) {
+    const precisionAnterior = this.currencyOpts.precision;
     this.chequeraSel = ch;
+    this.currencyOpts = this.mascaraMonto(ch?.cuentaBancaria?.moneda);
+    // Al cambiar de precisión la máscara redondea lo que se ve pero no el valor del control:
+    // sin este reset se emitiría un monto distinto al de la pantalla (1.234,56 USD → «1.235» Gs.).
+    // Va antes de armarPrevia para que la vista previa no se arme con el monto descartado.
+    if (this.currencyOpts.precision !== precisionAnterior) this.totalControl.setValue(null);
     this.proximoNumero = ch?.siguienteNumero != null ? Number(ch.siguienteNumero) : null;
     this.armarPrevia();
     // Sin monto no hay vista previa, pero el encabezado igual muestra el próximo libre real.
@@ -183,6 +198,11 @@ export class EmitirChequeDialogComponent implements OnInit {
     const dec = this.chequeraSel?.cuentaBancaria?.moneda?.decimales;
     if (dec != null) return dec;
     return (this.chequeraSel?.cuentaBancaria?.moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2;
+  }
+
+  private mascaraMonto(moneda: Moneda | null): any {
+    // Sin moneda, guaraní: es lo que dice el sufijo («Gs.»), y decimalesDeMoneda(null) daría 2.
+    return { ...this.monedaService.currencyOptionsMontoPositivo(moneda ?? { decimales: 0 }, { allowZero: false }), prefix: '' };
   }
 
   onSave() {

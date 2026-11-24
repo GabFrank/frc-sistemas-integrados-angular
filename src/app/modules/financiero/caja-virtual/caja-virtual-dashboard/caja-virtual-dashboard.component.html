@@ -157,7 +157,8 @@
       <mat-card-content>
         <div class="movimientos-no-cargados" *ngIf="movimientosNoCargados">
           <mat-icon>warning</mat-icon>
-          <span>No se pudieron leer los movimientos: la tabla muestra lo que había antes y puede estar desactualizada.</span>
+          <span *ngIf="(pag.items$ | async)?.length; else sinFilas">No se pudieron leer los movimientos: la tabla muestra lo que había antes y puede estar desactualizada.</span>
+          <ng-template #sinFilas><span>No se pudieron leer los movimientos.</span></ng-template>
           <button mat-stroked-button type="button" (click)="cargarMovimientos()">Reintentar</button>
         </div>
         <!-- Tabla CAJA MAYOR -->
@@ -315,14 +316,7 @@
           </table>
         </div>
 
-        <mat-paginator
-          [length]="selectedPageInfo?.getTotalElements"
-          [pageSize]="pageSize"
-          [pageSizeOptions]="[15, 30, 50]"
-          [pageIndex]="pageIndex"
-          (page)="handlePageEvent($event)"
-          showFirstLastButtons>
-        </mat-paginator>
+        <mat-paginator [paginacion]="pag"></mat-paginator>
       </mat-card-content>
     </mat-card>
     </div>

@@ -6,6 +6,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
+import { Pais } from '../../../general/pais/pais.model';
+import { BuscadorService } from '../../../../shared/services/buscador.service';
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
 import { PersonaInput } from '../persona/persona-input.model';
@@ -38,6 +40,8 @@ export class AdicionarPersonaDialogComponent implements OnInit {
   maxDate = new Date()
 
   selectedCiudad: Ciudad;
+  selectedPais: Pais;
+  paisElegido = false;
   selectedPersona: Persona;
 
   formGroup: FormGroup;
@@ -47,7 +51,8 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<AdicionarPersonaDialogComponent>,
     private dialogoService: DialogosService,
     private personaService: PersonaService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private buscador: BuscadorService
   ) {
     if (data?.persona != null) {
       this.selectedPersona = data.persona;
@@ -72,7 +77,28 @@ export class AdicionarPersonaDialogComponent implements OnInit {
       this.socialMediaControl.setValue(this.selectedPersona?.socialMedia)
       this.ciudadIdControl.setValue(this.selectedPersona?.ciudad?.id)
       this.sexoControl.setValue(this.selectedPersona?.sexo)
+      this.cargarPais(this.selectedPersona.id)
     }
+  }
+
+  /** Pais del receptor (#666): se muestra el guardado y solo se manda si se elige otro. */
+  private cargarPais(personaId: number) {
+    this.selectedPais = null;
+    this.paisElegido = false;
+    if (personaId == null) return;
+    this.personaService.onGetPaisDePersona(personaId).pipe(untilDestroyed(this)).subscribe(res => {
+      // otra persona elegida mientras tanto: esta respuesta ya no es de la que se muestra
+      if (res?.id == personaId && this.selectedPersona?.id == personaId && !this.paisElegido) this.selectedPais = res?.pais ?? null;
+    });
+  }
+
+  onBuscarPais() {
+    this.buscador.abrir('pais').pipe(untilDestroyed(this)).subscribe((pais: Pais) => {
+      if (pais != null) {
+        this.selectedPais = pais;
+        this.paisElegido = true;
+      }
+    });
   }
 
   createForm() {
@@ -156,6 +182,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     persona.ciudad = this.selectedCiudad;
     persona.direccion = this.direccionControl.value;
     persona.sexo = this.sexoControl.value;
+    persona.pais = this.paisElegido ? this.selectedPais : undefined;
 
     this.personaService.onSavePersona(persona.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {

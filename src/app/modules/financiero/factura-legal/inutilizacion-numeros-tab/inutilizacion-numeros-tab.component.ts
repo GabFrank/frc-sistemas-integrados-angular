@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { of } from "rxjs";
+import { catchError } from "rxjs/operators";
+import { PaginacionLista } from "../../../../shared/components/paginacion/paginacion-lista";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
@@ -10,16 +12,14 @@ import { TimbradoDetalle } from "../../timbrado/timbrado.modal";
 import { TimbradoService } from "../../timbrado/timbrado.service";
 import { EventoInutilizacionDE, EstadoEvento } from "../../evento-inutilizacion-de/evento-inutilizacion-de.model";
 import { EventoInutilizacionDEService } from "../../evento-inutilizacion-de/evento-inutilizacion-de.service";
-import { PageInfo } from "../../../../app.component";
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-inutilizacion-numeros-tab",
   templateUrl: "./inutilizacion-numeros-tab.component.html",
   styleUrls: ["./inutilizacion-numeros-tab.component.scss"],
 })
 export class InutilizacionNumerosTabComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   // Form controls
   sucursalControl = new FormControl(null, Validators.required);
@@ -39,12 +39,17 @@ export class InutilizacionNumerosTabComponent implements OnInit {
 
   // Table
   eventosDataSource = new MatTableDataSource<EventoInutilizacionDE>([]);
-  selectedPageInfo: PageInfo<EventoInutilizacionDE>;
-  
-  // Paginación
-  pageSize = 25;
-  pageIndex = 0;
-  pageSizeOptions = [15, 25, 50, 100];
+
+  /** Eventos de inutilización paginados en el central (#772): cada página con los filtros a la vista. */
+  pag: PaginacionLista<EventoInutilizacionDE> = new PaginacionLista<EventoInutilizacionDE>({
+    cargar: (page, size) => this.consultarEventos(page, size),
+    pageSize: 25,
+    pageSizeOptions: [15, 25, 50, 100],
+    alCargar: (res) => this.eventosDataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.eventosDataSource.data = [];
+    },
+  });
   displayedColumns: string[] = [
     "id",
     "fecha",
@@ -124,14 +129,13 @@ export class InutilizacionNumerosTabComponent implements OnInit {
         // Inicializar filtro de sucursal con la sucursal seleccionada
         this.filtroSucursalControl.setValue(sucursal);
         // Cargar eventos con filtros
-        this.pageIndex = 0;
-        this.cargarEventosConFiltros();
+        this.pag.filtrar();
       } else {
         this.timbradoDetalleList = [];
         this.timbradoDetalleControl.setValue(null);
         this.timbradoDetalleControl.disable();
         this.eventosDataSource.data = [];
-        this.selectedPageInfo = null;
+        this.pag.limpiar();
       }
     });
 
@@ -196,7 +200,12 @@ export class InutilizacionNumerosTabComponent implements OnInit {
       });
   }
 
+  /** Repite la página a la vista (después de inutilizar números). */
   cargarEventosConFiltros(): void {
+    this.pag.recargar();
+  }
+
+  private consultarEventos(page: number, size: number) {
     const sucursalId = this.filtroSucursalControl.value?.id || this.selectedSucursal?.id;
     const timbradoId = this.filtroTimbradoControl.value?.id || null;
     const estado = this.filtroEstadoControl.value !== "TODOS" ? (this.filtroEstadoControl.value as EstadoEvento) : null;
@@ -215,42 +224,22 @@ export class InutilizacionNumerosTabComponent implements OnInit {
       fechaFin = fecha.toISOString().split('T')[0]; // Formato YYYY-MM-DD
     }
 
-    this.eventoInutilizacionService.onGetEventosConFiltros(
+    return this.eventoInutilizacionService.onGetEventosConFiltros(
       sucursalId,
       timbradoId,
       estado,
       fechaInicio,
       fechaFin,
-      this.pageIndex,
-      this.pageSize,
+      page,
+      size,
       true
-    )
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (pageInfo) => {
-          this.selectedPageInfo = pageInfo;
-          this.eventosDataSource.data = pageInfo?.getContent || [];
-          
-          // Actualizar paginador sin disparar evento
-          if (this.paginator) {
-            this.paginator.length = pageInfo?.getTotalElements || 0;
-            this.paginator.pageIndex = this.pageIndex;
-            this.paginator.pageSize = this.pageSize;
-          }
-        },
-        error: (error) => {
-          console.error("Error al cargar eventos:", error);
-          this.notificacionService.openWarn("Error al cargar eventos de inutilización");
-          this.eventosDataSource.data = [];
-          this.selectedPageInfo = null;
-        }
-      });
-  }
-
-  handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.cargarEventosConFiltros();
+    ).pipe(
+      catchError((error) => {
+        console.error("Error al cargar eventos:", error);
+        this.notificacionService.openWarn("Error al cargar eventos de inutilización");
+        return of(null);
+      })
+    );
   }
 
   onGuardar(): void {
@@ -362,11 +351,7 @@ export class InutilizacionNumerosTabComponent implements OnInit {
   }
 
   onFiltrar(): void {
-    this.pageIndex = 0; // Resetear a primera página al filtrar
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.cargarEventosConFiltros();
+    this.pag.filtrar();
   }
 
   onLimpiarFiltros(): void {
@@ -380,11 +365,7 @@ export class InutilizacionNumerosTabComponent implements OnInit {
     this.filtroEstadoControl.setValue("TODOS");
     this.filtroFechaInicioControl.setValue(null);
     this.filtroFechaFinControl.setValue(null);
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.cargarEventosConFiltros();
+    this.pag.filtrar();
   }
 
   getEstadoLabel(estado: EstadoEvento): string {

@@ -1,7 +1,9 @@
-import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { PaginacionLista, PaginaCentral } from '../../../../shared/components/paginacion/paginacion-lista';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, MovimientoCajaVirtual, formatoDe, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -30,14 +32,19 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   styleUrls: ['./historial-movimientos-caja-virtual.component.scss']
 })
 export class HistorialMovimientosCajaVirtualComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
 
 
   dataSource = new MatTableDataSource<MovimientoRow>([]);
-  isSearching = false;
-  pageIndex = 0;
-  pageSize = 20;
-  selectedPageInfo: PageInfo<MovimientoCajaVirtual>;
+  /** Movimientos de la caja paginados en el central (#772), con el rango de fechas a la vista. */
+  pag: PaginacionLista<MovimientoRow> = new PaginacionLista<MovimientoRow>({
+    cargar: (page, size) => this.consultar(page, size),
+    pageSize: 20,
+    pageSizeOptions: [10, 20, 50],
+    alCargar: (res) => this.dataSource.data = res.getContent ?? [],
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) this.dataSource.data = [];
+    },
+  });
 
   displayedColumns = [
     'id',
@@ -114,59 +121,57 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
   buscar() {
-    this.isSearching = true;
-    if (this.inicioControl.value && this.finControl.value) {
-      this.cajaVirtualService.onGetMovimientosPorFecha(
+    this.pag.recargar();
+  }
+
+  private consultar(page: number, size: number): Observable<PaginaCentral<MovimientoRow> | null> {
+    const consulta$ = this.inicioControl.value && this.finControl.value
+      ? this.cajaVirtualService.onGetMovimientosPorFecha(
         this.cajaVirtual.id,
         this.inicioControl.value.toISOString(),
         this.finControl.value.toISOString(),
-        this.pageIndex,
-        this.pageSize
-      ).pipe(untilDestroyed(this)).subscribe({ next: r => this.handleResponse(r), error: () => this.noCargo() });
-    } else {
-      this.cajaVirtualService.onGetMovimientos(this.cajaVirtual.id, this.pageIndex, this.pageSize)
-        .pipe(untilDestroyed(this)).subscribe({ next: r => this.handleResponse(r), error: () => this.noCargo() });
-    }
+        page,
+        size
+      )
+      : this.cajaVirtualService.onGetMovimientos(this.cajaVirtual.id, page, size);
+    return consulta$.pipe(
+      map((res: PageInfo<MovimientoCajaVirtual>) => {
+        if (res == null) {
+          this.noCargo();
+          return null;
+        }
+        // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
+        // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
+        // en cada ciclo de change detection.
+        // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
+        // asignar sobre el objeto devuelto tira TypeError.
+        return {
+          getTotalElements: res.getTotalElements,
+          getContent: (res.getContent || []).map(m => ({
+            ...m,
+            _label: labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels),
+          } as MovimientoRow)),
+        };
+      }),
+      catchError(() => {
+        this.noCargo();
+        return of(null);
+      })
+    );
   }
 
   private noCargo() {
-    this.isSearching = false;
     this.notificacion.openWarn('No se pudieron cargar los movimientos de la caja.', 5);
-  }
-
-  private handleResponse(res: PageInfo<MovimientoCajaVirtual>) {
-    this.isSearching = false;
-    if (res == null) { this.noCargo(); return; }
-    this.selectedPageInfo = res;
-    // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
-    // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
-    // en cada ciclo de change detection.
-    // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
-    // asignar sobre el objeto devuelto tira TypeError.
-    this.dataSource.data = (res.getContent || []).map(m => ({
-      ...m,
-      _label: labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels),
-    } as MovimientoRow));
   }
 
   onResetFiltro() {
     this.inicioControl.setValue(null);
     this.finControl.setValue(null);
     this.onFiltrar();
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
   }
   
 }

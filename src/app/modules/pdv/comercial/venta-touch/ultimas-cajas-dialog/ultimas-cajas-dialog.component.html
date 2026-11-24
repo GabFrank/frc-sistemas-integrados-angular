@@ -40,12 +40,12 @@
 
   <!-- Tabla con scroll -->
   <div class="dialog-content">
-    <div *ngIf="isLoading" class="loading-container">
+    <div *ngIf="pag.cargando$ | async" class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
       <p class="loading-text">Cargando datos...</p>
     </div>
 
-    <div class="table-container" *ngIf="!isLoading">
+    <div class="table-container" *ngIf="(pag.cargando$ | async) === false">
       <table mat-table [dataSource]="dataSource" class="w-100">
         <!-- ID Column -->
         <ng-container matColumnDef="id">
@@ -112,15 +112,7 @@
 
   <!-- Paginador -->
   <div class="dialog-paginator">
-    <mat-paginator 
-      #paginator 
-      itemsPerPageLabel="Itens por página" 
-      [pageSizeOptions]="pageSizeOptions"
-      [pageSize]="pageSize" 
-      [length]="selectedPageInfo?.getTotalElements" 
-      (page)="handlePageEvent($event)"
-      showFirstLastButtons>
-    </mat-paginator>
+    <mat-paginator [paginacion]="pag"></mat-paginator>
   </div>
 
   <!-- Botón Salir fijo -->

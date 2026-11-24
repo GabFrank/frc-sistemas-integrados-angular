@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, switchMap, take, tap, map } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { EnteByIdGQL } from '../graphql/enteById';
@@ -24,6 +24,7 @@ import { PROPAGAR_ERROR_DE_RED, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../..
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { esTimeoutDeLink, TIMEOUT_POR_DEFECTO_MS } from '../../../../shared/services/timeout-link';
 import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { VehiculoSearchPageGQL } from '../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
 import { MuebleSearchPageGQL } from '../../muebles/graphql/muebleSearchPage';
@@ -50,8 +51,6 @@ const LECTURA_ENTE: QueryError = {
 const CONSULTA_ENTE: ContextoConsulta = { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true };
 /** La lista de bienes recorre todos los candidatos en el central: corte más largo. */
 const CONSULTA_LISTA: ContextoConsulta = { timeoutMs: TIMEOUT_POR_DEFECTO_MS, silenciarAvisoTimeout: true };
-/** Marca de «la búsqueda falló» dentro del stream (para que no muera con el primer error). */
-const BUSQUEDA_FALLIDA = { fallo: true };
 
 @Injectable({
   providedIn: 'root'
@@ -78,89 +77,80 @@ export class EnteService {
   private equipoSearchPageGQL = inject(EquipoSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
 
-  private entesSubject = new BehaviorSubject<Ente[]>([]);
-  private totalElementsSubject = new BehaviorSubject<number>(0);
-  private loadingSubject = new BehaviorSubject<boolean>(false);
   private searchTextSubject = new BehaviorSubject<string>('');
   private sucursalIdSubject = new BehaviorSubject<number | null>(null);
   private tipoEnteSubject = new BehaviorSubject<TipoEnte | null>(null);
   private situacionPagoSubject = new BehaviorSubject<string | null>(null);
   private estadoCuotaSubject = new BehaviorSubject<string | null>(null);
-  private paginationSubject = new BehaviorSubject({ pageIndex: 0, pageSize: 15 });
   private summarySubject = new BehaviorSubject<any>(null);
   private errorSubject = new BehaviorSubject<boolean>(false);
 
-  public entes$ = this.entesSubject.asObservable();
-  public totalElements$ = this.totalElementsSubject.asObservable();
-  public loading$ = this.loadingSubject.asObservable();
-  public paginationState$ = this.paginationSubject.asObservable();
+  /**
+   * Bienes paginados en el central (#772): descarta respuestas viejas; si falla un cambio de página vuelve a la
+   * anterior, si falla un filtro nuevo la lista y los montos quedan vacíos (no se ven los de otra búsqueda).
+   */
+  readonly pag = new PaginacionLista<Ente>({
+    // Sin modal (la pantalla muestra `loading$`).
+    cargar: (page, size) => this.genericService.onCustomQuery(this.enteSearchWithSummaryGQL, {
+      texto: this.searchTextSubject.value,
+      sucursalId: this.sucursalIdSubject.value,
+      tipoEnte: this.tipoEnteSubject.value,
+      situacionPago: this.situacionPagoSubject.value,
+      estadoCuota: this.estadoCuotaSubject.value,
+      page, size
+    }, true, LECTURA_ENTE, true, CONSULTA_LISTA).pipe(
+      map((res: any) => {
+        if (res?.page == null) return null;
+        this.summarySubject.next(res.summary);
+        return res.page;
+      })
+    ),
+    pageSize: 15,
+    alCargar: () => this.errorSubject.next(false),
+    alFallar: (filtroNuevo) => {
+      if (!filtroNuevo) return;
+      this.summarySubject.next(null);
+      this.errorSubject.next(true);
+    },
+  });
+
+  public entes$ = this.pag.items$;
+  public totalElements$ = this.pag.estado$.pipe(map(e => e.total));
+  public loading$ = this.pag.cargando$;
   public sucursalId$ = this.sucursalIdSubject.asObservable();
   public summary$ = this.summarySubject.asObservable();
   /** La última búsqueda falló: la lista vacía no significa «no hay bienes» (#390). */
   public error$ = this.errorSubject.asObservable();
 
+  /** El texto espera 300 ms sin cambios antes de buscar. */
+  private textoPendiente$ = new Subject<string>();
+
   constructor() {
-    combineLatest([
-      this.searchTextSubject.pipe(debounceTime(300), distinctUntilChanged()),
-      this.sucursalIdSubject,
-      this.tipoEnteSubject,
-      this.situacionPagoSubject,
-      this.estadoCuotaSubject,
-      this.paginationSubject
-    ]).pipe(
-      tap(() => {
-        this.loadingSubject.next(true);
-        this.errorSubject.next(false);
-      }),
-      switchMap(([texto, sucursalId, tipoEnte, situacionPago, estadoCuota, pag]) =>
-        // Sin modal (la pantalla muestra `loading$`) y con el error dentro del switchMap: la búsqueda sigue viva
-        // después de un fallo. Antes un error dejaba a la vista la lista y los montos del filtro anterior.
-        this.genericService.onCustomQuery(this.enteSearchWithSummaryGQL, { 
-          texto, sucursalId, tipoEnte, situacionPago, estadoCuota,
-          page: pag.pageIndex, size: pag.pageSize 
-        }, true, LECTURA_ENTE, true, CONSULTA_LISTA).pipe(
-          catchError(() => of(BUSQUEDA_FALLIDA))
-        )
-      )
-    ).subscribe((res: any) => {
-      if (res?.page != null) {
-        this.entesSubject.next(res.page.getContent);
-        this.totalElementsSubject.next(res.page.getTotalElements);
-        this.summarySubject.next(res.summary);
-      } else {
-        // Falló (o vino sin datos): no quedan los bienes ni los montos de otra búsqueda
-        this.entesSubject.next([]);
-        this.totalElementsSubject.next(0);
-        this.summarySubject.next(null);
-        this.errorSubject.next(true);
-      }
-      this.loadingSubject.next(false);
+    this.textoPendiente$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(texto => {
+      this.searchTextSubject.next(texto);
+      this.pag.filtrar();
     });
   }
 
+  /** Repite la página a la vista (después de guardar o borrar). */
   refrescar(): void {
-    this.paginationSubject.next({ ...this.paginationSubject.value });
+    this.pag.recargar();
   }
 
   setSearchText(texto: string): void {
-    this.searchTextSubject.next(texto);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.textoPendiente$.next(texto);
   }
 
   setSucursalId(id: number | null): void {
     this.sucursalIdSubject.next(id);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.pag.filtrar();
   }
 
   setFilters(tipo: TipoEnte | null, situacion: string | null, estado: string | null): void {
     this.tipoEnteSubject.next(tipo);
     this.situacionPagoSubject.next(situacion);
     this.estadoCuotaSubject.next(estado);
-    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
-  }
-
-  updatePagination(pageIndex: number, pageSize: number): void {
-    this.paginationSubject.next({ pageIndex, pageSize });
+    this.pag.filtrar();
   }
 
   /** Sin `errorConf` un error falla hacia quien llama. Con él llega solo lo que se pida propagar: pedir el de red, o queda esperando (#390). */
@@ -231,8 +221,9 @@ export class EnteService {
     );
   }
 
-  onBuscarAsignacionesPagina(texto: string | null, sucursalId: number | null, tipoEnte: TipoEnte | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<EnteSucursal>> {
-    return this.genericService.onCustomQuery(this.enteSucursalSearchPageGQL, { texto, sucursalId, tipoEnte, responsableId, page, size });
+  /** `enteId` filtra por el bien elegido; su descripción como texto no sirve porque la mostrada no es la guardada (#774). */
+  onBuscarAsignacionesPagina(texto: string | null, sucursalId: number | null, tipoEnte: TipoEnte | null, responsableId: number | null, page: number, size: number, enteId: number | null = null): Observable<PageInfo<EnteSucursal>> {
+    return this.genericService.onCustomQuery(this.enteSucursalSearchPageGQL, { texto, sucursalId, tipoEnte, responsableId, page, size, enteId });
   }
 
   /** Asignaciones de un ente ([] si no tiene). Con `errorConf` un fallo llega como error, no como «sin asignación». */

@@ -3,7 +3,6 @@ import { Observable } from 'rxjs';
 import { GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { ConfiguracionesRrhhGQL } from './graphql/ConfiguracionesRrhh';
 import { ConfiguracionesRrhhSearchGQL } from './graphql/ConfiguracionesRrhhSearch';
-import { ConfiguracionesRrhhPageGQL } from './graphql/ConfiguracionesRrhhPage';
 import { SaveConfiguracionRrhhGQL } from './graphql/SaveConfiguracionRrhh';
 import { DeleteConfiguracionRrhhGQL } from './graphql/DeleteConfiguracionRrhh';
 import {
@@ -22,7 +21,6 @@ export class ConfiguracionRrhhService {
     private genericService: GenericCrudService,
     private configuracionesRrhhGQL: ConfiguracionesRrhhGQL,
     private configuracionesRrhhSearchGQL: ConfiguracionesRrhhSearchGQL,
-    private configuracionesRrhhPageGQL: ConfiguracionesRrhhPageGQL,
     private saveConfiguracionRrhhGQL: SaveConfiguracionRrhhGQL,
     private deleteConfiguracionRrhhGQL: DeleteConfiguracionRrhhGQL,
     private funcionariosBajoSalarioMinimoGQL: FuncionariosBajoSalarioMinimoGQL,
@@ -53,12 +51,6 @@ export class ConfiguracionRrhhService {
 
   onSearch(texto: string, servidor = true): Observable<any> {
     return this.genericService.onGetByTexto(this.configuracionesRrhhSearchGQL, texto, servidor);
-  }
-
-  /** Padron del SaaS: lista paginada y filtrada en el backend. */
-  onGetPage(page: number, size: number, texto?: string, tipo?: string, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.configuracionesRrhhPageGQL,
-      { page, size, texto, tipo }, servidor);
   }
 
   /** `opciones.avisarExito = false`, para la pantalla que muestra su propio verde (#501). */

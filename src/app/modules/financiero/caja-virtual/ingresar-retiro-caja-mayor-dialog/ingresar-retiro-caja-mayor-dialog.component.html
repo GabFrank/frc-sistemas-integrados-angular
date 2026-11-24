@@ -41,7 +41,16 @@
       </button>
 
       <span class="spacer"></span>
-      <span class="hint" *ngIf="!isLoading">{{ totalElements }} retiro(s) flotante(s)</span>
+      <span class="hint" *ngIf="(pag.cargando$ | async) === false">{{ totalElements }} retiro(s) flotante(s)</span>
+    </div>
+
+    <!-- Lo que la tabla no lista: retiros de la caja buscada que ya entraron a una caja mayor. -->
+    <div class="aviso-procesados" *ngIf="!modoEscaneo && avisosProcesados.length" role="status">
+      <div class="linea" *ngFor="let a of avisosProcesados">
+        <mat-icon>task_alt</mat-icon>
+        <span>{{ a }}</span>
+      </div>
+      <div *ngIf="avisosProcesadosExtra" class="extra">… y {{ avisosProcesadosExtra }} retiro(s) procesado(s) más</div>
     </div>
 
     <div class="tabla-wrap">
@@ -108,18 +117,12 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
 
-      <div class="empty" *ngIf="!isLoading && dataSource.data.length === 0">
+      <div class="empty" *ngIf="(pag.cargando$ | async) === false && dataSource.data.length === 0">
         No hay retiros flotantes para ingresar.
       </div>
     </div>
 
-    <mat-paginator
-      [length]="totalElements"
-      [pageSize]="pageSize"
-      [pageIndex]="pageIndex"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPage($event)">
-    </mat-paginator>
+    <mat-paginator [paginacion]="pag" *ngIf="!modoEscaneo" style="width: 100%"></mat-paginator>
 
   </mat-dialog-content>
 

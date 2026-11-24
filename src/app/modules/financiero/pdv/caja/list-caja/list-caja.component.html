@@ -477,7 +477,7 @@
             <button mat-menu-item (click)="irObservacion(caja)"><mat-icon>add_comment</mat-icon><span>Adicionar observación</span></button>
             <button mat-menu-item *ngIf="esAdmin && caja?.activo === false && caja?.verificado !== true"
               (click)="onReabrir(caja)">
-              <mat-icon color="warn">lock_open</mat-icon>
+              <mat-icon>lock_open</mat-icon>
               Reabrir caja
             </button>
           </mat-menu>
@@ -517,14 +517,7 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
     <!-- <br />
     <div [hidden]="dataSource.data.length == 0" style="text-align: center">
       <button

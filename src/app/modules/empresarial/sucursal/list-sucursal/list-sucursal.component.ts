@@ -1,7 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTable, MatTableDataSource } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatTable } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { animate, state, style, transition, trigger } from '@angular/animations';
@@ -9,8 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MainService } from '../../../../main.service';
 import { TabService } from '../../../../layouts/tab/tab.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
-import { updateDataSource, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 
 import { Sucursal } from '../sucursal.model';
 import { SucursalService } from '../sucursal.service';
@@ -34,7 +32,6 @@ import { EditSucursalDialogComponent } from '../edit-sucursal-dialog/edit-sucurs
 })
 export class ListSucursalComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatTable) table: MatTable<any>;
 
@@ -58,17 +55,20 @@ export class ListSucursalComponent implements OnInit {
   depositoControl = new FormControl(null);
   activoControl = new FormControl(true); // Por defecto activo
   
-  dataSource = new MatTableDataSource<Sucursal>([]);
+  pag = new PaginacionLista<Sucursal>({
+    cargar: (page, size) => this.sucursalService.onSearchConFiltros(
+      this.buscarControl.value ? this.buscarControl.value.toUpperCase() : null,
+      this.depositoControl.value,
+      this.activoControl.value ?? true,
+      page,
+      size
+    ),
+    pageSize: 25,
+  });
   isLastPage = false;
   isSearching = false;
   expandedSucursal: Sucursal;
   timer;
-
-  length = 25;
-  pageSize = 25;
-  pageIndex = 0;
-  pageEvent: PageEvent;
-  selectedPageInfo: PageInfo<Sucursal>;
 
   // Opciones para el filtro de estado activo
   activoOptions = [
@@ -85,14 +85,9 @@ export class ListSucursalComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
-      this.pageSize = this.paginator.pageSizeOptions[1]
-      this.cargarPagina()
-    }, 0);
+    this.pag.filtrar();
 
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.pageIndex = 0;
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
@@ -102,45 +97,22 @@ export class ListSucursalComponent implements OnInit {
     })
 
     this.depositoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.pageIndex = 0;
       this.onFiltrar();
     })
 
     this.activoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.pageIndex = 0;
       this.onFiltrar();
     })
   }
 
-  // Filtrar, Buscar y Enter vuelven a la página 1 (variable y paginador).
+  // Filtrar, Buscar y Enter vuelven a la página 1.
   onFiltrar() {
     clearTimeout(this.timer);
-    this.pageIndex = 0;
-    if (this.paginator) this.paginator.pageIndex = 0;
-    this.cargarPagina();
-  }
-
-  cargarPagina() {
-    const searchValue = this.buscarControl.value ? this.buscarControl.value.toUpperCase() : null;
-
-    this.sucursalService.onSearchConFiltros(
-      searchValue,
-      this.depositoControl.value,
-      this.activoControl.value ?? true,
-      this.pageIndex, 
-      this.pageSize
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent || [];
-      }
-    })
+    this.pag.filtrar();
   }
 
   resetFiltro() {
-    this.pageIndex = 0;
-    this.dataSource.data = [];
-    this.selectedPageInfo = null;
+    this.pag.limpiar();
     // Sin emitEvent: cada valueChanges consultaría con el filtro a medio limpiar.
     this.buscarControl.setValue(null, { emitEvent: false });
     this.depositoControl.setValue(null, { emitEvent: false });
@@ -157,7 +129,7 @@ export class ListSucursalComponent implements OnInit {
       disableClose: true
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.cargarPagina();
+        this.pag.recargar();
       }
     })
   }
@@ -168,14 +140,8 @@ export class ListSucursalComponent implements OnInit {
       disableClose: true
     }).afterClosed().subscribe((res: Sucursal) => {
       if (res != null) {
-        this.cargarPagina();
+        this.pag.recargar();
       }
     })
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargarPagina();
   }
 }

@@ -1,10 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from '../../../../app.component';
+import { PaginacionLista } from '../../../../shared/components/paginacion/paginacion-lista';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { LiquidacionSueldo } from '../liquidacion.model';
@@ -34,10 +32,7 @@ import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/
 })
 export class ListLiquidacionComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
   displayedColumns = ['periodo', 'funcionario', 'totalHaberes', 'totalDescuentos', 'totalNeto', 'estado', 'acciones'];
-  dataSource = new MatTableDataSource<LiquidacionSueldo>([]);
 
   funcionarioNombreControl = new FormControl(null);
   periodoControl = new FormControl(null);
@@ -45,9 +40,18 @@ export class ListLiquidacionComponent implements OnInit {
 
   estadoOpciones = ['BORRADOR', 'APROBADA', 'PAGADA', 'ANULADA'];
 
-  pageIndex = 0;
-  pageSize = 25;
-  selectedPageInfo: PageInfo<LiquidacionSueldo>;
+  /** Paginada en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  pag = new PaginacionLista<LiquidacionSueldo>({
+    cargar: (page, size) => this.liquidacionService.onGetPage(
+      page,
+      size,
+      null,
+      this.funcionarioNombreControl.value,
+      this.periodoControl.value,
+      this.estadoControl.value
+    ),
+    pageSize: 25,
+  });
 
   /** Rol RRHH SUCURSAL: ve y liquida solo a los funcionarios de sus sucursales. */
   acotado = false;
@@ -84,27 +88,12 @@ export class ListLiquidacionComponent implements OnInit {
 
   // Un filtro nuevo arranca en la página 1: la página actual puede no existir en el resultado filtrado.
   onFiltrar() {
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.buscar();
+    this.pag.filtrar();
   }
 
+  /** Repite la página a la vista (al abrir, tras guardar o borrar). */
   buscar() {
-    this.liquidacionService.onGetPage(
-      this.pageIndex,
-      this.pageSize,
-      null,
-      this.funcionarioNombreControl.value,
-      this.periodoControl.value,
-      this.estadoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
-      }
-    });
+    this.pag.recargar();
   }
 
   onResetFiltro() {
@@ -114,11 +103,6 @@ export class ListLiquidacionComponent implements OnInit {
     this.onFiltrar();
   }
 
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.buscar();
-  }
 
   onGenerar() {
     this.dialog.open(GenerarLiquidacionDialogComponent, {

@@ -413,14 +413,8 @@
             </table>
           </div>
           <mat-paginator
-            itemsPerPageLabel="Itens por pagina"
-            [pageSizeOptions]="[15, 25, 50, 100]"
-            (page)="handleFamiliaPageEvent($event)"
-            [pageIndex]="familiaPageIndex"
-            [pageSize]="familiaPageSize"
-            [length]="selectedFamiliaPageInfo?.getTotalElements"
+            [paginacion]="familiaPag"
             style="width: 100%"
-            showFirstLastButtons
           ></mat-paginator>
           <br />
           <div
@@ -686,14 +680,8 @@
             </table>
           </div>
           <mat-paginator
-            itemsPerPageLabel="Itens por pagina"
-            [pageSizeOptions]="[15, 25, 50, 100]"
-            (page)="handleSubfamiliaPageEvent($event)"
-            [pageIndex]="subfamiliaPageIndex"
-            [pageSize]="subfamiliaPageSize"
-            [length]="selectedSubfamiliaPageInfo?.getTotalElements"
+            [paginacion]="subfamiliaPag"
             style="width: 100%"
-            showFirstLastButtons
           ></mat-paginator>
           <br />
           <div
@@ -1320,21 +1308,21 @@
                   </button>
                   <mat-menu #menu="matMenu" xPosition="before">
                     <!-- <button mat-menu-item (click)="onActualizar(element, i)">
-                    <mat-icon style="color: red">clear</mat-icon>
+                    <mat-icon>clear</mat-icon>
                     <span>Eliminar</span>
                   </button> -->
                     <button
                       mat-menu-item
                       (click)="onPresentacionRowClick(element)"
                     >
-                      <mat-icon style="color: green">edit</mat-icon>
+                      <mat-icon>edit</mat-icon>
                       <span>Editar</span>
                     </button>
                     <button
                       mat-menu-item
                       (click)="onDeletePresentacion(element)"
                     >
-                      <mat-icon style="color: red">clear</mat-icon>
+                      <mat-icon>clear</mat-icon>
                       <span>Eliminar</span>
                     </button>
                     <button

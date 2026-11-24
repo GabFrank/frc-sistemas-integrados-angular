@@ -12,13 +12,13 @@ import {
   animate,
 } from '@angular/animations';
 import { FormControl, FormGroup } from '@angular/forms';
-import { PageEvent } from '@angular/material/paginator';
-import { Subscription, timer } from 'rxjs';
-import { MatTableDataSource } from '@angular/material/table';
+import { Observable, timer } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../../main.service';
+import { PaginacionLista, PaginaCentral } from '../../../../../shared/components/paginacion/paginacion-lista';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Jornada, JornadaResumen } from '../../models/jornada.model';
@@ -62,7 +62,7 @@ export interface JornadaFila extends Jornada {
   trabajadoTexto: string;
 }
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'list-marcacion',
   templateUrl: './list-marcacion.component.html',
@@ -82,11 +82,10 @@ export interface JornadaFila extends Jornada {
 export class ListMarcacionComponent implements OnInit {
   estadoJornada = EstadoJornada;
 
-  dataSource = new MatTableDataSource<JornadaFila>([]);
-  totalElementos = 0;
-  private consulta: Subscription;
-  pageIndex = 0;
-  pageSize = 15;
+  pag = new PaginacionLista<JornadaFila>({
+    cargar: (page, size) => this.pedirPagina(page, size),
+    pageSize: 15,
+  });
 
   usuarioIdControl = new FormControl();
   usuarioNombreControl = new FormControl();
@@ -235,20 +234,18 @@ export class ListMarcacionComponent implements OnInit {
     this.fechaFinControl.setValue(this.hoy);
   }
 
-  handlePageEvent(e: PageEvent): void {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    this.cargar();
-  }
-
   /** Una búsqueda nueva (botón o cambio de filtro) arranca en la primera página. */
   filtrar(): void {
-    this.pageIndex = 0;
-    this.cargar();
+    this.pag.filtrar();
   }
 
-  /** Pide al central la página actual: él filtra, pagina y suma el resumen. */
+  /** Repite la página actual. */
   private cargar(): void {
+    this.pag.recargar();
+  }
+
+  /** Pide al central una página: él filtra, pagina y suma el resumen. */
+  private pedirPagina(page: number, size: number): Observable<PaginaCentral<JornadaFila>> {
     if (this.fechaFinControl.value == null) {
       this.fechaFinControl.setValue(this.hoy);
     }
@@ -269,19 +266,16 @@ export class ListMarcacionComponent implements OnInit {
       sucursalSalidaId: this.sucursalSalidaControl.value || null
     };
 
-    // Una búsqueda nueva descarta la que estaba en camino: no se dibuja dos veces ni gana la más lenta.
-    this.consulta?.unsubscribe();
-    this.consulta = this.marcacionService.onGetJornadasHistorial(filtro, this.pageIndex, this.pageSize)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
-          this.expandedMarcacion = null;
-          this.totalElementos = res.pagina?.getTotalElements || 0;
-          this.dataSource.data = (res.pagina?.getContent || []).map(j => this.aFila(j));
-          this.mostrarResumen(res.resumen);
-          this.cdr.markForCheck();
-        }
-      });
+    // La lista descarta la respuesta de una página vieja si se pide otra antes (PaginacionLista).
+    return this.marcacionService.onGetJornadasHistorial(filtro, page, size).pipe(
+      map(res => {
+        if (res == null) return null;
+        this.expandedMarcacion = null;
+        this.mostrarResumen(res.resumen);
+        this.cdr.markForCheck();
+        return { ...res.pagina, getContent: (res.pagina?.getContent || []).map(j => this.aFila(j)) };
+      })
+    );
   }
 
   private aFila(jornada: Jornada): JornadaFila {
@@ -332,7 +326,6 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   resetearFiltro(): void {
-    this.pageIndex = 0;
     this.usuarioIdControl.setValue(null);
     this.usuarioNombreControl.setValue(null);
     this.usuarioSeleccionado = null;
@@ -390,13 +383,13 @@ export class ListMarcacionComponent implements OnInit {
     this.filtrar();
   }
 
+  /** Todos los horarios, sin importar el funcionario elegido: se comparten entre funcionarios. */
   onAdicionarHorario(): void {
-    const usuarioId = this.usuarioSeleccionado?.id || this.mainService.usuarioActual?.id;
     this.tabService.addTab(
       new Tab(
         AsignarHorarioDialogComponent,
         'Asignar Horario',
-        new TabData(usuarioId),
+        null,
         ListMarcacionComponent
       )
     );

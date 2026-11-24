@@ -143,14 +143,8 @@
 
     <mat-paginator
       *ngIf="!sinCoincidencias && !mensajeError"
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[5, 10, 25]"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [length]="totalElementos"
-      (page)="handlePageEvent($event)"
+      [paginacion]="pag"
       style="width: 100%"
-      showFirstLastButtons
     ></mat-paginator>
 
     <div

@@ -104,7 +104,7 @@ import { avisoTrasMutacion, erroresDeRechazo, motivoDelRechazo, RECARGA_TRAS_COR
 import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PaginacionLista, PaginaCentral } from "../../../../shared/components/paginacion/paginacion-lista";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { Devolucion, DevolucionEstado } from "../../devolucion/devolucion.model";
@@ -261,6 +261,15 @@ function proveedorSeleccionadoValidator(
   return { proveedorNoSeleccionado: true };
 }
 
+/** Cómo pedir una lista paginada: repetir la página a la vista, volver a la 1 o una búsqueda nueva. */
+type ModoCarga = "recargar" | "primera" | "filtro";
+
+function cargarSegun(pag: PaginacionLista<unknown>, modo: ModoCarga): void {
+  if (modo === "filtro") pag.filtrar();
+  else if (modo === "primera") pag.irAPrimera();
+  else pag.recargar();
+}
+
 @Component({
   selector: "app-gestion-compras",
   templateUrl: "./gestion-compras.component.html",
@@ -281,9 +290,6 @@ export class GestionComprasComponent
   @ViewChild("plazoCreditoInput") plazoCreditoInput!: any;
   @ViewChild("continuarButton", { read: MatButton }) continuarButton!: MatButton;
   @ViewChild("addItemInput") addItemInput!: ElementRef;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild("itemsPendientesPaginator", { read: MatPaginator }) itemsPendientesPaginator!: MatPaginator;
-  @ViewChild("notasRecepcionPaginator", { read: MatPaginator }) notasRecepcionPaginator!: MatPaginator;
   @Input() data: Tab; // Tab object from TabService
 
   private destroy$ = new Subject<void>();
@@ -387,11 +393,26 @@ export class GestionComprasComponent
   canCancelarSeleccionComputed = false; // Para habilitar botón de cancelar selección
   // Removed hasItemsComputed and canFinalizePlanningComputed - using direct logic in template
 
-  // Paginación para ítems del pedido
-  itemsPageSize = 10;
-  itemsPageIndex = 0;
-  itemsTotalElements = 0;
-  itemsLoading = false;
+  /** Ítems del pedido paginados en el central (#772): gana la última página pedida; si falla, vuelve a la anterior. */
+  itemsPag: PaginacionLista<MockPedidoItem> = new PaginacionLista<MockPedidoItem>({
+    cargar: (page, size) => this.conAviso(
+      this.pedidoService.onGetPedidoItemPorPedidoPage(this.currentPedido.id, page, size, this.itemsSearchText || undefined),
+      "Error al cargar los ítems del pedido",
+      (item: PedidoItem) => this.processItemForDisplay(item)
+    ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50, 100],
+    alCargar: (res) => {
+      this.itemsDataSource.data = res.getContent ?? [];
+      this.updateItemsComputedProperties();
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) {
+        this.itemsDataSource.data = [];
+        this.updateItemsComputedProperties();
+      }
+    },
+  });
   itemsSearchText = '';
   showItemsSearch = false;
 
@@ -408,11 +429,29 @@ export class GestionComprasComponent
   selectedItemsPendientes: MockPedidoItem[] = [];
   selectAllItemsPendientes: boolean = false; // Bandera para indicar "seleccionar todos los items"
 
-  // Paginación para ítems pendientes
-  itemsPendientesPageSize = 10;
-  itemsPendientesPageIndex = 0;
-  itemsPendientesTotalElements = 0;
-  itemsPendientesLoading = false;
+  /** Ítems pendientes de conciliar (el central filtra los que tienen cantidad pendiente > 0) (#772). */
+  itemsPendientesPag: PaginacionLista<MockPedidoItem> = new PaginacionLista<MockPedidoItem>({
+    cargar: (page, size) => this.conAviso(
+      this.pedidoService.onGetPedidoItemPorPedidoPage(
+        this.currentPedido.id, page, size, this.itemsPendientesSearchText || undefined,
+        true // soloPendientes = true: filtrar en el backend solo items con cantidad pendiente > 0
+      ),
+      "Error al cargar los ítems pendientes de conciliar",
+      (item: PedidoItem) => this.processItemPendienteForDisplay(item)
+    ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50, 100],
+    alCargar: (res) => {
+      this.itemsPendientesDataSource.data = res.getContent ?? [];
+      this.updateStep3ComputedProperties();
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) {
+        this.itemsPendientesDataSource.data = [];
+        this.updateStep3ComputedProperties();
+      }
+    },
+  });
   itemsPendientesSearchText = '';
 
   // Panel Derecho (40%): Notas de Recepción Registradas
@@ -420,11 +459,31 @@ export class GestionComprasComponent
   notasRecepcionDisplayedColumns = ["numero", "fecha", "monto", "estado", "acciones"];
   selectedNotaRecepcion: MockNotaRecepcion | null = null;
 
-  // Paginación para notas de recepción
-  notasRecepcionPageSize = 10;
-  notasRecepcionPageIndex = 0;
-  notasRecepcionTotalElements = 0;
-  notasRecepcionLoading = false;
+  /** Notas de recepción del pedido, normales y de rechazo (#772). */
+  notasRecepcionPag: PaginacionLista<MockNotaRecepcion> = new PaginacionLista<MockNotaRecepcion>({
+    cargar: (page, size) => this.conAviso(
+      this.pedidoService.onGetNotaRecepcionPorPedidoIdAndNumeroPage(
+        this.currentPedido.id,
+        this.notasRecepcionSearchText ? parseInt(this.notasRecepcionSearchText) : null,
+        page,
+        size
+      ),
+      "Error al cargar las notas de recepción",
+      (nota: NotaRecepcion) => this.processNotaForDisplay(nota) as MockNotaRecepcion
+    ),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50, 100],
+    alCargar: (res) => {
+      this.notasRecepcionDataSource.data = res.getContent ?? [];
+      this.updateStep3ComputedProperties();
+    },
+    alFallar: (filtroNuevo) => {
+      if (filtroNuevo) {
+        this.notasRecepcionDataSource.data = [];
+        this.updateStep3ComputedProperties();
+      }
+    },
+  });
   notasRecepcionSearchText = '';
 
   // Computed properties para Step 3
@@ -445,11 +504,20 @@ export class GestionComprasComponent
   // se auto-selecciona y enfoca la siguiente fila. Evita que la recarga del resumen del pedido
   // vuelva a robar el foco hacia el input "Código de barra" (ver loadPedidoResumen).
   private mantenerFocoEnProductoProveedor = false;
-  productosProveedorLoading = false;
+  /** Productos del proveedor paginados en el central (#772), con o sin texto de búsqueda. */
+  productosProveedorPag: PaginacionLista<ProductoProveedorItem> = new PaginacionLista<ProductoProveedorItem>({
+    cargar: (page, size) => this.consultarProductosProveedor(page, size),
+    pageSize: 10,
+    pageSizeOptions: [5, 10, 25, 50, 100],
+    alCargar: (res) => this.mostrarProductosProveedor(res.getContent ?? []),
+    alFallar: (filtroNuevo) => {
+      // La navegación con teclado esperaba esta página: no queda pendiente para la próxima carga.
+      this.isNavigatingWithKeyboard = false;
+      this.keyboardNavigationDirection = null;
+      if (filtroNuevo) this.productosProveedorDataSource.data = [];
+    },
+  });
   ultimasComprasLoading = false;
-  productosProveedorPageSize = 10;
-  productosProveedorPageIndex = 0;
-  productosProveedorTotalElements = 0;
   productosProveedorSearchText = '';
   private proveedorBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly BUSQUEDA_DEBOUNCE_MS = 300;
@@ -609,6 +677,10 @@ export class GestionComprasComponent
     this.destruido = true;
     this.recargasTrasCorte.forEach(timeout => clearTimeout(timeout));
     this.recargasTrasCorte.clear();
+    this.itemsPag.unsubscribe();
+    this.itemsPendientesPag.unsubscribe();
+    this.notasRecepcionPag.unsubscribe();
+    this.productosProveedorPag.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
     // Remover listener de teclado
@@ -675,17 +747,17 @@ export class GestionComprasComponent
             ?.setValue(value.vendedor, { emitEvent: false });
           
           // Otro proveedor: su lista arranca en la página 1 (también al entrar luego a Ítems).
-          this.productosProveedorPageIndex = 0;
+          this.productosProveedorPag.limpiar();
           // Si estamos en el tab de items, cargar productos del proveedor
           if (this.selectedTabIndex === 1) {
-            this.loadProductosProveedor();
+            this.loadProductosProveedor("filtro");
           }
         } else {
           this.selectedProveedorComputed = null;
           this.showProveedorCard = false;
           // Si se remueve el proveedor, limpiar la lista de productos
           this.productosProveedorDataSource.data = [];
-          this.productosProveedorPageIndex = 0;
+          this.productosProveedorPag.limpiar();
           this.ultimasComprasDataSource.data = [];
           this.ultimasComprasLoading = false;
           this.selectedProductoProveedor = null;
@@ -1656,8 +1728,8 @@ export class GestionComprasComponent
     // Update items computed properties
 
     // Update basic counts from items data
-    // Use itemsTotalElements if available (from pagination), otherwise use items.length
-    this.itemsCountComputed = this.itemsTotalElements > 0 ? this.itemsTotalElements : items.length;
+    // Use the paginated total if available, otherwise use items.length
+    this.itemsCountComputed = this.itemsPag.total > 0 ? this.itemsPag.total : items.length;
 
     // Use backend data for distribution counts if available, otherwise calculate locally
     if (this.pedidoResumen) {
@@ -2816,7 +2888,7 @@ export class GestionComprasComponent
       return [];
     }
 
-    const totalConocido = this.itemsTotalElements;
+    const totalConocido = this.itemsPag.total;
     if (totalConocido > 0 && totalConocido > itemsCargados.length) {
       return [];
     }
@@ -2892,15 +2964,13 @@ export class GestionComprasComponent
         // Si estamos en el tab de ítems, recargar inmediatamente
         if (this.selectedTabIndex === 1) {
           // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
+          this.loadItemsData(true, "primera");
         } else {
           // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
           // Si estamos en el tab de ítems, recargar inmediatamente con paginación
           if (this.selectedTabIndex === 1) {
             // Resetear a primera página y recargar
-            this.itemsPageIndex = 0;
-            this.loadItemsData();
+            this.loadItemsData(true, "primera");
           } else {
             // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
             // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
@@ -2988,8 +3058,7 @@ export class GestionComprasComponent
         // Si estamos en el tab de ítems, recargar inmediatamente
         if (this.selectedTabIndex === 1) {
           // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
+          this.loadItemsData(true, "primera");
         } else {
           // Si no estamos en el tab 1, actualizar propiedades computadas para habilitar botón
           this.updateItemsComputedProperties();
@@ -3062,8 +3131,7 @@ export class GestionComprasComponent
             // Si estamos en el tab de ítems, recargar inmediatamente
             if (this.selectedTabIndex === 1) {
               // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
+          this.loadItemsData(true, "primera");
             } else {
               // Si no estamos en el tab 1, actualizar propiedades computadas
               this.updateItemsComputedProperties();
@@ -3121,8 +3189,7 @@ export class GestionComprasComponent
               // Si estamos en el tab de ítems, recargar inmediatamente
               if (this.selectedTabIndex === 1) {
                 // Resetear a primera página y recargar
-                this.itemsPageIndex = 0;
-                this.loadItemsData();
+                this.loadItemsData(true, "primera");
               } else {
                 // Si no estamos en el tab 1, actualizar propiedades computadas para deshabilitar botón si no hay items
                 this.updateItemsComputedProperties();
@@ -3164,51 +3231,38 @@ export class GestionComprasComponent
   /**
    * Carga los datos de los ítems del pedido desde el backend con paginación
    */
-  private loadItemsData(recargarVariacionCosto = true): void {
+  /**
+   * Pide los ítems del pedido al central. `modo`: «recargar» repite la página a la vista, «primera» vuelve a la 1
+   * (después de agregar: los nuevos van primero) y «filtro» es una búsqueda nueva.
+   */
+  private loadItemsData(recargarVariacionCosto = true, modo: ModoCarga = "recargar"): void {
     if (!this.currentPedido?.id) {
       return;
     }
-
-    this.itemsLoading = true;
     // La variación de costo abarca todos los ítems del pedido: se pide al recargar, no al paginar o buscar
     if (recargarVariacionCosto || this.variacionCostoPedidoId !== this.currentPedido.id) {
       this.loadVariacionCosto(this.currentPedido.id);
     }
+    cargarSegun(this.itemsPag, modo);
+  }
 
-
-    this.pedidoService
-      .onGetPedidoItemPorPedidoPage(
-        this.currentPedido.id,
-        this.itemsPageIndex,
-        this.itemsPageSize,
-        this.itemsSearchText || undefined
-      )
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          if (!response) {
-            // Error GraphQL: el servicio ya avisó
-            this.itemsLoading = false;
-            return;
-          }
-          // Procesar los ítems y añadir propiedades computadas
-          const processedItems = (response.getContent || []).map((item: PedidoItem) => 
-            this.processItemForDisplay(item)
-          );
-          
-          // Actualizar la tabla
-          this.itemsDataSource.data = processedItems;
-          this.itemsTotalElements = response.getTotalElements || 0;
-          this.itemsLoading = false;
-          // Actualizar propiedades computadas
-          this.updateItemsComputedProperties();
-        },
-        error: (error) => {
-          console.error("Error cargando ítems:", error);
-          this.notificacionService.openAlgoSalioMal("Error al cargar los ítems del pedido");
-          this.itemsLoading = false;
-        }
-      });
+  /**
+   * Una página del central con aviso si no llega. `null` (error GraphQL) ya lo avisó el servicio; un error de red
+   * se avisa acá. Las filas se preparan para la tabla con `preparar`.
+   */
+  private conAviso<E, T>(
+    consulta$: Observable<{ getContent?: E[]; getTotalElements?: number } | null>,
+    aviso: string,
+    preparar: (e: E) => T
+  ): Observable<PaginaCentral<T> | null> {
+    return consulta$.pipe(
+      map((res) => res ? { getContent: (res.getContent || []).map(preparar), getTotalElements: res.getTotalElements || 0 } : null),
+      catchError((error) => {
+        console.error(aviso, error);
+        this.notificacionService.openAlgoSalioMal(aviso);
+        return of(null);
+      })
+    );
   }
 
   /**
@@ -3360,104 +3414,33 @@ export class GestionComprasComponent
    * Carga los ítems pendientes de conciliar para el Tab 3
    * Solo muestra ítems con cantidad pendiente > 0
    */
-  private loadItemsPendientesData(): void {
+  private loadItemsPendientesData(modo: ModoCarga = "recargar"): void {
     if (!this.currentPedido?.id) return;
+    cargarSegun(this.itemsPendientesPag, modo);
+  }
 
-    this.itemsPendientesLoading = true;
-
-    this.pedidoService
-      .onGetPedidoItemPorPedidoPage(
-        this.currentPedido.id,
-        this.itemsPendientesPageIndex,
-        this.itemsPendientesPageSize,
-        this.itemsPendientesSearchText || undefined,
-        true // soloPendientes = true: filtrar en el backend solo items con cantidad pendiente > 0
-      )
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          if (!response) {
-            this.itemsPendientesLoading = false;
-            return;
-          }
-          // El backend ya filtra por cantidad pendiente > 0, no necesitamos filtrar en el frontend
-          // Procesar ítems para mostrar
-          const processedItems = (response.getContent || []).map((item: PedidoItem) => {
-            const mockItem = this.processItemForDisplay(item) as MockPedidoItem;
-            
-            // Usar la cantidad pendiente calculada en el backend
-            mockItem.cantidadPendienteComputed = item.cantidadPendiente || 0;
-            
-            // Calcular estado de distribución
-            mockItem.distributionStatusTextComputed = item.distribucionConcluida 
-              ? "Completa" 
-              : "Pendiente";
-            mockItem.distributionStatusClassComputed = item.distribucionConcluida 
-              ? "estado-activo" 
-              : "estado-pendiente";
-            
-            return mockItem;
-          });
-
-          this.itemsPendientesDataSource.data = processedItems;
-          this.itemsPendientesTotalElements = response.getTotalElements || 0;
-          this.itemsPendientesLoading = false;
-          
-          this.updateStep3ComputedProperties();
-        },
-        error: (error) => {
-          console.error("Error cargando ítems pendientes:", error);
-          this.notificacionService.openAlgoSalioMal(
-            "Error al cargar los ítems pendientes de conciliar"
-          );
-          this.itemsPendientesLoading = false;
-        },
-      });
+  /** Un ítem pendiente: la cantidad pendiente la calcula el central. */
+  private processItemPendienteForDisplay(item: PedidoItem): MockPedidoItem {
+    const mockItem = this.processItemForDisplay(item) as MockPedidoItem;
+    // Usar la cantidad pendiente calculada en el backend
+    mockItem.cantidadPendienteComputed = item.cantidadPendiente || 0;
+    // Calcular estado de distribución
+    mockItem.distributionStatusTextComputed = item.distribucionConcluida
+      ? "Completa"
+      : "Pendiente";
+    mockItem.distributionStatusClassComputed = item.distribucionConcluida
+      ? "estado-activo"
+      : "estado-pendiente";
+    return mockItem;
   }
 
   /**
    * Carga las notas de recepción del pedido para el Tab 3
    * Incluye tanto notas normales como notas de rechazo
    */
-  private loadNotasRecepcionData(): void {
+  private loadNotasRecepcionData(modo: ModoCarga = "recargar"): void {
     if (!this.currentPedido?.id) return;
-
-    
-    this.notasRecepcionLoading = true;
-
-    this.pedidoService
-      .onGetNotaRecepcionPorPedidoIdAndNumeroPage(
-        this.currentPedido.id,
-        this.notasRecepcionSearchText ? parseInt(this.notasRecepcionSearchText) : null,
-        this.notasRecepcionPageIndex,
-        this.notasRecepcionPageSize
-      )
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          if (!response) {
-            this.notasRecepcionLoading = false;
-            return;
-          }
-          // Procesar notas para mostrar (incluye notas normales y de rechazo)
-          const processedNotas = (response.getContent || []).map((nota: NotaRecepcion) => {
-            const mockNota = this.processNotaForDisplay(nota) as MockNotaRecepcion;
-            return mockNota;
-          });
-          
-          this.notasRecepcionDataSource.data = processedNotas;
-          this.notasRecepcionTotalElements = response.getTotalElements || 0;
-          this.notasRecepcionLoading = false;
-          this.updateStep3ComputedProperties();
-        },
-        error: (error) => {
-          console.error("Error cargando notas de recepción:", error);
-          this.notificacionService.openAlgoSalioMal(
-            "Error al cargar las notas de recepción"
-          );
-          this.notasRecepcionLoading = false;
-        },
-      });
+    cargarSegun(this.notasRecepcionPag, modo);
   }
 
   /**
@@ -3782,17 +3765,10 @@ export class GestionComprasComponent
     this.updateStep3ComputedProperties();
   }
 
-  // Métodos para paginación y búsqueda de ítems del pedido
-  onItemsPageChange(event: PageEvent): void {
-    this.itemsPageIndex = event.pageIndex;
-    this.itemsPageSize = event.pageSize;
-    this.loadItemsData(false);
-  }
-
+  // Búsqueda de ítems del pedido (la paginación la maneja itemsPag)
   onItemsSearchChange(searchText: string): void {
     this.itemsSearchText = searchText;
-    this.itemsPageIndex = 0; // Reset to first page
-    this.loadItemsData(false);
+    this.loadItemsData(false, "filtro");
   }
 
   onToggleItemsSearch(): void {
@@ -3800,35 +3776,19 @@ export class GestionComprasComponent
     if (!this.showItemsSearch) {
       // Si se oculta el buscador, limpiar el texto de búsqueda y recargar
       this.itemsSearchText = '';
-      this.itemsPageIndex = 0;
-      this.loadItemsData(false);
+      this.loadItemsData(false, "filtro");
     }
   }
 
-  // Métodos para paginación y búsqueda de ítems pendientes
-  onItemsPendientesPageChange(event: any): void {
-    this.itemsPendientesPageIndex = event.pageIndex;
-    this.itemsPendientesPageSize = event.pageSize;
-    this.loadItemsPendientesData();
-  }
-
+  // Búsqueda de ítems pendientes y de notas de recepción (la paginación la maneja cada PaginacionLista)
   onItemsPendientesSearchChange(searchText: string): void {
     this.itemsPendientesSearchText = searchText;
-    this.itemsPendientesPageIndex = 0; // Reset to first page
-    this.loadItemsPendientesData();
-  }
-
-  // Métodos para paginación y búsqueda de notas de recepción
-  onNotasRecepcionPageChange(event: any): void {
-    this.notasRecepcionPageIndex = event.pageIndex;
-    this.notasRecepcionPageSize = event.pageSize;
-    this.loadNotasRecepcionData();
+    this.loadItemsPendientesData("filtro");
   }
 
   onNotasRecepcionSearchChange(searchText: string): void {
     this.notasRecepcionSearchText = searchText;
-    this.notasRecepcionPageIndex = 0; // Reset to first page
-    this.loadNotasRecepcionData();
+    this.loadNotasRecepcionData("filtro");
   }
 
   // Botones de acción según manual
@@ -4623,27 +4583,31 @@ export class GestionComprasComponent
   /**
    * Carga los productos del proveedor
    */
-  private loadProductosProveedor(): void {
-    const proveedorId = this.currentPedido?.proveedor?.id || 
-                       this.datosGeneralesForm.get("proveedor")?.value?.id;
-    
-    if (!proveedorId) {
+  private loadProductosProveedor(modo: ModoCarga = "recargar"): void {
+    if (!this.proveedorIdDeProductos()) {
+      this.productosProveedorPag.limpiar();
       this.productosProveedorDataSource.data = [];
       return;
     }
+    cargarSegun(this.productosProveedorPag, modo);
+  }
 
+  private proveedorIdDeProductos(): number | undefined {
+    return this.currentPedido?.proveedor?.id ||
+      this.datosGeneralesForm.get("proveedor")?.value?.id;
+  }
+
+  private consultarProductosProveedor(page: number, size: number): Observable<PaginaCentral<ProductoProveedorItem> | null> {
+    const proveedorId = this.proveedorIdDeProductos();
     // Obtener pedidoId si estamos en modo edición
     const pedidoId = this.isEditMode && this.currentPedido?.id ? this.currentPedido.id : undefined;
-
-    this.productosProveedorLoading = true;
-
     const searchText = (this.productosProveedorSearchText || "").trim();
     const request$ = searchText
       ? this.buscadorComprasService.buscarProductoProveedor(
           proveedorId,
           searchText,
-          this.productosProveedorPageIndex,
-          this.productosProveedorPageSize,
+          page,
+          size,
           pedidoId,
           true,
           PROPAGAR_ERROR_DE_RED,
@@ -4652,122 +4616,102 @@ export class GestionComprasComponent
       : this.productoProveedorService.getByProveedorId(
           proveedorId,
           "",
-          this.productosProveedorPageIndex,
-          this.productosProveedorPageSize,
+          page,
+          size,
           pedidoId,
           undefined,
           PROPAGAR_ERROR_DE_RED,
           CONSULTA_PRODUCTOS_PROVEEDOR
         );
+    return this.conAviso(request$, "Error al cargar los productos del proveedor", (pp: ProductoProveedor) => {
+      const precioPrincipal = pp.producto?.precioPrincipal;
+      const item: ProductoProveedorItem = {
+        ...pp,
+        descripcionComputed: pp.producto?.descripcion || '',
+        precioDisplayComputed: this.formatNumber(precioPrincipal),
+        isSelectedComputed: false,
+        yaEnPedidoComputed: pp.yaEnPedido || false,
+        stockTotal: null,
+        stockTotalLoading: true,
+        stockPorSucursal: [],
+        stockDisplayComputed: '',
+        stockSubtitleComputed: null
+      };
+      return item;
+    });
+  }
 
-    request$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          if (!response) {
-            // Error GraphQL: el servicio ya avisó
-            this.productosProveedorLoading = false;
-            return;
+  /** Muestra la página que llegó, carga su stock y rearma la selección (o la de la navegación con teclado). */
+  private mostrarProductosProveedor(productos: ProductoProveedorItem[]): void {
+    this.productosProveedorDataSource.data = productos;
+    this.loadStockForProductosProveedor();
+    
+    // Si estamos navegando con teclado entre páginas, seleccionar el producto apropiado
+    if (this.isNavigatingWithKeyboard && this.keyboardNavigationDirection) {
+      this.isNavigatingWithKeyboard = false;
+      const direction = this.keyboardNavigationDirection;
+      this.keyboardNavigationDirection = null;
+      
+      // Seleccionar el producto apropiado según la dirección
+      setTimeout(() => {
+        const productos = this.productosProveedorDataSource.data;
+        if (productos.length > 0) {
+          if (direction === 'next') {
+            // Navegamos hacia adelante, seleccionar el primer producto
+            this.selectedProductoProveedorIndex = 0;
+            this.selectProductoProveedorByIndex(0);
+          } else if (direction === 'previous') {
+            // Navegamos hacia atrás, seleccionar el último producto
+            const lastIndex = productos.length - 1;
+            this.selectedProductoProveedorIndex = lastIndex;
+            this.selectProductoProveedorByIndex(lastIndex);
           }
-
-          const productos = (response.getContent || []).map((pp: ProductoProveedor) => {
-            const precioPrincipal = pp.producto?.precioPrincipal;
-            
-            const item: ProductoProveedorItem = {
-              ...pp,
-              descripcionComputed: pp.producto?.descripcion || '',
-              precioDisplayComputed: this.formatNumber(precioPrincipal),
-              isSelectedComputed: false,
-              yaEnPedidoComputed: pp.yaEnPedido || false,
-              stockTotal: null,
-              stockTotalLoading: true,
-              stockPorSucursal: [],
-              stockDisplayComputed: '',
-              stockSubtitleComputed: null
-            };
-            return item;
-          });
-
-          this.productosProveedorDataSource.data = productos;
-          this.productosProveedorTotalElements = response.getTotalElements || 0;
-          this.productosProveedorLoading = false;
-          this.loadStockForProductosProveedor();
-          
-          // Si estamos navegando con teclado entre páginas, seleccionar el producto apropiado
-          if (this.isNavigatingWithKeyboard && this.keyboardNavigationDirection) {
-            this.isNavigatingWithKeyboard = false;
-            const direction = this.keyboardNavigationDirection;
-            this.keyboardNavigationDirection = null;
-            
-            // Seleccionar el producto apropiado según la dirección
-            setTimeout(() => {
-              const productos = this.productosProveedorDataSource.data;
-              if (productos.length > 0) {
-                if (direction === 'next') {
-                  // Navegamos hacia adelante, seleccionar el primer producto
-                  this.selectedProductoProveedorIndex = 0;
-                  this.selectProductoProveedorByIndex(0);
-                } else if (direction === 'previous') {
-                  // Navegamos hacia atrás, seleccionar el último producto
-                  const lastIndex = productos.length - 1;
-                  this.selectedProductoProveedorIndex = lastIndex;
-                  this.selectProductoProveedorByIndex(lastIndex);
-                }
-              }
-            }, 0);
-            return; // Salir temprano para evitar la lógica de verificación de producto seleccionado
-          }
-          
-          // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
-          if (this.selectedProductoProveedor) {
-            const productoExiste = productos.some(
-              p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
-            );
-            if (!productoExiste) {
-              if (this.selectedProductoProveedor) {
-                this.selectedProductoProveedor.isSelectedComputed = false;
-              }
-              this.selectedProductoProveedor = null;
-              this.selectedProductoProveedorIndex = -1;
-            } else {
-              // Actualizar el índice del producto seleccionado
-              const index = productos.findIndex(
-                p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
-              );
-              this.selectedProductoProveedorIndex = index;
-              // Asegurar que el producto en la nueva lista tenga isSelectedComputed = true
-              if (index >= 0 && index < productos.length) {
-                productos[index].isSelectedComputed = true;
-                this.selectedProductoProveedor = productos[index];
-              }
-            }
-          }
-          
-          // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
-          if (this.selectedProductoProveedor) {
-            const productoExiste = productos.some(
-              p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
-            );
-            if (!productoExiste) {
-              this.selectedProductoProveedor = null;
-              this.selectedProductoProveedorIndex = -1;
-            } else {
-              // Actualizar el índice del producto seleccionado
-              const index = productos.findIndex(
-                p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
-              );
-              this.selectedProductoProveedorIndex = index;
-            }
-          }
-        },
-        error: (error) => {
-          console.error("Error cargando productos del proveedor:", error);
-          this.notificacionService.openAlgoSalioMal(
-            "Error al cargar los productos del proveedor"
-          );
-          this.productosProveedorLoading = false;
-        },
-      });
+        }
+      }, 0);
+      return; // Salir temprano para evitar la lógica de verificación de producto seleccionado
+    }
+    
+    // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
+    if (this.selectedProductoProveedor) {
+      const productoExiste = productos.some(
+        p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+      );
+      if (!productoExiste) {
+        if (this.selectedProductoProveedor) {
+          this.selectedProductoProveedor.isSelectedComputed = false;
+        }
+        this.selectedProductoProveedor = null;
+        this.selectedProductoProveedorIndex = -1;
+      } else {
+        // Actualizar el índice del producto seleccionado
+        const index = productos.findIndex(
+          p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+        );
+        this.selectedProductoProveedorIndex = index;
+        // Asegurar que el producto en la nueva lista tenga isSelectedComputed = true
+        if (index >= 0 && index < productos.length) {
+          productos[index].isSelectedComputed = true;
+          this.selectedProductoProveedor = productos[index];
+        }
+      }
+    }
+    
+    // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
+    if (this.selectedProductoProveedor) {
+      const productoExiste = productos.some(
+        p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+      );
+      if (!productoExiste) {
+        this.selectedProductoProveedor = null;
+        this.selectedProductoProveedorIndex = -1;
+      } else {
+        // Actualizar el índice del producto seleccionado
+        const index = productos.findIndex(
+          p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+        );
+        this.selectedProductoProveedorIndex = index;
+      }
+    }
   }
 
   /**
@@ -5123,8 +5067,7 @@ export class GestionComprasComponent
             this.markTabAsUnloaded(1);
 
             if (this.selectedTabIndex === 1) {
-              this.itemsPageIndex = 0;
-              this.loadItemsData();
+              this.loadItemsData(true, "primera");
             } else {
               this.updateItemsComputedProperties();
             }
@@ -5146,16 +5089,13 @@ export class GestionComprasComponent
   /**
    * Maneja el cambio de página en la lista de productos del proveedor
    */
-  onProductosProveedorPageChange(event: any): void {
-    this.productosProveedorPageIndex = event.pageIndex;
-    this.productosProveedorPageSize = event.pageSize;
-    // Resetear selección al cambiar de página
+  onProductosProveedorPageChange(): void {
+    // Resetear selección al cambiar de página (la página la pide productosProveedorPag)
     if (this.selectedProductoProveedor) {
       this.selectedProductoProveedor.isSelectedComputed = false;
     }
     this.selectedProductoProveedor = null;
     this.selectedProductoProveedorIndex = -1;
-    this.loadProductosProveedor();
   }
 
   /**
@@ -5163,7 +5103,6 @@ export class GestionComprasComponent
    */
   onProductosProveedorSearchChange(searchText: string): void {
     this.productosProveedorSearchText = searchText;
-    this.productosProveedorPageIndex = 0; // Reset to first page
     // Resetear selección al buscar
     if (this.selectedProductoProveedor) {
       this.selectedProductoProveedor.isSelectedComputed = false;
@@ -5175,7 +5114,7 @@ export class GestionComprasComponent
       clearTimeout(this.proveedorBusquedaTimer);
     }
     this.proveedorBusquedaTimer = setTimeout(() => {
-      this.loadProductosProveedor();
+      this.loadProductosProveedor("filtro");
     }, this.BUSQUEDA_DEBOUNCE_MS);
   }
 
@@ -5340,7 +5279,7 @@ export class GestionComprasComponent
     // Validar límites dentro de la página actual
     if (newIndex < 0) {
       // Si estamos en el primero y vamos hacia arriba, intentar cargar página anterior
-      if (this.productosProveedorPageIndex > 0) {
+      if (this.productosProveedorPag.pageIndex > 0) {
         this.loadPreviousPageAndSelectLast();
       }
       return;
@@ -5360,12 +5299,12 @@ export class GestionComprasComponent
    */
   private loadNextPageAndSelectFirst(): void {
     // Calcular si hay más páginas
-    const totalPages = Math.ceil(this.productosProveedorTotalElements / this.productosProveedorPageSize);
-    const currentPage = this.productosProveedorPageIndex;
+    const pag = this.productosProveedorPag;
+    const totalPages = Math.ceil(pag.total / pag.pageSize);
+    const currentPage = pag.pageIndex;
     
     if (currentPage + 1 < totalPages) {
       // Hay más páginas, cargar la siguiente
-      this.productosProveedorPageIndex = currentPage + 1;
       this.isNavigatingWithKeyboard = true; // Marcar que estamos navegando con teclado
       this.keyboardNavigationDirection = 'next'; // Indicar dirección
       
@@ -5375,7 +5314,7 @@ export class GestionComprasComponent
       }
       
       // Cargar la siguiente página
-      this.loadProductosProveedor();
+      pag.onPage({ pageIndex: currentPage + 1, pageSize: pag.pageSize, length: pag.total });
     }
   }
 
@@ -5383,9 +5322,9 @@ export class GestionComprasComponent
    * Carga la página anterior y selecciona el último producto
    */
   private loadPreviousPageAndSelectLast(): void {
-    if (this.productosProveedorPageIndex > 0) {
+    const pag = this.productosProveedorPag;
+    if (pag.pageIndex > 0) {
       // Hay páginas anteriores, cargar la anterior
-      this.productosProveedorPageIndex = this.productosProveedorPageIndex - 1;
       this.isNavigatingWithKeyboard = true; // Marcar que estamos navegando con teclado
       this.keyboardNavigationDirection = 'previous'; // Indicar dirección
       
@@ -5395,7 +5334,7 @@ export class GestionComprasComponent
       }
       
       // Cargar la página anterior
-      this.loadProductosProveedor();
+      pag.onPage({ pageIndex: pag.pageIndex - 1, pageSize: pag.pageSize, length: pag.total });
     }
   }
 

@@ -70,7 +70,10 @@
     <mat-card class="seccion-card foto-card" fxFlex="20">
       <dash-section-header icon="account_circle" title="Foto de perfil"></dash-section-header>
       <div class="foto-col" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="10px">
-        <img [src]="fotoPerfilSrc" alt="Foto de perfil" class="foto-perfil" />
+        <img [src]="fotoPerfilSrc" alt="Foto de perfil" class="foto-perfil"
+          [class.foto-clickeable]="fotoPerfilSrc !== fotoDefault"
+          [matTooltip]="fotoPerfilSrc !== fotoDefault ? 'Ver foto ampliada' : ''"
+          (click)="onVerFoto()" />
         <input #fotoInput type="file" accept="image/*" hidden (change)="onFotoSeleccionada($event)" />
         <button mat-stroked-button color="primary" type="button" class="btn-foto"
           [disabled]="!puedeSubirFoto || subiendoFoto" (click)="fotoInput.click()">

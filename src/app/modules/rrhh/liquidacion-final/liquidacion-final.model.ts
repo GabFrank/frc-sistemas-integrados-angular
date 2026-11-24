@@ -23,6 +23,12 @@ export interface LiquidacionFinalItem {
   editadoEn?: any;
   montoOriginal?: number;
   referenciaTipo?: string;
+  /** Moneda del origen (vale, prestamo, sueldo); monto ya esta en la del finiquito. */
+  moneda?: Moneda;
+  montoMoneda?: number;
+  cotizacion?: number;
+  /** Calculado al cargar: «R$ 110,00 · cot. 1.450» si vino de otra moneda. */
+  origenMoneda?: string | null;
 }
 
 export interface LiquidacionFinal {

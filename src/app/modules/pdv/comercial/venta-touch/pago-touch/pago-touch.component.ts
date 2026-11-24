@@ -105,7 +105,7 @@ import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-t
 import { VentaTarjetaService } from "../../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../../financiero/venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
-import { esCobroTarjetaRegistrable, lineasTarjetaSinTerminal } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
+import { esCobroTarjetaRegistrable, lineaConMismoCupon, lineasTarjetaSinTerminal } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
@@ -306,7 +306,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.configuracionVentaTarjetaService.onGetConfiguracion(false, contextoFilial).subscribe({
       next: (config) => {
         if (config == null) return this.configNoCargo("tarjeta");
-        this.ventaTarjetaHabilitada = config.habilitado === true;
+        // ⚠️ Y solo si la caja habla con el filial (#151 del filial). Con `isLocal: false` no hay link
+        // local: esta consulta la contesta el central --que la tiene y dice `habilitado`--, pero el
+        // central no tiene `crearCapturaCupon` ni `completarVentaTarjeta`, y su `saveVentaTarjeta`
+        // escribiría `venta_tarjeta` del lado que solo la recibe por réplica. «Sacar foto» fallaba
+        // con un error de esquema. TARJETA queda como con el módulo apagado; no es un fallo de
+        // configuración, así que `configTarjeta` sigue en "ok" y no se bloquea el cobro.
+        this.ventaTarjetaHabilitada = config.habilitado === true && this.mainService.isLocal();
         this.configTarjeta = "ok";
       },
       error: () => this.configNoCargo("tarjeta"),
@@ -890,7 +896,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             }
           });
       } else {
-        item.requiereRegistroTarjeta = esLineaNueva;
+        // Una línea ya guardada de un delivery también se registra: su venta_tarjeta no existe hasta que el
+        // delivery se concluye acá, y un delivery concluido no vuelve a este cobro. Antes se la daba por
+        // registrada y el delivery cobraba con tarjeta sin terminal ni registro (#358). El escaneo sigue
+        // solo para la línea nueva: la terminal de las guardadas se pide al finalizar.
+        item.requiereRegistroTarjeta = esLineaNueva || this.data?.delivery != null;
         this.cobroDetalleList.push(item);
         if (esLineaNueva) abrioEscaneo = this.escanearSiEsTarjeta(item);
       }
@@ -953,9 +963,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const tarjetaPagos: TarjetaPago[] = this.ventaTarjetaHabilitada
       ? this.cobroDetalleList
-          // `requiereRegistroTarjeta` y no solo el predicado: al reabrir un delivery, sus líneas
-          // ya cobradas vuelven a la lista y su venta_tarjeta YA existe. Registrarlas otra vez
-          // crearía pendientes duplicados que después traban el cierre de caja.
+          // `requiereRegistroTarjeta` y no solo el predicado: la marca la pone addCobroDetalle (las
+          // líneas nuevas, y todas las de un delivery, que todavía no tienen venta_tarjeta: #358).
           .filter(cd => esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta)
           .map(cd => ({
             terminalPosId: cd.terminalPos?.id ?? null,
@@ -1166,6 +1175,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // cobro para confirmar lo mismo. El chequeo se queda igual para cualquier puerta que NO haya
     // preguntado -- que es la garantía de que la regla no se puede saltear agregando una puerta
     // nueva, justamente el hueco que este código tenía.
+    //
+    // Antes que todo, incluso que el atajo `verificado`: el backend solo ve cupones ya guardados,
+    // y el mismo cupón en dos líneas de este cobro pasaba las dos veces (#625, venta 81509 de
+    // Itaipú). No se aplica: si la línea tenía un cupón bueno de antes, se conserva.
+    if (lineaConMismoCupon(this.cobroDetalleList, item, datosCupon)) {
+      this.avisarCuponNoUsable('Ese cupón ya está cargado en otra línea de este cobro.');
+      this.finEscaneoTarjeta();
+      return;
+    }
     if (datosCupon.verificado) { this.evaluarCupon(item, datosCupon); return; }
 
     this.ventaTarjetaService
@@ -1312,6 +1330,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDescuento() {
+    // Con CONVENIO elegido el descuento no se registraba (addCobroDetalle abre el convenio) y la marca quedaba
+    // puesta: el siguiente Enter guardaba el pago como descuento.
+    if (this.selectedFormaPago?.descripcion == "CONVENIO") {
+      this.notificacionSnackbar.openWarn("No se puede aplicar descuento a una venta por convenio.", 5);
+      return;
+    }
     if (this.cobroDetalleList.some(item => item.descuento)) {
       this.notificacionSnackbar.openWarn("Ya se aplicó un descuento a esta venta.");
       return;
@@ -1401,12 +1425,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Líneas TARJETA cargadas en este cobro (no las ya guardadas de un delivery reabierto, que no se
-   * bloquean: misma marca que usa la regla de terminal).
+   * Líneas TARJETA que este cobro va a registrar en venta_tarjeta: misma marca y mismo predicado que
+   * `onFinalizar`. Un aumento con TARJETA no se registra, así que tampoco bloquea. Las de un delivery
+   * cuentan aunque ya estén guardadas (#358): sin la config no se pueden registrar.
    */
   private hayTarjetaNueva(): boolean {
     return this.cobroDetalleList?.some(
-      (cd) => cd?.formaPago?.descripcion == "TARJETA" && cd.requiereRegistroTarjeta
+      (cd) => esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta
     ) === true;
   }
 
@@ -1527,6 +1552,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // `isDialogOpen` se marca recién al abrir el diálogo y se apaga al cerrarlo. Antes se ponía en
     // true acá arriba --incluso en los return tempranos-- y nunca volvía a false: después de un
     // CONVENIO los atajos del cobro (Enter, F10, F1-F6) quedaban muertos.
+    // El convenio paga toda la venta y sin descuento: con cualquier línea cargada no se abre (el filial también lo rechaza).
+    if (this.cobroDetalleList?.length > 0) {
+      this.setFormaPago(this.formaPagoList[0]?.descripcion);
+      return this.notificacionSnackbar.openWarn(
+        this.cobroDetalleList.some((l) => l.descuento)
+          ? "No se puede aplicar descuento a una venta por convenio."
+          : "El convenio solo se puede usar como única forma de pago.",
+        5
+      );
+    }
     this.setFormaPago("CONVENIO");
     if (this.saldoCero()) {
       return this.notificacionSnackbar.openWarn("El valor no puede ser 0.");

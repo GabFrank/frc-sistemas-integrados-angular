@@ -11,6 +11,7 @@ export class Proveedor {
   chequeDias: number;
   datosBancarios: number;
   creadoEn: Date;
+  activo: boolean;
   usuario: Usuario;
   vendedores: Vendedor[];
   productos: Producto[];
@@ -25,6 +26,7 @@ export class Proveedor {
     input.datosBancarios = this.datosBancarios
     input.creadoEn = this.creadoEn
     input.usuarioId = this.usuario?.id
+    input.activo = this.activo
     return input;
   }
 }
@@ -38,4 +40,6 @@ export class ProveedorInput {
   datosBancarios: number;
   creadoEn: Date;
   usuarioId: number = null;
+  /** Sin mandar (undefined) el central conserva el estado guardado. */
+  activo?: boolean;
 }
