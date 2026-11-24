@@ -42,4 +42,13 @@ describe("PagoTouchComponent: convenio como forma de pago única y sin descuento
     expect(abrio).toBeFalse();
     expect(avisos[0]).toBe("No se puede aplicar descuento a una venta por convenio.");
   });
+
+  it("con CONVENIO elegido el descuento no abre su diálogo ni deja la marca puesta", () => {
+    c.selectedFormaPago = { id: 3, descripcion: "CONVENIO" };
+    c.isDescuento = false;
+    c.onDescuento();
+    expect(abrio).toBeFalse();
+    expect(c.isDescuento).toBeFalse();
+    expect(avisos[0]).toBe("No se puede aplicar descuento a una venta por convenio.");
+  });
 });

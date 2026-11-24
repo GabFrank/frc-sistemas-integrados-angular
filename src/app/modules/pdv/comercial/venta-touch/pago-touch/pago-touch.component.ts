@@ -1330,6 +1330,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDescuento() {
+    // Con CONVENIO elegido el descuento no se registraba (addCobroDetalle abre el convenio) y la marca quedaba
+    // puesta: el siguiente Enter guardaba el pago como descuento.
+    if (this.selectedFormaPago?.descripcion == "CONVENIO") {
+      this.notificacionSnackbar.openWarn("No se puede aplicar descuento a una venta por convenio.", 5);
+      return;
+    }
     if (this.cobroDetalleList.some(item => item.descuento)) {
       this.notificacionSnackbar.openWarn("Ya se aplicó un descuento a esta venta.");
       return;
