@@ -12,13 +12,13 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../noti
 import { EmitirChequeDialogComponent } from '../emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { GestionarChequerasDialogComponent } from '../../chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
-import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
+import { ChequeAnulacionService } from '../cheque-anulacion.service';
 import { CrearExcelService } from '../../../../shared/crear-excel/crear-excel.service';
 import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
 import { DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '../../caja-virtual/detalle-movimiento-dialog/detalle-movimiento-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { ChequeService } from '../cheque.service';
-import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../cheque.model';
+import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque, MOTIVOS_ANULACION_CHEQUE } from '../cheque.model';
 import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
@@ -128,6 +128,7 @@ export class ChequesDashboardComponent implements OnInit {
 
   constructor(
     private chequeService: ChequeService,
+    private chequeAnulacion: ChequeAnulacionService,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
     private dialog: MatDialog,
@@ -448,21 +449,14 @@ export class ChequesDashboardComponent implements OnInit {
     });
   }
 
-  /** Anula pidiendo el motivo (desk #708: antes iba fijo «Anulado desde dashboard»). */
+  /** Anula con el motivo de la lista y la observación (#807; antes texto libre, desk #708). */
   onAnular(cheque: ChequeRow) {
     if (!cheque?.id) return;
-    const data: MotivoDialogData = {
-      titulo: 'Anular cheque',
-      mensaje: 'Nº ' + (cheque.numero || '') + ' · ' + (cheque._monedaSimbolo || '') + ' '
-        + (cheque.total || 0).toLocaleString('es-PY') + (cheque._beneficiario ? ' · ' + cheque._beneficiario : ''),
-      detalle: 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.',
-      etiqueta: 'Motivo de la anulación',
-      botonConfirmar: 'Anular',
-    };
-    this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed()
-      .pipe(untilDestroyed(this)).subscribe((motivo: string | null) => {
-        if (!motivo) return;
-        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, motivo), 'Cheque anulado');
+    const fila = { ...cheque, beneficiario: cheque._beneficiario || cheque.beneficiario } as Cheque;
+    this.chequeAnulacion.pedirMotivo([fila], 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.')
+      .pipe(untilDestroyed(this)).subscribe(anulacion => {
+        if (!anulacion) return;
+        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, null, anulacion), 'Cheque anulado');
       });
   }
 
@@ -487,7 +481,11 @@ export class ChequesDashboardComponent implements OnInit {
         { etiqueta: 'Estado', valor: this.estadoLabels[cheque.estado] || String(cheque.estado || '') },
         { etiqueta: 'Concepto', valor: cheque.concepto || '—' },
         { etiqueta: 'Usuario', valor: cheque._usuario || '—' },
-        ...(cheque.motivoAnulacion ? [{ etiqueta: 'Motivo de anulación', valor: cheque.motivoAnulacion }] : []),
+        // Con el motivo de la lista (#807) se muestra su etiqueta; los anulados antes, el texto que se guardaba.
+        ...(cheque.motivoAnulacionTipo || cheque.motivoAnulacion ? [{ etiqueta: 'Motivo de anulación',
+          valor: MOTIVOS_ANULACION_CHEQUE.find(m => m.value === cheque.motivoAnulacionTipo)?.label || cheque.motivoAnulacion }] : []),
+        ...(cheque.observacionAnulacion ? [{ etiqueta: 'Observación de la anulación', valor: cheque.observacionAnulacion }] : []),
+        ...(cheque.fechaAnulacion ? [{ etiqueta: 'Anulado el', valor: dateToString(new Date(cheque.fechaAnulacion), 'dd/MM/yyyy HH:mm') }] : []),
       ],
     };
     this.dialog.open(DetalleMovimientoDialogComponent, { width: '520px', maxWidth: '95vw', maxHeight: '80vh', data });

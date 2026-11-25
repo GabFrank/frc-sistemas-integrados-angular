@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { AnulacionChequeInput } from '../cheque/cheque.model';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { limpiarMensajeGraphQL } from '../../../commons/core/utils/graphqlErrorUtils';
@@ -53,7 +54,7 @@ export class NumeracionChequeraService {
   }
 
   onInutilizar(vars: { chequeraId: number; numero: number; motivo: string; accionCheque?: AccionChequeInutilizado;
-                       numeroNuevo?: number | null }): Observable<NumeroInutilizado> {
+                       numeroNuevo?: number | null; anulacionCheque?: AnulacionChequeInput | null }): Observable<NumeroInutilizado> {
     return this.mutar(this.inutilizarGQL, vars);
   }
 

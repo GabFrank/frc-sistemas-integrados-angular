@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { limpiarErroresGraphQL, limpiarMensajeGraphQL } from '../../../commons/core/utils/graphqlErrorUtils';
-import { Cheque, ChequeInput, ChequeResumenDia, ChequeSaldoChequera, ChequeDashboardFiltro, PedidoEmisionCheques } from './cheque.model';
+import { AnulacionChequeInput, Cheque, ChequeInput, ChequeResumenDia, ChequeSaldoChequera, ChequeDashboardFiltro, PedidoEmisionCheques } from './cheque.model';
 import { GetChequeGQL } from './graphql/getCheque';
 import { GetChequesGQL } from './graphql/getCheques';
 import { GetChequesSearchGQL } from './graphql/getChequesSearch';
@@ -150,9 +150,9 @@ export class ChequeService {
     return this.mutar(this.cobrarChequeGQL, { chequeId });
   }
 
-  /** Anula un cheque (libera reserva o revierte el débito). */
-  onAnular(chequeId: number, motivo: string): Observable<Cheque> {
-    return this.mutar(this.anularChequeGQL, { chequeId, motivo });
+  /** Anula un cheque (libera reserva o revierte el débito), con el motivo de la lista (#807). */
+  onAnular(chequeId: number, motivo: string | null, anulacionCheque?: AnulacionChequeInput | null): Observable<Cheque> {
+    return this.mutar(this.anularChequeGQL, { chequeId, motivo, anulacionCheque: anulacionCheque || null });
   }
 
   /**

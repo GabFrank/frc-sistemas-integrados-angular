@@ -12,6 +12,36 @@ export enum EstadoCheque {
     ANULADO = 'ANULADO',
 }
 
+/** Motivo de anulación de la lista (#807). Espejo del enum del central. */
+export enum MotivoAnulacionCheque {
+    EFECTIVIZACION = 'EFECTIVIZACION',
+    FIRMA_NO_CONFORME = 'FIRMA_NO_CONFORME',
+    MALA_IMPRESION = 'MALA_IMPRESION',
+    DEVOLUCION = 'DEVOLUCION',
+    PROVEEDOR_INCORRECTO = 'PROVEEDOR_INCORRECTO',
+    FECHA_INCORRECTA = 'FECHA_INCORRECTA',
+    MONTO_INCORRECTO = 'MONTO_INCORRECTO',
+    OTRO = 'OTRO',
+}
+
+/** En el orden en que se ofrecen; OTRO exige observación. */
+export const MOTIVOS_ANULACION_CHEQUE: { value: MotivoAnulacionCheque; label: string }[] = [
+    { value: MotivoAnulacionCheque.EFECTIVIZACION, label: 'Efectivización' },
+    { value: MotivoAnulacionCheque.FIRMA_NO_CONFORME, label: 'Firma no conforme' },
+    { value: MotivoAnulacionCheque.MALA_IMPRESION, label: 'Mala impresión' },
+    { value: MotivoAnulacionCheque.DEVOLUCION, label: 'Devolución de cheque' },
+    { value: MotivoAnulacionCheque.PROVEEDOR_INCORRECTO, label: 'Proveedor incorrecto' },
+    { value: MotivoAnulacionCheque.FECHA_INCORRECTA, label: 'Fecha incorrecta' },
+    { value: MotivoAnulacionCheque.MONTO_INCORRECTO, label: 'Monto incorrecto' },
+    { value: MotivoAnulacionCheque.OTRO, label: 'Otro' },
+];
+
+/** Motivo y observación; uno solo vale para todos los cheques de un pago. */
+export interface AnulacionChequeInput {
+    motivo: MotivoAnulacionCheque;
+    observacion?: string | null;
+}
+
 export class Cheque {
     id: number;
     chequera: Chequera;
@@ -30,6 +60,10 @@ export class Cheque {
     cuentaBancaria: CuentaBancaria;
     fechaCobro: Date;
     motivoAnulacion: string;
+    /** Datos de la anulación (#807); null en los anulados antes del cambio. */
+    motivoAnulacionTipo?: MotivoAnulacionCheque;
+    observacionAnulacion?: string;
+    fechaAnulacion?: Date;
     firmante: Persona;
     creadoEn: Date;
     usuario: Usuario;

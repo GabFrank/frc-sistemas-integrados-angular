@@ -1,4 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { ChequeAnulacionService, MotivoCheques } from '../../../financiero/cheque/cheque-anulacion.service';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -80,6 +83,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   constructor(
     private tabService: TabService,
     private liquidacionFinalService: LiquidacionFinalService,
+    private chequeAnulacion: ChequeAnulacionService,
     private cajaVirtualService: CajaVirtualService,
     private dialogosService: DialogosService,
     private reporteService: ReporteService,
@@ -265,11 +269,16 @@ export class LiquidacionFinalDialogComponent implements OnInit {
       'Anular liquidación final',
       '¿Anular este finiquito pagado? Se generará el contra-asiento en la caja.',
       null, null, true, 'Sí', 'No'
-    ).pipe(untilDestroyed(this)).subscribe(r => {
-      if (r === true) {
-        this.liquidacionFinalService.onAnular(this.liq.id)
-          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
-      }
+    ).pipe(
+      // Si se pagó con cheques, se anulan con su pago: su motivo de la lista se pide acá (#807). null = no se anula.
+      switchMap(r => r === true
+        ? this.chequeAnulacion.motivoParaChequesDe({ liquidacionFinalId: this.liq.id }, 'Se anulan con el pago de el finiquito.')
+        : of(null)),
+      untilDestroyed(this),
+    ).subscribe((motivoCheques: MotivoCheques | null) => {
+      if (!motivoCheques) return;
+      this.liquidacionFinalService.onAnular(this.liq.id, motivoCheques.anulacion)
+        .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
     });
   }
 

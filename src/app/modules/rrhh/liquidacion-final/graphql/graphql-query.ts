@@ -41,7 +41,9 @@ export const pagarLiquidacionFinalMutation = gql`
   mutation pagarLiquidacionFinal($id: ID!, $cajaVirtualId: ID!) { data: pagarLiquidacionFinal(id: $id, cajaVirtualId: $cajaVirtualId) { ${LF} } }
 `;
 export const anularLiquidacionFinalMutation = gql`
-  mutation anularLiquidacionFinal($id: ID!) { data: anularLiquidacionFinal(id: $id) { ${LF} } }
+  mutation anularLiquidacionFinal($id: ID!, $anulacionCheque: AnulacionChequeInput) {
+    data: anularLiquidacionFinal(id: $id, anulacionCheque: $anulacionCheque) { ${LF} }
+  }
 `;
 
 export const agregarItemLiquidacionFinalMutation = gql`

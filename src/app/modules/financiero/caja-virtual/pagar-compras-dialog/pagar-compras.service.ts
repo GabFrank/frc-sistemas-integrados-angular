@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { AnulacionChequeInput } from '../../cheque/cheque.model';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../../generics/generic-crud.service';
@@ -215,9 +216,12 @@ export class PagarComprasService {
     return this.mutar(this.pagarMixtoGQL, { pagos, claveIdempotencia: claveIdempotencia || null }, servidor);
   }
 
-  /** Anula un evento de pago completo (todas sus notas y movimientos consolidados). */
-  onAnularPago(pagoId: number, motivo?: string, servidor = true): Observable<any> {
-    return this.mutar(this.anularGQL, { pagoId, motivo: motivo || null }, servidor);
+  /**
+   * Anula un evento de pago completo (todas sus notas y movimientos consolidados). `anulacionCheque`: el motivo de
+   * la lista para sus cheques (#807), de {@link ChequeAnulacionService.motivoParaChequesDe}.
+   */
+  onAnularPago(pagoId: number, motivo?: string, anulacionCheque?: AnulacionChequeInput | null, servidor = true): Observable<any> {
+    return this.mutar(this.anularGQL, { pagoId, motivo: motivo || null, anulacionCheque: anulacionCheque || null }, servidor);
   }
 
   /** Devuelve a compras una solicitud que tesorería no va a pagar: vuelve a borrador, con motivo. */

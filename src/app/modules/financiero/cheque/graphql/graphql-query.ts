@@ -196,6 +196,9 @@ const chequeDashboardFields = `
   concepto
   estado
   motivoAnulacion
+  motivoAnulacionTipo
+  observacionAnulacion
+  fechaAnulacion
   moneda { id simbolo denominacion }
   cuentaBancaria { id numero banco { id nombre } }
   chequera { id nombre }
@@ -250,9 +253,25 @@ export const cobrarChequeMutation = gql`
 `;
 
 export const anularChequeMutation = gql`
-  mutation anularCheque($chequeId: ID!, $motivo: String) {
-    data: anularCheque(chequeId: $chequeId, motivo: $motivo) {
+  mutation anularCheque($chequeId: ID!, $motivo: String, $anulacionCheque: AnulacionChequeInput) {
+    data: anularCheque(chequeId: $chequeId, motivo: $motivo, anulacionCheque: $anulacionCheque) {
       ${chequeDashboardFields}
+    }
+  }
+`;
+
+/** Los cheques que anula la anulación de un pago, una liquidación o un finiquito (#807). */
+export const chequesAAnularQuery = gql`
+  query chequesAAnular($pagoId: ID, $liquidacionId: ID, $liquidacionFinalId: ID) {
+    data: chequesAAnular(pagoId: $pagoId, liquidacionId: $liquidacionId, liquidacionFinalId: $liquidacionFinalId) {
+      id
+      numero
+      total
+      diferido
+      estado
+      beneficiario
+      moneda { id simbolo }
+      cuentaBancaria { id numero banco { id nombre } }
     }
   }
 `;
