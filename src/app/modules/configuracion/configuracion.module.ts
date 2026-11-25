@@ -5,10 +5,8 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
-import { ConfigurarServidorDialogComponent } from './configurar-servidor-dialog/configurar-servidor-dialog.component';
 import { ListRolesComponent } from './roles/list-roles/list-roles.component';
 import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adicionar-role-dialog.component';
-import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
 import { SolicitarRecursosDialogComponent } from './solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
 import { ListReplicationComponent } from './logical-replication/list-replication/list-replication.component';
@@ -34,10 +32,8 @@ import { InteligenciaArtificialComponent } from './inteligencia-artificial/intel
     AdicionarImpresoraDialogComponent,
     CredencialesCupsDialogComponent,
     AgregarDesdeSucursalDialogComponent,
-    ConfigurarServidorDialogComponent, 
-    ListRolesComponent, 
-    AdicionarRoleDialogComponent, 
-    AdicionarGrupoRoleDialogComponent, 
+    ListRolesComponent,
+    AdicionarRoleDialogComponent,
     SolicitarRecursosDialogComponent,
     ListReplicationComponent,
     EditRemotePublicationDialogComponent,
