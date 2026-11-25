@@ -29,6 +29,41 @@ mat-dialog-content { padding-top: 10px; }
 
 .ni-form + .ni-form { margin-top: 14px; }
 
+.ni-espacio { flex: 1; }
+
+.ni-estado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 10px;
+  font-size: 13px;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &.aviso { color: #ff9800; }
+}
+
+.ni-cheque {
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--frc-borde-suave);
+  border-radius: 6px;
+  font-size: 13px;
+
+  &.anulado { opacity: 0.7; }
+
+  .ni-cheque-fila {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ni-cheque-fila + .ni-cheque-fila { margin-top: 4px; }
+  .monto { margin-left: auto; font-weight: 500; }
+  .estado { color: var(--frc-texto-tenue); }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
 .ni-vacio {
   padding: 16px;
   text-align: center;

@@ -920,7 +920,7 @@ export class PagarComprasDialogComponent implements OnInit {
     this.planChequeraSel = candidatas[0] || null;
   }
 
-  /** Genera una línea de pago CHEQUE por cada cheque del plan, usando la chequera elegida (números consecutivos). */
+  /** Genera una línea de pago CHEQUE por cada cheque del plan, usando la chequera elegida (próximos números libres). */
   generarChequesDelPlan() {
     if (!this.planChequeraSel || this.planCheques.length === 0) return;
     const ch = this.planChequeraSel;
@@ -941,6 +941,8 @@ export class PagarComprasDialogComponent implements OnInit {
         _numeroCheque: sig + i, _chequeraNombre: ch.nombre,
       });
     });
+    // Los Nº de arriba son la proyección; el central los reemplaza salteando los inutilizados (desk #720).
+    this.renumerarChequesProyectados(ch.id);
     this.planGenerado = true;
     this.recalcularPago();
     this.notificacion.openSucess(`${this.planCheques.length} cheque(s) generados del plan`);

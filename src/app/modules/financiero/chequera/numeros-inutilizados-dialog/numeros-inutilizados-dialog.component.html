@@ -7,25 +7,55 @@
     <div class="ni-form">
       <mat-form-field appearance="outline" class="ni-numero">
         <mat-label>Número</mat-label>
-        <input matInput type="number" [(ngModel)]="numero" />
+        <input matInput type="number" [(ngModel)]="numero" (ngModelChange)="onNumeroChange($event)" />
       </mat-form-field>
       <mat-form-field appearance="outline" class="ni-motivo uppercase">
         <mat-label>Motivo (obligatorio)</mat-label>
         <input matInput [(ngModel)]="motivo" maxlength="200" placeholder="Hoja dañada, perdida, mal llenada…" />
       </mat-form-field>
     </div>
+
+    <!-- Lo que ya tiene ese número: el cheque se muestra antes de preguntar qué hacer con él. -->
+    <div class="ni-estado tenue" *ngIf="busqueda === 'BUSCANDO'">Buscando si el número tiene un cheque…</div>
+    <div class="ni-estado" *ngIf="busqueda === 'SIN_CHEQUE'">
+      <mat-icon>check_circle</mat-icon> El número no tiene cheque: se inutiliza directo.
+    </div>
+    <div class="ni-estado aviso" *ngIf="busqueda === 'NO_LEIDO'">
+      <mat-icon>warning</mat-icon> No se pudo leer si el número tiene un cheque. Elegí la opción; el sistema la vuelve a controlar.
+    </div>
+    <div class="ni-cheque" *ngIf="busqueda === 'CON_CHEQUE' && cheque" [class.anulado]="!chequeActivo">
+      <div class="ni-cheque-fila">
+        <mat-icon>receipt_long</mat-icon>
+        <strong>Cheque Nº {{ cheque.numero }}</strong>
+        <span>{{ cheque.beneficiario || 'Sin beneficiario' }}</span>
+        <span class="monto">{{ chequeMonto }}</span>
+        <span class="estado">{{ chequeEstado }}</span>
+      </div>
+      <div class="ni-cheque-fila tenue" *ngIf="!chequeActivo">Ya está anulado: el número se inutiliza directo.</div>
+      <div class="ni-cheque-fila" *ngIf="chequeActivo && chequePagoId">
+        <span>Es del pago #{{ chequePagoId }}: no se anula acá. Revertí el pago, o pasá el cheque a otro número.</span>
+        <button mat-button color="primary" type="button" (click)="verPago()"><mat-icon>open_in_new</mat-icon> Ver pago</button>
+      </div>
+    </div>
+
     <div class="ni-form">
-      <mat-form-field appearance="outline" class="ni-accion">
-        <mat-label>Si el número ya tiene un cheque</mat-label>
+      <mat-form-field appearance="outline" class="ni-accion" *ngIf="busqueda === 'NO_LEIDO' || (busqueda === 'CON_CHEQUE' && chequeActivo)">
+        <mat-label>¿Qué hacer con el cheque?</mat-label>
         <mat-select [(ngModel)]="accion">
           <mat-option *ngFor="let a of acciones" [value]="a.value">{{ a.label }}</mat-option>
         </mat-select>
       </mat-form-field>
-      <mat-form-field appearance="outline" class="ni-numero" *ngIf="accion === 'RENUMERADO'">
-        <mat-label>Número nuevo</mat-label>
-        <input matInput type="number" [(ngModel)]="numeroNuevo" />
-      </mat-form-field>
-      <button mat-raised-button color="warn" (click)="inutilizar()" [disabled]="guardando">
+      <ng-container *ngIf="accion === 'RENUMERADO'">
+        <mat-form-field appearance="outline" class="ni-numero">
+          <mat-label>Número nuevo</mat-label>
+          <input matInput type="number" [(ngModel)]="numeroNuevo" />
+        </mat-form-field>
+        <button mat-stroked-button type="button" (click)="usarProximoLibre()" [disabled]="proximoNumero == null">
+          Próximo libre{{ proximoNumero != null ? ' (' + proximoNumero + ')' : '' }}
+        </button>
+      </ng-container>
+      <span class="ni-espacio"></span>
+      <button mat-raised-button color="warn" (click)="inutilizar()" [disabled]="guardando || busqueda === 'BUSCANDO'">
         <mat-icon>block</mat-icon> Inutilizar
       </button>
     </div>
