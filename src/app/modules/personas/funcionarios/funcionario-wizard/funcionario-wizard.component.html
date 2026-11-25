@@ -1,18 +1,18 @@
-<div fxLayout="column" style="width: 100%; height: 100%">
-  <div style="width: 100%; text-align: center">
+<div fxLayout="column" class="ancho-100 alto-100">
+  <div class="ancho-100 texto-centro">
     <h3>Registrar funcionario</h3>
   </div>
   <mat-tab-group style="height: 90%">
     <mat-tab label="Datos generales">
       <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Nombre Completo</mat-label>
             <input matInput type="text" [formControl]="nombrePersona" />
           </mat-form-field>
         </div>
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Cédula de identidad</mat-label>
             <input matInput type="text" [formControl]="documentoPersona" />
           </mat-form-field>
@@ -20,7 +20,7 @@
       </div>
       <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
         <div fxFlex="50">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Apodo</mat-label>
             <input matInput type="text" [formControl]="apodoPersona" />
           </mat-form-field>
@@ -43,13 +43,13 @@
       </div>
       <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Teléfono</mat-label>
             <input matInput type="text" [formControl]="telefonoPersona" />
           </mat-form-field>
         </div>
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Dirección</mat-label>
             <input matInput type="text" [formControl]="direccionPersona" />
           </mat-form-field>
@@ -57,13 +57,13 @@
       </div>
       <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Email</mat-label>
             <input matInput type="text" [formControl]="emailPersona" />
           </mat-form-field>
         </div>
         <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Nombre usuario</mat-label>
             <input matInput type="text" [formControl]="nicknameUsuario" />
           </mat-form-field>
@@ -80,7 +80,7 @@
       </div>
       <div fxLayout="row">
         <div fxFlex="50%">
-          <mat-form-field style="width: 90%">
+          <mat-form-field class="ancho-90">
             <mat-label>Sucursal</mat-label>
             <mat-select
               [formControl]="sucursalFuncionario"
@@ -113,7 +113,7 @@
       </div>
       <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
         <div fxFlex="33%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Sueldo final</mat-label>
             <input
               matInput
@@ -125,7 +125,7 @@
           </mat-form-field>
         </div>
         <div fxFlex="33%">
-          <mat-form-field style="width: 100%">
+          <mat-form-field class="ancho-100">
             <mat-label>Crédito</mat-label>
             <input
               matInput

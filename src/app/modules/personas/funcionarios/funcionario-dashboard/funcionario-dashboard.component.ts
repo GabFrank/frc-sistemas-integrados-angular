@@ -8,8 +8,7 @@ import { ListPreRegistroFuncionarioComponent } from '../list-pre-registro-funcio
 
 @Component({
   selector: 'app-funcionario-dashboard',
-  templateUrl: './funcionario-dashboard.component.html',
-  styleUrls: ['./funcionario-dashboard.component.scss']
+  templateUrl: './funcionario-dashboard.component.html'
 })
 export class FuncionarioDashboardComponent implements OnInit {
 
