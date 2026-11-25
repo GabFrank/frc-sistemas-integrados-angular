@@ -51,6 +51,20 @@ export class ImpresionService {
   }
 
   /**
+   * Ticket directo a la térmica, sin el diálogo de formato: comprobantes que se presillan a un documento (cheque
+   * anulado, #807). El ancho es el de la impresora de ticket (80 si es de 72/80 mm; si no, 58). Solo en la app de
+   * escritorio: en el navegador no hay impresión local y se avisa.
+   */
+  imprimirTicketDirecto(nombre: string, generar: (anchoMm: number) => Observable<any>): void {
+    if (!this.electronService.isElectron) {
+      this.notificacion.notification$.next({
+        texto: nombre + ': el ticket se imprime desde la app de escritorio.', color: NotificacionColor.warn, duracion: 6 });
+      return;
+    }
+    this.imprimirTicket(nombre, null, (anchoMm) => generar(anchoMm));
+  }
+
+  /**
    * PDF → visor integrado. `anchoMm` null = A4; 58/80 = ticket angosto (#231).
    * `aviso`, si viene, se muestra una vez abierto el visor.
    */
@@ -79,7 +93,7 @@ export class ImpresionService {
    * - En el navegador no hay printLocal (#231) → PDF angosto en el visor; se imprime con su
    *   botón, eligiendo la térmica en el diálogo del sistema.
    */
-  private imprimirTicket(nombre: string, anchoMm: number, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
+  private imprimirTicket(nombre: string, anchoMm: number | null, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>): void {
     if (!this.electronService.isElectron) {
       this.mostrarPdf(nombre, generar, anchoMm,
         `Ticket ${anchoMm}mm listo: usá «Imprimir ticket» y elegí la térmica`);
@@ -99,7 +113,7 @@ export class ImpresionService {
         this.notificacion.notification$.next({ texto: 'No hay impresora de ticket configurada (Configuración → Impresoras)', color: NotificacionColor.warn, duracion: 5 });
         return;
       }
-      generar(anchoMm, true).pipe(take(1)).subscribe({ next: (payloadBase64: string) => {
+      generar(anchoMm ?? this.anchoDe(imp), true).pipe(take(1)).subscribe({ next: (payloadBase64: string) => {
         if (!payloadBase64) {
           avisarTicketNoGenerado();
           return;
@@ -116,6 +130,11 @@ export class ImpresionService {
       }, error: avisarTicketNoGenerado });
     }, error: () => this.notificacion.notification$.next(
       { texto: 'No se pudieron leer las impresoras: el ticket no se imprimió', color: NotificacionColor.warn, duracion: 5 }) });
+  }
+
+  /** 80 mm si la impresora es de 72/80 mm; si no, 58. */
+  private anchoDe(imp: Impresora): number {
+    return (imp.anchoMm || 0) >= 72 || imp.perfilPapel === 'MM_80' || imp.perfilPapel === 'MM_72' ? 80 : 58;
   }
 
   /** Impresora de ticket: uso TICKET (y tipo térmica), preferir la predeterminada. */

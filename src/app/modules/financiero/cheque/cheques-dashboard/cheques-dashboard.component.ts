@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
@@ -26,6 +27,8 @@ import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 interface ChequeRow extends Cheque {
   _cobrable?: boolean;
   _anulable?: boolean;
+  /** Anulado: se puede reimprimir su comprobante (#807). */
+  _comprobanteAnulacion?: boolean;
   _monedaSimbolo?: string;
   _cuentaLabel?: string;
   _chequeraNombre?: string;
@@ -325,6 +328,7 @@ export class ChequesDashboardComponent implements OnInit {
     // Un cheque de un pago se anula anulando el pago (el central también lo rechaza).
     row._motivoNoAnulable = c.pagoId ? `Es del pago #${c.pagoId}: anulá el pago desde la caja mayor.` : null;
     row._anulable = libre && this.puedeGestionar && pendiente && !c.pagoId;
+    row._comprobanteAnulacion = c.estado === EstadoCheque.ANULADO && !!c.id;
     row._beneficiario = c.beneficiario || c.proveedor?.persona?.nombre || '';
     row._origenLabel = c.pagoId ? `Pago #${c.pagoId}` : 'Manual';
     row._usuario = c.usuario?.persona?.nombre || '';
@@ -456,8 +460,14 @@ export class ChequesDashboardComponent implements OnInit {
     this.chequeAnulacion.pedirMotivo([fila], 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.')
       .pipe(untilDestroyed(this)).subscribe(anulacion => {
         if (!anulacion) return;
-        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, null, anulacion), 'Cheque anulado');
+        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, null, anulacion).pipe(
+          tap(r => { if (r) this.chequeAnulacion.imprimirComprobantes([r]); })), 'Cheque anulado');
       });
+  }
+
+  /** Reimprime el comprobante térmico de un cheque anulado (#807). */
+  onImprimirComprobante(cheque: ChequeRow) {
+    if (cheque?.id) this.chequeAnulacion.imprimirComprobantes([cheque]);
   }
 
   /** Detalle del cheque; si salió de un pago, el desglose del pago. */

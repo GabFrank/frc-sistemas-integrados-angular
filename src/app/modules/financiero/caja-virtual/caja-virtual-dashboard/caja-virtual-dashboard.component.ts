@@ -1056,6 +1056,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: r => {
           if (r != null) {
             this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
+            this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
           } else {
             // Ni error ni resultado: nadie avisó y no se sabe si se anuló.
             this.notificacion.openWarn(SIN_CONFIRMAR_ANULACION, 6);

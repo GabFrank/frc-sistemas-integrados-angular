@@ -78,6 +78,7 @@ export class MovimientoBancarioAnulacionService {
       tap(anulado => {
         if (anulado) {
           this.avisar(esPago ? 'Pago anulado' : 'Operación financiera anulada', NotificacionColor.success, 3);
+          this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
         } else {
           // Ni error ni resultado: no se sabe si se anuló.
           this.avisar(SIN_CONFIRMAR, NotificacionColor.warn, 6);

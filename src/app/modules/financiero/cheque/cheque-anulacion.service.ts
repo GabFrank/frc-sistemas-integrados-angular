@@ -7,6 +7,8 @@ import { limpiarMensajeGraphQL } from '../../../commons/core/utils/graphqlErrorU
 import { AnularChequeDialogComponent, AnularChequeDialogData } from './anular-cheque-dialog/anular-cheque-dialog.component';
 import { AnulacionChequeInput, Cheque } from './cheque.model';
 import { GetChequesAAnularGQL } from './graphql/getChequesAAnular';
+import { ImprimirChequeAnuladoGQL } from './graphql/imprimirChequeAnulado';
+import { ImpresionService } from '../../../shared/components/imprimir/impresion.service';
 
 const AL_CENTRAL = { clientName: 'servidor' };
 
@@ -34,7 +36,25 @@ export class ChequeAnulacionService {
     private dialog: MatDialog,
     private chequesAAnularGQL: GetChequesAAnularGQL,
     private notificacion: NotificacionSnackbarService,
+    private impresion: ImpresionService,
+    private imprimirChequeAnuladoGQL: ImprimirChequeAnuladoGQL,
   ) { }
+
+  /**
+   * Un comprobante térmico «CHEQUE ANULADO» por cheque, para presillarlo (#807). Se llama después de anular: si
+   * falla, el cheque ya quedó anulado y se reimprime desde Cheques.
+   */
+  imprimirComprobantes(cheques: Cheque[]): void {
+    for (const c of cheques || []) {
+      if (!c?.id) continue;
+      this.impresion.imprimirTicketDirecto('Cheque anulado Nº ' + (c.numero ?? c.id),
+        anchoMm => this.imprimirChequeAnuladoGQL.fetch({ chequeId: c.id, anchoMm },
+          { fetchPolicy: 'no-cache', errorPolicy: 'all', context: AL_CENTRAL }).pipe(map(res => {
+            if (res?.errors?.length) throw new Error(limpiarMensajeGraphQL(res.errors[0].message));
+            return res?.data?.data;
+          })));
+    }
+  }
 
   /** Pide el motivo para estos cheques. null = el usuario volvió atrás. */
   pedirMotivo(cheques: Cheque[], detalle?: string): Observable<AnulacionChequeInput | null> {

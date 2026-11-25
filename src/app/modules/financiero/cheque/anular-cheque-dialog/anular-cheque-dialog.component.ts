@@ -46,7 +46,8 @@ export class AnularChequeDialogComponent {
     this.filas = cheques.map(c => ({
       numero: c.numero != null ? String(c.numero) : '—',
       beneficiario: c.beneficiario || c.proveedor?.persona?.nombre || '—',
-      monto: (c.moneda?.simbolo || '') + ' ' + (c.total || 0).toLocaleString('es-PY'),
+      // Sin la lectura del cheque (inutilizar con NO_LEIDO) solo se sabe el número.
+      monto: c.total != null ? (c.moneda?.simbolo || '') + ' ' + c.total.toLocaleString('es-PY') : '—',
     }));
     // Con OTRO la observación es obligatoria: la exige también el central.
     this.form.controls.motivo.valueChanges.pipe(untilDestroyed(this)).subscribe(m => {

@@ -260,6 +260,13 @@ export const anularChequeMutation = gql`
   }
 `;
 
+/** Comprobante térmico (base64 ESC/POS) de un cheque anulado (#807). */
+export const imprimirChequeAnuladoQuery = gql`
+  query imprimirChequeAnulado($chequeId: ID!, $anchoMm: Int) {
+    data: imprimirChequeAnulado(chequeId: $chequeId, anchoMm: $anchoMm)
+  }
+`;
+
 /** Los cheques que anula la anulación de un pago, una liquidación o un finiquito (#807). */
 export const chequesAAnularQuery = gql`
   query chequesAAnular($pagoId: ID, $liquidacionId: ID, $liquidacionFinalId: ID) {

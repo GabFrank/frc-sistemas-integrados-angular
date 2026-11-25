@@ -278,7 +278,10 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     ).subscribe((motivoCheques: MotivoCheques | null) => {
       if (!motivoCheques) return;
       this.liquidacionFinalService.onAnular(this.liq.id, motivoCheques.anulacion)
-        .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
+        .pipe(untilDestroyed(this)).subscribe({ next: res => {
+          this.aplicar(res);
+          if (res) this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
+        }, error: () => {} });
     });
   }
 
