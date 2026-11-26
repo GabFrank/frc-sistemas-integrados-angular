@@ -179,6 +179,16 @@ central valida lo mismo.
 Reportes agregados (**solo PDF**, sin ticket): nómina del mes, resumen IPS, vales
 pendientes, préstamos activos, aguinaldo del año.
 
+## Ticket directo, sin diálogo (comprobante de cheque anulado)
+
+Para un comprobante que se **presilla** a un documento físico, el formato no se elige: va directo a la térmica con
+`impresionService.imprimirTicketDirecto(nombre, anchoMm => servicio.onGenerar(id, anchoMm))`. Usa la impresora de
+ticket elegida por `elegirImpresoraTicket` y su ancho (80 si es de 72/80 mm; si no, 58). Fuera de Electron no hay
+impresión local y avisa que el ticket sale desde la app de escritorio (no cae al PDF: el backend solo arma ESC/POS).
+
+Hoy lo usa el comprobante «CHEQUE ANULADO» (#807, `ChequeAnulacionService.imprimirComprobantes`): sale al anular por
+cualquiera de las cinco puertas y se reimprime desde Cheques (⋮ «Imprimir comprobante de anulación»).
+
 ## Al agregar una impresión nueva
 
 1. Backend: agregar `anchoMm: Int` **y `escpos: Boolean`** a la query; rutear a
