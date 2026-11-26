@@ -256,6 +256,9 @@
                   <button mat-menu-item *ngIf="row._anulable" (click)="onAnular(row)">
                     <mat-icon>block</mat-icon><span>Anular</span>
                   </button>
+                  <button mat-menu-item *ngIf="row._anularPago" (click)="onAnularPago(row)">
+                    <mat-icon>block</mat-icon><span>Anular el pago #{{ row.pagoId }}</span>
+                  </button>
                   <div *ngIf="row._motivoNoAnulable && puedeGestionar" [matTooltip]="row._motivoNoAnulable" matTooltipPosition="left">
                     <button mat-menu-item disabled><mat-icon>block</mat-icon><span>Anular</span></button>
                   </div>

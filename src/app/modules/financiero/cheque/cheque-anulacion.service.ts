@@ -9,6 +9,7 @@ import { AnulacionChequeInput, Cheque } from './cheque.model';
 import { GetChequesAAnularGQL } from './graphql/getChequesAAnular';
 import { ImprimirChequeAnuladoGQL } from './graphql/imprimirChequeAnulado';
 import { ImpresionService } from '../../../shared/components/imprimir/impresion.service';
+import { PagarComprasService } from '../caja-virtual/pagar-compras-dialog/pagar-compras.service';
 
 const AL_CENTRAL = { clientName: 'servidor' };
 
@@ -38,7 +39,18 @@ export class ChequeAnulacionService {
     private notificacion: NotificacionSnackbarService,
     private impresion: ImpresionService,
     private imprimirChequeAnuladoGQL: ImprimirChequeAnuladoGQL,
+    private pagarCompras: PagarComprasService,
   ) { }
+
+  /** Qué documentos pagó un pago (`detalleDePago`): para avisar qué se reabre al anularlo. */
+  detallePago(pagoId: number): Observable<any[]> {
+    return this.pagarCompras.onGetDetalleDePago(pagoId);
+  }
+
+  /** Anula el pago completo con el motivo de la lista para sus cheques (#807), igual que desde la caja o el banco. */
+  anularPago(pagoId: number, motivo: string, anulacionCheque: AnulacionChequeInput | null): Observable<any> {
+    return this.pagarCompras.onAnularPago(pagoId, motivo, anulacionCheque);
+  }
 
   /**
    * Un comprobante térmico «CHEQUE ANULADO» por cheque, para presillarlo (#807). Se llama después de anular: si

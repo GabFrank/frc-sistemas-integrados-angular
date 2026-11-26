@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { tap } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { catchError, map, switchMap, take, tap } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -20,13 +21,15 @@ import { DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '.
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { ChequeService } from '../cheque.service';
 import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque, MOTIVOS_ANULACION_CHEQUE } from '../cheque.model';
-import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 // Fila de la tabla con campos de display precalculados (sin funciones en el template).
 interface ChequeRow extends Cheque {
   _cobrable?: boolean;
   _anulable?: boolean;
+  /** Cheque de un pago: se puede anular el pago completo desde acá (#809). */
+  _anularPago?: boolean;
   /** Anulado: se puede reimprimir su comprobante (#807). */
   _comprobanteAnulacion?: boolean;
   _monedaSimbolo?: string;
@@ -124,6 +127,10 @@ export class ChequesDashboardComponent implements OnInit {
   kpiCantidad = 0;
 
   puedeGestionar = false;
+  /** Anular pagos: el mismo permiso que en la caja y el banco (#809). */
+  puedeAnularPago = false;
+  /** Pagos con una anulación en curso: ninguna fila del pago ofrece acciones hasta que termine. */
+  private pagosEnCurso = new Set<number>();
 
   estadoLabels: Record<string, string> = {
     DIFERIDO: 'Diferido', EMITIDO: 'Al día, sin cobrar', COBRADO: 'Cobrado', ANULADO: 'Anulado', INUTILIZADO: 'Inutilizado',
@@ -142,6 +149,7 @@ export class ChequesDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.puedeAnularPago = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CPP_PAGAR]);
     // Default: hoy por fecha de emisión, todos los estados («Emitidos hoy», desk #708).
     const hoy = new Date();
     this.desdeControl.setValue(hoy);
@@ -322,12 +330,15 @@ export class ChequesDashboardComponent implements OnInit {
     // Apollo congela los resultados (dev): clonar antes de agregar props de display,
     // si no, asignar sobre el objeto congelado lanza TypeError en modo estricto.
     const row = { ...c } as ChequeRow;
-    const libre = !this.chequesEnCurso.has(c.id);
+    const libre = !this.chequesEnCurso.has(c.id) && !(c.pagoId && this.pagosEnCurso.has(c.pagoId));
     const pendiente = c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO;
     row._cobrable = libre && this.puedeGestionar && pendiente;
     // Un cheque de un pago se anula anulando el pago (el central también lo rechaza).
-    row._motivoNoAnulable = c.pagoId ? `Es del pago #${c.pagoId}: anulá el pago desde la caja mayor.` : null;
     row._anulable = libre && this.puedeGestionar && pendiente && !c.pagoId;
+    // Un cheque de un pago se anula anulando el pago (#601), ahora también desde acá (#809).
+    row._anularPago = libre && this.puedeAnularPago && !!c.pagoId && c.estado !== EstadoCheque.ANULADO;
+    row._motivoNoAnulable = c.pagoId && !row._anularPago && libre && c.estado !== EstadoCheque.ANULADO
+      ? `Es del pago #${c.pagoId}: lo anula tesorería.` : null;
     row._comprobanteAnulacion = c.estado === EstadoCheque.ANULADO && !!c.id;
     row._beneficiario = c.beneficiario || c.proveedor?.persona?.nombre || '';
     row._origenLabel = c.pagoId ? `Pago #${c.pagoId}` : 'Manual';
@@ -512,6 +523,88 @@ export class ChequesDashboardComponent implements OnInit {
     const encabezado = ['Nº', 'Chequera', 'Cuenta', 'Beneficiario', 'Concepto', 'Origen', 'Emisión', 'Pago', 'Cobro',
       'Estado', 'Usuario', 'Moneda', 'Monto'];
     this.crearExcel.onCreateAndExport(encabezado, filas, 'Cheques ' + dateToString(new Date(), 'dd-MM-yyyy'));
+  }
+
+  /**
+   * Anula el pago completo del cheque (#809): para un pago hecho solo con cheques diferidos es la única puerta, porque no
+   * tiene fila de caja ni de banco. Mismo flujo que la fila de banco: motivo del pago, motivo de la lista de sus cheques,
+   * anulación y comprobantes. Todo el pago queda bloqueado desde el primer clic: sus otras filas no abren otra anulación.
+   */
+  onAnularPago(cheque: ChequeRow) {
+    const pagoId = cheque?.pagoId;
+    if (!pagoId || this.pagosEnCurso.has(pagoId)) return;
+    this.pagosEnCurso.add(pagoId);
+    this.refrescarFilas();
+    const soltarSinAnular = () => { this.pagosEnCurso.delete(pagoId); this.refrescarFilas(); };
+    this.chequeAnulacion.detallePago(pagoId).pipe(
+      take(1),
+      catchError(() => of(null)),
+      switchMap(detalle => {
+        const data: MotivoDialogData = {
+          titulo: 'Anular el pago #' + pagoId,
+          mensaje: '¿Por qué se anula este pago?',
+          detalle: this.avisoAnularPago(detalle),
+          botonConfirmar: 'Sí, anular',
+        };
+        return this.dialog.open(MotivoDialogComponent, { data, width: '560px', maxWidth: '95vw' }).afterClosed();
+      }),
+      switchMap((motivo: string | null) => !motivo ? of(null)
+        : this.chequeAnulacion.motivoParaChequesDe({ pagoId }, 'Se anulan con el pago #' + pagoId + '.')
+          .pipe(map(cheques => cheques ? { motivo, cheques } : null))),
+      take(1),
+      untilDestroyed(this),
+    ).subscribe({
+      next: r => r ? this.ejecutarAnulacionPago(pagoId, r.motivo, r.cheques) : soltarSinAnular(),
+      error: () => soltarSinAnular(),
+    });
+  }
+
+  /** Qué se reabre al anular el pago, según `detalleDePago`. Sin el detalle, el aviso genérico. */
+  private avisoAnularPago(detalle: any[] | null): string {
+    const base = 'Se anula el pago completo: todos sus movimientos de caja y de banco, y sus cheques.';
+    if (!detalle?.length) return base + ' Los documentos que pagó vuelven a quedar pendientes de pago.';
+    const docs = detalle.map(d => d.descripcion || ('Solicitud #' + d.solicitudPagoId));
+    let aviso = base + ' Vuelven a quedar pendientes de pago: ' + docs.join('; ') + '.';
+    if (detalle.some(d => d.tipo === 'RRHH')) {
+      aviso += ' Una liquidación o un finiquito vuelve a quedar aprobado, sin pagar (el funcionario sigue de baja):'
+        + ' para anularlo, hacerlo desde RRHH.';
+    }
+    return aviso;
+  }
+
+  private ejecutarAnulacionPago(pagoId: number, motivo: string, motivoCheques: { anulacion: any; cheques: Cheque[] }) {
+    const terminar = () => { this.pagosEnCurso.delete(pagoId); this.recargar(); };
+    this.chequeAnulacion.anularPago(pagoId, motivo, motivoCheques.anulacion).pipe(untilDestroyed(this)).subscribe({
+      next: r => {
+        if (r != null) {
+          this.notificacion.notification$.next({ texto: 'Pago #' + pagoId + ' anulado', color: NotificacionColor.success, duracion: 3 });
+          // Los cheques que se anularon son los que se leyeron antes: el resultado es el Pago, no los cheques.
+          this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
+        } else {
+          this.avisarSinConfirmar();
+        }
+        terminar();
+      },
+      error: err => {
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          this.notificacion.notification$.next({
+            texto: rechazo[0]?.message || err?.message || 'No se pudo anular el pago', color: NotificacionColor.warn, duracion: 5 });
+          terminar();
+          return;
+        }
+        // Sin respuesta: el central puede seguir aplicándola. Releer al instante mostraría el pago vivo y se podría
+        // reintentar a mitad de la transacción; se espera como el resto de la app, con el pago bloqueado.
+        if (!esTimeoutDeLink(err)) this.avisarSinConfirmar();
+        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(terminar);
+      },
+    });
+  }
+
+  /** Recalcula las acciones de las filas (bloqueo de un pago en curso) sin volver a leer; la tabla sale de chequesFull. */
+  private refrescarFilas() {
+    this.chequesFull = (this.chequesFull || []).map(r => r._inutilizado ? r : this.toRow(r));
+    this.aplicarFocoALista();
   }
 
   /**
