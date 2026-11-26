@@ -11,6 +11,7 @@ import { ElectronService } from '../../../commons/core/electron/electron.service
 import { ImpresoraService } from '../../../modules/configuracion/impresoras/impresora.service';
 import { Impresora } from '../../../modules/configuracion/impresoras/impresora.model';
 import { ImprimirDialogComponent, ImprimirDialogResult } from './imprimir-dialog.component';
+import { ConfiguracionService } from '../../services/configuracion.service';
 
 /**
  * Servicio OFICIAL de impresión. Abre el diálogo de formato (PDF / Ticket):
@@ -28,7 +29,8 @@ export class ImpresionService {
     private reporteService: ReporteService,
     private notificacion: NotificacionSnackbarService,
     private electronService: ElectronService,
-    private impresoraService: ImpresoraService
+    private impresoraService: ImpresoraService,
+    private configuracionService: ConfiguracionService,
   ) {}
 
   /**
@@ -99,9 +101,15 @@ export class ImpresionService {
         `Ticket ${anchoMm}mm listo: usá «Imprimir ticket» y elegí la térmica`);
       return;
     }
-    // Buscar la impresora de ticket configurada.
-    const avisarTicketNoGenerado = () => this.notificacion.notification$.next(
-      { texto: 'No se pudo generar el ticket: ' + nombre + ' no se imprimió', color: NotificacionColor.warn, duracion: 5 });
+    // La impresora de esta PC (Configuración → Impresora local) manda: las del registro del central son de todas las
+    // sucursales y su cola puede no existir acá (`lp`: «The printer or class does not exist»).
+    const local = this.configuracionService.getConfig()?.impresoraLocal;
+    if (local?.cola) {
+      this.enviarTicket(nombre, anchoMm ?? this.anchoDePerfil(local.perfil), generar,
+        { nombre: local.nombre || local.cola, conexion: local.conexion, cola: local.cola });
+      return;
+    }
+    // Sin impresora local: la de ticket del registro, como antes.
     this.impresoraService.todas().pipe(take(1)).subscribe({ next: (impresoras: Impresora[]) => {
       if (impresoras == null) {
         // No es «no hay impresora configurada»: no se pudo leer la lista (#390).
@@ -110,26 +118,40 @@ export class ImpresionService {
       }
       const imp = this.elegirImpresoraTicket(impresoras);
       if (!imp) {
-        this.notificacion.notification$.next({ texto: 'No hay impresora de ticket configurada (Configuración → Impresoras)', color: NotificacionColor.warn, duracion: 5 });
+        this.notificacion.notification$.next({ texto: 'No hay impresora de ticket configurada en esta PC (Configuración → Impresora local)', color: NotificacionColor.warn, duracion: 5 });
         return;
       }
-      generar(anchoMm ?? this.anchoDe(imp), true).pipe(take(1)).subscribe({ next: (payloadBase64: string) => {
-        if (!payloadBase64) {
-          avisarTicketNoGenerado();
-          return;
-        }
-        this.electronService.printLocal({
-          conexion: imp.conexion, cola: imp.colaCups, ip: imp.ip, puerto: imp.puerto, payloadBase64,
-        }).pipe(take(1)).subscribe({
-          next: (r) => this.notificacion.notification$.next(
-            r?.success
-              ? { texto: nombre + ' enviado a ' + imp.nombre, color: NotificacionColor.success, duracion: 3 }
-              : { texto: 'No se pudo imprimir: ' + (r?.error || 'error'), color: NotificacionColor.warn, duracion: 5 }),
-          error: () => this.notificacion.notification$.next({ texto: 'Error al imprimir el ticket', color: NotificacionColor.warn, duracion: 4 }),
-        });
-      }, error: avisarTicketNoGenerado });
+      this.enviarTicket(nombre, anchoMm ?? this.anchoDe(imp), generar,
+        { nombre: imp.nombre, conexion: imp.conexion, cola: imp.colaCups, ip: imp.ip, puerto: imp.puerto });
     }, error: () => this.notificacion.notification$.next(
       { texto: 'No se pudieron leer las impresoras: el ticket no se imprimió', color: NotificacionColor.warn, duracion: 5 }) });
+  }
+
+  /** Genera el ESC/POS con `anchoMm` y lo manda a `destino` por `printLocal`. */
+  private enviarTicket(nombre: string, anchoMm: number, generar: (anchoMm: number | null, escpos: boolean) => Observable<any>,
+                       destino: { nombre: string; conexion: string; cola?: string; ip?: string; puerto?: number }): void {
+    const avisarTicketNoGenerado = () => this.notificacion.notification$.next(
+      { texto: 'No se pudo generar el ticket: ' + nombre + ' no se imprimió', color: NotificacionColor.warn, duracion: 5 });
+    generar(anchoMm, true).pipe(take(1)).subscribe({ next: (payloadBase64: string) => {
+      if (!payloadBase64) {
+        avisarTicketNoGenerado();
+        return;
+      }
+      this.electronService.printLocal({
+        conexion: destino.conexion, cola: destino.cola, ip: destino.ip, puerto: destino.puerto, payloadBase64,
+      }).pipe(take(1)).subscribe({
+        next: (r) => this.notificacion.notification$.next(
+          r?.success
+            ? { texto: nombre + ' enviado a ' + destino.nombre, color: NotificacionColor.success, duracion: 3 }
+            : { texto: 'No se pudo imprimir en ' + destino.nombre + ': ' + (r?.error || 'error'), color: NotificacionColor.warn, duracion: 5 }),
+        error: () => this.notificacion.notification$.next({ texto: 'Error al imprimir el ticket', color: NotificacionColor.warn, duracion: 4 }),
+      });
+    }, error: avisarTicketNoGenerado });
+  }
+
+  /** Ancho de la impresora local según su perfil: 80 para 72/80 mm, 58 para el resto. */
+  private anchoDePerfil(perfil: string | null | undefined): number {
+    return perfil === 'MM_80' || perfil === 'MM_72' ? 80 : 58;
   }
 
   /** 80 mm si la impresora es de 72/80 mm; si no, 58. */
