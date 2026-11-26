@@ -99,6 +99,8 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   // Tarjeta semitransparente sobre fondo con degradé y zona hundida (marcación de horario)
   --frc-tarjeta-translucida: rgba(40, 40, 40, 0.9);
   --frc-hundido: rgba(0, 0, 0, 0.2);
+  // Texto de la franja naranja de aviso («no se pudo cargar…», «puede estar desactualizado»).
+  --frc-aviso-texto: #fdba74;
   // Íconos de acciones (AccionColorDirective): rojo destructivo, verde confirma, azul edita, amarillo revierte,
   // celeste consulta, violeta documento, naranja envía/transfiere, turquesa dinero.
   --frc-accion-peligro: #ef5350;
@@ -169,6 +171,7 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
   --frc-dash-texto-2: rgba(0, 0, 0, 0.55);
   --frc-tarjeta-translucida: rgba(255, 255, 255, 0.92);
   --frc-hundido: rgba(0, 0, 0, 0.03);
+  --frc-aviso-texto: #c2410c; // el naranja pálido no se lee sobre fondo claro
   // Mismos colores de acción, un tono más oscuro para que se lean sobre blanco.
   --frc-accion-peligro: #d32f2f;
   --frc-accion-positivo: #2e7d32;

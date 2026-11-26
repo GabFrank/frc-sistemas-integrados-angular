@@ -47,6 +47,7 @@ Están todos en `src/styles.scss`, bajo el comentario «Tokens de color de la ap
 | `--frc-relleno-suave` / `-tenue` / `-fuerte` | pastillas, fondos sutiles, deshabilitado | | |
 | `--frc-sombra` / `-sombra-suave` | `box-shadow` | | |
 | `--frc-tinta` | canal RGB para transparencias (ver abajo) | `255, 255, 255` | `0, 0, 0` |
+| `--frc-aviso-texto` | texto de la franja naranja de aviso | `#fdba74` | `#c2410c` |
 
 Hay grupos propios para el menú lateral (`--frc-menu-*`), el encabezado de tablas
 (`--frc-encabezado-tabla*`), el paginador, el scroll y los dashboards (`--frc-dash-*`).

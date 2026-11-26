@@ -1,18 +1,18 @@
 .dialog-container {
-  background: #1e1e24; // Fondo sólido oscuro profundo
-  color: #e2e2e7;
+  background: var(--frc-franja);
+  color: var(--frc-dash-texto);
   width: 100%;
   max-width: none;
   overflow: hidden;
   border-radius: 16px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
   font-family: 'Inter', 'Roboto', sans-serif;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--frc-tinta), 0.08);
 
   .header {
     padding: 24px 32px;
-    background: linear-gradient(to right, #25252d, #1e1e24);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to right, var(--frc-superficie-baja), var(--frc-franja));
+    border-bottom: 1px solid rgba(var(--frc-tinta), 0.05);
     
     .icon-circle {
       width: 48px;
@@ -35,18 +35,18 @@
       margin: 0;
       font-size: 1.25rem;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--frc-texto-fuerte);
       letter-spacing: 0.5px;
     }
 
     .subtitle {
       font-size: 0.85rem;
-      color: #a1a1aa;
+      color: var(--frc-texto-suave);
       margin-top: 2px;
     }
 
     .close-btn {
-      color: #71717a;
+      color: var(--frc-texto-tenue);
       transition: all 0.2s;
       &:hover { 
         color: #ef4444; 
@@ -68,21 +68,21 @@
       background: transparent;
     }
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(var(--frc-tinta), 0.1);
       border-radius: 10px;
     }
   }
 
   ::ng-deep .mat-tab-header {
-    background: #25252d;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--frc-superficie-baja);
+    border-bottom: 1px solid rgba(var(--frc-tinta), 0.05);
   }
 
   ::ng-deep .mat-tab-label {
     height: 64px;
     padding: 0 32px;
     opacity: 1;
-    color: #a1a1aa;
+    color: var(--frc-texto-suave);
     font-weight: 600;
     transition: all 0.3s;
     
@@ -97,8 +97,8 @@
     }
     
     &:hover:not(.mat-tab-label-active) {
-      color: #d4d4d8;
-      background: rgba(255, 255, 255, 0.02);
+      color: var(--frc-texto-secundario);
+      background: rgba(var(--frc-tinta), 0.02);
     }
   }
 
@@ -113,8 +113,8 @@
 
   /* MOTOR CONTROL SECTION */
   .card-section.motor-control {
-    background: #27272e;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--frc-superficie);
+    border: 1px solid rgba(var(--frc-tinta), 0.05);
     border-radius: 14px;
     padding: 24px;
     margin-bottom: 24px;
@@ -123,14 +123,14 @@
     .label {
       font-size: 0.75rem;
       font-weight: 800;
-      color: #71717a;
+      color: var(--frc-texto-tenue);
       text-transform: uppercase;
       letter-spacing: 1.5px;
     }
 
     .status-desc {
       font-size: 1rem;
-      color: #ffffff;
+      color: var(--frc-texto-fuerte);
       margin-top: 4px;
       font-weight: 500;
     }
@@ -148,20 +148,20 @@
 
   /* CONFIG CARDS */
   .config-card {
-    background: #27272e;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--frc-superficie);
+    border: 1px solid rgba(var(--frc-tinta), 0.05);
     border-radius: 14px;
     padding: 20px;
     transition: all 0.25s ease;
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.1);
-      background: #2c2c35;
+      border-color: rgba(var(--frc-tinta), 0.1);
+      background: var(--frc-superficie-alta);
       transform: translateY(-2px);
     }
 
     .card-icon {
-      color: #71717a;
+      color: var(--frc-texto-tenue);
       font-size: 24px;
       &[color="accent"] { color: #10b981; }
     }
@@ -169,7 +169,7 @@
     .card-label {
       font-size: 0.9rem;
       font-weight: 600;
-      color: #e4e4e7;
+      color: var(--frc-dash-texto);
     }
   }
 
@@ -180,19 +180,19 @@
     .alert-name {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--frc-texto-fuerte);
     }
 
     .alert-desc {
       font-size: 0.8rem;
-      color: #a1a1aa;
+      color: var(--frc-texto-suave);
     }
 
     mat-icon {
       font-size: 28px;
       width: 28px;
       height: 28px;
-      color: #52525b;
+      color: rgba(var(--frc-tinta), 0.3);
       
       &[color="warn"] {
         color: #ff5252;
@@ -204,7 +204,7 @@
   /* ESTADO DEL SERVIDOR Y ENVÍOS */
   .estado-servidor {
     font-size: 0.8rem;
-    color: #a1a1aa;
+    color: var(--frc-texto-suave);
     margin-top: 2px;
   }
 
@@ -229,7 +229,7 @@
     padding: 14px 32px;
     background: rgba(251, 146, 60, 0.1);
     border-bottom: 1px solid rgba(251, 146, 60, 0.3);
-    color: #fdba74;
+    color: var(--frc-aviso-texto);
     font-size: 0.85rem;
     line-height: 1.5;
 
@@ -260,7 +260,7 @@
 
   /* APN SELECT */
   .apn-card {
-    background: #27272e;
+    background: var(--frc-superficie);
     
     .apn-send-btn {
       height: 54px;
@@ -292,9 +292,9 @@
   .mini-update-btn {
     width: 36px;
     height: 36px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(var(--frc-tinta), 0.03);
     border-radius: 10px;
-    color: #a1a1aa;
+    color: var(--frc-texto-suave);
     
     &:hover:not([disabled]) {
       background: rgba(255, 82, 82, 0.1);
@@ -313,28 +313,28 @@
 
   .footer-actions {
     padding: 24px 32px;
-    background: #25252d;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--frc-superficie-baja);
+    border-top: 1px solid rgba(var(--frc-tinta), 0.05);
 
     .secondary-btn {
-      color: #a1a1aa;
+      color: var(--frc-texto-suave);
       font-weight: 600;
       letter-spacing: 1px;
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #ffffff;
+        background: rgba(var(--frc-tinta), 0.05);
+        color: var(--frc-texto-fuerte);
       }
     }
   }
 }
 
-::ng-deep .mat-mdc-slider {
+:host ::ng-deep .mat-mdc-slider {
   --mdc-slider-active-track-color: #ff5252;
   --mdc-slider-handle-color: #ff5252;
   --mat-mdc-slider-hover-handle-color: #ff5252;
 }
 
-::ng-deep .mat-mdc-slide-toggle {
+:host ::ng-deep .mat-mdc-slide-toggle {
   --mdc-switch-selected-focus-state-layer-color: #ff5252;
   --mdc-switch-selected-handle-color: #ff5252;
   --mdc-switch-selected-hover-state-layer-color: rgba(255, 82, 82, 0.1);
