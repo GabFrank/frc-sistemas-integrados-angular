@@ -250,6 +250,9 @@
                   <button mat-menu-item *ngIf="row._cobrable" (click)="onCobrar(row)">
                     <mat-icon>price_check</mat-icon><span>Cobrar</span>
                   </button>
+                  <button mat-menu-item *ngIf="row._comprobanteAnulacion" (click)="onImprimirComprobante(row)">
+                    <mat-icon>print</mat-icon><span>Imprimir comprobante de anulación</span>
+                  </button>
                   <button mat-menu-item *ngIf="row._anulable" (click)="onAnular(row)">
                     <mat-icon>block</mat-icon><span>Anular</span>
                   </button>

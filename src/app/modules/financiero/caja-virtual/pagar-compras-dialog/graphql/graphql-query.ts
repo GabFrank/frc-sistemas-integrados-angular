@@ -95,8 +95,8 @@ export const pagarSolicitudesMixtoMutation = gql`
 `;
 
 export const anularPagoCppMutation = gql`
-  mutation ($pagoId: ID!, $motivo: String) {
-    data: anularPagoCpp(pagoId: $pagoId, motivo: $motivo) {
+  mutation ($pagoId: ID!, $motivo: String, $anulacionCheque: AnulacionChequeInput) {
+    data: anularPagoCpp(pagoId: $pagoId, motivo: $motivo, anulacionCheque: $anulacionCheque) {
       id
       estado
     }

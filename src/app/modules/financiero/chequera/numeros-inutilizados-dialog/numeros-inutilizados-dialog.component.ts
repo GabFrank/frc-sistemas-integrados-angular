@@ -8,7 +8,8 @@ import { AccionChequeInutilizado, NumeracionChequeraService, NumeroInutilizado }
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { ChequeService } from '../../cheque/cheque.service';
-import { Cheque } from '../../cheque/cheque.model';
+import { AnulacionChequeInput, Cheque } from '../../cheque/cheque.model';
+import { ChequeAnulacionService } from '../../cheque/cheque-anulacion.service';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 
 /** Fila de la lista con lo que se muestra ya armado (sin funciones en el HTML). */
@@ -28,7 +29,7 @@ const ACCION_LABEL: Record<AccionChequeInutilizado, string> = {
 };
 
 const OPCION_NINGUNA = { value: 'NINGUNA' as AccionChequeInutilizado, label: 'El número no tiene cheque' };
-const OPCION_ANULAR = { value: 'ANULADO' as AccionChequeInutilizado, label: 'Anular el cheque también (con el mismo motivo)' };
+const OPCION_ANULAR = { value: 'ANULADO' as AccionChequeInutilizado, label: 'Anular el cheque también' };
 const OPCION_RENUMERAR = { value: 'RENUMERADO' as AccionChequeInutilizado, label: 'Pasar el cheque a otro número' };
 
 /**
@@ -77,6 +78,7 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private dialogos: DialogosService,
     private dialog: MatDialog,
+    private chequeAnulacion: ChequeAnulacionService,
   ) {
     this.chequera = data?.chequera;
     this.proximoNumero = this.chequera?.siguienteNumero != null ? Number(this.chequera.siguienteNumero) : null;
@@ -186,15 +188,31 @@ export class NumerosInutilizadosDialogComponent implements OnInit {
     if (this.accion === 'RENUMERADO' && !this.numeroNuevo) {
       this.notificacion.openAlgoSalioMal('Indicá el número al que pasa el cheque'); return;
     }
+    // El cheque que se anula lleva su motivo de la lista (#807), aparte del motivo de la inutilización. También sin
+    // la lectura del cheque (NO_LEIDO): si no, el central lo anularía sin motivo y sin comprobante.
+    if (this.accion === 'ANULADO') {
+      const cheque = this.cheque || ({ numero: this.numero } as Cheque);
+      this.chequeAnulacion.pedirMotivo([cheque], 'Se inutiliza el número ' + this.numero + ' y se anula su cheque.')
+        .pipe(untilDestroyed(this)).subscribe(anulacion => { if (anulacion) this.enviarInutilizacion(anulacion); });
+      return;
+    }
+    this.enviarInutilizacion(null);
+  }
+
+  private enviarInutilizacion(anulacionCheque: AnulacionChequeInput | null) {
+    if (this.guardando) return;
     this.guardando = true;
     this.numeracion.onInutilizar({
       chequeraId: this.chequera.id, numero: this.numero, motivo: this.motivo.trim().toUpperCase(),
       accionCheque: this.accion, numeroNuevo: this.accion === 'RENUMERADO' ? this.numeroNuevo : null,
+      anulacionCheque,
     }).pipe(untilDestroyed(this)).subscribe({
-      next: () => {
+      next: (res: NumeroInutilizado) => {
         this.guardando = false;
         this.huboCambios = true;
         this.notificacion.openSucess('Número ' + this.numero + ' inutilizado');
+        // El comprobante, con el cheque que devuelve el central (también cuando no se pudo leer antes).
+        if (anulacionCheque && res?.cheque?.estado === 'ANULADO') this.chequeAnulacion.imprimirComprobantes([res.cheque as Cheque]);
         this.numero = null; this.motivo = '';
         this.limpiarCheque();
         this.busqueda = 'VACIO';

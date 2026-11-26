@@ -72,7 +72,9 @@ export const pagarLiquidacionMutation = gql`
   mutation pagarLiquidacion($id: ID!, $cajaVirtualId: ID!) { data: pagarLiquidacion(id: $id, cajaVirtualId: $cajaVirtualId) { ${LIQ_FIELDS} } }
 `;
 export const anularLiquidacionMutation = gql`
-  mutation anularLiquidacion($id: ID!) { data: anularLiquidacion(id: $id) { ${LIQ_FIELDS} } }
+  mutation anularLiquidacion($id: ID!, $anulacionCheque: AnulacionChequeInput) {
+    data: anularLiquidacion(id: $id, anulacionCheque: $anulacionCheque) { ${LIQ_FIELDS} }
+  }
 `;
 export const imprimirReciboLiquidacionQuery = gql`
   query ($id: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboLiquidacion(id: $id, anchoMm: $anchoMm, escpos: $escpos) }

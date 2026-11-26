@@ -8,7 +8,7 @@ describe('MovimientoBancarioAnulacionService', () => {
   const PAGO: any = { id: 1, anulado: false, origenTipo: 'PAGO_CPP', origenId: 5, pagoId: 5 };
   const OPERACION: any = { id: 2, anulado: false, origenTipo: 'OPERACION_FINANCIERA', origenId: 12, pagoId: null };
 
-  let dialog: any, cargando: any, avisos: any[], pagarCompras: any, operaciones: any;
+  let dialog: any, cargando: any, avisos: any[], pagarCompras: any, operaciones: any, chequeAnulacion: any;
   let service: MovimientoBancarioAnulacionService;
   let motivo: string | null;
 
@@ -22,8 +22,14 @@ describe('MovimientoBancarioAnulacionService', () => {
     };
     pagarCompras = { onAnularPago: jasmine.createSpy('onAnularPago').and.returnValue(of({ id: 5 })) };
     operaciones = { onAnular: jasmine.createSpy('onAnular').and.returnValue(of({ id: 12 })) };
+    // Por defecto el pago no tiene cheques (#807): no se pide motivo de cheque ni se imprime.
+    chequeAnulacion = {
+      motivoParaChequesDe: jasmine.createSpy('motivoParaChequesDe').and.returnValue(of({ anulacion: null, cheques: [] })),
+      imprimirComprobantes: jasmine.createSpy('imprimirComprobantes'),
+    };
     service = new MovimientoBancarioAnulacionService(
-      dialog, cargando, { notification$: { next: (a: any) => avisos.push(a) } } as any, pagarCompras, operaciones);
+      dialog, cargando, { notification$: { next: (a: any) => avisos.push(a) } } as any, pagarCompras, operaciones,
+      chequeAnulacion);
   });
 
   const anular = (mov: any) => {
@@ -36,7 +42,7 @@ describe('MovimientoBancarioAnulacionService', () => {
 
   it('anula el pago por su pagoId, con el motivo, y bloquea la pantalla mientras corre', () => {
     const r = anular(PAGO);
-    expect(pagarCompras.onAnularPago).toHaveBeenCalledOnceWith(5, 'ERROR DE CARGA');
+    expect(pagarCompras.onAnularPago).toHaveBeenCalledOnceWith(5, 'ERROR DE CARGA', null);
     expect(operaciones.onAnular).not.toHaveBeenCalled();
     expect(cargando.openDialog).toHaveBeenCalledTimes(1);
     expect(cargando.closeDialog).toHaveBeenCalledOnceWith(42);
@@ -47,7 +53,32 @@ describe('MovimientoBancarioAnulacionService', () => {
 
   it('anula el cheque al contado de un pago por el pagoId, no por el origenId', () => {
     anular({ id: 3, anulado: false, origenTipo: 'CHEQUE', origenId: null, pagoId: 9 });
-    expect(pagarCompras.onAnularPago).toHaveBeenCalledOnceWith(9, 'ERROR DE CARGA');
+    expect(pagarCompras.onAnularPago).toHaveBeenCalledOnceWith(9, 'ERROR DE CARGA', null);
+    expect(chequeAnulacion.motivoParaChequesDe).toHaveBeenCalledOnceWith({ pagoId: 9 }, jasmine.any(String));
+  });
+
+  it('con cheques en el pago manda su motivo de la lista e imprime un comprobante por cheque (#807)', () => {
+    const cheques = [{ id: 46, numero: 700030 }];
+    const anulacion = { motivo: 'EFECTIVIZACION', observacion: null };
+    chequeAnulacion.motivoParaChequesDe.and.returnValue(of({ anulacion, cheques }));
+    const r = anular(PAGO);
+    expect(pagarCompras.onAnularPago).toHaveBeenCalledOnceWith(5, 'ERROR DE CARGA', anulacion);
+    expect(chequeAnulacion.imprimirComprobantes).toHaveBeenCalledOnceWith(cheques);
+    expect(r.emitidos).toEqual([true]);
+  });
+
+  it('si se vuelve atrás en el motivo del cheque (o no se pudo leer qué cheques anula) no anula el pago', () => {
+    chequeAnulacion.motivoParaChequesDe.and.returnValue(of(null));
+    const r = anular(PAGO);
+    expect(pagarCompras.onAnularPago).not.toHaveBeenCalled();
+    expect(chequeAnulacion.imprimirComprobantes).not.toHaveBeenCalled();
+    expect(r.emitidos).toEqual([false]);
+    expect(r.completo()).toBeTrue();
+  });
+
+  it('una operación financiera no consulta cheques', () => {
+    anular(OPERACION);
+    expect(chequeAnulacion.motivoParaChequesDe).not.toHaveBeenCalled();
   });
 
   it('anula la operación financiera por su origenId y sin el aviso genérico de guardado', () => {

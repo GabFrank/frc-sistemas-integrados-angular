@@ -1,0 +1,42 @@
+<app-dialogo-base class="anular-cheque-dialog" [titulo]="titulo" tono="peligro">
+  <p class="detalle" *ngIf="data.detalle">{{ data.detalle }}</p>
+
+  <table class="cheques">
+    <thead>
+      <tr><th>Nº</th><th>Beneficiario</th><th>Monto</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let f of filas">
+        <td>{{ f.numero }}</td>
+        <td>{{ f.beneficiario }}</td>
+        <td>{{ f.monto }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Motivo de la anulación</mat-label>
+      <mat-select formControlName="motivo">
+        <mat-option *ngFor="let m of motivos" [value]="m.value">{{ m.label }}</mat-option>
+      </mat-select>
+      <mat-error>Elegí el motivo</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Observación</mat-label>
+      <textarea matInput rows="3" formControlName="observacion" maxlength="500"
+                (keydown.control.enter)="onConfirmar()"></textarea>
+      <mat-error>La observación es obligatoria</mat-error>
+    </mat-form-field>
+  </form>
+
+  <p class="aviso">Al anular se imprime el comprobante para presillar al cheque.</p>
+
+  <div acciones>
+    <button mat-flat-button class="frc-btn-cancelar" type="button" (click)="onVolver()">Volver</button>
+    <button mat-flat-button class="frc-btn-confirmar" type="button" [disabled]="form.invalid" (click)="onConfirmar()">
+      Anular
+    </button>
+  </div>
+</app-dialogo-base>

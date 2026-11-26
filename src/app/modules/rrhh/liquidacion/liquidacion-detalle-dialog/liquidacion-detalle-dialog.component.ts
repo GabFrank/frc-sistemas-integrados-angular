@@ -1,4 +1,7 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { ChequeAnulacionService, MotivoCheques } from '../../../financiero/cheque/cheque-anulacion.service';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
@@ -142,6 +145,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   constructor(
     private tabService: TabService,
     private liquidacionService: LiquidacionService,
+    private chequeAnulacion: ChequeAnulacionService,
     private cajaVirtualService: CajaVirtualService,
     private dialogosService: DialogosService,
     private reporteService: ReporteService,
@@ -462,11 +466,19 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       'Anular liquidación',
       '¿Anular esta liquidación pagada? Se generará el contra-asiento y se revertirán los efectos.',
       null, null, true, 'Sí', 'No'
-    ).pipe(untilDestroyed(this)).subscribe(r => {
-      if (r === true) {
-        this.liquidacionService.onAnular(this.liq.id)
-          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
-      }
+    ).pipe(
+      // Si se pagó con cheques, se anulan con su pago: su motivo de la lista se pide acá (#807). null = no se anula.
+      switchMap(r => r === true
+        ? this.chequeAnulacion.motivoParaChequesDe({ liquidacionId: this.liq.id }, 'Se anulan con el pago de la liquidación.')
+        : of(null)),
+      untilDestroyed(this),
+    ).subscribe((motivoCheques: MotivoCheques | null) => {
+      if (!motivoCheques) return;
+      this.liquidacionService.onAnular(this.liq.id, motivoCheques.anulacion)
+        .pipe(untilDestroyed(this)).subscribe({ next: res => {
+          this.aplicar(res);
+          if (res) this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
+        }, error: () => {} });
     });
   }
 
