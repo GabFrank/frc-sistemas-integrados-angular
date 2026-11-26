@@ -2,7 +2,7 @@
   (customFunction)="onGenerar()"
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
-  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" class="ancho-100">
     <mat-form-field fxFlex="425px">
       <mat-label>Funcionario (nombre o apellido)</mat-label>
       <input matInput [formControl]="funcionarioNombreControl" (keyup.enter)="onFiltrar()" />
@@ -27,8 +27,8 @@
     </button>
   </div>
 
-  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="pag.items$" class="mat-elevation-z2" style="width: 100%">
+  <div table class="alto-100" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="pag.items$" class="mat-elevation-z2 ancho-100">
       <ng-container matColumnDef="periodo">
         <th mat-header-cell *matHeaderCellDef>Período</th>
         <td mat-cell *matCellDef="let row">{{ row.periodo }}</td>
@@ -76,6 +76,6 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
 
-    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
+    <mat-paginator [paginacion]="pag" class="ancho-100"></mat-paginator>
   </div>
 </app-generic-list>

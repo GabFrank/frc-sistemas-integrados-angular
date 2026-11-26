@@ -21,7 +21,7 @@
       Seleccione un funcionario
     </span>
 
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Descripción</mat-label>
       <input matInput [formControl]="descripcionControl" />
     </mat-form-field>
@@ -52,7 +52,7 @@
       </mat-form-field>
     </div>
 
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Caja Mayor (desembolso)</mat-label>
       <mat-select [formControl]="cajaControl" required>
         <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
@@ -60,7 +60,7 @@
       <mat-error *ngIf="cajaControl.hasError('required')">Seleccione la caja</mat-error>
     </mat-form-field>
 
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Observación</mat-label>
       <input matInput [formControl]="observacionControl" />
     </mat-form-field>
