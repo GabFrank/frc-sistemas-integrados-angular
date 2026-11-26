@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { MatDateRangePicker } from '@angular/material/datepicker';
 import { tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -61,6 +62,7 @@ interface ChequeraOpcion { id: number; label: string; }
   styleUrls: ['./cheques-dashboard.component.scss'],
 })
 export class ChequesDashboardComponent implements OnInit {
+  @ViewChild('rangoPicker') rangoPicker: MatDateRangePicker<Date>;
 
   @Input() data: Tab;
 
@@ -150,16 +152,44 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   // ── Rango: strings para el backend (hasta = fin de día inclusivo) ──
+  // Una punta vacía toma la otra; las dos vacías, hoy (#811): el central exige las dos fechas, y sin ellas rechazaba las
+  // tres consultas sin que el usuario viera nada.
+  private get desdeRango(): Date {
+    return this.desdeControl.value || this.hastaControl.value || new Date();
+  }
+  private get hastaRango(): Date {
+    return this.hastaControl.value || this.desdeControl.value || new Date();
+  }
   private get desdeStr(): string {
-    const d = this.desdeControl.value;
-    return d ? dateToString(d, 'yyyy-MM-dd') + ' 00:00' : null;
+    return dateToString(this.desdeRango, 'yyyy-MM-dd') + ' 00:00';
   }
   private get hastaStr(): string {
-    const d = this.hastaControl.value;
-    return d ? dateToString(d, 'yyyy-MM-dd') + ' 23:59' : null;
+    return dateToString(this.hastaRango, 'yyyy-MM-dd') + ' 23:59';
+  }
+
+  /**
+   * Deja en los campos el rango que se consulta, para que la pantalla muestre lo mismo que trae. Con el calendario
+   * abierto no se toca: sobreescribir el modelo a mitad de la selección cambiaría el clic siguiente del usuario.
+   */
+  private completarRango() {
+    if (this.rangoPicker?.opened) return;
+    const desde = this.desdeRango;
+    const hasta = this.hastaRango;
+    if (!this.desdeControl.value) this.desdeControl.setValue(desde, { emitEvent: false });
+    if (!this.hastaControl.value) this.hastaControl.setValue(hasta, { emitEvent: false });
+  }
+
+  /**
+   * Cambio del «hasta». Material lo vacía (y emite) al empezar a elegir un rango nuevo con el calendario abierto: ahí no
+   * se consulta; al elegir el fin, llega otro cambio con fecha.
+   */
+  onHastaChange() {
+    if (!this.hastaControl.value) return;
+    this.aplicarFiltros();
   }
 
   recargar() {
+    this.completarRango();
     this.cargarSaldos();
     this.cargarLista();
     this.cargarResumen();
@@ -230,6 +260,7 @@ export class ChequesDashboardComponent implements OnInit {
 
   onChequeraChange(v: number | null) {
     this.chequeraSel = v;
+    this.completarRango();
     this.cargarLista();
     this.cargarResumen();
   }
