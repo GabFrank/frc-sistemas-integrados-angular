@@ -368,6 +368,9 @@ export const retirosIngresadosDeCajaQuery = gql`
       movimientoId
       usuario
       ingresadoEn
+      retiroGs
+      retiroRs
+      retiroDs
     }
   }
 `;

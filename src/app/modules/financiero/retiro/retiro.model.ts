@@ -79,7 +79,7 @@ export class RetiroInput {
 export const PREGUNTA_RETIROS_DE_LA_CAJA = '¿Quiere traer los demás retiros vinculados a esta caja?';
 
 /** «200.000 Gs · 10 R$ · 5 US$»: los montos del retiro por moneda, sin las que están en cero. */
-export function formatMontosRetiro(r: Retiro): string {
+export function formatMontosRetiro(r: Partial<Pick<Retiro, 'retiroGs' | 'retiroRs' | 'retiroDs'>>): string {
   const partes: string[] = [];
   if (r?.retiroGs) partes.push(`${Math.round(r.retiroGs).toLocaleString('es-PY')} Gs`);
   if (r?.retiroRs) partes.push(`${r.retiroRs.toLocaleString('es-PY')} R$`);
@@ -90,7 +90,8 @@ export function formatMontosRetiro(r: Retiro): string {
 /**
  * Un retiro de una caja del PDV que ya se procesó (query `retirosIngresadosDeCaja`). `movimientoId` null =
  * sin movimiento en caja mayor (procesado sin montos o dado por procesado en una limpieza); `usuario` null
- * con movimiento = lo ingresó el sistema.
+ * con movimiento = lo ingresó el sistema. Los montos son lo que entró a caja mayor (lo contado si hubo
+ * verificación, si no lo declarado); un central anterior no los manda.
  */
 export interface RetiroIngresado {
   retiroId: number;
@@ -102,9 +103,12 @@ export interface RetiroIngresado {
   movimientoId: number;
   usuario: string;
   ingresadoEn: string;
+  retiroGs?: number;
+  retiroRs?: number;
+  retiroDs?: number;
 }
 
-/** «Caja #662 (SUC. KM2): retiro #1151 procesado en TESORERÍA por JUAN PÉREZ el 14/11/26 18:30». */
+/** «Caja #662 (SUC. KM2): retiro #1151 (150.000 Gs) procesado en TESORERÍA por JUAN PÉREZ el 14/11/26 18:30». */
 export function textoRetiroIngresado(r: RetiroIngresado): string {
   const caja = `Caja #${r.cajaSalidaId} (${r.sucursalNombre || 'sucursal ' + r.sucursalId}): retiro #${r.retiroId}`;
   if (r.movimientoId == null) {
@@ -113,7 +117,9 @@ export function textoRetiroIngresado(r: RetiroIngresado): string {
       : `${caja} dado por procesado sin ingreso a caja mayor`;
   }
   const fecha = r.ingresadoEn ? ` el ${formatDate(r.ingresadoEn, 'dd/MM/yy HH:mm', 'en-US')}` : '';
-  return `${caja} procesado en ${r.cajaVirtualNombre} por ${r.usuario || 'el sistema'}${fecha}`;
+  const montos = formatMontosRetiro(r);
+  const conMontos = montos === '—' ? caja : `${caja} (${montos})`;
+  return `${conMontos} procesado en ${r.cajaVirtualNombre} por ${r.usuario || 'el sistema'}${fecha}`;
 }
 
 // Enum de strings: GraphQL devuelve el estado como texto ("CONCLUIDO"), asi que un
