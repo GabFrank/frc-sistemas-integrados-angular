@@ -23,7 +23,7 @@
       <mat-label>Rango</mat-label>
       <mat-date-range-input [rangePicker]="rangoPicker">
         <input matStartDate [formControl]="desdeControl" placeholder="Desde" />
-        <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="aplicarFiltros()" />
+        <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="onHastaChange()" />
       </mat-date-range-input>
       <mat-datepicker-toggle matSuffix [for]="rangoPicker"></mat-datepicker-toggle>
       <mat-date-range-picker #rangoPicker></mat-date-range-picker>
