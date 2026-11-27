@@ -28,6 +28,21 @@ describe('textoRetiroIngresado', () => {
       .toBe('Caja #662 (SUC. KM2): retiro #1151 dado por procesado sin ingreso a caja mayor');
   });
 
+  it('con montos los muestra después del número de retiro', () => {
+    expect(textoRetiroIngresado({ ...base, retiroGs: 1500000, retiroRs: 200 }))
+      .toBe(`Caja #662 (SUC. KM2): retiro #1151 (${(1500000).toLocaleString('es-PY')} Gs · 200 R$) procesado en TESORERIA por JUAN PEREZ el 14/11/26 18:30`);
+  });
+
+  it('con una sola moneda en dólares', () => {
+    expect(textoRetiroIngresado({ ...base, retiroDs: 50 }))
+      .toContain('retiro #1151 (50 US$) procesado en TESORERIA');
+  });
+
+  it('sin movimiento no muestra montos aunque vengan', () => {
+    expect(textoRetiroIngresado({ ...base, movimientoId: null, usuario: null, ingresadoEn: null, retiroGs: 1000 }))
+      .toBe('Caja #662 (SUC. KM2): retiro #1151 procesado en TESORERIA sin montos');
+  });
+
   it('sin nombre de sucursal usa el id', () => {
     expect(textoRetiroIngresado({ ...base, sucursalNombre: null })).toContain('Caja #662 (sucursal 24)');
   });
