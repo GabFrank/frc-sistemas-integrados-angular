@@ -24,7 +24,9 @@ import { PaginacionLista, PaginaCentral } from '../../../../../shared/components
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Jornada, JornadaResumen } from '../../models/jornada.model';
-import { Usuario } from '../../../../personas/usuarios/usuario.model';
+import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
+import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
+import { LECTURA_ESTRICTA } from '../../../../../generics/generic-crud.constantes';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { BuscadorFieldComponent } from '../../../../../shared/components/buscador-field/buscador-field.component';
 import { FechaPyDateAdapter } from '../../../../../shared/utils/fecha-py-date-adapter';
@@ -88,8 +90,14 @@ export class ListMarcacionComponent implements OnInit {
     pageSize: 15,
   });
 
-  /** El usuario elegido en el buscador (objeto), o `null`. Es el filtro de funcionario. */
-  usuarioControl = new FormControl<Usuario>(null);
+  /** El funcionario elegido en el buscador (objeto), o `null`. Solo activos: los egresados no se buscan acá. */
+  usuarioControl = new FormControl<Funcionario>(null);
+  opcionesFuncionario = { soloActivos: true };
+  /**
+   * Usuario de la persona del funcionario: las marcaciones cuelgan de él. No es `funcionario.usuario`, que es
+   * quien cargó al funcionario (en la base apunta a otra persona).
+   */
+  usuarioId: number = null;
   @ViewChild(BuscadorFieldComponent) buscadorUsuario: BuscadorFieldComponent;
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
@@ -139,7 +147,8 @@ export class ListMarcacionComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private horarioService: HorarioService,
     private tabService: TabService,
-    private sucursalService: SucursalService
+    private sucursalService: SucursalService,
+    private usuarioService: UsuarioService
   ) { }
 
   selectedJornada: JornadaFila;
@@ -148,9 +157,33 @@ export class ListMarcacionComponent implements OnInit {
    * El buscador eligio un usuario o se quito con la X: se filtra enseguida, como turno y sucursal. Al editar el
    * texto de uno ya elegido tambien llega `null`, pero ahi todavia no hay a quien buscar: se espera la eleccion.
    */
-  onUsuarioElegido(usuario: Usuario): void {
-    if (usuario == null && this.textoUsuarioPendiente()) return;
-    this.filtrar();
+  onUsuarioElegido(funcionario: Funcionario): void {
+    if (funcionario == null && this.textoUsuarioPendiente()) return;
+    this.usuarioId = null;
+    if (funcionario == null) {
+      this.filtrar();
+      return;
+    }
+    this.usuarioService.onGetUsuarioPorPersonaId(funcionario.persona?.id, true, LECTURA_ESTRICTA)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: usuario => {
+          // Se eligio otro mientras se buscaba: manda la ultima eleccion.
+          if (this.usuarioControl.value !== funcionario) return;
+          if (usuario?.id == null) {
+            this.notificacionService.openWarn('El funcionario no tiene usuario: no tiene marcaciones.');
+            this.usuarioControl.setValue(null);
+            return;
+          }
+          this.usuarioId = usuario.id;
+          this.filtrar();
+        },
+        error: () => {
+          if (this.usuarioControl.value !== funcionario) return;
+          this.notificacionService.openWarn('No se pudo buscar el usuario del funcionario. Intente de nuevo.');
+          this.usuarioControl.setValue(null);
+        }
+      });
   }
 
   /** Hay un nombre o id escrito que todavia no se convirtio en un usuario elegido. */
@@ -261,7 +294,7 @@ export class ListMarcacionComponent implements OnInit {
     this.completarFechas();
     const turno = this.turnoControl.value;
     const filtro = {
-      usuarioId: this.usuarioControl.value?.id || null,
+      usuarioId: this.usuarioId,
       fechaInicio: dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd'),
       fechaFin: dateToString(this.fechaFinControl.value, 'yyyy-MM-dd'),
       turno: turno && turno !== 'TODOS' ? turno : null,
@@ -331,6 +364,7 @@ export class ListMarcacionComponent implements OnInit {
   resetearFiltro(): void {
     // writeValue del buscador: tambien borra el texto escrito, sin emitir (seleccionado).
     this.usuarioControl.setValue(null);
+    this.usuarioId = null;
     this.inicializarFechas();
     // Sin emitir: la consulta de abajo ya lleva los tres filtros, y se hace una sola vez.
     this.turnoControl.setValue('TODOS', { emitEvent: false });
@@ -372,7 +406,7 @@ export class ListMarcacionComponent implements OnInit {
     const fechaFin = this.fechaFinControl.value
       ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
       : null;
-    const usuarioId = this.usuarioControl.value?.id || null;
+    const usuarioId = this.usuarioId;
 
     this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
   }
