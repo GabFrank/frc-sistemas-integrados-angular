@@ -7,6 +7,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
@@ -58,6 +59,10 @@ const ESTADOS_DE_FILTRO: Record<FiltroEstado, EstadoCheque[]> = {
 
 interface ChequeraOpcion { id: number; label: string; }
 
+/** Un Nº de cheque se busca en todas las fechas (desk #767): quien busca un número no sabe cuándo vence. */
+const DESDE_SIN_TOPE = '2000-01-01 00:00';
+const HASTA_SIN_TOPE = '2100-12-31 23:59';
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-cheques-dashboard',
@@ -66,6 +71,7 @@ interface ChequeraOpcion { id: number; label: string; }
 })
 export class ChequesDashboardComponent implements OnInit {
   @ViewChild('rangoPicker') rangoPicker: MatDateRangePicker<Date>;
+  @ViewChild(MatSort) set sort(s: MatSort) { this.dataSource.sort = s; }
 
   @Input() data: Tab;
 
@@ -80,6 +86,10 @@ export class ChequesDashboardComponent implements OnInit {
   estadoSel: FiltroEstado = 'TODOS';
   tipoFechaSel: 'EMISION' | 'PAGO' | 'COBRO' = 'EMISION';
   textoControl = new FormControl('');
+  /** El texto aplicado es un Nº: se consulta sin rango, sin estado y por emisión (desk #767). */
+  buscandoNumero = false;
+  /** El tipo de fecha de la última consulta (con un Nº, emisión): el foco y el KPI agrupan por esa. */
+  private tipoFechaConsulta: 'EMISION' | 'PAGO' | 'COBRO' = 'EMISION';
 
   estados: { label: string; value: FiltroEstado }[] = [
     { label: 'Todos', value: 'TODOS' },
@@ -147,7 +157,24 @@ export class ChequesDashboardComponent implements OnInit {
     public mainService: MainService,
     private crearExcel: CrearExcelService,
     private numeracion: NumeracionChequeraService,
-  ) {}
+  ) {
+    this.dataSource.sortingDataAccessor = (r, col) => this.valorParaOrden(r, col);
+  }
+
+  /** Orden por el valor real: número, fecha en ms y monto como números (desk #767). */
+  private valorParaOrden(r: ChequeRow, col: string): string | number {
+    const ms = (d: any) => (d ? new Date(d).getTime() : null);
+    switch (col) {
+      case 'numero': return r.numero ?? null;
+      case 'chequera': return (r._chequeraNombre || '').toLowerCase();
+      case 'beneficiario': return (r._beneficiario || '').toLowerCase();
+      case 'fechaEmision': return ms(r._fechaEmision);
+      case 'fechaPago': return ms(r.fechaPago);
+      case 'estado': return this.estadoLabels[r.estado] || r.estado || '';
+      case 'monto': return r.total ?? null;
+      default: return (r as any)[col];
+    }
+  }
 
   ngOnInit(): void {
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
@@ -197,6 +224,9 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   recargar() {
+    this.buscandoNumero = /^\d+$/.test((this.textoControl.value || '').trim());
+    // Un foco de día escondería el cheque buscado, que puede ser de cualquier fecha.
+    if (this.buscandoNumero && this.focoDesdeControl.value) this.limpiarFoco();
     this.completarRango();
     this.cargarSaldos();
     this.cargarLista();
@@ -257,13 +287,21 @@ export class ChequesDashboardComponent implements OnInit {
 
   /** Lo que la lista y el resumen mandan al central. */
   private filtroActual() {
+    // Con un Nº, por emisión: nunca es nula (por pago o cobro, un cheque sin esa fecha quedaría afuera).
+    this.tipoFechaConsulta = this.buscandoNumero ? 'EMISION' : this.tipoFechaSel;
     return {
-      desde: this.desdeStr, hasta: this.hastaStr,
+      desde: this.buscandoNumero ? DESDE_SIN_TOPE : this.desdeStr,
+      hasta: this.buscandoNumero ? HASTA_SIN_TOPE : this.hastaStr,
       chequeraId: this.chequeraSel || undefined,
-      tipoFecha: this.tipoFechaSel,
-      estados: ESTADOS_DE_FILTRO[this.estadoSel],
+      tipoFecha: this.tipoFechaConsulta,
+      estados: ESTADOS_DE_FILTRO[this.estadoConsulta],
       texto: this.textoControl.value || null,
     };
+  }
+
+  /** El estado que se consulta: con un Nº, todos (incluso si la vista es la de inutilizados). */
+  private get estadoConsulta(): FiltroEstado {
+    return this.buscandoNumero ? 'TODOS' : this.estadoSel;
   }
 
   onChequeraChange(v: number | null) {
@@ -302,7 +340,7 @@ export class ChequesDashboardComponent implements OnInit {
   cargarLista() {
     this.isLoading = true;
     const n = ++this.seq.lista;
-    if (this.estadoSel === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
+    if (this.estadoConsulta === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
     this.chequeService.onGetChequesDashboard(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.lista) return;
@@ -322,10 +360,10 @@ export class ChequesDashboardComponent implements OnInit {
   cargarResumen() {
     const n = ++this.seq.resumen;
     // Un número inutilizado no tiene monto: el KPI no suma nada.
-    if (this.estadoSel === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
+    if (this.estadoConsulta === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
     // El KPI suma plata comprometida: con «Todos» no cuenta los anulados (sí se ven en la lista, atenuados).
     const filtro = this.filtroActual();
-    if (this.estadoSel === 'TODOS') {
+    if (filtro.estados.length === 0) {
       filtro.estados = [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO, EstadoCheque.COBRADO];
     }
     this.chequeService.onGetResumenPorDia(filtro).pipe(untilDestroyed(this)).subscribe({
@@ -428,7 +466,7 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   private recalcularKpi() {
-    const verbo = this.tipoFechaSel === 'EMISION' ? 'Emitido' : (this.tipoFechaSel === 'COBRO' ? 'Cobrado' : 'A pagar');
+    const verbo = this.tipoFechaConsulta === 'EMISION' ? 'Emitido' : (this.tipoFechaConsulta === 'COBRO' ? 'Cobrado' : 'A pagar');
     const d = this.focoDesdeStr;
     if (d) {
       const h = this.focoHastaStr;
@@ -457,7 +495,7 @@ export class ChequesDashboardComponent implements OnInit {
 
   /** La fecha de la fila que corresponde al tipo de fecha filtrado. */
   private fechaDelFiltro(r: ChequeRow): any {
-    return this.tipoFechaSel === 'EMISION' ? r._fechaEmision : (this.tipoFechaSel === 'COBRO' ? r.fechaCobro : r.fechaPago);
+    return this.tipoFechaConsulta === 'EMISION' ? r._fechaEmision : (this.tipoFechaConsulta === 'COBRO' ? r.fechaCobro : r.fechaPago);
   }
 
   private diaDe(fecha: any): string | null {
@@ -546,7 +584,10 @@ export class ChequesDashboardComponent implements OnInit {
   /** Exporta la lista filtrada (la que se ve) a Excel. */
   onExportar() {
     const f = (d: any) => d ? dateToString(new Date(d), 'dd/MM/yyyy') : '';
-    const filas = this.dataSource.data.map(c => [
+    // En el orden que se ve en la tabla.
+    const visibles = this.dataSource.sort ? this.dataSource.sortData(this.dataSource.data.slice(), this.dataSource.sort)
+      : this.dataSource.data;
+    const filas = visibles.map(c => [
       c.numero, c._chequeraNombre, c._cuentaLabel, c._beneficiario, c.concepto || '', c._origenLabel,
       f(c._fechaEmision), f(c.fechaPago), f(c.fechaCobro), this.estadoLabels[c.estado] || c.estado, c._usuario,
       c._monedaSimbolo, c.total,
