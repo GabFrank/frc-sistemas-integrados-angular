@@ -40,16 +40,31 @@
 .filtro-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  // Arriba, a la altura del rango: los atajos de fecha van en una segunda fila debajo.
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: 16px;
+
+  > button { margin-top: 2px; }
 
   // Ancho para las dos fechas completas («12/11/2026 – 12/11/2026») sin cortarlas.
   .f-rango { width: 270px; }
   .f-sel { width: 190px; }
 
+  .f-fechas {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .f-fechas-campos {
+    display: flex;
+    gap: 10px;
+  }
+
   .presets {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 
     button {
@@ -286,7 +301,8 @@
 }
 
 .f-texto {
-  width: 220px;
+  flex: 1 1 320px;
+  min-width: 320px;
 }
 
 .concepto {
