@@ -71,6 +71,29 @@ describe('EditDeliveryDialogComponent: línea de cobro sin monto (#815)', () => 
     expect(snackbar.openWarn).not.toHaveBeenCalled();
   });
 
+  it('un vuelto (valor negativo) se agrega como siempre', () => {
+    const c = crear();
+    c.saldoControl.setValue(-89000);
+    c.valorParcialPagado = 100000;
+    c.vueltoControl.setValue(-89000);
+    c.addCobroDetalle();
+    expect(c.cobroItemList.length).toBe(1);
+    expect(c.cobroItemList[0].vuelto).toBeTrue();
+    expect(snackbar.openWarn).not.toHaveBeenCalled();
+  });
+
+  it('con saldo 0 el Enter va al teléfono sin avisar', () => {
+    const c = crear();
+    c.saldoControl.setValue(0);
+    c.vueltoControl.setValue(null);
+    const telefono = (c as any).telefonoInput.nativeElement;
+    spyOn(telefono, 'select');
+    c.addCobroDetalle();
+    expect(telefono.select).toHaveBeenCalled();
+    expect(snackbar.openWarn).not.toHaveBeenCalled();
+    expect(c.cobroItemList.length).toBe(0);
+  });
+
   it('reabrir un delivery muestra igual una línea guardada sin monto', () => {
     const c = crear(8068);
     const guardada = Object.assign(new CobroDetalle(), { id: 297400, valor: null, moneda: guarani, formaPago: efectivo, cambio: 1 });

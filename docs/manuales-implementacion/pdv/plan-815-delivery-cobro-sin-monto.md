@@ -64,6 +64,26 @@ Desktop web contra el filial local (8082, sucursal 24):
 2. **Delivery guardado:** lo mismo desde «Editar info.». Se ve el aviso y no sale ninguna request.
 3. **Descuento y aumento** con el campo vacío o con monto: sin cambios.
 
+## Resultado (27/11)
+
+- **Karma**, acotado al spec: 8 tests en verde. Con el código de `develop` fallan los 3 que prueban el arreglo:
+  la X, el 0 y el delivery guardado.
+- **`npm run check`**: sin errores.
+- **Pantalla** (build `web-production` de la rama, filial local en el 8082, sucursal 24):
+  1. **Delivery nuevo.** Pago de 100.000. Después X + Enter y Backspace (el campo queda en «0») + Enter:
+     las dos veces sale «Ingresá el valor del cobro.» y no se agrega ninguna línea. El vuelto de −89.000 se
+     agrega igual. Con saldo 0, el Enter lleva al teléfono sin aviso. Al guardar se graban solo el pago y el
+     vuelto, y el filial no registra ninguna línea descartada: el desktop ya no la manda.
+  2. **Delivery guardado** («Editar info.»): X + Enter da el aviso, no agrega la línea y no sale ninguna
+     request.
+  3. **Descuento y aumento:** el descuento de 1.000 (saldo 1.000) y el aumento de −2.000 (vuelto −2.000) se
+     agregan como siempre.
+- **Datos de prueba** borrados de la base local.
+
+Queda afuera, a propósito (auditoría del diff, LOW): con otra moneda del PDV, un valor muy chico (por ejemplo
+0,004 en una moneda con 2 decimales) pasa el control y `redondearEnMoneda` lo guarda como 0. El currencyMask
+limita los decimales, así que no se puede tipear.
+
 ## Despliegue
 
 Solo cliente. Sin orden con el filial (PR borrador filial #287): cada uno corta la línea sin monto por su lado.
