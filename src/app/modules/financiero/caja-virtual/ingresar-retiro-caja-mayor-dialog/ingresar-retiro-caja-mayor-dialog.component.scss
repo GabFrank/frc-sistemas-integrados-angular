@@ -30,6 +30,8 @@
 
   .filtros {
     margin-bottom: 4px;
+    // La etiqueta flotante del outline sube por encima del borde y .contenido la recortaba (overflow: hidden).
+    padding-top: 8px;
     flex: 0 0 auto;
 
     .filtro-suc {
@@ -39,7 +41,7 @@
       width: 120px;
     }
     .filtro-fecha {
-      width: 240px;
+      width: 255px;
     }
     .spacer {
       flex: 1 1 auto;
