@@ -739,6 +739,12 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     if (this.esCero(saldo)) {
       return this.telefonoInput.nativeElement.select()
     }
+    // Vacío (la X) o 0 (Backspace): la línea sin monto se grababa con valor NULL y trababa el balance de la caja (#815)
+    if (esLineaNueva && !this.isDescuento && this.vueltoControl.enabled && !valor) {
+      this.notificacionSnackbar.openWarn('Ingresá el valor del cobro.', 3);
+      this.vueltoInput?.nativeElement.select();
+      return;
+    }
     if (this.isDescuento) {
       valor = this.saldoActual();
       this.selectedMoneda = this.monedaDelDescuento();
