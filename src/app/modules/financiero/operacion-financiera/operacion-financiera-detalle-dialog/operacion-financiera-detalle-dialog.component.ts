@@ -37,6 +37,11 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
   /** Cotización en formato de casa de cambio, precalculada (no se llaman funciones desde el HTML). */
   cotizacionTexto = '';
   cotizacionInversa = '';
+  /** Quién la registró y quién/cuándo/por qué se anuló (desk #721); vacíos con un central anterior. */
+  registradaPor = '';
+  anuladaPor = '';
+  anuladaEn: string | null = null;
+  motivoAnulacion = '';
 
   private tipoLabels: Record<string, string> = {
     CAMBIO_DIVISA: 'Cambio de divisa',
@@ -80,6 +85,10 @@ export class OperacionFinancieraDetalleDialogComponent implements OnInit {
           return;
         }
         this.op = op;
+        this.registradaPor = op.usuario?.persona?.nombre || '';
+        this.anuladaPor = op.anulacion?.usuario?.persona?.nombre || '';
+        this.anuladaEn = op.anulacion?.fecha || null;
+        this.motivoAnulacion = op.anulacion?.motivo || '';
         this.tipoLabel = this.tipoLabels[op.tipoOperacion as any] || op.tipoOperacion;
         this.origenLabel = this.fuenteLabel(op.cajaMayorOrigen, op.cuentaBancariaOrigen);
         this.destinoLabel = this.fuenteLabel(op.cajaMayorDestino, op.cuentaBancariaDestino);

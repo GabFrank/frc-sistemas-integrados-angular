@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
+import { ContextoConsulta, GenericCrudService, LECTURA_ESTRICTA, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
 import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario } from './operacion-financiera.model';
 import { OperacionesFinancierasGQL } from './graphql/operacionesFinancieras';
 import { OperacionFinancieraGQL } from './graphql/operacionFinanciera';
+import { OperacionFinancieraDetalleGQL } from './graphql/operacionFinancieraDetalle';
 import { OperacionFinancieraCategoriasGQL } from './graphql/operacionFinancieraCategorias';
 import { RegistrarOperacionFinancieraGQL, RegistrarOperacionFinancieraSinClaveGQL } from './graphql/registrarOperacionFinanciera';
 import { centralNoConoceLaClave, conClaveSiElCentralLaConoce, OpcionesDePedidoConClave } from '../../../commons/core/utils/claveIdempotencia';
@@ -43,6 +44,7 @@ export class OperacionFinancieraService {
     private anularGQL: AnularOperacionFinancieraGQL,
     private movimientosBancariosGQL: MovimientosBancariosGQL,
     private registrarSinClaveGQL: RegistrarOperacionFinancieraSinClaveGQL,
+    private operacionDetalleGQL: OperacionFinancieraDetalleGQL,
   ) { }
 
   onGetOperaciones(page = 0, size = 10): Observable<SimplePage<OperacionFinanciera>> {
@@ -50,10 +52,21 @@ export class OperacionFinancieraService {
       CONSULTA_OPERACIONES);
   }
 
-  /** Detalle de una operación financiera por id (para el diálogo read-only en caja mayor). */
+  /**
+   * Detalle de una operación financiera por id (para el diálogo read-only en caja mayor), con quién la registró y
+   * quién la anuló. Un central anterior a esos campos rechaza la consulta entera en la validación: ante un error
+   * GraphQL se repite con la consulta de siempre, que se comporta como antes (con su aviso si el error era otro).
+   * El error de red sigue llegando a quien llama.
+   */
   onGetOperacion(id: number): Observable<OperacionFinanciera> {
-    return this.genericService.onCustomQuery(this.operacionGQL, { id }, true, PROPAGAR_ERROR_DE_RED, undefined,
-      CONSULTA_OPERACIONES);
+    return this.genericService.onCustomQuery(this.operacionDetalleGQL, { id }, true, LECTURA_ESTRICTA, undefined,
+      CONSULTA_OPERACIONES).pipe(catchError(err => {
+        if (!Array.isArray(err?.errors)) return throwError(() => err);
+        // Con un central al día el reintento esconde un error real del detalle: que quede en la consola.
+        console.warn('[OperacionFinanciera] detalle rechazado, se repite sin quién registró/anuló:', err.message);
+        return this.genericService.onCustomQuery(this.operacionGQL, { id }, true, PROPAGAR_ERROR_DE_RED, undefined,
+          CONSULTA_OPERACIONES);
+      }));
   }
 
   onGetCategorias(): Observable<OperacionFinancieraCategoria[]> {
