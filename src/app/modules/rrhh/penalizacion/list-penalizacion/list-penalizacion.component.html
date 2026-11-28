@@ -2,7 +2,7 @@
   [isCustom]="true" customName="Generar automáticas" (customFunction)="onGenerarAuto()"
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
-  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" class="ancho-100">
     <div fxFlex="320px">
       <app-select-funcionario
         [funcionarioId]="funcionarioControl.value"
@@ -33,8 +33,8 @@
     </mat-form-field>
   </div>
 
-  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="pag.items$" class="mat-elevation-z2" style="width: 100%">
+  <div table class="alto-100" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="pag.items$" class="mat-elevation-z2 ancho-100">
       <ng-container matColumnDef="fecha">
         <th mat-header-cell *matHeaderCellDef>Fecha</th>
         <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
@@ -92,6 +92,6 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
 
-    <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
+    <mat-paginator [paginacion]="pag" class="ancho-100"></mat-paginator>
   </div>
 </app-generic-list>

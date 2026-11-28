@@ -1,8 +1,8 @@
 <app-generic-list titulo="Marcaciones" (filtrar)="onBuscar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false"
     [isCustom]="true" customName="Adicionar Horario" (customFunction)="onAdicionarHorario()" [isCustom2]="true"
     customName2="Generar PDF" (customFunction2)="onGenerarPdf()">
-    <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%; height: 100%">
-        <div fxFlex="60" fxLayout="column" style="width: 100%">
+    <div filtros fxLayout="row" fxLayoutGap="10px" class="ancho-100 alto-100">
+        <div fxFlex="60" fxLayout="column" class="ancho-100">
             <div fxLayout="row wrap" fxLayoutGap="10px">
 
                 <app-buscador-field fxFlex="45" tipo="funcionario" titulo="Funcionario" [rapido]="true"
@@ -54,74 +54,75 @@
         </div>
 
         <div fxFlex="40" fxLayout="column" fxLayoutGap="10px"
-            style="width: 100%; height: 100%; font-size: 1.15em; padding-right: 20px">
-            <div style="width: 100%; text-align: center">Resumen del mes: {{ mesResumen || '-' }}</div>
+            class="ancho-100 alto-100 relleno-der-20"
+            style="font-size: 1.15em">
+            <div class="ancho-100 texto-centro">Resumen del mes: {{ mesResumen || '-' }}</div>
 
             <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
                 <div fxFlex="60%">Días trabajados:</div>
-                <div fxFlex="40%" style="text-align: end">
+                <div fxFlex="40%" class="texto-fin">
                     {{ diasTrabajados || 0 }}
                 </div>
             </div>
 
             <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
                 <div fxFlex="60%">Horas trabajadas:</div>
-                <div fxFlex="40%" style="text-align: end">
+                <div fxFlex="40%" class="texto-fin">
                     {{ horasTrabajadas || '00:00' }}
                 </div>
             </div>
 
             <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
                 <div fxFlex="60%">Horas extras:</div>
-                <div fxFlex="40%" style="text-align: end">
+                <div fxFlex="40%" class="texto-fin">
                     {{ horasExtras || '00:00' }}
                 </div>
             </div>
 
             <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
                 <div fxFlex="60%">Horas de atraso:</div>
-                <div fxFlex="40%" style="text-align: end">
+                <div fxFlex="40%" class="texto-fin">
                     {{ horasAtraso || '00:00' }}
                 </div>
             </div>
         </div>
     </div>
 
-    <div table style="height: 100%" fxLayout="column"
+    <div table class="alto-100" fxLayout="column"
         fxLayoutAlign="space-between start">
-        <table mat-table [dataSource]="pag.items$" [trackBy]="trackById" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+        <table mat-table [dataSource]="pag.items$" [trackBy]="trackById" multiTemplateDataRows class="mat-elevation-z8 ancho-100">
             <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-5">
                     Id
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.id }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="fecha">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 8%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-8">
                     Fecha
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.fecha | date:'dd/MM/yyyy' }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="usuario">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-13">
                     Funcionario
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.usuario?.persona?.nombre | titlecase }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="estado">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 8%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-8">
                     Estado
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     <span *ngIf="marcacion.estado" class="estado-chip"
                         [ngClass]="'estado-' + marcacion.estado">
                         {{ marcacion.estado }}
@@ -131,38 +132,38 @@
             </ng-container>
 
             <ng-container matColumnDef="sucursalEntrada">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Suc. Entrada
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.marcacionEntrada?.sucursalEntrada?.nombre | uppercase }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="turno">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 8%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-8">
                     Turno
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.turnoTexto }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="distancia">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 7%"
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-7"
                     matTooltip="Mayor distancia a la sucursal entre las marcaciones de la jornada">
                     Distancia
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.distanciaTexto }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="ubicacion">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-5">
                     Ubicación
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     <button mat-icon-button type="button" [disabled]="!marcacion.conUbicacion"
                         [attr.title]="marcacion.ubicacionTitulo"
                         (click)="$event.stopPropagation(); onVerUbicacion(marcacion)">
@@ -172,9 +173,9 @@
             </ng-container>
 
             <ng-container matColumnDef="acciones">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-5">
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     <button mat-icon-button [matMenuTriggerFor]="menuAcciones" [matMenuTriggerData]="{ jornada: marcacion }"
                         (click)="$event.stopPropagation()">
                         <mat-icon>more_vert</mat-icon>
@@ -183,34 +184,34 @@
             </ng-container>
 
             <ng-container matColumnDef="fechaEntrada">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Entrada
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.marcacionEntrada?.fechaEntrada | date:'short' }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="sucursalSalida">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Suc. Salida
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.marcacionSalida?.sucursalSalida?.nombre | uppercase }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="fechaSalida">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Salida
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.fechaSalidaMostrada | date:'short' }}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="llegadaTardia">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Llegada Tardía
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center; font-weight: bold"
@@ -220,56 +221,56 @@
             </ng-container>
 
             <ng-container matColumnDef="horaExtra">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                <th mat-header-cell *matHeaderCellDef class="texto-centro ancho-10">
                     Hora Extra
                 </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                <td mat-cell *matCellDef="let marcacion" class="texto-centro">
                     {{ marcacion.horaExtraTexto }}
                 </td>
             </ng-container>
 
 
             <ng-container matColumnDef="expandedDetail">
-                <td mat-cell *matCellDef="let marcacion" [attr.colspan]="displayedColumns.length" class="expanded"
-                    style="background-color: var(--frc-superficie-tabla); padding: 0px;">
-                    <div class="example-element-detail"
-                        [@detailExpand]="marcacion == expandedMarcacion ? 'expanded' : 'collapsed'"
-                        style="overflow: hidden;">
-                        <div style="width: 100%; padding: 10px;" *ngIf="marcacion === expandedMarcacion">
+                <td mat-cell *matCellDef="let marcacion" [attr.colspan]="displayedColumns.length" class="expanded relleno-0"
+                    style="background-color: var(--frc-superficie-tabla)">
+                    <div class="example-element-detail desborde-oculto"
+                        [@detailExpand]="marcacion == expandedMarcacion ? 'expanded' : 'collapsed'">
+                        <div class="ancho-100 relleno-10" *ngIf="marcacion === expandedMarcacion">
                             <mat-card appearance="outlined" fxLayout="column" fxLayoutAlign="start start"
-                                style="padding: 10px; background-color: var(--frc-superficie-baja); width: 100%">
-                                <h3 style="width: 100%; margin-bottom: 15px; text-align: center; color: var(--frc-texto-fuerte);">Detalles
+                                class="relleno-10 ancho-100"
+                                style="background-color: var(--frc-superficie-baja)">
+                                <h3 class="ancho-100 margen-aba-15 texto-centro" style="color: var(--frc-texto-fuerte)">Detalles
                                     de la Jornada</h3>
-                                <table style="width: 100%; table-layout: fixed;">
+                                <table class="ancho-100" style="table-layout: fixed">
                                     <thead>
                                         <tr>
-                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Salida Almuerzo
+                                            <th class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">Salida Almuerzo
                                             </th>
-                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Retorno
+                                            <th class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">Retorno
                                                 Almuerzo</th>
-                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Llegada Tardía
+                                            <th class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">Llegada Tardía
                                                 Almuerzo</th>
-                                            <th style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">Hora Total
+                                            <th class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">Hora Total
                                                 Trabajada</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
+                                            <td class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">{{
                                                 marcacion.salidaAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
-                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
+                                            <td class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">{{
                                                 marcacion.retornoAlmuerzoFecha | date:'HH:mm' || '--:--' }}</td>
                                             <td style="text-align: center; padding: 10px; font-weight: bold"
                                                 [style.color]="marcacion.tardiaAlmuerzoColor">
                                                 {{ marcacion.tardiaAlmuerzoTexto }}
                                             </td>
-                                            <td style="text-align: center; color: var(--frc-texto-fuerte); padding: 10px;">{{
+                                            <td class="texto-centro relleno-10" style="color: var(--frc-texto-fuerte)">{{
                                                 marcacion.trabajadoTexto }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div *ngIf="marcacion.observacion" style="width: 100%; margin-top: 15px; padding: 10px; border-top: 1px solid var(--frc-borde-solido);">
-                                    <h4 style="color: var(--frc-texto-terciario); margin-bottom: 5px;">Observación:</h4>
+                                <div *ngIf="marcacion.observacion" class="ancho-100 margen-arr-15 relleno-10" style="border-top: 1px solid var(--frc-borde-solido)">
+                                    <h4 class="margen-aba-5" style="color: var(--frc-texto-terciario)">Observación:</h4>
                                     <p style="color: var(--frc-texto-fuerte); font-style: italic;">{{ marcacion.observacion }}</p>
                                 </div>
                             </mat-card>
@@ -279,9 +280,8 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"
-                [class.example-expanded-row]="expandedMarcacion === row" (click)="onExpand(row)"
-                style="cursor: pointer;">
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row puntero"
+                [class.example-expanded-row]="expandedMarcacion === row" (click)="onExpand(row)">
             </tr>
             <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
         </table>
@@ -297,6 +297,6 @@
                 </button>
             </ng-template>
         </mat-menu>
-        <mat-paginator [paginacion]="pag" style="width: 100%"></mat-paginator>
+        <mat-paginator [paginacion]="pag" class="ancho-100"></mat-paginator>
     </div>
 </app-generic-list>

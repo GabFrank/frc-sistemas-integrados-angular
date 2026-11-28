@@ -1,7 +1,7 @@
 <app-generic-list titulo="Conceptos de liquidación" [isAdicionar]="true" (adicionar)="onNuevo()"
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
-  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" class="ancho-100">
     <mat-form-field fxFlex="320px">
       <mat-label>Código o descripción</mat-label>
       <input matInput [formControl]="textoControl" (keyup.enter)="onFiltrar()" />
@@ -17,8 +17,8 @@
     </mat-form-field>
   </div>
 
-  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+  <div table class="alto-100" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2 ancho-100">
 
       <ng-container matColumnDef="numero">
         <th mat-header-cell *matHeaderCellDef>N°</th>

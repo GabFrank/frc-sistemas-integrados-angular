@@ -29,14 +29,14 @@
     </button>
   </div>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Fecha de vigencia</mat-label>
     <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
     <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
     <mat-datepicker #picker></mat-datepicker>
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Motivo</mat-label>
     <input matInput [formControl]="motivoControl" />
   </mat-form-field>

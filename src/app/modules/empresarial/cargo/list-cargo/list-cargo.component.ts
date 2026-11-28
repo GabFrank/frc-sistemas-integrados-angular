@@ -16,8 +16,7 @@ import { PaginacionLista } from '../../../../shared/components/paginacion/pagina
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-cargo',
-  templateUrl: './list-cargo.component.html',
-  styleUrls: ['./list-cargo.component.scss']
+  templateUrl: './list-cargo.component.html'
 })
 export class ListCargoComponent implements OnInit {
 

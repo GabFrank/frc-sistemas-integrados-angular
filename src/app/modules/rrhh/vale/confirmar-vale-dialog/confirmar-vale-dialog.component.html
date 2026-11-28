@@ -7,7 +7,7 @@
     <div class="advertencia">Esta acción registra el egreso real en la Caja Mayor seleccionada.</div>
   </div>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Caja Mayor</mat-label>
     <mat-select [formControl]="cajaControl" required>
       <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>

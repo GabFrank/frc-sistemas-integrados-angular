@@ -9,8 +9,8 @@
 }
 
 mat-dialog-content {
-    background-color: var(--dialog-bg, #303030);
-    color: white;
+    background-color: var(--frc-fondo);
+    color: var(--frc-texto-fuerte);
 }
 
 .mat-tab-body-content {

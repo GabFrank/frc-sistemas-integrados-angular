@@ -11,7 +11,7 @@
 }
 
 .metric-card {
-  background: rgba(40, 42, 48, 0.85);
+  background: var(--frc-tarjeta-translucida);
   border: 1px solid rgba(var(--frc-tinta), 0.05);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -35,7 +35,7 @@
 }
 
 .metric-label {
-  color: #a0aab5;
+  color: var(--frc-texto-suave);
   font-size: 13px;
   font-weight: 500;
   text-transform: uppercase;

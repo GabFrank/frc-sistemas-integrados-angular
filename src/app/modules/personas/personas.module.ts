@@ -11,16 +11,13 @@ import { AdicionarUsuarioDialogComponent } from './usuarios/adicionar-usuario-di
 import { ListUsuarioComponent } from './usuarios/list-usuario/list-usuario.component';
 import { EditProveedorComponent } from './proveedor/edit-proveedor/edit-proveedor.component';
 import { ListProveedorComponent } from './proveedor/list-proveedor/list-proveedor.component';
-import { AdicionarFuncionarioDialogComponent } from './funcionarios/adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
 import { FuncionarioWizardComponent } from './funcionarios/funcionario-wizard/funcionario-wizard.component';
 import { ListFuncioarioComponent } from './funcionarios/list-funcioario/list-funcioario.component';
 import { ListPreRegistroFuncionarioComponent } from './funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashboard/funcionario-dashboard.component';
-import { PersonasDashboardComponent } from './personas-dashboard/personas-dashboard.component';
 import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cliente-dialog.component';
 import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component';
-import { ClienteDashboardComponent } from './clientes/cliente-dashboard/cliente-dashboard.component';
 import { ListClientesComponent } from './clientes/list-clientes/list-clientes.component';
 import { ProductoModule } from '../productos/productos.module';
 import { EditProveedorServicioComponent } from './proveedor-servicio/edit-proveedor-servicio/edit-proveedor-servicio.component';
@@ -37,14 +34,11 @@ import { ListProveedorServicioComponent } from './proveedor-servicio/list-provee
     EditProveedorComponent,
     ListProveedorComponent,
     ListFuncioarioComponent,
-    AdicionarFuncionarioDialogComponent,
     ListPreRegistroFuncionarioComponent,
     FuncionarioWizardComponent,
     FuncionarioDashboardComponent,
-    PersonasDashboardComponent,
     AddClienteDialogComponent,
     AdicionarProveedorDialogComponent,
-    ClienteDashboardComponent,
     ListClientesComponent,
     EditProveedorServicioComponent,
     ListProveedorServicioComponent
