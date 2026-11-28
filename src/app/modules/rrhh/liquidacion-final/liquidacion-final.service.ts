@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { AnulacionChequeInput } from '../../financiero/cheque/cheque.model';
 import { Observable } from 'rxjs';
 import { ContextoConsulta, GenericCrudService, PROPAGAR_ERROR_DE_RED } from '../../../generics/generic-crud.service';
 import { TIMEOUT_POR_DEFECTO_MS } from '../../../shared/services/timeout-link';
@@ -72,8 +73,9 @@ export class LiquidacionFinalService {
     return this.genericService.onSaveCustom<any>(this.pagarGQL, { id, cajaVirtualId }, servidor);
   }
 
-  onAnular(id: number, servidor = true): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.anularGQL, { id }, servidor);
+  /** `anulacionCheque`: motivo de la lista para los cheques de su pago (#807). */
+  onAnular(id: number, anulacionCheque?: AnulacionChequeInput | null, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.anularGQL, { id, anulacionCheque: anulacionCheque || null }, servidor);
   }
 
   onImprimirRecibo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {

@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
+import { ChequeAnulacionService, MotivoCheques } from '../../cheque/cheque-anulacion.service';
 import { auditTime, catchError, filter, map, switchMap } from 'rxjs/operators';
 import { PaginacionLista, PaginaCentral } from '../../../../shared/components/paginacion/paginacion-lista';
 import { TesoreriaCambio } from '../graphql/tesoreriaCambioSub';
@@ -317,6 +318,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   };
 
   constructor(
+    private chequeAnulacion: ChequeAnulacionService,
     private cajaVirtualService: CajaVirtualService,
     private operacionFinancieraService: OperacionFinancieraService,
     private pagarComprasService: PagarComprasService,
@@ -1012,8 +1014,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
     this.dialogosService.confirm(
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res !== true || this.anulacionesPendientes.has(clave)) return;
+    ).pipe(
+      // Los cheques del pago se anulan con él: su motivo de la lista se pide acá (#807). null = no se anula nada.
+      switchMap(res => res !== true ? of(null)
+        : esPagoCpp ? this.chequeAnulacion.motivoParaChequesDe({ pagoId: mov.referenciaId },
+            'Se anulan con el pago #' + mov.referenciaId + '.')
+          : of<MotivoCheques>({ anulacion: null, cheques: [] })),
+      untilDestroyed(this),
+    ).subscribe((motivoCheques: MotivoCheques | null) => {
+      if (!motivoCheques || this.anulacionesPendientes.has(clave)) return;
       this.anulacionesPendientes.set(clave, null);
       this.actualizarAnulables();
       // Con cualquier resultado se relee la caja (movimientos y saldos): si se anuló hay que mostrarlo, un
@@ -1037,7 +1046,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
               ? yaAvisado(this.retiroVerificacionService.onAnular(v.id, undefined, sinExitoGenerico))
               : throwError(() => new Error('No se encontró la verificación de este retiro'))))
         : esPagoCpp
-          ? this.pagarComprasService.onAnularPago(mov.referenciaId)
+          ? this.pagarComprasService.onAnularPago(mov.referenciaId, undefined, motivoCheques.anulacion)
           : esOpFinanciera
             ? yaAvisado(this.operacionFinancieraService.onAnular(mov.referenciaId, undefined, sinExitoGenerico))
             : entradaVariaId
@@ -1047,6 +1056,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
         next: r => {
           if (r != null) {
             this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
+            this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
           } else {
             // Ni error ni resultado: nadie avisó y no se sabe si se anuló.
             this.notificacion.openWarn(SIN_CONFIRMAR_ANULACION, 6);

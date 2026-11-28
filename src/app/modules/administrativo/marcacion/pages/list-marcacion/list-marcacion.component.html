@@ -5,8 +5,8 @@
         <div fxFlex="60" fxLayout="column" class="ancho-100">
             <div fxLayout="row wrap" fxLayoutGap="10px">
 
-                <app-buscador-field fxFlex="45" tipo="usuario" titulo="Funcionario" [rapido]="true"
-                    placeholder="Nombre o id" [formControl]="usuarioControl"
+                <app-buscador-field fxFlex="45" tipo="funcionario" titulo="Funcionario" [rapido]="true"
+                    [opciones]="opcionesFuncionario" placeholder="Nombre o id" [formControl]="usuarioControl"
                     (seleccionado)="onUsuarioElegido($event)">
                 </app-buscador-field>
 

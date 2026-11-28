@@ -111,9 +111,11 @@ export const proximosNumerosChequeQuery = gql`
 
 export const inutilizarNumeroChequeMutation = gql`
   mutation inutilizarNumeroCheque($chequeraId: ID!, $numero: Float!, $motivo: String!,
-                                  $accionCheque: AccionChequeInutilizado, $numeroNuevo: Float) {
+                                  $accionCheque: AccionChequeInutilizado, $numeroNuevo: Float,
+                                  $anulacionCheque: AnulacionChequeInput) {
     data: inutilizarNumeroCheque(chequeraId: $chequeraId, numero: $numero, motivo: $motivo,
-                                 accionCheque: $accionCheque, numeroNuevo: $numeroNuevo) {
+                                 accionCheque: $accionCheque, numeroNuevo: $numeroNuevo,
+                                 anulacionCheque: $anulacionCheque) {
       ${numeroInutilizadoFields}
     }
   }

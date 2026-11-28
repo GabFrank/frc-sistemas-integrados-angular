@@ -1,9 +1,13 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { MatDateRangePicker } from '@angular/material/datepicker';
+import { catchError, map, switchMap, take, tap } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
@@ -12,20 +16,24 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../noti
 import { EmitirChequeDialogComponent } from '../emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { GestionarChequerasDialogComponent } from '../../chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
-import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
+import { ChequeAnulacionService } from '../cheque-anulacion.service';
 import { CrearExcelService } from '../../../../shared/crear-excel/crear-excel.service';
 import { NumeracionChequeraService } from '../../chequera/numeracion-chequera.service';
 import { DetalleMovimientoDialogComponent, DetalleMovimientoDialogData } from '../../caja-virtual/detalle-movimiento-dialog/detalle-movimiento-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../../caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
 import { ChequeService } from '../cheque.service';
-import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../cheque.model';
-import { erroresDeRechazo } from '../../../../commons/core/utils/graphqlErrorUtils';
+import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque, MOTIVOS_ANULACION_CHEQUE } from '../cheque.model';
+import { erroresDeRechazo, RECARGA_TRAS_CORTE_MS } from '../../../../commons/core/utils/graphqlErrorUtils';
 import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 // Fila de la tabla con campos de display precalculados (sin funciones en el template).
 interface ChequeRow extends Cheque {
   _cobrable?: boolean;
   _anulable?: boolean;
+  /** Cheque de un pago: se puede anular el pago completo desde acá (#809). */
+  _anularPago?: boolean;
+  /** Anulado: se puede reimprimir su comprobante (#807). */
+  _comprobanteAnulacion?: boolean;
   _monedaSimbolo?: string;
   _cuentaLabel?: string;
   _chequeraNombre?: string;
@@ -51,6 +59,10 @@ const ESTADOS_DE_FILTRO: Record<FiltroEstado, EstadoCheque[]> = {
 
 interface ChequeraOpcion { id: number; label: string; }
 
+/** Un Nº de cheque se busca en todas las fechas (desk #767): quien busca un número no sabe cuándo vence. */
+const DESDE_SIN_TOPE = '2000-01-01 00:00';
+const HASTA_SIN_TOPE = '2100-12-31 23:59';
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-cheques-dashboard',
@@ -58,6 +70,8 @@ interface ChequeraOpcion { id: number; label: string; }
   styleUrls: ['./cheques-dashboard.component.scss'],
 })
 export class ChequesDashboardComponent implements OnInit {
+  @ViewChild('rangoPicker') rangoPicker: MatDateRangePicker<Date>;
+  @ViewChild(MatSort) set sort(s: MatSort) { this.dataSource.sort = s; }
 
   @Input() data: Tab;
 
@@ -72,6 +86,10 @@ export class ChequesDashboardComponent implements OnInit {
   estadoSel: FiltroEstado = 'TODOS';
   tipoFechaSel: 'EMISION' | 'PAGO' | 'COBRO' = 'EMISION';
   textoControl = new FormControl('');
+  /** El texto aplicado es un Nº: se consulta sin rango, sin estado y por emisión (desk #767). */
+  buscandoNumero = false;
+  /** El tipo de fecha de la última consulta (con un Nº, emisión): el foco y el KPI agrupan por esa. */
+  private tipoFechaConsulta: 'EMISION' | 'PAGO' | 'COBRO' = 'EMISION';
 
   estados: { label: string; value: FiltroEstado }[] = [
     { label: 'Todos', value: 'TODOS' },
@@ -121,6 +139,10 @@ export class ChequesDashboardComponent implements OnInit {
   kpiCantidad = 0;
 
   puedeGestionar = false;
+  /** Anular pagos: el mismo permiso que en la caja y el banco (#809). */
+  puedeAnularPago = false;
+  /** Pagos con una anulación en curso: ninguna fila del pago ofrece acciones hasta que termine. */
+  private pagosEnCurso = new Set<number>();
 
   estadoLabels: Record<string, string> = {
     DIFERIDO: 'Diferido', EMITIDO: 'Al día, sin cobrar', COBRADO: 'Cobrado', ANULADO: 'Anulado', INUTILIZADO: 'Inutilizado',
@@ -128,16 +150,35 @@ export class ChequesDashboardComponent implements OnInit {
 
   constructor(
     private chequeService: ChequeService,
+    private chequeAnulacion: ChequeAnulacionService,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
     private dialog: MatDialog,
     public mainService: MainService,
     private crearExcel: CrearExcelService,
     private numeracion: NumeracionChequeraService,
-  ) {}
+  ) {
+    this.dataSource.sortingDataAccessor = (r, col) => this.valorParaOrden(r, col);
+  }
+
+  /** Orden por el valor real: número, fecha en ms y monto como números (desk #767). */
+  private valorParaOrden(r: ChequeRow, col: string): string | number {
+    const ms = (d: any) => (d ? new Date(d).getTime() : null);
+    switch (col) {
+      case 'numero': return r.numero ?? null;
+      case 'chequera': return (r._chequeraNombre || '').toLowerCase();
+      case 'beneficiario': return (r._beneficiario || '').toLowerCase();
+      case 'fechaEmision': return ms(r._fechaEmision);
+      case 'fechaPago': return ms(r.fechaPago);
+      case 'estado': return this.estadoLabels[r.estado] || r.estado || '';
+      case 'monto': return r.total ?? null;
+      default: return (r as any)[col];
+    }
+  }
 
   ngOnInit(): void {
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.puedeAnularPago = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR, ROLES.TESORERIA_CPP_PAGAR]);
     // Default: hoy por fecha de emisión, todos los estados («Emitidos hoy», desk #708).
     const hoy = new Date();
     this.desdeControl.setValue(hoy);
@@ -146,16 +187,47 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   // ── Rango: strings para el backend (hasta = fin de día inclusivo) ──
+  // Una punta vacía toma la otra; las dos vacías, hoy (#811): el central exige las dos fechas, y sin ellas rechazaba las
+  // tres consultas sin que el usuario viera nada.
+  private get desdeRango(): Date {
+    return this.desdeControl.value || this.hastaControl.value || new Date();
+  }
+  private get hastaRango(): Date {
+    return this.hastaControl.value || this.desdeControl.value || new Date();
+  }
   private get desdeStr(): string {
-    const d = this.desdeControl.value;
-    return d ? dateToString(d, 'yyyy-MM-dd') + ' 00:00' : null;
+    return dateToString(this.desdeRango, 'yyyy-MM-dd') + ' 00:00';
   }
   private get hastaStr(): string {
-    const d = this.hastaControl.value;
-    return d ? dateToString(d, 'yyyy-MM-dd') + ' 23:59' : null;
+    return dateToString(this.hastaRango, 'yyyy-MM-dd') + ' 23:59';
+  }
+
+  /**
+   * Deja en los campos el rango que se consulta, para que la pantalla muestre lo mismo que trae. Con el calendario
+   * abierto no se toca: sobreescribir el modelo a mitad de la selección cambiaría el clic siguiente del usuario.
+   */
+  private completarRango() {
+    if (this.rangoPicker?.opened) return;
+    const desde = this.desdeRango;
+    const hasta = this.hastaRango;
+    if (!this.desdeControl.value) this.desdeControl.setValue(desde, { emitEvent: false });
+    if (!this.hastaControl.value) this.hastaControl.setValue(hasta, { emitEvent: false });
+  }
+
+  /**
+   * Cambio del «hasta». Material lo vacía (y emite) al empezar a elegir un rango nuevo con el calendario abierto: ahí no
+   * se consulta; al elegir el fin, llega otro cambio con fecha.
+   */
+  onHastaChange() {
+    if (!this.hastaControl.value) return;
+    this.aplicarFiltros();
   }
 
   recargar() {
+    this.buscandoNumero = /^\d+$/.test((this.textoControl.value || '').trim());
+    // Un foco de día escondería el cheque buscado, que puede ser de cualquier fecha.
+    if (this.buscandoNumero && this.focoDesdeControl.value) this.limpiarFoco();
+    this.completarRango();
     this.cargarSaldos();
     this.cargarLista();
     this.cargarResumen();
@@ -215,17 +287,26 @@ export class ChequesDashboardComponent implements OnInit {
 
   /** Lo que la lista y el resumen mandan al central. */
   private filtroActual() {
+    // Con un Nº, por emisión: nunca es nula (por pago o cobro, un cheque sin esa fecha quedaría afuera).
+    this.tipoFechaConsulta = this.buscandoNumero ? 'EMISION' : this.tipoFechaSel;
     return {
-      desde: this.desdeStr, hasta: this.hastaStr,
+      desde: this.buscandoNumero ? DESDE_SIN_TOPE : this.desdeStr,
+      hasta: this.buscandoNumero ? HASTA_SIN_TOPE : this.hastaStr,
       chequeraId: this.chequeraSel || undefined,
-      tipoFecha: this.tipoFechaSel,
-      estados: ESTADOS_DE_FILTRO[this.estadoSel],
+      tipoFecha: this.tipoFechaConsulta,
+      estados: ESTADOS_DE_FILTRO[this.estadoConsulta],
       texto: this.textoControl.value || null,
     };
   }
 
+  /** El estado que se consulta: con un Nº, todos (incluso si la vista es la de inutilizados). */
+  private get estadoConsulta(): FiltroEstado {
+    return this.buscandoNumero ? 'TODOS' : this.estadoSel;
+  }
+
   onChequeraChange(v: number | null) {
     this.chequeraSel = v;
+    this.completarRango();
     this.cargarLista();
     this.cargarResumen();
   }
@@ -259,7 +340,7 @@ export class ChequesDashboardComponent implements OnInit {
   cargarLista() {
     this.isLoading = true;
     const n = ++this.seq.lista;
-    if (this.estadoSel === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
+    if (this.estadoConsulta === 'INUTILIZADOS') { this.cargarInutilizados(n); return; }
     this.chequeService.onGetChequesDashboard(this.filtroActual()).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         if (n !== this.seq.lista) return;
@@ -279,10 +360,10 @@ export class ChequesDashboardComponent implements OnInit {
   cargarResumen() {
     const n = ++this.seq.resumen;
     // Un número inutilizado no tiene monto: el KPI no suma nada.
-    if (this.estadoSel === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
+    if (this.estadoConsulta === 'INUTILIZADOS') { this.resumen = []; this.recalcularKpi(); return; }
     // El KPI suma plata comprometida: con «Todos» no cuenta los anulados (sí se ven en la lista, atenuados).
     const filtro = this.filtroActual();
-    if (this.estadoSel === 'TODOS') {
+    if (filtro.estados.length === 0) {
       filtro.estados = [EstadoCheque.DIFERIDO, EstadoCheque.EMITIDO, EstadoCheque.COBRADO];
     }
     this.chequeService.onGetResumenPorDia(filtro).pipe(untilDestroyed(this)).subscribe({
@@ -318,12 +399,16 @@ export class ChequesDashboardComponent implements OnInit {
     // Apollo congela los resultados (dev): clonar antes de agregar props de display,
     // si no, asignar sobre el objeto congelado lanza TypeError en modo estricto.
     const row = { ...c } as ChequeRow;
-    const libre = !this.chequesEnCurso.has(c.id);
+    const libre = !this.chequesEnCurso.has(c.id) && !(c.pagoId && this.pagosEnCurso.has(c.pagoId));
     const pendiente = c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO;
     row._cobrable = libre && this.puedeGestionar && pendiente;
     // Un cheque de un pago se anula anulando el pago (el central también lo rechaza).
-    row._motivoNoAnulable = c.pagoId ? `Es del pago #${c.pagoId}: anulá el pago desde la caja mayor.` : null;
     row._anulable = libre && this.puedeGestionar && pendiente && !c.pagoId;
+    // Un cheque de un pago se anula anulando el pago (#601), ahora también desde acá (#809).
+    row._anularPago = libre && this.puedeAnularPago && !!c.pagoId && c.estado !== EstadoCheque.ANULADO;
+    row._motivoNoAnulable = c.pagoId && !row._anularPago && libre && c.estado !== EstadoCheque.ANULADO
+      ? `Es del pago #${c.pagoId}: lo anula tesorería.` : null;
+    row._comprobanteAnulacion = c.estado === EstadoCheque.ANULADO && !!c.id;
     row._beneficiario = c.beneficiario || c.proveedor?.persona?.nombre || '';
     row._origenLabel = c.pagoId ? `Pago #${c.pagoId}` : 'Manual';
     row._usuario = c.usuario?.persona?.nombre || '';
@@ -381,7 +466,7 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   private recalcularKpi() {
-    const verbo = this.tipoFechaSel === 'EMISION' ? 'Emitido' : (this.tipoFechaSel === 'COBRO' ? 'Cobrado' : 'A pagar');
+    const verbo = this.tipoFechaConsulta === 'EMISION' ? 'Emitido' : (this.tipoFechaConsulta === 'COBRO' ? 'Cobrado' : 'A pagar');
     const d = this.focoDesdeStr;
     if (d) {
       const h = this.focoHastaStr;
@@ -410,7 +495,7 @@ export class ChequesDashboardComponent implements OnInit {
 
   /** La fecha de la fila que corresponde al tipo de fecha filtrado. */
   private fechaDelFiltro(r: ChequeRow): any {
-    return this.tipoFechaSel === 'EMISION' ? r._fechaEmision : (this.tipoFechaSel === 'COBRO' ? r.fechaCobro : r.fechaPago);
+    return this.tipoFechaConsulta === 'EMISION' ? r._fechaEmision : (this.tipoFechaConsulta === 'COBRO' ? r.fechaCobro : r.fechaPago);
   }
 
   private diaDe(fecha: any): string | null {
@@ -448,22 +533,21 @@ export class ChequesDashboardComponent implements OnInit {
     });
   }
 
-  /** Anula pidiendo el motivo (desk #708: antes iba fijo «Anulado desde dashboard»). */
+  /** Anula con el motivo de la lista y la observación (#807; antes texto libre, desk #708). */
   onAnular(cheque: ChequeRow) {
     if (!cheque?.id) return;
-    const data: MotivoDialogData = {
-      titulo: 'Anular cheque',
-      mensaje: 'Nº ' + (cheque.numero || '') + ' · ' + (cheque._monedaSimbolo || '') + ' '
-        + (cheque.total || 0).toLocaleString('es-PY') + (cheque._beneficiario ? ' · ' + cheque._beneficiario : ''),
-      detalle: 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.',
-      etiqueta: 'Motivo de la anulación',
-      botonConfirmar: 'Anular',
-    };
-    this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed()
-      .pipe(untilDestroyed(this)).subscribe((motivo: string | null) => {
-        if (!motivo) return;
-        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, motivo), 'Cheque anulado');
+    const fila = { ...cheque, beneficiario: cheque._beneficiario || cheque.beneficiario } as Cheque;
+    this.chequeAnulacion.pedirMotivo([fila], 'Se libera lo reservado en la cuenta: el cheque deja de estar pendiente.')
+      .pipe(untilDestroyed(this)).subscribe(anulacion => {
+        if (!anulacion) return;
+        this.ejecutar(cheque.id, this.chequeService.onAnular(cheque.id, null, anulacion).pipe(
+          tap(r => { if (r) this.chequeAnulacion.imprimirComprobantes([r]); })), 'Cheque anulado');
       });
+  }
+
+  /** Reimprime el comprobante térmico de un cheque anulado (#807). */
+  onImprimirComprobante(cheque: ChequeRow) {
+    if (cheque?.id) this.chequeAnulacion.imprimirComprobantes([cheque]);
   }
 
   /** Detalle del cheque; si salió de un pago, el desglose del pago. */
@@ -487,7 +571,11 @@ export class ChequesDashboardComponent implements OnInit {
         { etiqueta: 'Estado', valor: this.estadoLabels[cheque.estado] || String(cheque.estado || '') },
         { etiqueta: 'Concepto', valor: cheque.concepto || '—' },
         { etiqueta: 'Usuario', valor: cheque._usuario || '—' },
-        ...(cheque.motivoAnulacion ? [{ etiqueta: 'Motivo de anulación', valor: cheque.motivoAnulacion }] : []),
+        // Con el motivo de la lista (#807) se muestra su etiqueta; los anulados antes, el texto que se guardaba.
+        ...(cheque.motivoAnulacionTipo || cheque.motivoAnulacion ? [{ etiqueta: 'Motivo de anulación',
+          valor: MOTIVOS_ANULACION_CHEQUE.find(m => m.value === cheque.motivoAnulacionTipo)?.label || cheque.motivoAnulacion }] : []),
+        ...(cheque.observacionAnulacion ? [{ etiqueta: 'Observación de la anulación', valor: cheque.observacionAnulacion }] : []),
+        ...(cheque.fechaAnulacion ? [{ etiqueta: 'Anulado el', valor: dateToString(new Date(cheque.fechaAnulacion), 'dd/MM/yyyy HH:mm') }] : []),
       ],
     };
     this.dialog.open(DetalleMovimientoDialogComponent, { width: '520px', maxWidth: '95vw', maxHeight: '80vh', data });
@@ -496,7 +584,10 @@ export class ChequesDashboardComponent implements OnInit {
   /** Exporta la lista filtrada (la que se ve) a Excel. */
   onExportar() {
     const f = (d: any) => d ? dateToString(new Date(d), 'dd/MM/yyyy') : '';
-    const filas = this.dataSource.data.map(c => [
+    // En el orden que se ve en la tabla.
+    const visibles = this.dataSource.sort ? this.dataSource.sortData(this.dataSource.data.slice(), this.dataSource.sort)
+      : this.dataSource.data;
+    const filas = visibles.map(c => [
       c.numero, c._chequeraNombre, c._cuentaLabel, c._beneficiario, c.concepto || '', c._origenLabel,
       f(c._fechaEmision), f(c.fechaPago), f(c.fechaCobro), this.estadoLabels[c.estado] || c.estado, c._usuario,
       c._monedaSimbolo, c.total,
@@ -504,6 +595,88 @@ export class ChequesDashboardComponent implements OnInit {
     const encabezado = ['Nº', 'Chequera', 'Cuenta', 'Beneficiario', 'Concepto', 'Origen', 'Emisión', 'Pago', 'Cobro',
       'Estado', 'Usuario', 'Moneda', 'Monto'];
     this.crearExcel.onCreateAndExport(encabezado, filas, 'Cheques ' + dateToString(new Date(), 'dd-MM-yyyy'));
+  }
+
+  /**
+   * Anula el pago completo del cheque (#809): para un pago hecho solo con cheques diferidos es la única puerta, porque no
+   * tiene fila de caja ni de banco. Mismo flujo que la fila de banco: motivo del pago, motivo de la lista de sus cheques,
+   * anulación y comprobantes. Todo el pago queda bloqueado desde el primer clic: sus otras filas no abren otra anulación.
+   */
+  onAnularPago(cheque: ChequeRow) {
+    const pagoId = cheque?.pagoId;
+    if (!pagoId || this.pagosEnCurso.has(pagoId)) return;
+    this.pagosEnCurso.add(pagoId);
+    this.refrescarFilas();
+    const soltarSinAnular = () => { this.pagosEnCurso.delete(pagoId); this.refrescarFilas(); };
+    this.chequeAnulacion.detallePago(pagoId).pipe(
+      take(1),
+      catchError(() => of(null)),
+      switchMap(detalle => {
+        const data: MotivoDialogData = {
+          titulo: 'Anular el pago #' + pagoId,
+          mensaje: '¿Por qué se anula este pago?',
+          detalle: this.avisoAnularPago(detalle),
+          botonConfirmar: 'Sí, anular',
+        };
+        return this.dialog.open(MotivoDialogComponent, { data, width: '560px', maxWidth: '95vw' }).afterClosed();
+      }),
+      switchMap((motivo: string | null) => !motivo ? of(null)
+        : this.chequeAnulacion.motivoParaChequesDe({ pagoId }, 'Se anulan con el pago #' + pagoId + '.')
+          .pipe(map(cheques => cheques ? { motivo, cheques } : null))),
+      take(1),
+      untilDestroyed(this),
+    ).subscribe({
+      next: r => r ? this.ejecutarAnulacionPago(pagoId, r.motivo, r.cheques) : soltarSinAnular(),
+      error: () => soltarSinAnular(),
+    });
+  }
+
+  /** Qué se reabre al anular el pago, según `detalleDePago`. Sin el detalle, el aviso genérico. */
+  private avisoAnularPago(detalle: any[] | null): string {
+    const base = 'Se anula el pago completo: todos sus movimientos de caja y de banco, y sus cheques.';
+    if (!detalle?.length) return base + ' Los documentos que pagó vuelven a quedar pendientes de pago.';
+    const docs = detalle.map(d => d.descripcion || ('Solicitud #' + d.solicitudPagoId));
+    let aviso = base + ' Vuelven a quedar pendientes de pago: ' + docs.join('; ') + '.';
+    if (detalle.some(d => d.tipo === 'RRHH')) {
+      aviso += ' Una liquidación o un finiquito vuelve a quedar aprobado, sin pagar (el funcionario sigue de baja):'
+        + ' para anularlo, hacerlo desde RRHH.';
+    }
+    return aviso;
+  }
+
+  private ejecutarAnulacionPago(pagoId: number, motivo: string, motivoCheques: { anulacion: any; cheques: Cheque[] }) {
+    const terminar = () => { this.pagosEnCurso.delete(pagoId); this.recargar(); };
+    this.chequeAnulacion.anularPago(pagoId, motivo, motivoCheques.anulacion).pipe(untilDestroyed(this)).subscribe({
+      next: r => {
+        if (r != null) {
+          this.notificacion.notification$.next({ texto: 'Pago #' + pagoId + ' anulado', color: NotificacionColor.success, duracion: 3 });
+          // Los cheques que se anularon son los que se leyeron antes: el resultado es el Pago, no los cheques.
+          this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
+        } else {
+          this.avisarSinConfirmar();
+        }
+        terminar();
+      },
+      error: err => {
+        const rechazo = erroresDeRechazo(err);
+        if (rechazo) {
+          this.notificacion.notification$.next({
+            texto: rechazo[0]?.message || err?.message || 'No se pudo anular el pago', color: NotificacionColor.warn, duracion: 5 });
+          terminar();
+          return;
+        }
+        // Sin respuesta: el central puede seguir aplicándola. Releer al instante mostraría el pago vivo y se podría
+        // reintentar a mitad de la transacción; se espera como el resto de la app, con el pago bloqueado.
+        if (!esTimeoutDeLink(err)) this.avisarSinConfirmar();
+        timer(RECARGA_TRAS_CORTE_MS).pipe(untilDestroyed(this)).subscribe(terminar);
+      },
+    });
+  }
+
+  /** Recalcula las acciones de las filas (bloqueo de un pago en curso) sin volver a leer; la tabla sale de chequesFull. */
+  private refrescarFilas() {
+    this.chequesFull = (this.chequesFull || []).map(r => r._inutilizado ? r : this.toRow(r));
+    this.aplicarFocoALista();
   }
 
   /**

@@ -111,6 +111,7 @@ import { GestionarAccesosCajaDialogComponent } from './caja-virtual/gestionar-ac
 import { SucursalesDeCajaDialogComponent } from './caja-virtual/sucursales-de-caja-dialog/sucursales-de-caja-dialog.component';
 import { AjustarSaldoCuentaDialogComponent } from './cuenta-bancaria/ajustar-saldo-cuenta-dialog/ajustar-saldo-cuenta-dialog.component';
 import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
+import { AnularChequeDialogComponent } from './cheque/anular-cheque-dialog/anular-cheque-dialog.component';
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
 import { GestionarChequerasDialogComponent } from './chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
@@ -224,6 +225,7 @@ import { LectorTecladoDirective } from '../../shared/lector-teclado/lector-tecla
     SucursalesDeCajaDialogComponent,
     AjustarSaldoCuentaDialogComponent,
     ChequesDashboardComponent,
+    AnularChequeDialogComponent,
     EmitirChequeDialogComponent,
     EditChequeraDialogComponent,
     GestionarChequerasDialogComponent,

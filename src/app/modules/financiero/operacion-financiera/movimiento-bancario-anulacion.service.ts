@@ -11,6 +11,7 @@ import { PagarComprasService } from '../caja-virtual/pagar-compras-dialog/pagar-
 import { AccionAnularMovimientoBancario } from './movimiento-bancario-anulacion';
 import { MovimientoBancario } from './operacion-financiera.model';
 import { OperacionFinancieraService } from './operacion-financiera.service';
+import { ChequeAnulacionService, MotivoCheques } from '../cheque/cheque-anulacion.service';
 
 const SIN_CONFIRMAR = 'No se pudo confirmar la anulación: se vuelve a leer para verificarla.';
 
@@ -29,6 +30,7 @@ export class MovimientoBancarioAnulacionService {
     private notificacion: NotificacionSnackbarService,
     private pagarComprasService: PagarComprasService,
     private operacionFinancieraService: OperacionFinancieraService,
+    private chequeAnulacion: ChequeAnulacionService,
   ) { }
 
   /**
@@ -47,20 +49,27 @@ export class MovimientoBancarioAnulacionService {
       detalle: accion.aviso,
       botonConfirmar: 'Sí, anular',
     };
+    const esPago = accion.via === 'PAGO';
     return this.dialog.open(MotivoDialogComponent, { data, width: '520px', maxWidth: '95vw' }).afterClosed().pipe(
       take(1),
-      switchMap((motivo: string | null) => motivo ? this.ejecutar(mov, accion, motivo) : of(false)),
+      // Los cheques del pago se anulan con él: su motivo de la lista va aparte (#807). null = no se anula nada.
+      switchMap((motivo: string | null) => !motivo ? of(null)
+        : !esPago ? of({ motivo, cheques: { anulacion: null, cheques: [] } as MotivoCheques })
+          : this.chequeAnulacion.motivoParaChequesDe({ pagoId: mov.pagoId }, 'Se anulan con el pago #' + mov.pagoId + '.')
+            .pipe(map(cheques => cheques ? { motivo, cheques } : null))),
+      switchMap(r => r ? this.ejecutar(mov, accion, r.motivo, r.cheques) : of(false)),
       defaultIfEmpty(false),
     );
   }
 
-  private ejecutar(mov: MovimientoBancario, accion: AccionAnularMovimientoBancario, motivo: string): Observable<boolean> {
+  private ejecutar(mov: MovimientoBancario, accion: AccionAnularMovimientoBancario, motivo: string,
+                   motivoCheques: MotivoCheques): Observable<boolean> {
     const esPago = accion.via === 'PAGO';
     // La anulación del pago va por Apollo directo: no abre el «Guardando…» ni avisa su error.
     // La de la operación va por onSaveCustom, que hace las dos cosas.
     const requestId = esPago ? this.cargandoService.openDialog(false, 'Anulando...').requestId : null;
     const llamada: Observable<any> = esPago
-      ? this.pagarComprasService.onAnularPago(mov.pagoId, motivo)
+      ? this.pagarComprasService.onAnularPago(mov.pagoId, motivo, motivoCheques.anulacion)
       : this.operacionFinancieraService.onAnular(mov.origenId, motivo, { avisarExito: false });
     return llamada.pipe(
       take(1),
@@ -69,6 +78,7 @@ export class MovimientoBancarioAnulacionService {
       tap(anulado => {
         if (anulado) {
           this.avisar(esPago ? 'Pago anulado' : 'Operación financiera anulada', NotificacionColor.success, 3);
+          this.chequeAnulacion.imprimirComprobantes(motivoCheques.cheques);
         } else {
           // Ni error ni resultado: no se sabe si se anuló.
           this.avisar(SIN_CONFIRMAR, NotificacionColor.warn, 6);
