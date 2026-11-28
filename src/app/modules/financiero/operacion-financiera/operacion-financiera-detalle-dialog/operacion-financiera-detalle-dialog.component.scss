@@ -2,6 +2,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  // Mismo aire contra el borde que «Cerrar» abajo (.of-actions: 16px).
+  padding-top: 16px;
   mat-icon { opacity: 0.8; }
   .of-estado {
     margin-left: auto;
