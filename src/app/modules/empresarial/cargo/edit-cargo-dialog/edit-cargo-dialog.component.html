@@ -3,21 +3,21 @@
   <div class="subtitulo-dialog" *ngIf="selectedCargo.id">{{ selectedCargo.nombre }}</div>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Nombre</mat-label>
       <input matInput [formControl]="nombreControl" required />
       <mat-error *ngIf="nombreControl.hasError('required')">El nombre es obligatorio</mat-error>
     </mat-form-field>
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Descripción</mat-label>
       <input matInput [formControl]="descripcionControl" />
     </mat-form-field>
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Sueldo base</mat-label>
       <input matInput type="number" [formControl]="sueldoBaseControl" />
       <mat-hint>Referencia del cargo; el sueldo real vive en el legajo del funcionario</mat-hint>
     </mat-form-field>
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Depende de</mat-label>
       <input matInput readonly placeholder="Ninguno" [value]="supervisadoPorControl.value?.nombre || ''"
         (click)="onBuscarSupervisor()" (keyup.enter)="onBuscarSupervisor()" [style.cursor]="isEditting ? 'pointer' : null" />

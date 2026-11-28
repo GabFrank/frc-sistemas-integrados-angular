@@ -4,8 +4,7 @@ import { ConfiguracionService } from '../configuracion.service';
 
 @Component({
   selector: 'app-solicitar-recursos-dialog',
-  templateUrl: './solicitar-recursos-dialog.component.html',
-  styleUrls: ['./solicitar-recursos-dialog.component.scss']
+  templateUrl: './solicitar-recursos-dialog.component.html'
 })
 export class SolicitarRecursosDialogComponent implements OnInit {
 

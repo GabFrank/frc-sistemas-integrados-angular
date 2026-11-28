@@ -27,7 +27,7 @@
     si corresponde que los vuelva a cobrar, hay que cargarlos de nuevo desde la pantalla de Bonos.
   </p>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Crédito a restaurar</mat-label>
     <input matInput type="number" [formControl]="creditoControl" required />
     <mat-hint *ngIf="haySnapshot">Es el valor que tenía antes del egreso. Se puede cambiar.</mat-hint>
@@ -36,7 +36,7 @@
     <mat-error *ngIf="creditoControl.hasError('min')">No puede ser negativo</mat-error>
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Motivo de la reversión</mat-label>
     <input matInput [formControl]="motivoControl" required />
     <mat-error *ngIf="motivoControl.hasError('required')">Ingrese el motivo</mat-error>

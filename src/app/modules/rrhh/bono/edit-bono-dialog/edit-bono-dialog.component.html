@@ -39,14 +39,14 @@
       <mat-slide-toggle [formControl]="esRecurrenteControl">Recurrente</mat-slide-toggle>
     </div>
 
-    <mat-form-field style="width: 100%" *ngIf="esRecurrenteControl.value">
+    <mat-form-field class="ancho-100" *ngIf="esRecurrenteControl.value">
       <mat-label>Frecuencia</mat-label>
       <mat-select [formControl]="frecuenciaControl">
         <mat-option *ngFor="let fr of frecuenciaOptions" [value]="fr">{{ fr }}</mat-option>
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Motivo</mat-label>
       <input matInput [formControl]="motivoControl" />
     </mat-form-field>

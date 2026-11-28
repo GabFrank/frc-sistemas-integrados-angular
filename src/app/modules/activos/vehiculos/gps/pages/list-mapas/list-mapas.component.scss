@@ -9,13 +9,13 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    background-color: #1e1e1e;
+    background-color: var(--frc-franja);
 }
 
 .header-controls {
     padding: 10px 20px;
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #333;
+    background-color: var(--frc-superficie);
+    border-bottom: 1px solid var(--frc-borde);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -28,7 +28,7 @@
 .search-wrapper {
     display: flex;
     align-items: center;
-    background-color: #383838;
+    background-color: var(--frc-paginador);
     border-radius: 4px;
     padding: 0 10px;
     flex: 1;
@@ -108,7 +108,7 @@
 
 .last-update {
     font-size: 11px;
-    color: #9e9e9e;
+    color: var(--frc-dash-texto-2);
     white-space: nowrap;
 }
 
@@ -129,7 +129,7 @@
 .map-wrapper {
     flex: 1;
     position: relative;
-    background-color: #222;
+    background-color: var(--frc-superficie-baja);
     overflow: hidden;
     min-height: 0;
 }
@@ -143,22 +143,6 @@
     width: 100%;
     height: 100%;
     z-index: 1;
-}
-
-::ng-deep .mat-mdc-select-panel {
-    background: #2d2d2d;
-
-    .mat-mdc-option {
-        color: #e0e0e0;
-
-        &:hover {
-            background-color: #383838;
-        }
-
-        &.mat-mdc-option-active {
-            background-color: #383838;
-        }
-    }
 }
 
 ::ng-deep .leaflet-popup-content-wrapper {
@@ -176,7 +160,7 @@
     padding: 8px 20px;
     background: rgba(251, 146, 60, 0.12);
     border-bottom: 1px solid rgba(251, 146, 60, 0.35);
-    color: #fdba74;
+    color: var(--frc-aviso-texto);
     font-size: 14px;
     flex-shrink: 0;
 

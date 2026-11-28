@@ -6,10 +6,10 @@
     <span>Salario actual: <b>{{ (data.salarioActual | number:'1.0-2') || '—' }}</b></span>
   </div>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>{{ data.cargoActualId != null ? 'Nuevo cargo' : 'Cargo' }}</mat-label>
     <input matInput readonly required [formControl]="cargoNombreControl" (click)="onBuscarCargo()"
-      (keyup.enter)="onBuscarCargo()" style="cursor: pointer" />
+      (keyup.enter)="onBuscarCargo()" class="puntero" />
     <button mat-icon-button matSuffix type="button" matTooltip="Buscar cargo" (click)="onBuscarCargo()">
       <mat-icon>search</mat-icon>
     </button>
@@ -21,21 +21,21 @@
     Actualizar salario a {{ cargoSeleccionadoSueldo | number:'1.0-2' }} (sueldo base del cargo)
   </mat-checkbox>
 
-  <mat-form-field *ngIf="cargoSeleccionadoSueldo != null && actualizarSalarioControl.value" style="width: 100%">
+  <mat-form-field *ngIf="cargoSeleccionadoSueldo != null && actualizarSalarioControl.value" class="ancho-100">
     <mat-label>Moneda del salario</mat-label>
     <mat-select [formControl]="monedaControl">
       <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Fecha de vigencia</mat-label>
     <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
     <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
     <mat-datepicker #picker></mat-datepicker>
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Motivo</mat-label>
     <input matInput [formControl]="motivoControl" />
   </mat-form-field>

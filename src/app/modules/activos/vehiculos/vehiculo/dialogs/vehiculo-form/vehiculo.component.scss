@@ -1,17 +1,12 @@
 @import 'src/styles.scss';
 
-.form-container {
-    background-color: #0f0f0f;
-    color: #e0e0e0;
-}
-
 .titulo {
-    color: white !important;
+    color: var(--frc-texto-fuerte) !important;
 }
 
 .sub-descripcion {
     font-size: 11px;
-    color: #ababab;
+    color: var(--frc-texto-terciario);
 }
 
 .icon-circle {
@@ -33,7 +28,7 @@
         }
         
         &.icon-new {
-            color: white !important; // Blanco para nuevo
+            color: var(--frc-texto-fuerte) !important; // Blanco para nuevo
         }
     }
 }
@@ -49,11 +44,11 @@
         }
 
         .mat-mdc-form-field-infix {
-            color: white !important;
+            color: var(--frc-texto-fuerte) !important;
         }
 
         .mat-mdc-form-field-label {
-            color: #ababab !important;
+            color: var(--frc-texto-terciario) !important;
         }
 
         .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
@@ -61,18 +56,18 @@
         }
 
         input {
-            color: white !important;
+            color: var(--frc-texto-fuerte) !important;
             text-transform: uppercase;
         }
 
         .white-icon {
             .mat-datepicker-toggle-default-icon {
-                color: white !important;
+                color: var(--frc-texto-fuerte) !important;
             }
             
             .mat-icon-button {
                 .mat-icon {
-                    color: white !important;
+                    color: var(--frc-texto-fuerte) !important;
                 }
             }
         }
@@ -80,14 +75,14 @@
         .mat-datepicker-toggle {
             .mat-icon-button {
                 .mat-icon {
-                    color: white !important;
+                    color: var(--frc-texto-fuerte) !important;
                 }
             }
         }
         
         .search-icon-btn {
             .mat-icon {
-                color: white !important;
+                color: var(--frc-texto-fuerte) !important;
             }
         }
     }

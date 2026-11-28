@@ -13,8 +13,7 @@ export interface AdicionarRoleData {
 @UntilDestroy()
 @Component({
   selector: 'app-adicionar-role-dialog',
-  templateUrl: './adicionar-role-dialog.component.html',
-  styleUrls: ['./adicionar-role-dialog.component.scss']
+  templateUrl: './adicionar-role-dialog.component.html'
 })
 export class AdicionarRoleDialogComponent implements OnInit {
 

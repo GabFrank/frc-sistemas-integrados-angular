@@ -9,38 +9,38 @@
   [isLastPage]="isLastPage"
 >
   <div filtros></div>
-  <div table fxLayout="column" style="overflow: hidden;">
-    <div fxFlex="90%" style="overflow: auto;">
+  <div table fxLayout="column" class="desborde-oculto">
+    <div fxFlex="90%" class="desborde-auto">
       <table
         mat-table
         [dataSource]="dataSource"
         multiTemplateDataRows
-        class="mat-elevation-z8"
-        style="width: 100%; overflow-y: hidden"
+        class="mat-elevation-z8 ancho-100"
+        style="overflow-y: hidden"
       >
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          <th mat-header-cell *matHeaderCellDef class="texto-centro">
             Id
           </th>
-          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+          <td mat-cell *matCellDef="let preRegistro" class="texto-centro">
             {{ preRegistro?.id }}
           </td>
         </ng-container>
         <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          <th mat-header-cell *matHeaderCellDef class="texto-centro">
             Nombre
           </th>
-          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+          <td mat-cell *matCellDef="let preRegistro" class="texto-centro">
             {{ preRegistro?.nombreCompleto | titlecase }}
           </td>
         </ng-container>
 
         <!-- Name Column -->
         <ng-container matColumnDef="apodo">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          <th mat-header-cell *matHeaderCellDef class="texto-centro">
             Apodo
           </th>
-          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+          <td mat-cell *matCellDef="let preRegistro" class="texto-centro">
             {{ preRegistro?.apodo | titlecase }}
           </td>
         </ng-container>
@@ -49,14 +49,14 @@
           <th
             mat-header-cell
             *matHeaderCellDef
-            style="text-align: center; width: 20%"
+            class="texto-centro ancho-20"
           >
             Sucursal
           </th>
           <td
             mat-cell
             *matCellDef="let preRegistro"
-            style="text-align: center; width: 20%"
+            class="texto-centro ancho-20"
           >
             {{ preRegistro?.sucursal | titlecase }}
           </td>
@@ -66,14 +66,14 @@
           <th
             mat-header-cell
             *matHeaderCellDef
-            style="text-align: center; width: 15%"
+            class="texto-centro ancho-15"
           >
             Fecha creación
           </th>
           <td
             mat-cell
             *matCellDef="let preRegistro"
-            style="text-align: center; width: 15%"
+            class="texto-centro ancho-15"
           >
             {{ preRegistro?.creadoEn | date: "short" }}
           </td>
@@ -83,14 +83,14 @@
           <th
             mat-header-cell
             *matHeaderCellDef
-            style="text-align: center; width: 15%"
+            class="texto-centro ancho-15"
           >
             Verificado
           </th>
           <td
             mat-cell
             *matCellDef="let preRegistro"
-            style="text-align: center; width: 15%"
+            class="texto-centro ancho-15"
           >
             {{ preRegistro?.verificado ? "Si" : "No" }}
           </td>
@@ -100,14 +100,14 @@
           <th
             mat-header-cell
             *matHeaderCellDef
-            style="width: 5%; text-align: center"
+            class="ancho-5 texto-centro"
           >
             ...
           </th>
           <td
             mat-cell
             *matCellDef="let preRegistro; let i = index"
-            style="text-align: center; width: 5%"
+            class="texto-centro ancho-5"
           >
             <button
               mat-icon-button
@@ -156,11 +156,10 @@
             class="expanded"
           >
             <div
-              class="example-preRegistro-detail"
+              class="example-preRegistro-detail texto-centro"
               [@detailExpand]="
                 preRegistro == expandedPreRegistro ? 'expanded' : 'collapsed'
               "
-              style="text-align: center"
               fxLayout="column"
               fxLayoutAlign="start start"
             ></div>

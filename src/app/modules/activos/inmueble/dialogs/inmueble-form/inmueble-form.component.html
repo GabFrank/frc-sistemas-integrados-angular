@@ -110,7 +110,7 @@
 
                     <div *ngIf="(situacionPago$ | async) === 'PAGADO' || (situacionPago$ | async) === 'PAGANDO'"
                         fxLayout="column" fxLayoutGap="15px"
-                        style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                        style="background: rgba(var(--frc-tinta), 0.05); padding: 15px; border-radius: 8px;">
 
                         <div fxLayout="row" fxLayoutGap="20px">
                             <mat-form-field fxFlex="70">

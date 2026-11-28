@@ -16,14 +16,14 @@
     <b>los bonos no</b>: hay que volver a cargarlos a mano.
   </div>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Fecha de egreso</mat-label>
     <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
     <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
     <mat-datepicker #picker></mat-datepicker>
   </mat-form-field>
 
-  <mat-form-field style="width: 100%">
+  <mat-form-field class="ancho-100">
     <mat-label>Motivo</mat-label>
     <input matInput [formControl]="motivoControl" required />
     <mat-error *ngIf="motivoControl.hasError('required')">Ingrese el motivo</mat-error>
@@ -35,7 +35,7 @@
       Para confirmar, escribí el nombre completo del funcionario:
     </span>
     <span class="gate-nombre">{{ nombreEsperado }}</span>
-    <mat-form-field style="width: 100%">
+    <mat-form-field class="ancho-100">
       <mat-label>Nombre completo</mat-label>
       <input matInput [formControl]="confirmacionControl" autocomplete="off" />
       <mat-icon matSuffix class="gate-ok" *ngIf="puedeEgresar">check_circle</mat-icon>

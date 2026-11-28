@@ -136,7 +136,7 @@ export class VehiculoDialogService {
     if (dialogRef) {
       dialogRef.close(refrescar ? true : undefined);
     } else {
-      // Abierto en pestaña (desde el pre-registro): nadie escucha el cierre, se refresca acá
+      // Abierto en pestaña: nadie escucha el cierre, se refresca acá
       if (refrescar) this.vehiculoService.refrescar();
       this.tabService.removeTab(this.tabService.currentIndex);
     }
