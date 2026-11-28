@@ -54,7 +54,7 @@
     <!-- Anulación: quién, cuándo y por qué (sin el dato, queda solo el «Anulada» del título) -->
     <div class="of-anulacion" *ngIf="op.anulado && (anuladaPor || anuladaEn || motivoAnulacion)">
       <mat-icon>block</mat-icon>
-      <span>Anulada<ng-container *ngIf="anuladaEn"> el <strong>{{ anuladaEn | date:'dd/MM/yyyy HH:mm' }}</strong></ng-container><ng-container *ngIf="anuladaPor"> por <strong>{{ anuladaPor }}</strong></ng-container></span>
+      <span class="of-anulacion-texto">Anulada<ng-container *ngIf="anuladaEn"> el <strong>{{ anuladaEn | date:'dd/MM/yyyy HH:mm' }}</strong></ng-container><ng-container *ngIf="anuladaPor"> por <strong>{{ anuladaPor }}</strong></ng-container></span>
       <span class="of-anulacion-motivo" *ngIf="motivoAnulacion">Motivo: {{ motivoAnulacion }}</span>
     </div>
   </ng-container>

@@ -60,10 +60,13 @@ export class OperacionFinancieraService {
    */
   onGetOperacion(id: number): Observable<OperacionFinanciera> {
     return this.genericService.onCustomQuery(this.operacionDetalleGQL, { id }, true, LECTURA_ESTRICTA, undefined,
-      CONSULTA_OPERACIONES).pipe(catchError(err => Array.isArray(err?.errors)
-        ? this.genericService.onCustomQuery(this.operacionGQL, { id }, true, PROPAGAR_ERROR_DE_RED, undefined,
-            CONSULTA_OPERACIONES)
-        : throwError(() => err)));
+      CONSULTA_OPERACIONES).pipe(catchError(err => {
+        if (!Array.isArray(err?.errors)) return throwError(() => err);
+        // Con un central al día el reintento esconde un error real del detalle: que quede en la consola.
+        console.warn('[OperacionFinanciera] detalle rechazado, se repite sin quién registró/anuló:', err.message);
+        return this.genericService.onCustomQuery(this.operacionGQL, { id }, true, PROPAGAR_ERROR_DE_RED, undefined,
+          CONSULTA_OPERACIONES);
+      }));
   }
 
   onGetCategorias(): Observable<OperacionFinancieraCategoria[]> {

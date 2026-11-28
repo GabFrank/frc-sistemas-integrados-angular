@@ -75,7 +75,9 @@
   padding: 8px 12px;
   border-radius: 8px;
   background: rgba(244, 67, 54, 0.08);
-  mat-icon { color: #ff8a80; font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { color: #ff8a80; font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  // Con un nombre largo, el texto sigue al lado del ícono en vez de bajar a otra línea.
+  .of-anulacion-texto { flex: 1; min-width: 0; }
   .of-anulacion-motivo { width: 100%; font-size: 12px; opacity: 0.7; padding-left: 26px; white-space: pre-line; }
 }
 
