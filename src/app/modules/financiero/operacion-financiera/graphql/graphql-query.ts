@@ -77,6 +77,34 @@ export const operacionFinancieraQuery = gql`
   }
 `;
 
+// El detalle pide además quién la registró y quién la anuló (desk #721). Un central anterior no conoce esos campos y
+// rechaza la consulta entera: el servicio repite con operacionFinancieraQuery.
+export const operacionFinancieraDetalleQuery = gql`
+  query ($id: ID!) {
+    data: operacionFinanciera(id: $id) {
+      ${operacionFinancieraFields}
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      anulacion {
+        motivo
+        fecha
+        usuario {
+          id
+          persona {
+            id
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const operacionFinancieraCategoriasQuery = gql`
   query {
     data: operacionFinancieraCategorias {

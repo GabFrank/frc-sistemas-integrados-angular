@@ -47,7 +47,15 @@
       <div class="of-meta-item" *ngIf="op.categoria?.nombre"><span>Categoría</span><strong>{{ op.categoria?.nombre }}</strong></div>
       <div class="of-meta-item" *ngIf="op.numeroComprobante"><span>Nº comprobante</span><strong>{{ op.numeroComprobante }}</strong></div>
       <div class="of-meta-item"><span>Fecha</span><strong>{{ op.creadoEn | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+      <div class="of-meta-item" *ngIf="registradaPor"><span>Registrada por</span><strong>{{ registradaPor }}</strong></div>
       <div class="of-meta-item" *ngIf="op.descripcion"><span>Descripción</span><strong>{{ op.descripcion }}</strong></div>
+    </div>
+
+    <!-- Anulación: quién, cuándo y por qué (sin el dato, queda solo el «Anulada» del título) -->
+    <div class="of-anulacion" *ngIf="op.anulado && (anuladaPor || anuladaEn || motivoAnulacion)">
+      <mat-icon>block</mat-icon>
+      <span>Anulada<ng-container *ngIf="anuladaEn"> el <strong>{{ anuladaEn | date:'dd/MM/yyyy HH:mm' }}</strong></ng-container><ng-container *ngIf="anuladaPor"> por <strong>{{ anuladaPor }}</strong></ng-container></span>
+      <span class="of-anulacion-motivo" *ngIf="motivoAnulacion">Motivo: {{ motivoAnulacion }}</span>
     </div>
   </ng-container>
 </mat-dialog-content>

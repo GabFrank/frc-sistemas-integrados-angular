@@ -30,6 +30,13 @@ export enum DiferenciaDestinoTipo {
   VALE = 'VALE'
 }
 
+/** Quién, cuándo y por qué se anuló (el central lo lee del contra-movimiento de la anulación). */
+export interface OperacionFinancieraAnulacion {
+  motivo: string;
+  usuario: Usuario;
+  fecha: string;
+}
+
 export class OperacionFinancieraCategoria {
   id: number;
   nombre: string;
@@ -60,6 +67,9 @@ export class OperacionFinanciera {
   diferenciaObservacion: string;
   anulado: boolean;
   creadoEn: Date;
+  /** Solo en el detalle (desk #721); null con un central anterior. */
+  usuario?: Usuario;
+  anulacion?: OperacionFinancieraAnulacion;
   // Calculados en el componente de listado (no son campos del backend) — evita llamar
   // funciones desde el HTML para armar el texto de origen/destino.
   origenLabel?: string;
